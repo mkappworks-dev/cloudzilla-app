@@ -36,6 +36,7 @@ A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob p
 - `GetBlame(owner, repoName, ref, path)` → `*BlameResult`
 - `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
 - `GetCommit(owner, repoName, sha)` → `*CommitDetail`
+- `HighlightDiffs(owner, repoName, files)` — fills `DiffLine.HTML` in place; see [Syntax highlighting](#syntax-highlighting)
 - `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult` — an annotated tag's `Hash` is its tag object's
 - `ListRefsPeeled(owner, repoName, defaultBranch)` → `*RefsResult` — tags' `Hash` peeled to the tagged commit, at an object read per tag; for the refs page, which shows the hashes
 - `SplitRefPath(owner, repoName, refPath)` → `(ref, path)`
@@ -94,3 +95,13 @@ The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticate
 HTMX responses swap `fragment-branches-list` into `#branches-list` and `fragment-tags-list` into `#tags-list`.
 
 The repo home, tree, blob and blame pages share a branch/tag picker (`components.RefPicker`) that lists every ref from `ListRefs`. On tree, blob and blame, each item opens the same path on that ref, so a path missing there 404s; on the repo home, the default branch opens the home page and other refs open their tree. The commits page's ref badge links to `/{owner}/{repo}/refs` (via `RefsURL` on `CommitsData`).
+
+## Syntax highlighting
+
+`internal/highlight` runs Chroma on the server and emits `<span class="hl-<token>">` with no inline colors. `cmd/server/frontend/static/code-themes.css` holds every catalog theme, scoped by `html.dark[data-code-dark="…"]` or `html:not(.dark)[data-code-light="…"]`. The layout writes the viewer's saved pair (Settings → Appearance, `users.code_theme_light/dark`) onto `<html>`, so the site's light/dark toggle switches code themes with no script. Code containers carry the `hl` class for the theme's background.
+
+- **Where:** `GetBlob` and `GetBlame` fill `CodeLine.HTML`/`BlameLine.HTML`; the gist page and `internal/markdown` (fenced blocks in a known language) call `highlight.BlockWithin` against a per-page or per-document `Budget`. Diffs are highlighted only when a page calls `CodeService.HighlightDiffs`: `GetCommit` and `GetPullDiff` also serve post-receive stats and CODEOWNERS, which must not pay for it.
+- **Diffs** highlight both sides' whole blobs and map lines by number, because a hunk can start inside a block comment. A line gets HTML only when the blob's line equals `DiffLine.Content`; anything else renders plain.
+- **Caps:** sources over 512 KiB, calls over 500 ms, and diff pages past 4 MiB / 2 s render plain. Markdown highlighting is capped at 256 KiB / 250 ms per rendered document, and a gist page at 1 MiB / 1 s; fences or files past the cap render plain. The deadline is checked between tokens, and a call also gives up after 1,000 empty tokens in a row (Jungle and JSONata emit them forever on input like `{`). Lexers are picked by filename, plus shell shebang sniffing for extensionless scripts.
+- **Always plain:** Svelte, ERB, PHTML, YAML+Jinja and Go HTML Template, including as Markdown fences or other nested blocks. chroma's delegating lexers tokenise the whole input before returning the first token, so no deadline can stop them (a 256 KiB Svelte file took 4 s). At init, `highlight` replaces every delegating lexer in chroma's global registry with a plain stand-in, because nested lookups (`Using`, `UsingByGroup`, `lexers.Get`) resolve through that registry too. `TestLexers_EveryRegisteredLexerReturnsPromptly` runs every registered lexer over adversarial input; swap in a stand-in for any lexer it catches.
+- **Themes:** the catalog is `highlight.Themes`. After changing it, run `make generate-code-themes`; a test fails while the committed CSS is stale. Stored IDs outside the catalog read back as the defaults (`github` / `github-dark`). `highlight.PlainTheme` (`plain`) is offered in both modes and has no CSS rules, so code keeps the site's own text and background colours. Settings → Appearance picks themes with `components.SelectMenu`, showing `highlight.Swatch` colours beside each name.

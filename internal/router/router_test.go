@@ -122,6 +122,7 @@ func TestLegacyPageRedirects(t *testing.T) {
 		{"/settings/organizations", "/organizations"},
 		{"/settings/security", "/settings#security"},
 		{"/settings/notifications", "/settings#notifications"},
+		{"/settings/appearance", "/settings#appearance"},
 		{"/settings/tokens", "/settings#tokens"},
 		{"/settings/replies", "/settings#saved-replies"},
 		{"/settings/oauth-apps", "/settings#oauth-apps"},
@@ -157,7 +158,7 @@ func TestLegacyPageRedirects(t *testing.T) {
 
 	t.Run("POST routes on moved paths are not shadowed", func(t *testing.T) {
 		routes := mux.(chi.Routes)
-		for _, path := range []string{"/settings/notifications", "/settings/security/setup"} {
+		for _, path := range []string{"/settings/notifications", "/settings/appearance", "/settings/security/setup"} {
 			if !routes.Match(chi.NewRouteContext(), http.MethodPost, path) {
 				t.Errorf("POST %s no longer routed", path)
 			}

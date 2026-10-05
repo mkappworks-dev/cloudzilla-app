@@ -15,6 +15,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/utils/binary"
 	"github.com/go-git/go-git/v5/utils/ioutil"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 )
 
@@ -141,9 +142,13 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 			return nil, err
 		}
 		rawLines := strings.Split(contents, "\n")
+		html := highlight.Lines(path, contents)
 		lines := make([]CodeLine, len(rawLines))
 		for i, text := range rawLines {
 			lines[i] = CodeLine{Num: i + 1, Text: text}
+			if html != nil {
+				lines[i].HTML = html[i]
+			}
 		}
 		result.Lines = lines
 	}

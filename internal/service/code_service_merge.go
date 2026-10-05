@@ -106,6 +106,12 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 			IsNew:    isNew,
 			IsDelete: isDelete,
 		}
+		if from != nil {
+			fd.oldBlob = from.Hash()
+		}
+		if to != nil {
+			fd.newBlob = to.Hash()
+		}
 		if !fp.IsBinary() {
 			fd.Hunks = buildHunks(fp.Chunks())
 			for _, h := range fd.Hunks {

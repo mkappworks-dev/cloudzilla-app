@@ -1,17 +1,21 @@
 package service
 
 import (
+	"html/template"
+	"strings"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 )
 
 // BlameLine represents one annotated line of blame output with commit metadata.
 type BlameLine struct {
 	LineNum    int
 	Text       string
-	Hash       string // short SHA (7 chars)
-	FullHash   string // full SHA, retained for /commit/{sha} links
+	HTML       template.HTML `json:"-"`
+	Hash       string        // short SHA (7 chars)
+	FullHash   string        // full SHA, retained for /commit/{sha} links
 	Author     string
 	AuthorTime time.Time
 	ShowMeta   bool
@@ -58,6 +62,16 @@ func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult,
 			Author:     l.Author,
 			AuthorTime: l.Date,
 			ShowMeta:   showMeta,
+		}
+	}
+
+	texts := make([]string, len(lines))
+	for i, l := range lines {
+		texts[i] = l.Text
+	}
+	if html := highlight.Lines(path, strings.Join(texts, "\n")); html != nil {
+		for i := range lines {
+			lines[i].HTML = html[i]
 		}
 	}
 

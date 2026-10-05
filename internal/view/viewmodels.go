@@ -3,6 +3,7 @@ package view
 import (
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -35,6 +36,24 @@ type BasePage struct {
 	OwnerContext string
 	// SetupPending hides site-wide links: until setup completes, every route but /setup redirects back to it.
 	SetupPending bool
+	// CodeLight and CodeDark are the viewer's code themes; read them through CodeThemeLight/CodeThemeDark.
+	CodeLight string
+	CodeDark  string
+}
+
+// CodeThemeLight falls back to the default for pages built without basePage(), such as setup and error pages.
+func (b BasePage) CodeThemeLight() string {
+	if b.CodeLight == "" {
+		return highlight.DefaultLight
+	}
+	return b.CodeLight
+}
+
+func (b BasePage) CodeThemeDark() string {
+	if b.CodeDark == "" {
+		return highlight.DefaultDark
+	}
+	return b.CodeDark
 }
 
 type OrgEntry struct {

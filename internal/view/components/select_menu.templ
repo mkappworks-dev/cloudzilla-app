@@ -1,0 +1,84 @@
+package components
+
+import "strconv"
+
+type SelectMenuOption struct {
+	Value string
+	Label string
+	// Swatch is a strip of CSS colours drawn before the label.
+	Swatch []string
+}
+
+// SelectMenu is a form select drawn as a popover listbox; its behaviour lives in
+// static/select-menu.js. The value rides in a hidden input that receives inputAttrs
+// and fires a bubbling change event, so forms with hx-trigger="change" still submit.
+// Pair with a <label for={ id }>.
+templ SelectMenu(id, name, label string, options []SelectMenuOption, selected string, inputAttrs templ.Attributes) {
+	<div x-data="selectMenu" class="relative" x-on:click.outside="hide(false)">
+		<input type="hidden" name={ name } value={ selected } x-ref="input" { inputAttrs... }/>
+		<button
+			type="button"
+			id={ id }
+			x-ref="trigger"
+			aria-haspopup="listbox"
+			:aria-expanded="open ? 'true' : 'false'"
+			x-on:click="open ? hide(false) : show()"
+			x-on:keydown.down.prevent="show()"
+			x-on:keydown.up.prevent="show()"
+			class="relative flex h-9 w-full items-center gap-2 rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm text-left shadow-xs"
+		>
+			<span x-ref="current" class="flex min-w-0 items-center gap-2">
+				for _, o := range options {
+					if o.Value == selected {
+						@selectMenuOptionBody(o)
+					}
+				}
+			</span>
+			<svg class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+				<path d="M7 10l5 5 5-5"></path>
+			</svg>
+		</button>
+		<ul
+			x-ref="list"
+			x-show="open"
+			x-cloak
+			role="listbox"
+			tabindex="-1"
+			aria-label={ label }
+			:aria-activedescendant="open && active >= 0 ? optionID(active) : null"
+			x-on:keydown="onKey($event)"
+			class="absolute right-0 top-full mt-1.5 z-50 w-max min-w-full max-h-80 overflow-y-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm focus:outline-hidden"
+		>
+			for i, o := range options {
+				<li
+					id={ id + "-opt-" + strconv.Itoa(i) }
+					role="option"
+					data-value={ o.Value }
+					aria-selected={ strconv.FormatBool(o.Value == selected) }
+					x-on:mousemove={ "active = " + strconv.Itoa(i) }
+					x-on:click={ "choose(" + strconv.Itoa(i) + ")" }
+					:class={ "active === " + strconv.Itoa(i) + " && 'bg-accent text-accent-foreground'" }
+					class="flex items-center gap-2 rounded-sm px-2 py-1.5 cursor-default select-none"
+				>
+					<span data-option-body class="flex min-w-0 items-center gap-2">
+						@selectMenuOptionBody(o)
+					</span>
+					<svg class="ml-auto shrink-0" data-value={ o.Value } :class="value === $el.dataset.value ? '' : 'invisible'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+						<path d="M20 6L9 17l-5-5"></path>
+					</svg>
+				</li>
+			}
+		</ul>
+	</div>
+}
+
+templ selectMenuOptionBody(o SelectMenuOption) {
+	if len(o.Swatch) > 0 {
+		<span class="inline-flex shrink-0 overflow-hidden rounded-xs border border-border" aria-hidden="true">
+			for _, c := range o.Swatch {
+				<span class="h-3.5 w-2" style={ templ.SafeCSS("background-color: " + c) }></span>
+			}
+		</span>
+	}
+	<span class="truncate">{ o.Label }</span>
+}

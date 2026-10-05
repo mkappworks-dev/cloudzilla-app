@@ -671,6 +671,7 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	h.Services.Code.HighlightDiffs(owner, repoName, commit.Files)
 
 	statuses, _ := h.Services.CommitStatus.List(r.Context(), owner, repoName, sha)
 	if statuses == nil {

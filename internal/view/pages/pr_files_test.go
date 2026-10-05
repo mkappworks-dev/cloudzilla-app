@@ -330,3 +330,73 @@ func TestPRFileDiff_AddCommentURLKeepsThePath(t *testing.T) {
 		}
 	}
 }
+
+const (
+	hlCtx = `<span class="hl-k">CTX</span>`
+	hlDel = `<span class="hl-k">DEL</span>`
+	hlAdd = `<span class="hl-k">ADD</span>`
+)
+
+func highlightedModifiedFile() service.FileDiff {
+	f := modifiedFile("app.go")
+	f.Hunks[0].Lines[0].HTML = hlCtx
+	f.Hunks[0].Lines[1].HTML = hlDel
+	f.Hunks[0].Lines[2].HTML = hlAdd
+	return f
+}
+
+func requireContains(t *testing.T, out string, wants ...string) {
+	t.Helper()
+	for _, want := range wants {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestPRFileDiff_HighlightedLinesKeepOnlyTheMarkerColor(t *testing.T) {
+	out := renderHTML(t, prFileDiff(filesData(nil), highlightedModifiedFile()))
+	requireContains(t, out,
+		`whitespace-pre"><span class="text-destructive">-</span>`+hlDel+`</td>`,
+		`whitespace-pre"><span class="text-success">+</span>`+hlAdd+`</td>`,
+		`whitespace-pre text-foreground/85"> func main() {}</td>`,
+	)
+}
+
+func TestPRFileDiff_PlainLinesKeepTheWholeLineColor(t *testing.T) {
+	out := renderHTML(t, prFileDiff(filesData(nil), modifiedFile("app.go")))
+	requireContains(t, out,
+		`whitespace-pre text-destructive">-var x = 1</td>`,
+		`whitespace-pre text-success">+var x = 2</td>`,
+		`whitespace-pre text-foreground/85"> package app</td>`,
+	)
+}
+
+func TestPRFileSplitDiff_HighlightsBothSides(t *testing.T) {
+	out := renderHTML(t, prFileSplitDiff(highlightedModifiedFile()))
+	requireContains(t, out,
+		`bg-destructive/10"><span class="text-destructive">-</span>`+hlDel+`</td>`,
+		`bg-success/10"><span class="text-success">+</span>`+hlAdd+`</td>`,
+	)
+	if got := strings.Count(out, hlCtx); got != 2 {
+		t.Errorf("context line highlighted %d times, want once per side", got)
+	}
+}
+
+func TestPRFileSplitDiff_PlainCellsKeepTheWholeLineColor(t *testing.T) {
+	out := renderHTML(t, prFileSplitDiff(modifiedFile("app.go")))
+	requireContains(t, out,
+		`bg-destructive/10 text-destructive">-var x = 1</td>`,
+		`bg-success/10 text-success">+var x = 2</td>`,
+	)
+}
+
+func TestPRFileSplitDiff_NewFileRendersHighlightedLines(t *testing.T) {
+	f := highlightedModifiedFile()
+	f.IsNew = true
+	out := renderHTML(t, prFileSplitDiff(f))
+	requireContains(t, out,
+		`<span class="text-success">+</span>`+hlAdd+`</td>`,
+		`whitespace-pre text-foreground/85"> func main() {}</td>`,
+	)
+}

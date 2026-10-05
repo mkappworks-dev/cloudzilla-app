@@ -460,7 +460,7 @@ func Blob(data view.BlobData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<div class=\"overflow-x-auto bg-card\" x-ref=\"code\"><table class=\"w-full font-mono text-[12.5px] leading-[1.6]\"><caption class=\"sr-only\">Contents of ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<div class=\"hl overflow-x-auto bg-card\" x-ref=\"code\"><table class=\"w-full font-mono text-[12.5px] leading-[1.6]\"><caption class=\"sr-only\">Contents of ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -521,12 +521,7 @@ func Blob(data view.BlobData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						var templ_7745c5c3_Var28 string
-						templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(line.Text)
-						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/blob.templ`, Line: 129, Col: 65}
-						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
+						templ_7745c5c3_Err = components.CodeText(line.Text, line.HTML).Render(ctx, templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

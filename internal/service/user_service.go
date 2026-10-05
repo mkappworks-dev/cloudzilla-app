@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"golang.org/x/crypto/bcrypt"
@@ -305,6 +306,20 @@ func (s *UserService) UpdateNotificationPrefs(ctx context.Context, userID int64,
 		p.EmailDigest = model.EmailDigestImmediate
 	}
 	return s.store.UpdateNotificationPrefs(ctx, userID, p)
+}
+
+// UpdateCodeThemes saves the user's code theme for each site mode; an ID
+// outside that mode's catalog saves the default.
+func (s *UserService) UpdateCodeThemes(ctx context.Context, userID int64, light, dark string) error {
+	return s.store.UpdateCodeThemes(ctx, userID, highlight.NormalizeLight(light), highlight.NormalizeDark(dark))
+}
+
+func (s *UserService) CodeThemes(ctx context.Context, userID int64) (light, dark string, err error) {
+	light, dark, err = s.store.GetCodeThemes(ctx, userID)
+	if err != nil {
+		return "", "", err
+	}
+	return highlight.NormalizeLight(light), highlight.NormalizeDark(dark), nil
 }
 
 // Username is deliberately not editable: repo owner names, on-disk repo paths, and JWT claims key off it.

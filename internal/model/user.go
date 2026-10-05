@@ -31,6 +31,8 @@ type User struct {
 	KeepEmailPrivate   bool           `db:"keep_email_private"  json:"-"`
 	EmailVerifiedAt    *time.Time     `db:"email_verified_at"   json:"-"`
 	SessionVersion     int            `db:"session_version"     json:"-"`
+	CodeThemeLight     string         `db:"code_theme_light"    json:"-"`
+	CodeThemeDark      string         `db:"code_theme_dark"     json:"-"`
 }
 
 func (u *User) EmailVerified() bool {
