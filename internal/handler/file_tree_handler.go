@@ -52,8 +52,6 @@ func openTreeFolders(r *http.Request) map[string]bool {
 
 // buildSidebarTree returns the root tree with the folders along path and the
 // open folders expanded and, when path is a file, that file marked active.
-// Pass the requested ref, not a result's display Ref, which shortens a SHA
-// past resolving.
 func (h *Handler) buildSidebarTree(owner, repoName, ref, path string, open map[string]bool) []components.TreeNode {
 	root, err := h.Services.Code.GetTree(owner, repoName, ref, "")
 	if err != nil {
