@@ -420,6 +420,8 @@ templ Base(base view.BasePage, title string) {
 				})();
 			</script>
 			<script src={ assets.URL("/htmx.min.js") } defer></script>
+			<!-- Before Alpine: it registers its component on alpine:init. -->
+			<script src={ assets.URL("/static/select-menu.js") } defer></script>
 			<script src={ assets.URL("/alpine.min.js") } defer></script>
 			<script data-mermaid-src={ assets.URL("/static/mermaid.min.js") }>
 				// Mermaid is megabytes of JS, so only a page holding a diagram loads it.

@@ -6,6 +6,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 var emailDigestLabels = map[string]string{
@@ -123,6 +124,14 @@ func Greet(name string, unread int) string {
 
 func codeThemePreviewHTML() template.HTML {
 	return highlight.Block("go", "", codeThemePreview)
+}
+
+func codeThemeOptions(themes []highlight.Theme) []components.SelectMenuOption {
+	out := make([]components.SelectMenuOption, len(themes))
+	for i, t := range themes {
+		out[i] = components.SelectMenuOption{Value: t.ID, Label: t.Name, Swatch: highlight.Swatch(t.ID)}
+	}
+	return out
 }
 
 func avatarInitials(name, username string) string {

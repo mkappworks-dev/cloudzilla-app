@@ -43,6 +43,8 @@ func TestNormalize(t *testing.T) {
 		{NormalizeDark("nord"), "nord"},
 		{NormalizeDark("github"), DefaultDark},
 		{NormalizeDark("retired-theme"), DefaultDark},
+		{NormalizeLight(PlainTheme), PlainTheme},
+		{NormalizeDark(PlainTheme), PlainTheme},
 	} {
 		if tc.got != tc.want {
 			t.Errorf("got %q, want %q", tc.got, tc.want)
@@ -50,14 +52,41 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
-func TestLightAndDarkThemesPartitionTheCatalog(t *testing.T) {
-	if len(LightThemes())+len(DarkThemes()) != len(Themes) {
-		t.Fatalf("light %d + dark %d != %d themes", len(LightThemes()), len(DarkThemes()), len(Themes))
+func TestLightAndDarkThemesPartitionTheCatalogPlusPlain(t *testing.T) {
+	light, dark := LightThemes(), DarkThemes()
+	if len(light)+len(dark) != len(Themes)+2 {
+		t.Fatalf("light %d + dark %d != %d themes + Plain in each", len(light), len(dark), len(Themes))
 	}
-	for _, th := range LightThemes() {
+	for _, list := range [][]Theme{light, dark} {
+		if list[len(list)-1].ID != PlainTheme {
+			t.Errorf("last option = %q, want Plain", list[len(list)-1].ID)
+		}
+	}
+	for _, th := range light {
 		if th.Dark {
 			t.Errorf("LightThemes includes dark theme %q", th.ID)
 		}
+	}
+}
+
+func TestStylesheet_HasNoRulesForPlain(t *testing.T) {
+	if strings.Contains(string(Stylesheet()), `"`+PlainTheme+`"`) {
+		t.Error("stylesheet styles the plain theme, which must inherit the site's colours")
+	}
+}
+
+func TestSwatch(t *testing.T) {
+	for _, th := range append(LightThemes(), DarkThemes()...) {
+		sw := Swatch(th.ID)
+		if len(sw) < 2 {
+			t.Errorf("Swatch(%q) = %q, want a background and at least one token colour", th.ID, sw)
+		}
+	}
+	if got := Swatch("dracula"); got[0] != "#282a36" {
+		t.Errorf("dracula swatch starts %q, want its background #282a36", got[0])
+	}
+	if got := Swatch("no-such-theme"); got != nil {
+		t.Errorf("unknown theme swatch = %q, want nil", got)
 	}
 }
 

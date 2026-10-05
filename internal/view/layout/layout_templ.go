@@ -1796,33 +1796,46 @@ func Base(base view.BasePage, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "\" defer></script><script src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "\" defer></script><!-- Before Alpine: it registers its component on alpine:init. --><script src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var97 string
-		templ_7745c5c3_Var97, templ_7745c5c3_Err = templ.ResolveAttributeValue(assets.URL("/alpine.min.js"))
+		templ_7745c5c3_Var97, templ_7745c5c3_Err = templ.ResolveAttributeValue(assets.URL("/static/select-menu.js"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 423, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 424, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var97)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "\" defer></script><script data-mermaid-src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "\" defer></script><script src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var98 string
-		templ_7745c5c3_Var98, templ_7745c5c3_Err = templ.ResolveAttributeValue(assets.URL("/static/mermaid.min.js"))
+		templ_7745c5c3_Var98, templ_7745c5c3_Err = templ.ResolveAttributeValue(assets.URL("/alpine.min.js"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 424, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 425, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var98)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "\">\n\t\t\t\t// Mermaid is megabytes of JS, so only a page holding a diagram loads it.\n\t\t\t\t(function() {\n\t\t\t\t\tvar src = document.currentScript.dataset.mermaidSrc;\n\t\t\t\t\tvar loaded;\n\t\t\t\t\tfunction load() {\n\t\t\t\t\t\tif (!loaded) {\n\t\t\t\t\t\t\tloaded = new Promise(function(resolve) {\n\t\t\t\t\t\t\t\tvar script = document.createElement('script');\n\t\t\t\t\t\t\t\tscript.src = src;\n\t\t\t\t\t\t\t\tscript.onload = resolve;\n\t\t\t\t\t\t\t\tdocument.head.appendChild(script);\n\t\t\t\t\t\t\t}).then(function() {\n\t\t\t\t\t\t\t\t// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.\n\t\t\t\t\t\t\t\tmermaid.initialize({\n\t\t\t\t\t\t\t\t\tstartOnLoad: false,\n\t\t\t\t\t\t\t\t\ttheme: 'default',\n\t\t\t\t\t\t\t\t\tlook: 'classic',\n\t\t\t\t\t\t\t\t\tlayout: 'dagre',\n\t\t\t\t\t\t\t\t\tflowchart: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\tstate: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\t// A site-wide layout would replace these diagrams' own layout engines.\n\t\t\t\t\t\t\t\t\tmindmap: { layout: 'cose-bilkent' },\n\t\t\t\t\t\t\t\t\tswimlane: { layout: 'swimlane' },\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t}\n\t\t\t\t\t\treturn loaded;\n\t\t\t\t\t}\n\t\t\t\t\tfunction render() {\n\t\t\t\t\t\tif (document.querySelector('.mermaid:not([data-processed])')) {\n\t\t\t\t\t\t\tload().then(function() { mermaid.run(); });\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\tdocument.addEventListener('DOMContentLoaded', render);\n\t\t\t\t\tdocument.addEventListener('htmx:after:swap', render);\n\t\t\t\t})();\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "\" defer></script><script data-mermaid-src=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var99 string
+		templ_7745c5c3_Var99, templ_7745c5c3_Err = templ.ResolveAttributeValue(assets.URL("/static/mermaid.min.js"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 426, Col: 66}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var99)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "\">\n\t\t\t\t// Mermaid is megabytes of JS, so only a page holding a diagram loads it.\n\t\t\t\t(function() {\n\t\t\t\t\tvar src = document.currentScript.dataset.mermaidSrc;\n\t\t\t\t\tvar loaded;\n\t\t\t\t\tfunction load() {\n\t\t\t\t\t\tif (!loaded) {\n\t\t\t\t\t\t\tloaded = new Promise(function(resolve) {\n\t\t\t\t\t\t\t\tvar script = document.createElement('script');\n\t\t\t\t\t\t\t\tscript.src = src;\n\t\t\t\t\t\t\t\tscript.onload = resolve;\n\t\t\t\t\t\t\t\tdocument.head.appendChild(script);\n\t\t\t\t\t\t\t}).then(function() {\n\t\t\t\t\t\t\t\t// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.\n\t\t\t\t\t\t\t\tmermaid.initialize({\n\t\t\t\t\t\t\t\t\tstartOnLoad: false,\n\t\t\t\t\t\t\t\t\ttheme: 'default',\n\t\t\t\t\t\t\t\t\tlook: 'classic',\n\t\t\t\t\t\t\t\t\tlayout: 'dagre',\n\t\t\t\t\t\t\t\t\tflowchart: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\tstate: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\t// A site-wide layout would replace these diagrams' own layout engines.\n\t\t\t\t\t\t\t\t\tmindmap: { layout: 'cose-bilkent' },\n\t\t\t\t\t\t\t\t\tswimlane: { layout: 'swimlane' },\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t}\n\t\t\t\t\t\treturn loaded;\n\t\t\t\t\t}\n\t\t\t\t\tfunction render() {\n\t\t\t\t\t\tif (document.querySelector('.mermaid:not([data-processed])')) {\n\t\t\t\t\t\t\tload().then(function() { mermaid.run(); });\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\tdocument.addEventListener('DOMContentLoaded', render);\n\t\t\t\t\tdocument.addEventListener('htmx:after:swap', render);\n\t\t\t\t})();\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

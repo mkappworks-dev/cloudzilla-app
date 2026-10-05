@@ -71,8 +71,9 @@ func TestAppearanceSettings_SavesAndShowsTheThemes(t *testing.T) {
 	body := rr.Body.String()
 	for _, want := range []string{
 		`id="appearance"`,
-		`<option value="gruvbox-light" selected`,
-		`<option value="nord" selected`,
+		`name="code_theme_light" value="gruvbox-light"`,
+		`name="code_theme_dark" value="nord"`,
+		`data-value="plain"`,
 		`class="hl-`,
 	} {
 		if !strings.Contains(body, want) {

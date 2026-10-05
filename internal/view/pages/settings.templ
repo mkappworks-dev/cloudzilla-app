@@ -170,12 +170,8 @@ templ settingsAppearanceSection(data view.SettingsData) {
 templ settingsCodeThemeSelect(name, label, dataKey string, themes []highlight.Theme, selected string) {
 	<div class="flex items-center justify-between gap-4 py-3 border-b border-border last:border-b-0">
 		<label for={ name } class="block text-sm font-medium text-foreground">{ label }</label>
-		<div class="w-48 shrink-0">
-			@components.Select(templ.Attributes{"id": name, "name": name, "onchange": "document.documentElement.dataset." + dataKey + " = this.value"}) {
-				for _, t := range themes {
-					<option value={ t.ID } selected?={ t.ID == selected }>{ t.Name }</option>
-				}
-			}
+		<div class="w-52 shrink-0">
+			@components.SelectMenu(name, name, label, codeThemeOptions(themes), selected, templ.Attributes{"onchange": "document.documentElement.dataset." + dataKey + " = this.value"})
 		</div>
 	</div>
 }
