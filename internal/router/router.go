@@ -219,7 +219,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Get("/{owner}/{repo}/discussions/new", h.PageNewDiscussion)
 	r.With(authMW).Post("/{owner}/{repo}/discussions/new", h.PageNewDiscussionSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions/{number}", h.PageDiscussionDetail)
-	r.With(optAuthMW).Get("/{owner}/{repo}/actions", h.PageActions)
+	r.With(optAuthMW).Get("/{owner}/{repo}/checks", h.PageChecks)
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)
