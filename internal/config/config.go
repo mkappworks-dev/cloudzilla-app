@@ -22,6 +22,7 @@ type Config struct {
 	SMTP      SMTPConfig      `mapstructure:"smtp"`
 	Import    ImportConfig    `mapstructure:"import"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	Webhook   WebhookConfig   `mapstructure:"webhook"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -70,6 +71,12 @@ type ImportConfig struct {
 	// Off by default, so a user can't make the server probe its own network.
 	AllowLocalNetworks bool          `mapstructure:"allow_local_networks"`
 	Timeout            time.Duration `mapstructure:"timeout"`
+}
+
+// WebhookConfig holds webhook delivery settings.
+type WebhookConfig struct {
+	// Off by default, so a repo manager can't make the server post into its own network.
+	AllowLocalNetworks bool `mapstructure:"allow_local_networks"`
 }
 
 // RateLimitConfig holds the per-subject request budgets of each resource, per Window.
@@ -158,6 +165,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("smtp.tls", false)
 	v.SetDefault("import.allow_local_networks", false)
 	v.SetDefault("import.timeout", "30m")
+	v.SetDefault("webhook.allow_local_networks", false)
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.window", "1h")
 	v.SetDefault("rate_limit.core.authenticated", 5000)

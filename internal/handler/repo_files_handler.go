@@ -10,8 +10,11 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -26,6 +29,13 @@ const (
 	// maxRawBlobBytes bounds a raw request's memory: go-git inflates a packed
 	// blob whole before the first byte can be read.
 	maxRawBlobBytes = 25 << 20
+	// maxEditFileBytes caps a file the browser editor opens or saves.
+	maxEditFileBytes = 1 << 20
+	// MaxEditFileBodyBytes caps the edit form's request body: a textarea sends
+	// every line break as CRLF, which can double a file's bytes. CSRF parses a
+	// browser's form under the global cap first, so SubmitEditFile also checks
+	// Content-Length.
+	MaxEditFileBodyBytes = 2*maxEditFileBytes + 1<<20
 )
 
 var fileTooLargeMsg = fmt.Sprintf("files are limited to %d MB", maxUploadBytes>>20)
@@ -214,7 +224,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 	}
 	path := strings.TrimSpace(r.FormValue("path"))
 	dir := strings.Trim(r.FormValue("dir"), "/")
-	content := []byte(r.FormValue("content"))
+	content := []byte(textareaText(r.FormValue("content"), false))
 	message := strings.TrimSpace(r.FormValue("message"))
 
 	// An uploaded file, when present, takes precedence over the textarea.
@@ -267,7 +277,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
-		if errors.Is(err, service.ErrInvalidFilePath) {
+		if errors.Is(err, service.ErrInvalidFilePath) || errors.Is(err, service.ErrFileUnchanged) {
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
@@ -289,4 +299,287 @@ func parseNewFileForm(r *http.Request) error {
 		return err
 	}
 	return nil
+}
+
+var editFileTooLargeMsg = fmt.Sprintf("files over %d MB can't be edited in the browser", maxEditFileBytes>>20)
+
+// editableRepo loads a repo the signed-in viewer may commit to from the
+// browser: 404 when they can't read it, 403 when they can't write to it or it
+// is archived.
+func (h *Handler) editableRepo(w http.ResponseWriter, r *http.Request, owner, repoName string, viewerID int64) (*model.Repository, bool) {
+	repo, ok := h.readableRepo(w, r, owner, repoName, viewerID)
+	if !ok {
+		return nil, false
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, viewerID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return nil, false
+	}
+	if repo.IsArchived {
+		http.Error(w, "repository is archived", http.StatusForbidden)
+		return nil, false
+	}
+	return repo, true
+}
+
+// editRefusal says why the browser editor can't open f, or "" when it can.
+func editRefusal(f *service.BranchFile) string {
+	switch {
+	case f.Mode == filemode.Symlink:
+		return "symlinks can't be edited in the browser"
+	case f.IsBinary:
+		return "binary files can't be edited in the browser"
+	case f.Size > maxEditFileBytes:
+		return editFileTooLargeMsg
+	case !service.IsEditableText(string(f.Content)):
+		return "files that aren't UTF-8, or hold a carriage return outside a CRLF, can't be edited in the browser"
+	}
+	return ""
+}
+
+// branchFile reads the file an edit starts from, answering 404 for a ref that
+// isn't a branch or a path that isn't a file. A nil file with ok set means the
+// path holds no file now.
+func (h *Handler) branchFile(w http.ResponseWriter, r *http.Request, owner, repoName, ref, path string) (file *service.BranchFile, ok bool) {
+	if path == "" {
+		h.NotFound(w, r)
+		return nil, false
+	}
+	f, err := h.Services.Code.GetBranchFile(owner, repoName, ref, path, maxEditFileBytes)
+	switch {
+	case err == nil:
+		return f, true
+	case errors.Is(err, object.ErrFileNotFound):
+		return nil, true
+	case errors.Is(err, service.ErrRefNotFound) || errors.Is(err, service.ErrEmptyRepo):
+		h.NotFound(w, r)
+	default:
+		slog.Error("edit file: read failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
+		http.Error(w, "failed to read file", http.StatusInternalServerError)
+	}
+	return nil, false
+}
+
+// PageEditFile renders the editor for a text file on a branch.
+func (h *Handler) PageEditFile(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	repo, ok := h.editableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
+	file, ok := h.branchFile(w, r, owner, repoName, ref, path)
+	if !ok {
+		return
+	}
+	if file == nil {
+		h.NotFound(w, r)
+		return
+	}
+	if reason := editRefusal(file); reason != "" {
+		http.Error(w, reason, http.StatusUnprocessableEntity)
+		return
+	}
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	h.render(w, r, pages.EditFile(view.EditFileData{
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
+		Owner:    owner,
+		RepoName: repoName,
+		Ref:      ref,
+		Path:     path,
+		BlobSHA:  file.SHA,
+		NewPath:  path,
+		Content:  string(file.Content),
+	}))
+}
+
+// SubmitEditFile commits an edit, and with a new path a rename, of a file on a
+// branch, refusing it when the file changed after the editor loaded it.
+func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	repo, ok := h.editableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
+	if r.ContentLength > MaxEditFileBodyBytes {
+		http.Error(w, editFileTooLargeMsg, http.StatusRequestEntityTooLarge)
+		return
+	}
+	if err := parseNewFileForm(r); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			http.Error(w, editFileTooLargeMsg, http.StatusRequestEntityTooLarge)
+			return
+		}
+		http.Error(w, "invalid form", http.StatusBadRequest)
+		return
+	}
+	file, ok := h.branchFile(w, r, owner, repoName, ref, path)
+	if !ok {
+		return
+	}
+
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	data := view.EditFileData{
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
+		Owner:    owner,
+		RepoName: repoName,
+		Ref:      ref,
+		Path:     path,
+		BlobSHA:  r.FormValue("blob_sha"),
+		NewPath:  r.FormValue("path"),
+		Content:  textareaText(r.FormValue("content"), false),
+		Message:  r.FormValue("message"),
+	}
+	refuse := func(status int, msg string) {
+		data.Error = msg
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(status)
+		if err := pages.EditFile(data).Render(r.Context(), w); err != nil {
+			slog.Error("render failed", "error", err)
+		}
+	}
+	conflict := func() {
+		data.ConflictURL = codeurl.Path(owner, repoName, "blob", ref, path)
+		if file == nil {
+			data.ConflictURL = codeurl.Path(owner, repoName, "tree", ref, parentDir(path))
+		}
+		refuse(http.StatusConflict, "This file changed on "+ref+" after you opened it, so your changes weren't committed.")
+	}
+
+	if file == nil || file.SHA != data.BlobSHA {
+		conflict()
+		return
+	}
+	if reason := editRefusal(file); reason != "" {
+		http.Error(w, reason, http.StatusUnprocessableEntity)
+		return
+	}
+	content := textareaText(r.FormValue("content"), allCRLF(string(file.Content)))
+	if len(content) > maxEditFileBytes {
+		refuse(http.StatusRequestEntityTooLarge, editFileTooLargeMsg)
+		return
+	}
+	newPath := path
+	if data.NewPath != path {
+		var err error
+		if newPath, err = service.CleanFilePath(strings.TrimSpace(data.NewPath)); err != nil {
+			refuse(http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+	}
+	message := strings.TrimSpace(data.Message)
+	if message == "" {
+		switch {
+		case newPath == path:
+			message = "Update " + path
+		case content == string(file.Content):
+			message = "Rename " + path + " to " + newPath
+		default:
+			message = "Update and rename " + path + " to " + newPath
+		}
+	}
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	if err != nil {
+		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		return
+	}
+
+	err = h.Services.Code.EditFile(owner, repoName, ref, path, newPath, data.BlobSHA, []byte(content), author, message)
+	switch {
+	case err == nil:
+		http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, newPath), http.StatusSeeOther)
+	case errors.Is(err, service.ErrRefNotFound):
+		h.NotFound(w, r)
+	case errors.Is(err, service.ErrFileChanged):
+		conflict()
+	case errors.Is(err, service.ErrRefMoved):
+		refuse(http.StatusConflict, branchMovedMsg)
+	case errors.Is(err, service.ErrPathCollision):
+		refuse(http.StatusConflict, err.Error())
+	case errors.Is(err, service.ErrInvalidFilePath):
+		refuse(http.StatusUnprocessableEntity, err.Error())
+	case errors.Is(err, service.ErrFileUnchanged):
+		refuse(http.StatusUnprocessableEntity, "Nothing to commit: the path and contents are unchanged.")
+	default:
+		slog.Error("edit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
+		http.Error(w, "failed to commit the file", http.StatusInternalServerError)
+	}
+}
+
+// DeleteFile handles POST /{owner}/{repo}/delete/{ref}/* from the blob page's
+// delete dialog: JSON errors become toasts, and success redirects to the
+// nearest folder left on the branch.
+func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	if repo.IsArchived {
+		writeError(w, http.StatusForbidden, "repository is archived")
+		return
+	}
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
+	if path == "" {
+		writeError(w, http.StatusNotFound, "file not found")
+		return
+	}
+	if err := parseNewFileForm(r); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+	message := strings.TrimSpace(r.FormValue("message"))
+	if message == "" {
+		message = "Delete " + path
+	}
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+
+	dir, err := h.Services.Code.DeleteFile(owner, repoName, ref, path, r.FormValue("blob_sha"), author, message)
+	switch {
+	case err == nil:
+		redirectAfterSave(w, r, codeurl.Path(owner, repoName, "tree", ref, dir))
+	case errors.Is(err, service.ErrRefNotFound) || errors.Is(err, service.ErrEmptyRepo):
+		writeError(w, http.StatusNotFound, "branch not found")
+	case errors.Is(err, object.ErrFileNotFound):
+		writeError(w, http.StatusNotFound, "file not found")
+	case errors.Is(err, service.ErrFileChanged):
+		writeError(w, http.StatusConflict, "This file changed on "+ref+" after the page loaded; reload to see the current version.")
+	case errors.Is(err, service.ErrRefMoved):
+		writeError(w, http.StatusConflict, branchMovedMsg)
+	default:
+		slog.Error("delete file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to delete the file")
+	}
+}
+
+// parentDir is path's folder, "" at the root.
+func parentDir(path string) string {
+	if i := strings.LastIndex(path, "/"); i >= 0 {
+		return path[:i]
+	}
+	return ""
 }

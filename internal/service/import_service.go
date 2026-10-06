@@ -222,7 +222,7 @@ func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *im
 }
 
 func (s *ImportService) failureMessage(ctx context.Context, job *importJob, guard *importGuard, err error) string {
-	var blocked *ImportBlockedError
+	var blocked *PrivateNetworkError
 	var tooLarge *importSizeError
 	stopped := guard.failure()
 	switch {

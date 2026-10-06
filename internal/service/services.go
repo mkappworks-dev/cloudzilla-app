@@ -88,7 +88,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
-	webhookSvc := NewWebhookService(stores.Webhook)
+	webhookSvc := NewWebhookService(stores.Webhook, cfg.Webhook)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	return &Services{
 		User:             userSvc,

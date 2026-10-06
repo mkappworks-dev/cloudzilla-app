@@ -13,6 +13,8 @@
 | Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}` |
 | Single commit diff      | `/{owner}/{repo}/commit/{sha}`            |
 | Branches & Tags         | `/{owner}/{repo}/refs`                    |
+| Edit file (GET/POST)    | `/{owner}/{repo}/edit/{branch}/{path...}` |
+| Delete file (POST)      | `/{owner}/{repo}/delete/{branch}/{path...}` |
 
 `{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
 
@@ -42,6 +44,8 @@ A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob p
 - `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult` — an annotated tag's `Hash` is its tag object's
 - `ListRefsPeeled(owner, repoName, defaultBranch)` → `*RefsResult` — tags' `Hash` peeled to the tagged commit, at an object read per tag; for the refs page, which shows the hashes
 - `SplitRefPath(owner, repoName, refPath)` → `(ref, path)`
+- `GetBranchFile(owner, repoName, branch, path, maxContent)` → `*BranchFile` — the file on a branch's tip (any other ref is `ErrRefNotFound`) with its SHA and mode, and its content when it's text within `maxContent`
+- `EditFile(owner, repoName, branch, oldPath, newPath, baseSHA, content, author, message)` → `error`; `DeleteFile(owner, repoName, branch, path, baseSHA, author, message)` → `(remainingDir, error)` — see [Editing and Deleting Files](#editing-and-deleting-files)
 - `CreateBranch(owner, repoName, name, fromRef)` → `error`
 - `DeleteBranch(owner, repoName, name)` → `error`
 - `CreateTag(owner, repoName, name, fromRef)` → `error`
@@ -61,11 +65,24 @@ A raw SHA must be the full 40 characters; an abbreviated one doesn't resolve. Th
 ### Result Types
 
 - `TreeResult` — `Entries []TreeEntry` (dirs first, then files, both sorted), `Ref`, `Path`, `Breadcrumbs`
-- `BlobResult` — `Lines []CodeLine`, `IsBinary bool`, `BlameURL`, breadcrumbs
+- `BlobResult` — `Lines []CodeLine`, `IsBinary bool`, `SHA`, `IsSymlink`, `IsBranch` (the ref named a branch), `BlameURL`, breadcrumbs
 - `BlameResult` — `Lines []BlameLine` with `ShowMeta bool` (true when commit run changes), `BlobURL`, breadcrumbs
 - `CommitLog` — `Commits []CommitSummary`, `Ref`, `Page`, `PrevPage`, `NextPage`, `HasMore`
 - `CommitDetail` — full commit with `Files []FileDiff` (hunks with add/del/ctx lines), `TotalAdded`, `TotalDeleted`
 - `RefsResult` — `Branches []BranchInfo` (`Name`, `Hash`, `IsDefault`), `Tags []TagInfo` (`Name`, `Hash`)
+
+---
+
+## Editing and Deleting Files
+
+Writers edit, rename and delete files from the browser; each is one commit onto the branch, authored as New file's commits are (`UserService.CommitAuthor`, so the keep-email-private setting applies).
+
+- **Where:** the blob page shows Edit for a text file of at most 1 MiB and Delete for any file or symlink, only on a branch (not a tag or commit SHA), to a viewer with `CanWrite`, on a repo that isn't archived. The routes refuse the same cases: 404 for an unreadable repo, a ref that isn't a branch, or a path that isn't a file; 403 for a non-writer or an archived repo; 422 when the editor can't open the file (binary, symlink, over 1 MiB, or text a textarea would change: not UTF-8, or a CR outside a CRLF, per `service.IsEditableText`). Deleting a folder or submodule is 404.
+- **Stale saves:** the edit page and the delete dialog carry the blob SHA they loaded. `CodeService.EditFile` and `DeleteFile` refuse with `ErrFileChanged` (409) unless the path on the branch still holds that blob, and otherwise land on the current tip, so a commit to another file doesn't block them. `gitref.Move` still turns a push mid-write into `ErrRefMoved` (409). Neither creates a branch, which `CommitFile` does for an empty repo.
+- **Edit page** (`PageEditFile` / `SubmitEditFile`): changing the path renames the file, keeping its mode, creating folders and pruning the ones it empties; a target that holds anything is `ErrPathCollision` (409). An edit that changes neither path nor content is `ErrFileUnchanged` (422). An untouched path field is never cleaned, so a pushed name like `a\b.txt` isn't renamed by an edit. A refusal re-renders the page at its status with the user's path, content and message kept. The textarea renders `"\n" + content` because the HTML parser drops a newline right after `<textarea>`.
+- **Line endings:** a browser submits textarea line breaks as CRLF. `textareaText` turns them back into LF, or keeps CRLF when the original file used CRLF on every line. New file's textarea goes through it too; uploads are committed byte for byte. Content over 1 MiB after that is refused with 413, and `MaxEditFileBodyBytes` leaves room for CRLF doubling. CSRF parses a browser's form under the global cap before the route runs, so `SubmitEditFile` also refuses a larger `Content-Length` before reading the form.
+- **Delete dialog:** posts with htmx to `DeleteFile`, which prunes the folders the deletion empties and answers `HX-Redirect` to the nearest folder left (or the branch's root tree). Refusals come back as JSON `{"error"}`, which `ConfirmDialog` shows as a toast.
+- Web commits fire no push side effects (webhooks, activity, stats, search index) and consult no branch protection; `block_force_push` can't trigger on a fast-forward.
 
 ---
 

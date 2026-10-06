@@ -52,6 +52,24 @@ type NewFileData struct {
 	Dir      string // optional subdirectory the file lands in
 }
 
+// EditFileData holds template data for the edit-file page. Path is the file
+// being edited; NewPath, Content and Message are what the form shows.
+type EditFileData struct {
+	BasePage
+	Owner    string
+	RepoName string
+	Ref      string
+	Path     string
+	BlobSHA  string
+	NewPath  string
+	Content  string
+	Message  string
+	Error    string
+	// ConflictURL links the current version when the file changed after the
+	// page loaded.
+	ConflictURL string
+}
+
 // RepoNewData holds template data for the new repository form page.
 type RepoNewData struct {
 	BasePage
@@ -271,7 +289,10 @@ type BlobData struct {
 	BlameURL      string
 	RawURL        string
 	EditURL       string
-	CanWrite      bool
+	DeleteURL     string
+	BlobSHA       string
+	CanEdit       bool
+	CanDelete     bool
 	CanManage     bool
 	Sidebar       []components.TreeNode
 	SidebarHidden bool
