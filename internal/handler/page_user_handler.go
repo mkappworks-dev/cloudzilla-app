@@ -67,7 +67,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		if repo.Name == user.Username && !repo.Private {
 			hasProfileRepo = true
 			profileRepoDefaultBranch = repo.DefaultBranch
-			profileReadme = h.Services.Code.GetProfileReadme(user.Username, user.Username, repo.DefaultBranch)
+			profileReadme = h.Services.Code.GetProfileReadme(r.Context(), user.Username, user.Username, repo.DefaultBranch)
 			if raw, err := h.Services.Code.GetProfileReadmeRaw(user.Username, user.Username, repo.DefaultBranch); err == nil {
 				profileReadmeRaw = raw
 			} else {
@@ -452,7 +452,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	var profileReadme template.HTML
 	for _, repo := range repos {
 		if !showAllRepos && !showAllPeople && repo.Name == org.Name && !repo.Private {
-			profileReadme = h.Services.Code.GetProfileReadme(org.Name, org.Name, repo.DefaultBranch)
+			profileReadme = h.Services.Code.GetProfileReadme(r.Context(), org.Name, org.Name, repo.DefaultBranch)
 			break
 		}
 	}

@@ -36,10 +36,28 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('fileTree', () => ({
     filter: '',
+    rev: 0,
     repoPath: '/',
 
     init() {
       this.repoPath = this.$el.dataset.repoPath;
+      // Visibility reads the DOM, which Alpine can't track, so swapped-in items re-run it.
+      this.$el.addEventListener('htmx:after:swap', () => this.rev++);
+    },
+
+    matches(li) {
+      return li.dataset.name.toLowerCase().includes(this.filter.toLowerCase());
+    },
+
+    // Filtering derives visibility and never sets `open`, so it can't write the cookie.
+    shows(li) {
+      void this.rev;
+      return !this.filter || this.matches(li) || this.revealsChildren(li);
+    },
+
+    revealsChildren(el) {
+      void this.rev;
+      return this.filter !== '' && Array.from(el.querySelectorAll('li[data-name]')).some((li) => this.matches(li));
     },
 
     remember(path) {

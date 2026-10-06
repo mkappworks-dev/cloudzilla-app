@@ -1,9 +1,12 @@
 package markdown_test
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 )
 
@@ -591,6 +594,26 @@ func TestRender_HighlightingSharesOneBudgetPerDocument(t *testing.T) {
 	}
 	if !strings.HasPrefix(got, `<pre class="hl">`) {
 		t.Error("the first fence is not the highlighted one")
+	}
+}
+
+func TestRenderCtx_SharesTheRequestBudgetAcrossDocuments(t *testing.T) {
+	// Each fence is under the 256 KiB document cap; together they are over the request's budget.
+	fence := "```go\n" + strings.Repeat("// "+strings.Repeat("x", 97)+"\n", 1000) + "```\n"
+	ctx := highlight.WithBudget(context.Background(), highlight.NewBudget(150<<10, time.Minute))
+	if got := markdown.RenderCtx(ctx, fence); !strings.HasPrefix(got, `<pre class="hl">`) {
+		t.Fatalf("first document = %.80q, want highlighted", got)
+	}
+	if got := markdown.RenderCtx(ctx, fence); !strings.HasPrefix(got, `<pre><code class="language-go">`) {
+		t.Errorf("second document = %.80q, want plain: the request budget is spent", got)
+	}
+}
+
+func TestRenderCtx_KeepsTheDocumentCapUnderARequestBudget(t *testing.T) {
+	fence := "```go\n" + strings.Repeat("// "+strings.Repeat("x", 97)+"\n", 1400) + "```\n\n"
+	ctx := highlight.WithBudget(context.Background(), highlight.NewBudget(1<<30, time.Minute))
+	if n := strings.Count(markdown.RenderCtx(ctx, fence+fence), `<pre class="hl">`); n != 1 {
+		t.Errorf("%d highlighted fences, want 1: the second is past the document cap", n)
 	}
 }
 

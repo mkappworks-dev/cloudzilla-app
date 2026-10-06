@@ -139,18 +139,21 @@ func TestSearch_HidesWhatTheViewerCannotRead(t *testing.T) {
 		})
 	})
 
-	// Code search has no viewer: it only ever covers public repos.
 	t.Run("code", func(t *testing.T) {
-		results, total, err := codeIndex.Search(ctx, word, nil, "", 1, 100)
-		if err != nil {
-			t.Fatalf("code search: %v", err)
-		}
-		var paths []string
-		for _, r := range results {
-			paths = append(paths, r.FilePath)
-		}
-		if !slices.Equal(paths, []string{"public.go"}) || total != 1 {
-			t.Errorf("got %q (total %d), want only public.go", paths, total)
-		}
+		check(t, map[string][]string{
+			"public.go":  all,
+			"private.go": {"reader", "owner"},
+			"deleted.go": nil,
+		}, func(viewer *int64) ([]string, error) {
+			results, total, err := codeIndex.Search(ctx, word, viewer, nil, "", 1, 100)
+			paths := make([]string, len(results))
+			for i, r := range results {
+				paths[i] = r.FilePath
+			}
+			if err == nil && total != len(paths) {
+				t.Errorf("total %d, but %d results", total, len(paths))
+			}
+			return paths, err
+		})
 	})
 }

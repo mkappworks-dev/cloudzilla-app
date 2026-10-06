@@ -64,7 +64,7 @@ func TestPullMerges_SortEntriesLikeGit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newTipTestRepo(t)
 			want := r.commitDocs(t, "main")
-			if err := tt.merge(r); err != nil {
+			if err := tt.merge(t, r); err != nil {
 				t.Fatalf("merge: %v", err)
 			}
 			want["f.txt"] = mergeFile{hash: r.blob(t, "one\ntwo\n"), mode: filemode.Regular}

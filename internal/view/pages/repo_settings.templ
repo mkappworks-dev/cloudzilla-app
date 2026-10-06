@@ -63,17 +63,20 @@ templ visibilityToggle(owner, repoName string, private bool, confirm components.
 				@components.Badge(components.BadgeSuccess) {
 					Public
 				}
-				<form method="POST" action={ templ.SafeURL("/" + owner + "/" + repoName + "/settings/visibility") } data-toast="Repository is now private">
+				<form
+					hx-post={ "/" + owner + "/" + repoName + "/settings/visibility" }
+					hx-swap="none"
+					hx-confirm={ "Only collaborators with access will be able to view " + repoName + "." }
+					data-confirm-title="Make this repository private?"
+					data-confirm-label="Make private"
+					data-confirm-danger="true"
+					data-toast="Repository is now private"
+				>
 					<input type="hidden" name="private" value="true"/>
 					<button
 						type="submit"
 						aria-pressed="true"
 						aria-label="Repository visibility"
-						data-confirm-action="true"
-						data-confirm-title="Make this repository private?"
-						data-confirm-msg={ "Only collaborators with access will be able to view " + repoName + "." }
-						data-confirm-label="Make private"
-						data-confirm-danger="true"
 						class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-success bg-success transition-colors cursor-pointer"
 					>
 						<span class="absolute left-[18px] h-3.5 w-3.5 rounded-full bg-background transition-transform"></span>
@@ -153,7 +156,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/general") } data-toast="Repository settings saved" class="space-y-5">
+								<form hx-post={ "/" + data.Owner + "/" + data.RepoName + "/settings/general" } hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#repo-general-form-error').textContent=''" data-toast="Repository settings saved" class="space-y-5">
+									<div id="repo-general-form-error" class="empty:hidden"></div>
 									<div class="space-y-1.5">
 										<label for="repo-name" class="block text-sm font-medium">Repository name</label>
 										<input id="repo-name" type="text" value={ data.RepoName } readonly class="h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-sm text-muted-foreground"/>
@@ -191,7 +195,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 							@components.CardContent() {
 								@visibilityToggle(data.Owner, data.RepoName, data.Repo.Private, data.Confirm)
-								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/features") } data-toast="Feature settings saved">
+								<form hx-post={ "/" + data.Owner + "/" + data.RepoName + "/settings/features" } hx-swap="none" data-toast="Feature settings saved">
 									@settingsToggle("allow_issues", "Issues", "Let people open and track issues.", data.Repo.AllowIssues)
 									@settingsToggle("allow_discussions", "Discussions", "Enable the Discussions tab for Q&A and announcements.", data.Repo.AllowDiscussions)
 									@settingsToggle("allow_projects", "Projects", "Enable project boards for planning work.", data.Repo.AllowProjects)

@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -122,6 +123,40 @@ func TestRepoService_Create_NoInit(t *testing.T) {
 	if _, err := iter.Next(); err == nil {
 		t.Error("empty repo should have no commits")
 	}
+	assertBareDirHead(t, bareDir, repo.DefaultBranch)
+}
+
+// An empty repo's HEAD names the branch the first push should create, and it
+// must match the row's default_branch, not go-git's "master".
+func assertBareDirHead(t *testing.T, bareDir, branch string) {
+	t.Helper()
+	bare, err := gogit.PlainOpen(bareDir)
+	if err != nil {
+		t.Fatalf("open bare: %v", err)
+	}
+	assertBareHead(t, bare, branch)
+}
+
+func TestRepoService_CreateFromTemplate_MissingSourceDir_HeadIsDefaultBranch(t *testing.T) {
+	svc, ownerID, owner, root := newRepoSvc(t)
+	ctx := context.Background()
+
+	tmpl, err := svc.Create(ctx, ownerID, owner, "tmpl", "", false, service.RepoInitOptions{})
+	if err != nil {
+		t.Fatalf("Create template: %v", err)
+	}
+	if err := svc.SetTemplate(ctx, tmpl.ID, ownerID, true); err != nil {
+		t.Fatalf("SetTemplate: %v", err)
+	}
+	if err := os.RemoveAll(filepath.Join(root, owner, tmpl.Name+".git")); err != nil {
+		t.Fatalf("remove template dir: %v", err)
+	}
+
+	repo, err := svc.CreateFromTemplate(ctx, tmpl.ID, ownerID, owner, "fromtmpl", "")
+	if err != nil {
+		t.Fatalf("CreateFromTemplate: %v", err)
+	}
+	assertBareDirHead(t, filepath.Join(root, owner, repo.Name+".git"), repo.DefaultBranch)
 }
 
 func TestRepoService_Create_InitCommitAuthorFollowsKeepEmailPrivate(t *testing.T) {

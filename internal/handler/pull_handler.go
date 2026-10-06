@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -259,7 +260,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 				Pull:              *pr,
 				Owner:             owner,
 				Repo:              repoName,
-				BodyHTML:          markdown.Render(pr.Body),
+				BodyHTML:          markdown.RenderCtx(r.Context(), pr.Body),
 				CanWrite:          true, // already verified above
 				AutoMergeEnabled:  pr.AutoMergeEnabled,
 				AutoMergeStrategy: pr.AutoMergeStrategy,
@@ -297,7 +298,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 				Pull:              *pr,
 				Owner:             owner,
 				Repo:              repoName,
-				BodyHTML:          markdown.Render(pr.Body),
+				BodyHTML:          markdown.RenderCtx(r.Context(), pr.Body),
 				CanWrite:          true, // already verified above
 				AutoMergeEnabled:  pr.AutoMergeEnabled,
 				AutoMergeStrategy: pr.AutoMergeStrategy,
@@ -322,9 +323,11 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+reason)
 			return
 		}
+		var headHash plumbing.Hash
 		var headSHA string
 		if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, existingPR.HeadBranch); err == nil {
-			headSHA = headCommit.Hash.String()
+			headHash = headCommit.Hash
+			headSHA = headHash.String()
 		}
 		if err := h.Services.BranchProtection.CheckMerge(r.Context(), repo.ID, existingPR, headSHA); err != nil {
 			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+err.Error())
@@ -339,11 +342,11 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		head := existingPR.HeadBranch
 		switch mergeStrategy {
 		case "merge":
-			err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, base, head, author)
+			err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, base, head, headHash, author)
 		case "squash":
-			err = h.Services.Code.SquashMergePullRequest(owner, repoName, base, head, author)
+			err = h.Services.Code.SquashMergePullRequest(owner, repoName, base, head, headHash, author)
 		default:
-			err = h.Services.Code.MergePullRequest(owner, repoName, base, head)
+			err = h.Services.Code.MergePullRequest(owner, repoName, base, head, headHash)
 		}
 		if errors.Is(err, service.ErrRefMoved) {
 			writeError(w, http.StatusConflict, branchMovedMsg)
@@ -390,7 +393,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 			Pull: *pr, Owner: owner, Repo: repoName,
-			BodyHTML: markdown.Render(pr.Body),
+			BodyHTML: markdown.RenderCtx(r.Context(), pr.Body),
 		}))
 		return
 	}
@@ -443,11 +446,11 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 	var mergeErr error
 	switch pr.AutoMergeStrategy {
 	case "merge":
-		mergeErr = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, autoMergeAuthor)
+		mergeErr = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headCommit.Hash, autoMergeAuthor)
 	case "squash":
-		mergeErr = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, autoMergeAuthor)
+		mergeErr = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headCommit.Hash, autoMergeAuthor)
 	default: // "ff"
-		mergeErr = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch)
+		mergeErr = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headCommit.Hash)
 	}
 	if mergeErr != nil {
 		return

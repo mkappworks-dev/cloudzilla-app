@@ -133,7 +133,7 @@ templ FileTreeItems(nodes []TreeNode, depth int) {
 templ treeItem(n TreeNode, depth int) {
 	<li
 		data-name={ n.Name }
-		x-show="!filter || $el.dataset.name.toLowerCase().includes(filter.toLowerCase())"
+		x-show="shows($el)"
 		role="treeitem"
 		if n.IsDir {
 			aria-expanded?={ n.IsOpen }
@@ -159,7 +159,7 @@ templ treeItem(n TreeNode, depth int) {
 						class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50"
 						aria-label="Toggle folder"
 					>
-						<svg class={ chevronClass(n.IsOpen) } :class="{ 'rotate-90': open }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+						<svg class={ chevronClass(n.IsOpen) } :class="{ 'rotate-90': open || revealsChildren($el.closest('li')) }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 							<path d="M9 6l6 6-6 6"></path>
 						</svg>
 					</button>
@@ -173,7 +173,7 @@ templ treeItem(n TreeNode, depth int) {
 						<span class="truncate">{ n.Name }</span>
 					</a>
 				</div>
-				<ol x-show="open" role="group">
+				<ol x-show="open || revealsChildren($el)" role="group">
 					@FileTreeItems(n.Children, depth+1)
 				</ol>
 			</div>

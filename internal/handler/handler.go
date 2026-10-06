@@ -51,9 +51,9 @@ func isJSON(r *http.Request) bool {
 	return mediaType == "application/json"
 }
 
-// renderFormError puts msg in slot, the error area of an HTMX form in a modal
-// dialog. It answers 200 because the layout's htmx config skips swaps on 4xx;
-// the form and the data-toast listener tell success from error by HX-Retarget.
+// renderFormError puts msg in slot, the error area of an HTMX form. It answers
+// 200 because the layout's htmx config skips swaps on 4xx; the form and the
+// data-toast listener tell success from error by HX-Retarget.
 func renderFormError(w http.ResponseWriter, slot, msg string) {
 	w.Header().Set("HX-Retarget", slot)
 	w.Header().Set("HX-Reswap", "innerHTML")

@@ -170,7 +170,7 @@ func (h *Handler) IssueBodySection(w http.ResponseWriter, r *http.Request) {
 		AuthorName:  issue.AuthorName,
 		CreatedAt:   issue.CreatedAt,
 		Body:        issue.Body,
-		BodyHTML:    renderMentionsHTML(markdown.Render(issue.Body)),
+		BodyHTML:    renderMentionsHTML(markdown.RenderCtx(r.Context(), issue.Body)),
 		CanWrite:    canWrite,
 		Editing:     r.URL.Query().Get("mode") == "edit",
 	}))
@@ -198,7 +198,7 @@ func (h *Handler) EditIssueBody(w http.ResponseWriter, r *http.Request) {
 		AuthorName:  issue.AuthorName,
 		CreatedAt:   issue.CreatedAt,
 		Body:        issue.Body,
-		BodyHTML:    renderMentionsHTML(markdown.Render(issue.Body)),
+		BodyHTML:    renderMentionsHTML(markdown.RenderCtx(r.Context(), issue.Body)),
 		CanWrite:    true,
 		Editing:     false,
 	}))

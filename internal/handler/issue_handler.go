@@ -167,7 +167,7 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.IssueDetail(view.IssueDetailFragData{
 			Issue: *issue, Owner: owner, Repo: repoName,
-			BodyHTML: markdown.Render(issue.Body),
+			BodyHTML: markdown.RenderCtx(r.Context(), issue.Body),
 		}))
 		return
 	}

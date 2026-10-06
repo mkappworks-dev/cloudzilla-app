@@ -43,7 +43,7 @@ func (h *Handler) PageCodeSearch(w http.ResponseWriter, r *http.Request) {
 			langExt = langToExt(lang)
 		}
 
-		results, total, err := h.Services.Index.Search(r.Context(), q, repoID, langExt, page, 20)
+		results, total, err := h.Services.Index.Search(r.Context(), q, viewerOf(r), repoID, langExt, page, 20)
 		if err != nil {
 			slog.Warn("code search failed", "query", q, "error", err)
 		}

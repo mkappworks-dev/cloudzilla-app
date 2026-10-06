@@ -107,7 +107,7 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 			if view.LineCommentKeyOf(c) == key {
 				lineComments = append(lineComments, RenderedLineComment{
 					PullLineComment: c,
-					BodyHTML:        markdown.Render(c.Body),
+					BodyHTML:        markdown.RenderCtx(r.Context(), c.Body),
 				})
 			}
 		}
@@ -206,7 +206,7 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 			if view.LineCommentKeyOf(c) == key {
 				lineComments = append(lineComments, RenderedLineComment{
 					PullLineComment: c,
-					BodyHTML:        markdown.Render(c.Body),
+					BodyHTML:        markdown.RenderCtx(r.Context(), c.Body),
 				})
 			}
 		}
@@ -294,7 +294,7 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 			if view.LineCommentKeyOf(c) == key {
 				lineComments = append(lineComments, RenderedLineComment{
 					PullLineComment: c,
-					BodyHTML:        markdown.Render(c.Body),
+					BodyHTML:        markdown.RenderCtx(r.Context(), c.Body),
 				})
 			}
 		}

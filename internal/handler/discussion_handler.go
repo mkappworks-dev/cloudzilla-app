@@ -186,6 +186,8 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The body renders before the replies so it is first in line for the request's highlight budget.
+	bodyHTML := markdown.RenderCtx(r.Context(), discussion.Body)
 	rawReplies, repliesErr := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
 	if repliesErr != nil {
 		slog.Warn("discussion detail: reply fetch failed", "owner", owner, "repo", repoName, "discussion", discussion.ID, "error", repliesErr)
@@ -205,7 +207,7 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		}
 		replies[i] = view.RenderedDiscussionReply{
 			DiscussionReply: rr,
-			BodyHTML:        markdown.Render(rr.Body),
+			BodyHTML:        markdown.RenderCtx(r.Context(), rr.Body),
 			Reactions:       rxn,
 		}
 	}
@@ -270,7 +272,7 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		Replies:       replies,
 		Participants:  participants,
 		OPReactions:   opReactions,
-		BodyHTML:      markdown.Render(discussion.Body),
+		BodyHTML:      bodyHTML,
 		CanWrite:      canWrite,
 	}))
 }
@@ -516,7 +518,7 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		allReplies, _ := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
 		rendered := view.RenderedDiscussionReply{
 			DiscussionReply: *reply,
-			BodyHTML:        markdown.Render(reply.Body),
+			BodyHTML:        markdown.RenderCtx(r.Context(), reply.Body),
 		}
 		h.render(w, r, pages.DiscussionReplyCreated(owner, repoName, number, rendered, len(allReplies), canWrite, true))
 		return

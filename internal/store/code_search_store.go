@@ -29,15 +29,15 @@ ON CONFLICT (repo_id, file_path) DO UPDATE
 	return nil
 }
 
-// Search performs full-text search across the code index.
-// query is required; repoID and lang are optional filters.
+// Search performs full-text search across the code index of the repos viewer can read.
+// query is required; viewer, repoID and lang are optional.
 // lang is matched as a file extension suffix (e.g. ".go", ".py").
 // Returns results, total hit count, and any error.
-func (s *CodeSearchStore) Search(ctx context.Context, query string, repoID *int64, lang string, page, pageSize int) ([]model.CodeSearchResult, int, error) {
-	args := []interface{}{query}
-	argIdx := 2
+func (s *CodeSearchStore) Search(ctx context.Context, query string, viewer, repoID *int64, lang string, page, pageSize int) ([]model.CodeSearchResult, int, error) {
+	args := []interface{}{query, viewerID(viewer)}
+	argIdx := 3
 
-	filters := []string{"csi.tsv @@ plainto_tsquery('simple', $1)", "r.private = FALSE", "r.deleted_at IS NULL"}
+	filters := []string{"csi.tsv @@ plainto_tsquery('simple', $1)", readableBy("r", "$2"), "r.deleted_at IS NULL"}
 	if repoID != nil {
 		filters = append(filters, fmt.Sprintf("csi.repo_id = $%d", argIdx))
 		args = append(args, *repoID)

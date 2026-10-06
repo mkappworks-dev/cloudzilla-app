@@ -3,6 +3,7 @@ package service
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"html/template"
 	"io"
@@ -240,7 +241,7 @@ func (s *CodeService) OpenRawBlob(owner, repoName, ref, path string, maxBytes in
 // branch and renders it as HTML. Returns empty template.HTML when the repo,
 // commit, or README does not exist. Unexpected infrastructure errors (corrupt
 // repo, unreadable blob) are logged at warn level and also yield empty HTML.
-func (s *CodeService) GetProfileReadme(ownerName, repoName, defaultBranch string) template.HTML {
+func (s *CodeService) GetProfileReadme(ctx context.Context, ownerName, repoName, defaultBranch string) template.HTML {
 	raw, err := s.GetRawBlob(ownerName, repoName, defaultBranch, "README.md")
 	if err != nil {
 		if !errors.Is(err, ErrEmptyRepo) && !errors.Is(err, object.ErrFileNotFound) {
@@ -253,7 +254,7 @@ func (s *CodeService) GetProfileReadme(ownerName, repoName, defaultBranch string
 		}
 		return template.HTML("")
 	}
-	return template.HTML(markdown.Render(string(raw)))
+	return template.HTML(markdown.RenderCtx(ctx, string(raw)))
 }
 
 // GetProfileReadmeRaw returns ("", nil) for a missing repo, commit, or README so callers can render an empty editor.

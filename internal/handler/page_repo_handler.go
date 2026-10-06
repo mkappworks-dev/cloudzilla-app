@@ -64,7 +64,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
 		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
 		if err == nil {
-			readmeHTML = markdown.Render(string(raw))
+			readmeHTML = markdown.RenderCtx(r.Context(), string(raw))
 			readmeName = name
 			break
 		}
@@ -298,7 +298,7 @@ func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		settingsError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
@@ -306,25 +306,31 @@ func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		settingsError(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
 	if err := h.Services.Repo.UpdateGeneral(r.Context(), repo.ID, claims.UserID,
 		r.FormValue("description"), r.FormValue("website"), r.FormValue("default_branch")); err != nil {
 		if errors.Is(err, service.ErrForbidden) {
-			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
 			return
 		}
 		if errors.Is(err, service.ErrInvalidDefaultBranch) {
+			if r.Header.Get("HX-Request") == "true" {
+				renderFormError(w, repoGeneralFormError, err.Error())
+				return
+			}
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
 		slog.Error("settings: update general failed", "owner", owner, "repo", repoName, "error", err)
-		http.Error(w, "failed to update settings", http.StatusInternalServerError)
+		settingsError(w, r, http.StatusInternalServerError, "failed to update settings")
 		return
 	}
-	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
+	redirectToRepoSettings(w, r, owner, repoName)
 }
+
+const repoGeneralFormError = "#repo-general-form-error"
 
 // UpdateRepoFeatures handles the settings page's Access-section feature
 // toggles: allow Issues / Discussions / Projects / Wiki.
@@ -333,7 +339,7 @@ func (h *Handler) UpdateRepoFeatures(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		settingsError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
@@ -341,7 +347,7 @@ func (h *Handler) UpdateRepoFeatures(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		settingsError(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
 	if err := h.Services.Repo.UpdateFeatureToggles(r.Context(), repo.ID, claims.UserID,
@@ -350,14 +356,14 @@ func (h *Handler) UpdateRepoFeatures(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("allow_projects") == "on",
 		r.FormValue("allow_wiki") == "on"); err != nil {
 		if errors.Is(err, service.ErrForbidden) {
-			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
 			return
 		}
 		slog.Error("settings: update feature toggles failed", "owner", owner, "repo", repoName, "error", err)
-		http.Error(w, "failed to update settings", http.StatusInternalServerError)
+		settingsError(w, r, http.StatusInternalServerError, "failed to update settings")
 		return
 	}
-	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
+	redirectToRepoSettings(w, r, owner, repoName)
 }
 
 func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
@@ -365,7 +371,7 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		settingsError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
@@ -373,14 +379,14 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		settingsError(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
 	private := r.FormValue("private") == "true"
 	// Making a private repository public gives its code to everyone, for good.
 	if repo.Private && !private {
 		if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
 			return
 		}
 		if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), makePublicFormError) {
@@ -389,19 +395,36 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.Services.Repo.UpdateVisibility(r.Context(), repo.ID, claims.UserID, private); err != nil {
 		if errors.Is(err, service.ErrForbidden) {
-			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
 			return
 		}
 		slog.Error("settings: update visibility failed", "owner", owner, "repo", repoName, "error", err)
-		http.Error(w, "failed to update settings", http.StatusInternalServerError)
+		settingsError(w, r, http.StatusInternalServerError, "failed to update settings")
 		return
 	}
+	redirectToRepoSettings(w, r, owner, repoName)
+}
+
+// settingsError answers an HTMX settings form with JSON, which the layout shows
+// as an error toast; a plain text body would only show the HTTP status.
+func settingsError(w http.ResponseWriter, r *http.Request, status int, msg string) {
 	if r.Header.Get("HX-Request") == "true" {
-		w.Header().Set("HX-Redirect", "/"+owner+"/"+repoName+"/settings")
+		writeError(w, status, msg)
+		return
+	}
+	http.Error(w, msg, status)
+}
+
+// The settings forms reload the page after a save so the repo nav reflects
+// toggled features; data-toast stashes its message across the HX-Redirect.
+func redirectToRepoSettings(w http.ResponseWriter, r *http.Request, owner, repoName string) {
+	to := "/" + owner + "/" + repoName + "/settings"
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", to)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
+	http.Redirect(w, r, to, http.StatusSeeOther)
 }
 
 const makePublicFormError = "#make-public-form-error"

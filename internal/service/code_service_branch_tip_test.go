@@ -95,10 +95,10 @@ func TestWebCommits_PushLandsMidCommit(t *testing.T) {
 			return r.svc.CommitFile(r.owner, r.name, "main", "web.txt", []byte("web\n"), tipTestAuthor, "Add web.txt")
 		}},
 		{"three-way merge", "main", func(r *tipTestRepo) error {
-			return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", tipTestAuthor)
+			return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", r.featureTip, tipTestAuthor)
 		}},
 		{"squash merge", "main", func(r *tipTestRepo) error {
-			return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", tipTestAuthor)
+			return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", r.featureTip, tipTestAuthor)
 		}},
 	}
 	for _, tt := range tests {
@@ -118,6 +118,36 @@ func TestWebCommits_PushLandsMidCommit(t *testing.T) {
 			}
 			if got := branchTip(t, r.repo, tt.branch); got != pushed {
 				t.Errorf("%s = %s, want pushed commit %s", tt.branch, got, pushed)
+			}
+		})
+	}
+}
+
+func TestPullMerges_HeadMovedSinceCheck(t *testing.T) {
+	tests := []struct {
+		name  string
+		merge func(r *tipTestRepo, checked plumbing.Hash) error
+	}{
+		{"fast-forward", func(r *tipTestRepo, checked plumbing.Hash) error {
+			return r.svc.MergePullRequest(r.owner, r.name, "main", "feature", checked)
+		}},
+		{"three-way", func(r *tipTestRepo, checked plumbing.Hash) error {
+			return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", checked, tipTestAuthor)
+		}},
+		{"squash", func(r *tipTestRepo, checked plumbing.Hash) error {
+			return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", checked, tipTestAuthor)
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := newTipTestRepo(t)
+			setBranch(t, r.repo, "feature", r.featurePushed)
+
+			if err := tt.merge(r, r.featureTip); !errors.Is(err, ErrRefMoved) {
+				t.Errorf("err = %v, want ErrRefMoved", err)
+			}
+			if got := branchTip(t, r.repo, "main"); got != r.mainTip {
+				t.Errorf("main = %s, want it left at %s", got, r.mainTip)
 			}
 		})
 	}

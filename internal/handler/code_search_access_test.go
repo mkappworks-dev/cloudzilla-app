@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -77,4 +78,15 @@ func TestCodeSearch_PublicRepoFilter_FindsItsFiles(t *testing.T) {
 	got := f.search(strings.TrimPrefix(f.public.path, "/"), "")
 
 	assertContains(t, got, f.public.name+".go")
+}
+
+func TestCodeSearch_PrivateRepoFilter_FindsItsFilesForAReader(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	f := seedCodeSearchFixture(t, db)
+	reader := seedSignedInUser(t, db)
+	grantRepoRole(t, db, f.private.id, reader.id, model.RoleReader)
+
+	got := f.search(strings.TrimPrefix(f.private.path, "/"), reader.token)
+
+	assertContains(t, got, f.private.name+".go")
 }
