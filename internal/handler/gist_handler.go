@@ -113,7 +113,11 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 		}
 		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
 	}
-	h.render(w, r, pages.Gists(data))
+	owners := make([]string, len(data.Gists))
+	for i, g := range data.Gists {
+		owners[i] = g.OwnerName
+	}
+	h.render(w, h.withAvatars(r, owners...), pages.Gists(data))
 }
 
 // PageGistNew renders the new gist form.
@@ -157,7 +161,7 @@ func (h *Handler) PageGistDetail(w http.ResponseWriter, r *http.Request) {
 	if signedIn {
 		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
 	}
-	h.render(w, r, pages.GistDetail(data))
+	h.render(w, h.withAvatars(r, g.OwnerName), pages.GistDetail(data))
 }
 
 // PageGistEdit renders the gist edit form.

@@ -1,0 +1,45 @@
+package fragments
+
+import "github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+
+// AvatarControlData drives the upload and remove buttons beside an avatar on
+// a settings page.
+type AvatarControlData struct {
+	Name      string // initials fallback and alt text
+	AvatarKey string
+	UploadURL string
+	RemoveURL string
+	// ErrorSlot is the id of the element that shows upload errors.
+	ErrorSlot string
+}
+
+// AvatarControl uploads as soon as a file is picked. It is its own form, so it
+// must sit outside the profile form: forms can't nest.
+templ AvatarControl(d AvatarControlData) {
+	<div class="flex items-start gap-4" data-avatar-control>
+		@components.AvatarImage(d.Name, components.AvatarURL(d.AvatarKey), components.AvatarSizeXL, d.Name)
+		<div class="flex flex-col gap-2 min-w-0">
+			<div class="flex flex-wrap items-center gap-2">
+				<form
+					hx-post={ d.UploadURL }
+					hx-encoding="multipart/form-data"
+					hx-trigger="change"
+					hx-swap="none"
+					hx-on::before:request="this.closest('[data-avatar-control]').querySelector('[data-avatar-error]').textContent=''"
+					hx-on::after:request="this.reset()"
+					data-toast="Picture updated"
+				>
+					<input id={ d.ErrorSlot + "-file" } type="file" name="avatar" accept="image/png,image/jpeg,image/gif,image/webp" class="peer sr-only"/>
+					<label for={ d.ErrorSlot + "-file" } class="inline-flex items-center h-8 px-3 text-[13px] rounded-md border border-border bg-card hover:bg-accent cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring">Upload new picture</label>
+				</form>
+				if d.AvatarKey != "" {
+					<form hx-post={ d.RemoveURL } hx-swap="none" data-toast="Picture removed">
+						<button type="submit" class="h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground">Remove</button>
+					</form>
+				}
+			</div>
+			<p class="text-[11.5px] text-muted-foreground">PNG, JPEG, GIF or WebP, max 2 MB.</p>
+			<div id={ d.ErrorSlot } data-avatar-error class="empty:hidden"></div>
+		</div>
+	</div>
+}

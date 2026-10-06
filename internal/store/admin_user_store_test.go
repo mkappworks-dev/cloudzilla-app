@@ -25,7 +25,7 @@ func TestUserStore_NeverZeroActiveSuperadmins(t *testing.T) {
 	if err := users.Demote(ctx, only); !errors.Is(err, store.ErrLastSuperadmin) {
 		t.Errorf("demote last: got %v", err)
 	}
-	if err := users.DeleteWithOwnedRepos(ctx, only, nil); !errors.Is(err, store.ErrLastSuperadmin) {
+	if _, err := users.DeleteWithOwnedRepos(ctx, only, nil); !errors.Is(err, store.ErrLastSuperadmin) {
 		t.Errorf("delete last: got %v", err)
 	}
 	if last, err := users.IsLastActiveSuperadmin(ctx, only); err != nil || !last {

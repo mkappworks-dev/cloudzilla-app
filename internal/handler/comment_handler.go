@@ -137,7 +137,7 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.render(w, r, fragments.Comment(view.CommentFragData{
+		h.render(w, h.withAvatars(r, comment.AuthorName), fragments.Comment(view.CommentFragData{
 			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), comment.Body))},
 		}))
 		return
@@ -214,7 +214,7 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		toast(w, "success", "Comment added")
-		h.render(w, r, fragments.Comment(view.CommentFragData{
+		h.render(w, h.withAvatars(r, comment.AuthorName), fragments.Comment(view.CommentFragData{
 			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), comment.Body))},
 		}))
 		return
@@ -280,7 +280,7 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.render(w, r, fragments.Comment(view.CommentFragData{
+		h.render(w, h.withAvatars(r, comment.AuthorName), fragments.Comment(view.CommentFragData{
 			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), comment.Body))},
 		}))
 		return
@@ -381,5 +381,5 @@ func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) 
 	for i, c := range comments {
 		renderedComments[i] = RenderedComment{Comment: c, BodyHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), c.Body))}
 	}
-	h.render(w, r, fragments.Comments(view.CommentsFragData{Comments: renderedComments}))
+	h.render(w, h.withAvatars(r, commentAuthors(renderedComments)...), fragments.Comments(view.CommentsFragData{Comments: renderedComments}))
 }

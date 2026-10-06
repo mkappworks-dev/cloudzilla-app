@@ -98,6 +98,7 @@ func TestClassifyRequest(t *testing.T) {
 		{"POST", "/login", ResourceCore, true},
 		{"GET", "/", ResourceCore, true},
 		{"GET", "/static/app.css", "", false},
+		{"GET", "/avatars/user/1/" + strings.Repeat("a", 64) + ".png", "", false},
 		{"GET", "/htmx.min.js", "", false},
 		{"GET", "/alpine.min.js", "", false},
 		{"GET", "/favicon.ico", "", false},

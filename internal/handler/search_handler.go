@@ -28,5 +28,5 @@ func (h *Handler) PageSearch(w http.ResponseWriter, r *http.Request) {
 		data.Results = results
 	}
 
-	h.render(w, r, pages.Search(data))
+	h.render(w, withKnownAvatars(r, userAvatarKeys(data.Results.Users)), pages.Search(data))
 }

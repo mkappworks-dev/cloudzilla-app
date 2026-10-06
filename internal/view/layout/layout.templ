@@ -47,6 +47,11 @@ templ Base(base view.BasePage, title string) {
 						document.documentElement.classList.add('light');
 					}
 				})();
+				// error doesn't bubble, so capture it: an avatar whose object is gone
+				// hides itself and leaves the initials beneath it showing.
+				document.addEventListener('error', function(e) {
+					if (e.target instanceof HTMLImageElement && e.target.hasAttribute('data-avatar')) e.target.hidden = true;
+				}, true);
 			</script>
 		</head>
 		<body class="min-h-screen flex flex-col antialiased font-sans">
@@ -72,9 +77,7 @@ templ Base(base view.BasePage, title string) {
 								"class":      "flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:bg-accent text-sm font-medium",
 								"aria-label": "Switch account or organization, current: " + workspaceName,
 							}) {
-								<span class="inline-grid place-items-center h-5 w-5 rounded-sm bg-accent border border-border text-[10px] font-medium" aria-hidden="true">
-									{ firstInitial(workspaceName) }
-								</span>
+								@workspaceChip(workspaceName, workspaceAvatarKey(base, workspaceName))
 								<span class="font-medium">{ workspaceName }</span>
 								<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
 							}
@@ -83,17 +86,13 @@ templ Base(base view.BasePage, title string) {
 									{ "Account / orgs" }
 								}
 								@components.DropdownMenuLink("/"+base.CurrentUser.Username, nil) {
-									<span class="inline-grid place-items-center h-5 w-5 rounded-sm bg-accent border border-border text-[10px] font-medium" aria-hidden="true">
-										{ firstInitial(base.CurrentUser.Username) }
-									</span>
+									@workspaceChip(base.CurrentUser.Username, base.AvatarKey)
 									<span class="flex-1">{ base.CurrentUser.Username }</span>
 									<span class="text-[10px] text-muted-foreground">Personal</span>
 								}
 								for _, entry := range base.UserOrgs {
 									@components.DropdownMenuLink("/"+entry.Org.Name, nil) {
-										<span class="inline-grid place-items-center h-5 w-5 rounded-sm bg-accent border border-border text-[10px] font-medium" aria-hidden="true">
-											{ firstInitial(entry.Org.Name) }
-										</span>
+										@workspaceChip(entry.Org.Name, entry.Org.AvatarKey)
 										<span class="flex-1">{ entry.Org.Name }</span>
 										<span class="text-[10px] text-muted-foreground">{ orgRoleLabel(entry.Role) }</span>
 									}
@@ -174,10 +173,13 @@ templ Base(base view.BasePage, title string) {
 							<div class="ml-1">
 								@components.DropdownMenu() {
 									@components.DropdownMenuTrigger(templ.Attributes{
-										"class":      "h-7 w-7 rounded-full bg-muted border border-border grid place-items-center text-xs font-medium hover:bg-accent",
+										"class":      "relative h-7 w-7 rounded-full overflow-hidden bg-muted border border-border grid place-items-center text-xs font-medium hover:bg-accent",
 										"aria-label": "User menu for " + base.CurrentUser.Username,
 									}) {
 										{ avatarInitials(base.CurrentUser.Username) }
+										if base.AvatarKey != "" {
+											<img data-avatar src={ components.AvatarURL(base.AvatarKey) } alt="" width="28" height="28" decoding="async" class="absolute inset-0 h-full w-full object-cover"/>
+										}
 									}
 									@components.DropdownMenuContent(components.DropdownAlignEnd) {
 										<div class="px-2.5 py-2">
@@ -498,6 +500,29 @@ func orgRoleLabel(role model.OrgRole) string {
 		return "Member"
 	}
 	return string(role)
+}
+
+templ workspaceChip(name, avatarKey string) {
+	<span class="relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[10px] font-medium" aria-hidden="true">
+		{ firstInitial(name) }
+		if avatarKey != "" {
+			<img data-avatar src={ components.AvatarURL(avatarKey) } alt="" width="20" height="20" decoding="async" class="absolute inset-0 h-full w-full object-cover"/>
+		}
+	</span>
+}
+
+// workspaceAvatarKey finds name among the viewer's own workspaces; any other
+// owner being viewed keeps its initial.
+func workspaceAvatarKey(base view.BasePage, name string) string {
+	if base.CurrentUser != nil && name == base.CurrentUser.Username {
+		return base.AvatarKey
+	}
+	for _, e := range base.UserOrgs {
+		if e.Org.Name == name {
+			return e.Org.AvatarKey
+		}
+	}
+	return ""
 }
 
 // avatarInitials returns 1–2 letters from a username for the avatar fallback.

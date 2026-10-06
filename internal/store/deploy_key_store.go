@@ -48,11 +48,14 @@ func (s *DeployKeyStore) ListByRepo(ctx context.Context, repoID int64) ([]model.
 	return keys, rows.Err()
 }
 
+// GetByFingerprint returns the oldest deploy key with the fingerprint. Rows added
+// before fingerprints were unique across repos can share one; the first one added
+// keeps working, as if the later adds had been refused.
 func (s *DeployKeyStore) GetByFingerprint(ctx context.Context, fingerprint string) (*model.DeployKey, error) {
 	k := &model.DeployKey{}
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, title, fingerprint, public_key, read_only, last_used_at, created_at
-		 FROM deploy_keys WHERE fingerprint = $1`,
+		 FROM deploy_keys WHERE fingerprint = $1 ORDER BY id LIMIT 1`,
 		fingerprint,
 	).Scan(&k.ID, &k.RepoID, &k.Title, &k.Fingerprint, &k.PublicKey,
 		&k.ReadOnly, &k.LastUsedAt, &k.CreatedAt)

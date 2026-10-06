@@ -33,7 +33,7 @@ func (s *AssigneeStore) RemoveFromIssue(ctx context.Context, issueID, userID int
 
 func (s *AssigneeStore) ListByIssue(ctx context.Context, issueID int64) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT u.id, u.username, u.email, u.bio, u.avatar_url, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
+		`SELECT u.id, u.username, u.email, u.bio, u.avatar_url, u.avatar_key, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
 		 FROM users u JOIN issue_assignees ia ON u.id = ia.user_id
 		 WHERE ia.issue_id = $1 ORDER BY u.username`,
 		issueID,
@@ -63,7 +63,7 @@ func (s *AssigneeStore) RemoveFromPull(ctx context.Context, pullID, userID int64
 
 func (s *AssigneeStore) ListByPull(ctx context.Context, pullID int64) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT u.id, u.username, u.email, u.bio, u.avatar_url, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
+		`SELECT u.id, u.username, u.email, u.bio, u.avatar_url, u.avatar_key, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
 		 FROM users u JOIN pull_assignees pa ON u.id = pa.user_id
 		 WHERE pa.pull_id = $1 ORDER BY u.username`,
 		pullID,
@@ -86,7 +86,7 @@ func (s *AssigneeStore) ListByPullIDs(ctx context.Context, pullIDs []int64) (map
 		args[i] = id
 	}
 	q := fmt.Sprintf(
-		`SELECT pa.pull_id, u.id, u.username, u.email, u.bio, u.avatar_url, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
+		`SELECT pa.pull_id, u.id, u.username, u.email, u.bio, u.avatar_url, u.avatar_key, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
 		 FROM users u JOIN pull_assignees pa ON u.id = pa.user_id
 		 WHERE pa.pull_id IN (%s) ORDER BY u.username`,
 		strings.Join(placeholders, ","),
@@ -100,7 +100,7 @@ func (s *AssigneeStore) ListByPullIDs(ctx context.Context, pullIDs []int64) (map
 	for rows.Next() {
 		var pullID int64
 		var u model.User
-		if err := rows.Scan(&pullID, &u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.IsSuperadmin, &u.IsInvited, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&pullID, &u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.AvatarKey, &u.IsSuperadmin, &u.IsInvited, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, err
 		}
 		result[pullID] = append(result[pullID], u)
@@ -112,7 +112,7 @@ func scanUsers(rows *sql.Rows) ([]model.User, error) {
 	var users []model.User
 	for rows.Next() {
 		var u model.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.IsSuperadmin, &u.IsInvited, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.AvatarKey, &u.IsSuperadmin, &u.IsInvited, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, u)

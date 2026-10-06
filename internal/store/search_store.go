@@ -76,7 +76,7 @@ LIMIT $3`
 
 func (s *SearchStore) SearchUsers(ctx context.Context, query string, limit int) ([]model.User, error) {
 	const q = `
-SELECT id, username, email, bio, avatar_url, created_at, updated_at
+SELECT id, username, email, bio, avatar_url, avatar_key, created_at, updated_at
 FROM users
 WHERE lower(username) LIKE lower($1) || '%' AND ` + notGhost + `
 ORDER BY username
@@ -89,7 +89,7 @@ LIMIT $2`
 	var users []model.User
 	for rows.Next() {
 		var u model.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.AvatarKey, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, u)

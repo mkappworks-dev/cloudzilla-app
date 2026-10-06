@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -184,6 +185,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("new PR: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
+	r = h.withAvatars(r, append(usernames(suggested), collaboratorUsernames(collaborators)...)...)
 	h.render(w, r, pages.PullNew(view.PullNewData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:         *repo,
@@ -254,6 +256,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderErr := func(msg string) {
+		r := h.withAvatars(r, append(usernames(errSuggested), collaboratorUsernames(errCollaborators)...)...)
 		h.render(w, r, pages.PullNew(view.PullNewData{
 			BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 			Repo:         *repo,
@@ -494,6 +497,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	chromeCounts.ConvCount = len(rawComments) + submittedReviewCount(reviews)
 	chromeCounts.ChecksTotal, chromeCounts.ChecksPassed = checkCounts(headStatuses)
 
+	r = h.withAvatars(r, slices.Concat(participants, collaboratorUsernames(collaborators), usernames(pullAssignees))...)
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,

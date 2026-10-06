@@ -46,6 +46,15 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `rate_limit.archive.anonymous` | `20`                                       | `CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS` | Archive downloads per client IP               |
 | `rate_limit.search.authenticated` | `600`                                   | `CZ_RATE_LIMIT_SEARCH_AUTHENTICATED` | Searches per signed-in bucket              |
 | `rate_limit.search.anonymous` | `60`                                        | `CZ_RATE_LIMIT_SEARCH_ANONYMOUS` | Searches per client IP                         |
+| `storage.backend`            | `local`                                      | `CZ_STORAGE_BACKEND`            | Where uploaded files such as avatars go: `local` or `s3`. See [storage](./storage.md) |
+| `storage.local.root`         | `./storage`                                  | `CZ_STORAGE_LOCAL_ROOT`         | Directory for the `local` backend               |
+| `storage.s3.endpoint`        | `""` (AWS)                                   | `CZ_STORAGE_S3_ENDPOINT`        | Endpoint URL of an S3-compatible server (R2, B2, Garage, versitygw) |
+| `storage.s3.region`          | `us-east-1`                                  | `CZ_STORAGE_S3_REGION`          | Bucket region (`auto` for R2)                   |
+| `storage.s3.bucket`          | `""`                                         | `CZ_STORAGE_S3_BUCKET`          | Bucket name; required for `s3`                  |
+| `storage.s3.access_key_id`   | `""`                                         | `CZ_STORAGE_S3_ACCESS_KEY_ID`   | Static key; empty uses the AWS default credential chain |
+| `storage.s3.secret_access_key` | `""`                                       | `CZ_STORAGE_S3_SECRET_ACCESS_KEY` | Static secret; set with `access_key_id` or not at all |
+| `storage.s3.path_style`      | `false`                                      | `CZ_STORAGE_S3_PATH_STYLE`      | Path-style URLs, needed by most self-hosted S3 servers |
+| `storage.s3.prefix`          | `""`                                         | `CZ_STORAGE_S3_PREFIX`          | Key prefix, so several instances can share a bucket |
 
 ### Environment Variable Mapping
 
@@ -55,7 +64,7 @@ All config keys can be overridden via environment variables using the `CZ_` pref
 
 Each request counts against one resource's budget for its subject, per `rate_limit.window`:
 
-- **Resources.** `git` is `…/info/refs`, `…/git-upload-pack` and `…/git-receive-pack`: a clone, fetch or push is two requests. `archive` is `GET /{owner}/{repo}/archive/…`. `search` is `/search` and `/search/code`. `core` is everything else. Static assets (`/static/*`, `/htmx.min.js`, `/alpine.min.js`, `/favicon.ico`) aren't counted.
+- **Resources.** `git` is `…/info/refs`, `…/git-upload-pack` and `…/git-receive-pack`: a clone, fetch or push is two requests. `archive` is `GET /{owner}/{repo}/archive/…`. `search` is `/search` and `/search/code`. `core` is everything else. Static assets (`/static/*`, `/htmx.min.js`, `/alpine.min.js`, `/favicon.ico`) and avatars (`/avatars/*`) aren't counted.
 - **Subjects.** A signed-in user has two buckets, each with the full `authenticated` budget: `web` for browser sessions, and `token` shared by all of their personal access tokens and OAuth-app tokens. Anything else, including a credential that doesn't verify and a token bound to a signing key (whose signature only the route can check), counts against the client's IPv4 address or IPv6 /64 with the `anonymous` budget.
 - `0` makes a budget unlimited. A negative budget, or a window that isn't positive, stops the server at startup.
 
@@ -110,6 +119,11 @@ git:
   ssh_port: 2222
   ssh_host_key: /etc/cloudzilla/ssh_host_key
 
+storage:
+  backend: local
+  local:
+    root: /var/lib/cloudzilla/storage
+
 smtp:
   host: "smtp.example.com"
   port: 587
@@ -154,6 +168,7 @@ Verification and password reset links point at `server.base_url`, so set it to t
 | ---------------- | -------------------- | ---------------------------------------------------------- |
 | PostgreSQL data  | `cloudzilla_pg_data` | (managed by PostgreSQL container)                          |
 | Git repositories | `cloudzilla_data`    | `/data/git-repos/`                                         |
+| Uploaded files   | `cloudzilla_data`    | `/data/storage/` (avatars; see [storage](./storage.md))    |
 | SSH host key     | `cloudzilla_data`    | `/data/cloudzilla_host_key` (auto-generated on first boot) |
 
 ---
@@ -178,7 +193,7 @@ scp dist/cloudzilla dist/cloudzilla-cli user@yourserver:/usr/local/bin/
 
 ```bash
 sudo mkdir -p /etc/cloudzilla
-sudo mkdir -p /var/lib/cloudzilla/git-repos
+sudo mkdir -p /var/lib/cloudzilla/git-repos /var/lib/cloudzilla/storage
 ```
 
 Write `/etc/cloudzilla/config.yaml` (see Production Config above).

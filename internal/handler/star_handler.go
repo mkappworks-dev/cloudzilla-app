@@ -86,13 +86,13 @@ func (h *Handler) ListStargazers(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		out := make([]publicUser, len(stargazers))
 		for i, u := range stargazers {
-			out[i] = newPublicUser(u)
+			out[i] = newPublicUser(u, h.Cfg.Server.BaseURL)
 		}
 		writeJSON(w, http.StatusOK, out)
 		return
 	}
 
-	h.render(w, r, pages.Stargazers(view.StargazersData{
+	h.render(w, withKnownAvatars(r, userAvatarKeys(stargazers)), pages.Stargazers(view.StargazersData{
 		BasePage:   basePage(r, h.Services),
 		Repo:       *repo,
 		Owner:      owner,
@@ -118,7 +118,7 @@ func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
 
 	starCount, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
 
-	h.render(w, r, pages.Stargazers(view.StargazersData{
+	h.render(w, withKnownAvatars(r, userAvatarKeys(stargazers)), pages.Stargazers(view.StargazersData{
 		BasePage:   basePage(r, h.Services),
 		Repo:       *repo,
 		Owner:      owner,

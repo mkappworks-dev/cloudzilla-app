@@ -68,6 +68,7 @@ type UserService struct {
 	verifier    *EmailVerificationService
 	reauth      *ReauthService
 	notices     *EmailService
+	avatars     *AvatarService
 }
 
 // NewUserService creates a UserService backed by the given user store and auth config.
@@ -317,11 +318,22 @@ func (s *UserService) UpdateCodeThemes(ctx context.Context, userID int64, light,
 }
 
 func (s *UserService) CodeThemes(ctx context.Context, userID int64) (light, dark string, err error) {
-	light, dark, err = s.store.GetCodeThemes(ctx, userID)
+	p, err := s.LayoutPrefs(ctx, userID)
+	return p.CodeLight, p.CodeDark, err
+}
+
+// LayoutPrefs is what every page's layout needs about its viewer, read in one query.
+type LayoutPrefs struct {
+	CodeLight, CodeDark string
+	AvatarKey           string
+}
+
+func (s *UserService) LayoutPrefs(ctx context.Context, userID int64) (LayoutPrefs, error) {
+	light, dark, avatarKey, err := s.store.GetLayoutPrefs(ctx, userID)
 	if err != nil {
-		return "", "", err
+		return LayoutPrefs{}, err
 	}
-	return highlight.NormalizeLight(light), highlight.NormalizeDark(dark), nil
+	return LayoutPrefs{CodeLight: highlight.NormalizeLight(light), CodeDark: highlight.NormalizeDark(dark), AvatarKey: avatarKey}, nil
 }
 
 // Username is deliberately not editable: repo owner names, on-disk repo paths, and JWT claims key off it.
@@ -369,13 +381,20 @@ func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 	} else if last {
 		return ErrLastSuperadmin
 	}
-	return s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
-		err := s.store.DeleteWithOwnedRepos(ctx, userID, livePersonalIDs)
+	var avatarKey string
+	err := s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
+		var err error
+		avatarKey, err = s.store.DeleteWithOwnedRepos(ctx, userID, livePersonalIDs)
 		if errors.Is(err, store.ErrLastOrgOwner) {
 			return ErrSoleOrgOwner
 		}
 		return err
 	})
+	if err != nil {
+		return err
+	}
+	s.avatars.DeleteObject(ctx, avatarKey)
+	return nil
 }
 
 func (s *UserService) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
@@ -407,6 +426,12 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 		return "", fmt.Errorf("get user: %w", err)
 	}
 	return s.generateJWT(u)
+}
+
+// WithAvatars removes a deleted user's avatar object.
+func (s *UserService) WithAvatars(a *AvatarService) *UserService {
+	s.avatars = a
+	return s
 }
 
 // Required by PinRepo and PinnedRepos, which apply repo visibility, and by

@@ -993,7 +993,8 @@ func TestRepoService_DeleteWithOwner_KeepsAWikiACaseVariantOwnerHolds(t *testing
 	env.createWithWiki(t, lower, "notes")
 
 	err = env.repos.DeleteWithOwner(ctx, upperID, func(live []int64) error {
-		return store.NewUserStore(env.db).DeleteWithOwnedRepos(ctx, upperID, live)
+		_, err := store.NewUserStore(env.db).DeleteWithOwnedRepos(ctx, upperID, live)
+		return err
 	})
 	if err != nil {
 		t.Fatalf("DeleteWithOwner: %v", err)

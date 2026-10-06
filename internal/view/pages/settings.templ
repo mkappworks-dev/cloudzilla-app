@@ -98,17 +98,17 @@ templ settingsProfileSection(data view.SettingsData) {
 	<section id="profile" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
 		<h2 class="text-base font-semibold tracking-tight mb-1">Profile</h2>
 		<p class="text-[12.5px] text-muted-foreground mb-6">How others see you across Cloudzilla.</p>
+		<div class="mb-5">
+			@fragments.AvatarControl(fragments.AvatarControlData{
+				Name:      displayNameOr(data.User.Name, data.User.Username),
+				AvatarKey: data.User.AvatarKey,
+				UploadURL: "/settings/avatar",
+				RemoveURL: "/settings/avatar/delete",
+				ErrorSlot: "avatar-form-error",
+			})
+		</div>
 		<form hx-post="/settings/profile" hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#profile-form-error').textContent=''" data-toast="Profile saved" class="space-y-5" x-data={ "{ original: " + components.JSLiteral(data.User.Email) + ", email: " + components.JSLiteral(data.User.Email) + " }" }>
 			<div id="profile-form-error" class="empty:hidden"></div>
-			<div class="flex items-start gap-4">
-				<div class="h-16 w-16 rounded-full grid place-items-center text-base font-semibold shrink-0 bg-muted border border-border">
-					{ avatarInitials(data.User.Name, data.User.Username) }
-				</div>
-				<div class="space-y-2">
-					<button type="button" disabled class="h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed">Upload new picture</button>
-					<p class="text-[11.5px] text-muted-foreground">PNG or JPG, max 2 MB. (Coming soon.)</p>
-				</div>
-			</div>
 			<div>
 				<label for="acct-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
 				<input id="acct-name" name="name" type="text" value={ data.User.Name } class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
