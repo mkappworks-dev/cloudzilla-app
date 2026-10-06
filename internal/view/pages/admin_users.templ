@@ -234,18 +234,24 @@ templ adminUserActions(data view.AdminUserData) {
 	@components.Card(nil) {
 		@components.CardHeader() {
 			<h2 class="text-base font-semibold tracking-tight">Actions</h2>
+			@components.CardDescription() {
+				Each action needs your own confirmation.
+			}
 		}
 		@components.CardContent() {
 			<div class="flex flex-col gap-5">
+				<div id="admin-user-confirm" class="flex flex-wrap items-end gap-3">
+					@components.ConfirmFields("admin-user", data.Confirm, false)
+				</div>
 				if u.Suspended() {
 					@adminActionRow("Unsuspend", "Lets the account sign in again. Its tokens, SSH keys and app grants work again; its old sessions stay signed out.") {
-						@adminActionForm(u.Username, "unsuspend", "unsuspend-user", data.Confirm, "Account unsuspended") {
+						@adminActionForm(u.Username, "unsuspend", "Account unsuspended") {
 							@adminActionButton(components.ButtonSuccess, "Unsuspend", "Unsuspend @"+u.Username+"?", "@"+u.Username+" will be able to sign in, push and use tokens again.", false)
 						}
 					}
 				} else {
 					@adminActionRow("Suspend", "Signs the account out everywhere and blocks sign-in, tokens, SSH keys and deploy keys on its repositories. Its content stays visible.") {
-						@adminActionForm(u.Username, "suspend", "suspend-user", data.Confirm, "Account suspended") {
+						@adminActionForm(u.Username, "suspend", "Account suspended") {
 							<label for="suspend-reason" class="sr-only">Reason (optional, recorded in the audit log)</label>
 							@components.Input(templ.Attributes{
 								"id":          "suspend-reason",
@@ -261,26 +267,26 @@ templ adminUserActions(data view.AdminUserData) {
 				}
 				if u.IsSuperadmin {
 					@adminActionRow("Remove superadmin", "Takes away instance administration on the account's next request.") {
-						@adminActionForm(u.Username, "demote", "demote-user", data.Confirm, "Superadmin removed") {
+						@adminActionForm(u.Username, "demote", "Superadmin removed") {
 							@adminActionButton(components.ButtonOutline, "Remove superadmin", "Remove superadmin from @"+u.Username+"?", "@"+u.Username+" loses instance administration on their next request.", true)
 						}
 					}
 				} else if !u.Suspended() {
 					@adminActionRow("Make superadmin", "Gives the account full instance administration on its next request.") {
-						@adminActionForm(u.Username, "promote", "promote-user", data.Confirm, "Superadmin granted") {
+						@adminActionForm(u.Username, "promote", "Superadmin granted") {
 							@adminActionButton(components.ButtonOutline, "Make superadmin", "Make @"+u.Username+" a superadmin?", "@"+u.Username+" gets full instance administration, including over your account.", true)
 						}
 					}
 				}
 				if u.TOTPEnabled {
 					@adminActionRow("Reset two-factor", "Turns two-factor sign-in off for someone who lost their authenticator and backup codes. They are emailed.") {
-						@adminActionForm(u.Username, "reset-2fa", "reset-2fa-user", data.Confirm, "Two-factor reset") {
+						@adminActionForm(u.Username, "reset-2fa", "Two-factor reset") {
 							@adminActionButton(components.ButtonOutline, "Reset two-factor", "Reset two-factor for @"+u.Username+"?", "@"+u.Username+" will sign in with only their password or provider until they turn it back on.", true)
 						}
 					}
 				}
 				@adminActionRow("Revoke tokens and keys", "Deletes the account's personal access tokens, SSH keys and app authorizations, and signs it out everywhere. Deploy keys stay. They are emailed.") {
-					@adminActionForm(u.Username, "revoke-credentials", "revoke-user", data.Confirm, "Tokens and keys revoked") {
+					@adminActionForm(u.Username, "revoke-credentials", "Tokens and keys revoked") {
 						@adminActionButton(components.ButtonDestructive, "Revoke", "Revoke @"+u.Username+"'s tokens and keys?", "Every personal access token, SSH key and app authorization of @"+u.Username+" is deleted. This cannot be undone.", true)
 					}
 				}
@@ -299,9 +305,9 @@ templ adminActionRow(title, description string) {
 	</div>
 }
 
-templ adminActionForm(username, action, idPrefix string, confirm components.ConfirmFactors, toast string) {
-	<form hx-post={ adminUserAction(username, action) } hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast(toast)}... } class="flex flex-wrap items-end justify-end gap-3">
-		@components.ConfirmFields(idPrefix, confirm, true)
+// The forms share the confirmation fields above them through hx-include.
+templ adminActionForm(username, action, toast string) {
+	<form hx-post={ adminUserAction(username, action) } hx-include="#admin-user-confirm" hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast(toast)}... } class="flex flex-wrap items-end justify-end gap-3">
 		{ children... }
 	</form>
 }
