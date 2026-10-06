@@ -2,10 +2,12 @@ package middleware
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/netip"
 	"strings"
+	"sync"
 )
 
 // ParseTrustedProxies parses server.trusted_proxies entries: CIDRs or bare IPs.
@@ -38,10 +40,18 @@ func ParseTrustedProxies(entries []string) ([]netip.Prefix, error) {
 // believed only from trusted proxies, and read right to left: any client can
 // prepend hops, so the first untrusted hop from the right is the client.
 func ClientIP(trusted []netip.Prefix) func(http.Handler) http.Handler {
+	var warnUntrusted sync.Once
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if addr, err := netip.ParseAddr(RemoteIP(r)); err == nil {
-				r.RemoteAddr = forwardedClient(addr.Unmap(), r.Header.Values("X-Forwarded-For"), trusted).String()
+				peer, xff := addr.Unmap(), r.Header.Values("X-Forwarded-For")
+				// Behind an unlisted proxy, every client shares the proxy's address and its rate limits.
+				if len(xff) > 0 && !isTrusted(peer, trusted) {
+					warnUntrusted.Do(func() {
+						slog.Warn("ignoring X-Forwarded-For from a peer not in server.trusted_proxies (CZ_SERVER_TRUSTED_PROXIES); if Cloudzilla runs behind this proxy, add it", "peer", peer.String())
+					})
+				}
+				r.RemoteAddr = forwardedClient(peer, xff, trusted).String()
 			}
 			next.ServeHTTP(w, r)
 		})

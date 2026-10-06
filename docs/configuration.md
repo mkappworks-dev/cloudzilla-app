@@ -36,10 +36,39 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `import.allow_local_networks`| `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`| Let repository imports reach loopback, private and link-local addresses |
 | `import.timeout`             | `30m`                                        | `CZ_IMPORT_TIMEOUT`             | Time limit for one repository import            |
 | `webhook.allow_local_networks`| `false`                                     | `CZ_WEBHOOK_ALLOW_LOCAL_NETWORKS`| Let webhooks be created for and delivered to loopback, private and link-local addresses |
+| `rate_limit.enabled`         | `true`                                       | `CZ_RATE_LIMIT_ENABLED`         | Rate-limit every request that isn't a static asset; see [Rate limits](#rate-limits) |
+| `rate_limit.window`          | `1h`                                         | `CZ_RATE_LIMIT_WINDOW`          | Length of the window each budget covers         |
+| `rate_limit.core.authenticated` | `5000`                                    | `CZ_RATE_LIMIT_CORE_AUTHENTICATED` | Pages and `/api/*` per signed-in bucket      |
+| `rate_limit.core.anonymous`  | `1000`                                       | `CZ_RATE_LIMIT_CORE_ANONYMOUS`  | Pages and `/api/*` per client IP                |
+| `rate_limit.git.authenticated` | `1000`                                     | `CZ_RATE_LIMIT_GIT_AUTHENTICATED` | Git-over-HTTP requests per signed-in bucket   |
+| `rate_limit.git.anonymous`   | `200`                                        | `CZ_RATE_LIMIT_GIT_ANONYMOUS`   | Git-over-HTTP requests per client IP            |
+| `rate_limit.archive.authenticated` | `100`                                  | `CZ_RATE_LIMIT_ARCHIVE_AUTHENTICATED` | Archive downloads per signed-in bucket    |
+| `rate_limit.archive.anonymous` | `20`                                       | `CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS` | Archive downloads per client IP               |
+| `rate_limit.search.authenticated` | `600`                                   | `CZ_RATE_LIMIT_SEARCH_AUTHENTICATED` | Searches per signed-in bucket              |
+| `rate_limit.search.anonymous` | `60`                                        | `CZ_RATE_LIMIT_SEARCH_ANONYMOUS` | Searches per client IP                         |
 
 ### Environment Variable Mapping
 
 All config keys can be overridden via environment variables using the `CZ_` prefix. Dots become underscores: `auth.jwt_secret` becomes `CZ_AUTH_JWT_SECRET`. Viper handles the mapping automatically.
+
+### Rate limits
+
+Each request counts against one resource's budget for its subject, per `rate_limit.window`:
+
+- **Resources.** `git` is `…/info/refs`, `…/git-upload-pack` and `…/git-receive-pack`: a clone, fetch or push is two requests. `archive` is `GET /{owner}/{repo}/archive/…`. `search` is `/search` and `/search/code`. `core` is everything else. Static assets (`/static/*`, `/htmx.min.js`, `/alpine.min.js`, `/favicon.ico`) aren't counted.
+- **Subjects.** A signed-in user has two buckets, each with the full `authenticated` budget: `web` for browser sessions, and `token` shared by all of their personal access tokens and OAuth-app tokens. Anything else, including a credential that doesn't verify and a token bound to a signing key (whose signature only the route can check), counts against the client's IPv4 address or IPv6 /64 with the `anonymous` budget.
+- `0` makes a budget unlimited. A negative budget, or a window that isn't positive, stops the server at startup.
+
+The per-IP limits on sign-up and password login (see [Deployment](./deployment.md#behind-a-reverse-proxy)) apply on top and can't be configured. Behind a proxy, set `server.trusted_proxies`, or every anonymous client shares the proxy's budget. Git over SSH isn't rate-limited. API clients see their budget in response headers; see [Rate limits](./api-reference.md#rate-limits).
+
+```yaml
+rate_limit:
+  window: 1h
+  git:
+    anonymous: 500
+  archive:
+    anonymous: 0   # unlimited
+```
 
 ---
 
