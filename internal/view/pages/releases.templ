@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"net/url"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -46,7 +47,7 @@ templ Releases(data view.ReleasesData) {
 								</aside>
 								<div class="p-5">
 									<div class="flex flex-wrap items-center gap-2">
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + release.TagName) } class="text-lg font-semibold tracking-tight hover:underline after:absolute after:inset-0">
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + url.PathEscape(release.TagName)) } class="text-lg font-semibold tracking-tight hover:underline after:absolute after:inset-0">
 											if release.Name != "" {
 												{ release.Name }
 											} else {

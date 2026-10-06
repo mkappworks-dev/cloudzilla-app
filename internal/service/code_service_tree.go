@@ -16,6 +16,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/utils/binary"
 	"github.com/go-git/go-git/v5/utils/ioutil"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 )
@@ -83,9 +84,9 @@ func (s *CodeService) GetTree(owner, repoName, ref, path string) (*TreeResult, e
 		}
 		var url string
 		if isDir {
-			url = "/" + owner + "/" + repoName + "/tree/" + resolvedRef + "/" + entryPath
+			url = codeurl.Path(owner, repoName, "tree", resolvedRef, entryPath)
 		} else {
-			url = "/" + owner + "/" + repoName + "/blob/" + resolvedRef + "/" + entryPath
+			url = codeurl.Path(owner, repoName, "blob", resolvedRef, entryPath)
 		}
 		e := TreeEntry{Name: entry.Name, IsDir: isDir, URL: url}
 		if isDir {
@@ -134,7 +135,7 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 		IsBinary:    isBinary,
 		Size:        file.Size,
 		Breadcrumbs: buildBreadcrumbs(owner, repoName, resolvedRef, path, true),
-		BlameURL:    "/" + owner + "/" + repoName + "/blame/" + resolvedRef + "/" + path,
+		BlameURL:    codeurl.Path(owner, repoName, "blame", resolvedRef, path),
 	}
 
 	if !isBinary {

@@ -6,10 +6,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -461,7 +463,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	// A file path fails GetTree. 302, not 301: a later push can make it a directory.
 	if treeErr != nil && !errors.Is(treeErr, service.ErrEmptyRepo) && path != "" {
 		if _, blobErr := h.Services.Code.GetBlob(owner, repoName, ref, path); blobErr == nil {
-			http.Redirect(w, r, "/"+owner+"/"+repoName+"/blob/"+ref+"/"+path, http.StatusFound)
+			http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, path), http.StatusFound)
 			return
 		}
 	}
@@ -595,7 +597,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		IsBinary:      result.IsBinary,
 		Size:          result.Size,
 		BlameURL:      result.BlameURL,
-		RawURL:        "/" + owner + "/" + repoName + "/raw/" + result.Ref + "/" + result.Path,
+		RawURL:        codeurl.Path(owner, repoName, "raw", result.Ref, result.Path),
 		EditURL:       "#",
 		CanWrite:      canWrite,
 		CanManage:     canManage,
@@ -613,7 +615,7 @@ func (h *Handler) PageCommitsRedirect(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	http.Redirect(w, r, "/"+owner+"/"+repoName+"/commits/"+repo.DefaultBranch, http.StatusFound)
+	http.Redirect(w, r, codeurl.Path(owner, repoName, "commits", repo.DefaultBranch, ""), http.StatusFound)
 }
 
 // PageCommits renders the paginated commit log for a ref.
@@ -750,7 +752,19 @@ func routeRefPath(r *http.Request) string {
 	if rest := chi.URLParam(r, "*"); rest != "" {
 		refPath += "/" + rest
 	}
-	return refPath
+	return unescapeRouted(r, refPath)
+}
+
+// unescapeRouted decodes a route param of r. chi routes on RawPath when it's
+// set, so only then are its params still escaped.
+func unescapeRouted(r *http.Request, param string) string {
+	if r.URL.RawPath == "" {
+		return param
+	}
+	if decoded, err := url.PathUnescape(param); err == nil {
+		return decoded
+	}
+	return param
 }
 
 // pickerRefs feeds the ref picker best-effort: a failure leaves it with only

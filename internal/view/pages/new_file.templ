@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
@@ -23,7 +24,7 @@ templ NewFile(data view.NewFileData) {
 
 			<form
 				method="POST"
-				action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Ref) }
+				action={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Ref, "")) }
 				enctype="multipart/form-data"
 				class="space-y-5"
 			>

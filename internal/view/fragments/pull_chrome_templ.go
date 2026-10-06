@@ -11,6 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"strconv"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
@@ -62,7 +63,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(base))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 33, Col: 33}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 34, Col: 33}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -75,7 +76,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Repo.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 33, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 34, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -88,7 +89,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var4 templ.SafeURL
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(base + "/pulls"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 35, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 36, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -101,7 +102,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.Pull.Number))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 37, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 38, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -114,7 +115,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.Pull.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 41, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 42, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -127,7 +128,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue("Pull request number " + strconv.Itoa(data.Pull.Number))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 42, Col: 121}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 43, Col: 121}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 		if templ_7745c5c3_Err != nil {
@@ -140,7 +141,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.Pull.Number))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 42, Col: 157}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 43, Col: 157}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -158,7 +159,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos" + pullPath)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 46, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 47, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
@@ -236,7 +237,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 					var templ_7745c5c3_Var14 string
 					templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs("Check out — " + data.Pull.HeadBranch)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 58, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 59, Col: 49}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 					if templ_7745c5c3_Err != nil {
@@ -255,7 +256,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(data.Pull.HeadBranch)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 61, Col: 35}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 62, Col: 35}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -288,7 +289,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs("Browse branch code")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 64, Col: 30}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 65, Col: 30}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -296,7 +297,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DropdownMenuLink(base+"/tree/"+data.Pull.HeadBranch, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var16), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DropdownMenuLink(codeurl.Path(data.OwnerName, data.Repo.Name, "tree", data.Pull.HeadBranch, ""), nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var16), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -327,7 +328,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var18 templ.SafeURL
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + chromeAuthor(data)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 73, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 74, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
@@ -340,7 +341,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs("@" + chromeAuthor(data))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 73, Col: 120}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 74, Col: 120}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -353,7 +354,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(" " + chromeMergeVerb(data.Pull.State) + " ")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 74, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 75, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -366,7 +367,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(commitsPhrase(data.CommitsCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 75, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 76, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -379,7 +380,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(" into ")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 76, Col: 15}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 77, Col: 15}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -392,7 +393,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(data.Pull.BaseBranch)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 77, Col: 118}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 78, Col: 118}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -405,7 +406,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var24 string
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(" from ")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 78, Col: 15}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 79, Col: 15}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
@@ -418,7 +419,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(data.Pull.HeadBranch)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 79, Col: 118}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 80, Col: 118}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 		if templ_7745c5c3_Err != nil {
@@ -440,7 +441,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var27 templ.SafeURL
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(pullPath))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 84, Col: 36}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 85, Col: 36}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 		if templ_7745c5c3_Err != nil {
@@ -479,7 +480,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 			var templ_7745c5c3_Var29 string
 			templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.ConvCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 88, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 89, Col: 93}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 			if templ_7745c5c3_Err != nil {
@@ -506,7 +507,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var31 templ.SafeURL
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(pullPath + "/commits"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 91, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 92, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 		if templ_7745c5c3_Err != nil {
@@ -545,7 +546,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 			var templ_7745c5c3_Var33 string
 			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.CommitsCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 95, Col: 96}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 96, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
@@ -572,7 +573,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var35 templ.SafeURL
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(pullPath + "/checks"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 98, Col: 48}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 99, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {
@@ -612,7 +613,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 				var templ_7745c5c3_Var37 string
 				templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.ChecksTotal))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 103, Col: 167}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 104, Col: 167}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 				if templ_7745c5c3_Err != nil {
@@ -630,7 +631,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 				var templ_7745c5c3_Var38 string
 				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.ChecksPassed))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 105, Col: 97}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 106, Col: 97}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 				if templ_7745c5c3_Err != nil {
@@ -643,7 +644,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 				var templ_7745c5c3_Var39 string
 				templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.ChecksTotal))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 105, Col: 132}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 106, Col: 132}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 				if templ_7745c5c3_Err != nil {
@@ -671,7 +672,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		var templ_7745c5c3_Var41 templ.SafeURL
 		templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(pullPath + "/files"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 109, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 110, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 		if templ_7745c5c3_Err != nil {
@@ -710,7 +711,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 			var templ_7745c5c3_Var43 string
 			templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.FilesCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 113, Col: 94}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 114, Col: 94}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 			if templ_7745c5c3_Err != nil {
@@ -729,7 +730,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 			var templ_7745c5c3_Var44 string
 			templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.Added))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 116, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 117, Col: 93}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 			if templ_7745c5c3_Err != nil {
@@ -748,7 +749,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 			var templ_7745c5c3_Var45 string
 			templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.Deleted))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 119, Col: 101}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 120, Col: 101}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 			if templ_7745c5c3_Err != nil {

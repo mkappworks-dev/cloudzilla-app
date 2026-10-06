@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -118,7 +119,7 @@ templ pullFilesBody(data view.PullFilesData) {
 									}
 								</span>
 							}
-							<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/blob/" + data.Pull.HeadBranch + "/" + f.DisplayPath()) } class={ templ.KV("ml-auto", f.IsBinary), "text-[12px] text-muted-foreground hover:text-foreground shrink-0" }>View file →</a>
+							<a href={ templ.SafeURL(codeurl.Path(data.OwnerName, data.Repo.Name, "blob", data.Pull.HeadBranch, f.DisplayPath())) } class={ templ.KV("ml-auto", f.IsBinary), "text-[12px] text-muted-foreground hover:text-foreground shrink-0" }>View file →</a>
 						</header>
 						<div class="diff-file-body">
 							if f.IsBinary {

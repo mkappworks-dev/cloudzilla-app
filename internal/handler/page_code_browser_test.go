@@ -22,6 +22,18 @@ import (
 // a folder inside a folder.
 func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 	t.Helper()
+	h, r, _, sha := seedCodeRepoWith(t)
+	return h, r, sha
+}
+
+// oddPaths are names whose URL form differs from the name: Go escapes ' where
+// browsers don't, # and ? would cut the URL, and % would decode into another name.
+var oddPaths = []string{`odd "q'uote"/note.txt`, "hash#q?/n.txt", "pct%41/n.txt"}
+
+// seedCodeRepoWith is seedCodeRepo plus extra files on main, returning the
+// CodeService so a test can add refs.
+func seedCodeRepoWith(t *testing.T, extra ...string) (http.Handler, seededRepo, *service.CodeService, string) {
+	t.Helper()
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
 	r := seedOwnedRepo(t, db, false)
@@ -30,7 +42,8 @@ func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 		t.Fatalf("init bare repo: %v", err)
 	}
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
-	for _, path := range []string{"README.md", "lib/README.md", "lib/config.js", "lib/util/helper.js"} {
+	paths := append([]string{"README.md", "lib/README.md", "lib/config.js", "lib/util/helper.js"}, extra...)
+	for _, path := range paths {
 		if err := code.CommitFile(r.owner.name, r.name, "main", path, []byte("x\n"), raceAuthor, "Add "+path); err != nil {
 			t.Fatalf("commit %s: %v", path, err)
 		}
@@ -38,7 +51,7 @@ func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 	if err := code.CreateBranch(r.owner.name, r.name, "feature/x", "main"); err != nil {
 		t.Fatalf("create feature/x: %v", err)
 	}
-	return newAPIRouterAt(t, db, reposRoot), r, branchHash(t, git, "main").String()
+	return newAPIRouterAt(t, db, reposRoot), r, code, branchHash(t, git, "main").String()
 }
 
 func getAnonymous(h http.Handler, path string) *httptest.ResponseRecorder {
@@ -265,6 +278,204 @@ func TestFileTree_HiddenCookieHidesThePanel(t *testing.T) {
 			if got := strings.Count(rr.Body.String(), `aria-label="Show files"`); got != 1 {
 				t.Errorf("%s: want one Show files button, got %d", page, got)
 			}
+		}
+	}
+}
+
+func TestCodePages_ResolveEscapedPaths(t *testing.T) {
+	h, r, _, _ := seedCodeRepoWith(t, oddPaths...)
+	const browser = `odd%20%22q'uote%22`
+	const escaped = `odd%20%22q%27uote%22`
+	var urls []string
+	for _, dir := range []string{browser, escaped} {
+		urls = append(urls,
+			r.path+"/tree/main/"+dir,
+			r.path+"/blob/main/"+dir+"/note.txt",
+			r.path+"/blame/main/"+dir+"/note.txt",
+			r.path+"/raw/main/"+dir+"/note.txt",
+			"/fragments"+r.path+"/tree/main/"+dir,
+		)
+	}
+	urls = append(urls,
+		r.path+"/tree/main/hash%23q%3F",
+		r.path+"/blob/main/hash%23q%3F/n.txt",
+		r.path+"/tree/main/pct%2541",
+		r.path+"/blob/main/pct%2541/n.txt",
+	)
+	for _, u := range urls {
+		t.Run(u, func(t *testing.T) {
+			if rr := getAnonymous(h, u); rr.Code != http.StatusOK {
+				t.Errorf("want 200, got %d", rr.Code)
+			}
+		})
+	}
+}
+
+func TestCodePages_EscapeLinks(t *testing.T) {
+	h, r, _, _ := seedCodeRepoWith(t, oddPaths...)
+	p := r.path
+	const dir = "hash%23q%3F"
+	pages := []struct {
+		url  string
+		want []string
+	}{
+		{p + "/tree/main", []string{
+			`href="` + p + `/tree/main/` + dir + `"`,
+			`href="` + p + `/tree/main/odd%20%22q%27uote%22"`,
+			`href="` + p + `/tree/main/pct%2541"`,
+		}},
+		{p + "/blob/main/" + dir + "/n.txt", []string{
+			`href="` + p + `/tree/main/` + dir + `"`,
+			`href="` + p + `/blob/main/` + dir + `/n.txt"`,
+			`href="` + p + `/raw/main/` + dir + `/n.txt"`,
+			`href="` + p + `/blame/main/` + dir + `/n.txt"`,
+			`href="` + p + `/blob/main/` + dir + `/n.txt" aria-current="page"`,
+			`hx-get="/fragments` + p + `/tree/main/pct%2541"`,
+			`hx-get="/fragments` + p + `/tree/main/odd%20%22q%27uote%22"`,
+		}},
+		{p + "/blame/main/" + dir + "/n.txt", []string{
+			`href="` + p + `/blob/main/` + dir + `/n.txt"`,
+		}},
+	}
+	for _, pg := range pages {
+		t.Run(pg.url, func(t *testing.T) {
+			rr := getAnonymous(h, pg.url)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("want 200, got %d", rr.Code)
+			}
+			body := rr.Body.String()
+			for _, want := range pg.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("want %s in body", want)
+					continue
+				}
+				link := want[strings.Index(want, `"`)+1:]
+				link = link[:strings.Index(link, `"`)]
+				if rr := getAnonymous(h, link); rr.Code != http.StatusOK {
+					t.Errorf("GET %s: want 200, got %d", link, rr.Code)
+				}
+			}
+		})
+	}
+}
+
+func TestPageTree_RedirectsAnEscapedFileToItsEscapedBlobURL(t *testing.T) {
+	h, r, _, _ := seedCodeRepoWith(t, oddPaths...)
+	rr := getAnonymous(h, r.path+"/tree/main/hash%23q%3F/n.txt")
+	if want := r.path + "/blob/main/hash%23q%3F/n.txt"; rr.Code != http.StatusFound || rr.Header().Get("Location") != want {
+		t.Errorf("want 302 to %s, got %d to %q", want, rr.Code, rr.Header().Get("Location"))
+	}
+}
+
+func TestRepoPages_EscapeRefAndPathLinks(t *testing.T) {
+	h, r, code, _ := seedCodeRepoWith(t, oddPaths...)
+	if err := code.CreateBranch(r.owner.name, r.name, "a#b", "main"); err != nil {
+		t.Fatalf("create a#b: %v", err)
+	}
+	p := r.path
+	pages := []struct {
+		url  string
+		want []string
+	}{
+		{p + "/refs", []string{
+			`href="` + p + `/tree/a%23b"`,
+			`href="` + p + `/commits/a%23b"`,
+		}},
+		{p, []string{`href="` + p + `/tree/main/hash%23q%3F"`}},
+		{p + "/tree/main", []string{`href="` + p + `/tree/main/hash%23q%3F"`}},
+		{p + "/tree/a%23b", []string{`href="` + p + `/tree/a%23b/hash%23q%3F"`}},
+	}
+	for _, pg := range pages {
+		t.Run(pg.url, func(t *testing.T) {
+			rr := getAnonymous(h, pg.url)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("want 200, got %d", rr.Code)
+			}
+			body := rr.Body.String()
+			for _, bad := range []string{"/a#b", "/hash#q?"} {
+				if strings.Contains(body, bad) {
+					t.Errorf("body has unescaped %q", bad)
+				}
+			}
+			for _, want := range pg.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("want %s in body", want)
+					continue
+				}
+				link := strings.TrimSuffix(strings.TrimPrefix(want, `href="`), `"`)
+				if rr := getAnonymous(h, link); rr.Code != http.StatusOK {
+					t.Errorf("GET %s: want 200, got %d", link, rr.Code)
+				}
+			}
+		})
+	}
+}
+
+func TestRawFile_ResolvesARefWithASlash(t *testing.T) {
+	h, r, _, _ := seedCodeRepoWith(t)
+	rr := getAnonymous(h, r.path+"/blob/feature/x/README.md")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("blob: want 200, got %d", rr.Code)
+	}
+	link := r.path + "/raw/feature/x/README.md"
+	if !strings.Contains(rr.Body.String(), `href="`+link+`"`) {
+		t.Fatalf("blob page has no raw link %s", link)
+	}
+	if rr := getAnonymous(h, link); rr.Code != http.StatusOK {
+		t.Errorf("GET %s: want 200, got %d", link, rr.Code)
+	}
+}
+
+func TestRefsPage_EscapesDeleteNames(t *testing.T) {
+	h, r, code, _ := seedCodeRepoWith(t)
+	for _, name := range []string{"a#b", "c+d"} {
+		if err := code.CreateBranch(r.owner.name, r.name, name, "main"); err != nil {
+			t.Fatalf("create %s: %v", name, err)
+		}
+		if err := code.CreateTag(r.owner.name, r.name, "t"+name, "main"); err != nil {
+			t.Fatalf("create tag t%s: %v", name, err)
+		}
+	}
+	req := httptest.NewRequest(http.MethodGet, r.path+"/refs", nil)
+	req.AddCookie(&http.Cookie{Name: testCookieName, Value: r.owner.token})
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+	body := rr.Body.String()
+	for _, want := range []string{"branches?name=a%23b", "branches?name=c%2Bd", "tags?name=ta%23b", "tags?name=tc%2Bd"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("want %s in refs page", want)
+		}
+	}
+}
+
+func TestReleaseLinks_EscapeTagNames(t *testing.T) {
+	h, r, code, _ := seedCodeRepoWith(t)
+	db := testutil.OpenTestDB(t)
+	for _, tag := range []string{"rel/x", "a#b"} {
+		if err := code.CreateTag(r.owner.name, r.name, tag, "main"); err != nil {
+			t.Fatalf("create tag %s: %v", tag, err)
+		}
+		if _, err := db.Exec(`INSERT INTO releases (repo_id, tag_name, name, author_id, published_at) VALUES ($1, $2, $2, $3, NOW())`, r.id, tag, r.owner.id); err != nil {
+			t.Fatalf("insert release %s: %v", tag, err)
+		}
+	}
+	for _, page := range []string{r.path + "/releases", r.path} {
+		rr := getAnonymous(h, page)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("GET %s: want 200, got %d", page, rr.Code)
+		}
+		body := rr.Body.String()
+		if strings.Contains(body, "/releases/tag/a#b") || strings.Contains(body, "/releases/tag/rel/x") {
+			t.Errorf("%s has an unescaped release link", page)
+		}
+	}
+	rr := getAnonymous(h, r.path+"/releases")
+	for _, link := range []string{r.path + "/releases/tag/rel%2Fx", r.path + "/releases/tag/a%23b"} {
+		if !strings.Contains(rr.Body.String(), `href="`+link+`"`) {
+			t.Errorf("want link %s on releases page", link)
+		}
+		if rr := getAnonymous(h, link); rr.Code != http.StatusOK {
+			t.Errorf("GET %s: want 200, got %d", link, rr.Code)
 		}
 	}
 }

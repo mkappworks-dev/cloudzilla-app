@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -58,7 +59,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 			var templ_7745c5c3_Var3 templ.SafeURL
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 19, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 20, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -71,7 +72,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 19, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 20, Col: 110}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -84,7 +85,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 			var templ_7745c5c3_Var5 templ.SafeURL
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 21, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 22, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -97,7 +98,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.Release.TagName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 23, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 24, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -127,7 +128,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.AuthorName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 30, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 31, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -150,7 +151,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Release.PublishedAt.UTC().Format(time.RFC3339))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 36, Col: 85}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 37, Col: 85}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 				if templ_7745c5c3_Err != nil {
@@ -163,7 +164,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.Release.PublishedAt.Format("Jan 2, 2006"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 36, Col: 136}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 37, Col: 136}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -200,9 +201,9 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 templ.SafeURL
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/archive/" + data.Release.TagName + ".zip"))
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "archive", data.Release.TagName+".zip", "")))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 67, Col: 115}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 68, Col: 114}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -215,7 +216,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(data.Release.TagName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 83, Col: 120}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 84, Col: 120}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -233,7 +234,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 				var templ_7745c5c3_Var12 templ.SafeURL
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + data.CommitSHA))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 90, Col: 101}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 91, Col: 101}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -246,7 +247,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(data.CommitSHA[:7])
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 91, Col: 29}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 92, Col: 29}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -373,7 +374,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/prerelease")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 144, Col: 141}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 145, Col: 141}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 					if templ_7745c5c3_Err != nil {
@@ -386,7 +387,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(`{"is_prerelease":"false"}`)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 145, Col: 47}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 146, Col: 47}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 					if templ_7745c5c3_Err != nil {
@@ -482,7 +483,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 								var templ_7745c5c3_Var23 string
 								templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(releaseDetailTitle(data))
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 188, Col: 73}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 189, Col: 73}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 								if templ_7745c5c3_Err != nil {
@@ -495,7 +496,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 								var templ_7745c5c3_Var24 string
 								templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(data.Release.TagName)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 188, Col: 132}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 189, Col: 132}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 								if templ_7745c5c3_Err != nil {
@@ -562,7 +563,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 							var templ_7745c5c3_Var27 string
 							templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/publish")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 197, Col: 135}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 198, Col: 135}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 							if templ_7745c5c3_Err != nil {
@@ -659,7 +660,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 								var templ_7745c5c3_Var32 string
 								templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(releaseDetailTitle(data))
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 213, Col: 70}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 214, Col: 70}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 								if templ_7745c5c3_Err != nil {
@@ -726,7 +727,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 							var templ_7745c5c3_Var35 string
 							templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/prerelease")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 222, Col: 138}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 223, Col: 138}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var35)
 							if templ_7745c5c3_Err != nil {
@@ -739,7 +740,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 							var templ_7745c5c3_Var36 string
 							templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.ResolveAttributeValue(`{"is_prerelease":"true"}`)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 223, Col: 43}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 224, Col: 43}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var36)
 							if templ_7745c5c3_Err != nil {
@@ -835,7 +836,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 							var templ_7745c5c3_Var41 string
 							templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(releaseDetailTitle(data))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 238, Col: 71}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 239, Col: 71}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 							if templ_7745c5c3_Err != nil {
@@ -848,7 +849,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 							var templ_7745c5c3_Var42 string
 							templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(data.Release.TagName)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 238, Col: 190}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 239, Col: 190}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 							if templ_7745c5c3_Err != nil {
@@ -915,7 +916,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 						var templ_7745c5c3_Var45 string
 						templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 247, Col: 122}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 248, Col: 122}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var45)
 						if templ_7745c5c3_Err != nil {

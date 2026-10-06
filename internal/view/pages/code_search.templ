@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -50,7 +51,7 @@ templ CodeSearch(data view.CodeSearchData) {
 						for _, res := range data.Results {
 							<div class="px-6 py-4">
 								<div class="flex items-start justify-between gap-4 mb-1">
-									<a href={ templ.SafeURL("/" + res.OwnerName + "/" + res.RepoName + "/blob/HEAD/" + res.FilePath) } class="text-foreground font-medium hover:underline text-sm font-mono">{ res.OwnerName }/{ res.RepoName }/{ res.FilePath }</a>
+									<a href={ templ.SafeURL(codeurl.Path(res.OwnerName, res.RepoName, "blob", "HEAD", res.FilePath)) } class="text-foreground font-medium hover:underline text-sm font-mono">{ res.OwnerName }/{ res.RepoName }/{ res.FilePath }</a>
 									<span class="shrink-0 text-xs text-muted-foreground">{ fmt.Sprintf("%.3f", res.Rank) }</span>
 								</div>
 								<pre class="text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap">{ res.Snippet }</pre>

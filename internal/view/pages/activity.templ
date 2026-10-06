@@ -3,6 +3,7 @@ package pages
 import (
 	"encoding/json"
 	"log/slog"
+	"net/url"
 	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -69,7 +70,7 @@ func eventToActivityRow(e model.Event) components.ActivityRowData {
 		ref = strVal("tag")
 		title = strVal("name")
 		if ref != "" {
-			refURL = "/" + repoPath + "/releases/tag/" + ref
+			refURL = "/" + repoPath + "/releases/tag/" + url.PathEscape(ref)
 		}
 	case model.EventPush:
 		branch = strVal("branch")

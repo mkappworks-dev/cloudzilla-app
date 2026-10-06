@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -172,11 +173,11 @@ templ Repo(data view.RepoData) {
 										aria-label="Add file"
 										class="absolute right-0 top-full mt-1.5 z-50 min-w-[12rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm"
 									>
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Repo.DefaultBranch) } role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent">
+										<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Repo.DefaultBranch, "")) } role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent">
 											<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
 											Create new file
 										</a>
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Repo.DefaultBranch + "#upload") } role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent">
+										<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Repo.DefaultBranch, "") + "#upload") } role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent">
 											<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
 											Upload files
 										</a>
@@ -229,7 +230,7 @@ templ Repo(data view.RepoData) {
 									</div>
 									<p class="text-[11px] text-muted-foreground mt-2">Clone with Git over HTTPS or SSH.</p>
 									<div role="separator" class="my-2 h-px bg-border"></div>
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/archive/" + data.Repo.DefaultBranch + ".zip") } class="flex items-center gap-2 px-2 py-1.5 rounded-xs text-[13px] hover:bg-accent">
+									<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "archive", data.Repo.DefaultBranch+".zip", "")) } class="flex items-center gap-2 px-2 py-1.5 rounded-xs text-[13px] hover:bg-accent">
 										<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
 										Download ZIP
 									</a>
@@ -252,7 +253,7 @@ templ Repo(data view.RepoData) {
 										<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
 									</span>
 									if data.CommitCount > 0 {
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits/" + data.Repo.DefaultBranch) } class="font-mono text-[12px] text-muted-foreground hover:underline shrink-0">{ strconv.Itoa(data.CommitCount) } commits</a>
+										<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", data.Repo.DefaultBranch, "")) } class="font-mono text-[12px] text-muted-foreground hover:underline shrink-0">{ strconv.Itoa(data.CommitCount) } commits</a>
 									}
 								</div>
 							}
@@ -284,9 +285,9 @@ templ Repo(data view.RepoData) {
 											</td>
 											<th scope="row" class="px-4 py-2 font-normal">
 												if entry.IsDir {
-													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Repo.DefaultBranch + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
+													<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "tree", data.Repo.DefaultBranch, entry.Path)) } class="text-[13px] hover:underline">{ entry.Name }</a>
 												} else {
-													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/blob/" + data.Repo.DefaultBranch + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
+													<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "blob", data.Repo.DefaultBranch, entry.Path)) } class="text-[13px] hover:underline">{ entry.Name }</a>
 												}
 											</th>
 											<td class="px-4 py-2 text-[12px] text-muted-foreground truncate">{ entry.LastCommit.Message }</td>
@@ -304,7 +305,7 @@ templ Repo(data view.RepoData) {
 						<section x-show="!q" class="rounded-md border border-border bg-card px-6 py-12 text-center">
 							<p class="text-sm text-muted-foreground">This repository is empty.</p>
 							if data.CanWrite && !data.IsArchived {
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Repo.DefaultBranch) } class="inline-flex items-center gap-1.5 mt-3 h-8 px-3 text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">
+								<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Repo.DefaultBranch, "")) } class="inline-flex items-center gap-1.5 mt-3 h-8 px-3 text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">
 									Create your first file
 								</a>
 							}
@@ -315,7 +316,7 @@ templ Repo(data view.RepoData) {
 					<section x-show="q" x-cloak class="rounded-md border border-border bg-card overflow-hidden" aria-label="File search results">
 						for _, f := range data.AllFiles {
 							<a
-								href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/blob/" + data.Repo.DefaultBranch + "/" + f) }
+								href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "blob", data.Repo.DefaultBranch, f)) }
 								data-path={ strings.ToLower(f) }
 								x-show="$el.dataset.path.includes(q.toLowerCase())"
 								class="flex items-center gap-2 px-4 py-1.5 text-[13px] border-b border-border last:border-b-0 hover:bg-muted/40"
@@ -508,7 +509,7 @@ templ Repo(data view.RepoData) {
 					<section aria-labelledby="insights-heading">
 						<h2 id="insights-heading" class="text-[13px] font-medium mb-3">Insights</h2>
 						<ul class="rounded-md border border-border bg-card overflow-hidden text-[12px]">
-							@insightRow("/"+data.Owner+"/"+data.RepoName+"/commits/"+data.Repo.DefaultBranch, "Commits", strconv.Itoa(data.CommitCount)) {
+							@insightRow(codeurl.Path(data.Owner, data.RepoName, "commits", data.Repo.DefaultBranch, ""), "Commits", strconv.Itoa(data.CommitCount)) {
 								<svg class="text-muted-foreground shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><line x1="2" y1="12" x2="8" y2="12"></line><line x1="16" y1="12" x2="22" y2="12"></line></svg>
 							}
 							@insightRow("/"+data.Owner+"/"+data.RepoName+"/pulse", "Pulse", "") {
@@ -565,7 +566,7 @@ templ Repo(data view.RepoData) {
 
 // releaseCard renders the latest-release summary block in the sidebar.
 templ releaseCard(data view.RepoData, rel model.Release) {
-	<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + rel.TagName) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30">
+	<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + url.PathEscape(rel.TagName)) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30">
 		<p class="text-[13px] font-medium flex items-center gap-2">
 			<span class="truncate">
 				if rel.Name != "" {
@@ -615,7 +616,7 @@ func repoHomeRefHref(owner, repoName, defaultBranch string) func(string) templ.S
 		if ref == defaultBranch {
 			return templ.SafeURL("/" + owner + "/" + repoName)
 		}
-		return templ.SafeURL("/" + owner + "/" + repoName + "/tree/" + ref)
+		return templ.SafeURL(codeurl.Path(owner, repoName, "tree", ref, ""))
 	}
 }
 

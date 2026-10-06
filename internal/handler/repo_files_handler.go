@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -109,8 +110,7 @@ func (h *Handler) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RawFile(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, viewerOf(r)) {
@@ -275,7 +275,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
-	http.Redirect(w, r, "/"+owner+"/"+repoName+"/blob/"+ref+"/"+path, http.StatusSeeOther)
+	http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, path), http.StatusSeeOther)
 }
 
 // parseNewFileForm parses either encoding of the New file form, in memory since

@@ -3,6 +3,7 @@ package pages
 import (
 	"strconv"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -24,7 +25,7 @@ templ Commits(data view.CommitsData) {
 						</svg>
 						<span class="font-medium">{ components.RefLabel(data.Log.Ref) }</span>
 					}
-					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/tree/"+data.Log.Ref, components.ButtonGhost, components.ButtonSizeSM, nil) {
+					@components.LinkButton(codeurl.Path(data.Owner, data.RepoName, "tree", data.Log.Ref, ""), components.ButtonGhost, components.ButtonSizeSM, nil) {
 						Browse code →
 					}
 				</div>
@@ -64,7 +65,7 @@ templ Commits(data view.CommitsData) {
 										title={ c.FullHash }
 									>{ c.FullHash[:7] }</a>
 									<a
-										href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + c.FullHash) }
+										href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "tree", c.FullHash, "")) }
 										class="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-sm px-1.5 py-0.5 hover:bg-muted/50"
 										title="Browse repository at this point in history"
 									>

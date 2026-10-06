@@ -3,6 +3,7 @@ package fragments
 import (
 	"strconv"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
@@ -60,7 +61,7 @@ templ PullChrome(data PullChromeData, children templ.Component) {
 							<pre class="font-mono text-[11px] text-muted-foreground m-1 p-2 rounded-sm border border-border bg-muted overflow-x-auto whitespace-pre">git fetch origin
 git checkout { data.Pull.HeadBranch }</pre>
 							@components.DropdownMenuSeparator()
-							@components.DropdownMenuLink(base+"/tree/"+data.Pull.HeadBranch, nil) {
+							@components.DropdownMenuLink(codeurl.Path(data.OwnerName, data.Repo.Name, "tree", data.Pull.HeadBranch, ""), nil) {
 								{ "Browse branch code" }
 							}
 						}

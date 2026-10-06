@@ -8,7 +8,12 @@ package fragments
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
+import (
+	"net/url"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+)
 
 func BranchesList(data view.BranchesFragData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -42,9 +47,9 @@ func BranchesList(data view.BranchesFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var2 templ.SafeURL
-				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + branch.Name))
+				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "tree", branch.Name, "")))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 11, Col: 94}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 16, Col: 95}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 				if templ_7745c5c3_Err != nil {
@@ -57,7 +62,7 @@ func BranchesList(data view.BranchesFragData) templ.Component {
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(branch.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 11, Col: 177}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 16, Col: 178}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -80,7 +85,7 @@ func BranchesList(data view.BranchesFragData) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(branch.Hash)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 15, Col: 82}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 20, Col: 82}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -91,9 +96,9 @@ func BranchesList(data view.BranchesFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 templ.SafeURL
-				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits/" + branch.Name))
+				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", branch.Name, "")))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 18, Col: 97}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 23, Col: 98}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -109,9 +114,9 @@ func BranchesList(data view.BranchesFragData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var6 string
-					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/branches?name=" + branch.Name)
+					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/branches?name=" + url.QueryEscape(branch.Name))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 21, Col: 102}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 26, Col: 119}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 					if templ_7745c5c3_Err != nil {
@@ -124,7 +129,7 @@ func BranchesList(data view.BranchesFragData) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue("Delete branch '" + branch.Name + "'?")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 24, Col: 59}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 29, Col: 59}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 					if templ_7745c5c3_Err != nil {
@@ -186,9 +191,9 @@ func TagsList(data view.TagsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var9 templ.SafeURL
-				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + tag.Name))
+				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "tree", tag.Name, "")))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 43, Col: 91}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 48, Col: 92}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -201,7 +206,7 @@ func TagsList(data view.TagsFragData) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(tag.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 43, Col: 171}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 48, Col: 172}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -214,7 +219,7 @@ func TagsList(data view.TagsFragData) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(tag.Hash)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 44, Col: 79}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 49, Col: 79}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -225,9 +230,9 @@ func TagsList(data view.TagsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var12 templ.SafeURL
-				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits/" + tag.Name))
+				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", tag.Name, "")))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 47, Col: 94}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 52, Col: 95}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -243,9 +248,9 @@ func TagsList(data view.TagsFragData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var13 string
-					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/tags?name=" + tag.Name)
+					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/tags?name=" + url.QueryEscape(tag.Name))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 50, Col: 95}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 55, Col: 112}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 					if templ_7745c5c3_Err != nil {
@@ -258,7 +263,7 @@ func TagsList(data view.TagsFragData) templ.Component {
 					var templ_7745c5c3_Var14 string
 					templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue("Delete tag '" + tag.Name + "'?")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 53, Col: 53}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/refs.templ`, Line: 58, Col: 53}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 					if templ_7745c5c3_Err != nil {
