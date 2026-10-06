@@ -63,6 +63,7 @@ Read the matching doc before working in an area:
 - [code-browser](./docs/code-browser.md) — `CodeService`, ref resolution, `ErrEmptyRepo` → 404
 - [pr-merge](./docs/pr-merge.md) — `ff`/`merge`/`squash`, conflict detection
 - [repo-import](./docs/repo-import.md) — background clone jobs, SSRF guard on go-git's HTTP client, `import.*` config
+- [repo-mirrors](./docs/repo-mirrors.md) — pull mirrors: `MirrorService` sync and lease-based scheduler, read-only guard, sealed tokens, `mirror.*` config
 - [storage](./docs/storage.md) — local/S3 `Backend`, object layout and backup, avatar processing and `/avatars/*` serving, `components.Avatar`'s context lookup
 - [organizations](./docs/organizations.md) — `OrgService`; `/{owner}` resolves user first, then org
 - [webhooks](./docs/webhooks.md) — events, HMAC signing, fire-and-forget `Dispatch`

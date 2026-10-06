@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/secretbox"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -63,6 +64,9 @@ type Services struct {
 	IssueCloser      *IssueCloser
 	Health           *HealthService
 	Avatar           *AvatarService
+	Mirror           *MirrorService
+	// Secrets is nil when security.secret_key is unset.
+	Secrets *secretbox.Box
 }
 
 // WithStorage gives the avatar service its object store. Until it is called,
@@ -74,13 +78,20 @@ func (s *Services) WithStorage(b storage.Backend) *Services {
 
 // New constructs and wires all services from the given stores and configuration.
 func New(stores *store.Stores, cfg *config.Config) *Services {
+	secrets, err := secretbox.New([]byte(cfg.Security.SecretKey))
+	if err != nil {
+		panic(err) // config.Load already refuses a short key
+	}
 	code := NewCodeService(cfg.Git)
 	index := NewIndexService(stores.CodeSearch, code)
+	webhookSvc := NewWebhookService(stores.Webhook, cfg.Webhook)
+	depSvc := NewDependencyService(stores.Dependency, code)
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).
 		WithTransferStore(stores.RepoTransfer).WithNoreplyHostFrom(cfg.Server.BaseURL)
+	mirrorSvc := NewMirrorService(stores.Mirror, stores.Repo, repoSvc, webhookSvc, index, depSvc, secrets, cfg.Git, cfg.Mirror)
 	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc)
 	languageSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(languageSvc)
@@ -102,7 +113,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
-	webhookSvc := NewWebhookService(stores.Webhook, cfg.Webhook)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
 	return &Services{
@@ -152,14 +162,16 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Topic:            NewTopicService(stores.Topic),
 		Index:            index,
 		Explore:          NewExploreService(stores.Explore),
-		Dependency:       NewDependencyService(stores.Dependency, code),
+		Dependency:       depSvc,
 		CommitStats:      commitStatsSvc,
 		ContributorStats: contributorStatsSvc,
 		Attention:        attentionSvc,
 		Language:         languageSvc,
-		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
+		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
 		IssueCloser:      NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc),
 		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:           avatarSvc,
+		Mirror:           mirrorSvc,
+		Secrets:          secrets,
 	}
 }

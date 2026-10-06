@@ -28,6 +28,7 @@ type RepoData struct {
 	LatestRelease *model.Release
 	Topics        []model.Topic
 	IsArchived    bool
+	Mirror        *MirrorBanner
 	Languages     []components.LangBarItem
 	TopContribs   []service.ContributorStat
 	Releases      []model.Release
@@ -160,6 +161,7 @@ type RepoSettingsData struct {
 	CanManage         bool
 	IsOwner           bool
 	PendingTransfer   *model.RepoTransfer // nil unless IsOwner and a transfer awaits its recipient
+	Mirror            *MirrorSettings     // nil unless the repo is a pull mirror
 	// What the viewer confirms giving others access with.
 	Confirm components.ConfirmFactors
 }
@@ -399,6 +401,14 @@ type RepoImportData struct {
 	DefaultPrivate bool
 	DefaultURL     string
 	DefaultName    string
+	// MirrorIntervals is empty when mirror.enabled is off, which hides the option.
+	MirrorIntervals []IntervalOption
+}
+
+// IntervalOption is one choice of a sync-interval picker.
+type IntervalOption struct {
+	Value, Label string
+	Selected     bool
 }
 
 // RepoImportStatusData holds template data for an import's status page.

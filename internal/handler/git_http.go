@@ -116,9 +116,11 @@ func (h *Handler) gitCanPush(w http.ResponseWriter, r *http.Request, repo *model
 		gitAuthChallenge(w)
 	case !h.Services.Repo.CanWrite(r.Context(), repo, gu.ID):
 		http.Error(w, "access denied", http.StatusForbidden)
-	case repo.IsArchived:
-		http.Error(w, "Repository is archived and read-only.\n", http.StatusForbidden)
 	default:
+		if err := service.CheckContentWritable(repo); err != nil {
+			http.Error(w, service.PushRefusal(err), http.StatusForbidden)
+			return false
+		}
 		return true
 	}
 	return false

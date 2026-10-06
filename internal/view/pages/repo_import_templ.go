@@ -58,7 +58,7 @@ func RepoImport(data view.RepoImportData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section class=\"mb-6\"><h1 class=\"text-2xl font-semibold tracking-tight\">Import a repository</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Copy a Git repository from another host, with its full history, branches, and tags.</p></section><div class=\"grid lg:grid-cols-[1fr_280px] gap-8\"><div class=\"min-w-0\"><form id=\"import-form\" class=\"border border-border rounded-lg bg-card p-6 space-y-6\"><div><label for=\"import-url\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Source repository URL *</label> <input id=\"import-url\" name=\"clone_url\" type=\"url\" required autofocus placeholder=\"https://github.com/owner/repo.git\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section class=\"mb-6\"><h1 class=\"text-2xl font-semibold tracking-tight\">Import a repository</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Copy a Git repository from another host, with its full history, branches, and tags.</p></section><div class=\"grid lg:grid-cols-[1fr_280px] gap-8\"><div class=\"min-w-0\"><form id=\"import-form\" x-data=\"{ mirror: false }\" class=\"border border-border rounded-lg bg-card p-6 space-y-6\"><div><label for=\"import-url\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Source repository URL *</label> <input id=\"import-url\" name=\"clone_url\" type=\"url\" required autofocus placeholder=\"https://github.com/owner/repo.git\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -71,7 +71,63 @@ func RepoImport(data view.RepoImportData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"><p class=\"mt-1 text-[12px] text-muted-foreground/70\">An HTTP or HTTPS clone URL. SSH URLs aren't supported.</p></div><div x-data=\"{ open: false }\" class=\"flex flex-col gap-3\"><button type=\"button\" @click=\"open = !open\" :aria-expanded=\"open ? 'true' : 'false'\" aria-controls=\"import-credentials\" class=\"self-start inline-flex items-center gap-1.5 text-[13px] text-primary hover:underline\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\" class=\"transition-transform\" :class=\"open && 'rotate-90'\"><path d=\"M9 18l6-6-6-6\"></path></svg> This repository needs credentials</button><div id=\"import-credentials\" x-show=\"open\" x-cloak class=\"grid sm:grid-cols-2 gap-3\"><div><label for=\"import-username\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Username</label> <input id=\"import-username\" name=\"auth_username\" type=\"text\" autocomplete=\"off\" spellcheck=\"false\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring\"></div><div><label for=\"import-token\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Access token</label> <input id=\"import-token\" name=\"auth_token\" type=\"password\" autocomplete=\"new-password\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring\"></div><p class=\"sm:col-span-2 text-[12px] text-muted-foreground/70\">Used once for this import and not stored. A token with read access to the repository is enough.</p></div></div><div class=\"grid grid-cols-[1fr_auto_2fr] gap-3 items-end\"><div><label for=\"import-owner-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Owner *</label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"><p class=\"mt-1 text-[12px] text-muted-foreground/70\">An HTTP or HTTPS clone URL. SSH URLs aren't supported.</p></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if len(data.MirrorIntervals) > 0 {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"rounded-md border p-3 flex flex-col gap-3\" :class=\"mirror ? 'border-ring/60 bg-ring/5' : 'border-border'\"><label class=\"flex items-start gap-3 cursor-pointer\"><input id=\"import-mirror\" name=\"mirror\" type=\"checkbox\" x-model=\"mirror\" class=\"mt-0.5 h-4 w-4 accent-[hsl(var(--ring))]\"> <span><span class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M21 12a9 9 0 0 1-15.5 6.2L3 16\"></path><path d=\"M3 21v-5h5\"></path><path d=\"M3 12a9 9 0 0 1 15.5-6.2L21 8\"></path><path d=\"M21 3v5h-5\"></path></svg> Keep this repository in sync</span> <span class=\"mt-0.5 block text-[12.5px] text-muted-foreground\">Creates a pull mirror: new commits, branches and tags are fetched from the source on a schedule. The copy is read-only here, so pushes, merges and web edits are refused.</span></span></label><div x-show=\"mirror\" x-cloak class=\"flex items-center gap-2.5 pl-7\"><label for=\"import-mirror-interval\" class=\"text-[12px] font-medium text-muted-foreground\">Sync every</label> <select id=\"import-mirror-interval\" name=\"mirror_interval\" class=\"bg-background border border-border rounded-md px-2 py-1.5 text-[13px] text-foreground focus:outline-hidden focus:border-ring\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				for _, opt := range data.MirrorIntervals {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<option value=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var4 string
+					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Value)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 50, Col: 35}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					if opt.Selected {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, " selected")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, ">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var5 string
+					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 50, Col: 76}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</option>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</select></div></div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div x-data=\"{ open: false }\" class=\"flex flex-col gap-3\"><button type=\"button\" @click=\"open = !open\" :aria-expanded=\"open ? 'true' : 'false'\" aria-controls=\"import-credentials\" class=\"self-start inline-flex items-center gap-1.5 text-[13px] text-primary hover:underline\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\" class=\"transition-transform\" :class=\"open && 'rotate-90'\"><path d=\"M9 18l6-6-6-6\"></path></svg> This repository needs credentials</button><div id=\"import-credentials\" x-show=\"open\" x-cloak class=\"grid sm:grid-cols-2 gap-3\"><div><label for=\"import-username\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Username</label> <input id=\"import-username\" name=\"auth_username\" type=\"text\" autocomplete=\"off\" spellcheck=\"false\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring\"></div><div><label for=\"import-token\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Access token</label> <input id=\"import-token\" name=\"auth_token\" type=\"password\" autocomplete=\"new-password\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring\"></div><p x-show=\"!mirror\" class=\"sm:col-span-2 text-[12px] text-muted-foreground/70\">Used once for this import and not stored. A token with read access to the repository is enough.</p><p x-show=\"mirror\" x-cloak class=\"sm:col-span-2 text-[12px] text-muted-foreground/70\">Stored encrypted so the mirror can keep syncing, and never shown again. A token with read access to the repository is enough.</p></div></div><div class=\"grid grid-cols-[1fr_auto_2fr] gap-3 items-end\"><div><label for=\"import-owner-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Owner *</label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -79,20 +135,20 @@ func RepoImport(data view.RepoImportData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><span class=\"text-muted-foreground/70 pb-2.5\" aria-hidden=\"true\">/</span><div><label for=\"import-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Repository name *</label> <input id=\"import-name\" name=\"name\" type=\"text\" required pattern=\"[A-Za-z0-9._\\-]+\" placeholder=\"my-repo\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><span class=\"text-muted-foreground/70 pb-2.5\" aria-hidden=\"true\">/</span><div><label for=\"import-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Repository name *</label> <input id=\"import-name\" name=\"name\" type=\"text\" required pattern=\"[A-Za-z0-9._\\-]+\" placeholder=\"my-repo\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.DefaultName)
+			var templ_7745c5c3_Var6 string
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.DefaultName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 60, Col: 137}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 84, Col: 137}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></div></div><div><label for=\"import-description\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label> <textarea id=\"import-description\" name=\"description\" rows=\"2\" placeholder=\"A short description of your project\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></textarea></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></div></div><div><label for=\"import-description\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label> <textarea id=\"import-description\" name=\"description\" rows=\"2\" placeholder=\"A short description of your project\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></textarea></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -100,11 +156,11 @@ func RepoImport(data view.RepoImportData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div id=\"import-form-error\" role=\"alert\" class=\"hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\"></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div id=\"import-form-error\" role=\"alert\" class=\"hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\"></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var5 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var7 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -116,17 +172,17 @@ func RepoImport(data view.RepoImportData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.LinkButton("/", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.LinkButton("/", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var7), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var6 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var8 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -138,17 +194,42 @@ func RepoImport(data view.RepoImportData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "Begin import")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "Begin import")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var6), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var8), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About importing\"><section aria-labelledby=\"ri-what\"><h2 id=\"ri-what\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">What gets imported</h2><p class=\"text-[13px] text-muted-foreground/70 leading-relaxed\">Every branch and tag, with full history. The new repository's default branch matches the source's.</p></section><section aria-labelledby=\"ri-not\" class=\"border-t border-border pt-5\"><h2 id=\"ri-not\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Not imported</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed\"><li>Issues, pull requests, wikis, and releases.</li><li>Git LFS files: only their pointer files come across.</li><li>Later changes to the source. An import is a one-time copy.</li></ul></section></aside></div><script>\n\t\t\t(function() {\n\t\t\t\tconst form = document.getElementById('import-form');\n\t\t\t\tconst errBox = document.getElementById('import-form-error');\n\t\t\t\tconst urlInput = document.getElementById('import-url');\n\t\t\t\tconst nameInput = document.getElementById('import-name');\n\t\t\t\tlet nameEdited = nameInput.value !== '';\n\t\t\t\tnameInput.addEventListener('input', function() { nameEdited = true; });\n\t\t\t\turlInput.addEventListener('input', function() {\n\t\t\t\t\tif (nameEdited) return;\n\t\t\t\t\tconst path = urlInput.value.trim().replace(/[?#].*$/, '').replace(/\\/+$/, '');\n\t\t\t\t\tnameInput.value = path.slice(path.lastIndexOf('/') + 1).replace(/\\.git$/, '').replace(/[^A-Za-z0-9._-]/g, '-');\n\t\t\t\t});\n\t\t\t\tconst submit = form.querySelector('[type=submit]');\n\t\t\t\t// A page restored from the back/forward cache keeps the disabled button of the submit that navigated away.\n\t\t\t\twindow.addEventListener('pageshow', function(e) { if (e.persisted) submit.disabled = false; });\n\t\t\t\tfunction showError(msg) {\n\t\t\t\t\terrBox.textContent = msg;\n\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t\tsubmit.disabled = false;\n\t\t\t\t}\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tsubmit.disabled = true;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tlet res;\n\t\t\t\t\ttry {\n\t\t\t\t\t\tres = await fetch('/api/imports', {\n\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\t\tclone_url: urlInput.value.trim(),\n\t\t\t\t\t\t\t\tauth_username: document.getElementById('import-username').value,\n\t\t\t\t\t\t\t\tauth_token: document.getElementById('import-token').value,\n\t\t\t\t\t\t\t\towner: form.querySelector('[name=owner]').value,\n\t\t\t\t\t\t\t\tname: nameInput.value.trim(),\n\t\t\t\t\t\t\t\tdescription: form.querySelector('[name=description]').value,\n\t\t\t\t\t\t\t\tprivate: form.querySelector('[name=visibility]:checked').value === 'private'\n\t\t\t\t\t\t\t})\n\t\t\t\t\t\t});\n\t\t\t\t\t} catch (_) {\n\t\t\t\t\t\tshowError('Could not reach the server. Try again.');\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\t// Stays disabled on success: the import has started, and a second click would start another.\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\twindow.location.href = (await res.json()).status_url;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\tlet msg = text;\n\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\tshowError(msg || ('Failed to start the import (HTTP ' + res.status + ')'));\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About importing\"><section aria-labelledby=\"ri-what\"><h2 id=\"ri-what\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">What gets imported</h2><p class=\"text-[13px] text-muted-foreground/70 leading-relaxed\">Every branch and tag, with full history. The new repository's default branch matches the source's.</p></section>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if len(data.MirrorIntervals) > 0 {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<section aria-labelledby=\"ri-sync\" class=\"border-t border-border pt-5\"><h2 id=\"ri-sync\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Keeping it in sync</h2><p class=\"text-[13px] text-muted-foreground/70 leading-relaxed\">A mirror follows force pushes and deleted branches too. Issues and wikis stay local. You can stop mirroring later from the repository's settings.</p></section>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<section aria-labelledby=\"ri-not\" class=\"border-t border-border pt-5\"><h2 id=\"ri-not\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Not imported</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed\"><li>Issues, pull requests, wikis, and releases.</li><li>Git LFS files: only their pointer files come across.</li>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if len(data.MirrorIntervals) > 0 {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<li>Later changes to the source, unless you keep it in sync.</li>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			} else {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<li>Later changes to the source. An import is a one-time copy.</li>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</ul></section></aside></div><script>\n\t\t\t(function() {\n\t\t\t\tconst form = document.getElementById('import-form');\n\t\t\t\tconst errBox = document.getElementById('import-form-error');\n\t\t\t\tconst urlInput = document.getElementById('import-url');\n\t\t\t\tconst nameInput = document.getElementById('import-name');\n\t\t\t\tconst mirrorBox = document.getElementById('import-mirror');\n\t\t\t\tlet nameEdited = nameInput.value !== '';\n\t\t\t\tnameInput.addEventListener('input', function() { nameEdited = true; });\n\t\t\t\turlInput.addEventListener('input', function() {\n\t\t\t\t\tif (nameEdited) return;\n\t\t\t\t\tconst path = urlInput.value.trim().replace(/[?#].*$/, '').replace(/\\/+$/, '');\n\t\t\t\t\tnameInput.value = path.slice(path.lastIndexOf('/') + 1).replace(/\\.git$/, '').replace(/[^A-Za-z0-9._-]/g, '-');\n\t\t\t\t});\n\t\t\t\tconst submit = form.querySelector('[type=submit]');\n\t\t\t\t// A page restored from the back/forward cache keeps the disabled button of the submit that navigated away.\n\t\t\t\twindow.addEventListener('pageshow', function(e) { if (e.persisted) submit.disabled = false; });\n\t\t\t\tfunction showError(msg) {\n\t\t\t\t\terrBox.textContent = msg;\n\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t\tsubmit.disabled = false;\n\t\t\t\t}\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tsubmit.disabled = true;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tlet res;\n\t\t\t\t\ttry {\n\t\t\t\t\t\tres = await fetch('/api/imports', {\n\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\t\tclone_url: urlInput.value.trim(),\n\t\t\t\t\t\t\t\tauth_username: document.getElementById('import-username').value,\n\t\t\t\t\t\t\t\tauth_token: document.getElementById('import-token').value,\n\t\t\t\t\t\t\t\towner: form.querySelector('[name=owner]').value,\n\t\t\t\t\t\t\t\tname: nameInput.value.trim(),\n\t\t\t\t\t\t\t\tdescription: form.querySelector('[name=description]').value,\n\t\t\t\t\t\t\t\tprivate: form.querySelector('[name=visibility]:checked').value === 'private',\n\t\t\t\t\t\t\t\tmirror: !!(mirrorBox && mirrorBox.checked),\n\t\t\t\t\t\t\t\tmirror_interval: mirrorBox && mirrorBox.checked ? document.getElementById('import-mirror-interval').value : ''\n\t\t\t\t\t\t\t})\n\t\t\t\t\t\t});\n\t\t\t\t\t} catch (_) {\n\t\t\t\t\t\tshowError('Could not reach the server. Try again.');\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\t// Stays disabled on success: the import has started, and a second click would start another.\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\twindow.location.href = (await res.json()).status_url;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\tlet msg = text;\n\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\tshowError(msg || ('Failed to start the import (HTTP ' + res.status + ')'));\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -178,12 +259,12 @@ func RepoImportStatus(data view.RepoImportStatusData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var7 == nil {
-			templ_7745c5c3_Var7 = templ.NopComponent
+		templ_7745c5c3_Var9 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var9 == nil {
+			templ_7745c5c3_Var9 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var8 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var10 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -195,46 +276,46 @@ func RepoImportStatus(data view.RepoImportStatusData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<section class=\"mb-6\"><h1 class=\"text-2xl font-semibold tracking-tight\">Importing <span class=\"font-mono\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.Owner)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 165, Col: 103}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "/")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var10 string
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.Name)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 165, Col: 121}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span></h1><p class=\"mt-1 text-[13px] text-muted-foreground font-mono break-all\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<section class=\"mb-6\"><h1 class=\"text-2xl font-semibold tracking-tight\">Importing <span class=\"font-mono\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
-			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.SourceURL)
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.Owner)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 166, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 202, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</p></section>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "/")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var12 string
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.Name)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 202, Col: 121}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</span></h1><p class=\"mt-1 text-[13px] text-muted-foreground font-mono break-all\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var13 string
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.SourceURL)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 203, Col: 93}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</p></section>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -244,7 +325,7 @@ func RepoImportStatus(data view.RepoImportStatusData) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layout.Base(data.BasePage, "Import "+data.Job.Owner+"/"+data.Job.Name).Render(templ.WithChildren(ctx, templ_7745c5c3_Var8), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Base(data.BasePage, "Import "+data.Job.Owner+"/"+data.Job.Name).Render(templ.WithChildren(ctx, templ_7745c5c3_Var10), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -270,75 +351,75 @@ func RepoImportStatusPanel(job service.ImportJob) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var12 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var12 == nil {
-			templ_7745c5c3_Var12 = templ.NopComponent
+		templ_7745c5c3_Var14 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var14 == nil {
+			templ_7745c5c3_Var14 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		switch job.Status {
 		case service.ImportDone:
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div id=\"import-status\" class=\"border border-border rounded-lg bg-card p-6\" role=\"status\"><p class=\"text-[13.5px] font-medium\">Import complete.</p><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<div id=\"import-status\" class=\"border border-border rounded-lg bg-card p-6\" role=\"status\"><p class=\"text-[13.5px] font-medium\">Import complete.</p><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var13 templ.SafeURL
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + job.Owner + "/" + job.Name))
+			var templ_7745c5c3_Var15 templ.SafeURL
+			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + job.Owner + "/" + job.Name))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 179, Col: 61}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" class=\"mt-2 inline-block text-[13px] text-primary hover:underline\">Go to ")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(job.Owner)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 179, Col: 148}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "/")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var15 string
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(job.Name)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 179, Col: 161}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 216, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " →</a></div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		case service.ImportFailed:
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div id=\"import-status\" class=\"border border-destructive/40 bg-destructive/10 rounded-lg p-6\" role=\"alert\"><p class=\"text-[13.5px] font-medium text-destructive\">The import failed</p><p class=\"mt-1 text-[13px] text-foreground\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" class=\"mt-2 inline-block text-[13px] text-primary hover:underline\">Go to ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var16 string
-			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(job.Error)
+			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(job.Owner)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 184, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 216, Col: 148}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</p><div class=\"mt-4\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "/")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var17 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			var templ_7745c5c3_Var17 string
+			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(job.Name)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 216, Col: 161}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, " →</a></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		case service.ImportFailed:
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<div id=\"import-status\" class=\"border border-destructive/40 bg-destructive/10 rounded-lg p-6\" role=\"alert\"><p class=\"text-[13.5px] font-medium text-destructive\">The import failed</p><p class=\"mt-1 text-[13px] text-foreground\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var18 string
+			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(job.Error)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 221, Col: 59}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</p><div class=\"mt-4\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var19 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -350,73 +431,73 @@ func RepoImportStatusPanel(job service.ImportJob) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "Try again")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "Try again")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.LinkButton(repoImportRetryURL(job), components.ButtonOutline, components.ButtonSizeSM, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var17), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.LinkButton(repoImportRetryURL(job), components.ButtonOutline, components.ButtonSizeSM, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var19), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		default:
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div id=\"import-status\" hx-get=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<div id=\"import-status\" hx-get=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var18 string
-			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue("/repos/import/" + job.ID)
+			var templ_7745c5c3_Var20 string
+			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.ResolveAttributeValue("/repos/import/" + job.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 192, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 229, Col: 61}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\" hx-trigger=\"every 2s\" hx-swap=\"outerHTML\" class=\"border border-border rounded-lg bg-card p-6\" role=\"status\" aria-live=\"polite\"><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg class=\"animate-spin text-muted-foreground\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M21 12a9 9 0 11-6.219-8.56\"></path></svg> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "\" hx-trigger=\"every 2s\" hx-swap=\"outerHTML\" class=\"border border-border rounded-lg bg-card p-6\" role=\"status\" aria-live=\"polite\"><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg class=\"animate-spin text-muted-foreground\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M21 12a9 9 0 11-6.219-8.56\"></path></svg> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if job.Status == service.ImportQueued {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "Waiting for other imports to finish…")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "Waiting for other imports to finish…")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "Importing…")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "Importing…")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if job.Progress != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<p class=\"mt-2 text-[12.5px] text-muted-foreground font-mono break-all\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<p class=\"mt-2 text-[12.5px] text-muted-foreground font-mono break-all\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var19 string
-				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(job.Progress)
+				var templ_7745c5c3_Var21 string
+				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(job.Progress)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 202, Col: 91}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 239, Col: 91}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<p class=\"mt-4 text-[12.5px] text-muted-foreground/70\">You can leave this page: the import keeps running. Large repositories can take several minutes.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<p class=\"mt-4 text-[12.5px] text-muted-foreground/70\">You can leave this page: the import keeps running. Large repositories can take several minutes.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

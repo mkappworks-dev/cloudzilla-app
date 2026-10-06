@@ -19,6 +19,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 const (
@@ -58,6 +59,10 @@ type ImportRequest struct {
 	Name         string
 	Description  string
 	Private      bool
+	// Mirror keeps the new repo in sync with the source, every MirrorInterval
+	// (zero: mirror.default_interval), and stores the token sealed.
+	Mirror         bool
+	MirrorInterval time.Duration
 }
 
 // ImportJob is a snapshot of one import. It never holds credentials.
@@ -92,6 +97,7 @@ type ImportService struct {
 	maxPackBytes int64
 	cfg          config.ImportConfig
 	slots        chan struct{}
+	mirrors      *MirrorService
 
 	mu   sync.Mutex
 	jobs map[string]*importJob
@@ -109,6 +115,11 @@ func NewImportService(repo *RepoService, git config.GitConfig, cfg config.Import
 	}
 }
 
+func (s *ImportService) WithMirrors(m *MirrorService) *ImportService {
+	s.mirrors = m
+	return s
+}
+
 func (s *ImportService) Start(ctx context.Context, actorID int64, actorUsername string, req ImportRequest) (ImportJob, error) {
 	src, err := ParseImportURL(req.CloneURL)
 	if err != nil {
@@ -116,6 +127,10 @@ func (s *ImportService) Start(ctx context.Context, actorID int64, actorUsername 
 	}
 	if (req.AuthUsername == "") != (req.AuthToken == "") {
 		return ImportJob{}, ErrImportCredentials
+	}
+	mirror, err := s.mirrorSpec(src, actorID, req)
+	if err != nil {
+		return ImportJob{}, err
 	}
 	target, err := s.repo.ResolveRepoTarget(ctx, actorID, actorUsername, req.Owner)
 	if err != nil {
@@ -145,7 +160,7 @@ func (s *ImportService) Start(ctx context.Context, actorID int64, actorUsername 
 	s.mu.Unlock()
 
 	auth := importAuth(req.AuthUsername, req.AuthToken)
-	concurrency.Go("repo.import", func() { s.run(job, target, req.Description, req.Private, auth) })
+	concurrency.Go("repo.import", func() { s.run(job, target, req.Description, req.Private, auth, mirror) })
 	return snap, nil
 }
 
@@ -167,20 +182,41 @@ func (s *ImportService) RemoveStaleTemp() error {
 	return os.RemoveAll(filepath.Join(s.root, importTmpDirName))
 }
 
-func (s *ImportService) run(job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod) {
+// mirrorSpec is nil for a plain import.
+func (s *ImportService) mirrorSpec(src string, actorID int64, req ImportRequest) (*mirrorSpec, error) {
+	if !req.Mirror {
+		return nil, nil
+	}
+	if s.mirrors == nil || !s.mirrors.Enabled() {
+		return nil, ErrMirrorsDisabled
+	}
+	interval, err := s.mirrors.Interval(req.MirrorInterval)
+	if err != nil {
+		return nil, err
+	}
+	spec := &mirrorSpec{remoteURL: src, username: req.AuthUsername, interval: interval, createdBy: actorID}
+	if req.AuthToken != "" {
+		if spec.tokenEnc, err = s.mirrors.SealToken(req.AuthToken); err != nil {
+			return nil, err
+		}
+	}
+	return spec, nil
+}
+
+func (s *ImportService) run(job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod, mirror *mirrorSpec) {
 	s.slots <- struct{}{}
 	defer func() { <-s.slots }()
 	s.setStatus(job, ImportRunning)
 
 	dir := filepath.Join(s.root, importTmpDirName, job.ID)
-	failure := s.attempt(dir, job, target, description, private, auth)
+	failure := s.attempt(dir, job, target, description, private, auth, mirror)
 	_ = os.RemoveAll(dir)
 	s.finish(job, failure)
 }
 
 // attempt recovers a panic itself: concurrency.Go's recover would leave the
 // job running, holding one of the user's slots and polled forever.
-func (s *ImportService) attempt(dir string, job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod) (failure string) {
+func (s *ImportService) attempt(dir string, job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod, mirror *mirrorSpec) (failure string) {
 	defer func() {
 		if p := recover(); p != nil {
 			slog.Error("repo import panicked", "job_id", job.ID, "owner", job.Owner, "name", job.Name,
@@ -196,7 +232,7 @@ func (s *ImportService) attempt(dir string, job *importJob, target RepoTarget, d
 	}
 	ctx, cancel := s.jobContext(withImportGuard(context.Background(), guard))
 	defer cancel()
-	if err := s.cloneAndPublish(ctx, dir, job, target, description, private, auth); err != nil {
+	if err := s.cloneAndPublish(ctx, dir, job, target, description, private, auth, mirror); err != nil {
 		return s.failureMessage(ctx, job, guard, err)
 	}
 	return ""
@@ -209,7 +245,7 @@ func (s *ImportService) jobContext(parent context.Context) (context.Context, con
 	return context.WithCancel(parent)
 }
 
-func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod) error {
+func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod, mirror *mirrorSpec) error {
 	if err := os.MkdirAll(filepath.Dir(dir), 0o755); err != nil {
 		return fmt.Errorf("create import temp dir: %w", err)
 	}
@@ -217,8 +253,17 @@ func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *im
 	if err != nil {
 		return err
 	}
-	_, err = s.repo.CreateFromImport(ctx, target, job.Name, description, private, branch, dir)
-	return err
+	if mirror == nil {
+		_, err = s.repo.CreateFromImport(ctx, target, job.Name, description, private, branch, dir)
+		return err
+	}
+	repo, err := s.repo.createFromImport(ctx, target, job.Name, description, private, branch, dir,
+		func(ctx context.Context, r *model.Repository) error { return s.mirrors.create(ctx, r, *mirror) })
+	if err != nil {
+		return err
+	}
+	s.mirrors.indexImported(ctx, repo)
+	return nil
 }
 
 func (s *ImportService) failureMessage(ctx context.Context, job *importJob, guard *importGuard, err error) string {

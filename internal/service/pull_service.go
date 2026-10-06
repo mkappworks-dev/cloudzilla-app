@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -151,7 +152,10 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 }
 
 // ErrPullForbidden is returned when an author lacks read access to the target repo.
-var ErrPullForbidden = fmt.Errorf("forbidden: cannot open pull requests on this repository")
+var (
+	ErrPullForbidden  = fmt.Errorf("forbidden: cannot open pull requests on this repository")
+	ErrPullIntoMirror = errors.New("pull mirrors are read-only")
+)
 
 // targets are the repos and orgs the author's token is limited to, if any.
 func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool, targets []string) (*model.PullRequest, error) {
@@ -164,6 +168,9 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 	}
 	if !s.repoSvc.CanRead(ctx, repo, &authorID) {
 		return nil, ErrPullForbidden
+	}
+	if repo.IsMirror {
+		return nil, ErrPullIntoMirror
 	}
 	pr := &model.PullRequest{
 		RepoID:     repo.ID,

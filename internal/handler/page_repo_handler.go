@@ -205,6 +205,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		LatestRelease: latestRelease,
 		Topics:        topics,
 		IsArchived:    repo.IsArchived,
+		Mirror:        h.mirrorBanner(r.Context(), repo, canWrite, canManage),
 		Languages:     languages,
 		TopContribs:   topContribs,
 		Releases:      releases,
@@ -287,6 +288,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		CanManage:         canManage,
 		IsOwner:           isOwner,
 		PendingTransfer:   pendingTransfer,
+		Mirror:            h.mirrorSettings(r.Context(), repo),
 		Confirm:           h.confirmFactors(r, claims.UserID),
 	}))
 }
@@ -313,6 +315,10 @@ func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("description"), r.FormValue("website"), r.FormValue("default_branch")); err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
+			return
+		}
+		if errors.Is(err, service.ErrRepoArchived) || errors.Is(err, service.ErrRepoMirror) {
+			settingsError(w, r, http.StatusForbidden, err.Error())
 			return
 		}
 		if errors.Is(err, service.ErrInvalidDefaultBranch) {
@@ -430,7 +436,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
+	canWrite := userID != nil && !repo.ContentReadOnly() && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Refs(view.RefsData{
@@ -558,7 +564,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, *userID)
 	}
-	canDelete := canWrite && !repo.IsArchived && result.IsBranch
+	canDelete := canWrite && !repo.ContentReadOnly() && result.IsBranch
 	canEdit := canDelete && !result.IsBinary && !result.IsSymlink && result.Size <= maxEditFileBytes && result.EditableText
 
 	// Latest commit touching this specific file path. Best-effort: failures

@@ -205,8 +205,8 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	if repo.IsArchived {
-		http.Error(w, "repository is archived", http.StatusForbidden)
+	if err := service.CheckContentWritable(repo); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 	if ref == "" {
@@ -315,8 +315,8 @@ func (h *Handler) editableRepo(w http.ResponseWriter, r *http.Request, owner, re
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return nil, false
 	}
-	if repo.IsArchived {
-		http.Error(w, "repository is archived", http.StatusForbidden)
+	if err := service.CheckContentWritable(repo); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return nil, false
 	}
 	return repo, true
@@ -531,12 +531,7 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
-	if !ok {
-		return
-	}
-	if repo.IsArchived {
-		writeError(w, http.StatusForbidden, "repository is archived")
+	if _, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))

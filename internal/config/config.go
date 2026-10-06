@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/secretbox"
 )
 
 // DevJWTSecret is the loud placeholder used as the default jwt_secret in dev.
@@ -24,6 +26,8 @@ type Config struct {
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 	Webhook   WebhookConfig   `mapstructure:"webhook"`
 	Storage   StorageConfig   `mapstructure:"storage"`
+	Security  SecurityConfig  `mapstructure:"security"`
+	Mirror    MirrorConfig    `mapstructure:"mirror"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -138,6 +142,48 @@ type S3StorageConfig struct {
 	Prefix          string `mapstructure:"prefix"`
 }
 
+// MaxMirrorInterval is the longest sync interval a pull mirror may have.
+const MaxMirrorInterval = 30 * 24 * time.Hour
+
+// MirrorConfig holds pull-mirror settings.
+type MirrorConfig struct {
+	// Disabling stops syncs and hides mirror options; existing mirrors stay read-only.
+	Enabled            bool          `mapstructure:"enabled"`
+	AllowLocalNetworks bool          `mapstructure:"allow_local_networks"`
+	MinInterval        time.Duration `mapstructure:"min_interval"`
+	DefaultInterval    time.Duration `mapstructure:"default_interval"`
+	// MaxConcurrent caps syncs per instance, not across instances.
+	MaxConcurrent int           `mapstructure:"max_concurrent"`
+	Timeout       time.Duration `mapstructure:"timeout"`
+}
+
+func (m MirrorConfig) validate() error {
+	switch {
+	case m.MinInterval <= 0:
+		return fmt.Errorf("mirror.min_interval must be positive, got %s", m.MinInterval)
+	case m.DefaultInterval < m.MinInterval || m.DefaultInterval > MaxMirrorInterval:
+		return fmt.Errorf("mirror.default_interval must be between mirror.min_interval (%s) and %s, got %s", m.MinInterval, MaxMirrorInterval, m.DefaultInterval)
+	case m.MaxConcurrent < 1:
+		return fmt.Errorf("mirror.max_concurrent must be at least 1, got %d", m.MaxConcurrent)
+	case m.Timeout <= 0:
+		return fmt.Errorf("mirror.timeout must be positive, got %s", m.Timeout)
+	}
+	return nil
+}
+
+// SecurityConfig holds keys for secrets stored at rest.
+type SecurityConfig struct {
+	// Losing or changing it makes every stored mirror credential unreadable.
+	SecretKey string `mapstructure:"secret_key"`
+}
+
+func (s SecurityConfig) validate() error {
+	if n := len(s.SecretKey); n > 0 && n < secretbox.MinKeyLen {
+		return fmt.Errorf("security.secret_key must be at least %d bytes, got %d", secretbox.MinKeyLen, n)
+	}
+	return nil
+}
+
 // OAuthConfig holds Google OAuth provider settings.
 type OAuthConfig struct {
 	GoogleClientID     string `mapstructure:"google_client_id"`
@@ -199,6 +245,13 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("storage.s3.path_style", false)
 	v.SetDefault("storage.s3.prefix", "")
 	v.SetDefault("webhook.allow_local_networks", false)
+	v.SetDefault("security.secret_key", "")
+	v.SetDefault("mirror.enabled", true)
+	v.SetDefault("mirror.allow_local_networks", false)
+	v.SetDefault("mirror.min_interval", "10m")
+	v.SetDefault("mirror.default_interval", "8h")
+	v.SetDefault("mirror.max_concurrent", 3)
+	v.SetDefault("mirror.timeout", "30m")
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.window", "1h")
 	v.SetDefault("rate_limit.core.authenticated", 5000)
@@ -234,6 +287,12 @@ func Load(cfgFile string) (*Config, error) {
 		return nil, err
 	}
 	if err := cfg.RateLimit.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.Security.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.Mirror.validate(); err != nil {
 		return nil, err
 	}
 	return &cfg, nil

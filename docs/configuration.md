@@ -55,6 +55,19 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `storage.s3.secret_access_key` | `""`                                       | `CZ_STORAGE_S3_SECRET_ACCESS_KEY` | Static secret; set with `access_key_id` or not at all |
 | `storage.s3.path_style`      | `false`                                      | `CZ_STORAGE_S3_PATH_STYLE`      | Path-style URLs, needed by most self-hosted S3 servers |
 | `storage.s3.prefix`          | `""`                                         | `CZ_STORAGE_S3_PREFIX`          | Key prefix, so several instances can share a bucket |
+| `mirror.enabled`             | `true`                                       | `CZ_MIRROR_ENABLED`             | Sync pull mirrors and offer mirror options. When off, existing mirrors stay read-only |
+| `mirror.allow_local_networks`| `false`                                      | `CZ_MIRROR_ALLOW_LOCAL_NETWORKS`| Let pull mirrors reach loopback, private and link-local addresses |
+| `mirror.min_interval`        | `10m`                                        | `CZ_MIRROR_MIN_INTERVAL`        | Shortest sync interval a mirror may use         |
+| `mirror.default_interval`    | `8h`                                         | `CZ_MIRROR_DEFAULT_INTERVAL`    | Sync interval for new mirrors (at most `720h`)  |
+| `mirror.max_concurrent`      | `3`                                          | `CZ_MIRROR_MAX_CONCURRENT`      | Syncs running at once on each server instance   |
+| `mirror.timeout`             | `30m`                                        | `CZ_MIRROR_TIMEOUT`             | Time limit for one sync                         |
+| `security.secret_key`        | `""`                                         | `CZ_SECURITY_SECRET_KEY`        | Key that encrypts stored credentials, such as mirror tokens. At least 32 bytes; see [Secret key](#secret-key) |
+
+### Secret key
+
+`security.secret_key` encrypts secrets the server has to read back later. Each use gets its own key, derived with HKDF-SHA256, and values are sealed with AES-256-GCM. When it is unset, features that store such secrets refuse to store them and say which setting to set.
+
+Generate one with `openssl rand -base64 32`. The string is used as-is, at least 32 bytes. Keep it apart from `auth.jwt_secret`, so rotating the JWT secret never touches stored credentials. **Losing or changing the key makes every stored credential unreadable;** they then have to be entered again.
 
 ### Environment Variable Mapping
 

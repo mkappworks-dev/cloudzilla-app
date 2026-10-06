@@ -158,6 +158,19 @@ func (h *Handler) writableRepoJSON(w http.ResponseWriter, r *http.Request, owner
 	return h.permittedRepoJSON(w, r, owner, repoName, userID, h.Services.Repo.CanWrite)
 }
 
+// contentWritableRepoJSON also refuses a repo whose git content is read-only.
+func (h *Handler) contentWritableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) (*model.Repository, bool) {
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, userID)
+	if !ok {
+		return nil, false
+	}
+	if err := service.CheckContentWritable(repo); err != nil {
+		writeError(w, http.StatusForbidden, err.Error())
+		return nil, false
+	}
+	return repo, true
+}
+
 func (h *Handler) manageableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) (*model.Repository, bool) {
 	return h.permittedRepoJSON(w, r, owner, repoName, userID, h.Services.Repo.CanManage)
 }

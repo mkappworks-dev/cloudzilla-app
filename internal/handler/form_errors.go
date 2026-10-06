@@ -16,6 +16,8 @@ const (
 	unsafeRepoPathMessage  = "This repository can't be created: the owner or template name isn't allowed in repository paths. Ask an administrator to rename it."
 )
 
+const pullIntoMirrorMessage = "Pull mirrors are read-only; open the pull request upstream."
+
 // createFailedMessage returns the page text for a failed create. Errors the user
 // can act on get their own message; anything else is logged and replaced,
 // because store and driver errors carry constraint names and SQLSTATEs.
@@ -27,6 +29,8 @@ func createFailedMessage(err error, what string, logAttrs ...any) string {
 		return "Only collaborators with write access can create private issues"
 	case errors.Is(err, service.ErrUnknownDiscussionCategory):
 		return "Pick a category for your discussion"
+	case errors.Is(err, service.ErrPullIntoMirror):
+		return pullIntoMirrorMessage
 	}
 	slog.Error("new "+what+": create failed", append(logAttrs, "error", err)...)
 	return "Could not create the " + what + ". Please try again."

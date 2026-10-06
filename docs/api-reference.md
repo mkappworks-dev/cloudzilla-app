@@ -190,10 +190,23 @@ A transfer into an organization you own, or into your own account (an org repo y
 
 | Method | Path                | Auth     | Description |
 | ------ | ------------------- | -------- | ----------- |
-| POST   | `/api/imports`      | Required | Start importing a Git repository (`clone_url`, `name`, optional `owner`, `description`, `private`, `auth_username` + `auth_token`). Returns `202 {id, status, owner, name, status_url}` |
+| POST   | `/api/imports`      | Required | Start importing a Git repository (`clone_url`, `name`, optional `owner`, `description`, `private`, `auth_username` + `auth_token`, `mirror`, `mirror_interval`). Returns `202 {id, status, owner, name, status_url}` |
 | GET    | `/api/imports/:id`  | Required | The import's `status` (`queued`, `running`, `done`, `failed`), `progress` and `error`. 404 for an unknown, expired or someone else's import |
 
 `clone_url` must be `http://` or `https://`, at most 2048 bytes, with no query string (422); credentials in it are refused too (422). `auth_username` and `auth_token` go together (422). `owner` defaults to the caller; another owner must be an organization the caller owns (403). A name already used under the owner is 422 `a repository with that name already exists`. A sixth import while five are queued or running is 429. Personal access tokens and OAuth-app tokens are refused on both `/api/imports` endpoints (403 `insufficient_scope`); use a session. The import's owner is in the request body, so a token limited to particular repositories or organizations could not be confined to them. `status_url` in the response is the HTML status page (`/repos/import/{id}`); API clients poll `GET /api/imports/{id}` for JSON. Imports run in the background; see [repo-import](./repo-import.md).
+
+`"mirror": true` makes the new repository a pull mirror that keeps syncing from `clone_url`. `mirror_interval` is a Go duration (`"8h"`), from `mirror.min_interval` to 30 days; it defaults to `mirror.default_interval`. A mirror with `auth_token` stores the token sealed, and needs `security.secret_key`. All of these are 422 when refused, as is `mirror` while `mirror.enabled` is off. See [repo-mirrors](./repo-mirrors.md).
+
+## Repository Mirrors
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET    | `/api/repos/:owner/:repo/mirror`      | Manage | `{remote_url, auth_username, has_token, interval, next_sync_at, last_sync_at, last_success_at, last_error, consecutive_failures}`. Never the token |
+| PATCH  | `/api/repos/:owner/:repo/mirror`      | Manage | Change any of `remote_url`, `auth_username`, `auth_token`, `interval`; `clear_token: true` removes the token. An empty `auth_token` keeps the stored one. Returns the mirror |
+| DELETE | `/api/repos/:owner/:repo/mirror`      | Manage | Stop mirroring: the repository becomes writable and the token is deleted. 204, or 409 while a sync runs |
+| POST   | `/api/repos/:owner/:repo/mirror/sync` | Write  | Sync now. 202 `{status: "queued"}`, or 409 while mirroring is off or the mirror is archived |
+
+A repository that isn't a mirror is 404. Invalid values are 422, with the same rules as on import. Scoped tokens need `repo:admin` for every mirror endpoint. A new URL, username or token makes the mirror sync at once; a new interval counts from the last sync. A pull mirror refuses pushes and every write to its branches, tags and default branch, and `POST …/pulls` into it is 422.
 
 ## Repository Transfers
 
