@@ -1,0 +1,360 @@
+package pages
+
+import (
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ AdminUsers(data view.AdminUsersData) {
+	@layout.Base(data.BasePage, "Users") {
+		<div class="space-y-6">
+			@adminTabs("/admin/users")
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-semibold tracking-tight">Users</h1>
+				<span class="text-sm text-muted-foreground">{ strconv.Itoa(data.TotalCount) } accounts</span>
+			</div>
+			<div class="rounded-md border border-border bg-card p-4">
+				<form method="GET" action="/admin/users" class="flex flex-wrap gap-4 items-end">
+					<div class="space-y-1.5">
+						<label for="users-q" class="block text-xs font-medium text-muted-foreground">Username or email starts with</label>
+						@components.Input(templ.Attributes{
+							"id":          "users-q",
+							"type":        "search",
+							"name":        "q",
+							"value":       data.Filter.Query,
+							"placeholder": "e.g. alice",
+							"class":       "w-56",
+						})
+					</div>
+					<div class="space-y-1.5">
+						<label for="users-role" class="block text-xs font-medium text-muted-foreground">Role</label>
+						@components.Select(templ.Attributes{"id": "users-role", "name": "role", "class": "w-36"}) {
+							<option value="" selected?={ data.Filter.Role == "" }>All</option>
+							<option value={ model.AdminUserRoleSuperadmin } selected?={ data.Filter.Role == model.AdminUserRoleSuperadmin }>Superadmins</option>
+							<option value={ model.AdminUserRoleUser } selected?={ data.Filter.Role == model.AdminUserRoleUser }>Users</option>
+						}
+					</div>
+					<div class="space-y-1.5">
+						<label for="users-status" class="block text-xs font-medium text-muted-foreground">Status</label>
+						@components.Select(templ.Attributes{"id": "users-status", "name": "status", "class": "w-36"}) {
+							<option value="" selected?={ data.Filter.Status == "" }>All</option>
+							<option value={ model.AdminUserStatusActive } selected?={ data.Filter.Status == model.AdminUserStatusActive }>Active</option>
+							<option value={ model.AdminUserStatusSuspended } selected?={ data.Filter.Status == model.AdminUserStatusSuspended }>Suspended</option>
+						}
+					</div>
+					<div class="flex gap-2">
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Filter
+						}
+						@components.LinkButton("/admin/users", components.ButtonSecondary, components.ButtonSizeDefault, nil) {
+							Reset
+						}
+					</div>
+				</form>
+			</div>
+			<div class="rounded-md border border-border bg-card overflow-x-auto">
+				if len(data.Users) > 0 {
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="text-left text-muted-foreground border-b border-border bg-muted">
+								<th class="px-4 py-3 font-medium">User</th>
+								<th class="px-4 py-3 font-medium">Email</th>
+								<th class="px-4 py-3 font-medium">Role</th>
+								<th class="px-4 py-3 font-medium">Status</th>
+								<th class="px-4 py-3 font-medium">2FA</th>
+								<th class="px-4 py-3 font-medium">Sign-in</th>
+								<th class="px-4 py-3 font-medium">Created</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-border">
+							for _, u := range data.Users {
+								<tr class="hover:bg-muted/40">
+									<td class="px-4 py-3">
+										<a href={ templ.SafeURL("/admin/users/" + u.User.Username) } class="font-medium text-foreground hover:underline">{ u.User.Username }</a>
+										if u.User.Name != "" {
+											<div class="text-xs text-muted-foreground">{ u.User.Name }</div>
+										}
+									</td>
+									<td class="px-4 py-3 text-foreground">{ u.User.Email }</td>
+									<td class="px-4 py-3">
+										@adminRoleBadge(u.User.IsSuperadmin)
+									</td>
+									<td class="px-4 py-3">
+										@adminStatusBadge(u.User.Suspended())
+									</td>
+									<td class="px-4 py-3 text-muted-foreground">
+										if u.User.TOTPEnabled {
+											On
+										} else {
+											Off
+										}
+									</td>
+									<td class="px-4 py-3 text-muted-foreground">{ adminUserSignIn(u) }</td>
+									<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
+										<time datetime={ u.User.CreatedAt.UTC().Format(time.RFC3339) }>{ u.User.CreatedAt.Format("Jan 2, 2006") }</time>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				} else {
+					<div class="text-center py-12 text-muted-foreground">
+						<p>No accounts match.</p>
+					</div>
+				}
+			</div>
+			{{ totalPages := (data.TotalCount + data.PerPage - 1) / data.PerPage }}
+			{{ prevURL := "" }}
+			if data.Page > 1 {
+				{{ prevURL = adminUsersPageURL(data.Filter, data.Page-1) }}
+			}
+			{{ nextURL := "" }}
+			if data.Page*data.PerPage < data.TotalCount {
+				{{ nextURL = adminUsersPageURL(data.Filter, data.Page+1) }}
+			}
+			@components.PaginationWithCount(prevURL, nextURL, data.Page, totalPages)
+		</div>
+	}
+}
+
+templ adminRoleBadge(superadmin bool) {
+	if superadmin {
+		@components.Badge(components.BadgeDefault) {
+			Superadmin
+		}
+	} else {
+		@components.Badge(components.BadgeOutline) {
+			User
+		}
+	}
+}
+
+templ adminStatusBadge(suspended bool) {
+	if suspended {
+		@components.Badge(components.BadgeDestructive) {
+			Suspended
+		}
+	} else {
+		@components.Badge(components.BadgeSuccess) {
+			Active
+		}
+	}
+}
+
+templ AdminUser(data view.AdminUserData) {
+	{{ u := data.Detail.User }}
+	@layout.Base(data.BasePage, u.Username+" · Users") {
+		<div class="space-y-6">
+			@adminTabs("/admin/users")
+			<div class="flex flex-wrap items-center gap-3">
+				<a href="/admin/users" class="text-sm text-muted-foreground hover:underline">Users</a>
+				<span class="text-muted-foreground" aria-hidden="true">/</span>
+				<h1 class="text-2xl font-semibold tracking-tight">{ u.Username }</h1>
+				@adminRoleBadge(u.IsSuperadmin)
+				@adminStatusBadge(u.Suspended())
+			</div>
+			@components.Card(nil) {
+				@components.CardHeader() {
+					<h2 class="text-base font-semibold tracking-tight">Details</h2>
+				}
+				@components.CardContent() {
+					<dl class="grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-x-6 gap-y-3 text-sm">
+						<dt class="text-muted-foreground">Name</dt>
+						<dd>
+							if u.Name != "" {
+								{ u.Name }
+							} else {
+								<span class="text-muted-foreground">—</span>
+							}
+						</dd>
+						<dt class="text-muted-foreground">Email</dt>
+						<dd>
+							{ u.Email }
+							if u.EmailVerified() {
+								<span class="text-xs text-muted-foreground">(verified)</span>
+							} else {
+								<span class="text-xs text-muted-foreground">(unverified)</span>
+							}
+						</dd>
+						<dt class="text-muted-foreground">Profile</dt>
+						<dd><a href={ templ.SafeURL("/" + u.Username) } class="hover:underline">{ "@" + u.Username }</a></dd>
+						if u.SuspendedAt != nil {
+							<dt class="text-muted-foreground">Suspended</dt>
+							<dd><time datetime={ u.SuspendedAt.UTC().Format(time.RFC3339) }>{ u.SuspendedAt.Format("Jan 2, 2006 15:04") }</time></dd>
+						}
+						<dt class="text-muted-foreground">Two-factor</dt>
+						<dd>
+							if u.TOTPEnabled {
+								On
+							} else {
+								Off
+							}
+						</dd>
+						<dt class="text-muted-foreground">Signs in with</dt>
+						<dd>{ adminUserSignIn(data.Detail.AdminUserRow) }</dd>
+						<dt class="text-muted-foreground">Created</dt>
+						<dd><time datetime={ u.CreatedAt.UTC().Format(time.RFC3339) }>{ u.CreatedAt.Format("Jan 2, 2006") }</time></dd>
+						<dt class="text-muted-foreground">Last web sign-in</dt>
+						<dd>
+							if data.Detail.LastSignIn != nil {
+								<time datetime={ data.Detail.LastSignIn.UTC().Format(time.RFC3339) }>{ data.Detail.LastSignIn.Format("Jan 2, 2006 15:04") }</time>
+							} else {
+								<span class="text-muted-foreground">Never recorded</span>
+							}
+						</dd>
+						<dt class="text-muted-foreground">Sole owner of</dt>
+						<dd>
+							if len(data.Detail.SoleOwnedOrgs) > 0 {
+								{ strings.Join(data.Detail.SoleOwnedOrgs, ", ") }
+							} else {
+								<span class="text-muted-foreground">No organizations</span>
+							}
+						</dd>
+					</dl>
+				}
+			}
+			if data.Self {
+				<p class="text-sm text-muted-foreground">This is your account. Change it under <a href="/settings" class="underline">Account settings</a>.</p>
+			} else {
+				@adminUserActions(data)
+				@adminUserDelete(data)
+			}
+		</div>
+	}
+}
+
+templ adminUserActions(data view.AdminUserData) {
+	{{ u := data.Detail.User }}
+	@components.Card(nil) {
+		@components.CardHeader() {
+			<h2 class="text-base font-semibold tracking-tight">Actions</h2>
+		}
+		@components.CardContent() {
+			<div class="flex flex-col gap-5">
+				if u.Suspended() {
+					@adminActionRow("Unsuspend", "Lets the account sign in again. Its tokens, SSH keys and app grants work again; its old sessions stay signed out.") {
+						@adminActionForm(u.Username, "unsuspend", "unsuspend-user", data.Confirm, "Account unsuspended") {
+							@adminActionButton(components.ButtonSuccess, "Unsuspend", "Unsuspend @"+u.Username+"?", "@"+u.Username+" will be able to sign in, push and use tokens again.", false)
+						}
+					}
+				} else {
+					@adminActionRow("Suspend", "Signs the account out everywhere and blocks sign-in, tokens, SSH keys and deploy keys on its repositories. Its content stays visible.") {
+						@adminActionForm(u.Username, "suspend", "suspend-user", data.Confirm, "Account suspended") {
+							<label for="suspend-reason" class="sr-only">Reason (optional, recorded in the audit log)</label>
+							@components.Input(templ.Attributes{
+								"id":          "suspend-reason",
+								"type":        "text",
+								"name":        "reason",
+								"maxlength":   "500",
+								"placeholder": "Reason (optional, for the audit log)",
+								"class":       "w-64",
+							})
+							@adminActionButton(components.ButtonDestructive, "Suspend", "Suspend @"+u.Username+"?", adminSuspendMessage(u.Username, data.Detail.SoleOwnedOrgs), true)
+						}
+					}
+				}
+				if u.IsSuperadmin {
+					@adminActionRow("Remove superadmin", "Takes away instance administration on the account's next request.") {
+						@adminActionForm(u.Username, "demote", "demote-user", data.Confirm, "Superadmin removed") {
+							@adminActionButton(components.ButtonOutline, "Remove superadmin", "Remove superadmin from @"+u.Username+"?", "@"+u.Username+" loses instance administration on their next request.", true)
+						}
+					}
+				} else if !u.Suspended() {
+					@adminActionRow("Make superadmin", "Gives the account full instance administration on its next request.") {
+						@adminActionForm(u.Username, "promote", "promote-user", data.Confirm, "Superadmin granted") {
+							@adminActionButton(components.ButtonOutline, "Make superadmin", "Make @"+u.Username+" a superadmin?", "@"+u.Username+" gets full instance administration, including over your account.", true)
+						}
+					}
+				}
+				if u.TOTPEnabled {
+					@adminActionRow("Reset two-factor", "Turns two-factor sign-in off for someone who lost their authenticator and backup codes. They are emailed.") {
+						@adminActionForm(u.Username, "reset-2fa", "reset-2fa-user", data.Confirm, "Two-factor reset") {
+							@adminActionButton(components.ButtonOutline, "Reset two-factor", "Reset two-factor for @"+u.Username+"?", "@"+u.Username+" will sign in with only their password or provider until they turn it back on.", true)
+						}
+					}
+				}
+				@adminActionRow("Revoke tokens and keys", "Deletes the account's personal access tokens, SSH keys and app authorizations, and signs it out everywhere. Deploy keys stay. They are emailed.") {
+					@adminActionForm(u.Username, "revoke-credentials", "revoke-user", data.Confirm, "Tokens and keys revoked") {
+						@adminActionButton(components.ButtonDestructive, "Revoke", "Revoke @"+u.Username+"'s tokens and keys?", "Every personal access token, SSH key and app authorization of @"+u.Username+" is deleted. This cannot be undone.", true)
+					}
+				}
+			</div>
+		}
+	}
+}
+
+templ adminActionRow(title, description string) {
+	<div class="flex flex-wrap items-center justify-between gap-3">
+		<div class="min-w-0 max-w-prose">
+			<h3 class="text-sm font-medium">{ title }</h3>
+			<p class="text-[13px] text-muted-foreground">{ description }</p>
+		</div>
+		{ children... }
+	</div>
+}
+
+templ adminActionForm(username, action, idPrefix string, confirm components.ConfirmFactors, toast string) {
+	<form hx-post={ adminUserAction(username, action) } hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast(toast)}... } class="flex flex-wrap items-end justify-end gap-3">
+		@components.ConfirmFields(idPrefix, confirm, true)
+		{ children... }
+	</form>
+}
+
+templ adminActionButton(variant components.ButtonVariant, label, title, msg string, danger bool) {
+	{{ attrs := templ.Attributes{"type": "submit", "data-confirm-action": "true", "data-confirm-title": title, "data-confirm-msg": msg, "data-confirm-label": label} }}
+	if danger {
+		{{ attrs["data-confirm-danger"] = "true" }}
+	}
+	@components.Button(variant, components.ButtonSizeDefault, attrs) {
+		{ label }
+	}
+}
+
+templ adminUserDelete(data view.AdminUserData) {
+	{{ u := data.Detail.User }}
+	<div id="delete" class="scroll-mt-6"></div>
+	@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
+		@components.CardHeader() {
+			<h2 class="text-base font-semibold tracking-tight text-destructive">Delete this account</h2>
+			@components.CardDescription() {
+				if len(data.Detail.SoleOwnedOrgs) > 0 {
+					{ "@" + u.Username } is the only owner of { strings.Join(data.Detail.SoleOwnedOrgs, ", ") }. Add another owner or delete those organizations first.
+				} else {
+					Deletes the account and its personal repositories. Issues, comments and pull requests it wrote elsewhere pass to the ghost account. This cannot be undone.
+				}
+			}
+		}
+		@components.CardContent() {
+			<form hx-post={ adminUserAction(u.Username, "delete") } hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast("Account deleted")}... } class="flex flex-wrap items-end justify-end gap-3">
+				<div class="min-w-0">
+					<label for="delete-user-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Type <span class="font-mono">{ u.Username }</span> to confirm</label>
+					@components.Input(templ.Attributes{
+						"id":           "delete-user-confirm",
+						"type":         "text",
+						"name":         "confirm_username",
+						"required":     "required",
+						"autocomplete": "off",
+						"class":        "w-56",
+					})
+				</div>
+				@components.ConfirmFields("delete-user", data.Confirm, true)
+				@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+					"type":                "submit",
+					"data-confirm-action": "true",
+					"data-confirm-title":  "Delete @" + u.Username + "?",
+					"data-confirm-msg":    "This permanently deletes @" + u.Username + " and its personal repositories. This cannot be undone.",
+					"data-confirm-label":  "Delete account",
+					"data-confirm-danger": "true",
+				}) {
+					Delete account
+				}
+			</form>
+		}
+	}
+}

@@ -52,4 +52,12 @@ const (
 	AuditActionEmailChange         = "user.email.change"
 	AuditActionSessionsRevoke      = "user.sessions.revoke"
 	AuditActionPasswordChange      = "user.password.change"
+
+	AuditActionAdminUserSuspend           = "admin.user.suspend"
+	AuditActionAdminUserUnsuspend         = "admin.user.unsuspend"
+	AuditActionAdminUserPromote           = "admin.user.promote"
+	AuditActionAdminUserDemote            = "admin.user.demote"
+	AuditActionAdminUser2FAReset          = "admin.user.2fa_reset"
+	AuditActionAdminUserCredentialsRevoke = "admin.user.credentials_revoke"
+	AuditActionAdminUserDelete            = "admin.user.delete"
 )
