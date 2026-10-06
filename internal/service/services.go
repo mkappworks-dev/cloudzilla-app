@@ -115,9 +115,10 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
+	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
 	return &Services{
 		User:             userSvc,
-		AdminUser:        NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc),
+		AdminUser:        NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
 		Repo:             repoSvc,
 		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent),
 		Pull:             pullSvc,
@@ -153,7 +154,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
 		EmailVerifier:    emailVerificationSvc,
-		PasswordReset:    NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL),
+		PasswordReset:    passwordResetSvc,
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
 		Event:            eventSvc,

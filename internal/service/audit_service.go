@@ -34,30 +34,7 @@ func (s *AuditService) Record(
 	targetName string,
 	metadata map[string]any,
 ) {
-	ip := extractIP(r)
-	ua := r.UserAgent()
-
-	var aid *int64
-	if actorID != 0 {
-		aid = &actorID
-	}
-	var tid *int64
-	if targetID != 0 {
-		tid = &targetID
-	}
-
-	entry := &model.AuditEntry{
-		ActorID:    aid,
-		ActorName:  actorName,
-		Action:     action,
-		TargetType: targetType,
-		TargetID:   tid,
-		TargetName: targetName,
-		IPAddress:  ip,
-		UserAgent:  ua,
-		Metadata:   metadata,
-	}
-
+	entry := requestAuditEntry(r, actorID, actorName, action, targetType, targetID, targetName, metadata)
 	go func() {
 		// Use a background context so the record outlives the request context.
 		if err := s.store.Create(context.Background(), entry); err != nil {
@@ -69,6 +46,42 @@ func (s *AuditService) Record(
 			)
 		}
 	}()
+}
+
+// RecordNow is Record, but waits for the write, for an action that must not
+// go ahead unrecorded.
+func (s *AuditService) RecordNow(
+	ctx context.Context,
+	r *http.Request,
+	actorID int64,
+	actorName, action, targetType string,
+	targetID int64,
+	targetName string,
+	metadata map[string]any,
+) error {
+	return s.store.Create(ctx, requestAuditEntry(r, actorID, actorName, action, targetType, targetID, targetName, metadata))
+}
+
+func requestAuditEntry(r *http.Request, actorID int64, actorName, action, targetType string, targetID int64, targetName string, metadata map[string]any) *model.AuditEntry {
+	var aid *int64
+	if actorID != 0 {
+		aid = &actorID
+	}
+	var tid *int64
+	if targetID != 0 {
+		tid = &targetID
+	}
+	return &model.AuditEntry{
+		ActorID:    aid,
+		ActorName:  actorName,
+		Action:     action,
+		TargetType: targetType,
+		TargetID:   tid,
+		TargetName: targetName,
+		IPAddress:  extractIP(r),
+		UserAgent:  r.UserAgent(),
+		Metadata:   metadata,
+	}
 }
 
 // RecordOffline writes an audit entry for an action with no HTTP request or

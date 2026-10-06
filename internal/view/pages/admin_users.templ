@@ -285,6 +285,15 @@ templ adminUserActions(data view.AdminUserData) {
 						}
 					}
 				}
+				if data.Detail.HasPassword && !u.Suspended() {
+					<div id="admin-user-reset-link">
+						@adminActionRow("Password reset link", "Creates a single-use link that sets a new password, for you to pass on. It lasts 24 hours and replaces any earlier link. The account is emailed a notice, not the link.") {
+							<form hx-post={ adminUserAction(u.Username, "password-reset-link") } hx-include="#admin-user-confirm" hx-target="#admin-user-reset-link" hx-swap="outerHTML" class="flex flex-wrap items-end justify-end gap-3">
+								@adminActionButton(components.ButtonOutline, "Issue link", "Issue a password reset link for @"+u.Username+"?", "You'll see the link once. Anyone who has it can set @"+u.Username+"'s password, until it is used or replaced.", false)
+							</form>
+						}
+					</div>
+				}
 				@adminActionRow("Revoke tokens and keys", "Deletes the account's personal access tokens, SSH keys and app authorizations, and signs it out everywhere. Deploy keys stay. They are emailed.") {
 					@adminActionForm(u.Username, "revoke-credentials", "Tokens and keys revoked") {
 						@adminActionButton(components.ButtonDestructive, "Revoke", "Revoke @"+u.Username+"'s tokens and keys?", "Every personal access token, SSH key and app authorization of @"+u.Username+" is deleted. This cannot be undone.", true)

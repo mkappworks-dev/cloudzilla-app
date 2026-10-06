@@ -76,7 +76,7 @@ func (s *PasswordResetStore) Issue(ctx context.Context, userID int64, tokenHash,
 // Every condition but expiry makes a link invalid rather than expired, so it
 // never says which of them failed.
 const passwordResetUsable = `t.used_at IS NULL AND t.email = u.email
-	AND t.session_version = u.session_version AND u.password_hash <> ''`
+	AND t.session_version = u.session_version AND u.password_hash <> '' AND u.suspended_at IS NULL`
 
 // Lookup reports what spending tokenHash now would do, without spending it.
 func (s *PasswordResetStore) Lookup(ctx context.Context, tokenHash string) (model.PasswordResetLink, error) {

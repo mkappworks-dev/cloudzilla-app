@@ -57,6 +57,9 @@ func issuePasswordResetLink(ctx context.Context, stores *store.Stores, cfg *conf
 	if errors.Is(err, service.ErrPasswordResetNoPassword) {
 		return "", fmt.Errorf("@%s has no password to reset: it was created through Google, LDAP or SAML sign-up", u.Username)
 	}
+	if errors.Is(err, service.ErrUserSuspended) {
+		return "", fmt.Errorf("@%s is suspended: unsuspend it first", u.Username)
+	}
 	if err != nil {
 		return "", err
 	}

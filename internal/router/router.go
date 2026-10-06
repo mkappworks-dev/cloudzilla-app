@@ -553,6 +553,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Post("/users/{username}/demote", h.AdminDemoteUser)
 		r.Post("/users/{username}/reset-2fa", h.AdminResetUserTOTP)
 		r.Post("/users/{username}/revoke-credentials", h.AdminRevokeUserCredentials)
+		r.Post("/users/{username}/password-reset-link", h.AdminIssuePasswordResetLink)
 		r.Post("/users/{username}/delete", h.AdminDeleteUser)
 		r.Post("/sso/{provider}/enabled", h.SetSSOEnabled)
 	})

@@ -48,8 +48,8 @@ func (s *PasswordResetService) Available() bool {
 
 // Request mails the account with this address a reset link, or, if it has no
 // password, a note saying how it signs in. It sends nothing for an unknown
-// address, if the account was mailed in the last 5 minutes, or while a link an
-// admin issued is still usable. A failed delivery still counts, since the
+// address or a suspended account, if the account was mailed in the last 5
+// minutes, or while a link an admin issued is still usable. A failed delivery still counts, since the
 // server may have accepted the message before failing.
 func (s *PasswordResetService) Request(ctx context.Context, email string) error {
 	if !s.Available() {
@@ -61,6 +61,9 @@ func (s *PasswordResetService) Request(ctx context.Context, email string) error 
 	}
 	if err != nil {
 		return err
+	}
+	if u.Suspended() {
+		return nil
 	}
 	var raw, hash string
 	if u.PasswordHash != "" {
@@ -85,6 +88,7 @@ func (s *PasswordResetService) Request(ctx context.Context, email string) error 
 
 // IssueLink returns a 24-hour link for userID instead of mailing it, replacing
 // any outstanding one. issuedBy is model.PasswordResetByAdmin or PasswordResetByCLI.
+// A suspended account gets ErrUserSuspended, since its link couldn't be spent.
 func (s *PasswordResetService) IssueLink(ctx context.Context, userID int64, issuedBy string) (string, error) {
 	if issuedBy != model.PasswordResetByAdmin && issuedBy != model.PasswordResetByCLI {
 		return "", fmt.Errorf("password reset issue link: unknown issuer %q", issuedBy)
@@ -96,6 +100,9 @@ func (s *PasswordResetService) IssueLink(ctx context.Context, userID int64, issu
 	// A local password on an SSO account would survive its removal at the identity provider.
 	if u.PasswordHash == "" {
 		return "", ErrPasswordResetNoPassword
+	}
+	if u.Suspended() {
+		return "", ErrUserSuspended
 	}
 	raw, hash, err := newLinkToken()
 	if err != nil {

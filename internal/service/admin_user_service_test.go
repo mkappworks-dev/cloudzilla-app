@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,13 +41,14 @@ func TestAdminUserService_RefusesOwnAccount(t *testing.T) {
 	name := usernameOf(t, db, me)
 
 	actions := map[string]func() error{
-		"suspend":   func() error { _, err := admin.Suspend(ctx, me, name); return err },
-		"unsuspend": func() error { _, err := admin.Unsuspend(ctx, me, name); return err },
-		"promote":   func() error { _, err := admin.Promote(ctx, me, name); return err },
-		"demote":    func() error { _, err := admin.Demote(ctx, me, name); return err },
-		"reset 2fa": func() error { _, err := admin.ResetTOTP(ctx, me, name); return err },
-		"revoke":    func() error { _, _, err := admin.RevokeCredentials(ctx, me, name); return err },
-		"delete":    func() error { _, err := admin.Delete(ctx, me, name, name); return err },
+		"suspend":    func() error { _, err := admin.Suspend(ctx, me, name); return err },
+		"unsuspend":  func() error { _, err := admin.Unsuspend(ctx, me, name); return err },
+		"promote":    func() error { _, err := admin.Promote(ctx, me, name); return err },
+		"demote":     func() error { _, err := admin.Demote(ctx, me, name); return err },
+		"reset 2fa":  func() error { _, err := admin.ResetTOTP(ctx, me, name); return err },
+		"revoke":     func() error { _, _, err := admin.RevokeCredentials(ctx, me, name); return err },
+		"delete":     func() error { _, err := admin.Delete(ctx, me, name, name); return err },
+		"reset link": func() error { _, _, err := admin.IssuePasswordResetLink(ctx, me, name); return err },
 	}
 	for action, do := range actions {
 		if err := do(); !errors.Is(err, service.ErrAdminSelf) {
@@ -193,5 +195,61 @@ func TestAdminUserService_GetLastSignIn(t *testing.T) {
 	d, err := newAdminUserServices(t, db).AdminUser.Get(ctx, usernameOf(t, db, id))
 	if err != nil || d.LastSignIn == nil || time.Since(*d.LastSignIn) < 23*time.Hour {
 		t.Errorf("LastSignIn = %v, %v", d, err)
+	}
+}
+
+func TestAdminUserService_IssuePasswordResetLink(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	svc, db := newVerificationServices(t, smtp)
+	ctx := context.Background()
+	me := testutil.SeedSuperadmin(t, db, testutil.UniqueSuffix(t))
+	userID, email := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), testPassword)
+
+	u, link, err := svc.AdminUser.IssuePasswordResetLink(ctx, me, usernameOf(t, db, userID))
+	if err != nil {
+		t.Fatalf("IssuePasswordResetLink: %v", err)
+	}
+	if u.ID != userID {
+		t.Errorf("user = %d, want %d", u.ID, userID)
+	}
+	token := link[strings.LastIndex(link, "/")+1:]
+	got, err := svc.PasswordReset.Check(ctx, token)
+	if err != nil || got.State != model.PasswordResetPending || got.UserID != userID || got.IssuedBy != model.PasswordResetByAdmin {
+		t.Fatalf("Check = %+v, %v; want a pending admin link for user %d", got, err, userID)
+	}
+
+	box.Empty(t, 300*time.Millisecond)
+	svc.AdminUser.NotifyPasswordResetLink(userID)
+	notice := box.NextTo(t, email)
+	if !strings.Contains(notice.Data, "administrator") || strings.Contains(notice.Data, token) {
+		t.Errorf("notice = %.500s, want an administrator notice without the link", notice.Data)
+	}
+}
+
+func TestAdminUserService_IssuePasswordResetLinkRefusals(t *testing.T) {
+	svc, db := newVerificationServices(t, config.SMTPConfig{})
+	ctx := context.Background()
+	me := testutil.SeedSuperadmin(t, db, testutil.UniqueSuffix(t))
+	suspended, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), testPassword)
+	testutil.Exec(t, db, `UPDATE users SET suspended_at = NOW() WHERE id = $1`, suspended)
+	suffix := testutil.UniqueSuffix(t)
+	passwordless := testutil.SeedPasswordlessUser(t, db, suffix, "g-"+suffix)
+
+	for _, tc := range []struct {
+		name     string
+		username string
+		want     error
+	}{
+		{"suspended", usernameOf(t, db, suspended), service.ErrUserSuspended},
+		{"passwordless", usernameOf(t, db, passwordless), service.ErrPasswordResetNoPassword},
+		{"unknown", "nobody_" + suffix, sql.ErrNoRows},
+	} {
+		if _, _, err := svc.AdminUser.IssuePasswordResetLink(ctx, me, tc.username); !errors.Is(err, tc.want) {
+			t.Errorf("%s: err = %v, want %v", tc.name, err, tc.want)
+		}
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM password_reset_tokens WHERE user_id IN ($1, $2)`, suspended, passwordless).Scan(&n); err != nil || n != 0 {
+		t.Errorf("password_reset_tokens rows = %d, %v; want none", n, err)
 	}
 }

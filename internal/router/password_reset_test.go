@@ -159,6 +159,37 @@ func TestPasswordReset_FlowThroughRouter(t *testing.T) {
 	}
 }
 
+func TestPasswordReset_AdminLinkSpends(t *testing.T) {
+	h, svc, db := newVerificationRouter(t, config.SMTPConfig{})
+	adminID := testutil.SeedSuperadmin(t, db, testutil.UniqueSuffix(t))
+	userID, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), "password1")
+	var username string
+	if err := db.QueryRow(`SELECT username FROM users WHERE id = $1`, userID).Scan(&username); err != nil {
+		t.Fatal(err)
+	}
+	_, link, err := svc.AdminUser.IssuePasswordResetLink(context.Background(), adminID, username)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := link[strings.LastIndex(link, "/")+1:]
+
+	rr := serve(h, browserRequest(http.MethodPost, resetPath(token), "", url.Values{"password": {resetNewPassword}, "confirm": {resetNewPassword}}))
+	if rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != "/login?reset=done" {
+		t.Fatalf("POST reset: %d to %q, want 303 to /login?reset=done", rr.Code, rr.Header().Get("Location"))
+	}
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == "cz_token" && c.Value != "" {
+			t.Error("a reset signed the user in")
+		}
+	}
+	if md := takeAuditMetadata(t, db, model.AuditActionPasswordReset, userID); md["issued_by"] != model.PasswordResetByAdmin {
+		t.Errorf("audit metadata = %v, want issued_by admin", md)
+	}
+	if isEmailVerified(t, db, userID) {
+		t.Error("an admin-issued link verified the address")
+	}
+}
+
 func TestPasswordReset_ExpiredLinkIsGone(t *testing.T) {
 	h, svc, db := newVerificationRouter(t, config.SMTPConfig{})
 	userID, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), "password1")
