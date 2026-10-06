@@ -32,6 +32,7 @@ import (
 type mirrorEnv struct {
 	svc     *service.Services
 	db      *sql.DB
+	root    string
 	repoID  int64
 	ownerID int64
 	git     *gogit.Repository
@@ -39,24 +40,36 @@ type mirrorEnv struct {
 
 func newMirrorEnv(t *testing.T, allowLocal bool) mirrorEnv {
 	t.Helper()
-	db := testutil.OpenTestDB(t)
+	return newMirrorEnvOn(t, testutil.OpenTestDB(t), allowLocal, 1)
+}
+
+func newMirrorEnvOn(t *testing.T, db *sql.DB, allowLocal bool, maxConcurrent int) mirrorEnv {
+	t.Helper()
 	root := t.TempDir()
 	cfg := &config.Config{
 		Git:      config.GitConfig{ReposRoot: root},
 		Webhook:  config.WebhookConfig{AllowLocalNetworks: true},
 		Security: config.SecurityConfig{SecretKey: strings.Repeat("k", 32)},
 		Mirror: config.MirrorConfig{Enabled: true, AllowLocalNetworks: allowLocal, MinInterval: time.Minute,
-			DefaultInterval: time.Hour, MaxConcurrent: 1, Timeout: time.Minute},
+			DefaultInterval: time.Hour, MaxConcurrent: maxConcurrent, Timeout: time.Minute},
 	}
+	e := mirrorEnv{svc: service.New(store.New(db), cfg), db: db, root: root}
+	e.repoID, e.ownerID, e.git = e.addRepo(t)
+	return e
+}
+
+// addRepo seeds a repo, under a new owner, with an empty bare repo on disk.
+func (e mirrorEnv) addRepo(t *testing.T) (repoID, ownerID int64, git *gogit.Repository) {
+	t.Helper()
 	suffix := testutil.UniqueSuffix(t)
-	ownerID := testutil.SeedUser(t, db, suffix)
+	ownerID = testutil.SeedUser(t, e.db, suffix)
 	owner, name := "testuser_"+suffix, "testrepo_"+suffix
-	repoID := testutil.SeedRepo(t, db, ownerID, owner, suffix)
-	git, err := gogit.PlainInit(filepath.Join(root, owner, name+".git"), true)
+	repoID = testutil.SeedRepo(t, e.db, ownerID, owner, suffix)
+	git, err := gogit.PlainInit(filepath.Join(e.root, owner, name+".git"), true)
 	if err != nil {
 		t.Fatalf("init mirror repo: %v", err)
 	}
-	return mirrorEnv{svc: service.New(store.New(db), cfg), db: db, repoID: repoID, ownerID: ownerID, git: git}
+	return repoID, ownerID, git
 }
 
 func (e mirrorEnv) mirror(t *testing.T, url string, token []byte) *model.RepoMirror {

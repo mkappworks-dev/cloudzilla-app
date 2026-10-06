@@ -106,6 +106,10 @@ func main() {
 		}
 	}()
 
+	if cfg.Mirror.Enabled {
+		concurrency.Go("mirror.run", func() { services.Mirror.Run(workerCtx) })
+	}
+
 	// Daily purge of soft-deleted repos older than 30 days
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)

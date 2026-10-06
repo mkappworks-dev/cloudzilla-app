@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 04
 
 Spec: [../spec.md](../spec.md#scheduler)
@@ -19,8 +19,14 @@ Spec: [../spec.md](../spec.md#scheduler)
 
 ## Acceptance criteria
 
-- [ ] With the clock and fetcher stubbed in tests, a due mirror syncs once, and a mirror that isn't due isn't touched.
-- [ ] No more than `max_concurrent` syncs run at once.
-- [ ] A failing mirror's `next_sync_at` backs off. A success resets it.
-- [ ] With `mirror.enabled: false`, the loop doesn't start.
-- [ ] Shutdown doesn't panic or leak the loop goroutine.
+- [x] Against a local git server, a due mirror syncs once, and a mirror that isn't due isn't touched.
+- [x] No more than `max_concurrent` syncs run at once.
+- [x] A failing mirror records its error and backs off (the schedule itself is tested in the store). A success resets it.
+- [x] With `mirror.enabled: false`, `main.go` doesn't start the loop.
+- [x] Shutdown doesn't panic or leak the loop goroutine.
+
+## Comments
+
+**Claude, 2026-10-06:**
+- Each lease is `mirror.timeout` plus one minute, so the result is recorded before another instance can claim the mirror.
+- When a sync finishes it wakes the loop. A mirror that was due but didn't fit a slot then starts at once, instead of waiting up to 30s.

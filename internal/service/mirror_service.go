@@ -47,12 +47,13 @@ type MirrorService struct {
 	secrets   *secretbox.Box
 	git       config.GitConfig
 	cfg       config.MirrorConfig
+	wake      chan struct{}
 }
 
 func NewMirrorService(mirrors *store.MirrorStore, repoStore *store.RepoStore, repos *RepoService, webhooks *WebhookService,
 	index *IndexService, deps *DependencyService, secrets *secretbox.Box, git config.GitConfig, cfg config.MirrorConfig) *MirrorService {
 	return &MirrorService{mirrors: mirrors, repoStore: repoStore, repos: repos, webhooks: webhooks, index: index, deps: deps,
-		secrets: secrets, git: git, cfg: cfg}
+		secrets: secrets, git: git, cfg: cfg, wake: make(chan struct{}, 1)}
 }
 
 // SealToken encrypts an upstream token for storage.

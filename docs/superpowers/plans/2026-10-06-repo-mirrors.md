@@ -64,6 +64,10 @@
 
 - [x] `MirrorService.Sync`: guarded fetch with prune, HEAD follow, ref diff and machine side effects, tested against `testutil.ServeGitHTTP`. go-git never requests thin packs, so no storer wrapper is needed (a guard test pins that).
 
-## Tickets 05–09
+## Ticket 05: scheduler (done)
+
+- [x] `Run`/`Wake`/`SyncNow`, a lease of the timeout plus 1m, started from `main.go` when `mirror.enabled`.
+
+## Tickets 06–09
 
 These follow the ticket files. Expand this plan before starting each one.
