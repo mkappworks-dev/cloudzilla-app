@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 
 ## Problem
 
@@ -87,7 +87,7 @@ There is no shared pipeline; each transport runs its own list.
 
 ## Proposed design
 
-The open questions at the end each name the recommendation that this design assumes.
+This PR ships pull mirrors and the pieces push mirrors will reuse: the scheduler, encrypted credentials and the read-only guard. Push mirrors are a follow-up; see [Later: push mirrors](#later-push-mirrors). The choices behind this design are listed under [Decisions](#decisions).
 
 ### Data model
 
@@ -99,15 +99,14 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
   - `interval_seconds`, `next_sync_at`, `lease_until NULL`
   - `last_sync_at`, `last_success_at`, `last_error`, `consecutive_failures`
   - `created_by`, `created_at`, `updated_at`
-- **`push_mirrors`** holds any number of push mirrors per repo. Each has an `id` and `repo_id`, the same remote, credential, schedule and status columns, and `sync_on_push BOOL`.
-- Both tables get a partial index on `next_sync_at` for the scheduler.
+- A partial index on `next_sync_at` serves the scheduler.
 - `Repository.IsMirror` is derived (`EXISTS` on `repo_mirrors`) in the repo store's SELECTs, rather than kept as a second column that could drift.
 
 ### Scheduler
 
 `MirrorService.Run(ctx)` is a single loop that `main.go` starts on `workerCtx`, like the webhook retries. Unlike them, it is safe to run on more than one instance.
 
-- **Claiming:** every 30 s, or when "Sync now" or a push wakes it, the loop claims due rows of both tables:
+- **Claiming:** every 30 s, or when "Sync now" wakes it, the loop claims due mirror rows:
 
   ```sql
   UPDATE … SET lease_until = NOW() + <timeout>
@@ -125,7 +124,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 - **Success:** set `next_sync_at = NOW() + interval`, clear `last_error`, and reset `consecutive_failures`.
 - **Failure:** store a user-facing message, mapped the way `ImportService.failureMessage` maps import errors. Then back off to `next_sync_at = NOW() + min(interval × 2^failures, 24h)`, so a revoked token doesn't hammer the upstream.
 - **Skipped:** archived and soft-deleted repos. With `mirror.enabled: false` the loop doesn't run at all.
-- **Sync now** sets `next_sync_at = NOW()` and wakes the loop. Manual and scheduled syncs share one path and can't overlap.
+- **Sync now** sets `next_sync_at = NOW()` and wakes the loop. Its `consecutive_failures` stays, so a manual retry of a broken mirror backs off again if it fails. Manual and scheduled syncs share one path and can't overlap.
 
 ### Pull mirrors
 
@@ -149,20 +148,6 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
   - No activity events (there's no actor) and no notifications.
   - The mirror's creation also runs `IndexRepo` and `ParseAndStore` once, which plain imports skip.
 
-### Push mirrors
-
-- **Settings:** a "Push mirrors" card lists each mirror with its status, a "Sync now" button and a delete button. Adding one asks for the remote URL, a username and token, an interval, and whether to push after every push.
-- **Syncing:**
-  - It runs `PushContext` with a guard in the context, pushing `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `Prune: true`. That is `git push --mirror`, limited to branches and tags.
-  - The remote becomes an exact copy, so commits pushed straight to the remote are overwritten. The settings card says so.
-- **Triggers:** each mirror pushes on its interval. With `sync_on_push`, these also set `next_sync_at = NOW()`:
-  - a receive-pack over HTTP or SSH
-  - a pull-mirror sync
-  - a PR merge or auto-merge
-
-  A burst of pushes collapses into one sync. Other web writes, such as a new file or a branch created on the web, wait for the interval.
-- **Memory:** go-git builds the whole outgoing pack in memory with no cap, so the first push of a large repository holds the full pack. This is accepted for now and documented.
-
 ### Shared
 
 - **Transport:** only HTTPS and HTTP remotes, under the `ParseImportURL` rules. SSH remotes would need their own dialer, host-key pinning and key storage.
@@ -172,7 +157,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
   - Tokens are write-only in the UI and API: shown only as "set", and they can be replaced or cleared but never read back.
   - Tokens are never logged.
 - **Permissions:** creating, editing and deleting mirrors needs `CanManage`; "Sync now" needs `CanWrite`. The API routes are added to `repoAdminResources`, so only `repo:admin` tokens reach them.
-- **Audit:** `repo.mirror.create`, `repo.mirror.update`, `repo.mirror.delete`, `repo.push_mirror.create` and `repo.push_mirror.delete`. Background syncs aren't audited, because `AuditService.Record` needs a request.
+- **Audit:** `repo.mirror.create`, `repo.mirror.update` and `repo.mirror.delete`. Background syncs aren't audited, because `AuditService.Record` needs a request.
 - **Config:**
 
   ```yaml
@@ -198,23 +183,34 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 | `PATCH` | `/api/repos/{owner}/{repo}/mirror` | Change the URL, credentials or interval |
 | `DELETE` | `/api/repos/{owner}/{repo}/mirror` | Stop mirroring |
 | `POST` | `/api/repos/{owner}/{repo}/mirror/sync` | Sync now (202) |
-| `GET`, `POST` | `/api/repos/{owner}/{repo}/push-mirrors` | List, or add a push mirror |
-| `PATCH`, `DELETE` | `/api/repos/{owner}/{repo}/push-mirrors/{id}` | Edit or remove a push mirror |
-| `POST` | `/api/repos/{owner}/{repo}/push-mirrors/{id}/sync` | Sync now (202) |
 
 ## Acceptance criteria
 
 - [ ] An import with "Keep this repository in sync" checked creates a pull mirror. Changes upstream reach it on the next sync: new commits, force pushes, new and deleted branches and tags, and a changed default branch. `refs/pull/*` is never copied.
 - [ ] An incremental sync from a server that sends thin packs succeeds.
+- [ ] Creating a pull request whose base repo is a pull mirror is refused.
 - [ ] A pull mirror refuses HTTP and SSH pushes, and refuses web and API writes on every path in Read-only enforcement. Archived repos are refused on the same paths.
 - [ ] The UI hides write controls on a pull mirror and shows the source, the last sync time, the last error and "Sync now".
 - [ ] A sync fires push webhooks for updated branches and updates open PRs' head SHAs, contributor stats, the primary language, code search and dependencies. It records no activity events.
 - [ ] "Stop mirroring" turns a pull mirror into a regular, writable repository and deletes its stored credentials.
-- [ ] A push mirror makes the remote's branches and tags equal the local ones, deleting any the local repo lacks. With "push after every push" on, a push reaches the remote without waiting for the interval.
-- [ ] Mirror URLs follow the import's rules. Private-network targets are refused unless `mirror.allow_local_networks` is set, on both fetch and push.
+- [ ] Mirror URLs follow the import's rules. Private-network targets are refused unless `mirror.allow_local_networks` is set.
 - [ ] Tokens are stored encrypted, never returned by the UI or API, and never logged. Without `security.secret_key`, credentialed mirrors are refused with a clear message.
 - [ ] Two server instances never run the same mirror's sync at once. Syncs never exceed `mirror.max_concurrent`, and a failing mirror backs off up to 24 h.
 - [ ] `docs/repo-mirrors.md` is linked from `CLAUDE.md`, and `docs/configuration.md` and `docs/api-reference.md` are updated.
+
+## Tickets
+
+| # | Ticket | Blocked by |
+| --- | --- | --- |
+| 01 | [Content-writable guard; archived gaps](issues/01-content-writable-guard.md) | — |
+| 02 | [`security.secret_key` and `secretbox`](issues/02-secret-key-encryption.md) | — |
+| 03 | [Schema, model, store, config](issues/03-mirror-schema-store.md) | — |
+| 04 | [Sync](issues/04-mirror-sync.md) | 02, 03 |
+| 05 | [Scheduler](issues/05-mirror-scheduler.md) | 04 |
+| 06 | [Import creates a mirror](issues/06-import-creates-mirror.md) | 02, 03 |
+| 07 | [Read-only mirrors](issues/07-mirror-read-only.md) | 01, 03 |
+| 08 | [Settings card and API](issues/08-mirror-settings-api.md) | 05, 06, 07 |
+| 09 | [Docs](issues/09-mirror-docs.md) | 02–08 |
 
 ## Relevant files
 
@@ -232,17 +228,28 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 - `internal/view/pages/repo_import.templ`, `repo_settings.templ`, `repo.templ`, `refs.templ`, and `fragments/pull_detail.templ`
 - `internal/ssh/server_test.go`: helpers for tests that drive real pushes
 
-## Open questions
+## Decisions
 
-1. **Ship pull mirrors first and push mirrors in a later PR?** Recommended: yes. Pull mirrors carry most of the shared work (the scheduler, encrypted credentials, the read-only guard), and push mirrors then add a table, a card and a trigger.
-2. **Close the archived gaps here?** The read-only predicate fixes archived repos on the same paths. Recommended: yes, as the first ticket, with its own commit.
-3. **How should credentials be stored?** Options: a new `security.secret_key`; a key derived from `auth.jwt_secret`, which would make rotating the JWT secret destroy every stored token; or plaintext, like webhook secrets. Recommended: the new key.
-4. **Should syncs fire side effects?** Recommended: push webhooks, stats, code search and dependencies, but no activity events or notifications.
-5. **Pull requests into a pull mirror:** refuse creating them, or allow them and refuse only the merge? Recommended: refuse creating them.
-6. **How should push mirrors handle divergence?** Options: always overwrite the remote, or add a "keep divergent refs" option that skips refs whose remote commits are missing locally and reports them. Recommended: overwrite only for now.
-7. **HTTPS only, or SSH too?** Recommended: HTTPS only for now.
-8. **Interval limits:** a 10 m minimum, 8 h default and at most 3 concurrent syncs, as in Gitea. Is that right for this instance?
+Agreed with the maintainer on 2026-10-06.
+
+1. **Pull mirrors first.** Push mirrors follow in a later PR.
+2. **Archived gaps are closed here.** `CheckContentWritable` covers archived repos and pull mirrors on every write path. It lands first, as its own `fix(repo):` commit.
+3. **Credentials use a new `security.secret_key`.** Deriving the key from `auth.jwt_secret` would make rotating the JWT secret destroy every stored token. Plaintext would expose upstream PATs in any database dump.
+4. **Syncs fire machine side effects only:** push webhooks with an empty pusher name, `OnPostReceive`, `IndexRepo` and `ParseAndStore`. They record no activity events and send no notifications.
+5. **PRs into a pull mirror are refused at creation,** not only at merge.
+6. **HTTPS only.** The SSRF guard covers go-git's HTTP client only.
+7. **Limits:** a 10m minimum interval, an 8h default and 3 concurrent syncs per instance, all configurable.
+
+## Later: push mirrors
+
+Kept here so the follow-up can reuse the scheduler and credentials without re-deriving them.
+
+- A `push_mirrors` table, with any number per repo: `id`, `repo_id`, the same remote, credential, schedule and status columns, and `sync_on_push BOOL`.
+- The sync runs `PushContext` with a guard, pushing `+refs/heads/*:refs/heads/*` and `+refs/tags/*:refs/tags/*` with `Prune: true`. That is `git push --mirror`, limited to branches and tags.
+- With `sync_on_push`, these set `next_sync_at = NOW()`: an HTTP or SSH receive-pack, a pull-mirror sync, and a PR merge or auto-merge.
+- go-git builds the whole outgoing pack in memory with no cap.
+- Still open: whether to always overwrite the remote, or offer "keep divergent refs".
 
 ## Out of scope
 
-LFS objects, wiki mirroring, SSH remotes, mirroring issues, PRs and releases, turning an existing repository into a pull mirror, notifying anyone when a mirror fails, and an admin page listing every mirror.
+Push mirrors (see above), LFS objects, wiki mirroring, SSH remotes, mirroring issues, PRs and releases, turning an existing repository into a pull mirror, notifying anyone when a mirror fails, and an admin page listing every mirror.
