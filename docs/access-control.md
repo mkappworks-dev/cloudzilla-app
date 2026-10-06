@@ -566,6 +566,8 @@ Every row checks `readableRepoJSON` first.
 | POST              | `/{owner}/{repo}/milestones/{number}`                                                             | authMW | readableRepo + CanWrite                                        | PageMilestoneDetailAction                         |
 | GET               | `/{owner}/{repo}/releases/new`                                                                    | authMW | readableRepo + CanWrite                                        | PageReleaseNew                                    |
 | GET/POST          | `/{owner}/{repo}/new/{ref}`                                                                       | authMW | readableRepo + CanWrite                                        | PageNewFile / SubmitNewFile                       |
+| GET/POST          | `/{owner}/{repo}/edit/{branch}/{path}`                                                            | authMW | readableRepo + CanWrite; not archived; branch refs only        | PageEditFile / SubmitEditFile                     |
+| POST              | `/{owner}/{repo}/delete/{branch}/{path}`                                                          | authMW | readableRepoJSON + CanWrite; not archived; branch refs only    | DeleteFile                                        |
 | GET               | `/{owner}/{repo}/fork`                                                                            | authMW | readableRepo                                                   | PageForkRepo                                      |
 | GET               | `/{owner}/{repo}/wiki/new`, `.../wiki/{slug}/edit`                                                | authMW | CanRead (404) + CanWrite                                       | PageWikiNew / PageWikiEdit                        |
 
@@ -639,7 +641,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set |
 | Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
 | Web commit paths   | No `.git` component (any case, NTFS or HFS+ alias); at most 4096 bytes           |
-| SSRF protection    | Webhook delivery blocks private/internal IPs                                     |
+| SSRF protection    | Webhooks and imports dial only vetted public addresses; webhooks follow no redirects |
 | Branch protection  | A push that violates a rule is refused per ref, before the ref is written        |
 | Password storage   | bcrypt hashed                                                                    |
 | TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                        |

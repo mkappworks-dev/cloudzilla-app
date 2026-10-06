@@ -35,6 +35,7 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `smtp.tls`                   | `false`                                      | `CZ_SMTP_TLS`                   | Use TLS for SMTP connection                     |
 | `import.allow_local_networks`| `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`| Let repository imports reach loopback, private and link-local addresses |
 | `import.timeout`             | `30m`                                        | `CZ_IMPORT_TIMEOUT`             | Time limit for one repository import            |
+| `webhook.allow_local_networks`| `false`                                     | `CZ_WEBHOOK_ALLOW_LOCAL_NETWORKS`| Let webhooks be created for and delivered to loopback, private and link-local addresses |
 | `rate_limit.enabled`         | `true`                                       | `CZ_RATE_LIMIT_ENABLED`         | Rate-limit every request that isn't a static asset; see [Rate limits](#rate-limits) |
 | `rate_limit.window`          | `1h`                                         | `CZ_RATE_LIMIT_WINDOW`          | Length of the window each budget covers         |
 | `rate_limit.core.authenticated` | `5000`                                    | `CZ_RATE_LIMIT_CORE_AUTHENTICATED` | Pages and `/api/*` per signed-in bucket      |

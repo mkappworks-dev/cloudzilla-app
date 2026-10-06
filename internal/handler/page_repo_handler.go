@@ -558,6 +558,8 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, *userID)
 	}
+	canDelete := canWrite && !repo.IsArchived && result.IsBranch
+	canEdit := canDelete && !result.IsBinary && !result.IsSymlink && result.Size <= maxEditFileBytes && result.EditableText
 
 	// Latest commit touching this specific file path. Best-effort: failures
 	// just leave the sub-header off.
@@ -598,8 +600,11 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		Size:          result.Size,
 		BlameURL:      result.BlameURL,
 		RawURL:        codeurl.Path(owner, repoName, "raw", result.Ref, result.Path),
-		EditURL:       "#",
-		CanWrite:      canWrite,
+		EditURL:       codeurl.Path(owner, repoName, "edit", result.Ref, result.Path),
+		DeleteURL:     codeurl.Path(owner, repoName, "delete", result.Ref, result.Path),
+		BlobSHA:       result.SHA,
+		CanEdit:       canEdit,
+		CanDelete:     canDelete,
 		CanManage:     canManage,
 		Sidebar:       h.buildSidebarTree(owner, repoName, ref, result.Path, openTreeFolders(r)),
 		SidebarHidden: treeHidden(r),

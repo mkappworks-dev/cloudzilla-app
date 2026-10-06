@@ -453,7 +453,7 @@ Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that
 | Method | Path                                           | Auth      | Description                                |
 | ------ | ---------------------------------------------- | --------- | ------------------------------------------ |
 | GET    | `/api/repos/:owner/:repo/hooks/`               | --        | List webhooks for repository               |
-| POST   | `/api/repos/:owner/:repo/hooks/`               | CanManage | Create webhook (JSON `url`, `secret`, `events`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled) |
+| POST   | `/api/repos/:owner/:repo/hooks/`               | CanManage | Create webhook (JSON `url`, `secret`, `events`, plus `password` and, with 2FA, `code`; 400 for a URL that isn't http(s) or resolves to a private address, 403 on a wrong confirmation, 429 when throttled) |
 | PATCH  | `/api/repos/:owner/:repo/hooks/:id`            | CanManage | Update webhook settings                    |
 | DELETE | `/api/repos/:owner/:repo/hooks/:id`            | CanManage | Delete webhook                             |
 | GET    | `/api/repos/:owner/:repo/hooks/:id/deliveries` | CanManage | List delivery history                      |

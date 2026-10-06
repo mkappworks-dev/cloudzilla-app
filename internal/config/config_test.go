@@ -130,6 +130,26 @@ func TestLoad_RateLimitDisabledSkipsValidation(t *testing.T) {
 	}
 }
 
+func TestLoad_WebhookDefaultsAndEnv(t *testing.T) {
+	t.Setenv("CZ_IMPORT_ALLOW_LOCAL_NETWORKS", "true")
+	cfg, err := config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Webhook.AllowLocalNetworks {
+		t.Error("defaults: webhook.allow_local_networks must stay false when only imports allow local networks")
+	}
+
+	t.Setenv("CZ_WEBHOOK_ALLOW_LOCAL_NETWORKS", "true")
+	cfg, err = config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.Webhook.AllowLocalNetworks {
+		t.Error("env: want webhook.allow_local_networks=true")
+	}
+}
+
 func TestLoad_StorageDefaultsAndEnv(t *testing.T) {
 	cfg, err := config.Load("")
 	if err != nil {
