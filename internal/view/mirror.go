@@ -60,15 +60,23 @@ func In(t time.Time) string {
 	return "in " + roundedSpan(d)
 }
 
+// roundedSpan rounds to the minute, then moves up a unit only when the
+// rounded count fills it: 59m59s reads "1 hour", 40m stays "40 minutes".
 func roundedSpan(d time.Duration) string {
-	unit, name := time.Minute, "minute"
-	switch {
-	case d >= 24*time.Hour:
-		unit, name = 24*time.Hour, "day"
-	case d >= time.Hour:
-		unit, name = time.Hour, "hour"
+	if m := round(d, time.Minute); m < 60 {
+		return plural(max(m, 1), "minute")
 	}
-	n := int(math.Round(float64(d) / float64(unit)))
+	if h := round(d, time.Hour); h < 24 {
+		return plural(h, "hour")
+	}
+	return plural(round(d, 24*time.Hour), "day")
+}
+
+func round(d, unit time.Duration) int {
+	return int(math.Round(float64(d) / float64(unit)))
+}
+
+func plural(n int, name string) string {
 	if n == 1 {
 		return "1 " + name
 	}
