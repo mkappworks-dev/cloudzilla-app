@@ -1,69 +1,96 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// isInternalURL checks if a URL targets a private/internal IP range.
-func isInternalURL(rawURL string) bool {
-	u, err := url.Parse(rawURL)
-	if err != nil || u.Host == "" {
-		return true // reject unparseable or hostless URLs
-	}
-	host := u.Hostname()
+const (
+	webhookTimeout     = 10 * time.Second
+	webhookMaxAttempts = 5
+)
 
-	// Block common internal hostnames
-	if host == "localhost" || host == "metadata.google.internal" {
-		return true
-	}
+// WebhookURLError is a payload URL refused at create time; its message is safe to show the user.
+type WebhookURLError struct{ Reason string }
 
-	ip := net.ParseIP(host)
-	if ip == nil {
-		// Could be a hostname that resolves to internal IP — resolve it
-		addrs, err := net.LookupHost(host)
-		if err != nil || len(addrs) == 0 {
-			return false // let it fail naturally
-		}
-		ip = net.ParseIP(addrs[0])
-		if ip == nil {
-			return false
-		}
-	}
-
-	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast()
-}
+func (e *WebhookURLError) Error() string { return e.Reason }
 
 // WebhookService dispatches signed webhook payloads to registered endpoints with retry.
 type WebhookService struct {
-	webhooks *store.WebhookStore
-	client   *http.Client
+	webhooks   *store.WebhookStore
+	client     *http.Client
+	allowLocal bool
 }
 
 // NewWebhookService creates a WebhookService backed by the given webhook store.
-func NewWebhookService(webhooks *store.WebhookStore) *WebhookService {
+func NewWebhookService(webhooks *store.WebhookStore, cfg config.WebhookConfig) *WebhookService {
 	return &WebhookService{
-		webhooks: webhooks,
-		client:   &http.Client{Timeout: 10 * time.Second},
+		webhooks:   webhooks,
+		client:     newWebhookHTTPClient(cfg.AllowLocalNetworks),
+		allowLocal: cfg.AllowLocalNetworks,
 	}
 }
 
+// newWebhookHTTPClient vets every address at dial time, which also covers
+// DNS answers that change after the webhook was created.
+func newWebhookHTTPClient(allowLocal bool) *http.Client {
+	dialer := &net.Dialer{Timeout: webhookTimeout, KeepAlive: 30 * time.Second}
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	// Through a proxy the dial check would vet the proxy, not the endpoint.
+	tr.Proxy = nil
+	if !allowLocal {
+		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialPublic(ctx, dialer, network, addr)
+		}
+	}
+	return &http.Client{
+		Transport: tr,
+		Timeout:   webhookTimeout,
+		// The 3xx is the endpoint's answer; following it would post to a URL nobody registered.
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+}
+
+// checkWebhookURL catches a bad URL early; dialPublic is what enforces the policy on every delivery.
+func checkWebhookURL(ctx context.Context, rawURL string, allowLocal bool) error {
+	u, err := url.Parse(rawURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return &WebhookURLError{Reason: "Payload URL must be an http or https URL."}
+	}
+	if u.Hostname() == "" {
+		return &WebhookURLError{Reason: "Payload URL must include a host."}
+	}
+	if allowLocal {
+		return nil
+	}
+	// A host that doesn't resolve yet is left to the dial-time check.
+	var blocked *PrivateNetworkError
+	if _, err := resolvePublic(ctx, u.Hostname()); errors.As(err, &blocked) {
+		return &WebhookURLError{Reason: blocked.Error() + ". An administrator can allow this with webhook.allow_local_networks."}
+	}
+	return nil
+}
+
 func (s *WebhookService) Create(ctx context.Context, repoID int64, url, secret, events string) (*model.Webhook, error) {
-	if isInternalURL(url) {
-		return nil, fmt.Errorf("webhook URL must not target internal networks")
+	if err := checkWebhookURL(ctx, url, s.allowLocal); err != nil {
+		return nil, err
 	}
 	if events == "" {
 		events = "push,issues,pull_request"
@@ -118,63 +145,78 @@ func (s *WebhookService) Dispatch(repoID int64, event string, payload any) {
 		if !strings.Contains(","+wh.Events+",", ","+event+",") {
 			continue
 		}
-		go s.deliver(wh, event, payloadBytes)
+		go s.deliver(ctx, wh, event, payloadBytes)
 	}
 }
 
-func (s *WebhookService) deliver(wh model.Webhook, event string, payload []byte) {
-	if isInternalURL(wh.URL) {
-		slog.Warn("webhook: blocked delivery to internal URL", "webhook_id", wh.ID, "url", wh.URL)
-		return
-	}
-
-	ctx := context.Background()
+func (s *WebhookService) deliver(ctx context.Context, wh model.Webhook, event string, payload []byte) {
+	code, err := s.send(ctx, wh, event, payload)
 	d := &model.WebhookDelivery{
-		WebhookID: wh.ID,
-		Event:     event,
-		Payload:   string(payload),
+		WebhookID:    wh.ID,
+		Event:        event,
+		Payload:      string(payload),
+		ResponseCode: code,
+		Error:        deliveryError(err),
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, wh.URL, strings.NewReader(string(payload)))
-	if err != nil {
-		d.Error = err.Error()
-		if logErr := s.webhooks.LogDelivery(ctx, d); logErr == nil {
-			t := time.Now().Add(webhookBackoff(1))
-			if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, 0, d.Error); retryErr != nil {
-				slog.Warn("webhook: failed to schedule retry", "delivery_id", d.ID, "error", retryErr)
-			}
-		}
+	if logErr := s.webhooks.LogDelivery(ctx, d); logErr != nil {
+		slog.Warn("webhook: failed to log delivery", "webhook_id", wh.ID, "error", logErr)
 		return
+	}
+	if next := nextWebhookRetry(1, code, err); next != nil {
+		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, next, 1, code, d.Error); retryErr != nil {
+			slog.Warn("webhook: failed to schedule retry", "delivery_id", d.ID, "error", retryErr)
+		}
+	}
+}
+
+// retry is the one path for scheduled retries and manual redelivery.
+func (s *WebhookService) retry(ctx context.Context, wh model.Webhook, d model.WebhookDelivery) {
+	attempt := d.AttemptCount + 1
+	code, err := s.send(ctx, wh, d.Event, []byte(d.Payload))
+	if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextWebhookRetry(attempt, code, err), attempt, code, deliveryError(err)); retryErr != nil {
+		slog.Warn("webhook: failed to update retry state", "delivery_id", d.ID, "error", retryErr)
+	}
+}
+
+// send makes one delivery attempt; err is set when no response came back.
+func (s *WebhookService) send(ctx context.Context, wh model.Webhook, event string, payload []byte) (int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, wh.URL, bytes.NewReader(payload))
+	if err != nil {
+		return 0, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Cloudzilla-Event", event)
 	if wh.Secret != "" {
 		req.Header.Set("X-Hub-Signature-256", "sha256="+computeHMAC(payload, wh.Secret))
 	}
-
 	resp, err := s.client.Do(req)
 	if err != nil {
-		d.Error = err.Error()
-		if logErr := s.webhooks.LogDelivery(ctx, d); logErr == nil {
-			t := time.Now().Add(webhookBackoff(1))
-			if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, 0, d.Error); retryErr != nil {
-				slog.Warn("webhook: failed to schedule retry", "delivery_id", d.ID, "error", retryErr)
-			}
-		}
-		return
+		return 0, err
 	}
-	defer func() { _ = resp.Body.Close() }()
-	d.ResponseCode = resp.StatusCode
-	if logErr := s.webhooks.LogDelivery(ctx, d); logErr != nil {
-		return
+	_ = resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
+func deliveryError(err error) string {
+	var blocked *PrivateNetworkError
+	switch {
+	case err == nil:
+		return ""
+	case errors.As(err, &blocked):
+		return blocked.Error()
 	}
-	// Schedule retry on non-2xx
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		t := time.Now().Add(webhookBackoff(1))
-		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, resp.StatusCode, ""); retryErr != nil {
-			slog.Warn("webhook: failed to schedule retry", "delivery_id", d.ID, "error", retryErr)
-		}
+	return err.Error()
+}
+
+// nextWebhookRetry returns nil once retrying can't help: success, the attempt
+// limit, or a private address, which stays refused until the host's DNS changes.
+func nextWebhookRetry(attempt, code int, err error) *time.Time {
+	var blocked *PrivateNetworkError
+	if (err == nil && code >= 200 && code < 300) || errors.As(err, &blocked) || attempt >= webhookMaxAttempts {
+		return nil
 	}
+	t := time.Now().Add(webhookBackoff(attempt))
+	return &t
 }
 
 func computeHMAC(payload []byte, secret string) string {
@@ -200,13 +242,14 @@ func webhookBackoff(attempt int) time.Duration {
 	}
 }
 
-// RetryPending finds all due webhook deliveries and re-delivers them.
-// Call this from a background goroutine on a ticker.
+// RetryPending re-delivers all due webhook deliveries and waits for them, so
+// the next tick doesn't list a delivery that is still in flight.
 func (s *WebhookService) RetryPending(ctx context.Context) error {
 	pending, err := s.webhooks.ListPendingRetry(ctx)
 	if err != nil {
 		return fmt.Errorf("retry pending list: %w", err)
 	}
+	var wg sync.WaitGroup
 	for _, d := range pending {
 		wh, err := s.webhooks.GetByID(ctx, d.WebhookID)
 		if err != nil {
@@ -214,62 +257,10 @@ func (s *WebhookService) RetryPending(ctx context.Context) error {
 			_ = s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nil, d.AttemptCount, d.ResponseCode, "webhook deleted")
 			continue
 		}
-		go s.retryDeliver(ctx, *wh, d)
+		wg.Go(func() { s.retry(ctx, *wh, d) })
 	}
+	wg.Wait()
 	return nil
-}
-
-func (s *WebhookService) retryDeliver(ctx context.Context, wh model.Webhook, d model.WebhookDelivery) {
-	newAttempt := d.AttemptCount + 1
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, wh.URL, strings.NewReader(d.Payload))
-	if err != nil {
-		var nextRetry *time.Time
-		if newAttempt < 5 {
-			t := time.Now().Add(webhookBackoff(newAttempt))
-			nextRetry = &t
-		}
-		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, 0, err.Error()); retryErr != nil {
-			slog.Warn("webhook: failed to update retry state", "delivery_id", d.ID, "error", retryErr)
-		}
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Cloudzilla-Event", d.Event)
-	if wh.Secret != "" {
-		req.Header.Set("X-Hub-Signature-256", "sha256="+computeHMAC([]byte(d.Payload), wh.Secret))
-	}
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		var nextRetry *time.Time
-		if newAttempt < 5 {
-			t := time.Now().Add(webhookBackoff(newAttempt))
-			nextRetry = &t
-		}
-		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, 0, err.Error()); retryErr != nil {
-			slog.Warn("webhook: failed to update retry state", "delivery_id", d.ID, "error", retryErr)
-		}
-		return
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nil, newAttempt, resp.StatusCode, ""); retryErr != nil {
-			slog.Warn("webhook: failed to clear retry state", "delivery_id", d.ID, "error", retryErr)
-		}
-		return
-	}
-
-	// Non-2xx — schedule next retry if under limit
-	var nextRetry *time.Time
-	if newAttempt < 5 {
-		t := time.Now().Add(webhookBackoff(newAttempt))
-		nextRetry = &t
-	}
-	if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, resp.StatusCode, ""); retryErr != nil {
-		slog.Warn("webhook: failed to update retry state", "delivery_id", d.ID, "error", retryErr)
-	}
 }
 
 // RedeliverByID re-sends a specific delivery immediately (manual redeliver).
@@ -285,7 +276,7 @@ func (s *WebhookService) RedeliverByID(ctx context.Context, deliveryID, repoID i
 	if wh.RepoID != repoID {
 		return fmt.Errorf("forbidden")
 	}
-	go s.retryDeliver(context.Background(), *wh, *d)
+	go s.retry(context.Background(), *wh, *d)
 	return nil
 }
 

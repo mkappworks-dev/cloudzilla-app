@@ -20,6 +20,7 @@ type Config struct {
 	OAuth    OAuthConfig    `mapstructure:"oauth"`
 	SMTP     SMTPConfig     `mapstructure:"smtp"`
 	Import   ImportConfig   `mapstructure:"import"`
+	Webhook  WebhookConfig  `mapstructure:"webhook"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -68,6 +69,12 @@ type ImportConfig struct {
 	// Off by default, so a user can't make the server probe its own network.
 	AllowLocalNetworks bool          `mapstructure:"allow_local_networks"`
 	Timeout            time.Duration `mapstructure:"timeout"`
+}
+
+// WebhookConfig holds webhook delivery settings.
+type WebhookConfig struct {
+	// Off by default, so a repo manager can't make the server post into its own network.
+	AllowLocalNetworks bool `mapstructure:"allow_local_networks"`
 }
 
 // OAuthConfig holds Google OAuth provider settings.
@@ -121,6 +128,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("smtp.tls", false)
 	v.SetDefault("import.allow_local_networks", false)
 	v.SetDefault("import.timeout", "30m")
+	v.SetDefault("webhook.allow_local_networks", false)
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")

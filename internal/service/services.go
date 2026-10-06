@@ -95,7 +95,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
 		Org:              orgSvc,
-		Webhook:          NewWebhookService(stores.Webhook),
+		Webhook:          NewWebhookService(stores.Webhook, cfg.Webhook),
 		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,
 		Invitation:       NewInvitationService(stores.Invitation),

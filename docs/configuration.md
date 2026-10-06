@@ -35,6 +35,7 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `smtp.tls`                   | `false`                                      | `CZ_SMTP_TLS`                   | Use TLS for SMTP connection                     |
 | `import.allow_local_networks`| `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`| Let repository imports reach loopback, private and link-local addresses |
 | `import.timeout`             | `30m`                                        | `CZ_IMPORT_TIMEOUT`             | Time limit for one repository import            |
+| `webhook.allow_local_networks`| `false`                                     | `CZ_WEBHOOK_ALLOW_LOCAL_NETWORKS`| Let webhooks be created for and delivered to loopback, private and link-local addresses |
 
 ### Environment Variable Mapping
 

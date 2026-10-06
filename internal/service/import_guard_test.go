@@ -13,7 +13,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
 )
 
-func TestBlockedImportIP(t *testing.T) {
+func TestBlockedIP(t *testing.T) {
 	for _, tc := range []struct {
 		ip      string
 		blocked bool
@@ -23,8 +23,8 @@ func TestBlockedImportIP(t *testing.T) {
 		{"224.0.0.1", true}, {"::1", true}, {"fc00::1", true}, {"fe80::1", true}, {"::ffff:127.0.0.1", true},
 		{"8.8.8.8", false}, {"140.82.112.3", false}, {"2606:4700:4700::1111", false},
 	} {
-		if got := blockedImportIP(net.ParseIP(tc.ip)); got != tc.blocked {
-			t.Errorf("blockedImportIP(%s) = %v, want %v", tc.ip, got, tc.blocked)
+		if got := blockedIP(net.ParseIP(tc.ip)); got != tc.blocked {
+			t.Errorf("blockedIP(%s) = %v, want %v", tc.ip, got, tc.blocked)
 		}
 	}
 }
@@ -53,9 +53,9 @@ func TestImportClient_RefusesLoopbackUnderGuard(t *testing.T) {
 		_ = resp.Body.Close()
 		t.Fatal("request to 127.0.0.1 succeeded under a guard")
 	}
-	var blocked *ImportBlockedError
+	var blocked *PrivateNetworkError
 	if !errors.As(g.failure(), &blocked) || blocked.Host != "127.0.0.1" {
-		t.Errorf("failure() = %v, want ImportBlockedError for 127.0.0.1", g.failure())
+		t.Errorf("failure() = %v, want PrivateNetworkError for 127.0.0.1", g.failure())
 	}
 }
 
@@ -70,9 +70,9 @@ func TestImportClient_RefusesAHostnameThatResolvesToLoopback(t *testing.T) {
 		_ = resp.Body.Close()
 		t.Fatal("request to localhost succeeded under a guard")
 	}
-	var blocked *ImportBlockedError
-	if !errors.As(g.failure(), &blocked) || *blocked != (ImportBlockedError{Host: "localhost"}) {
-		t.Errorf("failure() = %v, want ImportBlockedError{Host: localhost}", g.failure())
+	var blocked *PrivateNetworkError
+	if !errors.As(g.failure(), &blocked) || *blocked != (PrivateNetworkError{Host: "localhost"}) {
+		t.Errorf("failure() = %v, want PrivateNetworkError{Host: localhost}", g.failure())
 	}
 }
 

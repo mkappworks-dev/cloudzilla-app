@@ -52,7 +52,7 @@ func newIssueHandler(db *sql.DB) *handler.Handler {
 		User:         userSvc,
 		Repo:         repoSvc,
 		Issue:        service.NewIssueService(stores.Issue, stores.Repo, store.NewPullStore(db), repoSvc),
-		Webhook:      service.NewWebhookService(stores.Webhook),
+		Webhook:      service.NewWebhookService(stores.Webhook, config.WebhookConfig{}),
 		Notification: service.NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc),
 		Event:        service.NewEventService(stores.Event, stores.User, stores.Repo),
 		SiteSetting:  service.NewSiteSettingService(stores.SiteSetting, stores.User),
