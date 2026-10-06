@@ -25,9 +25,11 @@ A file, symlink or submodule on one side where the other side has a directory at
 3. On button click → HTMX `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged` and `merge_strategy=ff|merge|squash`
 4. `UpdatePull` dispatches to `MergePullRequest`, `ThreeWayMergePullRequest`, or `SquashMergePullRequest`
 5. On success → `PullService.SetState(merged)` → fragment returned
-6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert. If a push moved the base branch mid-merge → 409 and the PR stays open (see below)
+6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert. If a push moved the base branch mid-merge, or the head branch since its statuses were checked → 409 and the PR stays open (see below)
 
 **Concurrent pushes:** every server-side commit (merges, applied suggestions, web file commits, wiki edits) advances its branch through `gitref.Move`, a compare-and-swap against the tip it read. If a push moved the branch in between, the update is refused with `ErrRefMoved`, handlers answer 409 ("branch was updated while saving; reload and try again"), and the pushed commits stay. An unconditional write would be a force push that skips the `block_force_push` check, which only runs in receive-pack.
+
+The head branch gets the same guard: `UpdatePull` and `tryAutoMerge` resolve head to a commit, check that commit's required statuses with `BranchProtection.CheckMerge`, and pass its hash to the merge method. If a push moved head since, the merge fails with `ErrRefMoved` (409 from `UpdatePull`; auto-merge leaves the PR open) instead of merging commits the required checks never saw.
 
 **Tree order:** those commits write their trees through `writeTree`, which sorts entries the way git does: a directory compares as its name plus `/`, so `docs.md` comes before `docs/`. go-git refuses to encode a tree in any other order ("entries in tree are not sorted").
 
@@ -37,9 +39,9 @@ A file, symlink or submodule on one side where the other side has a directory at
 - `PullDiffStats(owner, repo, base, head)` → `(DiffStats, error)` (`GetPullDiff`'s file and line totals without the hunks; feeds the Files badge on the other PR tabs)
 - `Mergeability(ctx, owner, repo, base, head)` → `(Mergeability, error)`
 - `PullCommits(owner, repo, base, head)` → `([]CommitSummary, error)` (the commits head has and base doesn't, newest first)
-- `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
-- `ThreeWayMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
-- `SquashMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
+- `MergePullRequest(owner, repo, base, head, headHash)` → `error` (fast-forward only)
+- `ThreeWayMergePullRequest(owner, repo, base, head, headHash, author GitAuthor)` → `error`
+- `SquashMergePullRequest(owner, repo, base, head, headHash, author GitAuthor)` → `error`
 - `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private; `isAncestor`, as `git merge-base --is-ancestor`)
 - `findMergeBase(repo, a, b)` → `(*object.Commit, error)` (private; best common ancestor, as `git merge-base`)
 - `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)

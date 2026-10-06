@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"testing"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -204,5 +206,128 @@ func TestWikiEdits_PushLandsMidCommit_Conflict(t *testing.T) {
 
 			assertPushKept(t, rr, `{"error":"`+branchMovedMsg+`"}`+"\n", wiki, "main", pushed)
 		})
+	}
+}
+
+// pushDuringStatusCheck lands a push on branch while BranchProtection.CheckMerge
+// reads the head commit's statuses: it locks commit_statuses, runs start, waits
+// for a query to block on the lock, moves branch to pushed, then lets it go.
+// db must be a fresh schema, so no other test's query can block on the lock.
+func pushDuringStatusCheck(t *testing.T, db *sql.DB, git *gogit.Repository, branch string, pushed plumbing.Hash, start func()) {
+	t.Helper()
+	ctx := context.Background()
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var pid int
+	if err := tx.QueryRowContext(ctx, `SELECT pg_backend_pid()`).Scan(&pid); err != nil {
+		t.Fatalf("backend pid: %v", err)
+	}
+	if _, err := tx.ExecContext(ctx, `LOCK TABLE commit_statuses IN ACCESS EXCLUSIVE MODE`); err != nil {
+		t.Fatalf("lock commit_statuses: %v", err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		start()
+	}()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		var blocked bool
+		err := db.QueryRowContext(ctx,
+			`SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid)))`, pid).Scan(&blocked)
+		if err != nil {
+			t.Fatalf("poll for blocked query: %v", err)
+		}
+		if blocked {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no query read commit_statuses within 10s")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	if err := git.Storer.SetReference(plumbing.NewHashReference(plumbing.NewBranchReferenceName(branch), pushed)); err != nil {
+		t.Fatalf("push %s: %v", branch, err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("unlock commit_statuses: %v", err)
+	}
+	<-done
+}
+
+// seedCheckedRaceRepo is seedRaceRepo with main requiring the ci check, which
+// passed on feature's tip but not on the commit a test pushes onto it.
+func seedCheckedRaceRepo(t *testing.T, db *sql.DB, reposRoot string) raceRepo {
+	t.Helper()
+	r := seedRaceRepo(t, db, reposRoot)
+	requireCIOnMain(t, db, r.id)
+	testutil.Exec(t, db, `INSERT INTO commit_statuses (repo_id, sha, context, state, creator_id) VALUES ($1, $2, 'ci', 'success', $3)`,
+		r.id, r.featureTip.String(), r.owner.id)
+	return r
+}
+
+func TestMergePull_PushToHeadLandsAfterStatusCheck_ConflictAndStaysOpen(t *testing.T) {
+	for _, strategy := range []string{"merge", "squash"} {
+		t.Run(strategy, func(t *testing.T) {
+			db := testutil.OpenFreshTestDB(t)
+			reposRoot := t.TempDir()
+			api := newAPIRouterAt(t, db, reposRoot)
+			r := seedCheckedRaceRepo(t, db, reposRoot)
+			pullID := seedOpenPull(t, db, r.seededRepo)
+
+			var rr *httptest.ResponseRecorder
+			pushDuringStatusCheck(t, db, r.git, "feature", r.featurePushed, func() {
+				rr = requestAPIBody(api, http.MethodPatch, "/api/repos"+r.path+"/pulls/1", r.owner.token,
+					`{"state":"merged","merge_strategy":"`+strategy+`"}`)
+			})
+
+			assertPushKept(t, rr, `{"error":"`+branchMovedMsg+`"}`+"\n", r.git, "feature", r.featurePushed)
+			if got := branchHash(t, r.git, "main"); got != r.mainTip {
+				t.Errorf("main = %s, want it left at %s", got, r.mainTip)
+			}
+			if got := pullState(t, db, pullID); got != "open" {
+				t.Errorf("pull state = %q, want open", got)
+			}
+		})
+	}
+}
+
+func TestAutoMerge_PushToHeadLandsAfterStatusCheck_StaysOpen(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	r := seedCheckedRaceRepo(t, db, reposRoot)
+	pullID := seedOpenPull(t, db, r.seededRepo)
+	author := seedSignedInUser(t, db)
+	testutil.Exec(t, db, `UPDATE pull_requests SET author_id = $1 WHERE id = $2`, author.id, pullID)
+	rr := requestAPIBody(api, http.MethodPatch, "/api/repos"+r.path+"/pulls/1", r.owner.token,
+		`{"auto_merge":"enable","auto_merge_strategy":"squash"}`)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("enable auto-merge: want 200, got %d %s", rr.Code, rr.Body.String())
+	}
+
+	// An approval starts tryAutoMerge in a goroutine after the response.
+	pushDuringStatusCheck(t, db, r.git, "feature", r.featurePushed, func() {
+		rr = requestAPIBody(api, http.MethodPost, "/api/repos"+r.path+"/pulls/1/reviews", r.owner.token,
+			`{"state":"approved"}`)
+	})
+	if rr.Code != http.StatusCreated && rr.Code != http.StatusOK {
+		t.Fatalf("approve: got %d %s", rr.Code, rr.Body.String())
+	}
+
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if got := pullState(t, db, pullID); got != "open" {
+			t.Fatalf("pull state = %q after a push the check never saw, want open", got)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if got := branchHash(t, r.git, "main"); got != r.mainTip {
+		t.Errorf("main = %s, want it left at %s", got, r.mainTip)
 	}
 }

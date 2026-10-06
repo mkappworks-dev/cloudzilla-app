@@ -47,13 +47,13 @@ func TestPullReads_WriteNoObjects(t *testing.T) {
 
 var pullMerges = []struct {
 	name  string
-	merge func(r *tipTestRepo) error
+	merge func(t *testing.T, r *tipTestRepo) error
 }{
-	{"three-way", func(r *tipTestRepo) error {
-		return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", tipTestAuthor)
+	{"three-way", func(t *testing.T, r *tipTestRepo) error {
+		return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", branchTip(t, r.repo, "feature"), tipTestAuthor)
 	}},
-	{"squash", func(r *tipTestRepo) error {
-		return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", tipTestAuthor)
+	{"squash", func(t *testing.T, r *tipTestRepo) error {
+		return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", branchTip(t, r.repo, "feature"), tipTestAuthor)
 	}},
 }
 
@@ -61,7 +61,7 @@ func TestPullMerges_CombineBothSides(t *testing.T) {
 	for _, tt := range pullMerges {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newTipTestRepo(t)
-			if err := tt.merge(r); err != nil {
+			if err := tt.merge(t, r); err != nil {
 				t.Fatalf("merge: %v", err)
 			}
 			merged, err := r.repo.CommitObject(branchTip(t, r.repo, "main"))
@@ -102,7 +102,7 @@ func TestPullMerges_KeepSymlinksAndSubmodules(t *testing.T) {
 			r.commitEntry(t, "feature", "deps/feature-lib", filemode.Submodule, featureLib)
 			link := r.blob(t, "a.txt")
 			r.commitEntry(t, "feature", "link", filemode.Symlink, link)
-			if err := tt.merge(r); err != nil {
+			if err := tt.merge(t, r); err != nil {
 				t.Fatalf("merge: %v", err)
 			}
 			r.expectEntries(t, "main", map[string]mergeFile{
@@ -120,7 +120,7 @@ func TestPullMerges_KeepModeChanges(t *testing.T) {
 			r := newTipTestRepo(t)
 			a := r.blob(t, "a\n")
 			r.commitEntry(t, "feature", "a.txt", filemode.Executable, a)
-			if err := tt.merge(r); err != nil {
+			if err := tt.merge(t, r); err != nil {
 				t.Fatalf("merge: %v", err)
 			}
 			r.expectEntries(t, "main", map[string]mergeFile{"a.txt": {hash: a, mode: filemode.Executable}})
@@ -170,7 +170,7 @@ func TestPullMerges_RefuseConflictingEdits(t *testing.T) {
 				if m, err := r.svc.Mergeability(context.Background(), r.owner, r.name, "main", "feature"); err != nil || !m.HasConflicts {
 					t.Errorf("Mergeability = %+v, %v; want conflicts", m, err)
 				}
-				if err := tt.merge(r); err == nil || !strings.Contains(err.Error(), "conflicting changes") {
+				if err := tt.merge(t, r); err == nil || !strings.Contains(err.Error(), "conflicting changes") {
 					t.Errorf("err = %v, want a conflict error", err)
 				}
 				if got := branchTip(t, r.repo, "main"); got != tip {

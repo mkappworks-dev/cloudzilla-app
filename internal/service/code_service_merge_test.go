@@ -136,7 +136,7 @@ func newDivergedPull(t *testing.T) *pullRepo {
 func (r *pullRepo) mergeMainIntoFeature(t *testing.T) plumbing.Hash {
 	t.Helper()
 	merged := branchTip(t, r.repo, "main")
-	if err := r.svc.ThreeWayMergePullRequest("alice", "pulls", "feature", "main", tipTestAuthor); err != nil {
+	if err := r.svc.ThreeWayMergePullRequest("alice", "pulls", "feature", "main", merged, tipTestAuthor); err != nil {
 		t.Fatalf("merge main into feature: %v", err)
 	}
 	return merged

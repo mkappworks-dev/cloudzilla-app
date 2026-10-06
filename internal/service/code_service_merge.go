@@ -176,8 +176,21 @@ func (s *CodeService) PullDiffStats(owner, repoName, base, head string) (DiffSta
 	return st, nil
 }
 
-// MergePullRequest performs a fast-forward merge of head into base.
-func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error {
+// resolveHead resolves the head branch and fails with ErrRefMoved unless it is
+// still at want, the commit the merge was checked against.
+func resolveHead(repo *gogit.Repository, head string, want plumbing.Hash) (*object.Commit, error) {
+	headCommit, _, err := resolveRef(repo, head)
+	if err != nil {
+		return nil, err
+	}
+	if headCommit.Hash != want {
+		return nil, ErrRefMoved
+	}
+	return headCommit, nil
+}
+
+// MergePullRequest performs a fast-forward merge of head, at headHash, into base.
+func (s *CodeService) MergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash) error {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
@@ -186,7 +199,7 @@ func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error
 	if err != nil {
 		return err
 	}
-	headCommit, _, err := resolveRef(repo, head)
+	headCommit, err := resolveHead(repo, head, headHash)
 	if err != nil {
 		return err
 	}
@@ -377,8 +390,8 @@ func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.
 	return hash, err == nil, err
 }
 
-// ThreeWayMergePullRequest creates a merge commit combining head into base.
-func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, author GitAuthor) error {
+// ThreeWayMergePullRequest creates a merge commit combining head, at headHash, into base.
+func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor) error {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
@@ -387,7 +400,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 	if err != nil {
 		return err
 	}
-	headCommit, _, err := resolveRef(repo, head)
+	headCommit, err := resolveHead(repo, head, headHash)
 	if err != nil {
 		return err
 	}
@@ -429,8 +442,9 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, h)
 }
 
-// SquashMergePullRequest creates a single squash commit on base incorporating all head changes.
-func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, author GitAuthor) error {
+// SquashMergePullRequest creates a single squash commit on base incorporating all
+// head changes, up to headHash.
+func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor) error {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
@@ -439,7 +453,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 	if err != nil {
 		return err
 	}
-	headCommit, _, err := resolveRef(repo, head)
+	headCommit, err := resolveHead(repo, head, headHash)
 	if err != nil {
 		return err
 	}
