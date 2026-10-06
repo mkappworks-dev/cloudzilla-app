@@ -33,8 +33,12 @@ func (s *DeployKeyService) Add(ctx context.Context, repoID int64, title, rawPubl
 	fingerprint := computeFingerprint(pubKey)
 
 	// Cross-table uniqueness: reject if already registered as a user SSH key
-	if _, err := s.sshKeys.GetByFingerprint(ctx, fingerprint); err == nil {
+	_, err = s.sshKeys.GetByFingerprint(ctx, fingerprint)
+	if err == nil {
 		return nil, errors.New("this key is already registered as a user SSH key")
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
 	}
 
 	k := &model.DeployKey{
