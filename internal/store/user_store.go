@@ -689,6 +689,10 @@ func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, live
 		return fmt.Errorf("user delete begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	// Before the user's own row lock, so every path takes the superadmin locks first.
+	if err := keepActiveSuperadmin(ctx, tx, userID); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `SELECT 1 FROM users WHERE id=$1 FOR UPDATE`, userID); err != nil {
 		return fmt.Errorf("user delete lock: %w", err)
 	}

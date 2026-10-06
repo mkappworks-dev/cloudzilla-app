@@ -32,6 +32,7 @@ var (
 	ErrInvalidEmail         = errors.New("email must be a valid address")
 	ErrSoleOrgOwner         = errors.New("you are the only owner of an organization")
 	ErrAccountSuspended     = model.ErrAccountSuspended
+	ErrLastSuperadmin       = store.ErrLastSuperadmin
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
@@ -356,12 +357,17 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, ema
 }
 
 // Related rows go via DB cascades; repo directories via DeleteWithOwner.
-// The sole-owner check runs before any dir moves, and again under lock.
+// The sole-owner and last-superadmin checks run before any dir moves, and again under lock.
 func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 	if sole, err := s.store.IsSoleOrgOwner(ctx, userID); err != nil {
 		return err
 	} else if sole {
 		return ErrSoleOrgOwner
+	}
+	if last, err := s.store.IsLastActiveSuperadmin(ctx, userID); err != nil {
+		return err
+	} else if last {
+		return ErrLastSuperadmin
 	}
 	return s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
 		err := s.store.DeleteWithOwnedRepos(ctx, userID, livePersonalIDs)

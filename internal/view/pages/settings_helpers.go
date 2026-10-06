@@ -31,6 +31,8 @@ func SettingsErrorMessage(code string) string {
 		return "Couldn't delete your account. Please try again."
 	case "sole_org_owner":
 		return "You are the only owner of an organization. Add another owner or delete the organization first. Account was not deleted."
+	case "last_superadmin":
+		return "You are the only active superadmin. Promote another account first. Account was not deleted."
 	case "totp_setup_failed":
 		return "Couldn't start two-factor setup. Please try again."
 	case "totp_missing_fields":
