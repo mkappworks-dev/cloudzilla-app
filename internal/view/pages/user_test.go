@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -120,5 +121,26 @@ func TestUser_RowCardsUseTailwindUtilities(t *testing.T) {
 		if slices.Contains(classes, "row-card") {
 			t.Errorf("%s tab: row anchor still uses the removed row-card class", tc.tab)
 		}
+	}
+}
+
+func TestUser_SuspendedBadgeOnlyForSuperadmins(t *testing.T) {
+	now := time.Now()
+	for _, tc := range []struct {
+		name   string
+		viewer *middleware.Claims
+		want   bool
+	}{
+		{"anonymous", nil, false},
+		{"user", &middleware.Claims{UserID: 7, Username: "bob"}, false},
+		{"superadmin", &middleware.Claims{UserID: 8, Username: "root", IsSuperadmin: true}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := view.UserData{User: model.User{ID: 42, Username: "alice", SuspendedAt: &now}, Tab: "overview"}
+			data.CurrentUser = tc.viewer
+			if got := strings.Contains(renderUser(t, data), "/admin/users/alice"); got != tc.want {
+				t.Errorf("suspended badge shown = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }

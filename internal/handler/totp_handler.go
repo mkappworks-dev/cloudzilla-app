@@ -165,6 +165,20 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
 	})
+	// Minted before the link completes, so a suspended account changes nothing.
+	fullToken, err := h.Services.User.GenerateTokenForUser(r.Context(), userID)
+	if errors.Is(err, service.ErrAccountSuspended) {
+		h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{
+			BasePage: basePage(r, h.Services),
+			Error:    accountSuspendedMessage,
+			Next:     next,
+		}))
+		return
+	}
+	if err != nil {
+		http.Error(w, "failed to create session", http.StatusInternalServerError)
+		return
+	}
 	// The OAuth identity was the first factor only because it matched this
 	// account's address; if the link no longer holds, neither does the sign-in.
 	if link := h.Services.TOTP.PendingOAuthLink(mapClaims, userID); link != nil {
@@ -181,10 +195,5 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fullToken, err := h.Services.User.GenerateTokenForUser(r.Context(), userID)
-	if err != nil {
-		http.Error(w, "failed to create session", http.StatusInternalServerError)
-		return
-	}
 	h.startSession(w, r, u, fullToken, next)
 }

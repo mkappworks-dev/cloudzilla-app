@@ -137,6 +137,8 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 				msg += " Verifying the address there also lets Google sign you in directly."
 			}
 			loginError(http.StatusConflict, msg)
+		case service.ErrAccountSuspended:
+			loginError(http.StatusForbidden, accountSuspendedMessage)
 		case service.ErrOAuthAlreadyLinked:
 			loginError(http.StatusConflict, "The account with this email address is linked to a different Google account. Sign in with that Google account or with your password.")
 		default:

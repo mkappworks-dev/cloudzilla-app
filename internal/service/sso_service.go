@@ -904,6 +904,9 @@ func (s *SSOService) findOrProvisionUser(ctx context.Context, provider, ssoID, u
 
 // generateJWT produces a signed JWT for an authenticated user.
 func (s *SSOService) generateJWT(u *model.User) (string, error) {
+	if u.Suspended() {
+		return "", ErrAccountSuspended
+	}
 	claims := jwt.MapClaims{
 		"sv":            u.SessionVersion,
 		"sub":           u.ID,

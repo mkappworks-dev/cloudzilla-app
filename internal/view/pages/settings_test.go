@@ -269,6 +269,16 @@ func TestSettings_SoleOrgOwnerDeleteRefusalIsExplained(t *testing.T) {
 	}
 }
 
+func TestSettings_LastSuperadminDeleteRefusalIsExplained(t *testing.T) {
+	out := renderSettings(t, view.SettingsData{
+		User:         model.User{ID: 42, Username: "alice", Email: "alice@example.com"},
+		ProfileError: "last_superadmin",
+	})
+	if !strings.Contains(out, "You are the only active superadmin.") {
+		t.Error("last_superadmin renders without its message")
+	}
+}
+
 func TestSettings_PasswordChangeMatchesTheAccount(t *testing.T) {
 	user := model.User{ID: 42, Username: "alice", Email: "alice@example.com"}
 	for _, tt := range []struct {

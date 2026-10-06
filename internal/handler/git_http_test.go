@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -238,5 +239,26 @@ func TestGitInfoRefs_InvalidService_400(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("want 400 for invalid service, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+// A 401 would make git drop the stored credential; a 403 keeps it for after unsuspension.
+func TestGitInfoRefs_SuspendedUsersPAT_Forbidden(t *testing.T) {
+	h, db := newRealGitHandler(t)
+	sfx := testutil.UniqueSuffix(t)
+	userID, username := seedGitUser(t, db, "susp_"+sfx)
+	_, repoName := seedGitRepo(t, db, userID, username, "susp_"+sfx, true)
+	raw, _, err := h.Services.AccessToken.Generate(context.Background(), userID, "git", []string{model.ScopeRepoRead}, nil)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	testutil.Exec(t, db, `UPDATE users SET suspended_at = NOW() WHERE id = $1`, userID)
+
+	req := httptest.NewRequest(http.MethodGet, "/"+username+"/"+repoName+"/info/refs?service=git-upload-pack", nil)
+	req.SetBasicAuth(username, raw)
+	rr := httptest.NewRecorder()
+	gitInfoRefsRouter(h).ServeHTTP(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("want 403, got %d: %s", rr.Code, rr.Body.String())
 	}
 }

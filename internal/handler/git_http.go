@@ -3,6 +3,7 @@ package handler
 import (
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -49,6 +50,9 @@ func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 		return nil, nil
 	}
 	token, user, err := middleware.ValidatePAT(r, h.Services.AccessToken, password)
+	if errors.Is(err, service.ErrAccountSuspended) {
+		return nil, err
+	}
 	if err != nil {
 		return nil, nil
 	}
