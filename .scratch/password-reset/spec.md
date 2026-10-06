@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 
 ## Problem
 
@@ -31,7 +31,7 @@ Most of what a reset needs already exists:
    - **No account:** sends nothing.
    - **Account with a password:** issues a link and mails it.
    - **Account without a password:** mails a note saying how the account signs in (see [Accounts without a password](#accounts-without-a-password)).
-3. `GET /auth/password/reset/{token}` checks the link without spending it. It shows a form naming the account (`@username`, email), with new password and confirmation fields. When 2FA is on, the form also has a code field (Open question 2).
+3. `GET /auth/password/reset/{token}` checks the link without spending it. It shows a form naming the account (`@username`, email), with new password and confirmation fields. When 2FA is on, the form also has a TOTP or backup code field.
 4. `POST /auth/password/reset/{token}` checks things in this order:
    1. Password length (8 characters to 72 bytes, `MinPasswordLen`/`MaxPasswordBytes`) and that the confirmation matches. A typo spends nothing.
    2. The TOTP code, if one is required.
@@ -80,27 +80,27 @@ Per-account cooldown: at most **one email per 5 minutes**. It is enforced in the
 
 ### Sessions and other credentials
 
-The spend bumps `session_version`, so every session ends, including any an attacker held. What happens to personal access tokens, OAuth app grants and SSH keys is Open question 1.
+The spend bumps `session_version`, so every session ends, including any an attacker held. Personal access tokens, OAuth app grants and SSH keys keep working (question 1).
 
 ### Two-factor authentication
 
-A reset replaces only the password. TOTP stays on, and the next sign-in still asks for a code. Whether the reset form itself asks for one is Open question 2.
+A reset replaces only the password. TOTP stays on, and the next sign-in still asks for a code. The reset form also asks for one (question 2).
 
 ### Accounts without a password
 
-Google-, LDAP- and SAML-created accounts store `password_hash = ''`. LDAP accounts usually carry a made-up `<username>@ldap.local` address (`sso_service.go`), so mail to them goes nowhere. Whether a reset may add a password to them is Open question 3. The recommendation is no, and the note they get names how the account signs in: Google, or single sign-on.
+Google-, LDAP- and SAML-created accounts store `password_hash = ''`. LDAP accounts usually carry a made-up `<username>@ldap.local` address (`sso_service.go`), so mail to them goes nowhere. A reset never adds a password to them (question 3). The note they get names how the account signs in: Google, or single sign-on.
 
 ### Without SMTP
 
 - `/login` shows no **Forgot password?** link.
 - `GET`/`POST /auth/password/forgot` render "This instance can't send email. Ask an administrator for a reset link." and send nothing.
-- The admin fallback is Open question 4.
+- The admin fallback is `cloudzilla-cli password-reset-link <username>` (question 4).
 
 ### Notices
 
 - **Link email:** subject "Reset your Cloudzilla password". It names `@username`, says the link works once and expires in 1 hour, and ends: "If you didn't ask for this, ignore this email. Your password hasn't changed."
 - **Passwordless note:** "Your Cloudzilla account @alice signs in with Google, so it has no password to reset."
-- **After a reset:** a "Your Cloudzilla password was reset" variant of `passwordChangedNotice`, sent through `notifySecurityChange`. It says every session was signed out, and what wasn't revoked (depends on Open question 1).
+- **After a reset:** a "Your Cloudzilla password was reset" variant of `passwordChangedNotice`, sent through `notifySecurityChange`. It says every session was signed out, and that tokens, SSH keys and authorized apps still work, with a link to their settings.
 
 ### Audit log
 
@@ -115,7 +115,7 @@ Google-, LDAP- and SAML-created accounts store `password_hash = ''`. LDAP accoun
 
 ### Unverified addresses
 
-Every account created before migration 091 starts unverified, and so does every account from the classic no-SMTP `/register`. Refusing resets to unverified addresses would therefore strand most users of an upgraded instance: they can't sign in to verify. Whether to allow them, and whether a completed reset marks the address verified, is Open question 5.
+Every account created before migration 091 starts unverified, and so does every account from the classic no-SMTP `/register`. Refusing resets to unverified addresses would therefore strand most users of an upgraded instance: they can't sign in to verify. So the link goes to unverified addresses too, and a completed reset sets `email_verified_at` (in the same transaction as the new hash), since only the mailbox's owner could have opened it.
 
 ### Unchanged
 
@@ -126,7 +126,7 @@ Every account created before migration 091 starts unverified, and so does every 
 
 ## Acceptance criteria
 
-Items marked (Qn) follow that open question's recommended answer and change if the answer does.
+Items marked (Qn) follow the answer to that open question (see Comments).
 
 - [ ] With SMTP on, `/login` links to `/auth/password/forgot`. With SMTP off, it doesn't, and the forgot page says to ask an administrator.
 - [ ] The forgot form returns the same page, status and timing for a registered address, an unregistered one and a passwordless one. Only a malformed address gets a different response (the form error).
@@ -186,4 +186,4 @@ Claude, 2026-10-06: The user chose the recommended option for questions 1–4:
 3. Accounts without a password get a "signs in with …" note and never a link. `IssueLink` refuses them.
 4. The admin fallback is a CLI subcommand, `cloudzilla-cli password-reset-link <username>`, which prints a 24-hour link. The admin UI button is left to the admin-user-management work, which can call `IssueLink`. A user who lost their authenticator is out of scope.
 
-Question 5 (unverified addresses) is still open.
+Claude, 2026-10-06: The user chose the recommended option for question 5: unverified addresses get the link, and a completed reset sets `email_verified_at`. An address that is already verified keeps its original timestamp.
