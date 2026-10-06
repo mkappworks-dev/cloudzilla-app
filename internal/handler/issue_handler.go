@@ -148,7 +148,7 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := h.Services.Issue.SetState(r.Context(), owner, repoName, number, model.IssueState(state))
+	issue, err := h.Services.Issue.SetState(r.Context(), owner, repoName, number, model.IssueState(state), claims.UserID, claims.Username)
 	if err != nil {
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")

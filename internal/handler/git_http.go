@@ -31,6 +31,7 @@ func validGitName(name string) bool {
 type gitUser struct {
 	ID       int64
 	Username string
+	Targets  []string // the repos and orgs the user's token is limited to, if any
 }
 
 // resolveGitUser returns the authenticated user for git operations, or nil for an
@@ -41,7 +42,7 @@ type gitUser struct {
 // it with 403, not 401, because on a 401 git's credential helper erases the token.
 func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		return &gitUser{ID: claims.UserID, Username: claims.Username}, nil
+		return &gitUser{ID: claims.UserID, Username: claims.Username, Targets: claims.Targets}, nil
 	}
 	_, password, ok := r.BasicAuth()
 	if !ok || !strings.HasPrefix(password, "czp_") {
@@ -65,7 +66,7 @@ func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 	if !middleware.ScopeAllows(middleware.PATClaims(token, user), r) {
 		return nil, fmt.Errorf("personal access token lacks the %s scope", middleware.RequiredScope(r))
 	}
-	return &gitUser{ID: user.ID, Username: user.Username}, nil
+	return &gitUser{ID: user.ID, Username: user.Username, Targets: token.Targets}, nil
 }
 
 func gitAuthChallenge(w http.ResponseWriter) {
@@ -396,6 +397,15 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 			for _, ps := range h.Services.Repo.PushSummaries(gitRepo, commands) {
 				h.Services.Event.RecordPush(context.Background(), pusherID, pusherName, &repoID, repoName, owner, ps)
 			}
+		})
+	}
+
+	if pusherName != "" {
+		actor := service.CloseActor{UserID: gu.ID, Username: gu.Username, Targets: gu.Targets}
+		concurrency.Go("issue_closer.close_for_push", func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			h.Services.IssueCloser.CloseForPush(ctx, actor, repo, gitRepo, commands)
 		})
 	}
 
