@@ -112,16 +112,17 @@ func (h *Handler) renderLinkedIssuesFragment(w http.ResponseWriter, r *http.Requ
 		Owner:      owner,
 		RepoName:   repoName,
 		PullNumber: pullNumber,
-		Linked:     linkedIssuesToView(linked),
-		AllIssues:  linkedIssuesToView(all),
+		Linked:     linkedIssuesToView(owner, repoName, linked),
+		AllIssues:  linkedIssuesToView(owner, repoName, all),
 		CanWrite:   canWrite,
 	}))
 }
 
-func linkedIssuesToView(issues []model.Issue) []view.LinkedIssue {
+func linkedIssuesToView(owner, repoName string, issues []model.Issue) []view.LinkedIssue {
 	out := make([]view.LinkedIssue, 0, len(issues))
 	for _, i := range issues {
-		out = append(out, view.LinkedIssue{Number: i.Number, Title: i.Title, State: string(i.State)})
+		out = append(out, view.LinkedIssue{Number: i.Number, Title: i.Title, State: string(i.State),
+			OtherRepo: view.OtherRepo(owner, repoName, i.RepoOwner, i.RepoName)})
 	}
 	return out
 }
