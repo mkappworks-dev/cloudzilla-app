@@ -280,6 +280,14 @@ func (s *RepoStore) GetPermission(ctx context.Context, repoID, userID int64) (st
 	return role, nil
 }
 
+func (s *RepoStore) SetDefaultBranch(ctx context.Context, repoID int64, branch string) error {
+	if _, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET default_branch = $1, updated_at = $2 WHERE id = $3`, branch, time.Now().UTC(), repoID); err != nil {
+		return fmt.Errorf("repo set default branch: %w", err)
+	}
+	return nil
+}
+
 func (s *RepoStore) UpdateGeneral(ctx context.Context, repoID int64, description, website, defaultBranch string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET description = $1, website = $2, default_branch = $3, updated_at = $4 WHERE id = $5`,

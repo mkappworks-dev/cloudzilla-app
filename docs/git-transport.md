@@ -89,6 +89,8 @@ To work around this without giving up the "no git binary required" invariant, bo
 
 **Size limit:** the post-decompression pack size is capped by `git.max_pack_bytes` (default 2 GiB; `0` disables). Enforcing it after gzip inflation bounds both an oversized pack and a decompression bomb. An over-limit push is rejected — HTTP `413`, SSH error — rather than parsed in full.
 
+**Fetches** (pull mirrors) don't need the wrapper. go-git's client strips `thin-pack` from what it asks for, so the packs it fetches are self-contained and keep the fast path. `TestMirrorSync_GoGitNeverRequestsThinPacks` fails if that changes.
+
 **See also:** [`docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md`](./superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md).
 
 ---

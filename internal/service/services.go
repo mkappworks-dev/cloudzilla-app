@@ -59,6 +59,7 @@ type Services struct {
 	Language         *LanguageService
 	Import           *ImportService
 	Health           *HealthService
+	Mirror           *MirrorService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
 }
@@ -71,6 +72,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	}
 	code := NewCodeService(cfg.Git)
 	index := NewIndexService(stores.CodeSearch, code)
+	webhookSvc := NewWebhookService(stores.Webhook, cfg.Webhook)
+	depSvc := NewDependencyService(stores.Dependency, code)
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
@@ -103,7 +106,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
 		Org:              orgSvc,
-		Webhook:          NewWebhookService(stores.Webhook, cfg.Webhook),
+		Webhook:          webhookSvc,
 		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,
 		Invitation:       NewInvitationService(stores.Invitation),
@@ -139,13 +142,14 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Topic:            NewTopicService(stores.Topic),
 		Index:            index,
 		Explore:          NewExploreService(stores.Explore),
-		Dependency:       NewDependencyService(stores.Dependency, code),
+		Dependency:       depSvc,
 		CommitStats:      commitStatsSvc,
 		ContributorStats: contributorStatsSvc,
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
 		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
+		Mirror:           NewMirrorService(stores.Mirror, stores.Repo, repoSvc, webhookSvc, index, depSvc, secrets, cfg.Git, cfg.Mirror),
 		Secrets:          secrets,
 	}
 }

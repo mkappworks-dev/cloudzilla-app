@@ -32,7 +32,7 @@ The code is in `internal/service/import_service.go`, `import_clone.go`, `import_
   - Response bodies are capped: the pack at `git.max_pack_bytes`, the ref advertisement at 64 MiB, and error bodies at 64 KiB.
   - The guard only applies to calls that pass the context: `ListContext`, `FetchContext` and `PushContext`.
 - go-git's SSH transport bypasses that client entirely. It dials with `context.Background()`, honours `ALL_PROXY`, reads the server user's `~/.ssh/config` and `known_hosts`, and falls back to the SSH agent.
-- When the server advertises `thin-pack`, go-git's fetch requests it (`packp/ulreq.go:90`), and it ingests the pack with `packfile.UpdateObjectStorage`. That is the fast path that can't resolve deltas against objects already on disk (see [git-transport: Thin packs](../../docs/git-transport.md#thin-packs)). An import fetches into an empty repo, so it never hits this. An incremental fetch would.
+- go-git's client never asks for `thin-pack`: `transport.FilterUnsupportedCapabilities` strips it from every advertisement before `packp/ulreq.go:90` could request it. Every fetched pack is self-contained, so a fetch can keep the storer's `PackfileWriter` fast path, which a push can't (see [git-transport: Thin packs](../../docs/git-transport.md#thin-packs)).
 
 ### Background work
 
@@ -132,7 +132,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 - **Syncing:** the sync fetches into the live repo:
   - It uses the import's refspecs (`+refs/heads/*:refs/heads/*`, `+refs/tags/*:refs/tags/*`, both forced) with `Prune: true`.
   - It calls `FetchContext` with a guard in the context.
-  - It opens the repo through `gittransport.WrapForReceive`, so a thin pack's deltas against objects already on disk resolve.
+  - It keeps the storer's packfile fast path: go-git never requests thin packs, and a test fails if that changes.
   - It snapshots the refs before and after, and diffs them into `[]*packp.Command` for the post-push steps.
   - When upstream's HEAD target changes, the repo's HEAD and `default_branch` follow it.
 - **Read-only:**
@@ -187,7 +187,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 ## Acceptance criteria
 
 - [ ] An import with "Keep this repository in sync" checked creates a pull mirror. Changes upstream reach it on the next sync: new commits, force pushes, new and deleted branches and tags, and a changed default branch. `refs/pull/*` is never copied.
-- [ ] An incremental sync from a server that sends thin packs succeeds.
+- [ ] An incremental sync succeeds, and a test fails if go-git starts requesting thin packs.
 - [ ] Creating a pull request whose base repo is a pull mirror is refused.
 - [ ] A pull mirror refuses HTTP and SSH pushes, and refuses web and API writes on every path in Read-only enforcement. Archived repos are refused on the same paths.
 - [ ] The UI hides write controls on a pull mirror and shows the source, the last sync time, the last error and "Sync now".

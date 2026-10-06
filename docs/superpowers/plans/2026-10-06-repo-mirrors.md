@@ -60,6 +60,10 @@
 - [x] The `mirror.*` config with defaults and validation.
 - [x] Commit `feat(mirror): add repo_mirrors schema, store and config`.
 
-## Tickets 04–09
+## Ticket 04: sync (done)
+
+- [x] `MirrorService.Sync`: guarded fetch with prune, HEAD follow, ref diff and machine side effects, tested against `testutil.ServeGitHTTP`. go-git never requests thin packs, so no storer wrapper is needed (a guard test pins that).
+
+## Tickets 05–09
 
 These follow the ticket files. Expand this plan before starting each one.
