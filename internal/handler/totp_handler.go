@@ -48,24 +48,29 @@ func (h *Handler) EnableTOTP(w http.ResponseWriter, r *http.Request) {
 	secret := r.FormValue("secret")
 	code := r.FormValue("code")
 	if secret == "" || code == "" {
-		http.Redirect(w, r, "/settings?profile_error=totp_missing_fields#security", http.StatusSeeOther)
+		refuseSettingsForm(w, r, totpEnableFormError, "security", "totp_missing_fields")
 		return
 	}
 	// A code enrolled from a stolen session would lock the owner out at their next sign-in.
 	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, withSignInCode(r, service.Confirmation{Password: r.FormValue("password"), OneTimeCode: r.FormValue("email_code")})); err != nil {
-		redirectReauthRefusal(w, r, claims.UserID, err, "security")
+		redirectReauthRefusal(w, r, claims.UserID, err, totpEnableFormError, "security")
 		return
 	}
 
 	rawCodes, err := h.Services.TOTP.Enable(r.Context(), claims.UserID, secret, code)
 	if err != nil {
-		http.Redirect(w, r, "/settings?profile_error=totp_invalid_code#security", http.StatusSeeOther)
+		refuseSettingsForm(w, r, totpEnableFormError, "security", "totp_invalid_code")
 		return
 	}
 
 	h.setSettingsFlash(w, backupCodesCookieName, strings.Join(rawCodes, ","))
-	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
+	redirectAfterSave(w, r, "/settings#security")
 }
+
+const (
+	totpEnableFormError  = "#totp-enable-form-error"
+	totpDisableFormError = "#totp-disable-form-error"
+)
 
 // DisableTOTP handles POST /api/user/totp/disable (form: code).
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
@@ -77,19 +82,19 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 
 	code := r.FormValue("code")
 	if code == "" {
-		http.Redirect(w, r, "/settings?profile_error=totp_missing_code#security", http.StatusSeeOther)
+		refuseSettingsForm(w, r, totpDisableFormError, "security", "totp_missing_code")
 		return
 	}
 	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
-		redirectReauthRefusal(w, r, claims.UserID, err, "security")
+		redirectReauthRefusal(w, r, claims.UserID, err, totpDisableFormError, "security")
 		return
 	}
 
 	if err := h.Services.TOTP.Disable(r.Context(), claims.UserID, code); err != nil {
-		http.Redirect(w, r, "/settings?profile_error=totp_invalid_code#security", http.StatusSeeOther)
+		refuseSettingsForm(w, r, totpDisableFormError, "security", "totp_invalid_code")
 		return
 	}
-	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
+	redirectAfterSave(w, r, "/settings#security")
 }
 
 // PageTOTPVerify renders GET /auth/2fa — the 6-digit input page.

@@ -122,16 +122,17 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		settingsError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		settingsError(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
+	refuse := func(code string) { refuseSettingsForm(w, r, profileFormError, "profile", code) }
 	before, err := h.Services.User.GetByID(r.Context(), claims.UserID)
 	if err != nil {
-		http.Redirect(w, r, "/settings?profile_error=update_failed#profile", http.StatusSeeOther)
+		refuse("update_failed")
 		return
 	}
 	email := strings.TrimSpace(r.FormValue("email"))
@@ -146,17 +147,17 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		confirmationFrom(r),
 	)
 	if _, code, refused := reauthRefusal(claims.UserID, err); refused {
-		http.Redirect(w, r, "/settings?profile_error="+code+"#profile", http.StatusSeeOther)
+		refuse(code)
 		return
 	}
 	if err != nil {
 		switch err {
 		case service.ErrInvalidEmail:
-			http.Redirect(w, r, "/settings?profile_error=invalid_email#profile", http.StatusSeeOther)
+			refuse("invalid_email")
 		case service.ErrEmailTaken:
-			http.Redirect(w, r, "/settings?profile_error=email_taken#profile", http.StatusSeeOther)
+			refuse("email_taken")
 		default:
-			http.Redirect(w, r, "/settings?profile_error=update_failed#profile", http.StatusSeeOther)
+			refuse("update_failed")
 		}
 		return
 	}
@@ -164,8 +165,10 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionEmailChange, model.AuditTargetUser, claims.UserID, claims.Username,
 			map[string]any{"from": before.Email, "to": email})
 	}
-	http.Redirect(w, r, "/settings?profile_saved=1#profile", http.StatusSeeOther)
+	redirectAfterSave(w, r, "/settings?profile_saved=1#profile")
 }
+
+const profileFormError = "#profile-form-error"
 
 // ChangePassword handles POST /settings/password. The change ends every
 // session, so this browser gets a new one.
@@ -226,7 +229,7 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
-		redirectReauthRefusal(w, r, claims.UserID, err, "delete")
+		redirectReauthRefusal(w, r, claims.UserID, err, "", "delete")
 		return
 	}
 	if err := h.Services.User.DeleteUser(r.Context(), claims.UserID); err != nil {

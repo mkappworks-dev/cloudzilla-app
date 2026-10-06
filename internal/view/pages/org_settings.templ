@@ -57,7 +57,8 @@ templ OrgSettings(data view.OrgSettingsData) {
 						<h2 class="text-base font-semibold tracking-tight mb-1">General</h2>
 						<p class="text-[12.5px] text-muted-foreground mb-6">How { data.Org.Name } appears across Cloudzilla.</p>
 
-						<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/profile") } class="space-y-5" data-toast="Organization saved">
+						<form hx-post={ "/api/orgs/" + data.Org.Name + "/profile" } hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#org-profile-form-error').textContent=''" class="space-y-5" data-toast="Organization saved">
+							<div id="org-profile-form-error" class="empty:hidden"></div>
 							<div class="flex items-start gap-4">
 								@components.Avatar(data.Org.Name, components.AvatarSizeLG, data.Org.Name)
 								<div class="space-y-2">
@@ -252,7 +253,8 @@ templ OrgSettings(data view.OrgSettingsData) {
 						<h2 class="text-base font-semibold tracking-tight mb-1">Repository defaults</h2>
 						<p class="text-[12.5px] text-muted-foreground mb-6">Applied to new repositories created under { data.Org.Name }.</p>
 
-						<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/repo-defaults") } class="space-y-5" data-toast="Repository defaults saved">
+						<form hx-post={ "/api/orgs/" + data.Org.Name + "/repo-defaults" } hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#org-repo-defaults-form-error').textContent=''" class="space-y-5" data-toast="Repository defaults saved">
+							<div id="org-repo-defaults-form-error" class="empty:hidden"></div>
 							<div>
 								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-default-visibility">Default visibility</label>
 								<select id="org-default-visibility" name="default_repo_visibility" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">

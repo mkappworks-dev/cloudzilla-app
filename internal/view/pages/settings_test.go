@@ -19,7 +19,7 @@ func TestSettings_ProfileFormDoesNotSubmitUsername(t *testing.T) {
 	}
 	out := sb.String()
 
-	start := strings.Index(out, `action="/settings/profile"`)
+	start := strings.Index(out, `hx-post="/settings/profile"`)
 	if start < 0 {
 		t.Fatal("settings page missing profile form")
 	}
@@ -192,7 +192,7 @@ func TestSettings_OAuthAppsSectionListsAppsWithoutSecrets(t *testing.T) {
 
 func TestSettings_TokenFormOffersEveryScopeAndRequiresOne(t *testing.T) {
 	out := renderSettings(t, view.SettingsData{User: model.User{ID: 42, Username: "alice"}})
-	start := strings.Index(out, `action="/api/user/tokens"`)
+	start := strings.Index(out, `hx-post="/api/user/tokens"`)
 	if start < 0 {
 		t.Fatal("settings page missing token form")
 	}

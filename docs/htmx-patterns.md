@@ -64,6 +64,8 @@ htmx 4 swaps 4xx and 5xx responses by default. `htmxConfig` in `layout.templ` tu
 
 A form in a modal dialog shows its error inline instead, where a toast would sit behind the backdrop, and so does a validation error on a page form, next to the fields (the repo settings General form). `renderFormError` answers 200 with `HX-Retarget` pointing at the form's error slot, so the form tells success from error by `ctx.hx.retarget`.
 
+A settings form that saves with `hx-post` answers through helpers in `internal/handler` that keep the old response for a non-HTMX request: `settingsError` answers HTMX with JSON, `redirectAfterSave` with `HX-Redirect` and a 204, and `refuseSettingsForm` puts a `SettingsErrorMessage` code in the form's error slot (or redirects to `/settings?profile_error=…`). A one-time secret the next page shows, such as a new token or backup codes, still reaches it: the flash cookie rides on the `HX-Redirect` response.
+
 ## hx-on Attributes
 
 htmx 4 event names use colons: `htmx:after:request`, `htmx:after:swap`, `htmx:response:error`. Bind them as `hx-on::after:request`, short for `hx-on:htmx:after:request`. htmx 4 ignores the 2.x spellings `hx-on--after-request` and `hx-on::after-request`, and with one colon, `hx-on:after:request` listens for a DOM event called `after:request`, which htmx never fires.

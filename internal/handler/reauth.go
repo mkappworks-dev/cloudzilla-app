@@ -116,13 +116,23 @@ func (h *Handler) confirmAction(w http.ResponseWriter, r *http.Request, userID i
 	return false
 }
 
-// redirectReauthRefusal sends a settings form whose confirmation failed back to
-// the section at anchor with the matching error.
-func redirectReauthRefusal(w http.ResponseWriter, r *http.Request, userID int64, err error, anchor string) {
+// redirectReauthRefusal answers a settings form whose confirmation failed, as
+// refuseSettingsForm does.
+func redirectReauthRefusal(w http.ResponseWriter, r *http.Request, userID int64, err error, slot, anchor string) {
 	_, code, refused := reauthRefusal(userID, err)
 	if !refused {
 		slog.Error("confirm sensitive action", "user_id", userID, "error", err)
 		code = "reauth_error"
+	}
+	refuseSettingsForm(w, r, slot, anchor, code)
+}
+
+// refuseSettingsForm shows the SettingsErrorMessage for code in an HTMX form's
+// error slot, or sends a plain form back to the settings section at anchor.
+func refuseSettingsForm(w http.ResponseWriter, r *http.Request, slot, anchor, code string) {
+	if slot != "" && r.Header.Get("HX-Request") == "true" {
+		renderFormError(w, slot, pages.SettingsErrorMessage(code))
+		return
 	}
 	http.Redirect(w, r, "/settings?profile_error="+code+"#"+anchor, http.StatusSeeOther)
 }

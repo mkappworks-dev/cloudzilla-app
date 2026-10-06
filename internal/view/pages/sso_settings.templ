@@ -43,8 +43,9 @@ templ SSOSettings(data view.SSOSettingsData) {
 					</div>
 				}
 				@components.CardContent() {
-					<form id="sso-ldap-form" method="POST" action="/admin/sso" data-toast="LDAP settings saved" data-confirm-identity="Save LDAP Settings" class="space-y-4">
+					<form id="sso-ldap-form" hx-post="/admin/sso" hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#sso-ldap-form-error').textContent=''" data-toast="LDAP settings saved" data-confirm-identity="Save LDAP Settings" class="space-y-4">
 						<input type="hidden" name="provider" value="ldap"/>
+						<div id="sso-ldap-form-error" class="empty:hidden"></div>
 						<div class="grid grid-cols-2 gap-4">
 							<div class="space-y-1.5">
 								<label for="ldap_host" class="block text-sm font-medium text-foreground">Host</label>
@@ -165,8 +166,9 @@ templ SSOSettings(data view.SSOSettingsData) {
 					</div>
 				}
 				@components.CardContent() {
-					<form id="sso-saml-form" method="POST" action="/admin/sso" data-toast="SAML settings saved" data-confirm-identity="Save SAML Settings" class="space-y-4">
+					<form id="sso-saml-form" hx-post="/admin/sso" hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#sso-saml-form-error').textContent=''" data-toast="SAML settings saved" data-confirm-identity="Save SAML Settings" class="space-y-4">
 						<input type="hidden" name="provider" value="saml"/>
+						<div id="sso-saml-form-error" class="empty:hidden"></div>
 						<div class="space-y-1.5">
 							<label for="saml_entity_id" class="block text-sm font-medium text-foreground">Entity ID</label>
 							if data.SAMLConfig != nil {

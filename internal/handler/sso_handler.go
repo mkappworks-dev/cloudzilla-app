@@ -68,7 +68,25 @@ func (h *Handler) renderSSOSettings(w http.ResponseWriter, r *http.Request, user
 func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok || !claims.IsSuperadmin {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		settingsError(w, r, http.StatusForbidden, "forbidden")
+		return
+	}
+	provider := r.FormValue("provider")
+	htmx := r.Header.Get("HX-Request") == "true"
+	refuse := func(msg string) {
+		if htmx {
+			renderFormError(w, "#sso-"+provider+"-form-error", msg)
+			return
+		}
+		h.renderSSOSettings(w, r, claims.UserID, msg, "")
+	}
+	name, known := ssoProviderNames[provider]
+	if !known {
+		if htmx {
+			writeError(w, http.StatusBadRequest, "Unknown provider: "+provider)
+			return
+		}
+		h.renderSSOSettings(w, r, claims.UserID, "Unknown provider: "+provider, "")
 		return
 	}
 	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
@@ -77,11 +95,10 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 			slog.Error("confirm sso change", "user_id", claims.UserID, "error", err)
 			code = "reauth_error"
 		}
-		h.renderSSOSettings(w, r, claims.UserID, pages.SettingsErrorMessage(code), "")
+		refuse(pages.SettingsErrorMessage(code))
 		return
 	}
 
-	provider := r.FormValue("provider")
 	var cfg map[string]string
 	switch provider {
 	case "ldap":
@@ -99,19 +116,24 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 			model.SAMLKeyACSURL:   r.FormValue("saml_acs_url"),
 			model.SAMLKeyCert:     r.FormValue("saml_idp_cert"),
 		}
-	default:
-		h.renderSSOSettings(w, r, claims.UserID, "Unknown provider: "+provider, "")
-		return
 	}
 
 	if err := h.Services.SSO.SaveSettings(r.Context(), provider, cfg); err != nil {
 		if errors.Is(err, service.ErrSSOIncomplete) {
-			name := ssoProviderNames[provider]
-			h.renderSSOSettings(w, r, claims.UserID, name+" sign-in needs that setting. Turn "+name+" off before clearing it.", "")
+			refuse(name + " sign-in needs that setting. Turn " + name + " off before clearing it.")
 			return
 		}
 		slog.Error("save sso config failed", "provider", provider, "error", err)
+		if htmx {
+			writeError(w, http.StatusInternalServerError, "Could not save the SSO configuration. Check the server logs.")
+			return
+		}
 		h.renderSSOSettings(w, r, claims.UserID, "Could not save the SSO configuration. Check the server logs.", "")
+		return
+	}
+	if htmx {
+		// The switch's "needs" hint and state come from the saved settings.
+		redirectAfterSave(w, r, "/admin/sso")
 		return
 	}
 	h.renderSSOSettings(w, r, claims.UserID, "", "SSO configuration saved.")
