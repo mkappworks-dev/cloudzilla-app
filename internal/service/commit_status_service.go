@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -58,6 +60,63 @@ func (s *CommitStatusService) GetCombined(ctx context.Context, owner, repoName, 
 		return "", nil, err
 	}
 	return combined, statuses, nil
+}
+
+// CommitChecks groups the statuses reported on one commit.
+type CommitChecks struct {
+	SHA string
+	// Subject is empty when SHA doesn't name a commit in the repository.
+	Subject   string
+	State     model.CommitStatusState
+	Passed    int
+	UpdatedAt time.Time
+	Statuses  []model.CommitStatus
+}
+
+// ListRecentCommits returns one page of the repo's commits with statuses, most recently updated first.
+func (s *CommitStatusService) ListRecentCommits(ctx context.Context, repoID int64, owner, repoName string, page, pageSize int) ([]CommitChecks, bool, error) {
+	if page < 1 {
+		page = 1
+	}
+	if page-1 > math.MaxInt32/pageSize {
+		return nil, false, nil
+	}
+	shas, err := s.statuses.ListRecentSHAs(ctx, repoID, pageSize+1, (page-1)*pageSize)
+	if err != nil {
+		return nil, false, err
+	}
+	hasMore := len(shas) > pageSize
+	if hasMore {
+		shas = shas[:pageSize]
+	}
+	statuses, err := s.statuses.ListBySHAs(ctx, repoID, shas)
+	if err != nil {
+		return nil, false, err
+	}
+	bySHA := make(map[string][]model.CommitStatus, len(shas))
+	for _, cs := range statuses {
+		bySHA[cs.SHA] = append(bySHA[cs.SHA], cs)
+	}
+	var subjects map[string]string
+	if s.code != nil {
+		subjects = s.code.CommitSubjects(owner, repoName, shas)
+	}
+
+	commits := make([]CommitChecks, 0, len(shas))
+	for _, sha := range shas {
+		c := CommitChecks{SHA: sha, Subject: subjects[sha], Statuses: bySHA[sha]}
+		c.State = store.CombineStates(c.Statuses)
+		for _, cs := range c.Statuses {
+			if cs.State == model.CommitStatusSuccess {
+				c.Passed++
+			}
+			if cs.UpdatedAt.After(c.UpdatedAt) {
+				c.UpdatedAt = cs.UpdatedAt
+			}
+		}
+		commits = append(commits, c)
+	}
+	return commits, hasMore, nil
 }
 
 // CIChecks holds the required and passing check counts for a PR.

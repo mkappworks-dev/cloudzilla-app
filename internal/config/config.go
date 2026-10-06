@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,14 +14,15 @@ const DevJWTSecret = "dev-only-do-not-use-in-production-override-via-CZ_AUTH_JWT
 
 // Config holds the full application configuration loaded from YAML and environment variables.
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Auth     AuthConfig     `mapstructure:"auth"`
-	Git      GitConfig      `mapstructure:"git"`
-	OAuth    OAuthConfig    `mapstructure:"oauth"`
-	SMTP     SMTPConfig     `mapstructure:"smtp"`
-	Import   ImportConfig   `mapstructure:"import"`
-	Storage  StorageConfig  `mapstructure:"storage"`
+	Server    ServerConfig    `mapstructure:"server"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Auth      AuthConfig      `mapstructure:"auth"`
+	Git       GitConfig       `mapstructure:"git"`
+	OAuth     OAuthConfig     `mapstructure:"oauth"`
+	SMTP      SMTPConfig      `mapstructure:"smtp"`
+	Import    ImportConfig    `mapstructure:"import"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	Storage   StorageConfig   `mapstructure:"storage"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -69,6 +71,41 @@ type ImportConfig struct {
 	// Off by default, so a user can't make the server probe its own network.
 	AllowLocalNetworks bool          `mapstructure:"allow_local_networks"`
 	Timeout            time.Duration `mapstructure:"timeout"`
+}
+
+// RateLimitConfig holds the per-subject request budgets of each resource, per Window.
+type RateLimitConfig struct {
+	Enabled bool          `mapstructure:"enabled"`
+	Window  time.Duration `mapstructure:"window"`
+	Core    RateBudget    `mapstructure:"core"`
+	Git     RateBudget    `mapstructure:"git"`
+	Archive RateBudget    `mapstructure:"archive"`
+	Search  RateBudget    `mapstructure:"search"`
+}
+
+// RateBudget is a resource's budget for signed-in and anonymous subjects. Zero is unlimited.
+type RateBudget struct {
+	Authenticated int `mapstructure:"authenticated"`
+	Anonymous     int `mapstructure:"anonymous"`
+}
+
+func (c RateLimitConfig) validate() error {
+	if !c.Enabled {
+		return nil
+	}
+	if c.Window <= 0 {
+		return fmt.Errorf("rate_limit.window must be positive, got %s", c.Window)
+	}
+	budgets := []struct {
+		name string
+		b    RateBudget
+	}{{"core", c.Core}, {"git", c.Git}, {"archive", c.Archive}, {"search", c.Search}}
+	for _, r := range budgets {
+		if r.b.Authenticated < 0 || r.b.Anonymous < 0 {
+			return fmt.Errorf("rate_limit.%s: budgets can't be negative (0 is unlimited)", r.name)
+		}
+	}
+	return nil
 }
 
 // StorageConfig selects where uploaded objects, such as avatars, are kept.
@@ -154,6 +191,16 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("storage.s3.secret_access_key", "")
 	v.SetDefault("storage.s3.path_style", false)
 	v.SetDefault("storage.s3.prefix", "")
+	v.SetDefault("rate_limit.enabled", true)
+	v.SetDefault("rate_limit.window", "1h")
+	v.SetDefault("rate_limit.core.authenticated", 5000)
+	v.SetDefault("rate_limit.core.anonymous", 1000)
+	v.SetDefault("rate_limit.git.authenticated", 1000)
+	v.SetDefault("rate_limit.git.anonymous", 200)
+	v.SetDefault("rate_limit.archive.authenticated", 100)
+	v.SetDefault("rate_limit.archive.anonymous", 20)
+	v.SetDefault("rate_limit.search.authenticated", 600)
+	v.SetDefault("rate_limit.search.anonymous", 60)
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")
@@ -176,6 +223,9 @@ func Load(cfgFile string) (*Config, error) {
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, err
+	}
+	if err := cfg.RateLimit.validate(); err != nil {
 		return nil, err
 	}
 	return &cfg, nil

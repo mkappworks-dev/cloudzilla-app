@@ -152,7 +152,7 @@ func RepoSubnav(data RepoSubnavData) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = repoSubnavTab(data, "actions", "Actions", "/"+data.OwnerName+"/"+data.RepoName+"/actions", "").Render(templ.WithChildren(ctx, templ_7745c5c3_Var6), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "checks", "Checks", "/"+data.OwnerName+"/"+data.RepoName+"/checks", "").Render(templ.WithChildren(ctx, templ_7745c5c3_Var6), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

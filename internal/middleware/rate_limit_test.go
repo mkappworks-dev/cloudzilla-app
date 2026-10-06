@@ -92,7 +92,25 @@ func TestRateLimit_ForgetsExpiredWindows(t *testing.T) {
 	clock.t = clock.t.Add(time.Minute)
 	postFrom(h, "198.51.100.1")
 
-	if len(l.windows) != 1 {
-		t.Errorf("expired windows must be dropped; have %d", len(l.windows))
+	if len(l.counter.windows) != 1 {
+		t.Errorf("expired windows must be dropped; have %d", len(l.counter.windows))
+	}
+}
+
+func TestFixedWindow_ReportsRemainingAndReset(t *testing.T) {
+	clock := &fakeClock{t: time.Unix(1_000_000, 0)}
+	c := newFixedWindow(time.Minute, clock.now)
+
+	remaining, reset, ok := c.take("k", 2)
+	if !ok || remaining != 1 || !reset.Equal(clock.t.Add(time.Minute)) {
+		t.Fatalf("first take: want 1 left resetting in a minute, got %d %v %v", remaining, reset, ok)
+	}
+	clock.t = clock.t.Add(10 * time.Second)
+	if remaining, _, ok = c.take("k", 2); !ok || remaining != 0 {
+		t.Fatalf("second take: want 0 left, got %d %v", remaining, ok)
+	}
+	remaining, reset, ok = c.take("k", 2)
+	if ok || remaining != 0 || !reset.Equal(time.Unix(1_000_060, 0)) {
+		t.Errorf("third take: want a refusal with the window's reset, got %d %v %v", remaining, reset, ok)
 	}
 }

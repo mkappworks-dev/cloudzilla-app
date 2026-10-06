@@ -2,6 +2,28 @@
 
 All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) and OAuth-app tokens are also accepted in the `Authorization` header; both are limited to the routes their scopes admit (see [Token Scopes](./access-control.md#token-scopes)).
 
+## Rate limits
+
+Every request except static assets counts against a budget per hour by default ([configuration](./configuration.md#rate-limits)). A signed-in user's browser sessions share one bucket, and all of their personal access tokens and OAuth-app tokens share another, so a busy CI token can't lock its owner out of the web UI. Requests without a valid credential count per IPv4 address or IPv6 /64, and so do requests made with a token bound to a signing key, so a leaked one can't spend its owner's budget. Each bucket has a separate budget for each resource:
+
+| Resource  | Requests                                                                       | Signed in | Anonymous |
+| --------- | ------------------------------------------------------------------------------ | --------- | --------- |
+| `core`    | everything not listed below, including `POST /api/repos/{owner}/{repo}/archive` | 5000      | 1000      |
+| `git`     | `GET …/info/refs`, `POST …/git-upload-pack`, `POST …/git-receive-pack`          | 1000      | 200       |
+| `archive` | `GET /{owner}/{repo}/archive/…`                                                | 100       | 20        |
+| `search`  | `GET /search`, `GET /search/code`                                              | 600       | 60        |
+
+Counted responses carry:
+
+| Header                  | Value                                         |
+| ----------------------- | --------------------------------------------- |
+| `X-RateLimit-Limit`     | The budget for this window                    |
+| `X-RateLimit-Remaining` | Requests left in this window                  |
+| `X-RateLimit-Reset`     | When the window resets, in Unix seconds       |
+| `X-RateLimit-Resource`  | `core`, `git`, `archive` or `search`          |
+
+Over budget, the response is `429` with `Retry-After` in seconds. `/api/*` answers `{"error":"rate limit exceeded"}`; git and pages answer plain text. An unlimited resource (budget `0`) sends no rate-limit headers. Sign-up and password login also have their own per-IP limits.
+
 ---
 
 ## Auth
@@ -366,6 +388,8 @@ Deleting a branch whose protection rule has `block_force_push` returns 422 `cann
 | GET    | `/api/repos/:owner/:repo/commits/:sha/status` | --       | Get combined status (`{state, statuses:[]}`) -- aggregated from all contexts |
 
 Valid `state` values: `pending`, `success`, `failure`, `error`. Combined state uses worst-case: `error` > `failure` > `pending` > `success`.
+
+The repository's Checks tab (`/{owner}/{repo}/checks`) lists the commits with reported statuses, most recently updated first.
 
 ## Milestones
 
