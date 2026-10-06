@@ -61,6 +61,27 @@ func renderFormError(w http.ResponseWriter, slot, msg string) {
 	_, _ = w.Write([]byte(`<div class="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3" role="alert">` + html.EscapeString(msg) + `</div>`))
 }
 
+// settingsError answers an HTMX settings form with JSON, which the layout shows
+// as an error toast; a plain text body would only show the HTTP status.
+func settingsError(w http.ResponseWriter, r *http.Request, status int, msg string) {
+	if r.Header.Get("HX-Request") == "true" {
+		writeError(w, status, msg)
+		return
+	}
+	http.Error(w, msg, status)
+}
+
+// redirectAfterSave answers a saved settings form. Its data-toast stashes the
+// message for the next page only when the response carries HX-Redirect.
+func redirectAfterSave(w http.ResponseWriter, r *http.Request, to string) {
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", to)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Redirect(w, r, to, http.StatusSeeOther)
+}
+
 const branchMovedMsg = "branch was updated while saving; reload and try again"
 
 // Must be called before the response body — sets an HTTP header.

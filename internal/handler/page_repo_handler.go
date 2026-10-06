@@ -403,26 +403,10 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 	redirectToRepoSettings(w, r, owner, repoName)
 }
 
-// settingsError answers an HTMX settings form with JSON, which the layout shows
-// as an error toast; a plain text body would only show the HTTP status.
-func settingsError(w http.ResponseWriter, r *http.Request, status int, msg string) {
-	if r.Header.Get("HX-Request") == "true" {
-		writeError(w, status, msg)
-		return
-	}
-	http.Error(w, msg, status)
-}
-
 // The settings forms reload the page after a save so the repo nav reflects
-// toggled features; data-toast stashes its message across the HX-Redirect.
+// toggled features.
 func redirectToRepoSettings(w http.ResponseWriter, r *http.Request, owner, repoName string) {
-	to := "/" + owner + "/" + repoName + "/settings"
-	if r.Header.Get("HX-Request") == "true" {
-		w.Header().Set("HX-Redirect", to)
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-	http.Redirect(w, r, to, http.StatusSeeOther)
+	redirectAfterSave(w, r, "/"+owner+"/"+repoName+"/settings")
 }
 
 const makePublicFormError = "#make-public-form-error"

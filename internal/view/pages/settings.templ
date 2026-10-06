@@ -98,7 +98,8 @@ templ settingsProfileSection(data view.SettingsData) {
 	<section id="profile" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
 		<h2 class="text-base font-semibold tracking-tight mb-1">Profile</h2>
 		<p class="text-[12.5px] text-muted-foreground mb-6">How others see you across Cloudzilla.</p>
-		<form method="POST" action="/settings/profile" data-toast="Profile saved" class="space-y-5" x-data={ "{ original: " + components.JSLiteral(data.User.Email) + ", email: " + components.JSLiteral(data.User.Email) + " }" }>
+		<form hx-post="/settings/profile" hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#profile-form-error').textContent=''" data-toast="Profile saved" class="space-y-5" x-data={ "{ original: " + components.JSLiteral(data.User.Email) + ", email: " + components.JSLiteral(data.User.Email) + " }" }>
+			<div id="profile-form-error" class="empty:hidden"></div>
 			<div class="flex items-start gap-4">
 				<div class="h-16 w-16 rounded-full grid place-items-center text-base font-semibold shrink-0 bg-muted border border-border">
 					{ avatarInitials(data.User.Name, data.User.Username) }
@@ -228,7 +229,8 @@ templ settingsSecuritySection(data view.SettingsData) {
 					</div>
 				</div>
 				if data.TOTPEnabled {
-					<form method="POST" action="/api/user/totp/disable" data-toast="Two-factor authentication disabled" class="mt-4 flex flex-wrap items-end gap-3">
+					<form hx-post="/api/user/totp/disable" hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#totp-disable-form-error').textContent=''" data-toast="Two-factor authentication disabled" class="mt-4 flex flex-wrap items-end gap-3">
+						<div id="totp-disable-form-error" class="basis-full empty:hidden"></div>
 						@components.ConfirmFields("totp-disable", components.ConfirmFactors{Password: data.Confirm.Password}, true)
 						<div>
 							<label for="totp-disable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Verification code</label>
@@ -247,8 +249,9 @@ templ settingsSecuritySection(data view.SettingsData) {
 								<code class="block bg-muted border border-border rounded-sm px-3 py-2 text-[12.5px] font-mono tracking-widest break-all text-foreground">{ data.TOTPPendingSecret }</code>
 							</div>
 						</div>
-						<form method="POST" action="/api/user/totp/enable" data-toast="Two-factor authentication enabled" class="flex flex-wrap items-end gap-3">
+						<form hx-post="/api/user/totp/enable" hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#totp-enable-form-error').textContent=''" data-toast="Two-factor authentication enabled" class="flex flex-wrap items-end gap-3">
 							<input type="hidden" name="secret" value={ data.TOTPPendingSecret }/>
+							<div id="totp-enable-form-error" class="basis-full empty:hidden"></div>
 							@components.ConfirmFields("totp-enable", data.Confirm, true)
 							<div>
 								<label for="totp-enable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Enter the 6-digit code from your app</label>
@@ -529,7 +532,7 @@ templ settingsTokensSection(data view.SettingsData) {
 
 templ settingsGenerateTokenDialog(data view.SettingsData) {
 	@components.Dialog("generate-token-dialog") {
-		<form method="POST" action="/api/user/tokens" data-toast="Token generated" x-data="{ picked: 0 }" @change="picked = $el.querySelectorAll('input[name=scopes]:checked').length">
+		<form hx-post="/api/user/tokens" hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#generate-token-form-error').textContent=''" data-toast="Token generated" x-data="{ picked: 0 }" @change="picked = $el.querySelectorAll('input[name=scopes]:checked').length">
 			@components.DialogHeader() {
 				@components.DialogTitle("generate-token-dialog") {
 					Generate personal access token
@@ -540,6 +543,7 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 			}
 			@components.DialogBody() {
 				<div class="space-y-4">
+					<div id="generate-token-form-error" class="empty:hidden"></div>
 					<div>
 						<label for="token-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
 						<input id="token-name" name="name" type="text" required placeholder="e.g. CI deploy" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>

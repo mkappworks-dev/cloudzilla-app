@@ -17,17 +17,23 @@ import (
 func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		settingsError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		settingsError(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
+	htmx := r.Header.Get("HX-Request") == "true"
+	refuse := func(code string) { refuseSettingsForm(w, r, tokenFormError, "tokens", code) }
 
 	name := r.FormValue("name")
 	if name == "" {
+		if htmx {
+			renderFormError(w, tokenFormError, "name is required")
+			return
+		}
 		http.Error(w, "name is required", http.StatusBadRequest)
 		return
 	}
@@ -49,41 +55,48 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 	})
 	switch {
 	case errors.Is(err, service.ErrScopeRequired) || errors.Is(err, service.ErrInvalidScope):
+		if htmx {
+			renderFormError(w, tokenFormError, err.Error())
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	case errors.Is(err, service.ErrAdminTokenNeedsKey):
-		http.Redirect(w, r, "/settings?profile_error=token_admin_key#tokens", http.StatusSeeOther)
+		refuse("token_admin_key")
 		return
 	case errors.Is(err, service.ErrInvalidSigningKey):
-		http.Redirect(w, r, "/settings?profile_error=token_key_invalid#tokens", http.StatusSeeOther)
+		refuse("token_key_invalid")
 		return
 	case errors.Is(err, service.ErrAdminTokenNoExpiry):
-		http.Redirect(w, r, "/settings?profile_error=token_admin_expiry#tokens", http.StatusSeeOther)
+		refuse("token_admin_expiry")
 		return
 	case errors.Is(err, service.ErrAdminTokenNeedsTargets):
-		http.Redirect(w, r, "/settings?profile_error=token_admin_targets#tokens", http.StatusSeeOther)
+		refuse("token_admin_targets")
 		return
 	case errors.Is(err, service.ErrTokenTarget):
-		http.Redirect(w, r, "/settings?profile_error=token_target#tokens", http.StatusSeeOther)
+		refuse("token_target")
 		return
 	case err != nil:
-		http.Error(w, "failed to create token", http.StatusInternalServerError)
+		settingsError(w, r, http.StatusInternalServerError, "failed to create token")
 		return
 	}
 	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
-		redirectReauthRefusal(w, r, claims.UserID, err, "tokens")
+		redirectReauthRefusal(w, r, claims.UserID, err, tokenFormError, "tokens")
 		return
 	}
 
 	rawToken, _, err := h.Services.AccessToken.Create(r.Context(), claims.UserID, nt)
 	if err != nil {
-		http.Error(w, "failed to create token", http.StatusInternalServerError)
+		settingsError(w, r, http.StatusInternalServerError, "failed to create token")
 		return
 	}
 
+	// The flash cookie rides on the HX-Redirect response, so the reload shows the token.
 	h.setSettingsFlash(w, newTokenCookieName, rawToken)
-	http.Redirect(w, r, "/settings#tokens", http.StatusSeeOther)
+	redirectAfterSave(w, r, "/settings#tokens")
 }
+
+const tokenFormError = "#generate-token-form-error"
 
 func (h *Handler) DeleteToken(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())

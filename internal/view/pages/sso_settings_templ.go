@@ -217,7 +217,7 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<form id=\"sso-ldap-form\" method=\"POST\" action=\"/admin/sso\" data-toast=\"LDAP settings saved\" data-confirm-identity=\"Save LDAP Settings\" class=\"space-y-4\"><input type=\"hidden\" name=\"provider\" value=\"ldap\"><div class=\"grid grid-cols-2 gap-4\"><div class=\"space-y-1.5\"><label for=\"ldap_host\" class=\"block text-sm font-medium text-foreground\">Host</label> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<form id=\"sso-ldap-form\" hx-post=\"/admin/sso\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&!ctx.hx.retarget)this.querySelector('#sso-ldap-form-error').textContent=''\" data-toast=\"LDAP settings saved\" data-confirm-identity=\"Save LDAP Settings\" class=\"space-y-4\"><input type=\"hidden\" name=\"provider\" value=\"ldap\"><div id=\"sso-ldap-form-error\" class=\"empty:hidden\"></div><div class=\"grid grid-cols-2 gap-4\"><div class=\"space-y-1.5\"><label for=\"ldap_host\" class=\"block text-sm font-medium text-foreground\">Host</label> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -524,7 +524,7 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<form id=\"sso-saml-form\" method=\"POST\" action=\"/admin/sso\" data-toast=\"SAML settings saved\" data-confirm-identity=\"Save SAML Settings\" class=\"space-y-4\"><input type=\"hidden\" name=\"provider\" value=\"saml\"><div class=\"space-y-1.5\"><label for=\"saml_entity_id\" class=\"block text-sm font-medium text-foreground\">Entity ID</label> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<form id=\"sso-saml-form\" hx-post=\"/admin/sso\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&!ctx.hx.retarget)this.querySelector('#sso-saml-form-error').textContent=''\" data-toast=\"SAML settings saved\" data-confirm-identity=\"Save SAML Settings\" class=\"space-y-4\"><input type=\"hidden\" name=\"provider\" value=\"saml\"><div id=\"sso-saml-form-error\" class=\"empty:hidden\"></div><div class=\"space-y-1.5\"><label for=\"saml_entity_id\" class=\"block text-sm font-medium text-foreground\">Entity ID</label> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -604,7 +604,7 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						var templ_7745c5c3_Var17 string
 						templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(ssoFieldLabels[model.SAMLKeyCert])
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 223, Col: 111}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 225, Col: 111}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 						if templ_7745c5c3_Err != nil {
@@ -617,7 +617,7 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						var templ_7745c5c3_Var18 string
 						templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(data.SAMLConfig.Config["idp_cert"])
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 223, Col: 310}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 225, Col: 310}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 						if templ_7745c5c3_Err != nil {
@@ -780,7 +780,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.ResolveAttributeValue(provider + "-switch-needs")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 282, Col: 35}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 284, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
 			if templ_7745c5c3_Err != nil {
@@ -793,7 +793,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.ResolveAttributeValue("sso-" + provider + "-form")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 283, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 285, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
 			if templ_7745c5c3_Err != nil {
@@ -806,7 +806,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 284, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 286, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
 			if templ_7745c5c3_Err != nil {
@@ -819,7 +819,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(ssoNeedsText(provider, cfg))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 287, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 289, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
@@ -838,7 +838,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var27 string
 			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/admin/sso/" + provider + "/enabled")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 291, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 293, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 			if templ_7745c5c3_Err != nil {
@@ -851,7 +851,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var28 string
 			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.ResolveAttributeValue(ssoSwitchToast(name, cfg.Enabled))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 294, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 296, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var28)
 			if templ_7745c5c3_Err != nil {
@@ -864,7 +864,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var29 string
 			templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.ResolveAttributeValue(ssoSwitchAction(name, cfg.Enabled))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 295, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 297, Col: 62}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var29)
 			if templ_7745c5c3_Err != nil {
@@ -877,7 +877,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var30 string
 			templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(!cfg.Enabled))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 298, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 300, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var30)
 			if templ_7745c5c3_Err != nil {
@@ -890,7 +890,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var31 string
 			templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs("Enable " + name + " authentication")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 300, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 302, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 			if templ_7745c5c3_Err != nil {
@@ -916,7 +916,7 @@ func ssoSwitch(provider, name string, cfg *model.SSOConfig) templ.Component {
 			var templ_7745c5c3_Var32 string
 			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs("Enable " + name + " authentication")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 306, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 308, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 			if templ_7745c5c3_Err != nil {

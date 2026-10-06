@@ -101,7 +101,19 @@ func TestUpdateRepoFeatures_HTMX_Saved_Redirects(t *testing.T) {
 	}
 }
 
-var plainPostToastForm = regexp.MustCompile(`<form[^>]*method="POST"[^>]*data-toast`)
+var formTag = regexp.MustCompile(`<form[^>]*>`)
+
+// plainPostToastForm returns the first form that posts natively with a
+// data-toast. A form that also has hx-post keeps method="POST" only for when
+// scripts don't run, and htmx cancels its native submit.
+func plainPostToastForm(body string) string {
+	for _, f := range formTag.FindAllString(body, -1) {
+		if strings.Contains(f, `method="POST"`) && strings.Contains(f, "data-toast") && !strings.Contains(f, "hx-post=") {
+			return f
+		}
+	}
+	return ""
+}
 
 // A plain POST form stashes its success toast on submit, before the server
 // answers, so a failed save would show it on the next page.
@@ -113,7 +125,7 @@ func TestPageRepoSettings_NoPlainPostToastForms(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("settings page: want 200, got %d", rr.Code)
 	}
-	if m := plainPostToastForm.FindString(rr.Body.String()); m != "" {
+	if m := plainPostToastForm(rr.Body.String()); m != "" {
 		t.Errorf("settings page has a plain POST form with data-toast: %s", m)
 	}
 	assertContains(t, rr.Body.String(), `id="repo-general-form-error"`)

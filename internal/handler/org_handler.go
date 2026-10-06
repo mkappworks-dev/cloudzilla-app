@@ -320,7 +320,7 @@ func (h *Handler) UpdateOrgRepoDefaults(w http.ResponseWriter, r *http.Request) 
 		r.FormValue("default_repo_visibility"),
 		r.FormValue("default_branch_name"),
 	); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		orgSettingsFormError(w, r, orgRepoDefaultsFormError, err.Error())
 		return
 	}
 
@@ -335,7 +335,21 @@ func (h *Handler) UpdateOrgRepoDefaults(w http.ResponseWriter, r *http.Request) 
 		},
 	)
 
-	http.Redirect(w, r, "/orgs/"+orgName+"/settings#repo-defaults", http.StatusSeeOther)
+	redirectAfterSave(w, r, "/orgs/"+orgName+"/settings#repo-defaults")
+}
+
+const (
+	orgProfileFormError      = "#org-profile-form-error"
+	orgRepoDefaultsFormError = "#org-repo-defaults-form-error"
+)
+
+// orgSettingsFormError shows a refused org settings save next to the form's fields.
+func orgSettingsFormError(w http.ResponseWriter, r *http.Request, slot, msg string) {
+	if r.Header.Get("HX-Request") == "true" {
+		renderFormError(w, slot, msg)
+		return
+	}
+	writeError(w, http.StatusUnprocessableEntity, msg)
 }
 
 func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
@@ -426,7 +440,7 @@ func (h *Handler) UpdateOrgProfile(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("location"),
 		r.FormValue("contact_email"),
 	); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		orgSettingsFormError(w, r, orgProfileFormError, err.Error())
 		return
 	}
 
@@ -437,7 +451,7 @@ func (h *Handler) UpdateOrgProfile(w http.ResponseWriter, r *http.Request) {
 		org.ID, org.Name, nil,
 	)
 
-	http.Redirect(w, r, "/orgs/"+orgName+"/settings", http.StatusSeeOther)
+	redirectAfterSave(w, r, "/orgs/"+orgName+"/settings")
 }
 
 func (h *Handler) TransferOrg(w http.ResponseWriter, r *http.Request) {
