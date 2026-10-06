@@ -8,7 +8,7 @@ In-app notifications for activity on issues, PRs and discussions you opened, @-m
 | ------------------ | ------------------------------------------- |
 | `issue_comment`    | Someone comments on an issue you opened     |
 | `pr_comment`       | Someone comments on a PR you opened         |
-| `issue_closed`     | Someone closes an issue you opened          |
+| `issue_closed`     | Someone closes an issue you opened, by hand or with a closing keyword in a merged PR or pushed commit |
 | `issue_reopened`   | Someone reopens an issue you opened         |
 | `pr_merged`        | Someone merges a PR you opened              |
 | `pr_closed`        | Someone closes a PR you opened              |
@@ -59,7 +59,7 @@ HTMX responses swap `fragment-notifications-list` into `#notifications-list`.
 - `MarkAllRead(ctx, userID)` → `error`
 - `NotifyIssueComment(ctx, repo, issue, actorID, actorName)` — call from `CreateIssueComment` handler
 - `NotifyPRComment(ctx, repo, pr, actorID, actorName)` — call from `CreatePullComment` handler
-- `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler
+- `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler; `IssueCloser` calls it for each issue a closing keyword closes, with the merger or pusher as actor
 - `NotifyPRStateChange(ctx, repo, pr, actorID, actorName)` — call from `UpdatePull` handler
 - `NotifyPRReview(ctx, repo, pr, actorID, actorName)` — call from `SubmitReview` handler
 - `NotifyDiscussionReply(ctx, repo, discussion, actorID, actorName)` — call from `CreateReply` handler
