@@ -49,7 +49,6 @@ func TestReset2FA(t *testing.T) {
 		t.Errorf("audit row = actor %v %q; want no actor id, cloudzilla-cli", actorID, actorName)
 	}
 
-	// Nothing to reset: a message, no second audit entry.
 	out.Reset()
 	if err := reset2FA(context.Background(), stores, &config.Config{}, username, &out, &out); err != nil {
 		t.Fatalf("second reset2FA: %v", err)
@@ -85,9 +84,15 @@ func TestReset2FA_Suspended(t *testing.T) {
 func TestReset2FA_UnknownUser(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	var out bytes.Buffer
-	err := reset2FA(context.Background(), store.New(db), &config.Config{}, "nobody_"+testutil.UniqueSuffix(t), &out, &out)
-	if err == nil || !strings.Contains(err.Error(), "no user named") {
-		t.Errorf("err = %v; want no user named", err)
+	var ghost string
+	if err := db.QueryRow(`SELECT username FROM users WHERE id = ghost_user_id()`).Scan(&ghost); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"nobody_" + testutil.UniqueSuffix(t), ghost} {
+		err := reset2FA(context.Background(), store.New(db), &config.Config{}, name, &out, &out)
+		if err == nil || !strings.Contains(err.Error(), "no user named") {
+			t.Errorf("%s: err = %v; want no user named", name, err)
+		}
 	}
 	if out.Len() != 0 {
 		t.Errorf("output = %q; want none", out.String())

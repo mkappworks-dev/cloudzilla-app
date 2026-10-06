@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -22,18 +22,18 @@ Example: the only superadmin of a small instance replaces their phone without mo
 - Writes the audit entry through `AuditService.RecordOffline` with actor name `cloudzilla-cli` and no actor ID, as `password-reset-link` does. It reuses `admin.user.2fa_reset`: the audit log page shows the raw action string and filters on it exactly, and `user.password.reset_link` is likewise one action for the admin and CLI paths, told apart by the actor.
 - Prints a confirmation only after the audit write succeeds; a failed audit write exits non-zero.
 - A user without 2FA enabled: prints that 2FA isn't on and exits 0, with no audit entry and no notice.
-- The notice is sent synchronously: `notifySecurityChange` mails from a `concurrency.Go` goroutine, which the CLI would exit before. A failed send is a warning on stderr, not a failure, since the reset and its audit entry already stand.
+- The notice is sent synchronously: `notifySecurityChange` mails from a `concurrency.Go` goroutine, which the CLI would exit before. A failed send is a warning on stderr, not a failure, since the reset already stands. The notice goes out even when the audit write fails, since 2FA is off either way.
 
 ## Acceptance criteria
 
-- [ ] `cloudzilla-cli reset-2fa <username>` turns off 2FA and clears the secret and backup codes for that account.
-- [ ] The admin `reset-2fa` endpoint and the CLI share one implementation of the reset itself.
-- [ ] The account's owner gets the same security notice email.
-- [ ] An audit entry is written with actor name `cloudzilla-cli` and no actor ID; the confirmation prints only after it succeeds.
-- [ ] An unknown username and bad arguments exit non-zero with a clear message; the ghost user is treated as `password-reset-link` treats it.
-- [ ] Tests cover the command (as `password_reset_link_test.go` does) and the shared service path.
-- [ ] `docs/configuration.md` documents the command next to `password-reset-link`.
-- [ ] `docs/access-control.md` documents it under "Two-factor authentication" and gives the full recovery path for a locked-out sole superadmin: `reset-2fa`, then `password-reset-link` if the password is lost too.
+- [x] `cloudzilla-cli reset-2fa <username>` turns off 2FA and clears the secret and backup codes for that account.
+- [x] The admin `reset-2fa` endpoint and the CLI share one implementation of the reset itself.
+- [x] The account's owner gets the same security notice email.
+- [x] An audit entry is written with actor name `cloudzilla-cli` and no actor ID; the confirmation prints only after it succeeds.
+- [x] An unknown username and bad arguments exit non-zero with a clear message; the ghost user is treated as `password-reset-link` treats it.
+- [x] Tests cover the command (as `password_reset_link_test.go` does) and the shared service path.
+- [x] `docs/configuration.md` documents the command next to `password-reset-link`.
+- [x] `docs/access-control.md` documents it under "Two-factor authentication" and gives the full recovery path for a locked-out sole superadmin: `reset-2fa`, then `password-reset-link` if the password is lost too.
 
 ## Relevant files
 

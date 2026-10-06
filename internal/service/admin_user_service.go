@@ -147,9 +147,7 @@ func (s *AdminUserService) ResetTOTP(ctx context.Context, actorID int64, usernam
 	return u, nil
 }
 
-// ResetTOTPOffline is ResetTOTP for cloudzilla-cli, which has no acting admin.
-// It reports false, changing nothing, when the account has 2FA off. The caller
-// sends the notice with SendTOTPResetNotice once the reset is audited.
+// ResetTOTPOffline is ResetTOTP for cloudzilla-cli, which has no acting admin; the caller mails SendTOTPResetNotice.
 func (s *AdminUserService) ResetTOTPOffline(ctx context.Context, username string) (*model.User, bool, error) {
 	u, err := s.users.GetByUsernameWithTOTP(ctx, username)
 	if err != nil {
