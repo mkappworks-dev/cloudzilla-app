@@ -35,6 +35,13 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `smtp.tls`                   | `false`                                      | `CZ_SMTP_TLS`                   | Use TLS for SMTP connection                     |
 | `import.allow_local_networks`| `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`| Let repository imports reach loopback, private and link-local addresses |
 | `import.timeout`             | `30m`                                        | `CZ_IMPORT_TIMEOUT`             | Time limit for one repository import            |
+| `security.secret_key`        | `""`                                         | `CZ_SECURITY_SECRET_KEY`        | Key that encrypts stored credentials, such as mirror tokens. At least 32 bytes; see [Secret key](#secret-key) |
+
+### Secret key
+
+`security.secret_key` encrypts secrets the server has to read back later. Each use gets its own key, derived with HKDF-SHA256, and values are sealed with AES-256-GCM. When it is unset, features that store such secrets refuse to store them and say which setting to set.
+
+Generate one with `openssl rand -base64 32`. The string is used as-is, at least 32 bytes. Keep it apart from `auth.jwt_secret`, so rotating the JWT secret never touches stored credentials. **Losing or changing the key makes every stored credential unreadable;** they then have to be entered again.
 
 ### Environment Variable Mapping
 

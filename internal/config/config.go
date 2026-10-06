@@ -1,10 +1,13 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/spf13/viper"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/secretbox"
 )
 
 // DevJWTSecret is the loud placeholder used as the default jwt_secret in dev.
@@ -20,6 +23,7 @@ type Config struct {
 	OAuth    OAuthConfig    `mapstructure:"oauth"`
 	SMTP     SMTPConfig     `mapstructure:"smtp"`
 	Import   ImportConfig   `mapstructure:"import"`
+	Security SecurityConfig `mapstructure:"security"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -68,6 +72,12 @@ type ImportConfig struct {
 	// Off by default, so a user can't make the server probe its own network.
 	AllowLocalNetworks bool          `mapstructure:"allow_local_networks"`
 	Timeout            time.Duration `mapstructure:"timeout"`
+}
+
+// SecurityConfig holds keys for secrets stored at rest.
+type SecurityConfig struct {
+	// Losing or changing it makes every stored mirror credential unreadable.
+	SecretKey string `mapstructure:"secret_key"`
 }
 
 // OAuthConfig holds Google OAuth provider settings.
@@ -121,6 +131,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("smtp.tls", false)
 	v.SetDefault("import.allow_local_networks", false)
 	v.SetDefault("import.timeout", "30m")
+	v.SetDefault("security.secret_key", "")
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")
@@ -145,5 +156,15 @@ func Load(cfgFile string) (*Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
 	return &cfg, nil
+}
+
+func (c *Config) validate() error {
+	if n := len(c.Security.SecretKey); n > 0 && n < secretbox.MinKeyLen {
+		return fmt.Errorf("security.secret_key must be at least %d bytes, got %d", secretbox.MinKeyLen, n)
+	}
+	return nil
 }

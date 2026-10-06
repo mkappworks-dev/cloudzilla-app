@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md#shared)
 
@@ -15,15 +15,15 @@ Spec: [../spec.md](../spec.md#shared)
   - `(*Box).Open(purpose string, ciphertext []byte) ([]byte, error)`
   - `ErrNoKey` and `ErrUndecryptable`
 - Crypto:
-  - The subkey is `HKDF-SHA256(secret_key, info="cloudzilla/"+purpose)`.
+  - The subkey is `HKDF-SHA256(secret_key, info="cloudzilla/"+purpose)` (stdlib `crypto/hkdf`).
   - The ciphertext is `version(0x01) || nonce(12) || AES-256-GCM(ct||tag)`.
   - `purpose` is also the AAD, so a ciphertext sealed for one purpose fails to open under another.
 - The service layer gets the box from `Services`, nil when no key is set.
 
 ## Acceptance criteria
 
-- [ ] Sealed values round-trip. Opening with a different key, a different purpose, or a ciphertext with a flipped byte returns `ErrUndecryptable`.
-- [ ] An unknown version byte returns `ErrUndecryptable`.
-- [ ] A short key fails config validation. An empty key leaves the box nil.
-- [ ] No plaintext or key material appears in error strings.
-- [ ] `docs/configuration.md` lists the key and says that losing it makes stored mirror credentials unreadable.
+- [x] Sealed values round-trip. Opening with a different key, a different purpose, or a ciphertext with a flipped byte returns `ErrUndecryptable`.
+- [x] An unknown version byte returns `ErrUndecryptable`.
+- [x] A short key fails config validation. An empty key leaves the box nil.
+- [x] No plaintext or key material appears in error strings.
+- [x] `docs/configuration.md` lists the key and says that losing it makes stored mirror credentials unreadable.

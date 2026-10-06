@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/secretbox"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
@@ -57,10 +58,16 @@ type Services struct {
 	Attention        *AttentionService
 	Language         *LanguageService
 	Import           *ImportService
+	// Secrets is nil when security.secret_key is unset.
+	Secrets *secretbox.Box
 }
 
 // New constructs and wires all services from the given stores and configuration.
 func New(stores *store.Stores, cfg *config.Config) *Services {
+	secrets, err := secretbox.New([]byte(cfg.Security.SecretKey))
+	if err != nil {
+		panic(err) // config.Load already refuses a short key
+	}
 	code := NewCodeService(cfg.Git)
 	index := NewIndexService(stores.CodeSearch, code)
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
@@ -137,5 +144,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
+		Secrets:          secrets,
 	}
 }

@@ -48,10 +48,10 @@
 
 ## Ticket 02: secretbox
 
-- [ ] `internal/secretbox` tests: round trip; wrong key, wrong purpose, tampering and unknown version give `ErrUndecryptable`; short key; empty key gives a nil box.
-- [ ] Implement it: HKDF-SHA256 from `golang.org/x/crypto/hkdf`, AES-256-GCM, version byte `0x01`, purpose as AAD.
-- [ ] Config `security.secret_key` with validation, and the docs row.
-- [ ] Commit `feat(security): add secret_key and secretbox for credentials at rest`.
+- [x] `internal/secretbox` tests: round trip; wrong key, wrong purpose, tampering and unknown version give `ErrUndecryptable`; short key; empty key gives a nil box.
+- [x] Implement it: HKDF-SHA256 from the standard library's `crypto/hkdf`, AES-256-GCM, version byte `0x01`, purpose as AAD.
+- [x] Config `security.secret_key` with validation, and the docs row.
+- [x] Commit `feat(security): add secret_key and secretbox for credentials at rest`.
 
 ## Ticket 03: schema, store, config
 
