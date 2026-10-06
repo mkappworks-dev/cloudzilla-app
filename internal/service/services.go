@@ -93,7 +93,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	userSvc.WithReauth(reauthSvc)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
-	avatarSvc := NewAvatarService(stores.User, stores.Org, orgSvc)
+	avatarSvc := NewAvatarService(stores.User, stores.Org, stores.Avatar, orgSvc)
 	userSvc.WithAvatars(avatarSvc)
 	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(

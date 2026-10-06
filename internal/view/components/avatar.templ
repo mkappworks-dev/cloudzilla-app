@@ -64,21 +64,34 @@ templ Avatar(name string, size AvatarSize, alt string) {
 	@AvatarImage(name, AvatarURL(avatarKeyFor(ctx, name)), size, alt)
 }
 
-// AvatarImage renders the image at url, or initials from name when url is "".
+// AvatarImage renders the image at url over initials from name, or only the
+// initials when url is "". The layout hides an img[data-avatar] that fails to
+// load, so a missing object falls back to the initials beneath it.
 templ AvatarImage(name, url string, size AvatarSize, alt string) {
 	if url != "" {
-		<img
-			src={ url }
-			alt={ alt }
-			width={ avatarSizePx(size) }
-			height={ avatarSizePx(size) }
-			loading="lazy"
-			decoding="async"
-			class={ "inline-block shrink-0 rounded-full bg-muted border border-border object-cover", avatarSizeClass(size) }
-		/>
+		<span class={ "relative inline-grid place-items-center shrink-0 overflow-hidden rounded-full bg-muted border border-border font-medium text-muted-foreground", avatarSizeClass(size) } { avatarLabel(alt)... }>
+			<span aria-hidden="true">{ initials(name) }</span>
+			<img
+				data-avatar
+				src={ url }
+				alt=""
+				width={ avatarSizePx(size) }
+				height={ avatarSizePx(size) }
+				loading="lazy"
+				decoding="async"
+				class="absolute inset-0 h-full w-full object-cover"
+			/>
+		</span>
 	} else {
 		@Initials(name, size, alt)
 	}
+}
+
+func avatarLabel(alt string) templ.Attributes {
+	if alt == "" {
+		return templ.Attributes{"aria-hidden": "true"}
+	}
+	return templ.Attributes{"role": "img", "aria-label": alt}
 }
 
 // Initials never shows an image: it is for names that aren't accounts, such

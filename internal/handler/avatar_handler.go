@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -29,7 +30,7 @@ const (
 	orgAvatarFormError = "#org-avatar-form-error"
 )
 
-var avatarKeyRe = regexp.MustCompile(`^avatars/(user|org)/[0-9]+/([0-9a-f]{64})\.(png|jpg)$`)
+var avatarKeyRe = regexp.MustCompile(`^avatars/(user|org)/([0-9]{1,19})/([0-9a-f]{64})\.(png|jpg)$`)
 
 // UploadUserAvatar handles POST /settings/avatar.
 func (h *Handler) UploadUserAvatar(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +172,7 @@ func (h *Handler) ServeAvatar(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	etag := `"` + m[2] + `"`
+	etag := `"` + m[3] + `"`
 	setAvatarHeaders(w, etag)
 	if etagMatches(r.Header.Get("If-None-Match"), etag) {
 		w.WriteHeader(http.StatusNotModified)
@@ -179,7 +180,23 @@ func (h *Handler) ServeAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	backend := h.Services.Avatar.Backend()
 	if backend == nil {
+		clearAvatarCache(w)
 		http.Error(w, "storage unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	// The row check keeps made-up keys, which this route doesn't rate-limit,
+	// from each costing a backend read.
+	id, _ := strconv.ParseInt(m[2], 10, 64)
+	inUse, err := h.Services.Avatar.KeyInUse(r.Context(), m[1], id, key)
+	if err != nil {
+		slog.Error("avatar: check key", "key", key, "error", err)
+		clearAvatarCache(w)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !inUse {
+		clearAvatarCache(w)
+		http.NotFound(w, r)
 		return
 	}
 	body, err := backend.Get(r.Context(), key)

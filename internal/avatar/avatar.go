@@ -25,7 +25,6 @@ import (
 const (
 	MaxUploadBytes = 2 << 20
 	MaxSide        = 4096
-	MaxPixels      = 16 << 20
 	OutputSide     = 460
 	jpegQuality    = 90
 )
@@ -81,7 +80,7 @@ func Process(r io.Reader) (Image, error) {
 	if err != nil || cfgFormat != format {
 		return Image{}, ErrInvalidImage
 	}
-	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > MaxSide || cfg.Height > MaxSide || cfg.Width*cfg.Height > MaxPixels {
+	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > MaxSide || cfg.Height > MaxSide {
 		return Image{}, ErrDimensions
 	}
 	src, srcFormat, err := image.Decode(bytes.NewReader(data))

@@ -11,6 +11,7 @@ import (
 	"image/color"
 	"image/png"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/avatar"
@@ -190,5 +191,27 @@ func TestAvatarService_OrgOwnerOnlyAndDeleteRemovesObject(t *testing.T) {
 	}
 	if env.exists(t, key) {
 		t.Error("deleting the org left the avatar object")
+	}
+}
+
+// A remove racing an upload of the same image must not delete the object the
+// row ends up pointing at: both use the same content-hash key.
+func TestAvatarService_ConcurrentRemoveAndReuploadKeepObject(t *testing.T) {
+	env := newAvatarEnv(t)
+	ctx := context.Background()
+	userID := testutil.SeedUser(t, testutil.OpenTestDB(t), testutil.UniqueSuffix(t))
+	data := pngOf(t, color.NRGBA{77, 0, 0, 255})
+	for i := range 25 {
+		if _, err := env.svcs.Avatar.SetUserAvatar(ctx, userID, bytes.NewReader(data)); err != nil {
+			t.Fatal(err)
+		}
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() { defer wg.Done(); _ = env.svcs.Avatar.RemoveUserAvatar(ctx, userID) }()
+		go func() { defer wg.Done(); _, _ = env.svcs.Avatar.SetUserAvatar(ctx, userID, bytes.NewReader(data)) }()
+		wg.Wait()
+		if key := env.userKey(t, userID); key != "" && !env.exists(t, key) {
+			t.Fatalf("round %d: avatar_key %q points at a deleted object", i, key)
+		}
 	}
 }

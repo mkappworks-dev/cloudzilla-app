@@ -23,7 +23,7 @@ const testKey = "avatars/user/7/" + "0123456789abcdef0123456789abcdef0123456789a
 func TestAvatar_UsesKeyFromContext(t *testing.T) {
 	ctx := WithAvatarKeys(context.Background(), map[string]string{"alice": testKey})
 	out := renderString(t, ctx, Avatar("alice", AvatarSizeSM, "alice"))
-	for _, want := range []string{`<img`, `src="/` + testKey + `"`, `alt="alice"`, `width="24"`, `loading="lazy"`} {
+	for _, want := range []string{`<img`, `data-avatar`, `src="/` + testKey + `"`, `aria-label="alice"`, `width="24"`, `loading="lazy"`, ">A</span>"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("want %q in %s", want, out)
 		}

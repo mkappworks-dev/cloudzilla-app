@@ -495,4 +495,44 @@ func TestAvatar_RendersOnActivitySurfaces(t *testing.T) {
 		t.Fatalf("post comment: %d %.200s", rr.Code, rr.Body.String())
 	}
 	assertContains(t, rr.Body.String(), commenterSrc)
+
+	// So does the htmx discussion reply fragment.
+	req = httptest.NewRequest(http.MethodPost, "/api/repos"+repoPath+"/discussions/"+strconv.Itoa(discussion.Number)+"/replies", strings.NewReader("body=me+too"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", "Bearer "+commenter.token)
+	req.Header.Set("HX-Request", "true")
+	rr = httptest.NewRecorder()
+	e.router.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK && rr.Code != http.StatusCreated {
+		t.Fatalf("post reply: %d %.200s", rr.Code, rr.Body.String())
+	}
+	assertContains(t, rr.Body.String(), commenterSrc)
+}
+
+// An object no row points at, such as one left behind by a failed delete, is
+// not served, and the backend is never asked for it.
+func TestServeAvatar_OrphanedObjectIs404(t *testing.T) {
+	e := newAvatarRouterEnv(t)
+	user := seedSignedInUser(t, e.db)
+	key := "avatars/user/" + strconv.FormatInt(user.id, 10) + "/" + strings.Repeat("b", 64) + ".png"
+	if err := e.backend.Put(context.Background(), key, bytes.NewReader(avatarPNG(t, color.White)), -1); err != nil {
+		t.Fatal(err)
+	}
+	if rr := e.get(t, "/"+key, nil); rr.Code != http.StatusNotFound {
+		t.Errorf("orphan: got %d, want 404", rr.Code)
+	}
+}
+
+func TestServeAvatar_Head(t *testing.T) {
+	e := newAvatarRouterEnv(t)
+	user := seedSignedInUser(t, e.db)
+	if rr := e.upload(t, "/settings/avatar", avatarPNG(t, color.White), uploadOpts{token: user.token}); rr.Code != http.StatusSeeOther {
+		t.Fatalf("upload: %d", rr.Code)
+	}
+	req := httptest.NewRequest(http.MethodHead, "/"+e.userKey(t, user.id), nil)
+	rr := httptest.NewRecorder()
+	e.router.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK || rr.Header().Get("ETag") == "" {
+		t.Errorf("HEAD: got %d, ETag %q", rr.Code, rr.Header().Get("ETag"))
+	}
 }

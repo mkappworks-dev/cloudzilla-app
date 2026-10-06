@@ -381,5 +381,5 @@ func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) 
 	for i, c := range comments {
 		renderedComments[i] = RenderedComment{Comment: c, BodyHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), c.Body))}
 	}
-	h.render(w, r, fragments.Comments(view.CommentsFragData{Comments: renderedComments}))
+	h.render(w, h.withAvatars(r, commentAuthors(renderedComments)...), fragments.Comments(view.CommentsFragData{Comments: renderedComments}))
 }

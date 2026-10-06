@@ -524,7 +524,7 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 			DiscussionReply: *reply,
 			BodyHTML:        markdown.RenderCtx(r.Context(), reply.Body),
 		}
-		h.render(w, r, pages.DiscussionReplyCreated(owner, repoName, number, rendered, len(allReplies), canWrite, true))
+		h.render(w, h.withAvatars(r, reply.AuthorName), pages.DiscussionReplyCreated(owner, repoName, number, rendered, len(allReplies), canWrite, true))
 		return
 	}
 	writeJSON(w, http.StatusCreated, reply)

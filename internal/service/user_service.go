@@ -421,14 +421,14 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 	return s.generateJWT(u)
 }
 
-// Required by PinRepo and PinnedRepos, which apply repo visibility, and by
-// DeleteUser, which removes the user's repo directories.
 // WithAvatars removes a deleted user's avatar object.
 func (s *UserService) WithAvatars(a *AvatarService) *UserService {
 	s.avatars = a
 	return s
 }
 
+// Required by PinRepo and PinnedRepos, which apply repo visibility, and by
+// DeleteUser, which removes the user's repo directories.
 func (s *UserService) WithRepoService(repos *RepoService) *UserService {
 	s.repos = repos
 	return s

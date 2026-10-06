@@ -185,6 +185,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW, middleware.MaxBodySize(handler.AvatarBodyBytes)).Post("/orgs/{org}/settings/avatar", h.UploadOrgAvatar)
 	r.With(authMW).Post("/orgs/{org}/settings/avatar/delete", h.RemoveOrgAvatar)
 	r.Get("/avatars/*", h.ServeAvatar)
+	r.Head("/avatars/*", h.ServeAvatar)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(authMW).Get("/{owner}/{repo}/fork", h.PageForkRepo)
