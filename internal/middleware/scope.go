@@ -26,6 +26,7 @@ var repoAdminResources = map[string]bool{
 	"hooks":         true,
 	"transfer":      true,
 	"delete":        true,
+	"mirror":        true,
 }
 
 // Sub-resources of /api/repos/{owner}/{repo} that hold repository content.

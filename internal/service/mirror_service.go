@@ -261,7 +261,7 @@ func (s *MirrorService) Interval(requested time.Duration) (time.Duration, error)
 	}
 	if requested < s.cfg.MinInterval || requested > config.MaxMirrorInterval {
 		return 0, fmt.Errorf("%w: it must be between %s and %s", ErrMirrorInterval,
-			formatMirrorInterval(s.cfg.MinInterval), formatMirrorInterval(config.MaxMirrorInterval))
+			FormatMirrorInterval(s.cfg.MinInterval), FormatMirrorInterval(config.MaxMirrorInterval))
 	}
 	return requested, nil
 }
@@ -286,14 +286,14 @@ func (s *MirrorService) IntervalChoices() []MirrorIntervalChoice {
 	slices.Sort(durations)
 	choices := make([]MirrorIntervalChoice, len(durations))
 	for i, d := range durations {
-		choices[i] = MirrorIntervalChoice{Value: d.String(), Label: formatMirrorInterval(d), Default: d == s.cfg.DefaultInterval}
+		choices[i] = MirrorIntervalChoice{Value: d.String(), Label: FormatMirrorInterval(d), Default: d == s.cfg.DefaultInterval}
 	}
 	return choices
 }
 
-// formatMirrorInterval names d in its largest whole unit: "1 day", "8 hours";
+// FormatMirrorInterval names d in its largest whole unit: "1 day", "8 hours";
 // anything else falls back to Go's form, such as "1h30m0s".
-func formatMirrorInterval(d time.Duration) string {
+func FormatMirrorInterval(d time.Duration) string {
 	for _, u := range []struct {
 		size time.Duration
 		name string
@@ -333,4 +333,81 @@ func (s *MirrorService) indexImported(ctx context.Context, repo *model.Repositor
 	if err := s.deps.ParseAndStore(ctx, repo); err != nil {
 		slog.Error("mirror import: dependency parse failed", "repo_id", repo.ID, "error", err)
 	}
+}
+
+// MirrorUpdate changes a mirror's settings; a nil field keeps its value, and
+// so does an empty AuthToken, since a stored token is never shown to edit.
+type MirrorUpdate struct {
+	RemoteURL    *string
+	AuthUsername *string
+	AuthToken    *string
+	ClearToken   bool
+	Interval     *time.Duration
+}
+
+// Update saves u. A new source or credentials are tried at once; a new
+// interval counts from the last sync.
+func (s *MirrorService) Update(ctx context.Context, repoID int64, u MirrorUpdate) (*model.RepoMirror, error) {
+	m, err := s.mirrors.Get(ctx, repoID)
+	if err != nil {
+		return nil, err
+	}
+	retryNow := false
+	if u.RemoteURL != nil {
+		src, err := ParseImportURL(*u.RemoteURL)
+		if err != nil {
+			return nil, err
+		}
+		retryNow = retryNow || src != m.RemoteURL
+		m.RemoteURL = src
+	}
+	if u.AuthUsername != nil {
+		name := strings.TrimSpace(*u.AuthUsername)
+		retryNow = retryNow || name != m.AuthUsername
+		m.AuthUsername = name
+	}
+	switch {
+	case u.ClearToken:
+		retryNow = retryNow || m.AuthTokenEnc != nil
+		m.AuthTokenEnc = nil
+	case u.AuthToken != nil && *u.AuthToken != "":
+		if m.AuthTokenEnc, err = s.SealToken(*u.AuthToken); err != nil {
+			return nil, err
+		}
+		retryNow = true
+	}
+	if m.AuthTokenEnc != nil && m.AuthUsername == "" {
+		return nil, ErrImportCredentials
+	}
+	if u.Interval != nil {
+		if m.Interval, err = s.Interval(*u.Interval); err != nil {
+			return nil, err
+		}
+	}
+
+	now := time.Now()
+	switch {
+	case retryNow:
+		m.NextSyncAt = now
+	case u.Interval != nil:
+		m.NextSyncAt = now.Add(m.Interval)
+		if m.LastSyncAt != nil {
+			m.NextSyncAt = m.LastSyncAt.Add(m.Interval)
+			if m.NextSyncAt.Before(now) {
+				m.NextSyncAt = now
+			}
+		}
+	}
+	if err := s.mirrors.Update(ctx, m); err != nil {
+		return nil, err
+	}
+	if retryNow {
+		s.Wake()
+	}
+	return m, nil
+}
+
+// Stop turns a mirror into a regular repository, deleting its stored token.
+func (s *MirrorService) Stop(ctx context.Context, repoID int64) error {
+	return s.mirrors.Delete(ctx, repoID)
 }

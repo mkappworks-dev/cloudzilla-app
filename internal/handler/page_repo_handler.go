@@ -288,6 +288,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		CanManage:         canManage,
 		IsOwner:           isOwner,
 		PendingTransfer:   pendingTransfer,
+		Mirror:            h.mirrorSettings(r.Context(), repo),
 		Confirm:           h.confirmFactors(r, claims.UserID),
 	}))
 }

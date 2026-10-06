@@ -21,6 +21,18 @@ type MirrorBanner struct {
 	SettingsURL string
 }
 
+// MirrorSettings is the settings page's pull-mirror section. It never
+// holds the token, only whether one is stored.
+type MirrorSettings struct {
+	RemoteURL, AuthUsername string
+	HasToken                bool
+	Intervals               []IntervalOption
+	LastSynced, NextSync    string
+	Failing                 bool
+	LastError               string
+	APIURL, SyncURL         string
+}
+
 // MirrorRemoteLabel shows a remote URL without its scheme or .git suffix.
 func MirrorRemoteLabel(remote string) string {
 	label := remote

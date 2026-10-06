@@ -231,8 +231,11 @@ func TestStartImport_Mirror(t *testing.T) {
 	if err := db.QueryRow(`SELECT interval_seconds FROM repo_mirrors WHERE repo_id = $1`, repo.ID).Scan(&interval); err != nil || interval != 3600 {
 		t.Errorf("interval_seconds = %d, %v; want 3600", interval, err)
 	}
+	// Audit entries are written in the background.
 	var audited int
-	_ = db.QueryRow(`SELECT COUNT(*) FROM audit_log WHERE actor_id = $1 AND action = 'repo.mirror.create'`, uid).Scan(&audited)
+	for deadline := time.Now().Add(5 * time.Second); audited == 0 && time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		_ = db.QueryRow(`SELECT COUNT(*) FROM audit_log WHERE actor_id = $1 AND action = 'repo.mirror.create'`, uid).Scan(&audited)
+	}
 	if audited != 1 {
 		t.Errorf("repo.mirror.create audit entries = %d, want 1", audited)
 	}

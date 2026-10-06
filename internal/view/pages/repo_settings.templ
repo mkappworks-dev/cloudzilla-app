@@ -12,13 +12,18 @@ import (
 func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem {
 	items := []components.SettingsSidebarItem{
 		{Label: "General", Href: "#general", Key: "general"},
+	}
+	if d.Mirror != nil {
+		items = append(items, components.SettingsSidebarItem{Label: "Mirror", Href: "#mirror", Key: "mirror"})
+	}
+	items = append(items, []components.SettingsSidebarItem{
 		{Label: "Access", Href: "#access", Key: "access"},
 		{Label: "Collaborators", Href: "#collaborators", Key: "collaborators"},
 		{Label: "Deploy keys", Href: "#deploy-keys", Key: "deploy-keys"},
 		{Label: "Labels", Href: "#labels", Key: "labels"},
 		{Label: "Branch protection", Href: "#branches", Key: "branches"},
 		{Label: "Webhooks", Href: "#webhooks", Key: "webhooks"},
-	}
+	}...)
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
 		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: "Danger zone"})
@@ -187,6 +192,9 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 						}
 					</section>
+					if data.Mirror != nil {
+						@mirrorSettingsSection(*data.Mirror)
+					}
 					<!-- Access -->
 					<section id="access" class="scroll-mt-6">
 						@components.Card(nil) {
@@ -736,4 +744,114 @@ templ RepoSettings(data view.RepoSettingsData) {
 			})();
 		</script>
 	}
+}
+
+// mirrorSettingsSection is frame 2 of the mirror mockups. The token field is
+// write-only: it is never filled in, and an empty one keeps the stored token.
+templ mirrorSettingsSection(m view.MirrorSettings) {
+	<section id="mirror" class="scroll-mt-6 flex flex-col gap-8">
+		@components.Card(nil) {
+			@components.CardHeader() {
+				<h2 class="text-base font-semibold tracking-tight">Pull mirror</h2>
+				@components.CardDescription() {
+					Branches and tags follow the source. The repository is read-only until you stop mirroring.
+				}
+			}
+			@components.CardContent() {
+				<div class="flex flex-col gap-5">
+					<div class="flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-background px-3.5 py-3">
+						<dl class="grid grid-cols-3 gap-6 text-[13px]">
+							<div>
+								<dt class="text-xs text-muted-foreground">Last synced</dt>
+								<dd class="font-medium">{ m.LastSynced }</dd>
+							</div>
+							<div>
+								<dt class="text-xs text-muted-foreground">Status</dt>
+								if m.Failing {
+									<dd class="font-medium text-destructive">Failing</dd>
+								} else {
+									<dd class="font-medium text-success">Up to date</dd>
+								}
+							</div>
+							<div>
+								<dt class="text-xs text-muted-foreground">Next sync</dt>
+								<dd class="font-medium">{ m.NextSync }</dd>
+							</div>
+						</dl>
+						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "hx-post": m.SyncURL, "hx-swap": "none"}) {
+							Sync now
+						}
+					</div>
+					if m.Failing {
+						<p role="alert" class="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3">{ m.LastError }</p>
+					}
+					<form hx-patch={ m.APIURL } hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#mirror-form-error').textContent=''" data-toast="Mirror settings saved" class="space-y-5">
+						<div id="mirror-form-error" class="empty:hidden"></div>
+						<div class="space-y-1.5">
+							<label for="mirror-url" class="block text-sm font-medium">Source URL</label>
+							<input id="mirror-url" type="url" name="remote_url" value={ m.RemoteURL } required class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+						</div>
+						<div class="grid sm:grid-cols-2 gap-4">
+							<div class="space-y-1.5">
+								<label for="mirror-username" class="block text-sm font-medium">Username</label>
+								<input id="mirror-username" type="text" name="auth_username" value={ m.AuthUsername } autocomplete="off" spellcheck="false" class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+							</div>
+							<div class="space-y-1.5">
+								<label for="mirror-token" class="block text-sm font-medium">Access token</label>
+								if m.HasToken {
+									<input id="mirror-token" type="password" name="auth_token" autocomplete="new-password" placeholder="Stored · enter a new one to replace it" class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+								} else {
+									<input id="mirror-token" type="password" name="auth_token" autocomplete="new-password" placeholder="None stored" class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+								}
+							</div>
+						</div>
+						if m.HasToken {
+							<label class="flex items-center gap-2 text-[13px] text-muted-foreground">
+								<input type="checkbox" name="clear_token" value="1" class="h-4 w-4 accent-[hsl(var(--ring))]"/>
+								Remove the stored token (the source is public)
+							</label>
+						}
+						<div class="space-y-1.5">
+							<label for="mirror-interval" class="block text-sm font-medium">Sync every</label>
+							<select id="mirror-interval" name="interval" class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-2.5 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring">
+								for _, opt := range m.Intervals {
+									<option value={ opt.Value } selected?={ opt.Selected }>{ opt.Label }</option>
+								}
+							</select>
+							<p class="text-xs text-muted-foreground">The token is stored encrypted and never shown again.</p>
+						</div>
+						<div class="flex justify-end">
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								Save changes
+							}
+						</div>
+					</form>
+				</div>
+			}
+		}
+		@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
+			@components.CardHeader() {
+				<h2 class="text-base font-semibold tracking-tight text-destructive">Stop mirroring</h2>
+				@components.CardDescription() {
+					Turn this into a regular, writable repository. Its branches stay as they are now, and the stored token is deleted. A repository can't be turned back into a mirror.
+				}
+			}
+			@components.CardContent() {
+				<div class="flex justify-end">
+					@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+						"hx-delete":            m.APIURL,
+						"hx-swap":              "none",
+						"hx-confirm":           "The repository becomes writable and stops following its source. This can't be undone.",
+						"data-confirm-title":   "Stop mirroring?",
+						"data-confirm-label":   "Stop mirroring",
+						"data-confirm-danger":  "true",
+						"hx-on::after:request": stashToast("Mirroring stopped"),
+						"type":                 "button",
+					}) {
+						Stop mirroring
+					}
+				</div>
+			}
+		}
+	</section>
 }

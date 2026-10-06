@@ -76,6 +76,10 @@
 
 - [x] `ContentReadOnly` covers mirrors, `ErrRepoMirror` and `PushRefusal`, PR creation refused, option A banner and badge, Sync now endpoint.
 
-## Tickets 08–09
+## Ticket 08: settings and API (done)
+
+- [x] `GET`/`PATCH`/`DELETE /api/repos/{owner}/{repo}/mirror` (needs `CanManage`; `repo:admin` for tokens), the settings section from frame 2, and update/delete audit entries.
+
+## Ticket 09
 
 These follow the ticket files. Expand this plan before starting each one.

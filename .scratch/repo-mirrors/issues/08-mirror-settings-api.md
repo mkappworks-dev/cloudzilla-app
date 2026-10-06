@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 05, 06, 07
 
 Spec: [../spec.md](../spec.md#api)
@@ -20,8 +20,15 @@ Spec: [../spec.md](../spec.md#api)
 
 ## Acceptance criteria
 
-- [ ] `CanManage` is required for GET, PATCH and DELETE. `CanWrite` is required for sync.
-- [ ] Scoped tokens need `repo:admin`.
-- [ ] No response or rendered page contains the token.
-- [ ] After Stop mirroring, a push succeeds and no mirror row remains.
-- [ ] Changing the URL or interval reschedules the mirror.
+- [x] `CanManage` is required for GET, PATCH and DELETE. `CanWrite` is required for sync.
+- [x] Scoped tokens need `repo:admin`.
+- [x] No response or rendered page contains the token.
+- [x] After Stop mirroring, a push succeeds and no mirror row remains.
+- [x] Changing the URL or interval reschedules the mirror.
+
+## Comments
+
+**Claude, 2026-10-06:**
+- `PATCH` takes JSON or the settings form. In both, an empty `auth_token` keeps the stored token and `clear_token` removes it.
+- A new URL, username or token makes the mirror due at once and wakes the loop, so a fix shows within seconds. A new interval counts from the last sync.
+- The `repo.mirror.update` audit entry lists the changed field names and the remote URL, never the token.
