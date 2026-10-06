@@ -62,7 +62,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
 		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
 		if err == nil {
-			readmeHTML = markdown.Render(string(raw))
+			readmeHTML = markdown.RenderCtx(r.Context(), string(raw))
 			readmeName = name
 			break
 		}

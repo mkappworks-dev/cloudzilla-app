@@ -390,6 +390,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	canMerge, mergeBlockReason, _ := h.Services.PullReview.CanMerge(r.Context(), pull.ID)
 
+	// The body renders before the comments so it is first in line for the request's highlight budget.
+	bodyHTML := markdown.RenderCtx(r.Context(), pull.Body)
 	rawComments, err := h.Services.Comment.ListByPull(r.Context(), pull.ID)
 	if err != nil {
 		slog.Warn("pull detail: comment list failed; rendering without conversation",
@@ -399,7 +401,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	for _, c := range rawComments {
 		comments = append(comments, view.RenderedComment{
 			Comment:  c,
-			BodyHTML: renderMentionsHTML(markdown.Render(c.Body)),
+			BodyHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), c.Body)),
 		})
 	}
 
@@ -499,7 +501,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Owner:             owner,
 		RepoName:          repoName,
 		AuthorUsername:    authorUsername,
-		BodyHTML:          markdown.Render(pull.Body),
+		BodyHTML:          bodyHTML,
 		Labels:            pullLabels2,
 		Assignees:         pullAssignees,
 		AllLabels:         allLabels2,
@@ -744,7 +746,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		key := view.LineCommentKeyOf(c)
 		lineComments[key] = append(lineComments[key], RenderedLineComment{
 			PullLineComment: c,
-			BodyHTML:        markdown.Render(c.Body),
+			BodyHTML:        markdown.RenderCtx(r.Context(), c.Body),
 		})
 	}
 

@@ -79,7 +79,7 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 		Owner:       owner,
 		RepoName:    repoName,
 		Slug:        slug,
-		ContentHTML: markdown.Render(rawContent),
+		ContentHTML: markdown.RenderCtx(r.Context(), rawContent),
 		PageList:    pageList,
 		CanWrite:    canWrite,
 		CanManage:   canManage,

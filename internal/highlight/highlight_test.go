@@ -1,10 +1,13 @@
 package highlight
 
 import (
+	"context"
 	"html"
 	"html/template"
 	"regexp"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -187,6 +190,75 @@ func TestBlockWithin_ExpiredBudgetIsNotCharged(t *testing.T) {
 	}
 	if b.bytes != 100 {
 		t.Errorf("budget bytes = %d, want 100: an expired budget must refuse before lexing", b.bytes)
+	}
+}
+
+func TestSub_ChargesTheParentToo(t *testing.T) {
+	src := "package main\n\nvar x = 1\n" // 24 bytes
+	parent := NewBudget(40, time.Minute)
+	if got := BlockWithin(parent.Sub(30, time.Minute), "go", "", src); got == "" {
+		t.Fatal("first block = \"\", want highlighted")
+	}
+	if got := BlockWithin(parent.Sub(30, time.Minute), "go", "", src); got != "" {
+		t.Error("second block highlighted past the parent's budget, want plain")
+	}
+	if parent.bytes != 16 {
+		t.Errorf("parent bytes = %d, want 16", parent.bytes)
+	}
+}
+
+func TestSub_RefusalLeavesEveryBudgetAlone(t *testing.T) {
+	parent := NewBudget(100, time.Minute)
+	child := parent.Sub(10, time.Minute)
+	if got := BlockWithin(child, "go", "", "package main\n\nvar x = 1\n"); got != "" {
+		t.Fatalf("BlockWithin = %q, want plain past the child's budget", got)
+	}
+	if parent.bytes != 100 || child.bytes != 10 {
+		t.Errorf("bytes = %d/%d, want 100/10 after a refusal", parent.bytes, child.bytes)
+	}
+}
+
+func TestSub_GivesUpPastTheParentDeadline(t *testing.T) {
+	child := NewBudget(1<<20, -time.Second).Sub(1<<20, time.Minute)
+	if got := BlockWithin(child, "go", "", "package main\n"); got != "" {
+		t.Errorf("BlockWithin = %q, want plain once the parent's deadline has passed", got)
+	}
+}
+
+func TestSub_OfNilIsAPlainBudget(t *testing.T) {
+	var b *Budget
+	if got := BlockWithin(b.Sub(1<<20, time.Minute), "go", "", "package main\n"); got == "" {
+		t.Error("BlockWithin = \"\", want highlighted")
+	}
+}
+
+func TestBudgetFrom(t *testing.T) {
+	if b := BudgetFrom(context.Background()); b != nil {
+		t.Errorf("BudgetFrom(empty ctx) = %p, want nil", b)
+	}
+	b := NewBudget(1, time.Minute)
+	if got := BudgetFrom(WithBudget(context.Background(), b)); got != b {
+		t.Errorf("BudgetFrom = %p, want %p", got, b)
+	}
+}
+
+func TestBudget_ConcurrentChargesNeverOverspend(t *testing.T) {
+	src := "package main\n\nvar x = 1\n" // 24 bytes
+	parent := NewBudget(24*10, time.Minute)
+	var wg sync.WaitGroup
+	var highlighted atomic.Int32
+	for range 50 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if BlockWithin(parent.Sub(1<<20, time.Minute), "go", "", src) != "" {
+				highlighted.Add(1)
+			}
+		}()
+	}
+	wg.Wait()
+	if n := highlighted.Load(); n != 10 {
+		t.Errorf("%d blocks highlighted, want 10: the budget fits exactly 10", n)
 	}
 }
 

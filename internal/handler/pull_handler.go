@@ -259,7 +259,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 				Pull:              *pr,
 				Owner:             owner,
 				Repo:              repoName,
-				BodyHTML:          markdown.Render(pr.Body),
+				BodyHTML:          markdown.RenderCtx(r.Context(), pr.Body),
 				CanWrite:          true, // already verified above
 				AutoMergeEnabled:  pr.AutoMergeEnabled,
 				AutoMergeStrategy: pr.AutoMergeStrategy,
@@ -297,7 +297,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 				Pull:              *pr,
 				Owner:             owner,
 				Repo:              repoName,
-				BodyHTML:          markdown.Render(pr.Body),
+				BodyHTML:          markdown.RenderCtx(r.Context(), pr.Body),
 				CanWrite:          true, // already verified above
 				AutoMergeEnabled:  pr.AutoMergeEnabled,
 				AutoMergeStrategy: pr.AutoMergeStrategy,
@@ -390,7 +390,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 			Pull: *pr, Owner: owner, Repo: repoName,
-			BodyHTML: markdown.Render(pr.Body),
+			BodyHTML: markdown.RenderCtx(r.Context(), pr.Body),
 		}))
 		return
 	}

@@ -646,7 +646,7 @@ func (h *Handler) renderMilestoneDetail(w http.ResponseWriter, r *http.Request, 
 		TotalCount:       total,
 		TotalPages:       totalPages,
 		PerPage:          milestoneItemsPerPage,
-		DescriptionHTML:  renderMentionsHTML(markdown.Render(m.Description)),
+		DescriptionHTML:  renderMentionsHTML(markdown.RenderCtx(r.Context(), m.Description)),
 	}))
 }
 
@@ -804,7 +804,7 @@ func (h *Handler) MilestoneBodySection(w http.ResponseWriter, r *http.Request) {
 		RepoName:        repoName,
 		Number:          number,
 		Description:     m.Description,
-		DescriptionHTML: renderMentionsHTML(markdown.Render(m.Description)),
+		DescriptionHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), m.Description)),
 		CanWrite:        canWrite,
 		Editing:         r.URL.Query().Get("mode") == "edit",
 	}))
@@ -838,7 +838,7 @@ func (h *Handler) EditMilestoneBody(w http.ResponseWriter, r *http.Request) {
 		RepoName:        repoName,
 		Number:          number,
 		Description:     updated.Description,
-		DescriptionHTML: renderMentionsHTML(markdown.Render(updated.Description)),
+		DescriptionHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), updated.Description)),
 		CanWrite:        true,
 		Editing:         false,
 	}))
