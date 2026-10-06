@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 
 ## Problem
 
@@ -37,7 +37,7 @@ A suspended account must lose every one of these. Each already funnels through a
 | Personal access token, git HTTP (Basic password) | `resolveGitUser` (`internal/handler/git_http.go`) → `AccessTokenService.Validate` | Same, answered as a `403` so git keeps the stored credential |
 | OAuth app token | `serveOAuth` → `OAuthAppService.ResolveOAuthToken` (loads the user) | `ResolveOAuthToken` refuses |
 | SSH user key | `internal/ssh` `publicKeyHandler` → `SSHKeyService.AuthenticatePublicKey` (loads the user) | `AuthenticatePublicKey` refuses |
-| SSH deploy key | `publicKeyHandler` → `DeployKeyService.AuthenticatePublicKey` | Refused when the key's repo is a personal repo of a suspended user; `deploy_keys` records no creator, so org repos' keys are unaffected |
+| SSH deploy key | `publicKeyHandler` → `DeployKeyService.AuthenticatePublicKey`, then `sessionHandler` loads the repo | Refused when the key's repo is a personal repo of a suspended user, who could otherwise keep pushing with a deploy key they hold. `deploy_keys` records no creator, so org repos' keys are unaffected |
 
 Every session JWT is minted in one of the two `generateJWT` functions, so refusing there also covers ways in that are added later (such as the password-reset flow being built in parallel).
 
@@ -60,7 +60,7 @@ Who suspended the account, and why, go in the audit log, not the row. A `suspend
 - **`/admin/users`**: a new admin tab. It lists accounts 50 per page, newest first, with username, name, email, role, status (active or suspended), 2FA, sign-in method and created date. It filters by role (all, superadmins) and status (all, active, suspended), and `q` matches a username or email prefix, case-insensitively, using the existing `lower(username)` and `lower(email)` indexes. The ghost is never listed. Offset pagination with a total count, like `/admin/audit-log`.
 - **`/admin/users/{username}`**: one account, with its email and verification, role, status, 2FA, sign-in methods, created date, last web sign-in (latest `login` audit entry, via the `(actor_id, created_at)` index), and the organizations it solely owns. It also holds the actions, each in a confirmation dialog.
 
-Layout choices get a mockup before any UI is built.
+Layout: a searchable table whose usernames link to the user page; the user page has a details card and an actions card, with delete styled as destructive (the repo settings danger-zone card). Each action opens the global `ConfirmDialog` with `ConfirmFields` (password and code). Chosen over per-row action menus because the admin should see the sole-owner warning and sign-in facts before acting.
 
 ### Actions
 
@@ -68,14 +68,15 @@ Each action is a `POST` under `/api/admin/users/{username}/…` (HTMX-aware like
 
 | Action | Effect | Refused when |
 | --- | --- | --- |
-| Suspend (optional reason) | Sets `suspended_at` and bumps `session_version` in one `UPDATE`, so unsuspending doesn't revive old sessions | Self; it would leave no active superadmin |
+| Suspend (optional reason) | Sets `suspended_at` and bumps `session_version` in one `UPDATE`, so unsuspending doesn't revive old sessions. The dialog warns, naming any organization the user solely owns | Self; it would leave no active superadmin |
 | Unsuspend | Clears `suspended_at`. Tokens, keys and app grants work again; sessions don't | — |
 | Promote to superadmin | `is_superadmin = TRUE` | The user is suspended |
 | Demote | `is_superadmin = FALSE` | Self; it would leave no active superadmin |
 | Reset 2FA | Clears the TOTP secret, `totp_enabled` and backup codes; mails the user a security notice | Self (use Settings) |
+| Revoke tokens and keys | Deletes the user's personal access tokens, SSH keys and OAuth app authorizations, and bumps `session_version`; mails the user a security notice. Usable whether or not the user is suspended. Deploy keys and OAuth apps the user owns are untouched | Self (use Settings) |
 | Delete | `UserService.DeleteUser`: personal repos go, contributions elsewhere pass to the ghost. Also requires typing the username | Self (use Settings); it would leave no active superadmin; the user solely owns an organization (`ErrSoleOrgOwner`, naming the orgs) |
 
-Audit actions: `admin.user.suspend` (metadata: reason), `admin.user.unsuspend`, `admin.user.promote`, `admin.user.demote`, `admin.user.2fa_reset`, `admin.user.delete` (metadata: email). `target_id` has no FK, so a deleted user's entries keep their `target_name`.
+Audit actions: `admin.user.suspend` (metadata: reason), `admin.user.unsuspend`, `admin.user.promote`, `admin.user.demote`, `admin.user.2fa_reset`, `admin.user.credentials_revoke` (metadata: counts revoked), `admin.user.delete` (metadata: email). `target_id` has no FK, so a deleted user's entries keep their `target_name`.
 
 ### Role changes take effect on the next request
 
@@ -90,7 +91,7 @@ Refusing self-destructive actions means one admin alone can't remove the last ac
 
 ### What a suspended account shows
 
-See open question 4. The proposed default changes nothing for other users: the profile, public repos, issues and comments stay. Collaborators keep their access to the suspended user's repos. Superadmins see a "Suspended" badge on the profile and in the list. The suspended user gets no notification email: `wantsEmail` skips them, which covers both immediate mail and digests.
+Nothing changes for other users: the profile, public repos, issues and comments stay. Collaborators keep their access to the suspended user's repos. Superadmins see a "Suspended" badge on the profile and in the list. The suspended user gets no notification email: `wantsEmail` skips them, which covers both immediate mail and digests.
 
 A suspended user who signs in with correct credentials sees "This account is suspended. Contact your administrator." The message appears only after the first factor passes, so it doesn't tell a stranger the account exists. `POST /api/auth/login` answers `403 {"error":"account_suspended"}`, and so do API requests with a suspended user's token.
 
@@ -106,6 +107,8 @@ A suspended user who signs in with correct credentials sees "This account is sus
 - [ ] After unsuspension, PATs, SSH keys, deploy keys and OAuth app tokens work again.
 - [ ] Promote and demote take effect on the user's next request, without signing them out.
 - [ ] Reset 2FA clears the secret, flag and backup codes, and mails the user.
+- [ ] Revoke tokens and keys deletes the user's PATs, SSH keys and OAuth app authorizations, ends their sessions, and mails the user; deploy keys are untouched.
+- [ ] The suspend dialog names the organizations the user solely owns.
 - [ ] Admin delete removes the account like self-service deletion, and refuses a sole organization owner.
 - [ ] No action applies to the acting admin's own account (except promote, which is moot).
 - [ ] No sequence of actions, concurrent or not, and no self-service deletion leaves zero active superadmins.
@@ -126,11 +129,23 @@ A suspended user who signs in with correct credentials sees "This account is sus
 - `internal/router/router.go`
 - `docs/access-control.md`, `docs/api-reference.md`
 
-## Open questions
+## Decisions
 
-1. **Suspend, delete, or both?** Suspension is reversible and keeps everything. Delete is final, removes personal repos, and hands contributions to the ghost. Proposed: both, with suspend as the everyday tool.
-2. **v1 scope.** Proposed: list and search, user page, suspend and unsuspend, promote and demote, 2FA reset, delete. Admin-issued password reset waits for open question 3.
-3. **Admin-issued password reset.** The parallel password-reset branch (`feat/password-reset`, nothing committed yet) owns reset tokens. Options: a follow-up that reuses its service once it lands; a "set a temporary password" action now, which means the admin knows the user's password; or calling its service from this branch before it merges. Proposed: follow-up.
-4. **What do others see of a suspended account?** Options: nothing changes (badge for superadmins only); a public "Suspended" badge; or hide the profile and personal repos (404) from everyone but superadmins, which also cuts off collaborators. Proposed: nothing changes.
-5. **Do tokens, keys and app grants survive suspension?** Proposed: they're refused while suspended and work again after. If the account was compromised, anything the attacker created comes back too. An "also revoke tokens, SSH keys and app authorizations" option on suspend would cover that.
-6. **Sole organization owners.** Superadmins have no organization override (restoring a deleted repo is the only permission check that honours `claims.IsSuperadmin`). Suspending an org's only owner leaves it unmanageable; deleting one is refused. Proposed: allow suspension with a warning naming the orgs, and leave "superadmin takes over an org" as a follow-up.
+Settled with the maintainer on 2026-10-06; each took the proposed option.
+
+1. **Suspend and delete:** both, with suspend as the everyday tool and delete for final cleanup.
+2. **v1 scope:** list and search, user page, suspend and unsuspend, promote and demote, 2FA reset, revoke tokens and keys, delete.
+3. **Admin-issued password reset:** a follow-up once `feat/password-reset` merges; see [../admin-password-reset/spec.md](../admin-password-reset/spec.md).
+4. **What others see:** nothing changes; the "Suspended" badge shows only to superadmins.
+5. **Tokens, keys and app grants:** suspension only blocks them, and they work again after unsuspension. A separate "Revoke tokens and keys" action deletes them.
+6. **Sole organization owners:** suspension is allowed with a warning naming the orgs; delete is refused naming them. "Superadmin adds an org owner" is a follow-up; see [../superadmin-org-owner/spec.md](../superadmin-org-owner/spec.md).
+7. **Layout:** list plus a page per user (above).
+
+## Known gaps
+
+- Deploy keys on org repos keep working while a suspended user holds them, because `deploy_keys` records no creator.
+- OAuth apps the suspended user owns keep serving the users who authorized them.
+
+## Comments
+
+**Malith Kuruppu, 2026-10-06:** Answered the open questions and picked layout A; recorded under Decisions.
