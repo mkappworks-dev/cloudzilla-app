@@ -22,6 +22,18 @@ import (
 // a folder inside a folder.
 func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 	t.Helper()
+	h, r, _, sha := seedCodeRepoWith(t)
+	return h, r, sha
+}
+
+// oddPaths are names whose URL form differs from the name: Go escapes ' where
+// browsers don't, # and ? would cut the URL, and % would decode into another name.
+var oddPaths = []string{`odd "q'uote"/note.txt`, "hash#q?/n.txt", "pct%41/n.txt"}
+
+// seedCodeRepoWith is seedCodeRepo plus extra files on main, returning the
+// CodeService so a test can add refs.
+func seedCodeRepoWith(t *testing.T, extra ...string) (http.Handler, seededRepo, *service.CodeService, string) {
+	t.Helper()
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
 	r := seedOwnedRepo(t, db, false)
@@ -30,7 +42,8 @@ func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 		t.Fatalf("init bare repo: %v", err)
 	}
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
-	for _, path := range []string{"README.md", "lib/README.md", "lib/config.js", "lib/util/helper.js"} {
+	paths := append([]string{"README.md", "lib/README.md", "lib/config.js", "lib/util/helper.js"}, extra...)
+	for _, path := range paths {
 		if err := code.CommitFile(r.owner.name, r.name, "main", path, []byte("x\n"), raceAuthor, "Add "+path); err != nil {
 			t.Fatalf("commit %s: %v", path, err)
 		}
@@ -38,7 +51,7 @@ func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 	if err := code.CreateBranch(r.owner.name, r.name, "feature/x", "main"); err != nil {
 		t.Fatalf("create feature/x: %v", err)
 	}
-	return newAPIRouterAt(t, db, reposRoot), r, branchHash(t, git, "main").String()
+	return newAPIRouterAt(t, db, reposRoot), r, code, branchHash(t, git, "main").String()
 }
 
 func getAnonymous(h http.Handler, path string) *httptest.ResponseRecorder {
@@ -266,5 +279,34 @@ func TestFileTree_HiddenCookieHidesThePanel(t *testing.T) {
 				t.Errorf("%s: want one Show files button, got %d", page, got)
 			}
 		}
+	}
+}
+
+func TestCodePages_ResolveEscapedPaths(t *testing.T) {
+	h, r, _, _ := seedCodeRepoWith(t, oddPaths...)
+	const browser = `odd%20%22q'uote%22`
+	const escaped = `odd%20%22q%27uote%22`
+	var urls []string
+	for _, dir := range []string{browser, escaped} {
+		urls = append(urls,
+			r.path+"/tree/main/"+dir,
+			r.path+"/blob/main/"+dir+"/note.txt",
+			r.path+"/blame/main/"+dir+"/note.txt",
+			r.path+"/raw/main/"+dir+"/note.txt",
+			"/fragments"+r.path+"/tree/main/"+dir,
+		)
+	}
+	urls = append(urls,
+		r.path+"/tree/main/hash%23q%3F",
+		r.path+"/blob/main/hash%23q%3F/n.txt",
+		r.path+"/tree/main/pct%2541",
+		r.path+"/blob/main/pct%2541/n.txt",
+	)
+	for _, u := range urls {
+		t.Run(u, func(t *testing.T) {
+			if rr := getAnonymous(h, u); rr.Code != http.StatusOK {
+				t.Errorf("want 200, got %d", rr.Code)
+			}
+		})
 	}
 }

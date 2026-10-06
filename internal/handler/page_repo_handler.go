@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -743,7 +744,19 @@ func routeRefPath(r *http.Request) string {
 	if rest := chi.URLParam(r, "*"); rest != "" {
 		refPath += "/" + rest
 	}
-	return refPath
+	return unescapeRouted(r, refPath)
+}
+
+// unescapeRouted decodes a route param of r. chi routes on RawPath when it's
+// set, so only then are its params still escaped.
+func unescapeRouted(r *http.Request, param string) string {
+	if r.URL.RawPath == "" {
+		return param
+	}
+	if decoded, err := url.PathUnescape(param); err == nil {
+		return decoded
+	}
+	return param
 }
 
 // pickerRefs feeds the ref picker best-effort: a failure leaves it with only
