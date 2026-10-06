@@ -392,7 +392,7 @@ func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, 
 		abandonNewRepo(ctx, s.repos, 0, repoPath)
 		return nil, repoNameErr("create repo", err)
 	}
-	if _, err := gogit.PlainInit(repoPath, true); err != nil {
+	if err := initBareRepo(repoPath, r.DefaultBranch); err != nil {
 		abandonNewRepo(ctx, s.repos, r.ID, repoPath)
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}
@@ -409,6 +409,16 @@ func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, 
 	}
 
 	return r, nil
+}
+
+// initBareRepo creates an empty bare repo whose HEAD names defaultBranch;
+// go-git would otherwise point it at master, which readers of HEAD then miss.
+func initBareRepo(path, defaultBranch string) error {
+	_, err := gogit.PlainInitWithOptions(path, &gogit.PlainInitOptions{
+		Bare:        true,
+		InitOptions: gogit.InitOptions{DefaultBranch: plumbing.NewBranchReferenceName(defaultBranch)},
+	})
+	return err
 }
 
 // seedInitialCommit writes the objects into the bare repo itself: a go-git push
@@ -1030,7 +1040,7 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 			abandonNewRepo(ctx, s.repos, newRepo.ID, dstPath)
 			return nil, fmt.Errorf("copy template git dir: %w", err)
 		}
-	} else if _, err := gogit.PlainInit(dstPath, true); err != nil {
+	} else if err := initBareRepo(dstPath, newRepo.DefaultBranch); err != nil {
 		abandonNewRepo(ctx, s.repos, newRepo.ID, dstPath)
 		return nil, fmt.Errorf("git init bare for template copy: %w", err)
 	}
