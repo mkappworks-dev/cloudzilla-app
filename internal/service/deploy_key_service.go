@@ -32,6 +32,15 @@ func (s *DeployKeyService) Add(ctx context.Context, repoID int64, title, rawPubl
 	// computeFingerprint is package-level in ssh_key_service.go (same package)
 	fingerprint := computeFingerprint(pubKey)
 
+	// SSH auth binds a key to one repo at handshake, before the command names the repo.
+	_, err = s.keys.GetByFingerprint(ctx, fingerprint)
+	if err == nil {
+		return nil, errors.New("this key is already registered as a deploy key")
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+
 	// Cross-table uniqueness: reject if already registered as a user SSH key
 	if _, err := s.sshKeys.GetByFingerprint(ctx, fingerprint); err == nil {
 		return nil, errors.New("this key is already registered as a user SSH key")
