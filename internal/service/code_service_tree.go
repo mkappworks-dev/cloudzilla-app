@@ -46,6 +46,8 @@ type BlobResult struct {
 	Size      int64 // file size in bytes
 	SHA       string
 	IsSymlink bool
+	// EditableText is set for a text file a textarea can round-trip.
+	EditableText bool
 	// IsBranch is set when Ref named a branch rather than a tag or commit.
 	IsBranch    bool
 	Breadcrumbs []BreadcrumbPart
@@ -161,6 +163,7 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 			}
 		}
 		result.Lines = lines
+		result.EditableText = IsEditableText(contents)
 	}
 
 	return result, nil

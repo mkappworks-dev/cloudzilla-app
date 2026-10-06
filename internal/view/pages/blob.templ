@@ -160,7 +160,7 @@ templ Blob(data view.BlobData) {
 
 		if data.CanDelete {
 			@components.Dialog("blob-delete-dialog") {
-				<form hx-post={ data.DeleteURL } data-toast="File deleted">
+				<form hx-post={ data.DeleteURL } hx-disable="find button[type=submit]" hx-on::response:error="this.closest('dialog').close()" data-toast="File deleted">
 					<input type="hidden" name="blob_sha" value={ data.BlobSHA }/>
 					@components.DialogHeader() {
 						@components.DialogTitle("blob-delete-dialog") {

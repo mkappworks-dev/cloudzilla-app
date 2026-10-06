@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -111,6 +112,13 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 	return nil
 }
 
+// IsEditableText reports whether a textarea can round-trip s: it must be
+// UTF-8, and hold no CR outside a CRLF, which the HTML parser turns into a
+// line break.
+func IsEditableText(s string) bool {
+	return utf8.ValidString(s) && strings.Count(s, "\r") == strings.Count(s, "\r\n")
+}
+
 // BranchFile is a file on a branch's tip, as GetBranchFile reads it.
 type BranchFile struct {
 	SHA      string
@@ -160,9 +168,13 @@ func (s *CodeService) GetBranchFile(owner, repoName, branch, filePath string, ma
 // newPath renames the file, keeping its mode; one that holds any entry is
 // ErrPathCollision. Unlike CommitFile, it never creates the branch.
 func (s *CodeService) EditFile(owner, repoName, branch, oldPath, newPath, baseSHA string, content []byte, author GitAuthor, message string) error {
-	newPath, err := CleanFilePath(newPath)
-	if err != nil {
-		return err
+	// A pushed path CleanFilePath would rewrite, such as one with a backslash,
+	// must not be renamed by an edit that leaves the path field alone.
+	if newPath != oldPath {
+		var err error
+		if newPath, err = CleanFilePath(newPath); err != nil {
+			return err
+		}
 	}
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
@@ -199,7 +211,7 @@ func (s *CodeService) EditFile(owner, repoName, branch, oldPath, newPath, baseSH
 
 // DeleteFile removes the file or symlink at filePath on branch, which must
 // still hold baseSHA (else ErrFileChanged), along with the folders that leaves
-// empty. It returns the nearest folder of filePath that remains, "" for the
+// empty. Naming a folder or submodule by its own hash is object.ErrFileNotFound. It returns the nearest folder of filePath that remains, "" for the
 // root.
 func (s *CodeService) DeleteFile(owner, repoName, branch, filePath, baseSHA string, author GitAuthor, message string) (string, error) {
 	repo, err := s.openRepo(owner, repoName)
@@ -258,6 +270,9 @@ func baseEntry(repo *gogit.Repository, branch, filePath, baseSHA string, symlink
 	e, err := tree.FindEntry(filePath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w: %s is gone", ErrFileChanged, filePath)
+	}
+	if (e.Mode == filemode.Dir || e.Mode == filemode.Submodule) && e.Hash.String() == baseSHA {
+		return nil, nil, nil, fmt.Errorf("%w: %s", object.ErrFileNotFound, filePath)
 	}
 	isFile := e.Mode == filemode.Regular || e.Mode == filemode.Executable || (symlinkOK && e.Mode == filemode.Symlink)
 	if !isFile || e.Hash.String() != baseSHA {

@@ -559,7 +559,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, *userID)
 	}
 	canDelete := canWrite && !repo.IsArchived && result.IsBranch
-	canEdit := canDelete && !result.IsBinary && !result.IsSymlink && result.Size <= maxEditFileBytes
+	canEdit := canDelete && !result.IsBinary && !result.IsSymlink && result.Size <= maxEditFileBytes && result.EditableText
 
 	// Latest commit touching this specific file path. Best-effort: failures
 	// just leave the sub-header off.

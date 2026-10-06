@@ -312,6 +312,32 @@ func TestEditFile_RefusesAnUnchangedFile(t *testing.T) {
 	}
 }
 
+func TestEditFile_LeavesAnUncleanPathItKeeps(t *testing.T) {
+	r := newCollisionTestRepo(t)
+	r.commitEntry(t, "main", `win\name.txt`, filemode.Regular, r.blob(t, "w\n"))
+	base := r.entryHash(t, "main", `win\name.txt`)
+	if err := r.svc.EditFile(r.owner, r.name, "main", `win\name.txt`, `win\name.txt`, base.String(), []byte("w2\n"), tipTestAuthor, "Update"); err != nil {
+		t.Fatalf("EditFile: %v", err)
+	}
+	r.expectEntries(t, "main", map[string]mergeFile{`win\name.txt`: {hash: r.blob(t, "w2\n"), mode: filemode.Regular}})
+}
+
+func TestIsEditableText(t *testing.T) {
+	for s, want := range map[string]bool{
+		"":              true,
+		"a\nb\n":        true,
+		"a\r\nb\r\n":    true,
+		"café\n":        true,
+		"caf\xe9\n":     false,
+		"a\rb\n":        false,
+		"a\r\nb\rc\r\n": false,
+	} {
+		if got := IsEditableText(s); got != want {
+			t.Errorf("IsEditableText(%q) = %v, want %v", s, got, want)
+		}
+	}
+}
+
 func TestEditFile_RefusesInvalidTargets(t *testing.T) {
 	for _, to := range []string{"", "a/../b", ".git/config", deepPath(maxFilePathBytes + 1)} {
 		t.Run(to, func(t *testing.T) {
@@ -393,8 +419,8 @@ func TestDeleteFile_Refuses(t *testing.T) {
 	}{
 		{"stale base", "main", "a.txt", func(r *tipTestRepo) string { return r.blob(t, "old\n").String() }, ErrFileChanged},
 		{"missing file", "main", "nope.txt", func(r *tipTestRepo) string { return r.blob(t, "a\n").String() }, ErrFileChanged},
-		{"submodule", "main", "deps/lib", func(*tipTestRepo) string { return mainLib.String() }, ErrFileChanged},
-		{"folder", "main", "docs", func(r *tipTestRepo) string { return r.entryHash(t, "main", "docs").String() }, ErrFileChanged},
+		{"submodule", "main", "deps/lib", func(*tipTestRepo) string { return mainLib.String() }, object.ErrFileNotFound},
+		{"folder", "main", "docs", func(r *tipTestRepo) string { return r.entryHash(t, "main", "docs").String() }, object.ErrFileNotFound},
 		{"malformed base", "main", "a.txt", func(*tipTestRepo) string { return "abc" }, ErrFileChanged},
 		{"missing branch", "gone", "a.txt", func(r *tipTestRepo) string { return r.blob(t, "a\n").String() }, ErrRefNotFound},
 	}

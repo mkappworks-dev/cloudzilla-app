@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: bug
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -58,17 +58,17 @@ Checked on 2026-10-06 in the desktop app's built-in browser against a throwaway 
 
 ## Acceptance criteria
 
-- [ ] A writer can open Edit from a text file on a branch, change it, and commit onto that branch with a message. The redirect lands on the updated blob.
-- [ ] Changing the path renames the file in the same commit: missing folders are created, emptied folders are pruned, the mode is kept, and an existing target is refused with 409.
-- [ ] Delete opens a dialog, commits the removal with the given or default message, prunes emptied folders and lands on the nearest remaining folder. Binary files, large files and symlinks can be deleted.
-- [ ] If the file changed on the branch after the page loaded, edit, rename and delete are refused with 409 and the branch doesn't move. A commit to another file in the meantime doesn't block them.
-- [ ] A refused edit re-renders the form with the user's text, path and message kept.
-- [ ] An executable file stays 100755 after an edit or rename.
-- [ ] Editing an LF file through the browser's textarea commits LF, a CRLF file stays CRLF, and a file that starts with a blank line keeps it. New file's textarea commits LF; uploads are unchanged.
-- [ ] The blob page hides Edit, and the edit routes refuse, for readers, anonymous viewers, archived repos, tag and SHA refs, binary files, symlinks and files over 1 MiB. Delete is hidden and refused for the same viewers, repos and refs.
-- [ ] An edit that changes neither path nor content is refused with a clear message.
-- [ ] The commit's author follows the keep-email-private setting.
-- [ ] `docs/code-browser.md` and the route table in `docs/access-control.md` cover the edit and delete routes.
+- [x] A writer can open Edit from a text file on a branch, change it, and commit onto that branch with a message. The redirect lands on the updated blob.
+- [x] Changing the path renames the file in the same commit: missing folders are created, emptied folders are pruned, the mode is kept, and an existing target is refused with 409.
+- [x] Delete opens a dialog, commits the removal with the given or default message, prunes emptied folders and lands on the nearest remaining folder. Binary files, large files and symlinks can be deleted.
+- [x] If the file changed on the branch after the page loaded, edit, rename and delete are refused with 409 and the branch doesn't move. A commit to another file in the meantime doesn't block them.
+- [x] A refused edit re-renders the form with the user's text, path and message kept.
+- [x] An executable file stays 100755 after an edit or rename.
+- [x] Editing an LF file through the browser's textarea commits LF, a CRLF file stays CRLF, and a file that starts with a blank line keeps it. New file's textarea commits LF; uploads are unchanged.
+- [x] The blob page hides Edit, and the edit routes refuse, for readers, anonymous viewers, archived repos, tag and SHA refs, binary files, symlinks and files over 1 MiB. Delete is hidden and refused for the same viewers, repos and refs.
+- [x] An edit that changes neither path nor content is refused with a clear message.
+- [x] The commit's author follows the keep-email-private setting.
+- [x] `docs/code-browser.md` and the route table in `docs/access-control.md` cover the edit and delete routes.
 
 ## Relevant files
 

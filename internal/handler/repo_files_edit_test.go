@@ -554,3 +554,100 @@ func TestEditFile_AcceptsTheBrowserMultipartForm(t *testing.T) {
 		t.Errorf("a.txt = %q, want x\\n", got)
 	}
 }
+
+func TestEditAndDelete_HideAPrivateRepo(t *testing.T) {
+	r := seedEditRepo(t)
+	stranger := seedSignedInUser(t, r.db)
+	testutil.Exec(t, r.db, `UPDATE repositories SET private = true WHERE id = $1`, r.id)
+	sha := r.blobSHA(t, "a.txt")
+	for _, req := range []struct {
+		method, kind string
+		form         url.Values
+	}{
+		{http.MethodGet, "edit", nil},
+		{http.MethodPost, "edit", url.Values{"path": {"a.txt"}, "content": {"x"}, "blob_sha": {sha}}},
+		{http.MethodPost, "delete", url.Values{"blob_sha": {sha}}},
+	} {
+		if rr := send(t, r.api, req.method, stranger.token, r.path+"/"+req.kind+"/main/a.txt", req.form, false); rr.Code != http.StatusNotFound {
+			t.Errorf("%s %s: want 404, got %d", req.method, req.kind, rr.Code)
+		}
+	}
+}
+
+func TestEditFile_RefusesTextATextareaWouldMangle(t *testing.T) {
+	for name, content := range map[string]string{"latin1.txt": "caf\xe9\n", "cr.txt": "a\rb\n"} {
+		t.Run(name, func(t *testing.T) {
+			r := seedEditRepo(t)
+			r.commitMain(t, name, content)
+			if rr := send(t, r.api, http.MethodGet, r.owner.token, r.path+"/edit/main/"+name, nil, false); rr.Code != http.StatusUnprocessableEntity {
+				t.Errorf("GET: want 422, got %d", rr.Code)
+			}
+			body := send(t, r.api, http.MethodGet, r.owner.token, r.path+"/blob/main/"+name, nil, false).Body.String()
+			if strings.Contains(body, `href="`+r.path+"/edit/main/"+name+`"`) {
+				t.Error("blob page shows Edit")
+			}
+		})
+	}
+}
+
+func TestEditFile_MixedLineEndingsComeBackLF(t *testing.T) {
+	r := seedEditRepo(t)
+	r.commitMain(t, "mixed.txt", "one\r\ntwo\n")
+	rr := send(t, r.api, http.MethodPost, r.owner.token, r.path+"/edit/main/mixed.txt",
+		url.Values{"path": {"mixed.txt"}, "content": {"one\r\ntwo\r\nthree\r\n"}, "blob_sha": {r.blobSHA(t, "mixed.txt")}}, false)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("want 303, got %d", rr.Code)
+	}
+	if got := r.contents(t, "mixed.txt"); got != "one\ntwo\nthree\n" {
+		t.Errorf("mixed.txt = %q, want all LF", got)
+	}
+}
+
+func TestEditFile_RefusesAnOversizedBodyUpFront(t *testing.T) {
+	r := seedEditRepo(t)
+	big := url.Values{"path": {"a.txt"}, "content": {strings.Repeat("a", 4<<20)}, "blob_sha": {r.blobSHA(t, "a.txt")}}
+	rr := send(t, r.api, http.MethodPost, r.owner.token, r.path+"/edit/main/a.txt", big, false)
+	if rr.Code != http.StatusRequestEntityTooLarge || len(rr.Body.String()) > 200 {
+		t.Errorf("want a short 413, got %d with %d bytes", rr.Code, rr.Body.Len())
+	}
+}
+
+func TestDeleteFile_LandsAfterAnotherFileChanged(t *testing.T) {
+	r := seedEditRepo(t)
+	sha := r.blobSHA(t, "a.txt")
+	r.commitMain(t, "m.txt", "theirs\n")
+	if rr := send(t, r.api, http.MethodPost, r.owner.token, r.path+"/delete/main/a.txt", url.Values{"blob_sha": {sha}}, true); rr.Code != http.StatusNoContent {
+		t.Fatalf("want 204, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if _, ok := r.file(t, "main", "a.txt"); ok {
+		t.Error("a.txt is still on main")
+	}
+}
+
+func TestDeleteFile_RefusesFoldersAndStaleSHAs(t *testing.T) {
+	r := seedEditRepo(t)
+	tip := branchHash(t, r.git, "main")
+	tree, err := r.git.CommitObject(tip)
+	if err != nil {
+		t.Fatalf("load main: %v", err)
+	}
+	root, _ := tree.Tree()
+	docs, err := root.FindEntry("docs")
+	if err != nil {
+		t.Fatalf("find docs: %v", err)
+	}
+	for _, tt := range []struct {
+		name, path, sha string
+		status          int
+	}{
+		{"folder", "docs", docs.Hash.String(), http.StatusNotFound},
+		{"stale SHA", "a.txt", strings.Repeat("0", 40), http.StatusConflict},
+	} {
+		if rr := send(t, r.api, http.MethodPost, r.owner.token, r.path+"/delete/main/"+tt.path, url.Values{"blob_sha": {tt.sha}}, true); rr.Code != tt.status {
+			t.Errorf("%s: want %d, got %d: %s", tt.name, tt.status, rr.Code, rr.Body.String())
+		}
+	}
+	if got := branchHash(t, r.git, "main"); got != tip {
+		t.Errorf("main = %s, want it left at %s", got, tip)
+	}
+}

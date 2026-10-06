@@ -32,7 +32,9 @@ const (
 	// maxEditFileBytes caps a file the browser editor opens or saves.
 	maxEditFileBytes = 1 << 20
 	// MaxEditFileBodyBytes caps the edit form's request body: a textarea sends
-	// every line break as CRLF, which can double a file's bytes.
+	// every line break as CRLF, which can double a file's bytes. CSRF parses a
+	// browser's form under the global cap first, so SubmitEditFile also checks
+	// Content-Length.
 	MaxEditFileBodyBytes = 2*maxEditFileBytes + 1<<20
 )
 
@@ -329,6 +331,8 @@ func editRefusal(f *service.BranchFile) string {
 		return "binary files can't be edited in the browser"
 	case f.Size > maxEditFileBytes:
 		return editFileTooLargeMsg
+	case !service.IsEditableText(string(f.Content)):
+		return "files that aren't UTF-8, or hold a carriage return outside a CRLF, can't be edited in the browser"
 	}
 	return ""
 }
@@ -410,6 +414,10 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
+	if r.ContentLength > MaxEditFileBodyBytes {
+		http.Error(w, editFileTooLargeMsg, http.StatusRequestEntityTooLarge)
+		return
+	}
 	if err := parseNewFileForm(r); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
@@ -446,6 +454,9 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 	}
 	conflict := func() {
 		data.ConflictURL = codeurl.Path(owner, repoName, "blob", ref, path)
+		if file == nil {
+			data.ConflictURL = codeurl.Path(owner, repoName, "tree", ref, parentDir(path))
+		}
 		refuse(http.StatusConflict, "This file changed on "+ref+" after you opened it, so your changes weren't committed.")
 	}
 
@@ -462,10 +473,13 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		refuse(http.StatusRequestEntityTooLarge, editFileTooLargeMsg)
 		return
 	}
-	newPath, err := service.CleanFilePath(strings.TrimSpace(data.NewPath))
-	if err != nil {
-		refuse(http.StatusUnprocessableEntity, err.Error())
-		return
+	newPath := path
+	if data.NewPath != path {
+		var err error
+		if newPath, err = service.CleanFilePath(strings.TrimSpace(data.NewPath)); err != nil {
+			refuse(http.StatusUnprocessableEntity, err.Error())
+			return
+		}
 	}
 	message := strings.TrimSpace(data.Message)
 	if message == "" {
@@ -526,6 +540,10 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
+	if path == "" {
+		writeError(w, http.StatusNotFound, "file not found")
+		return
+	}
 	if err := parseNewFileForm(r); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form")
 		return
@@ -546,6 +564,8 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		redirectAfterSave(w, r, codeurl.Path(owner, repoName, "tree", ref, dir))
 	case errors.Is(err, service.ErrRefNotFound) || errors.Is(err, service.ErrEmptyRepo):
 		writeError(w, http.StatusNotFound, "branch not found")
+	case errors.Is(err, object.ErrFileNotFound):
+		writeError(w, http.StatusNotFound, "file not found")
 	case errors.Is(err, service.ErrFileChanged):
 		writeError(w, http.StatusConflict, "This file changed on "+ref+" after the page loaded; reload to see the current version.")
 	case errors.Is(err, service.ErrRefMoved):
@@ -554,4 +574,12 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		slog.Error("delete file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to delete the file")
 	}
+}
+
+// parentDir is path's folder, "" at the root.
+func parentDir(path string) string {
+	if i := strings.LastIndex(path, "/"); i >= 0 {
+		return path[:i]
+	}
+	return ""
 }

@@ -603,7 +603,7 @@ func Blob(data view.BlobData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "\" data-toast=\"File deleted\"><input type=\"hidden\" name=\"blob_sha\" value=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "\" hx-disable=\"find button[type=submit]\" hx-on::response:error=\"this.closest('dialog').close()\" data-toast=\"File deleted\"><input type=\"hidden\" name=\"blob_sha\" value=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
