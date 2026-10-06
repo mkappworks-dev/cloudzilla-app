@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -50,6 +51,10 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, token, err := h.Services.User.Authenticate(r.Context(), email, password)
+	if errors.Is(err, service.ErrAccountSuspended) {
+		renderLoginError(accountSuspendedMessage)
+		return
+	}
 	if err != nil {
 		renderLoginError("Invalid credentials")
 		return
@@ -64,6 +69,10 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		renderLoginError("Internal error")
 	}
 }
+
+// accountSuspendedMessage is shown only once the first factor has passed, so it
+// doesn't tell a stranger the account exists.
+const accountSuspendedMessage = "This account is suspended. Contact your administrator."
 
 // signIn finishes a sign-in whose first factor has passed. Every web sign-in
 // route ends here so none of them can skip TOTP: a user who enabled it gets a

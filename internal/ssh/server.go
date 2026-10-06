@@ -199,6 +199,15 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			return
 		}
 
+		// deploy_keys records no creator, so a personal repo's owner is the only
+		// person a key can be traced to; a suspended owner could otherwise keep pushing.
+		if repo.OwnerID != 0 {
+			if owner, err := s.services.User.GetByID(ctx, repo.OwnerID); err != nil || owner.Suspended() {
+				exitWithError(session, "repository owner's account is suspended\n")
+				return
+			}
+		}
+
 		// Enforce read-only restriction
 		if gitCmd == "git-receive-pack" && dk.ReadOnly {
 			exitWithError(session, "deploy key is read-only\n")

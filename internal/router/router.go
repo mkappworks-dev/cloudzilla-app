@@ -55,7 +55,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 	r.Use(middleware.HighlightBudget(requestHighlightBytes, requestHighlightTime))
 
-	sessions := middleware.WithSessionVersions(services.User)
+	sessions := middleware.WithSessionStates(services.User)
 	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized, sessions)
 	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions)
 	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB

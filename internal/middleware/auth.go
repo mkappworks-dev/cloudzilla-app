@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -39,21 +40,22 @@ type Claims struct {
 	Targets   []string
 }
 
-// SessionVersions reports a user's current session version; bumping it ends
-// every session JWT issued before. Implemented by UserService.
-type SessionVersions interface {
-	SessionVersion(ctx context.Context, userID int64) (int, error)
+// SessionStates reports a user's current session state; bumping the version
+// ends every session JWT issued before. Implemented by UserService.
+type SessionStates interface {
+	SessionState(ctx context.Context, userID int64) (model.SessionState, error)
 }
 
 type authOptions struct {
-	sessions SessionVersions
+	sessions SessionStates
 }
 
 type AuthOption func(*authOptions)
 
-// WithSessionVersions refuses session JWTs whose version is no longer the user's,
-// and those of deleted users. Without it a JWT is good until it expires.
-func WithSessionVersions(v SessionVersions) AuthOption {
+// WithSessionStates refuses session JWTs whose version is no longer the user's,
+// and those of deleted or suspended users, and reads the role fresh on each
+// request. Without it a JWT is good, role and all, until it expires.
+func WithSessionStates(v SessionStates) AuthOption {
 	return func(o *authOptions) { o.sessions = v }
 }
 
@@ -65,12 +67,17 @@ func applyAuthOptions(opts []AuthOption) authOptions {
 	return o
 }
 
-func (o authOptions) sessionLive(ctx context.Context, c Claims) bool {
+// sessionLive returns c with the user's current role, or false once the session is revoked.
+func (o authOptions) sessionLive(ctx context.Context, c Claims) (Claims, bool) {
 	if o.sessions == nil {
-		return true
+		return c, true
 	}
-	v, err := o.sessions.SessionVersion(ctx, c.UserID)
-	return err == nil && v == c.SessionVersion
+	st, err := o.sessions.SessionState(ctx, c.UserID)
+	if err != nil || st.Version != c.SessionVersion {
+		return Claims{}, false
+	}
+	c.IsSuperadmin = st.IsSuperadmin
+	return c, true
 }
 
 // HasScope reports whether the credential grants scope. Unscoped credentials grant every scope.
@@ -151,7 +158,10 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 			}
 
 			claims, ok := claimsFromMap(mapClaims)
-			if !ok || !o.sessionLive(r.Context(), claims) {
+			if ok {
+				claims, ok = o.sessionLive(r.Context(), claims)
+			}
+			if !ok {
 				onUnauthorized(w, r)
 				return
 			}
@@ -183,9 +193,10 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 				if err == nil && token.Valid {
 					if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
 						// A revoked session reads as signed out here, not as an error.
-						if claims, ok := claimsFromMap(mapClaims); ok && o.sessionLive(r.Context(), claims) {
-							ctx := context.WithValue(r.Context(), claimsKey, claims)
-							r = r.WithContext(ctx)
+						if claims, ok := claimsFromMap(mapClaims); ok {
+							if claims, ok = o.sessionLive(r.Context(), claims); ok {
+								r = r.WithContext(context.WithValue(r.Context(), claimsKey, claims))
+							}
 						}
 					}
 				}
@@ -202,6 +213,10 @@ func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resol
 		return false
 	}
 	user, scopes, err := resolver.ResolveOAuthToken(r.Context(), tokenStr)
+	if errors.Is(err, model.ErrAccountSuspended) {
+		writeAccountSuspended(w)
+		return true
+	}
 	if err != nil {
 		return false
 	}
@@ -216,6 +231,10 @@ func servePAT(w http.ResponseWriter, r *http.Request, next http.Handler, v PATVa
 		return false
 	}
 	token, user, err := v.Validate(r.Context(), tokenStr)
+	if errors.Is(err, model.ErrAccountSuspended) {
+		writeAccountSuspended(w)
+		return true
+	}
 	if err != nil {
 		return false
 	}
@@ -270,6 +289,14 @@ func signedRequest(r *http.Request, v PATValidator, token *model.AccessToken) (*
 		slog.Warn("signed request refused", "token_id", token.ID, "target", r.URL.RequestURI(), "error", err)
 	}
 	return r, err == nil
+}
+
+// writeAccountSuspended answers a suspended user's token, which must never
+// fall through to anonymous access on optional-auth routes.
+func writeAccountSuspended(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = w.Write([]byte(`{"error":"account_suspended"}`))
 }
 
 func writeSignatureRequired(w http.ResponseWriter) {

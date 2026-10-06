@@ -205,6 +205,10 @@ func (h *Handler) LDAPLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, token, err := h.Services.SSO.AuthenticateLDAP(r.Context(), username, password)
+	if errors.Is(err, service.ErrAccountSuspended) {
+		renderLoginError(accountSuspendedMessage)
+		return
+	}
 	if err != nil {
 		renderLoginError("LDAP authentication failed. Please check your credentials.")
 		return
@@ -241,13 +245,18 @@ func (h *Handler) SAMLCallback(w http.ResponseWriter, r *http.Request) {
 
 	user, token, err := h.Services.SSO.HandleSAMLCallback(r.Context(), samlResponse)
 	if err != nil {
-		slog.Error("saml callback failed", "error", err)
+		msg := "SAML authentication failed."
+		if errors.Is(err, service.ErrAccountSuspended) {
+			msg = accountSuspendedMessage
+		} else {
+			slog.Error("saml callback failed", "error", err)
+		}
 		ldapEnabled, samlEnabled := h.ssoEnabled(r)
 		h.render(w, r, pages.Login(view.LoginData{
 			BasePage:    basePage(r, h.Services),
 			LDAPEnabled: ldapEnabled,
 			SAMLEnabled: samlEnabled,
-			Error:       "SAML authentication failed.",
+			Error:       msg,
 			Next:        r.FormValue("RelayState"),
 		}))
 		return

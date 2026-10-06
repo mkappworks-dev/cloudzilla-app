@@ -47,7 +47,7 @@ func NewUserStore(database *sql.DB) *UserStore {
 const userColumns = `id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 	is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
 	notify_pr_review, notify_mention, keep_email_private, email_verified_at, session_version,
-	code_theme_light, code_theme_dark`
+	code_theme_light, code_theme_dark, suspended_at`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -59,7 +59,7 @@ func scanUser(row rowScanner, u *model.User, extra ...any) error {
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
 		&u.NotifyPRReview, &u.NotifyMention, &u.KeepEmailPrivate, &u.EmailVerifiedAt, &u.SessionVersion,
-		&u.CodeThemeLight, &u.CodeThemeDark}
+		&u.CodeThemeLight, &u.CodeThemeDark, &u.SuspendedAt}
 	return row.Scan(append(dest, extra...)...)
 }
 
@@ -402,6 +402,18 @@ func (s *UserStore) BumpSessionVersion(ctx context.Context, userID int64) (int, 
 		return 0, fmt.Errorf("user bump session version: %w", err)
 	}
 	return v, nil
+}
+
+// SessionState returns sql.ErrNoRows for a suspended user, so their sessions die
+// on the next request.
+func (s *UserStore) SessionState(ctx context.Context, userID int64) (model.SessionState, error) {
+	var st model.SessionState
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT session_version, is_superadmin FROM users WHERE id = $1 AND suspended_at IS NULL`, userID,
+	).Scan(&st.Version, &st.IsSuperadmin); err != nil {
+		return model.SessionState{}, fmt.Errorf("user session state: %w", err)
+	}
+	return st, nil
 }
 
 func (s *UserStore) SessionVersion(ctx context.Context, userID int64) (int, error) {

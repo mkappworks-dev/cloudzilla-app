@@ -205,6 +205,9 @@ func (s *AccessTokenService) Validate(ctx context.Context, rawToken string) (*mo
 	if err != nil {
 		return nil, nil, fmt.Errorf("token user lookup: %w", err)
 	}
+	if user.Suspended() {
+		return nil, nil, ErrAccountSuspended
+	}
 	return t, user, nil
 }
 

@@ -107,6 +107,8 @@ func TestWantsEmail(t *testing.T) {
 		{"master off, mention", func(u *model.User) { u.EmailNotifications = false }, model.NotifMention, immediate, false},
 		{"master off, untoggled type", func(u *model.User) { u.EmailNotifications = false }, model.NotifIssueComment, immediate, false},
 		{"no address", func(u *model.User) { u.Email = "" }, model.NotifIssueComment, immediate, false},
+		{"suspended", func(u *model.User) { now := time.Now(); u.SuspendedAt = &now }, model.NotifIssueComment, immediate, false},
+		{"suspended, daily digest", func(u *model.User) { now := time.Now(); u.SuspendedAt = &now; u.EmailDigest = daily }, model.NotifIssueComment, daily, false},
 
 		{"daily user, immediate send", func(u *model.User) { u.EmailDigest = daily }, model.NotifIssueComment, immediate, false},
 		{"daily user, daily digest", func(u *model.User) { u.EmailDigest = daily }, model.NotifIssueComment, daily, true},

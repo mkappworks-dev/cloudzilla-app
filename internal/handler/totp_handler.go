@@ -182,6 +182,14 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fullToken, err := h.Services.User.GenerateTokenForUser(r.Context(), userID)
+	if errors.Is(err, service.ErrAccountSuspended) {
+		h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{
+			BasePage: basePage(r, h.Services),
+			Error:    accountSuspendedMessage,
+			Next:     next,
+		}))
+		return
+	}
 	if err != nil {
 		http.Error(w, "failed to create session", http.StatusInternalServerError)
 		return

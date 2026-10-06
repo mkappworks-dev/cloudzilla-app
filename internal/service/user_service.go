@@ -31,6 +31,7 @@ var (
 	ErrRepoNotFound         = errors.New("repository not found")
 	ErrInvalidEmail         = errors.New("email must be a valid address")
 	ErrSoleOrgOwner         = errors.New("you are the only owner of an organization")
+	ErrAccountSuspended     = model.ErrAccountSuspended
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
@@ -529,12 +530,22 @@ func (s *UserService) ChangePassword(ctx context.Context, userID int64, c Confir
 	return s.generateJWT(u)
 }
 
+// SessionState is what a live session's JWT must carry, and the user's current role.
+func (s *UserService) SessionState(ctx context.Context, userID int64) (model.SessionState, error) {
+	return s.store.SessionState(ctx, userID)
+}
+
 // SessionVersion is what a live session's JWT must carry; see RevokeSessions.
 func (s *UserService) SessionVersion(ctx context.Context, userID int64) (int, error) {
 	return s.store.SessionVersion(ctx, userID)
 }
 
+// Every session is minted here or in SSOService.generateJWT, so refusing a
+// suspended account here covers every way to sign in.
 func (s *UserService) generateJWT(u *model.User) (string, error) {
+	if u.Suspended() {
+		return "", ErrAccountSuspended
+	}
 	claims := jwt.MapClaims{
 		"sv":            u.SessionVersion,
 		"sub":           u.ID,
