@@ -399,6 +399,14 @@ type RepoImportData struct {
 	DefaultPrivate bool
 	DefaultURL     string
 	DefaultName    string
+	// MirrorIntervals is empty when mirror.enabled is off, which hides the option.
+	MirrorIntervals []IntervalOption
+}
+
+// IntervalOption is one choice of a sync-interval picker.
+type IntervalOption struct {
+	Value, Label string
+	Selected     bool
 }
 
 // RepoImportStatusData holds template data for an import's status page.

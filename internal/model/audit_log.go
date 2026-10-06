@@ -40,6 +40,7 @@ const (
 	AuditActionOAuthDisconnect     = "user.oauth.disconnect"
 	AuditActionRepoCreate          = "repo.create"
 	AuditActionRepoImport          = "repo.import"
+	AuditActionRepoMirrorCreate    = "repo.mirror.create"
 	AuditActionRepoDelete          = "repo.delete"
 	AuditActionRepoTransfer        = "repo.transfer"
 	AuditActionRepoTransferRequest = "repo.transfer.request"

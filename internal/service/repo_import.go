@@ -26,6 +26,13 @@ func (s *RepoService) CheckImportName(ctx context.Context, ownerName, name strin
 // CreateFromImport adopts srcDir, a bare repo an import cloned, as t's repo
 // name. srcDir is left in place on failure; the caller removes it.
 func (s *RepoService) CreateFromImport(ctx context.Context, t RepoTarget, name, description string, private bool, defaultBranch, srcDir string) (*model.Repository, error) {
+	return s.createFromImport(ctx, t, name, description, private, defaultBranch, srcDir, nil)
+}
+
+// createFromImport runs then once the repo's row exists; its failure undoes
+// the whole import, so a mirror never appears without its mirror row.
+func (s *RepoService) createFromImport(ctx context.Context, t RepoTarget, name, description string, private bool, defaultBranch, srcDir string,
+	then func(context.Context, *model.Repository) error) (*model.Repository, error) {
 	if err := ValidateRepoName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
@@ -54,6 +61,12 @@ func (s *RepoService) CreateFromImport(ctx context.Context, t RepoTarget, name, 
 	if err := s.repos.CreateWithOwnerName(ctx, r); err != nil {
 		abandonNewRepo(ctx, s.repos, 0, gitDir)
 		return nil, repoNameErr("create imported repo", err)
+	}
+	if then != nil {
+		if err := then(ctx, r); err != nil {
+			abandonNewRepo(ctx, s.repos, r.ID, gitDir)
+			return nil, err
+		}
 	}
 	// os.Rename won't replace a directory, so the empty claim goes first. The
 	// row already holds the name, so a concurrent create still sees it taken.

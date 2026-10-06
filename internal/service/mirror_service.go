@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
@@ -235,4 +238,94 @@ func refChanges(before, after map[plumbing.ReferenceName]plumbing.Hash) []*packp
 	}
 	sort.Slice(cmds, func(i, j int) bool { return strings.Compare(cmds[i].Name.String(), cmds[j].Name.String()) < 0 })
 	return cmds
+}
+
+var (
+	ErrMirrorsDisabled = errors.New("mirroring is turned off on this instance")
+	ErrMirrorInterval  = errors.New("invalid sync interval")
+)
+
+// Enabled reports whether mirror.enabled is set.
+func (s *MirrorService) Enabled() bool { return s.cfg.Enabled }
+
+// Interval resolves a requested sync interval: zero means the default, and
+// anything outside mirror.min_interval to MaxMirrorInterval is refused.
+func (s *MirrorService) Interval(requested time.Duration) (time.Duration, error) {
+	if requested == 0 {
+		return s.cfg.DefaultInterval, nil
+	}
+	if requested < s.cfg.MinInterval || requested > config.MaxMirrorInterval {
+		return 0, fmt.Errorf("%w: it must be between %s and %s", ErrMirrorInterval,
+			formatMirrorInterval(s.cfg.MinInterval), formatMirrorInterval(config.MaxMirrorInterval))
+	}
+	return requested, nil
+}
+
+// MirrorIntervalChoice is one option of a form's sync-interval picker.
+type MirrorIntervalChoice struct {
+	Value   string
+	Label   string
+	Default bool
+}
+
+var mirrorIntervalPresets = []time.Duration{10 * time.Minute, time.Hour, 8 * time.Hour, 24 * time.Hour, 7 * 24 * time.Hour}
+
+// IntervalChoices are the presets this instance allows, plus its default.
+func (s *MirrorService) IntervalChoices() []MirrorIntervalChoice {
+	durations := []time.Duration{s.cfg.DefaultInterval}
+	for _, d := range mirrorIntervalPresets {
+		if d >= s.cfg.MinInterval && d <= config.MaxMirrorInterval && d != s.cfg.DefaultInterval {
+			durations = append(durations, d)
+		}
+	}
+	slices.Sort(durations)
+	choices := make([]MirrorIntervalChoice, len(durations))
+	for i, d := range durations {
+		choices[i] = MirrorIntervalChoice{Value: d.String(), Label: formatMirrorInterval(d), Default: d == s.cfg.DefaultInterval}
+	}
+	return choices
+}
+
+// formatMirrorInterval names d in its largest whole unit: "1 day", "8 hours";
+// anything else falls back to Go's form, such as "1h30m0s".
+func formatMirrorInterval(d time.Duration) string {
+	for _, u := range []struct {
+		size time.Duration
+		name string
+	}{{7 * 24 * time.Hour, "week"}, {24 * time.Hour, "day"}, {time.Hour, "hour"}, {time.Minute, "minute"}} {
+		if d >= u.size && d%u.size == 0 {
+			n := int(d / u.size)
+			if n == 1 {
+				return "1 " + u.name
+			}
+			return strconv.Itoa(n) + " " + u.name + "s"
+		}
+	}
+	return d.String()
+}
+
+// mirrorSpec is a mirror an import creates once its repo exists.
+type mirrorSpec struct {
+	remoteURL, username string
+	tokenEnc            []byte
+	interval            time.Duration
+	createdBy           int64
+}
+
+func (s *MirrorService) create(ctx context.Context, repo *model.Repository, spec mirrorSpec) error {
+	return s.mirrors.Create(ctx, &model.RepoMirror{
+		RepoID: repo.ID, RemoteURL: spec.remoteURL, AuthUsername: spec.username, AuthTokenEnc: spec.tokenEnc,
+		Interval: spec.interval, NextSyncAt: time.Now().Add(spec.interval), CreatedBy: spec.createdBy,
+	})
+}
+
+// indexImported does for a new mirror what its later syncs will: plain
+// imports skip it, but a mirror's search and dependencies must start current.
+func (s *MirrorService) indexImported(ctx context.Context, repo *model.Repository) {
+	if err := s.index.IndexRepo(ctx, repo); err != nil {
+		slog.Error("mirror import: index failed", "repo_id", repo.ID, "error", err)
+	}
+	if err := s.deps.ParseAndStore(ctx, repo); err != nil {
+		slog.Error("mirror import: dependency parse failed", "repo_id", repo.ID, "error", err)
+	}
 }

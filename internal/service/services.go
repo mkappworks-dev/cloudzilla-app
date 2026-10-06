@@ -79,6 +79,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).
 		WithTransferStore(stores.RepoTransfer).WithNoreplyHostFrom(cfg.Server.BaseURL)
+	mirrorSvc := NewMirrorService(stores.Mirror, stores.Repo, repoSvc, webhookSvc, index, depSvc, secrets, cfg.Git, cfg.Mirror)
 	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc)
 	languageSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(languageSvc)
@@ -147,9 +148,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		ContributorStats: contributorStatsSvc,
 		Attention:        attentionSvc,
 		Language:         languageSvc,
-		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
+		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
 		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
-		Mirror:           NewMirrorService(stores.Mirror, stores.Repo, repoSvc, webhookSvc, index, depSvc, secrets, cfg.Git, cfg.Mirror),
+		Mirror:           mirrorSvc,
 		Secrets:          secrets,
 	}
 }

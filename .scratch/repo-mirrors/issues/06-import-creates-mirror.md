@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02, 03
 
 Spec: [../spec.md](../spec.md#pull-mirrors)
@@ -17,7 +17,14 @@ Spec: [../spec.md](../spec.md#pull-mirrors)
 
 ## Acceptance criteria
 
-- [ ] A mirror import creates a repo with `IsMirror` true and the next sync scheduled.
-- [ ] A plain import is unchanged.
-- [ ] Interval bounds and the missing-key case are refused with clear messages, in both the form and the API.
-- [ ] The stored token is ciphertext, and opening it gives back the original.
+- [x] A mirror import creates a repo with `IsMirror` true and the next sync scheduled.
+- [x] A plain import is unchanged.
+- [x] Interval bounds and the missing-key case are refused with clear messages, in both the form and the API.
+- [x] The stored token is ciphertext, and opening it gives back the original.
+
+## Comments
+
+**Claude, 2026-10-06:**
+- The mirror row is written by a callback in `RepoService.createFromImport`, right after the repo row. If it fails, the import is abandoned the same way as when the rename fails.
+- The interval list is the presets that fit `mirror.min_interval`, plus the instance's default if it isn't a preset.
+- A mirror import records `repo.mirror.create`, with the requested interval, instead of `repo.import`.

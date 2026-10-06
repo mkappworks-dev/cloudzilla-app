@@ -68,6 +68,10 @@
 
 - [x] `Run`/`Wake`/`SyncNow`, a lease of the timeout plus 1m, started from `main.go` when `mirror.enabled`.
 
-## Tickets 06–09
+## Ticket 06: import creates a mirror (done)
+
+- [x] `ImportRequest.Mirror`/`MirrorInterval`, sealed token, mirror row in the import's publish step, the form's sync card, `repo.mirror.create` audit.
+
+## Tickets 07–09
 
 These follow the ticket files. Expand this plan before starting each one.
