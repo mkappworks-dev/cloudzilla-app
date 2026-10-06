@@ -144,7 +144,7 @@ func TestIssueService_SetState_CloseAndReopen(t *testing.T) {
 	}
 
 	// Close the issue.
-	closed, err := svc.SetState(context.Background(), owner, repo, issue.Number, model.IssueStateClosed)
+	closed, err := svc.SetState(context.Background(), owner, repo, issue.Number, model.IssueStateClosed, ownerID, "owner")
 	if err != nil {
 		t.Fatalf("SetState closed: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestIssueService_SetState_CloseAndReopen(t *testing.T) {
 	}
 
 	// Reopen the issue.
-	reopened, err := svc.SetState(context.Background(), owner, repo, issue.Number, model.IssueStateOpen)
+	reopened, err := svc.SetState(context.Background(), owner, repo, issue.Number, model.IssueStateOpen, ownerID, "owner")
 	if err != nil {
 		t.Fatalf("SetState reopen: %v", err)
 	}

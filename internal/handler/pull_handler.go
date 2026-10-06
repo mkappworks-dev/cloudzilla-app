@@ -2,8 +2,10 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -90,7 +92,7 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft)
+	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft, claims.Targets)
 	if err != nil {
 		if errors.Is(err, service.ErrPullForbidden) {
 			writeError(w, http.StatusForbidden, "forbidden")
@@ -209,7 +211,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "title cannot be empty")
 			return
 		}
-		pr, err := h.Services.Pull.UpdateTitle(r.Context(), owner, repoName, number, prTitle)
+		pr, err := h.Services.Pull.UpdateTitle(r.Context(), owner, repoName, number, prTitle, claims.UserID, claims.Targets)
 		if err != nil {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
@@ -229,7 +231,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		if req != nil && req.Body != nil {
 			newBody = *req.Body
 		}
-		pr, err := h.Services.Pull.UpdateBody(r.Context(), owner, repoName, number, newBody)
+		pr, err := h.Services.Pull.UpdateBody(r.Context(), owner, repoName, number, newBody, claims.UserID, claims.Targets)
 		if err != nil {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
@@ -325,47 +327,29 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "pull request not found")
 			return
 		}
-		if existingPR.IsDraft {
-			writeError(w, http.StatusUnprocessableEntity, "cannot merge a draft pull request")
-			return
-		}
-		if ok, reason, _ := h.Services.PullReview.CanMerge(r.Context(), existingPR.ID); !ok {
-			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+reason)
-			return
-		}
-		var headHash plumbing.Hash
-		var headSHA string
-		if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, existingPR.HeadBranch); err == nil {
-			headHash = headCommit.Hash
-			headSHA = headHash.String()
-		}
-		if err := h.Services.BranchProtection.CheckMerge(r.Context(), repo.ID, existingPR, headSHA); err != nil {
-			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+err.Error())
-			return
-		}
-		author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to load user")
-			return
-		}
-		base := existingPR.BaseBranch
-		head := existingPR.HeadBranch
-		switch mergeStrategy {
-		case "merge":
-			err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, base, head, headHash, author)
-		case "squash":
-			err = h.Services.Code.SquashMergePullRequest(owner, repoName, base, head, headHash, author)
-		default:
-			err = h.Services.Code.MergePullRequest(owner, repoName, base, head, headHash)
-		}
-		if errors.Is(err, service.ErrRefMoved) {
-			writeError(w, http.StatusConflict, branchMovedMsg)
+		actor := service.CloseActor{UserID: claims.UserID, Username: claims.Username, Targets: claims.Targets}
+		pr, err := h.mergePull(r.Context(), repo, existingPR, mergeStrategy, actor, nil)
+		var refusal *mergeRefusal
+		if errors.As(err, &refusal) {
+			writeError(w, refusal.status, refusal.msg)
 			return
 		}
 		if err != nil {
-			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			slog.Error("update pull: merge failed",
+				"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
+		toast(w, "success", "Pull request merged")
+		if r.Header.Get("HX-Request") == "true" {
+			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
+				Pull: *pr, Owner: owner, Repo: repoName,
+				BodyHTML: markdown.RenderCtx(r.Context(), pr.Body),
+			}))
+			return
+		}
+		writeJSON(w, http.StatusOK, pr)
+		return
 	}
 
 	pr, err := h.Services.Pull.SetState(r.Context(), owner, repoName, number, model.PRState(state))
@@ -378,9 +362,6 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 
 	if state != "" {
 		switch pr.State {
-		case model.PRStateMerged:
-			h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventMerged, "")
-			toast(w, "success", "Pull request merged")
 		case model.PRStateClosed:
 			h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventClosed, "")
 		case model.PRStateOpen:
@@ -393,12 +374,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		h.Services.Notification.NotifyPRStateChange(context.WithoutCancel(r.Context()), *repo, *pr, claims.UserID, claims.Username)
 	}()
-	evType := model.EventPRClosed
-	if pr.State == model.PRStateMerged {
-		evType = model.EventPRMerged
-	}
 	repoID := repo.ID
-	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, evType, map[string]any{"number": pr.Number})
+	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventPRClosed, map[string]any{"number": pr.Number})
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
@@ -419,9 +396,85 @@ func (h *Handler) recordPullEvent(ctx context.Context, owner, repoName string, p
 	}
 }
 
-// tryAutoMerge checks if auto-merge conditions are satisfied for the given PR and,
-// if so, executes the merge. Safe to call as a goroutine — idempotent and silently
-// no-ops when conditions are not met.
+type mergeRefusal struct {
+	status int
+	msg    string
+}
+
+func (e *mergeRefusal) Error() string { return e.msg }
+
+// mergePull merges pr into its base as actor and does everything a merge
+// entails, so no merge path can skip a step. author, when nil, is actor's
+// commit identity.
+func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *model.PullRequest, strategy string, actor service.CloseActor, author *service.GitAuthor) (*model.PullRequest, error) {
+	owner, repoName := repo.OwnerName, repo.Name
+	if pr.State != model.PRStateOpen {
+		return nil, &mergeRefusal{http.StatusUnprocessableEntity, "only an open pull request can be merged"}
+	}
+	if pr.IsDraft {
+		return nil, &mergeRefusal{http.StatusUnprocessableEntity, "cannot merge a draft pull request"}
+	}
+	if ok, reason, _ := h.Services.PullReview.CanMerge(ctx, pr.ID); !ok {
+		return nil, &mergeRefusal{http.StatusUnprocessableEntity, "merge blocked: " + reason}
+	}
+	var headHash plumbing.Hash
+	var headSHA string
+	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch); err == nil {
+		headHash = headCommit.Hash
+		headSHA = headHash.String()
+	}
+	if err := h.Services.BranchProtection.CheckMerge(ctx, repo.ID, pr, headSHA); err != nil {
+		return nil, &mergeRefusal{http.StatusUnprocessableEntity, "merge blocked: " + err.Error()}
+	}
+	if author == nil {
+		a, err := h.Services.User.CommitAuthor(ctx, actor.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("load commit author: %w", err)
+		}
+		author = &a
+	}
+	var commitRefs []service.ClosingRef
+	if pr.BaseBranch == repo.DefaultBranch && !headHash.IsZero() {
+		refs, err := h.Services.Code.ClosingRefsInMerge(owner, repoName, pr.BaseBranch, headHash)
+		if err != nil {
+			slog.Warn("merge pull: reading closing references failed; commit messages won't close issues",
+				"owner", owner, "repo", repoName, "pull_number", pr.Number, "error", err)
+		}
+		commitRefs = refs
+	}
+
+	var err error
+	switch strategy {
+	case "merge":
+		err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author)
+	case "squash":
+		err = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author)
+	default:
+		err = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash)
+	}
+	if errors.Is(err, service.ErrRefMoved) {
+		return nil, &mergeRefusal{http.StatusConflict, branchMovedMsg}
+	}
+	if err != nil {
+		return nil, &mergeRefusal{http.StatusUnprocessableEntity, err.Error()}
+	}
+
+	merged, err := h.Services.Pull.SetState(ctx, owner, repoName, pr.Number, model.PRStateMerged)
+	if err != nil {
+		return nil, fmt.Errorf("set merged state: %w", err)
+	}
+	h.recordPullEvent(ctx, owner, repoName, merged, actor.UserID, actor.Username, model.PullEventMerged, "")
+	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("merged", *repo, *merged))
+	bg := context.WithoutCancel(ctx)
+	go h.Services.Notification.NotifyPRStateChange(bg, *repo, *merged, actor.UserID, actor.Username)
+	repoID := repo.ID
+	go h.Services.Event.Record(bg, actor.UserID, actor.Username, &repoID, repoName, owner, model.EventPRMerged, map[string]any{"number": merged.Number})
+	h.Services.IssueCloser.CloseForPull(bg, actor, repo, merged, commitRefs)
+	return merged, nil
+}
+
+// tryAutoMerge merges pullID as the user who armed auto-merge, or disarms it
+// when that user is unknown or can no longer write the repo.
 func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 	ctx := context.Background()
 
@@ -429,41 +482,38 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 	if err != nil {
 		return
 	}
-	// Guard: only act when auto-merge is armed and PR is eligible.
 	if !pr.AutoMergeEnabled || pr.State != model.PRStateOpen || pr.IsDraft {
 		return
 	}
-
-	canMerge, _, _ := h.Services.PullReview.CanMerge(ctx, pr.ID)
-	if !canMerge {
-		return
-	}
-
 	repo, err := h.Services.Repo.Get(ctx, owner, repoName)
 	if err != nil || service.CheckContentWritable(repo) != nil {
 		return
 	}
 
-	headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
-	if err != nil {
-		return
+	var user *model.User
+	if pr.AutoMergeBy != nil {
+		u, err := h.Services.User.GetByID(ctx, *pr.AutoMergeBy)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			slog.Error("auto-merge: load arming user failed", "owner", owner, "repo", repoName, "pull_number", pr.Number, "error", err)
+			return
+		}
+		if err == nil && h.Services.Repo.CanWrite(ctx, repo, u.ID) {
+			user = u
+		}
 	}
-	if err := h.Services.BranchProtection.CheckMerge(ctx, repo.ID, pr, headCommit.Hash.String()); err != nil {
+	if user == nil {
+		if err := h.Services.Pull.DisableAutoMerge(ctx, owner, repoName, pr.Number, 0); err != nil {
+			slog.Warn("auto-merge: disarm failed", "owner", owner, "repo", repoName, "pull_number", pr.Number, "error", err)
+		}
 		return
 	}
 
-	// All checks passed — execute merge.
-	var mergeErr error
-	switch pr.AutoMergeStrategy {
-	case "merge":
-		mergeErr = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headCommit.Hash, autoMergeAuthor)
-	case "squash":
-		mergeErr = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headCommit.Hash, autoMergeAuthor)
-	default: // "ff"
-		mergeErr = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headCommit.Hash)
+	actor := service.CloseActor{UserID: user.ID, Username: user.Username}
+	author := autoMergeAuthor
+	if _, err := h.mergePull(ctx, repo, pr, pr.AutoMergeStrategy, actor, &author); err != nil {
+		var refusal *mergeRefusal
+		if !errors.As(err, &refusal) {
+			slog.Error("auto-merge failed", "owner", owner, "repo", repoName, "pull_number", pr.Number, "error", err)
+		}
 	}
-	if mergeErr != nil {
-		return
-	}
-	_, _ = h.Services.Pull.SetState(ctx, owner, repoName, pr.Number, model.PRStateMerged)
 }

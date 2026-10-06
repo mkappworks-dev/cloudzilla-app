@@ -26,11 +26,35 @@ type PullService struct {
 	contribStats  *store.ContributorStatsStore
 	userStore     *store.UserStore
 	mentions      *store.MentionStore
+	issues        *store.IssueStore
 }
 
 // NewPullService creates a PullService backed by the given stores.
 func NewPullService(pulls *store.PullStore, repos *store.RepoStore, repoSvc *RepoService) *PullService {
 	return &PullService{pulls: pulls, repos: repos, repoSvc: repoSvc}
+}
+
+// WithIssueStore lets the service keep links to the issues a PR's closing
+// keywords name; without it they aren't kept.
+func (s *PullService) WithIssueStore(issues *store.IssueStore) *PullService {
+	s.issues = issues
+	return s
+}
+
+// syncKeywordLinks makes pr's keyword links the issues its title and body close
+// that actorID can see, within the repos targets, their token's, cover.
+func (s *PullService) syncKeywordLinks(ctx context.Context, repo *model.Repository, pr *model.PullRequest, actorID int64, targets []string) {
+	if s.issues == nil {
+		return
+	}
+	resolver := closingRefResolver{repos: s.repos, issues: s.issues, repoSvc: s.repoSvc}
+	var ids []int64
+	for _, issue := range resolver.resolve(ctx, ParseClosingRefs(pr.Title+"\n"+pr.Body), repo, actorID, targets) {
+		ids = append(ids, issue.ID)
+	}
+	if err := s.issues.ReplaceKeywordLinks(ctx, pr.ID, ids); err != nil {
+		slog.Error("pull: keyword links not updated", "pull_id", pr.ID, "error", err)
+	}
 }
 
 func (s *PullService) WithCIDeps(code *CodeService, commitStatus *CommitStatusService, reviews *store.PullReviewStore, labels *store.LabelStore, assignees *store.AssigneeStore, comments *store.CommentStore) *PullService {
@@ -133,7 +157,8 @@ var (
 	ErrPullIntoMirror = errors.New("pull mirrors are read-only")
 )
 
-func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool) (*model.PullRequest, error) {
+// targets are the repos and orgs the author's token is limited to, if any.
+func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool, targets []string) (*model.PullRequest, error) {
 	if len(title) > MaxTitleLen {
 		return nil, ErrTitleTooLong
 	}
@@ -160,6 +185,7 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 	if err := s.pulls.Create(ctx, pr); err != nil {
 		return nil, err
 	}
+	s.syncKeywordLinks(ctx, repo, pr, authorID, targets)
 	if s.code != nil {
 		if headCommit, _, resolveErr := s.code.ResolveRef(owner, repoName, head); resolveErr == nil && headCommit != nil {
 			if shaErr := s.pulls.UpdateHeadSHA(ctx, pr.ID, headCommit.Hash.String()); shaErr == nil {
@@ -215,7 +241,7 @@ func (s *PullService) EnableAutoMerge(ctx context.Context, owner, repoName strin
 	if msg := autoMergeGuard(pr, strategy); msg != "" {
 		return fmt.Errorf("%s", msg)
 	}
-	return s.pulls.SetAutoMerge(ctx, pr.ID, true, strategy)
+	return s.pulls.SetAutoMerge(ctx, pr.ID, true, strategy, &userID)
 }
 
 func (s *PullService) DisableAutoMerge(ctx context.Context, owner, repoName string, number int, userID int64) error {
@@ -226,7 +252,7 @@ func (s *PullService) DisableAutoMerge(ctx context.Context, owner, repoName stri
 	if pr.State == model.PRStateMerged {
 		return fmt.Errorf("cannot change auto-merge on a merged pull request")
 	}
-	return s.pulls.SetAutoMerge(ctx, pr.ID, false, "")
+	return s.pulls.SetAutoMerge(ctx, pr.ID, false, "", nil)
 }
 
 func (s *PullService) ListOpen(ctx context.Context, owner, repoName string) ([]model.PullRequest, error) {
@@ -268,8 +294,12 @@ func (s *PullService) SetState(ctx context.Context, owner, repoName string, numb
 }
 
 // title must be pre-trimmed.
-func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, number int, title string) (*model.PullRequest, error) {
-	pr, err := s.Get(ctx, owner, repoName, number)
+func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, number int, title string, actorID int64, targets []string) (*model.PullRequest, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	pr, err := s.pulls.GetByNumber(ctx, repo.ID, number)
 	if err != nil {
 		return nil, err
 	}
@@ -285,11 +315,17 @@ func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, n
 	if err := s.pulls.UpdateTitle(ctx, pr.ID, title); err != nil {
 		return nil, err
 	}
-	return s.Get(ctx, owner, repoName, number)
+	pr.Title = title
+	s.syncKeywordLinks(ctx, repo, pr, actorID, targets)
+	return s.pulls.GetByNumber(ctx, repo.ID, number)
 }
 
-func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, number int, body string) (*model.PullRequest, error) {
-	pr, err := s.Get(ctx, owner, repoName, number)
+func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, number int, body string, actorID int64, targets []string) (*model.PullRequest, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	pr, err := s.pulls.GetByNumber(ctx, repo.ID, number)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +335,9 @@ func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, nu
 	if err := s.pulls.UpdateBody(ctx, pr.ID, body); err != nil {
 		return nil, err
 	}
-	return s.Get(ctx, owner, repoName, number)
+	pr.Body = body
+	s.syncKeywordLinks(ctx, repo, pr, actorID, targets)
+	return s.pulls.GetByNumber(ctx, repo.ID, number)
 }
 
 func (s *PullService) CountCreatedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {

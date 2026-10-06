@@ -37,6 +37,7 @@ type IssueDetailData struct {
 	Repo          model.Repository
 	Issue         model.Issue
 	Comments      []RenderedComment
+	Events        []model.IssueEvent
 	Owner         string
 	RepoName      string
 	BodyHTML      string
@@ -61,9 +62,10 @@ type IssuePrioritySidebarData struct {
 }
 
 type LinkedPull struct {
-	Number int
-	Title  string
-	State  string
+	Number    int
+	Title     string
+	State     string
+	OtherRepo string
 }
 
 type IssueLinkedPullsSidebarData struct {

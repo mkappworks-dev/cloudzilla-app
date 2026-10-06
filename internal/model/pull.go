@@ -31,4 +31,10 @@ type PullRequest struct {
 	AutoMergeEnabled  bool       `db:"auto_merge_enabled"   json:"auto_merge_enabled"`
 	AutoMergeStrategy string     `db:"auto_merge_strategy"  json:"auto_merge_strategy,omitempty"`
 	HeadSHA           string     `db:"head_sha"             json:"head_sha,omitempty"`
+	// AutoMergeBy is the user who armed auto-merge, read by GetByID and GetByNumber only.
+	AutoMergeBy *int64 `db:"auto_merge_by" json:"-"`
+
+	// Set only by queries that can return another repo's pull requests.
+	RepoOwner string `db:"-" json:"repo_owner,omitempty"`
+	RepoName  string `db:"-" json:"repo_name,omitempty"`
 }

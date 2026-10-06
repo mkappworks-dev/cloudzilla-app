@@ -34,7 +34,7 @@ func TestPullService_Create_AssignsID(t *testing.T) {
 	svc, ownerID, ownerName, repoName := newPullSvc(t)
 
 	pr, err := svc.Create(context.Background(), ownerName, repoName, ownerID,
-		"Test PR", "body", "feature", "main", false)
+		"Test PR", "body", "feature", "main", false, nil)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestPullService_Create_DraftPR(t *testing.T) {
 	svc, ownerID, ownerName, repoName := newPullSvc(t)
 
 	pr, err := svc.Create(context.Background(), ownerName, repoName, ownerID,
-		"Draft PR", "body", "draft-feature", "main", true)
+		"Draft PR", "body", "draft-feature", "main", true, nil)
 	if err != nil {
 		t.Fatalf("Create draft: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestPullService_Create_UnknownRepo_Error(t *testing.T) {
 	svc := service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc)
 
 	_, err := svc.Create(context.Background(), "nobody", "nonexistent", ownerID,
-		"title", "body", "feature", "main", false)
+		"title", "body", "feature", "main", false, nil)
 	if err == nil {
 		t.Error("Create with unknown repo must return an error")
 	}
@@ -83,7 +83,7 @@ func TestPullService_List_ReturnsCreatedPR(t *testing.T) {
 	svc, ownerID, ownerName, repoName := newPullSvc(t)
 
 	_, err := svc.Create(context.Background(), ownerName, repoName, ownerID,
-		"Listed PR", "body", "feature-list", "main", false)
+		"Listed PR", "body", "feature-list", "main", false, nil)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestPullService_SetState_Close(t *testing.T) {
 	svc, ownerID, ownerName, repoName := newPullSvc(t)
 
 	pr, err := svc.Create(context.Background(), ownerName, repoName, ownerID,
-		"Closeable PR", "body", "feature-close", "main", false)
+		"Closeable PR", "body", "feature-close", "main", false, nil)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestPullService_SetState_MergedCannotBeUpdated(t *testing.T) {
 	svc, ownerID, ownerName, repoName := newPullSvc(t)
 
 	pr, err := svc.Create(context.Background(), ownerName, repoName, ownerID,
-		"Merge-lock PR", "body", "feature-merge", "main", false)
+		"Merge-lock PR", "body", "feature-merge", "main", false, nil)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}

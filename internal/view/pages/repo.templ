@@ -254,7 +254,7 @@ templ Repo(data view.RepoData) {
 							<h2 id="files-heading" class="sr-only">Files at { data.Repo.DefaultBranch }</h2>
 							if data.LatestCommit.SHA != "" {
 								<div class="px-4 py-2.5 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
-									@components.Avatar(data.LatestCommit.Author, components.AvatarSizeXS, "")
+									@components.Initials(data.LatestCommit.Author, components.AvatarSizeXS, "")
 									<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
 									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
 									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline shrink-0">{ data.LatestCommit.SHA }</a>

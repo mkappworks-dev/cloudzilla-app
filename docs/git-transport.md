@@ -26,6 +26,27 @@ DELETE /api/user/keys/{id}
 - Fingerprints used for fast public key lookups during SSH handshakes
 - Users can have multiple keys with different titles
 
+### One fingerprint, one identity
+
+A fingerprint belongs to either a user SSH key or deploy keys, never both. `SSHKeyService.AddKey` refuses a key already in `deploy_keys` ("this key is already registered as a deploy key"), and `DeployKeyService.Add` refuses one already in `ssh_keys` ("this key is already registered as a user SSH key"). Both treat only `sql.ErrNoRows` as absent; any other lookup error fails the add.
+
+This matters because the SSH server's `publicKeyHandler` tries user keys first, then deploy keys: a key in both tables would authenticate as the user, shadowing the deploy key.
+
+The check is in the services, not the schema, so it has two gaps:
+
+- Rows added before both checks existed (`AddKey` had none) may already collide.
+- Two concurrent adds of the same key, one to each table, can both pass. Closing that needs a trigger or a shared fingerprint table.
+
+To find existing collisions:
+
+```sql
+SELECT s.fingerprint, s.id AS ssh_key_id, s.user_id, d.id AS deploy_key_id, d.repo_id
+FROM ssh_keys s
+JOIN deploy_keys d USING (fingerprint);
+```
+
+Resolve each by deleting whichever key the owner no longer wants; nothing removes them automatically.
+
 ---
 
 ## Git HTTP Smart Protocol
@@ -210,7 +231,7 @@ git pull
 3. Client sends user's SSH public key
 4. Server computes MD5 fingerprint and looks up matching SSH key in database
 5. If found, extracts user ID from key owner
-6. User is authenticated and context is populated
+6. User is authenticated and context is populated; with no user key, a matching deploy key is bound instead, to its one repo (see [Repository Permission Rules](#repository-permission-rules))
 7. `git-upload-pack` or `git-receive-pack` command is dispatched with user context
 8. Repository permissions are checked (read for upload-pack, write for receive-pack)
 
@@ -240,6 +261,19 @@ All git operations (HTTP and SSH) respect the same permission rules.
   - User is the repository owner
   - User has a permission record with role `writer` or `admin`
   - A read-write deploy key with matching fingerprint exists for this repo
+
+**Deploy keys belong to one repo.** The SSH handshake authenticates a deploy key before the command names a repository, so the key is bound to its repo then, and the command is checked against that binding. `DeployKeyService.Add` therefore refuses a key that is already a deploy key on any repo, this one included ("this key is already registered as a deploy key"), as GitHub does; a deploy key needing several repos should be a separate key per repo, or a user key.
+
+The rule is in the service, not the schema (migration 028 only makes `(repo_id, fingerprint)` unique), so rows added before it may share a fingerprint, and two concurrent adds of the same key can both pass. `DeployKeyStore.GetByFingerprint` resolves a shared fingerprint to the oldest row (`ORDER BY id`), so the key keeps working on the repo it was first added to, with that row's `read_only`, and is refused elsewhere, as if the later adds had been refused. To find shared fingerprints:
+
+```sql
+SELECT fingerprint, array_agg(repo_id ORDER BY id) AS repo_ids, array_agg(id ORDER BY id) AS deploy_key_ids
+FROM deploy_keys
+GROUP BY fingerprint
+HAVING count(*) > 1;
+```
+
+The first repo listed is the one the key authenticates to. Resolve each by deleting the later rows and giving those repos their own keys; nothing removes them automatically.
 
 **Service API:**
 

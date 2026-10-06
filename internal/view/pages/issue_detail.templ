@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -66,19 +67,12 @@ templ IssueDetail(data view.IssueDetailData) {
 					})
 
 					<ol id="comments" class="space-y-4" aria-label="Issue activity">
-						for _, c := range data.Comments {
-							<li class="rounded-md border border-border bg-card overflow-hidden">
-								<header class="px-4 py-2.5 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px]">
-									@components.Avatar(c.AuthorName, components.AvatarSizeSM, c.AuthorName)
-									<strong class="text-foreground">{ c.AuthorName }</strong>
-									<span class="text-muted-foreground">commented</span>
-									<time class="text-muted-foreground ml-auto text-xs" datetime={ c.CreatedAt.UTC().Format(time.RFC3339) }>{ c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</time>
-								</header>
-								<div class="px-4 py-3 prose prose-sm dark:prose-invert max-w-none">
-									@templ.Raw(c.BodyHTML)
-								</div>
-								<div id={ "reactions-" + strconv.FormatInt(c.ID, 10) } hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(c.ID, 10) + "/reactions" } hx-trigger="load" hx-swap="outerHTML" class="px-4 pb-2"></div>
-							</li>
+						for _, e := range issueTimeline(data.Comments, data.Events) {
+							if e.Event != nil {
+								@issueEventEntry(data.Owner, data.RepoName, *e.Event)
+							} else {
+								@issueCommentEntry(data.Owner, data.RepoName, *e.Comment)
+							}
 						}
 					</ol>
 
@@ -165,8 +159,8 @@ templ IssueDetail(data view.IssueDetailData) {
 							Owner:       data.Owner,
 							RepoName:    data.RepoName,
 							IssueNumber: data.Issue.Number,
-							Linked:      linkedPullsView(data.LinkedPRs),
-							AllPulls:    linkedPullsView(data.RepoPulls),
+							Linked:      linkedPullsView(data.Owner, data.RepoName, data.LinkedPRs),
+							AllPulls:    linkedPullsView(data.Owner, data.RepoName, data.RepoPulls),
 							CanWrite:    data.CanWrite,
 						})
 					</section>
@@ -279,4 +273,41 @@ templ pinIcon() {
 
 templ lockIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>
+}
+
+templ issueCommentEntry(owner, repoName string, c view.RenderedComment) {
+	<li class="rounded-md border border-border bg-card overflow-hidden">
+		<header class="px-4 py-2.5 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px]">
+			@components.Avatar(c.AuthorName, components.AvatarSizeSM, c.AuthorName)
+			<strong class="text-foreground">{ c.AuthorName }</strong>
+			<span class="text-muted-foreground">commented</span>
+			<time class="text-muted-foreground ml-auto text-xs" datetime={ c.CreatedAt.UTC().Format(time.RFC3339) }>{ c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</time>
+		</header>
+		<div class="px-4 py-3 prose prose-sm dark:prose-invert max-w-none">
+			@templ.Raw(c.BodyHTML)
+		</div>
+		<div id={ "reactions-" + strconv.FormatInt(c.ID, 10) } hx-get={ "/api/repos/" + owner + "/" + repoName + "/comments/" + strconv.FormatInt(c.ID, 10) + "/reactions" } hx-trigger="load" hx-swap="outerHTML" class="px-4 pb-2"></div>
+	</li>
+}
+
+templ issueEventEntry(owner, repoName string, ev model.IssueEvent) {
+	{{ srcText, srcHref := issueEventSource(owner, repoName, ev) }}
+	<li class="relative pl-11 py-1 text-[13px] text-muted-foreground">
+		@components.TimelineIcon(issueEventVariant(ev.Type)) {
+			if ev.Type == model.IssueEventReopened {
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+			} else {
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 12l2 2 4-4"></path></svg>
+			}
+		}
+		<p>
+			<a href={ templ.SafeURL("/" + ev.ActorName) } class="font-medium text-foreground hover:text-primary">{ ev.ActorName }</a>
+			{ " " + issueEventVerb(ev.Type) }
+			if srcHref != "" {
+				{ " in " }
+				<a href={ templ.SafeURL(srcHref) } class="font-medium text-foreground hover:underline">{ srcText }</a>
+			}
+			<time class="ml-1" datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ ev.CreatedAt.Format("Jan 2, 2006") }</time>
+		</p>
+	</li>
 }

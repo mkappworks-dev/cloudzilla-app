@@ -27,9 +27,17 @@ func priorityIsSet(current *string, key string) bool {
 	return current != nil && *current == key
 }
 
+// linkedRepoPath is the "owner/repo" a linked item lives in.
+func linkedRepoPath(owner, repoName, otherRepo string) string {
+	if otherRepo != "" {
+		return otherRepo
+	}
+	return owner + "/" + repoName
+}
+
 func pullLinked(linked []view.LinkedPull, number int) bool {
 	for _, lp := range linked {
-		if lp.Number == number {
+		if lp.OtherRepo == "" && lp.Number == number {
 			return true
 		}
 	}
@@ -206,8 +214,8 @@ templ IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) {
 				for _, lp := range data.Linked {
 					<li class="flex items-center gap-2">
 						@prStateIcon(lp.State)
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(lp.Number)) } class="hover:underline truncate">
-							<span class="font-mono text-muted-foreground">#{ strconv.Itoa(lp.Number) }</span>
+						<a href={ templ.SafeURL("/" + linkedRepoPath(data.Owner, data.RepoName, lp.OtherRepo) + "/pulls/" + strconv.Itoa(lp.Number)) } class="hover:underline truncate">
+							<span class="font-mono text-muted-foreground">{ lp.OtherRepo }#{ strconv.Itoa(lp.Number) }</span>
 							{ " " }{ lp.Title }
 						</a>
 					</li>

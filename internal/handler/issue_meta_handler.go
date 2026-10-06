@@ -163,7 +163,7 @@ func (h *Handler) IssueBodySection(w http.ResponseWriter, r *http.Request) {
 	if claims, found := middleware.ClaimsFromContext(r.Context()); found {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
-	h.render(w, r, fragments.IssueBodyCard(view.IssueBodyCardData{
+	h.render(w, h.withAvatars(r, issue.AuthorName), fragments.IssueBodyCard(view.IssueBodyCardData{
 		Owner:       owner,
 		RepoName:    repoName,
 		IssueNumber: number,
@@ -191,7 +191,7 @@ func (h *Handler) EditIssueBody(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	h.render(w, r, fragments.IssueBodyCard(view.IssueBodyCardData{
+	h.render(w, h.withAvatars(r, issue.AuthorName), fragments.IssueBodyCard(view.IssueBodyCardData{
 		Owner:       owner,
 		RepoName:    repoName,
 		IssueNumber: number,
@@ -250,14 +250,14 @@ func (h *Handler) setIssuePullLink(w http.ResponseWriter, r *http.Request, link 
 		} else {
 			toast(w, "success", "Pull request unlinked")
 		}
-		h.renderIssueLinkedPullsFragment(w, r, owner, repoName, issueNumber, true)
+		h.renderIssueLinkedPullsFragment(w, r, owner, repoName, issueNumber, userID, true)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) renderIssueLinkedPullsFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int, canWrite bool) {
-	linked, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issueNumber)
+func (h *Handler) renderIssueLinkedPullsFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int, viewerID int64, canWrite bool) {
+	linked, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issueNumber, &viewerID)
 	if err != nil {
 		slog.Warn("issue linked pulls fragment: linked list failed", "owner", owner, "repo", repoName, "error", err)
 	}
@@ -269,16 +269,17 @@ func (h *Handler) renderIssueLinkedPullsFragment(w http.ResponseWriter, r *http.
 		Owner:       owner,
 		RepoName:    repoName,
 		IssueNumber: issueNumber,
-		Linked:      pullsToLinkedPulls(linked),
-		AllPulls:    pullsToLinkedPulls(all),
+		Linked:      pullsToLinkedPulls(owner, repoName, linked),
+		AllPulls:    pullsToLinkedPulls(owner, repoName, all),
 		CanWrite:    canWrite,
 	}))
 }
 
-func pullsToLinkedPulls(pulls []model.PullRequest) []view.LinkedPull {
+func pullsToLinkedPulls(owner, repoName string, pulls []model.PullRequest) []view.LinkedPull {
 	out := make([]view.LinkedPull, 0, len(pulls))
 	for _, p := range pulls {
-		out = append(out, view.LinkedPull{Number: p.Number, Title: p.Title, State: string(p.State)})
+		out = append(out, view.LinkedPull{Number: p.Number, Title: p.Title, State: string(p.State),
+			OtherRepo: view.OtherRepo(owner, repoName, p.RepoOwner, p.RepoName)})
 	}
 	return out
 }

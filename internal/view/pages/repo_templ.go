@@ -567,7 +567,7 @@ func Repo(data view.RepoData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = components.Avatar(data.LatestCommit.Author, components.AvatarSizeXS, "").Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = components.Initials(data.LatestCommit.Author, components.AvatarSizeXS, "").Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -21,13 +22,18 @@ func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ldapEnabled, samlEnabled := h.ssoEnabled(r)
-	h.render(w, r, pages.Login(view.LoginData{
+	data := view.LoginData{
 		BasePage:          basePage(r, h.Services),
 		LDAPEnabled:       ldapEnabled,
 		SAMLEnabled:       samlEnabled,
 		AllowRegistration: h.Services.SiteSetting.AllowRegistration(r.Context()),
+		ForgotPassword:    h.Services.PasswordReset.Available(),
 		Next:              next,
-	}))
+	}
+	if r.URL.Query().Get("reset") == "done" {
+		data.Notice = passwordResetNotice
+	}
+	h.render(w, r, pages.Login(data))
 }
 
 // PageLoginSubmit handles form login, sets the auth cookie, and redirects on success.
@@ -44,12 +50,17 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 			LDAPEnabled:       ldapEnabled,
 			SAMLEnabled:       samlEnabled,
 			AllowRegistration: allowReg,
+			ForgotPassword:    h.Services.PasswordReset.Available(),
 			Error:             msg,
 			Next:              next,
 		}))
 	}
 
 	user, token, err := h.Services.User.Authenticate(r.Context(), email, password)
+	if errors.Is(err, service.ErrAccountSuspended) {
+		renderLoginError(accountSuspendedMessage)
+		return
+	}
 	if err != nil {
 		renderLoginError("Invalid credentials")
 		return
@@ -64,6 +75,10 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		renderLoginError("Internal error")
 	}
 }
+
+// accountSuspendedMessage is shown only once the first factor has passed, so it
+// doesn't tell a stranger the account exists.
+const accountSuspendedMessage = "This account is suspended. Contact your administrator."
 
 // signIn finishes a sign-in whose first factor has passed. Every web sign-in
 // route ends here so none of them can skip TOTP: a user who enabled it gets a

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -184,6 +185,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("new PR: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
+	r = h.withAvatars(r, append(usernames(suggested), collaboratorUsernames(collaborators)...)...)
 	h.render(w, r, pages.PullNew(view.PullNewData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:         *repo,
@@ -254,6 +256,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderErr := func(msg string) {
+		r := h.withAvatars(r, append(usernames(errSuggested), collaboratorUsernames(errCollaborators)...)...)
 		h.render(w, r, pages.PullNew(view.PullNewData{
 			BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 			Repo:         *repo,
@@ -277,7 +280,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, isDraft)
+	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, isDraft, claims.Targets)
 	if err != nil {
 		renderErr(createFailedMessage(err, "pull request", "owner", owner, "repo", repoName))
 		return
@@ -497,6 +500,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	chromeCounts.ConvCount = len(rawComments) + submittedReviewCount(reviews)
 	chromeCounts.ChecksTotal, chromeCounts.ChecksPassed = checkCounts(headStatuses)
 
+	r = h.withAvatars(r, slices.Concat(participants, collaboratorUsernames(collaborators), usernames(pullAssignees))...)
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
@@ -516,8 +520,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Reviews:           reviews,
 		Comments:          comments,
 		Participants:      participants,
-		LinkedIssues:      linkedIssuesToView(linkedIssueModels),
-		LinkableIssues:    linkedIssuesToView(repoIssueModels),
+		LinkedIssues:      linkedIssuesToView(owner, repoName, linkedIssueModels),
+		LinkableIssues:    linkedIssuesToView(owner, repoName, repoIssueModels),
 		Subscribed:        subscribed,
 		Events:            pullEvents,
 		PullChromeCounts:  chromeCounts,

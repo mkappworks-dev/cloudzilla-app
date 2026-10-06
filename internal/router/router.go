@@ -21,6 +21,13 @@ const (
 	accountCreationWindow = 15 * time.Minute
 )
 
+// Each password reset route gets its own budget per client IP, on top of the
+// per-account email cooldown and the per-user limit on wrong two-factor codes.
+const (
+	passwordResetLimit  = 10
+	passwordResetWindow = 15 * time.Minute
+)
+
 const (
 	// Room for a person retrying a mistyped password; too few to guess passwords or probe emails at scale.
 	loginAttemptLimit = 30
@@ -71,7 +78,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 	r.Use(middleware.HighlightBudget(requestHighlightBytes, requestHighlightTime))
 
-	sessions := middleware.WithSessionVersions(services.User)
+	sessions := middleware.WithSessionStates(services.User)
 	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized, sessions)
 	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions)
 	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB
@@ -91,6 +98,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 
 	// Admin routes
 	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
+	r.With(authMW, superadminMW).Get("/admin/users", h.PageAdminUsers)
+	r.With(authMW, superadminMW).Get("/admin/users/{username}", h.PageAdminUser)
 	r.With(authMW, superadminMW).Get("/admin/audit-log", h.PageAuditLog)
 	r.With(authMW, superadminMW).Get("/admin/sso", h.PageSSOSettings)
 	r.With(authMW, superadminMW).Post("/admin/sso", h.SaveSSOConfig)
@@ -110,8 +119,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW, middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.PageLoginSubmit)
 	r.With(optAuthMW).Get("/verify-email", h.PageVerifyEmail)
 	r.With(optAuthMW).Post("/verify-email", h.VerifyEmailSubmit)
+	r.Get("/auth/password/forgot", h.PageForgotPassword)
+	r.With(middleware.RateLimit(passwordResetLimit, passwordResetWindow)).Post("/auth/password/forgot", h.ForgotPasswordSubmit)
+	r.Get("/auth/password/reset/{token}", h.PageResetPassword)
+	r.With(middleware.RateLimit(passwordResetLimit, passwordResetWindow)).Post("/auth/password/reset/{token}", h.ResetPasswordSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
+	r.With(authMW, middleware.MaxBodySize(handler.AvatarBodyBytes)).Post("/settings/avatar", h.UploadUserAvatar)
+	r.With(authMW).Post("/settings/avatar/delete", h.RemoveUserAvatar)
 	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)
 	r.With(authMW).Post("/settings/email", h.UpdateEmailSettings)
 	r.With(authMW).Post("/settings/email/resend-verification", h.ResendVerificationEmail)
@@ -179,6 +194,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
+	// Outside /api/orgs, whose 1 MB body limit is smaller than an avatar.
+	r.With(authMW, middleware.MaxBodySize(handler.AvatarBodyBytes)).Post("/orgs/{org}/settings/avatar", h.UploadOrgAvatar)
+	r.With(authMW).Post("/orgs/{org}/settings/avatar/delete", h.RemoveOrgAvatar)
+	r.Get("/avatars/*", h.ServeAvatar)
+	r.Head("/avatars/*", h.ServeAvatar)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(authMW).Get("/{owner}/{repo}/fork", h.PageForkRepo)
@@ -527,6 +547,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Post("/invitations", h.CreateInvitation)
 		r.Delete("/invitations/{id}", h.DeleteInvitation)
 		r.Post("/users/verify-email", h.AdminVerifyEmail)
+		r.Post("/users/{username}/suspend", h.AdminSuspendUser)
+		r.Post("/users/{username}/unsuspend", h.AdminUnsuspendUser)
+		r.Post("/users/{username}/promote", h.AdminPromoteUser)
+		r.Post("/users/{username}/demote", h.AdminDemoteUser)
+		r.Post("/users/{username}/reset-2fa", h.AdminResetUserTOTP)
+		r.Post("/users/{username}/revoke-credentials", h.AdminRevokeUserCredentials)
+		r.Post("/users/{username}/delete", h.AdminDeleteUser)
 		r.Post("/sso/{provider}/enabled", h.SetSSOEnabled)
 	})
 

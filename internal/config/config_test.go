@@ -150,6 +150,31 @@ func TestLoad_WebhookDefaultsAndEnv(t *testing.T) {
 		t.Error("env: want webhook.allow_local_networks=true")
 	}
 }
+
+func TestLoad_StorageDefaultsAndEnv(t *testing.T) {
+	cfg, err := config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Storage.Backend != "local" || cfg.Storage.Local.Root != "./storage" || cfg.Storage.S3.Region != "us-east-1" {
+		t.Errorf("defaults: got %+v", cfg.Storage)
+	}
+
+	t.Setenv("CZ_STORAGE_BACKEND", "s3")
+	t.Setenv("CZ_STORAGE_S3_ENDPOINT", "http://localhost:7070")
+	t.Setenv("CZ_STORAGE_S3_BUCKET", "avatars")
+	t.Setenv("CZ_STORAGE_S3_PATH_STYLE", "true")
+	t.Setenv("CZ_STORAGE_S3_PREFIX", "prod")
+	cfg, err = config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	s3 := cfg.Storage.S3
+	if cfg.Storage.Backend != "s3" || s3.Endpoint != "http://localhost:7070" || s3.Bucket != "avatars" || !s3.PathStyle || s3.Prefix != "prod" {
+		t.Errorf("env: got %+v", cfg.Storage)
+	}
+}
+
 func TestLoad_SecretKey(t *testing.T) {
 	cfg, err := config.Load("")
 	if err != nil {

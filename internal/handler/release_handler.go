@@ -371,7 +371,7 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("release: resolve tag failed", "owner", owner, "repo", repoName, "tag", release.TagName, "error", rErr)
 	}
 
-	h.render(w, r, pages.ReleaseDetail(view.ReleaseDetailData{
+	h.render(w, h.withAvatars(r, authorName), pages.ReleaseDetail(view.ReleaseDetailData{
 		BasePage:   h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "releases", canManage),
 		Repo:       *repo,
 		Owner:      owner,

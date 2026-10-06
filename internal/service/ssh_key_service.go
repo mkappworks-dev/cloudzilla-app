@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"crypto/md5"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -12,13 +14,14 @@ import (
 
 // SSHKeyService manages user SSH public keys for git authentication.
 type SSHKeyService struct {
-	keys  *store.SSHKeyStore
-	users *store.UserStore
+	keys       *store.SSHKeyStore
+	users      *store.UserStore
+	deployKeys *store.DeployKeyStore
 }
 
 // NewSSHKeyService creates an SSHKeyService backed by the given stores.
-func NewSSHKeyService(keys *store.SSHKeyStore, users *store.UserStore) *SSHKeyService {
-	return &SSHKeyService{keys: keys, users: users}
+func NewSSHKeyService(keys *store.SSHKeyStore, users *store.UserStore, deployKeys *store.DeployKeyStore) *SSHKeyService {
+	return &SSHKeyService{keys: keys, users: users, deployKeys: deployKeys}
 }
 
 func (s *SSHKeyService) AddKey(ctx context.Context, userID int64, title, rawPublicKey string) (*model.SSHKey, error) {
@@ -30,6 +33,15 @@ func (s *SSHKeyService) AddKey(ctx context.Context, userID int64, title, rawPubl
 
 	// Compute MD5 fingerprint
 	fingerprint := computeFingerprint(pubKey)
+
+	// The SSH server tries user keys before deploy keys, so a shared fingerprint would authenticate two ways.
+	_, err = s.deployKeys.GetByFingerprint(ctx, fingerprint)
+	if err == nil {
+		return nil, errors.New("this key is already registered as a deploy key")
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
 
 	key := &model.SSHKey{
 		UserID:      userID,
@@ -63,6 +75,9 @@ func (s *SSHKeyService) AuthenticatePublicKey(ctx context.Context, pubKey ssh.Pu
 	user, err := s.users.GetByID(ctx, key.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	if user.Suspended() {
+		return nil, ErrAccountSuspended
 	}
 
 	return user, nil

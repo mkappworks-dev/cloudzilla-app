@@ -31,6 +31,8 @@ func SettingsErrorMessage(code string) string {
 		return "Couldn't delete your account. Please try again."
 	case "sole_org_owner":
 		return "You are the only owner of an organization. Add another owner or delete the organization first. Account was not deleted."
+	case "last_superadmin":
+		return "You are the only active superadmin. Promote another account first. Account was not deleted."
 	case "totp_setup_failed":
 		return "Couldn't start two-factor setup. Please try again."
 	case "totp_missing_fields":
@@ -134,20 +136,9 @@ func codeThemeOptions(themes []highlight.Theme) []components.SelectMenuOption {
 	return out
 }
 
-func avatarInitials(name, username string) string {
-	src := strings.TrimSpace(name)
-	if src == "" {
-		src = username
+func displayNameOr(name, username string) string {
+	if strings.TrimSpace(name) != "" {
+		return name
 	}
-	if src == "" {
-		return "?"
-	}
-	parts := strings.Fields(src)
-	if len(parts) >= 2 {
-		return strings.ToUpper(parts[0][:1] + parts[1][:1])
-	}
-	if len(src) >= 2 {
-		return strings.ToUpper(src[:2])
-	}
-	return strings.ToUpper(src[:1])
+	return username
 }

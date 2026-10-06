@@ -3,12 +3,14 @@ package service
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/secretbox"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // Services bundles all application service instances used by HTTP handlers.
 type Services struct {
 	User             *UserService
+	AdminUser        *AdminUserService
 	Repo             *RepoService
 	Issue            *IssueService
 	Pull             *PullService
@@ -44,6 +46,7 @@ type Services struct {
 	SavedReply       *SavedReplyService
 	Email            *EmailService
 	EmailVerifier    *EmailVerificationService
+	PasswordReset    *PasswordResetService
 	OAuthApp         *OAuthAppService
 	Watch            *WatchService
 	Event            *EventService
@@ -58,10 +61,19 @@ type Services struct {
 	Attention        *AttentionService
 	Language         *LanguageService
 	Import           *ImportService
+	IssueCloser      *IssueCloser
 	Health           *HealthService
+	Avatar           *AvatarService
 	Mirror           *MirrorService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
+}
+
+// WithStorage gives the avatar service its object store. Until it is called,
+// avatar uploads fail with ErrStorageUnconfigured.
+func (s *Services) WithStorage(b storage.Backend) *Services {
+	s.Avatar.WithBackend(b)
+	return s
 }
 
 // New constructs and wires all services from the given stores and configuration.
@@ -95,16 +107,22 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	userSvc.WithReauth(reauthSvc)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
+	avatarSvc := NewAvatarService(stores.User, stores.Org, stores.Avatar, orgSvc)
+	userSvc.WithAvatars(avatarSvc)
+	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
-	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention)
+	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
+	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
+	auditSvc := NewAuditService(stores.AuditLog)
 	return &Services{
 		User:             userSvc,
+		AdminUser:        NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc),
 		Repo:             repoSvc,
-		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention),
+		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent),
 		Pull:             pullSvc,
 		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
-		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
+		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User, stores.DeployKey),
 		Code:             code,
 		Org:              orgSvc,
 		Webhook:          webhookSvc,
@@ -129,15 +147,16 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		TOTP:             totpSvc,
 		OAuthLink:        NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
 		Reauth:           reauthSvc,
-		AuditLog:         NewAuditService(stores.AuditLog),
+		AuditLog:         auditSvc,
 		Project:          NewProjectService(stores.Project, repoSvc),
 		SSO:              ssoSvc,
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
 		EmailVerifier:    emailVerificationSvc,
+		PasswordReset:    NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL),
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
-		Event:            NewEventService(stores.Event, stores.User, stores.Repo),
+		Event:            eventSvc,
 		Discussion:       NewDiscussionService(stores.Discussion, stores.Repo),
 		Gist:             NewGistService(stores.Gist),
 		Topic:            NewTopicService(stores.Topic),
@@ -149,7 +168,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
+		IssueCloser:      NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc),
 		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
+		Avatar:           avatarSvc,
 		Mirror:           mirrorSvc,
 		Secrets:          secrets,
 	}

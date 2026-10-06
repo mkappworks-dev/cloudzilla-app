@@ -35,7 +35,8 @@ type APIRateLimitConfig struct {
 	OnLimited http.HandlerFunc
 }
 
-// exemptPaths, with everything under /static/, are never counted.
+// exemptPaths, with everything under /static/ and /avatars/, are never
+// counted: one page can load dozens of avatars, each cached for a year.
 var exemptPaths = map[string]bool{
 	"/htmx.min.js":   true,
 	"/alpine.min.js": true,
@@ -149,7 +150,7 @@ func classifyRequest(r *http.Request) (string, bool) {
 	if path == "" {
 		path = r.URL.Path
 	}
-	if exemptPaths[path] || strings.HasPrefix(path, "/static/") {
+	if exemptPaths[path] || strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/avatars/") {
 		return "", false
 	}
 	if path == "/search" || path == "/search/code" {

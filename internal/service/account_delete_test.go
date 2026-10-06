@@ -230,7 +230,8 @@ func TestUserService_DeleteUser_LastCoOwnerLeavingMidDeleteAbortsIt(t *testing.T
 		if err := env.orgs.RemoveMember(ctx, org.ID, coOwnerID, coOwnerID); err != nil {
 			t.Fatalf("co-owner leaving: %v", err)
 		}
-		return users.DeleteWithOwnedRepos(ctx, userID, live)
+		_, err := users.DeleteWithOwnedRepos(ctx, userID, live)
+		return err
 	})
 	if !errors.Is(err, store.ErrLastOrgOwner) {
 		t.Fatalf("want ErrLastOrgOwner, got %v", err)
@@ -450,7 +451,8 @@ func TestUserService_DeleteUser_RepoCreatedMidDeleteAbortsIt(t *testing.T) {
 			if err := tc.create(userID, user); err != nil {
 				t.Fatalf("%s: create mid-delete: %v", tc.name, err)
 			}
-			return users.DeleteWithOwnedRepos(ctx, userID, live)
+			_, err := users.DeleteWithOwnedRepos(ctx, userID, live)
+			return err
 		})
 		if err == nil {
 			t.Fatalf("%s: delete succeeded although a repo appeared after the move-aside", tc.name)

@@ -19,6 +19,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/router"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ssh"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
@@ -46,8 +47,14 @@ func main() {
 	}
 	defer database.Close()
 
+	backend, err := storage.New(context.Background(), cfg.Storage)
+	if err != nil {
+		slog.Error("failed to configure storage", "error", err)
+		os.Exit(1)
+	}
+
 	stores := store.New(database)
-	services := service.New(stores, cfg)
+	services := service.New(stores, cfg).WithStorage(backend)
 	if err := services.Import.RemoveStaleTemp(); err != nil {
 		slog.Warn("remove clones of interrupted imports failed", "error", err)
 	}

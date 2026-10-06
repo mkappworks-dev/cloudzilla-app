@@ -68,25 +68,16 @@ func pathSegments(r *http.Request) []string {
 // that names neither is left to the token's scopes.
 func TargetAllows(targets []string, r *http.Request) bool {
 	seg := pathSegments(r)
-	var owner, repo, org string
 	switch {
 	case len(seg) >= 4 && seg[0] == "api" && seg[1] == "repos":
-		owner, repo = seg[2], seg[3]
+		return model.TargetsCover(targets, seg[2], seg[3])
 	case len(seg) >= 3 && seg[0] == "api" && seg[1] == "orgs":
-		org = seg[2]
+		return slices.ContainsFunc(targets, func(t string) bool {
+			return !strings.Contains(t, "/") && strings.EqualFold(t, seg[2])
+		})
 	default:
 		return true
 	}
-	for _, t := range targets {
-		if tOwner, tRepo, isRepo := strings.Cut(t, "/"); isRepo {
-			if repo != "" && strings.EqualFold(tOwner, owner) && strings.EqualFold(tRepo, repo) {
-				return true
-			}
-		} else if strings.EqualFold(t, org) || repo != "" && strings.EqualFold(t, owner) {
-			return true
-		}
-	}
-	return false
 }
 
 // acceptedScopes returns the scopes, any one of which admits a scoped token to r.

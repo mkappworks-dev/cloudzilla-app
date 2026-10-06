@@ -2,10 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 type loginRequest struct {
@@ -21,6 +23,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, token, err := h.Services.User.Authenticate(r.Context(), req.Email, req.Password)
+	if errors.Is(err, service.ErrAccountSuspended) {
+		writeError(w, http.StatusForbidden, "account_suspended")
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -257,7 +258,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		allIssueMilestones = []model.Milestone{}
 	}
 
-	linkedPRs, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issue.Number)
+	linkedPRs, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issue.Number, issueCallerID)
 	if err != nil {
 		slog.Warn("issue detail: linked PRs lookup failed", "owner", owner, "repo", repoName, "issue", issue.Number, "error", err)
 	}
@@ -278,11 +279,19 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("issue detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
+	events, err := h.Services.Issue.Events(r.Context(), issue.ID, issueCallerID)
+	if err != nil {
+		slog.Warn("issue detail: events lookup failed; timeline will be incomplete", "owner", owner, "repo", repoName, "issue", issue.Number, "error", err)
+	}
+
+	collaboratorNames := collaboratorUsernames(collaborators)
+	r = h.withAvatars(r, slices.Concat([]string{issue.AuthorName}, commentAuthors(rendered), usernames(issueAssignees), collaboratorNames)...)
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
 		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:          *repo,
 		Issue:         *issue,
 		Comments:      rendered,
+		Events:        events,
 		Owner:         owner,
 		RepoName:      repoName,
 		BodyHTML:      bodyHTML,
@@ -293,7 +302,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		AllMilestones: allIssueMilestones,
 		LinkedPRs:     linkedPRs,
 		RepoPulls:     repoPulls,
-		Collaborators: collaboratorUsernames(collaborators),
+		Collaborators: collaboratorNames,
 		CanWrite:      canWrite,
 		CanManage:     canManage,
 	}))
@@ -346,7 +355,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 	if canWrite {
 		h.loadIssueSidebarOptions(r, &data, repo, owner, repoName)
 	}
-	h.render(w, r, pages.IssueNew(data))
+	h.render(w, h.withAvatars(r, data.Collaborators...), pages.IssueNew(data))
 }
 
 // loadIssueSidebarOptions populates the new-issue metadata picker options
@@ -370,7 +379,7 @@ func (h *Handler) loadIssueSidebarOptions(r *http.Request, data *view.IssueNewDa
 		slog.Warn("new issue: list milestones failed", "owner", owner, "repo", repoName, "error", err)
 	}
 	if pulls, err := h.Services.Pull.List(ctx, owner, repoName); err == nil {
-		data.RepoPulls = pullsToLinkedPulls(pulls)
+		data.RepoPulls = pullsToLinkedPulls(owner, repoName, pulls)
 	} else {
 		slog.Warn("new issue: list pulls failed", "owner", owner, "repo", repoName, "error", err)
 	}
@@ -486,7 +495,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 		if canWrite {
 			h.loadIssueSidebarOptions(r, &data, repo, owner, repoName)
 		}
-		h.render(w, r, pages.IssueNew(data))
+		h.render(w, h.withAvatars(r, data.Collaborators...), pages.IssueNew(data))
 	}
 
 	if title == "" {
