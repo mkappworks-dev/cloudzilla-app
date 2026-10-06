@@ -39,7 +39,7 @@ func TestSuspension_RefusesEveryWayIn(t *testing.T) {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	sshKeys := service.NewSSHKeyService(store.NewSSHKeyStore(db), users)
+	sshKeys := service.NewSSHKeyService(store.NewSSHKeyStore(db), users, store.NewDeployKeyStore(db))
 	authorized := generateTestPublicKey(t)
 	if _, err := sshKeys.AddKey(ctx, userID, "suspension", authorized); err != nil {
 		t.Fatalf("AddKey: %v", err)
