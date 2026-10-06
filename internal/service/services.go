@@ -58,6 +58,7 @@ type Services struct {
 	Attention        *AttentionService
 	Language         *LanguageService
 	Import           *ImportService
+	Health           *HealthService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
 }
@@ -102,7 +103,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
 		Org:              orgSvc,
-		Webhook:          NewWebhookService(stores.Webhook),
+		Webhook:          NewWebhookService(stores.Webhook, cfg.Webhook),
 		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,
 		Invitation:       NewInvitationService(stores.Invitation),
@@ -144,6 +145,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
+		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Secrets:          secrets,
 	}
 }

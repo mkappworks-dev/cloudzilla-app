@@ -66,7 +66,7 @@ templ pullChecksBody(data view.PullChecksData) {
 			</ol>
 		</section>
 		<p class="mt-4 text-[12.5px] text-muted-foreground">
-			<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/actions") } class="hover:text-foreground">View all workflow runs →</a>
+			<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/checks") } class="hover:text-foreground">View all checks →</a>
 		</p>
 	}
 }

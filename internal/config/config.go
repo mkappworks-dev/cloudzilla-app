@@ -16,15 +16,17 @@ const DevJWTSecret = "dev-only-do-not-use-in-production-override-via-CZ_AUTH_JWT
 
 // Config holds the full application configuration loaded from YAML and environment variables.
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Auth     AuthConfig     `mapstructure:"auth"`
-	Git      GitConfig      `mapstructure:"git"`
-	OAuth    OAuthConfig    `mapstructure:"oauth"`
-	SMTP     SMTPConfig     `mapstructure:"smtp"`
-	Import   ImportConfig   `mapstructure:"import"`
-	Security SecurityConfig `mapstructure:"security"`
-	Mirror   MirrorConfig   `mapstructure:"mirror"`
+	Server    ServerConfig    `mapstructure:"server"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Auth      AuthConfig      `mapstructure:"auth"`
+	Git       GitConfig       `mapstructure:"git"`
+	OAuth     OAuthConfig     `mapstructure:"oauth"`
+	SMTP      SMTPConfig      `mapstructure:"smtp"`
+	Import    ImportConfig    `mapstructure:"import"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	Webhook   WebhookConfig   `mapstructure:"webhook"`
+	Security  SecurityConfig  `mapstructure:"security"`
+	Mirror    MirrorConfig    `mapstructure:"mirror"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -75,6 +77,47 @@ type ImportConfig struct {
 	Timeout            time.Duration `mapstructure:"timeout"`
 }
 
+// WebhookConfig holds webhook delivery settings.
+type WebhookConfig struct {
+	// Off by default, so a repo manager can't make the server post into its own network.
+	AllowLocalNetworks bool `mapstructure:"allow_local_networks"`
+}
+
+// RateLimitConfig holds the per-subject request budgets of each resource, per Window.
+type RateLimitConfig struct {
+	Enabled bool          `mapstructure:"enabled"`
+	Window  time.Duration `mapstructure:"window"`
+	Core    RateBudget    `mapstructure:"core"`
+	Git     RateBudget    `mapstructure:"git"`
+	Archive RateBudget    `mapstructure:"archive"`
+	Search  RateBudget    `mapstructure:"search"`
+}
+
+// RateBudget is a resource's budget for signed-in and anonymous subjects. Zero is unlimited.
+type RateBudget struct {
+	Authenticated int `mapstructure:"authenticated"`
+	Anonymous     int `mapstructure:"anonymous"`
+}
+
+func (c RateLimitConfig) validate() error {
+	if !c.Enabled {
+		return nil
+	}
+	if c.Window <= 0 {
+		return fmt.Errorf("rate_limit.window must be positive, got %s", c.Window)
+	}
+	budgets := []struct {
+		name string
+		b    RateBudget
+	}{{"core", c.Core}, {"git", c.Git}, {"archive", c.Archive}, {"search", c.Search}}
+	for _, r := range budgets {
+		if r.b.Authenticated < 0 || r.b.Anonymous < 0 {
+			return fmt.Errorf("rate_limit.%s: budgets can't be negative (0 is unlimited)", r.name)
+		}
+	}
+	return nil
+}
+
 // MaxMirrorInterval is the longest sync interval a pull mirror may have.
 const MaxMirrorInterval = 30 * 24 * time.Hour
 
@@ -90,10 +133,31 @@ type MirrorConfig struct {
 	Timeout       time.Duration `mapstructure:"timeout"`
 }
 
+func (m MirrorConfig) validate() error {
+	switch {
+	case m.MinInterval <= 0:
+		return fmt.Errorf("mirror.min_interval must be positive, got %s", m.MinInterval)
+	case m.DefaultInterval < m.MinInterval || m.DefaultInterval > MaxMirrorInterval:
+		return fmt.Errorf("mirror.default_interval must be between mirror.min_interval (%s) and %s, got %s", m.MinInterval, MaxMirrorInterval, m.DefaultInterval)
+	case m.MaxConcurrent < 1:
+		return fmt.Errorf("mirror.max_concurrent must be at least 1, got %d", m.MaxConcurrent)
+	case m.Timeout <= 0:
+		return fmt.Errorf("mirror.timeout must be positive, got %s", m.Timeout)
+	}
+	return nil
+}
+
 // SecurityConfig holds keys for secrets stored at rest.
 type SecurityConfig struct {
 	// Losing or changing it makes every stored mirror credential unreadable.
 	SecretKey string `mapstructure:"secret_key"`
+}
+
+func (s SecurityConfig) validate() error {
+	if n := len(s.SecretKey); n > 0 && n < secretbox.MinKeyLen {
+		return fmt.Errorf("security.secret_key must be at least %d bytes, got %d", secretbox.MinKeyLen, n)
+	}
+	return nil
 }
 
 // OAuthConfig holds Google OAuth provider settings.
@@ -147,6 +211,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("smtp.tls", false)
 	v.SetDefault("import.allow_local_networks", false)
 	v.SetDefault("import.timeout", "30m")
+	v.SetDefault("webhook.allow_local_networks", false)
 	v.SetDefault("security.secret_key", "")
 	v.SetDefault("mirror.enabled", true)
 	v.SetDefault("mirror.allow_local_networks", false)
@@ -154,6 +219,16 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("mirror.default_interval", "8h")
 	v.SetDefault("mirror.max_concurrent", 3)
 	v.SetDefault("mirror.timeout", "30m")
+	v.SetDefault("rate_limit.enabled", true)
+	v.SetDefault("rate_limit.window", "1h")
+	v.SetDefault("rate_limit.core.authenticated", 5000)
+	v.SetDefault("rate_limit.core.anonymous", 1000)
+	v.SetDefault("rate_limit.git.authenticated", 1000)
+	v.SetDefault("rate_limit.git.anonymous", 200)
+	v.SetDefault("rate_limit.archive.authenticated", 100)
+	v.SetDefault("rate_limit.archive.anonymous", 20)
+	v.SetDefault("rate_limit.search.authenticated", 600)
+	v.SetDefault("rate_limit.search.anonymous", 60)
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")
@@ -178,26 +253,14 @@ func Load(cfgFile string) (*Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
-	if err := cfg.validate(); err != nil {
+	if err := cfg.RateLimit.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.Security.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.Mirror.validate(); err != nil {
 		return nil, err
 	}
 	return &cfg, nil
-}
-
-func (c *Config) validate() error {
-	if n := len(c.Security.SecretKey); n > 0 && n < secretbox.MinKeyLen {
-		return fmt.Errorf("security.secret_key must be at least %d bytes, got %d", secretbox.MinKeyLen, n)
-	}
-	m := c.Mirror
-	switch {
-	case m.MinInterval <= 0:
-		return fmt.Errorf("mirror.min_interval must be positive, got %s", m.MinInterval)
-	case m.DefaultInterval < m.MinInterval || m.DefaultInterval > MaxMirrorInterval:
-		return fmt.Errorf("mirror.default_interval must be between mirror.min_interval (%s) and %s, got %s", m.MinInterval, MaxMirrorInterval, m.DefaultInterval)
-	case m.MaxConcurrent < 1:
-		return fmt.Errorf("mirror.max_concurrent must be at least 1, got %d", m.MaxConcurrent)
-	case m.Timeout <= 0:
-		return fmt.Errorf("mirror.timeout must be positive, got %s", m.Timeout)
-	}
-	return nil
 }

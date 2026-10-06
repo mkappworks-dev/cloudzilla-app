@@ -25,12 +25,6 @@ const (
 	importMaxErrorBodyBytes = 64 << 10
 )
 
-type ImportBlockedError struct{ Host string }
-
-func (e *ImportBlockedError) Error() string {
-	return e.Host + " resolves to a private network address"
-}
-
 // importSizeError names the cap a response crossed.
 type importSizeError struct {
 	limit int64
@@ -78,69 +72,22 @@ func (g *importGuard) failure() error {
 	defer g.mu.Unlock()
 	switch {
 	case g.blockedHost != "":
-		return &ImportBlockedError{Host: g.blockedHost}
+		return &PrivateNetworkError{Host: g.blockedHost}
 	case g.tooLarge != nil:
 		return g.tooLarge
 	}
 	return nil
 }
 
-var blockedImportNets = []*net.IPNet{
-	mustCIDR("0.0.0.0/8"),
-	mustCIDR("100.64.0.0/10"), // CGNAT; some cloud metadata services live here
-}
-
-func mustCIDR(s string) *net.IPNet {
-	_, n, err := net.ParseCIDR(s)
-	if err != nil {
-		panic(err)
-	}
-	return n
-}
-
-func blockedImportIP(ip net.IP) bool {
-	if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() || ip.IsMulticast() {
-		return true
-	}
-	for _, n := range blockedImportNets {
-		if n.Contains(ip) {
-			return true
-		}
-	}
-	return false
-}
-
-// dial connects to the addresses it vetted, so a second DNS answer can't
-// swap in a private one between the check and the connect.
 func (g *importGuard) dial(ctx context.Context, d *net.Dialer, network, addr string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
+	conn, err := dialPublic(ctx, d, network, addr)
+	var blocked *PrivateNetworkError
+	if errors.As(err, &blocked) {
+		g.mu.Lock()
+		g.blockedHost = blocked.Host
+		g.mu.Unlock()
 	}
-	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
-	if err != nil {
-		return nil, err
-	}
-	if len(ips) == 0 {
-		return nil, &net.DNSError{Err: "no addresses", Name: host, IsNotFound: true}
-	}
-	for _, ip := range ips {
-		if blockedImportIP(ip.IP) {
-			g.mu.Lock()
-			g.blockedHost = host
-			g.mu.Unlock()
-			return nil, &ImportBlockedError{Host: host}
-		}
-	}
-	var lastErr error
-	for _, ip := range ips {
-		conn, err := d.DialContext(ctx, network, net.JoinHostPort(ip.IP.String(), port))
-		if err == nil {
-			return conn, nil
-		}
-		lastErr = err
-	}
-	return nil, lastErr
+	return conn, err
 }
 
 func newImportHTTPClient() *http.Client {

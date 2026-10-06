@@ -39,7 +39,7 @@ func newPullHandler(db *sql.DB) *handler.Handler {
 		User:         userSvc,
 		Repo:         repoSvc,
 		Pull:         service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc),
-		Webhook:      service.NewWebhookService(store.NewWebhookStore(db)),
+		Webhook:      service.NewWebhookService(store.NewWebhookStore(db), config.WebhookConfig{}),
 		Event:        service.NewEventService(store.NewEventStore(db), store.NewUserStore(db), store.NewRepoStore(db)),
 		Notification: notifSvc,
 		Code:         service.NewCodeService(config.GitConfig{}),

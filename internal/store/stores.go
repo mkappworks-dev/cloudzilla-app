@@ -52,6 +52,7 @@ type Stores struct {
 	CommitStats        *CommitStatsStore
 	ContributorStats   *ContributorStatsStore
 	EmailVerification  *EmailVerificationStore
+	Health             *HealthStore
 	Mirror             *MirrorStore
 }
 
@@ -105,5 +106,6 @@ func New(database *sql.DB) *Stores {
 		ContributorStats:   NewContributorStatsStore(database),
 		EmailVerification:  NewEmailVerificationStore(database),
 		Mirror:             NewMirrorStore(database),
+		Health:             NewHealthStore(database),
 	}
 }
