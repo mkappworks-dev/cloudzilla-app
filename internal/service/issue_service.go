@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -115,7 +114,7 @@ func (s *IssueService) Get(ctx context.Context, owner, repoName string, number i
 }
 
 // SetState opens or closes an issue as actorID, recording the change on its
-// timeline. A failed event write doesn't fail the change.
+// timeline.
 func (s *IssueService) SetState(ctx context.Context, owner, repoName string, number int, state model.IssueState, actorID int64, actorName string) (*model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
@@ -125,18 +124,13 @@ func (s *IssueService) SetState(ctx context.Context, owner, repoName string, num
 	if err != nil {
 		return nil, err
 	}
-	if err := s.issues.UpdateState(ctx, issue.ID, state); err != nil {
-		return nil, err
+	if s.events == nil {
+		err = s.issues.UpdateState(ctx, issue.ID, state)
+	} else {
+		_, err = s.events.SetState(ctx, state, &model.IssueEvent{IssueID: issue.ID, ActorID: actorID, ActorName: actorName})
 	}
-	if s.events != nil && issue.State != state {
-		evType := model.IssueEventClosed
-		if state == model.IssueStateOpen {
-			evType = model.IssueEventReopened
-		}
-		if err := s.events.Create(ctx, &model.IssueEvent{IssueID: issue.ID, ActorID: actorID, ActorName: actorName, Type: evType}); err != nil {
-			slog.Warn("issue event not recorded; timeline will be incomplete",
-				"issue_id", issue.ID, "type", evType, "error", err)
-		}
+	if err != nil {
+		return nil, err
 	}
 	// Re-fetch so closed_at and updated_at reflect DB values
 	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)

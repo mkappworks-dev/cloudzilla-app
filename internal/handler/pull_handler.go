@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -91,7 +92,7 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft)
+	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft, claims.Targets)
 	if err != nil {
 		if errors.Is(err, service.ErrPullForbidden) {
 			writeError(w, http.StatusForbidden, "forbidden")
@@ -200,7 +201,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "title cannot be empty")
 			return
 		}
-		pr, err := h.Services.Pull.UpdateTitle(r.Context(), owner, repoName, number, prTitle, claims.UserID)
+		pr, err := h.Services.Pull.UpdateTitle(r.Context(), owner, repoName, number, prTitle, claims.UserID, claims.Targets)
 		if err != nil {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
@@ -220,7 +221,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		if req != nil && req.Body != nil {
 			newBody = *req.Body
 		}
-		pr, err := h.Services.Pull.UpdateBody(r.Context(), owner, repoName, number, newBody, claims.UserID)
+		pr, err := h.Services.Pull.UpdateBody(r.Context(), owner, repoName, number, newBody, claims.UserID, claims.Targets)
 		if err != nil {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
@@ -385,8 +386,6 @@ func (h *Handler) recordPullEvent(ctx context.Context, owner, repoName string, p
 	}
 }
 
-// mergeRefusal is a merge mergePull declined, with the HTTP status and message
-// that say why.
 type mergeRefusal struct {
 	status int
 	msg    string
@@ -399,6 +398,9 @@ func (e *mergeRefusal) Error() string { return e.msg }
 // commit identity.
 func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *model.PullRequest, strategy string, actor service.CloseActor, author *service.GitAuthor) (*model.PullRequest, error) {
 	owner, repoName := repo.OwnerName, repo.Name
+	if pr.State != model.PRStateOpen {
+		return nil, &mergeRefusal{http.StatusUnprocessableEntity, "only an open pull request can be merged"}
+	}
 	if pr.IsDraft {
 		return nil, &mergeRefusal{http.StatusUnprocessableEntity, "cannot merge a draft pull request"}
 	}
@@ -461,10 +463,8 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	return merged, nil
 }
 
-// tryAutoMerge merges pullID as the user who armed auto-merge once every check
-// passes. It disarms auto-merge instead when nobody can be credited with the
-// merge: no arming user is recorded, or they can no longer write the repo. Safe
-// to call as a goroutine; it no-ops while the PR isn't ready.
+// tryAutoMerge merges pullID as the user who armed auto-merge, or disarms it
+// when that user is unknown or can no longer write the repo.
 func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 	ctx := context.Background()
 
@@ -482,7 +482,12 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 
 	var user *model.User
 	if pr.AutoMergeBy != nil {
-		if u, err := h.Services.User.GetByID(ctx, *pr.AutoMergeBy); err == nil && h.Services.Repo.CanWrite(ctx, repo, u.ID) {
+		u, err := h.Services.User.GetByID(ctx, *pr.AutoMergeBy)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			slog.Error("auto-merge: load arming user failed", "owner", owner, "repo", repoName, "pull_number", pr.Number, "error", err)
+			return
+		}
+		if err == nil && h.Services.Repo.CanWrite(ctx, repo, u.ID) {
 			user = u
 		}
 	}

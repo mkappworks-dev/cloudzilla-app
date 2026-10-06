@@ -388,3 +388,30 @@ func TestIssuePage_ShowsCloseAndReopenEvents(t *testing.T) {
 	assertContains(t, body, `href="`+other.path+`/pulls/34"`)
 	assertContains(t, body, `href="`+r.path+`/commit/`+r.mainTip.String()+`"`)
 }
+
+func TestMergePull_ClosedPull_RefusedAndClosesNothing(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	r := seedClosingRepo(t, db, reposRoot, "")
+	issue := seedRepoIssue(t, db, r.id, r.reporter.id, 1)
+	pullID := createPull(t, api, r.raceRepo, r.owner.token, "Fix", "Fixes #1", "main")
+	if rr := requestAPIBody(api, http.MethodPatch, "/api/repos"+r.path+"/pulls/1", r.owner.token, `{"state":"closed"}`); rr.Code != http.StatusOK {
+		t.Fatalf("close pull: %d %s", rr.Code, rr.Body.String())
+	}
+
+	rr := requestAPIBody(api, http.MethodPatch, "/api/repos"+r.path+"/pulls/1", r.owner.token, `{"state":"merged","merge_strategy":"ff"}`)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("merge a closed pull: want 422, got %d %s", rr.Code, rr.Body.String())
+	}
+	if got := pullState(t, db, pullID); got != "closed" {
+		t.Errorf("pull = %q, want closed", got)
+	}
+	if got := branchHash(t, r.git, "main"); got != r.mainTip {
+		t.Errorf("main moved to %s", got)
+	}
+	if got := issueStateByID(t, db, issue); got != "open" {
+		t.Errorf("issue = %q, want open", got)
+	}
+}

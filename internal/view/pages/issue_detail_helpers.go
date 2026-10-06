@@ -19,7 +19,6 @@ func linkedPullsView(owner, repoName string, pulls []model.PullRequest) []view.L
 	return out
 }
 
-// issueTimelineEntry is a comment or an event on the issue page.
 type issueTimelineEntry struct {
 	When    time.Time
 	Comment *view.RenderedComment

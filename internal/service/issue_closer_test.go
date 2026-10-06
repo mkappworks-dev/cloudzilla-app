@@ -198,3 +198,35 @@ func TestIssueCloser_ResolvesCommitReferences(t *testing.T) {
 		t.Errorf("issue in a repo the actor can't read = %s, want open", got)
 	}
 }
+
+func TestPullService_KeywordLinksStayWithinTokenTargets(t *testing.T) {
+	f := newCloserFixture(t)
+	other := f.otherRepo(t, "writer")
+	var otherOwner, otherName string
+	if err := f.db.QueryRow(`SELECT owner_name, name FROM repositories WHERE id = $1`, other).Scan(&otherOwner, &otherName); err != nil {
+		t.Fatal(err)
+	}
+	var own, outside int64
+	for _, q := range []struct {
+		repo int64
+		id   *int64
+	}{{f.repo.ID, &own}, {other, &outside}} {
+		if err := f.db.QueryRow(`INSERT INTO issues (repo_id, number, author_id, title, body, state) VALUES ($1, 1, $2, 'i', '', 'open') RETURNING id`, q.repo, f.outsider).Scan(q.id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	targets := []string{f.repo.OwnerName + "/" + f.repo.Name}
+
+	pr, err := f.svcs.Pull.Create(context.Background(), f.repo.OwnerName, f.repo.Name, f.actor.UserID,
+		"t", "fixes #1, fixes "+otherOwner+"/"+otherName+"#1", "topic2", f.repo.DefaultBranch, false, targets)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n := f.count(t, `SELECT COUNT(*) FROM pull_issue_links WHERE pull_id = $1 AND issue_id = $2`, pr.ID, own); n != 1 {
+		t.Errorf("issue in a target repo linked %d times, want 1", n)
+	}
+	if n := f.count(t, `SELECT COUNT(*) FROM pull_issue_links WHERE pull_id = $1 AND issue_id = $2`, pr.ID, outside); n != 0 {
+		t.Errorf("issue outside the token's targets got linked")
+	}
+}

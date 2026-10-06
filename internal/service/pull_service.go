@@ -41,14 +41,14 @@ func (s *PullService) WithIssueStore(issues *store.IssueStore) *PullService {
 }
 
 // syncKeywordLinks makes pr's keyword links the issues its title and body close
-// that actorID can see.
-func (s *PullService) syncKeywordLinks(ctx context.Context, repo *model.Repository, pr *model.PullRequest, actorID int64) {
+// that actorID can see, within the repos targets, their token's, cover.
+func (s *PullService) syncKeywordLinks(ctx context.Context, repo *model.Repository, pr *model.PullRequest, actorID int64, targets []string) {
 	if s.issues == nil {
 		return
 	}
 	resolver := closingRefResolver{repos: s.repos, issues: s.issues, repoSvc: s.repoSvc}
 	var ids []int64
-	for _, issue := range resolver.resolve(ctx, ParseClosingRefs(pr.Title+"\n"+pr.Body), repo, actorID) {
+	for _, issue := range resolver.resolve(ctx, ParseClosingRefs(pr.Title+"\n"+pr.Body), repo, actorID, targets) {
 		ids = append(ids, issue.ID)
 	}
 	if err := s.issues.ReplaceKeywordLinks(ctx, pr.ID, ids); err != nil {
@@ -153,7 +153,8 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 // ErrPullForbidden is returned when an author lacks read access to the target repo.
 var ErrPullForbidden = fmt.Errorf("forbidden: cannot open pull requests on this repository")
 
-func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool) (*model.PullRequest, error) {
+// targets are the repos and orgs the author's token is limited to, if any.
+func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool, targets []string) (*model.PullRequest, error) {
 	if len(title) > MaxTitleLen {
 		return nil, ErrTitleTooLong
 	}
@@ -177,7 +178,7 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 	if err := s.pulls.Create(ctx, pr); err != nil {
 		return nil, err
 	}
-	s.syncKeywordLinks(ctx, repo, pr, authorID)
+	s.syncKeywordLinks(ctx, repo, pr, authorID, targets)
 	if s.code != nil {
 		if headCommit, _, resolveErr := s.code.ResolveRef(owner, repoName, head); resolveErr == nil && headCommit != nil {
 			if shaErr := s.pulls.UpdateHeadSHA(ctx, pr.ID, headCommit.Hash.String()); shaErr == nil {
@@ -285,8 +286,8 @@ func (s *PullService) SetState(ctx context.Context, owner, repoName string, numb
 	return s.Get(ctx, owner, repoName, number)
 }
 
-// title must be pre-trimmed. actorID is who edits it.
-func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, number int, title string, actorID int64) (*model.PullRequest, error) {
+// title must be pre-trimmed.
+func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, number int, title string, actorID int64, targets []string) (*model.PullRequest, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -308,12 +309,11 @@ func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, n
 		return nil, err
 	}
 	pr.Title = title
-	s.syncKeywordLinks(ctx, repo, pr, actorID)
+	s.syncKeywordLinks(ctx, repo, pr, actorID, targets)
 	return s.pulls.GetByNumber(ctx, repo.ID, number)
 }
 
-// UpdateBody sets a PR's description. actorID is who edits it.
-func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, number int, body string, actorID int64) (*model.PullRequest, error) {
+func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, number int, body string, actorID int64, targets []string) (*model.PullRequest, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -329,7 +329,7 @@ func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, nu
 		return nil, err
 	}
 	pr.Body = body
-	s.syncKeywordLinks(ctx, repo, pr, actorID)
+	s.syncKeywordLinks(ctx, repo, pr, actorID, targets)
 	return s.pulls.GetByNumber(ctx, repo.ID, number)
 }
 

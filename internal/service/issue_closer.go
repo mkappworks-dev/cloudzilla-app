@@ -14,17 +14,17 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// closingRefResolver turns closing references into the issues they name.
 type closingRefResolver struct {
 	repos   *store.RepoStore
 	issues  *store.IssueStore
 	repoSvc *RepoService
 }
 
-// resolve returns the issues refs name that viewerID can see, once each. A bare
-// "#N" names an issue in contextRepo. A reference viewerID can't follow is
-// dropped, so whether its repo or issue exists isn't revealed.
-func (r closingRefResolver) resolve(ctx context.Context, refs []ClosingRef, contextRepo *model.Repository, viewerID int64) []model.Issue {
+// resolve returns the issues refs name that viewerID can see, once each, in
+// repos targets cover when targets are set. A bare "#N" names an issue in
+// contextRepo. A reference viewerID can't follow is dropped, so whether its
+// repo or issue exists isn't revealed.
+func (r closingRefResolver) resolve(ctx context.Context, refs []ClosingRef, contextRepo *model.Repository, viewerID int64, targets []string) []model.Issue {
 	var out []model.Issue
 	for _, ref := range refs {
 		repo := contextRepo
@@ -35,7 +35,7 @@ func (r closingRefResolver) resolve(ctx context.Context, refs []ClosingRef, cont
 			}
 			repo = other
 		}
-		if !r.repoSvc.CanRead(ctx, repo, &viewerID) {
+		if len(targets) > 0 && !model.TargetsCover(targets, repo.OwnerName, repo.Name) || !r.repoSvc.CanRead(ctx, repo, &viewerID) {
 			continue
 		}
 		issue, err := r.issues.GetByNumber(ctx, repo.ID, ref.Number, &viewerID)
@@ -90,7 +90,7 @@ func (c *IssueCloser) CloseForPull(ctx context.Context, actor CloseActor, repo *
 	if err != nil {
 		slog.Error("close issues for pull: list linked issues failed", "pull_id", pr.ID, "error", err)
 	}
-	for _, issue := range c.resolver.resolve(ctx, commitRefs, repo, actor.UserID) {
+	for _, issue := range c.resolver.resolve(ctx, commitRefs, repo, actor.UserID, actor.Targets) {
 		if !slices.Contains(ids, issue.ID) {
 			ids = append(ids, issue.ID)
 		}
@@ -101,10 +101,9 @@ func (c *IssueCloser) CloseForPull(ctx context.Context, actor CloseActor, repo *
 	}
 }
 
-// CloseForPush closes the issues named by closing references in the commits a
-// push fast-forwarded repo's default branch by, oldest commit first. Creating
-// the branch or force-pushing it closes nothing: either would replay history
-// that was already pushed, or that belongs to another project.
+// CloseForPush closes the issues named in the commits a push fast-forwarded the
+// default branch by, oldest first. Branch creation and force-pushes would replay
+// old or foreign history, so they close nothing.
 func (c *IssueCloser) CloseForPush(ctx context.Context, actor CloseActor, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) {
 	for _, cmd := range commands {
 		if cmd == nil || cmd.Name.String() != "refs/heads/"+repo.DefaultBranch || cmd.Action() != packp.Update {
@@ -117,7 +116,7 @@ func (c *IssueCloser) CloseForPush(ctx context.Context, actor CloseActor, repo *
 		}
 		repoID := repo.ID
 		for _, commit := range commits {
-			for _, issue := range c.resolver.resolve(ctx, ParseClosingRefs(commit.Message), repo, actor.UserID) {
+			for _, issue := range c.resolver.resolve(ctx, ParseClosingRefs(commit.Message), repo, actor.UserID, actor.Targets) {
 				c.close(ctx, actor, issue.ID, model.IssueEvent{CommitSHA: commit.Hash.String(), SourceRepoID: &repoID})
 			}
 		}

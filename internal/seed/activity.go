@@ -196,7 +196,7 @@ func (s *seeder) seedPull(r *seedRepo, f featureResult) error {
 		closes = pick(s.rng, r.issues)
 	}
 
-	pr, err := s.svcs.Pull.Create(s.ctx, r.OwnerName, r.Name, author.ID, f.Title, pullBody(f, closes), f.Branch, "main", draft)
+	pr, err := s.svcs.Pull.Create(s.ctx, r.OwnerName, r.Name, author.ID, f.Title, pullBody(f, closes), f.Branch, "main", draft, nil)
 	if err != nil {
 		return err
 	}

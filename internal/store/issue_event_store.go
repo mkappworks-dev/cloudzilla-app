@@ -12,15 +12,6 @@ type IssueEventStore struct{ db *sql.DB }
 
 func NewIssueEventStore(db *sql.DB) *IssueEventStore { return &IssueEventStore{db: db} }
 
-func (s *IssueEventStore) Create(ctx context.Context, e *model.IssueEvent) error {
-	return s.db.QueryRowContext(ctx,
-		`INSERT INTO issue_events (issue_id, actor_id, actor_name, event_type, pull_id, commit_sha, source_repo_id)
-		 VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), $7)
-		 RETURNING id, created_at`,
-		e.IssueID, e.ActorID, e.ActorName, e.Type, e.PullID, e.CommitSHA, e.SourceRepoID,
-	).Scan(&e.ID, &e.CreatedAt)
-}
-
 // ClaimClose closes an open issue and records e, its closed event, in one
 // transaction. It reports false, changing nothing, when the issue isn't open or
 // e's PR or commit already closed it once.
@@ -59,6 +50,44 @@ func (s *IssueEventStore) ClaimClose(ctx context.Context, e *model.IssueEvent) (
 	}
 	if err := tx.Commit(); err != nil {
 		return false, fmt.Errorf("issue close claim commit: %w", err)
+	}
+	return true, nil
+}
+
+// SetState opens or closes an issue by hand, recording e as its event, in one
+// transaction. It reports false, recording nothing, when the issue is already
+// in that state.
+func (s *IssueEventStore) SetState(ctx context.Context, state model.IssueState, e *model.IssueEvent) (bool, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("issue set state begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var cur string
+	if err := tx.QueryRowContext(ctx, `SELECT state FROM issues WHERE id = $1 FOR UPDATE`, e.IssueID).Scan(&cur); err != nil {
+		return false, fmt.Errorf("issue set state lock: %w", err)
+	}
+	if cur == string(state) {
+		return false, nil
+	}
+	e.Type = model.IssueEventClosed
+	closedAt := "NOW()"
+	if state == model.IssueStateOpen {
+		e.Type, closedAt = model.IssueEventReopened, "NULL"
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE issues SET state = $2, closed_at = `+closedAt+`, updated_at = NOW() WHERE id = $1`, e.IssueID, string(state),
+	); err != nil {
+		return false, fmt.Errorf("issue set state update: %w", err)
+	}
+	if err := tx.QueryRowContext(ctx,
+		`INSERT INTO issue_events (issue_id, actor_id, actor_name, event_type) VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
+		e.IssueID, e.ActorID, e.ActorName, e.Type,
+	).Scan(&e.ID, &e.CreatedAt); err != nil {
+		return false, fmt.Errorf("issue set state event: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("issue set state commit: %w", err)
 	}
 	return true, nil
 }
