@@ -24,7 +24,7 @@
 - Commit with `git add <paths>`, never `.claude/`. Use a Conventional Commits subject, and end the message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` only.
 - Before each commit, run `go build ./...`, `go vet ./...`, `golangci-lint run ./...` and the touched packages' tests with the DSN set.
 - Before the migration commit, recheck the next migration number against `origin/main`.
-- Tickets 06–08 contain UI: agree the mockups with the maintainer before building them.
+- Tickets 06–08 build the UI agreed in the [mockups](https://claude.ai/artifact/1qdQ3E9jfTCzmijzWhWRgq): banner option A, the settings section as drawn, and a fixed list of interval choices.
 
 ## Ticket 01: content-writable guard
 

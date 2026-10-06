@@ -13,7 +13,7 @@ Spec: [../spec.md](../spec.md#pull-mirrors)
 - HTTP push gets `403 Repository is a mirror and is read-only.`; SSH push gets the same text on stderr. Web and JSON writes are refused as in ticket 01.
 - `PullService.Create` refuses when the base repo is a pull mirror, with "Pull mirrors are read-only; open the pull request upstream." The New PR button is hidden.
 - The UI hides the same controls as for archived repos (ticket 01) and the Add file menu.
-- The repo header shows a banner: "Mirror of `<url>` · synced <relative time> · Sync now". "Sync now" is shown only to users with `CanWrite`. When `last_error` is set, the banner shows it. Agree the layout with the maintainer before building it.
+- The repo header shows a banner: "Mirror of `<url>` · synced <relative time> · Sync now". "Sync now" is shown only to users with `CanWrite`. When `last_error` is set, the banner shows it. The agreed layout is option A of the [mockups](https://claude.ai/artifact/1qdQ3E9jfTCzmijzWhWRgq) (frames 3A): a strip above the header, like the archived banner, plus a "Mirror" badge. When the last sync failed, the strip turns red, shows the error and the next retry, and offers "Mirror settings" (to `CanManage`) and "Sync now".
 - Issues, discussions, the wiki and forks keep working.
 
 ## Acceptance criteria

@@ -9,7 +9,7 @@ Spec: [../spec.md](../spec.md#api)
 
 ## What
 
-- A settings card in `repo_settings.templ` (`CanManage`) shows the URL, the username, the token as "set" or "not set", the interval, the last sync, the last error, Sync now, Save and Stop mirroring. Agree the layout with the maintainer before building it.
+- A settings card in `repo_settings.templ` (`CanManage`) shows the URL, the username, the token as "set" or "not set", the interval, the last sync, the last error, Sync now, Save and Stop mirroring. The agreed layout is frame 2 of the [mockups](https://claude.ai/artifact/1qdQ3E9jfTCzmijzWhWRgq): its own "Mirror" section in the settings sidebar, with a status strip and the form. The token is write-only ("Stored · enter a new one to replace it") with a "Remove the stored token" checkbox. The interval uses the same fixed choices as the import form. "Stop mirroring" is a separate red card.
 - API:
   - `GET`, `PATCH` and `DELETE /api/repos/{owner}/{repo}/mirror`
   - `POST …/mirror/sync`, which returns 202

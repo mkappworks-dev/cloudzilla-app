@@ -9,7 +9,7 @@ Spec: [../spec.md](../spec.md#pull-mirrors)
 
 ## What
 
-- The import form (`repo_import.templ`) gains a "Keep this repository in sync" checkbox and an interval field, defaulting to `mirror.default_interval`. When the box is checked, the credential hint changes from "Used once… not stored" to "Stored encrypted to keep the mirror in sync." These controls are hidden when `mirror.enabled` is false. Agree the layout with the maintainer before building it.
+- The import form (`repo_import.templ`) gains a "Keep this repository in sync" checkbox and an interval field, defaulting to `mirror.default_interval`. When the box is checked, the credential hint changes from "Used once… not stored" to "Stored encrypted to keep the mirror in sync." These controls are hidden when `mirror.enabled` is false. The agreed layout is frame 1 of the [mockups](https://claude.ai/artifact/1qdQ3E9jfTCzmijzWhWRgq): a checkbox card directly under the URL, with an interval picker offering fixed choices (10 minutes, 1 hour, 8 hours, 1 day, 1 week), filtered to at least `mirror.min_interval`.
 - `POST /api/imports` gains `mirror` (bool) and `mirror_interval` (a duration string). The interval must be at least `min_interval` and at most 30 days.
 - With `mirror` set and a token given but no secret key configured, the request is refused with "Mirroring with credentials needs security.secret_key."
 - On a successful publish, the repo row and the mirror row are written in one step, with the token sealed. The publish also runs `IndexRepo` and `ParseAndStore` once.

@@ -239,6 +239,7 @@ Agreed with the maintainer on 2026-10-06.
 5. **PRs into a pull mirror are refused at creation,** not only at merge.
 6. **HTTPS only.** The SSRF guard covers go-git's HTTP client only.
 7. **Limits:** a 10m minimum interval, an 8h default and 3 concurrent syncs per instance, all configurable.
+8. **UI** ([mockups](https://claude.ai/artifact/1qdQ3E9jfTCzmijzWhWRgq)): the import form gets a checkbox card under the URL. The repo page gets a strip above the header (option A), which turns red on failure. Settings gets its own Mirror section. The interval is picked from fixed choices; the API accepts any duration within the limits.
 
 ## Later: push mirrors
 
