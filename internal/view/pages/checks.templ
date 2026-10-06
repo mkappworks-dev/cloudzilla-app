@@ -1,0 +1,89 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ Checks(data view.ChecksData) {
+	@layout.Base(data.BasePage, "Checks · "+data.Owner+"/"+data.RepoName) {
+		<div class="flex flex-col gap-6">
+			<section aria-labelledby="checks-title">
+				<h1 id="checks-title" class="text-2xl font-semibold tracking-tight">Checks</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Statuses that CI reports on this repository's commits through the status API.</p>
+			</section>
+			if len(data.Commits) == 0 && data.NewerURL == "" {
+				@checksEmptyState(data.StatusAPIURL)
+			} else if len(data.Commits) == 0 {
+				@components.EmptyState("No more checks.")
+				@components.PaginationLabeled(data.NewerURL, "")
+			} else {
+				<ol class="flex flex-col gap-4" aria-label="Commits with checks">
+					for _, c := range data.Commits {
+						@checksCommitCard(data, c)
+					}
+				</ol>
+				@components.PaginationLabeled(data.NewerURL, data.OlderURL)
+			}
+		</div>
+	}
+}
+
+templ checksCommitCard(data view.ChecksData, c service.CommitChecks) {
+	<li class="rounded-md border border-border bg-card overflow-hidden">
+		<div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
+			@checkRowIcon(string(c.State))
+			<div class="min-w-0 flex-1">
+				if c.Subject != "" {
+					<p class="text-[13.5px] font-medium truncate">{ c.Subject }</p>
+				} else {
+					<p class="text-[13.5px] font-medium font-mono truncate">{ c.SHA }</p>
+				}
+				<p class="text-[12px] text-muted-foreground mt-0.5">
+					{ strconv.Itoa(c.Passed) } of { strconv.Itoa(len(c.Statuses)) } passed
+					·
+					<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commit", c.SHA, "")) } class="font-mono hover:text-foreground hover:underline">{ shortSHA(c.SHA) }</a>
+					·
+					<time datetime={ c.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ relativeTime(c.UpdatedAt) }</time>
+				</p>
+			</div>
+		</div>
+		<ol class="divide-y divide-border" aria-label={ "Checks on " + shortSHA(c.SHA) }>
+			for _, s := range c.Statuses {
+				<li class="px-4 py-2.5 flex items-center gap-3">
+					@checkRowIcon(string(s.State))
+					<div class="min-w-0 flex-1">
+						<p class="text-[13px] font-medium font-mono">{ s.Context }</p>
+						if s.Description != "" {
+							<p class="text-[12px] text-muted-foreground mt-0.5">{ s.Description }</p>
+						}
+					</div>
+					if s.TargetURL != "" {
+						<a href={ templ.URL(s.TargetURL) } class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+					}
+				</li>
+			}
+		</ol>
+	</li>
+}
+
+templ checksEmptyState(statusAPIURL string) {
+	<section class="bg-background border border-border rounded-lg p-8">
+		<p class="text-center text-muted-foreground">No checks reported yet.</p>
+		<p class="mt-2 text-center text-sm text-muted-foreground">CI reports a check by posting a status for a commit SHA with a personal access token:</p>
+		<pre class="mt-4 text-xs text-foreground bg-muted rounded-sm p-3 overflow-x-auto font-mono">{ checksCurlExample(statusAPIURL) }</pre>
+	</section>
+}
+
+func checksCurlExample(statusAPIURL string) string {
+	return "curl -X POST \\\n" +
+		"  -H \"Authorization: Bearer $CZ_TOKEN\" \\\n" +
+		"  -H \"Content-Type: application/json\" \\\n" +
+		"  -d '{\"state\":\"success\",\"context\":\"ci/build\",\"description\":\"Build passed\",\"target_url\":\"https://ci.example.com/runs/1\"}' \\\n" +
+		"  " + statusAPIURL
+}

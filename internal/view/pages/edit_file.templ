@@ -1,0 +1,95 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ EditFile(data view.EditFileData) {
+	@layout.Base(data.BasePage, "Editing "+data.Path+" · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6 max-w-5xl">
+			<section aria-labelledby="editfile-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					Edit file
+				</p>
+				<h1 id="editfile-title" class="text-xl tracking-tight font-medium break-all">Editing { data.Path }</h1>
+				<p class="text-[13px] text-muted-foreground mt-1">
+					Committing to
+					<span class="font-mono text-foreground">{ data.Ref }</span>
+				</p>
+			</section>
+
+			if data.Error != "" {
+				<div role="alert" class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">
+					<p>{ data.Error }</p>
+					if data.ConflictURL != "" {
+						<p class="mt-1">
+							Copy your changes below, then
+							<a href={ templ.SafeURL(data.ConflictURL) } target="_blank" rel="noopener" class="underline font-medium">open the current version</a>
+							and edit that.
+						</p>
+					}
+				</div>
+			}
+
+			<form
+				method="POST"
+				action={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "edit", data.Ref, data.Path)) }
+				enctype="multipart/form-data"
+				class="space-y-5"
+			>
+				<input type="hidden" name="blob_sha" value={ data.BlobSHA }/>
+				<div class="rounded-md border border-border bg-card p-5 space-y-4">
+					<div>
+						<label for="ef-path" class="block text-[12px] font-medium mb-1.5">File path</label>
+						<input
+							id="ef-path"
+							name="path"
+							type="text"
+							value={ data.NewPath }
+							required
+							class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring"
+						/>
+						<p class="text-[11px] text-muted-foreground mt-1">Change the path to rename or move the file.</p>
+					</div>
+					<div>
+						<label for="ef-content" class="block text-[12px] font-medium mb-1.5">Contents</label>
+						<textarea
+							id="ef-content"
+							name="content"
+							rows="24"
+							spellcheck="false"
+							class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y"
+						>{ textareaValue(data.Content) }</textarea>
+					</div>
+				</div>
+
+				<div class="rounded-md border border-border bg-card p-5">
+					<label for="ef-message" class="block text-[12px] font-medium mb-1.5">Commit message</label>
+					<input
+						id="ef-message"
+						name="message"
+						type="text"
+						value={ data.Message }
+						placeholder={ "Update " + data.Path }
+						class="w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+
+				<div class="flex items-center justify-end gap-2">
+					<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "blob", data.Ref, data.Path)) } class="h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent">Cancel</a>
+					<button type="submit" class="h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Commit changes</button>
+				</div>
+			</form>
+		</div>
+	}
+}
+
+// textareaValue leads with a newline because the HTML parser drops one right
+// after <textarea>, which would otherwise eat a file's leading blank line.
+func textareaValue(content string) string {
+	return "\n" + content
+}

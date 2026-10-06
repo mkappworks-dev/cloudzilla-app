@@ -140,24 +140,7 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				return
 			}
 
-			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
-				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, jwt.ErrSignatureInvalid
-				}
-				return []byte(secret), nil
-			})
-			if err != nil || !token.Valid {
-				onUnauthorized(w, r)
-				return
-			}
-
-			mapClaims, ok := token.Claims.(jwt.MapClaims)
-			if !ok {
-				onUnauthorized(w, r)
-				return
-			}
-
-			claims, ok := claimsFromMap(mapClaims)
+			claims, ok := parseSessionJWT(secret, tokenStr)
 			if ok {
 				claims, ok = o.sessionLive(r.Context(), claims)
 			}
@@ -184,20 +167,10 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 				if serveOAuth(w, r, next, oauthResolver, tokenStr) || servePAT(w, r, next, patValidator, tokenStr) {
 					return
 				}
-				token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
-					if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-						return nil, jwt.ErrSignatureInvalid
-					}
-					return []byte(secret), nil
-				})
-				if err == nil && token.Valid {
-					if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
-						// A revoked session reads as signed out here, not as an error.
-						if claims, ok := claimsFromMap(mapClaims); ok {
-							if claims, ok = o.sessionLive(r.Context(), claims); ok {
-								r = r.WithContext(context.WithValue(r.Context(), claimsKey, claims))
-							}
-						}
+				// A revoked session reads as signed out here, not as an error.
+				if claims, ok := parseSessionJWT(secret, tokenStr); ok {
+					if claims, ok = o.sessionLive(r.Context(), claims); ok {
+						r = r.WithContext(context.WithValue(r.Context(), claimsKey, claims))
 					}
 				}
 			}
@@ -209,10 +182,10 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 // serveOAuth handles r when tokenStr is a live OAuth-app token, reporting whether it did.
 // IsSuperadmin stays false: instance-admin power is never delegated to an app.
 func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resolver OAuthTokenResolver, tokenStr string) bool {
-	if resolver == nil || strings.HasPrefix(tokenStr, "czp_") {
+	if resolver == nil || strings.HasPrefix(tokenStr, "czp_") || isSessionJWT(r, tokenStr) {
 		return false
 	}
-	user, scopes, err := resolver.ResolveOAuthToken(r.Context(), tokenStr)
+	user, scopes, err := resolveOAuth(r, resolver, tokenStr)
 	if errors.Is(err, model.ErrAccountSuspended) {
 		writeAccountSuspended(w)
 		return true
@@ -230,7 +203,7 @@ func servePAT(w http.ResponseWriter, r *http.Request, next http.Handler, v PATVa
 	if v == nil || !strings.HasPrefix(tokenStr, "czp_") {
 		return false
 	}
-	token, user, err := v.Validate(r.Context(), tokenStr)
+	token, user, err := ValidatePAT(r, v, tokenStr)
 	if errors.Is(err, model.ErrAccountSuspended) {
 		writeAccountSuspended(w)
 		return true

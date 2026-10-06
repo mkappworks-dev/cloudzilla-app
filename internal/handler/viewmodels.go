@@ -88,6 +88,5 @@ type (
 	CodeSearchData            = view.CodeSearchData
 	ExploreData               = view.ExploreData
 	DependenciesData          = view.DependenciesData
-	ActionsData               = view.ActionsData
 	AttentionData             = view.AttentionData
 )
