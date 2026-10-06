@@ -117,3 +117,66 @@ func TestDeployKeyService_Add_ReadOnly_StoresFlag(t *testing.T) {
 		t.Error("Add with readOnly=true must store ReadOnly=true")
 	}
 }
+
+// TestDeployKeyService_Add_RefusesKeyOnAnotherRepo verifies that a key already a
+// deploy key on one repository can't be added to a second one.
+func TestDeployKeyService_Add_RefusesKeyOnAnotherRepo(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	firstID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, "first_"+suffix)
+	secondID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, "second_"+suffix)
+	svc := service.NewDeployKeyService(store.NewDeployKeyStore(db), store.NewSSHKeyStore(db))
+	ctx := context.Background()
+	rawKey := generateTestPublicKey(t)
+
+	if _, err := svc.Add(ctx, firstID, "CI", rawKey, true); err != nil {
+		t.Fatalf("Add to first repo: %v", err)
+	}
+	for _, repoID := range []int64{secondID, firstID} {
+		_, err := svc.Add(ctx, repoID, "CI again", rawKey, false)
+		if err == nil || err.Error() != "this key is already registered as a deploy key" {
+			t.Errorf("Add to repo %d: got %v, want the already-registered error", repoID, err)
+		}
+	}
+	if keys, _ := svc.List(ctx, secondID); len(keys) != 0 {
+		t.Errorf("second repo has %d deploy keys, want 0", len(keys))
+	}
+}
+
+// TestDeployKeyService_AuthenticatePublicKey_LegacyDuplicatesPickOldest verifies
+// that a fingerprint shared by rows from before the uniqueness check authenticates
+// as the oldest row, with that row's repo and read_only flag.
+func TestDeployKeyService_AuthenticatePublicKey_LegacyDuplicatesPickOldest(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	firstID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, "first_"+suffix)
+	secondID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, "second_"+suffix)
+	svc := service.NewDeployKeyService(store.NewDeployKeyStore(db), store.NewSSHKeyStore(db))
+	ctx := context.Background()
+	rawKey := generateTestPublicKey(t)
+
+	first, err := svc.Add(ctx, firstID, "CI", rawKey, true)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	testutil.Exec(t, db,
+		`INSERT INTO deploy_keys (repo_id, title, fingerprint, public_key, read_only) VALUES ($1, 'dup', $2, $3, false)`,
+		secondID, first.Fingerprint, rawKey)
+
+	pub, _, _, _, err := gossh.ParseAuthorizedKey([]byte(rawKey))
+	if err != nil {
+		t.Fatalf("parse key: %v", err)
+	}
+	for range 3 {
+		dk, err := svc.AuthenticatePublicKey(ctx, pub)
+		if err != nil {
+			t.Fatalf("AuthenticatePublicKey: %v", err)
+		}
+		if dk.ID != first.ID || dk.RepoID != firstID || !dk.ReadOnly {
+			t.Fatalf("got key %d on repo %d (read_only=%v), want key %d on repo %d (read_only=true)",
+				dk.ID, dk.RepoID, dk.ReadOnly, first.ID, firstID)
+		}
+	}
+}
