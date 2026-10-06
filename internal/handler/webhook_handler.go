@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -102,6 +103,15 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wh, err := h.Services.Webhook.Create(r.Context(), repo.ID, url, secret, events)
+	var urlErr *service.WebhookURLError
+	if errors.As(err, &urlErr) {
+		if htmx {
+			renderFormError(w, webhookFormError, urlErr.Reason)
+			return
+		}
+		writeError(w, http.StatusBadRequest, urlErr.Reason)
+		return
+	}
 	if err != nil {
 		slog.Error("operation failed", "error", err)
 		if htmx {
