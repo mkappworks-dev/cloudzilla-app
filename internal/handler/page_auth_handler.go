@@ -21,13 +21,18 @@ func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ldapEnabled, samlEnabled := h.ssoEnabled(r)
-	h.render(w, r, pages.Login(view.LoginData{
+	data := view.LoginData{
 		BasePage:          basePage(r, h.Services),
 		LDAPEnabled:       ldapEnabled,
 		SAMLEnabled:       samlEnabled,
 		AllowRegistration: h.Services.SiteSetting.AllowRegistration(r.Context()),
+		ForgotPassword:    h.Services.PasswordReset.Available(),
 		Next:              next,
-	}))
+	}
+	if r.URL.Query().Get("reset") == "done" {
+		data.Notice = passwordResetNotice
+	}
+	h.render(w, r, pages.Login(data))
 }
 
 // PageLoginSubmit handles form login, sets the auth cookie, and redirects on success.
@@ -44,6 +49,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 			LDAPEnabled:       ldapEnabled,
 			SAMLEnabled:       samlEnabled,
 			AllowRegistration: allowReg,
+			ForgotPassword:    h.Services.PasswordReset.Available(),
 			Error:             msg,
 			Next:              next,
 		}))

@@ -9,6 +9,9 @@ type LoginData struct {
 	LDAPEnabled       bool
 	SAMLEnabled       bool
 	AllowRegistration bool
+	// ForgotPassword shows the reset link; it is off when no reset email could be sent.
+	ForgotPassword bool
+	Notice         string
 	// Next is the unvalidated return path; handlers run it through safeNextPath
 	// before redirecting.
 	Next string
@@ -69,4 +72,22 @@ type RegisterCompleteData struct {
 	Signup   *model.SignupToken
 	Username string
 	Error    string
+}
+
+// ForgotPasswordData holds template data for the forgot-password form. Sent
+// replaces the form with the page every valid address gets.
+type ForgotPasswordData struct {
+	BasePage
+	Available bool
+	Sent      bool
+	Email     string
+	Error     string
+}
+
+// ResetPasswordData holds template data for choosing a new password from a reset link.
+type ResetPasswordData struct {
+	BasePage
+	Link  model.PasswordResetLink
+	Token string
+	Error string
 }
