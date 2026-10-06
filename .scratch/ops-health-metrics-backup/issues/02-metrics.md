@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: in-progress
+Status: done
 Spec: [../spec.md](../spec.md) (Metrics)
 
 Shaped by the spec's decisions 1 (`client_golang`) and 2 (a separate listen address).
@@ -40,16 +40,16 @@ Shaped by the spec's decisions 1 (`client_golang`) and 2 (a separate listen addr
 
 ## Acceptance criteria
 
-- [ ] With `metrics.listen_addr` empty, no extra port is opened.
-- [ ] With it set, `GET /metrics` on that address returns 200 in Prometheus text format, including `go_*`, `go_sql_*{db_name="cloudzilla"}` and `cloudzilla_build_info`.
-- [ ] The main port doesn't serve metrics: `GET /metrics` there is handled by the `/{owner}` route.
-- [ ] A request to `/{owner}/{repo}/issues/{number}` is counted under that route pattern, not under the concrete path.
-- [ ] An unknown path is counted as `route="unmatched"`.
-- [ ] `/healthz` and `/readyz` aren't counted.
-- [ ] A push and a clone over HTTP, and the same over SSH, each increment `cloudzilla_git_operations_total` and `cloudzilla_git_bytes_total` with the right `transport` and `service`.
-- [ ] A finished import increments `cloudzilla_imports_total` with its result.
-- [ ] A webhook delivery increments `cloudzilla_webhook_deliveries_total` with its attempt and result.
-- [ ] `go.mod` gains only `client_golang` and the modules it requires.
+- [x] With `metrics.listen_addr` empty, no extra port is opened.
+- [x] With it set, `GET /metrics` on that address returns 200 in Prometheus text format, including `go_*`, `go_sql_*{db_name="cloudzilla"}` and `cloudzilla_build_info`.
+- [x] The main port doesn't serve metrics: `GET /metrics` there is handled by the `/{owner}` route.
+- [x] A request to `/{owner}/{repo}/issues/{number}` is counted under that route pattern, not under the concrete path.
+- [x] An unknown path is counted as `route="unmatched"`.
+- [x] `/healthz` and `/readyz` aren't counted.
+- [x] A push and a clone over HTTP, and the same over SSH, each increment `cloudzilla_git_operations_total` and `cloudzilla_git_bytes_total` with the right `transport` and `service`.
+- [x] A finished import increments `cloudzilla_imports_total` with its result.
+- [x] A webhook delivery increments `cloudzilla_webhook_deliveries_total` with its attempt and result.
+- [x] `go.mod` gains only `client_golang` and the modules it requires.
 
 ## Tests
 

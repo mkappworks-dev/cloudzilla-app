@@ -15,6 +15,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/router"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -53,10 +54,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	metrics.SetBuildInfo(version)
+	if err := metrics.RegisterDB(database); err != nil {
+		slog.Error("failed to register db metrics", "error", err)
+		os.Exit(1)
+	}
+
 	stores := store.New(database)
 	services := service.New(stores, cfg).WithStorage(backend)
 	if err := services.Import.RemoveStaleTemp(); err != nil {
 		slog.Warn("remove clones of interrupted imports failed", "error", err)
+	}
+	if err := metrics.RegisterImportJobs(services.Import.JobCounts); err != nil {
+		slog.Error("failed to register import metrics", "error", err)
+		os.Exit(1)
 	}
 
 	// Re-run safety relies on BackfillRecentCommits' HasRowsForRepoSince guard against the additive AddCount.
@@ -151,6 +162,22 @@ func main() {
 		}
 	}()
 
+	var metricsSrv *http.Server
+	if cfg.Metrics.ListenAddr != "" {
+		metricsSrv = &http.Server{
+			Addr:              cfg.Metrics.ListenAddr,
+			Handler:           metrics.Mux(),
+			ReadHeaderTimeout: 10 * time.Second,
+		}
+		go func() {
+			slog.Info("metrics server starting", "addr", cfg.Metrics.ListenAddr)
+			if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				slog.Error("metrics server error", "error", err)
+				os.Exit(1)
+			}
+		}()
+	}
+
 	<-quit
 	workerCancel()
 
@@ -160,6 +187,12 @@ func main() {
 	// Shutdown HTTP server
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("http graceful shutdown failed", "error", err)
+	}
+
+	if metricsSrv != nil {
+		if err := metricsSrv.Shutdown(ctx); err != nil {
+			slog.Error("metrics graceful shutdown failed", "error", err)
+		}
 	}
 
 	// Shutdown SSH server

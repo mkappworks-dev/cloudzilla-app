@@ -72,3 +72,22 @@ func AppliedCommands(status *packp.ReportStatus, commands []*packp.Command) []*p
 	}
 	return applied
 }
+
+// CountingWriter wraps an io.Writer and atomically tracks bytes written.
+type CountingWriter struct {
+	w io.Writer
+	n int64
+}
+
+func NewCountingWriter(w io.Writer) *CountingWriter { return &CountingWriter{w: w} }
+
+func (c *CountingWriter) Write(p []byte) (int, error) {
+	n, err := c.w.Write(p)
+	if n > 0 {
+		atomic.AddInt64(&c.n, int64(n))
+	}
+	return n, err
+}
+
+// Bytes returns the running total; safe to call concurrently with Write.
+func (c *CountingWriter) Bytes() int64 { return atomic.LoadInt64(&c.n) }

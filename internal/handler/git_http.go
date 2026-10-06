@@ -20,6 +20,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -223,6 +224,16 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var sent *gittransport.CountingWriter
+	exchanged := false
+	defer func() {
+		var n int64
+		if sent != nil {
+			n = sent.Bytes()
+		}
+		metrics.GitOp("http", "upload-pack", exchanged, n)
+	}()
+
 	// Handle gzip-encoded bodies
 	body := io.Reader(r.Body)
 	if r.Header.Get("Content-Encoding") == "gzip" {
@@ -267,9 +278,11 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/x-git-upload-pack-result")
-	if err := resp.Encode(w); err != nil {
+	sent = gittransport.NewCountingWriter(w)
+	if err := resp.Encode(sent); err != nil {
 		return
 	}
+	exchanged = true
 }
 
 func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
@@ -292,6 +305,16 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var counter *gittransport.ByteCounter
+	exchanged := false
+	defer func() {
+		var n int64
+		if counter != nil {
+			n = counter.Bytes()
+		}
+		metrics.GitOp("http", "receive-pack", exchanged, n)
+	}()
+
 	// Handle gzip-encoded bodies
 	body := io.ReadCloser(r.Body)
 	if r.Header.Get("Content-Encoding") == "gzip" {
@@ -306,7 +329,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 
 	// Cap pack size after decompression, so the limit also bounds a gzip bomb.
 	limiter := gittransport.NewLimitedReadCloser(body, h.Cfg.Git.MaxPackBytes)
-	counter := gittransport.NewByteCounter(limiter)
+	counter = gittransport.NewByteCounter(limiter)
 	body = counter
 
 	ep, err := transport.NewEndpoint("/")
@@ -338,6 +361,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 
 	// go-git rejects empty command lists; treat as up-to-date.
 	if len(req.Commands) == 0 {
+		exchanged = true
 		w.Header().Set("Content-Type", "application/x-git-receive-pack-result")
 		w.WriteHeader(http.StatusOK)
 		return
@@ -356,6 +380,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "receive-pack failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	exchanged = true
 	refsOK, refsFailed := gittransport.CountRefStatus(status)
 	slog.Info("git-http: receive-pack complete",
 		"owner", owner,

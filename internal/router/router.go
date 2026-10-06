@@ -51,6 +51,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	h := handler.New(services, cfg)
 
 	// Global middleware
+	r.Use(middleware.Metrics)
 	r.Use(chiMiddleware.RequestID)
 	r.Use(middleware.ClientIP(trustedProxies))
 	r.Use(chiMiddleware.Recoverer)

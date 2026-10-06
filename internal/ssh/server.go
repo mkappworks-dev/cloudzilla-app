@@ -24,6 +24,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	gossh "golang.org/x/crypto/ssh"
@@ -337,7 +338,16 @@ func isFlushOnly(r *bufio.Reader) bool {
 
 // execGitService runs the git pack protocol over the SSH session and returns
 // the commands go-git applied (non-nil only for git-receive-pack).
-func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, vet func(*packp.Command) error, ownerName, repoName, pusherName string) ([]*packp.Command, error) {
+func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, vet func(*packp.Command) error, ownerName, repoName, pusherName string) (applied []*packp.Command, err error) {
+	var transferred func() int64
+	defer func() {
+		var n int64
+		if transferred != nil {
+			n = transferred()
+		}
+		metrics.GitOp("ssh", strings.TrimPrefix(svc, "git-"), err == nil, n)
+	}()
+
 	ep, err := transport.NewEndpoint("/")
 	if err != nil {
 		return nil, fmt.Errorf("create endpoint: %w", err)
@@ -378,7 +388,9 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("upload-pack: %w", err)
 		}
 
-		if err := resp.Encode(session); err != nil {
+		sent := gittransport.NewCountingWriter(session)
+		transferred = sent.Bytes
+		if err := resp.Encode(sent); err != nil {
 			return nil, fmt.Errorf("encode upload-pack response: %w", err)
 		}
 
@@ -408,6 +420,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 		// writes the status and the exit code.
 		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(session), s.cfg.MaxPackBytes)
 		counter := gittransport.NewByteCounter(limiter)
+		transferred = counter.Bytes
 		in := bufio.NewReader(counter)
 		if isFlushOnly(in) {
 			return nil, nil

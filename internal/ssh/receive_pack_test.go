@@ -18,9 +18,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
+	promtestutil "github.com/prometheus/client_golang/prometheus/testutil"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -192,8 +194,18 @@ func assertRef(t *testing.T, r pushRepo, name plumbing.ReferenceName, want plumb
 
 func TestReceivePack_FastForward_Applies(t *testing.T) {
 	r := seedPushRepo(t)
+	ops := metrics.GitOperations.WithLabelValues("ssh", "receive-pack", "ok")
+	bytesIn := metrics.GitBytes.WithLabelValues("ssh", "receive-pack")
+	opsBefore, bytesBefore := promtestutil.ToFloat64(ops), promtestutil.ToFloat64(bytesIn)
 
 	got := r.receivePack(t, &packp.Command{Name: mainRef, Old: r.mainTip, New: r.mainPushed})
+
+	if d := promtestutil.ToFloat64(ops) - opsBefore; d != 1 {
+		t.Errorf("git_operations_total{ssh,receive-pack,ok} delta = %v, want 1", d)
+	}
+	if d := promtestutil.ToFloat64(bytesIn) - bytesBefore; d <= 0 {
+		t.Errorf("git_bytes_total{ssh,receive-pack} delta = %v, want > 0", d)
+	}
 
 	if got.stderr != "" || got.status != 0 {
 		t.Errorf("got stderr %q, exit %d; want no stderr, exit 0", got.stderr, got.status)
@@ -258,4 +270,29 @@ func TestReceivePack_ForcePushToProtectedBranch_Refused(t *testing.T) {
 		t.Errorf("main status = %q, want %q", status, service.ErrForcePushBlocked.Error())
 	}
 	assertRef(t, r, mainRef, r.mainTip)
+}
+
+func TestUploadPack_CountsOperationAndBytes(t *testing.T) {
+	r := seedPushRepo(t)
+	ops := metrics.GitOperations.WithLabelValues("ssh", "upload-pack", "ok")
+	sent := metrics.GitBytes.WithLabelValues("ssh", "upload-pack")
+	opsBefore, sentBefore := promtestutil.ToFloat64(ops), promtestutil.ToFloat64(sent)
+
+	req := packp.NewUploadPackRequest()
+	req.Wants = []plumbing.Hash{r.mainTip}
+	var in bytes.Buffer
+	if err := req.UploadRequest.Encode(&in); err != nil {
+		t.Fatalf("encode request: %v", err)
+	}
+	got := runSSH(t, r.addr, r.key, "git-upload-pack '"+r.path+"'", in.String())
+
+	if got.status != 0 {
+		t.Fatalf("exit %d, stderr %q", got.status, got.stderr)
+	}
+	if d := promtestutil.ToFloat64(ops) - opsBefore; d != 1 {
+		t.Errorf("git_operations_total{ssh,upload-pack,ok} delta = %v, want 1", d)
+	}
+	if d := promtestutil.ToFloat64(sent) - sentBefore; d <= 0 {
+		t.Errorf("git_bytes_total{ssh,upload-pack} delta = %v, want > 0", d)
+	}
 }

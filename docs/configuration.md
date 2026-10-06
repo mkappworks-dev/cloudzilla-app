@@ -62,6 +62,7 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `mirror.max_concurrent`      | `3`                                          | `CZ_MIRROR_MAX_CONCURRENT`      | Syncs running at once on each server instance   |
 | `mirror.timeout`             | `30m`                                        | `CZ_MIRROR_TIMEOUT`             | Time limit for one sync                         |
 | `security.secret_key`        | `""`                                         | `CZ_SECURITY_SECRET_KEY`        | Key that encrypts stored credentials, such as mirror tokens. At least 32 bytes; see [Secret key](#secret-key) |
+| `metrics.listen_addr`        | `""`                                         | `CZ_METRICS_LISTEN_ADDR`        | Address of a second listener that serves only `GET /metrics`, e.g. `127.0.0.1:9090`. Empty turns it off. See [Metrics](./deployment.md#metrics) |
 
 ### Secret key
 
