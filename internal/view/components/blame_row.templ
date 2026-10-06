@@ -1,6 +1,7 @@
 package components
 
 import (
+	"html/template"
 	"strconv"
 	"time"
 )
@@ -9,6 +10,7 @@ import (
 type BlameLine struct {
 	LineNumber  int
 	Code        string
+	CodeHTML    template.HTML
 	AuthorName  string
 	ShortSHA    string
 	CommittedAt time.Time
@@ -36,6 +38,6 @@ templ BlameRow(line BlameLine) {
 		<td class="select-none text-muted-foreground px-3 py-1.5 text-right align-top border-r border-border bg-muted/40">
 			<a id={ "L" + strconv.Itoa(line.LineNumber) } href={ templ.SafeURL("#L" + strconv.Itoa(line.LineNumber)) } class="hover:text-foreground">{ strconv.Itoa(line.LineNumber) }</a>
 		</td>
-		<td class="pl-4 pr-4 py-1.5 whitespace-pre">{ line.Code }</td>
+		<td class="pl-4 pr-4 py-1.5 whitespace-pre">@CodeText(line.Code, line.CodeHTML)</td>
 	</tr>
 }

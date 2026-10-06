@@ -14,11 +14,12 @@ import (
 
 func TestBase_ReferencesAssetsByContentHash(t *testing.T) {
 	set, err := assets.New(fstest.MapFS{
-		"static/favicon.svg":    {Data: []byte("<svg/>")},
-		"static/main.css":       {Data: []byte("body{color:red}")},
-		"static/mermaid.min.js": {Data: []byte("mermaid")},
-		"htmx.min.js":           {Data: []byte("htmx")},
-		"alpine.min.js":         {Data: []byte("alpine")},
+		"static/favicon.svg":     {Data: []byte("<svg/>")},
+		"static/main.css":        {Data: []byte("body{color:red}")},
+		"static/code-themes.css": {Data: []byte(".hl{color:blue}")},
+		"static/mermaid.min.js":  {Data: []byte("mermaid")},
+		"htmx.min.js":            {Data: []byte("htmx")},
+		"alpine.min.js":          {Data: []byte("alpine")},
 	})
 	if err != nil {
 		t.Fatalf("assets.New: %v", err)
@@ -33,6 +34,7 @@ func TestBase_ReferencesAssetsByContentHash(t *testing.T) {
 	for _, want := range []string{
 		`href="/static/favicon.svg?v=d4dc56669143034f"`,
 		`href="/static/main.css?v=15c42ab7768d955e"`,
+		`href="/static/code-themes.css?v=b276a8a300dfde39"`,
 		`src="/htmx.min.js?v=dc476210dea6474d"`,
 		`src="/alpine.min.js?v=54c5b3dd459d5ef7"`,
 		`data-mermaid-src="/static/mermaid.min.js?v=0fbccedd61528383"`,

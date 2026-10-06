@@ -278,12 +278,14 @@ Some handlers delegate authorization to the service layer (e.g., ProjectService 
 
 A 403 for a private repo, next to a 404 for a missing one, confirms that the private repo exists. So a caller who can't read a repo gets exactly the response a missing repo gets, and only readers ever see a 403:
 
-- Signed-in HTML repo pages load the repo with `h.readableRepo`, and pages an anonymous viewer can open with `h.readableRepoPage`. Both render the missing repo's 404 page, and run before a feature toggle's 404, which would otherwise differ. `TestRepoPageRoutes_PrivateRepo_LooksLikeMissingRepo` walks every route under `/{owner}/{repo}/` but git smart HTTP, as an anonymous viewer and as a signed-in stranger, against a private repo holding one of each issue, pull request, milestone, release, discussion and project the routes name.
+- Signed-in HTML repo pages load the repo with `h.readableRepo`, and pages an anonymous viewer can open with `h.readableRepoPage`. Both render the missing repo's 404 page, and run before a feature toggle's 404, which would otherwise differ. `TestRepoPageRoutes_PrivateRepo_LooksLikeMissingRepo` walks every route under `/{owner}/{repo}/`, git smart HTTP included, as an anonymous viewer and as a signed-in stranger, against a private repo holding one of each issue, pull request, milestone, release, discussion and project the routes name.
 - Every `/api/repos/{owner}/{repo}/…` and `/fragments/{owner}/{repo}/…` route starts with `h.readableRepoJSON`, which answers `404 {"error":"repo not found"}` in both cases. It runs before sub-resource lookups, body validation, and any `CanWrite`/`CanManage`/`IsOwner` check, including checks made in a service. `TestRepoAPI_PrivateRepoNonReader_LooksLikeMissingRepo` walks the router and holds every such route to this.
 - Project board routes also require the project to belong to the URL's repo (`h.projectIDInRepo`). The project services authorize against the project's own repo, so their 403 would otherwise confirm that another repo's project ID exists.
 - Line comment update, delete and apply-suggestion only act on a comment on the URL's pull request (`h.lineCommentOnURLPull`). Line comment IDs are global, so otherwise write access to one repo would reach another's comments, and `/apply` would commit its suggestion content.
 - `POST /api/repos/from-template` answers a private repo's ID with the same 404 as a missing ID, before checking that it is a template.
+- `GET /search/code?repo=owner/name` matches nothing when the viewer can't read that repo, exactly as when it doesn't exist (`h.searchableRepo`). Falling back to a search of every public repo for a missing one would tell the two apart, since code search covers public repos only. `TestCodeSearch_PrivateRepoFilter_LooksLikeMissingRepo` holds an anonymous viewer and a signed-in stranger to this.
 - `POST /api/repos/{owner}/{repo}/restore` targets a soft-deleted repo, which `readableRepoJSON` can't see. A caller who may not restore it gets the same 404 as when no deleted repo exists.
+- Git smart HTTP (`info/refs`, `git-upload-pack`, `git-receive-pack`) loads the repo with `h.gitReadableRepo`, after validating the path, the `service` parameter and a Basic PAT's scope. An anonymous caller gets a `401` challenge for a private repo and a missing one alike, because git asks for credentials only on a `401`; a signed-in non-reader gets `404 repository not found`. Over SSH, a non-reader gets `repository not found`. See [git-transport](./git-transport.md#responses).
 
 ---
 
@@ -609,12 +611,12 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 
 ### Git Transport
 
-| Method | Path                               | Auth            | AuthZ Check                | Handler        |
-| ------ | ---------------------------------- | --------------- | -------------------------- | -------------- |
-| GET    | `/{owner}/{repo}/info/refs`        | optAuthMW       | CanRead (handler)          | GitInfoRefs    |
-| POST   | `/{owner}/{repo}/git-upload-pack`  | optAuthMW       | CanRead (handler)          | GitUploadPack  |
-| POST   | `/{owner}/{repo}/git-receive-pack` | optAuthMW       | CanWrite (handler)         | GitReceivePack |
-| SSH    | port 2222                          | Public key auth | CanRead/CanWrite (handler) | SSH server     |
+| Method | Path                               | Auth            | AuthZ Check                                     | Handler        |
+| ------ | ---------------------------------- | --------------- | ----------------------------------------------- | -------------- |
+| GET    | `/{owner}/{repo}/info/refs`        | optAuthMW       | gitReadableRepo (+ CanWrite for receive-pack)   | GitInfoRefs    |
+| POST   | `/{owner}/{repo}/git-upload-pack`  | optAuthMW       | gitReadableRepo                                 | GitUploadPack  |
+| POST   | `/{owner}/{repo}/git-receive-pack` | optAuthMW       | gitReadableRepo + CanWrite                      | GitReceivePack |
+| SSH    | port 2222                          | Public key auth | CanRead (missing-repo error), CanWrite for push | SSH server     |
 
 ### Notification Endpoints (Own Data Only)
 

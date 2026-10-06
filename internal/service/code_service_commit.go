@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"html/template"
 	"strings"
 	"time"
 
@@ -37,6 +38,7 @@ type DiffLine struct {
 	Content string
 	OldNum  int
 	NewNum  int
+	HTML    template.HTML `json:"-"`
 }
 
 // DiffHunk groups contiguous diff lines under a unified diff hunk header.
@@ -55,6 +57,8 @@ type FileDiff struct {
 	Added    int
 	Deleted  int
 	Hunks    []DiffHunk
+	oldBlob  plumbing.Hash
+	newBlob  plumbing.Hash
 }
 
 // DisplayPath returns the path to show: the new path, or old path when deleted.
@@ -225,6 +229,12 @@ func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, err
 			IsNew:    isNew,
 			IsDelete: isDelete,
 		}
+		if from != nil {
+			fd.oldBlob = from.Hash()
+		}
+		if to != nil {
+			fd.newBlob = to.Hash()
+		}
 		if !fp.IsBinary() {
 			fd.Hunks = buildHunks(fp.Chunks())
 			for _, h := range fd.Hunks {
@@ -330,7 +340,7 @@ func buildHunks(chunks []gogitdiff.Chunk) []DiffHunk {
 				gogitdiff.Delete: "del",
 				gogitdiff.Equal:  "ctx",
 			}
-			hunkLines = append(hunkLines, DiffLine{opMap[l.op], l.content, l.oldNum, l.newNum})
+			hunkLines = append(hunkLines, DiffLine{Type: opMap[l.op], Content: l.content, OldNum: l.oldNum, NewNum: l.newNum})
 			i++
 		}
 		oldStart, newStart, oldCount, newCount := 0, 0, 0, 0

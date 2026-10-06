@@ -1,9 +1,12 @@
 package pages
 
 import (
+	"html/template"
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 var emailDigestLabels = map[string]string{
@@ -109,6 +112,26 @@ func settingsNoticeMessage(code string) string {
 		return "Google account disconnected. Sign in with your password from now on."
 	}
 	return ""
+}
+
+const codeThemePreview = `// Greet welcomes name and counts their unread messages.
+func Greet(name string, unread int) string {
+	if name == "" {
+		return "Hello, world!"
+	}
+	return fmt.Sprintf("Hello, %s! You have %d new messages.", name, unread)
+}`
+
+func codeThemePreviewHTML() template.HTML {
+	return highlight.Block("go", "", codeThemePreview)
+}
+
+func codeThemeOptions(themes []highlight.Theme) []components.SelectMenuOption {
+	out := make([]components.SelectMenuOption, len(themes))
+	for i, t := range themes {
+		out[i] = components.SelectMenuOption{Value: t.ID, Label: t.Name, Swatch: highlight.Swatch(t.ID)}
+	}
+	return out
 }
 
 func avatarInitials(name, username string) string {

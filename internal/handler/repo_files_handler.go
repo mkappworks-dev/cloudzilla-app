@@ -83,12 +83,22 @@ func (h *Handler) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, _, err := h.Services.Code.ResolveRef(owner, repoName, ref); err != nil {
+		if errors.Is(err, service.ErrRefNotFound) || errors.Is(err, service.ErrEmptyRepo) {
+			h.NotFound(w, r)
+			return
+		}
+		slog.Error("archive ref resolve failed", "owner", owner, "repo", repoName, "ref", ref, "error", err)
+		http.Error(w, "failed to build archive", http.StatusInternalServerError)
+		return
+	}
+
 	label := strings.ReplaceAll(ref, "/", "-")
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", repoName+"-"+label+".zip"))
 	if err := h.Services.Code.ArchiveZip(owner, repoName, ref, w); err != nil {
-		// Headers are already committed, so the response can't switch to an
-		// error status — log it and let the truncated stream surface client-side.
+		// Once the stream has started the status is committed, so a mid-stream
+		// failure can only be logged and surface client-side as a truncated zip.
 		slog.Error("archive zip failed", "owner", owner, "repo", repoName, "ref", ref, "error", err)
 	}
 }

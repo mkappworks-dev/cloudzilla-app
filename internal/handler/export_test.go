@@ -14,6 +14,13 @@ func UseFakeGoogle(t testing.TB, baseURL string) {
 	t.Cleanup(func() { googleEndpoint, googleUserinfoURL = endpoint, userinfo })
 }
 
+// UseExpandAllBudget caps how many folders Expand all opens until t ends.
+func UseExpandAllBudget(t testing.TB, n int) {
+	prev := expandAllBudget
+	expandAllBudget = n
+	t.Cleanup(func() { expandAllBudget = prev })
+}
+
 var SafeNextPath = safeNextPath
 
 const MaxRawBlobBytes = maxRawBlobBytes

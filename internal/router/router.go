@@ -97,6 +97,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/settings/confirm-code", h.SendConfirmCode)
 	r.With(authMW).Post("/settings/reauth/{provider}", h.StartProviderSignIn)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
+	r.With(authMW).Post("/settings/appearance", h.UpdateAppearanceSettings)
 	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
 	r.With(authMW).Post("/settings/connected-accounts/google", h.ConnectGoogle)
 	r.With(authMW).Post("/settings/connected-accounts/google/disconnect", h.DisconnectGoogle)
@@ -111,6 +112,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Get("/settings/organizations", handler.MovedPermanently("/organizations", ""))
 	r.With(authMW).Get("/settings/security", handler.MovedPermanently("/settings", "security"))
 	r.With(authMW).Get("/settings/notifications", handler.MovedPermanently("/settings", "notifications"))
+	r.With(authMW).Get("/settings/appearance", handler.MovedPermanently("/settings", "appearance"))
 	r.With(authMW).Get("/settings/tokens", handler.MovedPermanently("/settings", "tokens"))
 	r.With(authMW).Get("/settings/replies", handler.MovedPermanently("/settings", "saved-replies"))
 	r.With(authMW).Get("/settings/oauth-apps", handler.MovedPermanently("/settings", "oauth-apps"))
@@ -510,6 +512,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Route("/fragments", func(r chi.Router) {
 		r.Use(optAuthMW)
 		r.Get("/{owner}/{repo}/issues/{number}/comments", h.IssueCommentsFragment)
+		r.Get("/{owner}/{repo}/tree/{ref}/*", h.FileTreeChildrenFragment)
 	})
 
 	// Markdown preview for editor Preview tabs

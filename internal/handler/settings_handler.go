@@ -55,3 +55,24 @@ func (h *Handler) UpdateEmailSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, "/settings#email", http.StatusSeeOther)
 }
+
+func (h *Handler) UpdateAppearanceSettings(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if err := h.Services.User.UpdateCodeThemes(r.Context(), claims.UserID, r.FormValue("code_theme_light"), r.FormValue("code_theme_dark")); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update preferences")
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Redirect(w, r, "/settings#appearance", http.StatusSeeOther)
+}

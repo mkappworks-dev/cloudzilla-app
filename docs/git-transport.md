@@ -43,6 +43,23 @@ DELETE /api/user/keys/{id}
 - **Tokens** (PATs, and OAuth-app tokens via `Authorization: Bearer`): need any repo scope to clone/fetch and `repo:write` to push. A PAT sent as the Basic password and lacking the scope gets a plain-text `403`, not `401`, so git keeps the stored credential; see [access-control](./access-control.md#token-scopes)
 - Permissions enforced: read access for clone/fetch, write access for push
 
+### Responses
+
+A caller who can't read a repo gets exactly what a missing repo gets, as on GitHub, so a private repo's existence is never confirmed (see [Private Repos Look Missing](./access-control.md#private-repos-look-missing)). The handlers check in this order, and every check before the repo lookup answers the same whether the repo exists or not:
+
+| Check                                                                      | Response                                                                         |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `info/refs` without a `service` of `git-upload-pack` or `git-receive-pack` | `400 invalid service`                                                            |
+| Owner or repo name invalid                                                 | `400 invalid repository path`                                                    |
+| Basic PAT lacks the scope or is bound to a signing key                     | `403` naming the reason                                                          |
+| Repo missing, or the caller can't read it, anonymous                       | `401` with `WWW-Authenticate: Basic realm="git"`, so git prompts for credentials |
+| Repo missing, or the caller can't read it, signed in                       | `404 repository not found`                                                       |
+| Push, anonymous                                                            | `401` challenge                                                                  |
+| Push by a reader without write access                                      | `403 access denied`, not `401`, so git keeps the credential                      |
+| Push to an archived repo                                                   | `403`                                                                            |
+
+An invalid or expired PAT counts as anonymous. `TestGitHTTP_PrivateRepo_LooksLikeMissingRepo` compares the status, challenge and body for a private and a missing repo on all three endpoints.
+
 ### Example
 
 ```bash
@@ -198,6 +215,8 @@ git pull
 ### Errors
 
 Errors go to stderr, with exit status 1: an unsupported command, a bad path, a missing repository or no access to it, a deploy key used outside its repository or to push read-only, a push to an archived repository, or a failure during the transfer. git prints stderr as-is; stdout carries only the pack protocol, where git would read a message's first four bytes as a pkt-line length.
+
+A user who can't read a repo, and a deploy key for another repo that isn't public, get `repository not found`, the same as for a missing repo. `access denied` goes only to a reader who may not push, and `deploy key not authorized for this repository` only for a public repo.
 
 When git needs nothing — `ls-remote`, a fetch or push that's already up to date, a clone of an empty repository — it sends a lone flush-pkt instead of a request. go-git rejects that as malformed, so the server checks for it first and exits with status 0.
 

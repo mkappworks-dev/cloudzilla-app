@@ -32,7 +32,7 @@ templ DiffFileHeader(f service.FileDiff) {
 // DiffHunkTable renders a read-only unified diff table for a set of hunks.
 // For PR diff tables with inline comments, use the pull_detail template directly.
 templ DiffHunkTable(hunks []service.DiffHunk) {
-	<div class="overflow-x-auto">
+	<div class="hl overflow-x-auto">
 		<table class="w-full text-xs font-mono border-collapse">
 			<tbody>
 				for _, hunk := range hunks {
@@ -60,7 +60,7 @@ templ DiffHunkTable(hunks []service.DiffHunk) {
 									{ " " }
 								}
 							</td>
-							<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">{ line.Content }</td>
+							<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">@CodeText(line.Content, line.HTML)</td>
 						</tr>
 					}
 				}
