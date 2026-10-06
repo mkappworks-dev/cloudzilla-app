@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -151,18 +151,18 @@ One migration, the next free number at commit time (102 today):
 
 ## Acceptance criteria
 
-- [ ] `ParseClosingRefs` matches all nine keywords case-insensitively, with and without `:`, for `#N` and `owner/repo#N`, and rejects `prefixes #1`, `Fixes#1`, `Fixes #1abc`, an out-of-range number and the second reference in `Fixes #1, #2` (table-driven unit test).
-- [ ] Creating a PR whose title or body says "Fixes #N" links issue N with `source = keyword`; editing the text to drop it unlinks it; a manual link survives both; linking a keyword-linked issue by hand makes it `manual`.
-- [ ] "Fixes owner/repo#N" links an issue in another repo only when the acting user can read that repo and see the issue.
-- [ ] The PR sidebar shows a cross-repo linked issue, and the issue sidebar a cross-repo linked PR, only to viewers who can read the other repo, as `owner/repo#N` with no unlink control.
-- [ ] Merging a PR into the default branch with `ff`, `merge` and `squash` each closes its manual and keyword links and the issues its commits reference, same-repo and cross-repo; merging into another branch closes none.
-- [ ] Auto-merge closes the same issues as a manual merge, acting as the arming user, and records the merge's PR event, webhook, notification and activity event. With no arming user, or one who lost write access, it disarms instead of merging.
-- [ ] A fast-forward push to the default branch over HTTP and over SSH closes the issues its new commits reference; pushes to other branches, branch creation, force-pushes and deploy-key pushes close none (integration tests with real pushes, using `internal/ssh/server_test.go`'s helpers).
-- [ ] An actor who can't write the issue's repo, an archived issue repo, or a token whose targets don't cover the issue's repo closes nothing there.
-- [ ] Each close records an `issue_events` row, fires the `issues`/`closed` webhook on the issue's repo, notifies the author and watchers (not on a self-close), and records `EventIssueClosed`; an already-closed issue gets none of these.
-- [ ] The same commit or PR never closes an issue twice, even after a reopen.
-- [ ] The issue page shows keyword closes (same-repo PR, cross-repo PR, commit), manual closes and reopens, in time order with the comments.
-- [ ] `docs/pr-merge.md`, `docs/webhooks.md` and `docs/notifications.md` describe keyword closes.
+- [x] `ParseClosingRefs` matches all nine keywords case-insensitively, with and without `:`, for `#N` and `owner/repo#N`, and rejects `prefixes #1`, `Fixes#1`, `Fixes #1abc`, an out-of-range number and the second reference in `Fixes #1, #2` (table-driven unit test).
+- [x] Creating a PR whose title or body says "Fixes #N" links issue N with `source = keyword`; editing the text to drop it unlinks it; a manual link survives both; linking a keyword-linked issue by hand makes it `manual`.
+- [x] "Fixes owner/repo#N" links an issue in another repo only when the acting user can read that repo and see the issue.
+- [x] The PR sidebar shows a cross-repo linked issue, and the issue sidebar a cross-repo linked PR, only to viewers who can read the other repo, as `owner/repo#N` with no unlink control.
+- [x] Merging a PR into the default branch with `ff`, `merge` and `squash` each closes its manual and keyword links and the issues its commits reference, same-repo and cross-repo; merging into another branch closes none.
+- [x] Auto-merge closes the same issues as a manual merge, acting as the arming user, and records the merge's PR event, webhook, notification and activity event. With no arming user, or one who lost write access, it disarms instead of merging.
+- [x] A fast-forward push to the default branch over HTTP and over SSH closes the issues its new commits reference; pushes to other branches, branch creation, force-pushes and deploy-key pushes close none (integration tests with real pushes, using `internal/ssh/server_test.go`'s helpers).
+- [x] An actor who can't write the issue's repo, an archived issue repo, or a token whose targets don't cover the issue's repo closes nothing there.
+- [x] Each close records an `issue_events` row, fires the `issues`/`closed` webhook on the issue's repo, notifies the author and watchers (not on a self-close), and records `EventIssueClosed`; an already-closed issue gets none of these.
+- [x] The same commit or PR never closes an issue twice, even after a reopen.
+- [x] The issue page shows keyword closes (same-repo PR, cross-repo PR, commit), manual closes and reopens, in time order with the comments.
+- [x] `docs/pr-merge.md`, `docs/webhooks.md` and `docs/notifications.md` describe keyword closes.
 
 ## Relevant files
 
