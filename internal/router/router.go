@@ -28,6 +28,12 @@ const (
 	loginAttemptWindow = 15 * time.Minute
 )
 
+// Markdown highlighting caps a page's bodies together, on top of each body's own cap.
+const (
+	requestHighlightBytes = 1 << 20
+	requestHighlightTime  = time.Second
+)
+
 // New registers all application routes and returns the configured chi router.
 func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.Handler, error) {
 	trustedProxies, err := middleware.ParseTrustedProxies(cfg.Server.TrustedProxies)
@@ -47,6 +53,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(middleware.MaxFormBodySize(handler.MaxNewFileBodyBytes))
 	r.Use(middleware.CSRF(cfg.Auth.CookieSecure))
 	r.Use(middleware.RequireSetup(services.SiteSetting))
+	r.Use(middleware.HighlightBudget(requestHighlightBytes, requestHighlightTime))
 
 	sessions := middleware.WithSessionVersions(services.User)
 	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized, sessions)

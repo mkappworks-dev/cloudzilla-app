@@ -129,7 +129,7 @@ func (h *Handler) ReleaseBodySection(w http.ResponseWriter, r *http.Request) {
 		RepoName:  repoName,
 		ReleaseID: release.ID,
 		Body:      release.Body,
-		BodyHTML:  markdown.Render(release.Body),
+		BodyHTML:  markdown.RenderCtx(r.Context(), release.Body),
 		CanWrite:  canWrite,
 		Editing:   r.URL.Query().Get("mode") == "edit",
 	}))
@@ -232,7 +232,7 @@ func (h *Handler) EditReleaseBody(w http.ResponseWriter, r *http.Request) {
 		RepoName:  repoName,
 		ReleaseID: updated.ID,
 		Body:      updated.Body,
-		BodyHTML:  markdown.Render(updated.Body),
+		BodyHTML:  markdown.RenderCtx(r.Context(), updated.Body),
 		CanWrite:  true,
 		Editing:   false,
 	}))
@@ -373,7 +373,7 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 		Owner:      owner,
 		RepoName:   repoName,
 		Release:    *release,
-		BodyHTML:   markdown.Render(release.Body),
+		BodyHTML:   markdown.RenderCtx(r.Context(), release.Body),
 		CanWrite:   canWrite,
 		AuthorName: authorName,
 		IsLatest:   isLatest,

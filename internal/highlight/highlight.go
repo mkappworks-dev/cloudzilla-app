@@ -4,12 +4,14 @@
 package highlight
 
 import (
+	"context"
 	"html"
 	"html/template"
 	"path"
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alecthomas/chroma/v2"
@@ -70,13 +72,37 @@ func join(parts []template.HTML) template.HTML {
 }
 
 // Budget caps the highlighting for one page of many files; files past it render plain.
+// It is safe for concurrent use.
 type Budget struct {
+	mu       sync.Mutex
 	bytes    int
 	deadline time.Time
+	parent   *Budget
 }
 
 func NewBudget(maxBytes int, maxTime time.Duration) *Budget {
 	return &Budget{bytes: maxBytes, deadline: now().Add(maxTime)}
+}
+
+// Sub returns a budget of maxBytes and maxTime that also draws on b, so a
+// source must fit both. b may be nil.
+func (b *Budget) Sub(maxBytes int, maxTime time.Duration) *Budget {
+	s := NewBudget(maxBytes, maxTime)
+	s.parent = b
+	return s
+}
+
+type budgetKey struct{}
+
+// WithBudget returns ctx carrying b, for highlighting that should share one cap per request.
+func WithBudget(ctx context.Context, b *Budget) context.Context {
+	return context.WithValue(ctx, budgetKey{}, b)
+}
+
+// BudgetFrom returns the budget WithBudget put on ctx, or nil.
+func BudgetFrom(ctx context.Context) *Budget {
+	b, _ := ctx.Value(budgetKey{}).(*Budget)
+	return b
 }
 
 // LinesWithin is Lines charged against b.
@@ -89,21 +115,34 @@ func LinesWithin(b *Budget, filename, src string) []template.HTML {
 	return lines(lexer, src, deadline)
 }
 
-// charge takes len(src) from b and returns the deadline for highlighting src.
-// ok is false, and b is left alone, for a source that would render plain anyway
-// or that b can't afford.
+// charge takes len(src) from b and its parents and returns the deadline for
+// highlighting src. ok is false, and no budget is touched, for a source that
+// would render plain anyway or that some budget can't afford.
 func (b *Budget) charge(lexer chroma.Lexer, src string) (deadline time.Time, ok bool) {
-	if isPlain(lexer) || len(src) > MaxBytes || len(src) > b.bytes {
+	if isPlain(lexer) || len(src) > MaxBytes {
 		return time.Time{}, false
 	}
 	start := now()
-	if !start.Before(b.deadline) {
-		return time.Time{}, false
-	}
-	b.bytes -= len(src)
 	deadline = start.Add(callDeadline)
-	if b.deadline.Before(deadline) {
-		deadline = b.deadline
+	// Locks are taken child before parent, and parents never point back down.
+	var held []*Budget
+	defer func() {
+		for _, h := range held {
+			h.mu.Unlock()
+		}
+	}()
+	for c := b; c != nil; c = c.parent {
+		c.mu.Lock()
+		held = append(held, c)
+		if len(src) > c.bytes || !start.Before(c.deadline) {
+			return time.Time{}, false
+		}
+		if c.deadline.Before(deadline) {
+			deadline = c.deadline
+		}
+	}
+	for _, h := range held {
+		h.bytes -= len(src)
 	}
 	return deadline, true
 }

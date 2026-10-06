@@ -220,13 +220,15 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The body renders before the comments so it is first in line for the request's highlight budget.
+	bodyHTML := markdown.RenderCtx(r.Context(), issue.Body)
 	rawComments, _ := h.Services.Comment.ListByIssue(r.Context(), issue.ID)
 	if rawComments == nil {
 		rawComments = []model.Comment{}
 	}
 	rendered := make([]RenderedComment, len(rawComments))
 	for i, c := range rawComments {
-		rendered[i] = RenderedComment{Comment: c, BodyHTML: renderMentionsHTML(markdown.Render(c.Body))}
+		rendered[i] = RenderedComment{Comment: c, BodyHTML: renderMentionsHTML(markdown.RenderCtx(r.Context(), c.Body))}
 	}
 
 	issueLabels, _ := h.Services.Label.GetForIssue(r.Context(), issue.ID)
@@ -283,7 +285,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		Comments:      rendered,
 		Owner:         owner,
 		RepoName:      repoName,
-		BodyHTML:      markdown.Render(issue.Body),
+		BodyHTML:      bodyHTML,
 		Labels:        issueLabels,
 		Assignees:     issueAssignees,
 		AllLabels:     allLabels,

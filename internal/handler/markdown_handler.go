@@ -17,5 +17,5 @@ func (h *Handler) MarkdownPreview(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<p class="text-sm text-muted-foreground italic">Nothing to preview.</p>`))
 		return
 	}
-	_, _ = w.Write([]byte(markdown.Render(r.FormValue("body"))))
+	_, _ = w.Write([]byte(markdown.RenderCtx(r.Context(), r.FormValue("body"))))
 }

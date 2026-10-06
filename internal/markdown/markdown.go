@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"context"
 	"html"
 	"io"
 	"log/slog"
@@ -72,7 +73,9 @@ func renderMermaid(next ghtml.NodeRenderer) ghtml.NodeRenderer {
 	})
 }
 
-// Highlighting is capped per document because Render runs uncached on every view of user-written content.
+// Highlighting is capped per document because Render runs uncached on every
+// view of user-written content; a request's budget from highlight.WithBudget
+// caps a page of many documents on top.
 const (
 	highlightBytes = 256 << 10
 	highlightTime  = 250 * time.Millisecond
@@ -116,6 +119,11 @@ func highlightCode(budget *highlight.Budget) ghtml.NodeRendererDecorator {
 // Mermaid fences become <pre class="mermaid"> for mermaid.js; fences in a known
 // language are syntax-highlighted.
 func Render(src string) string {
+	return RenderCtx(context.Background(), src)
+}
+
+// RenderCtx is Render with highlighting also charged to ctx's highlight budget, if any.
+func RenderCtx(ctx context.Context, src string) string {
 	source := []byte(src)
 	p := parser.New(
 		parser.WithExtensions(extension.GFMParser),
@@ -127,7 +135,7 @@ func Render(src string) string {
 	r := ghtml.New(
 		ghtml.WithHardWraps(),
 		ghtml.WithExtensions(extension.GFMHTMLRenderer),
-		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, highlightCode(highlight.NewBudget(highlightBytes, highlightTime))),
+		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, highlightCode(highlight.BudgetFrom(ctx).Sub(highlightBytes, highlightTime))),
 		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, renderMermaid),
 	)
 	var buf bytes.Buffer
