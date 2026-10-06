@@ -366,3 +366,47 @@ func TestPageTree_RedirectsAnEscapedFileToItsEscapedBlobURL(t *testing.T) {
 		t.Errorf("want 302 to %s, got %d to %q", want, rr.Code, rr.Header().Get("Location"))
 	}
 }
+
+func TestRepoPages_EscapeRefAndPathLinks(t *testing.T) {
+	h, r, code, _ := seedCodeRepoWith(t, oddPaths...)
+	if err := code.CreateBranch(r.owner.name, r.name, "a#b", "main"); err != nil {
+		t.Fatalf("create a#b: %v", err)
+	}
+	p := r.path
+	pages := []struct {
+		url  string
+		want []string
+	}{
+		{p + "/refs", []string{
+			`href="` + p + `/tree/a%23b"`,
+			`href="` + p + `/commits/a%23b"`,
+		}},
+		{p, []string{`href="` + p + `/tree/main/hash%23q%3F"`}},
+		{p + "/tree/main", []string{`href="` + p + `/tree/main/hash%23q%3F"`}},
+		{p + "/tree/a%23b", []string{`href="` + p + `/tree/a%23b/hash%23q%3F"`}},
+	}
+	for _, pg := range pages {
+		t.Run(pg.url, func(t *testing.T) {
+			rr := getAnonymous(h, pg.url)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("want 200, got %d", rr.Code)
+			}
+			body := rr.Body.String()
+			for _, bad := range []string{"/a#b", "/hash#q?"} {
+				if strings.Contains(body, bad) {
+					t.Errorf("body has unescaped %q", bad)
+				}
+			}
+			for _, want := range pg.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("want %s in body", want)
+					continue
+				}
+				link := strings.TrimSuffix(strings.TrimPrefix(want, `href="`), `"`)
+				if rr := getAnonymous(h, link); rr.Code != http.StatusOK {
+					t.Errorf("GET %s: want 200, got %d", link, rr.Code)
+				}
+			}
+		})
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
@@ -30,11 +31,7 @@ func commitDays(commits []service.CommitSummary) []CommitDayGroup {
 // when the path doesn't exist on the target ref.
 func codeRefHref(owner, repoName, kind, path string) func(string) templ.SafeURL {
 	return func(ref string) templ.SafeURL {
-		u := "/" + owner + "/" + repoName + "/" + kind + "/" + ref
-		if path != "" {
-			u += "/" + path
-		}
-		return templ.SafeURL(u)
+		return templ.SafeURL(codeurl.Path(owner, repoName, kind, ref, path))
 	}
 }
 

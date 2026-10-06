@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -41,7 +42,7 @@ templ pullCommitsBody(data view.PullCommitsData) {
 		<section class="mb-6">
 			<p class="text-[12.5px] text-muted-foreground">
 				{ strconv.Itoa(len(data.Commits)) } { commitsNoun(len(data.Commits)) } in this pull request, branching from
-				<a href={ templ.SafeURL(repoBase + "/commits/" + data.Pull.BaseBranch) } class="text-primary hover:underline font-mono">{ data.Pull.BaseBranch }</a>.
+				<a href={ templ.SafeURL(codeurl.Path(data.OwnerName, data.Repo.Name, "commits", data.Pull.BaseBranch, "")) } class="text-primary hover:underline font-mono">{ data.Pull.BaseBranch }</a>.
 			</p>
 		</section>
 		<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Commits in this pull request">
@@ -65,7 +66,7 @@ templ pullCommitsBody(data view.PullCommitsData) {
 							<button type="button" onclick={ copySha(c.FullHash) } class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Copy commit SHA">
 								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
 							</button>
-							<a href={ templ.SafeURL(repoBase + "/tree/" + c.FullHash) } class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Browse files at this commit">
+							<a href={ templ.SafeURL(codeurl.Path(data.OwnerName, data.Repo.Name, "tree", c.FullHash, "")) } class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Browse files at this commit">
 								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
 							</a>
 						</li>

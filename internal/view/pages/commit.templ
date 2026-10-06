@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -17,7 +18,7 @@ templ Commit(data view.CommitData) {
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
 					<span aria-hidden="true">·</span>
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits/" + data.Repo.DefaultBranch) } class="hover:underline">Commits</a>
+					<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", data.Repo.DefaultBranch, "")) } class="hover:underline">Commits</a>
 					<span aria-hidden="true">·</span>
 					<span class="font-mono">{ data.Commit.Hash }</span>
 				</p>
