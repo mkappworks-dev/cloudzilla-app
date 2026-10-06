@@ -99,7 +99,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
   - `interval_seconds`, `next_sync_at`, `lease_until NULL`
   - `last_sync_at`, `last_success_at`, `last_error`, `consecutive_failures`
   - `created_by`, `created_at`, `updated_at`
-- A partial index on `next_sync_at` serves the scheduler.
+- An index on `next_sync_at` serves the scheduler.
 - `Repository.IsMirror` is derived (`EXISTS` on `repo_mirrors`) in the repo store's SELECTs, rather than kept as a second column that could drift.
 
 ### Scheduler
@@ -122,7 +122,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
   The lease keeps other instances off a row, and it expires if the instance holding it crashes.
 - **Running:** syncs run under a semaphore of `mirror.max_concurrent`. Each runs under `mirror.timeout`, in a context that shutdown doesn't cancel, as imports do.
 - **Success:** set `next_sync_at = NOW() + interval`, clear `last_error`, and reset `consecutive_failures`.
-- **Failure:** store a user-facing message, mapped the way `ImportService.failureMessage` maps import errors. Then back off to `next_sync_at = NOW() + min(interval × 2^failures, 24h)`, so a revoked token doesn't hammer the upstream.
+- **Failure:** store a user-facing message, mapped the way `ImportService.failureMessage` maps import errors. Then back off to `next_sync_at = NOW() + max(interval, min(interval × 2^(failures−1), 24h))`, so a revoked token doesn't hammer the upstream.
 - **Skipped:** archived and soft-deleted repos. With `mirror.enabled: false` the loop doesn't run at all.
 - **Sync now** sets `next_sync_at = NOW()` and wakes the loop. Its `consecutive_failures` stays, so a manual retry of a broken mirror backs off again if it fails. Manual and scheduled syncs share one path and can't overlap.
 

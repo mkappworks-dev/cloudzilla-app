@@ -55,10 +55,10 @@
 
 ## Ticket 03: schema, store, config
 
-- [ ] Migration `NNN_repo_mirrors.sql`, the model, and `MirrorStore` with an integration test: concurrent claims don't overlap, an expired lease can be reclaimed, backoff is applied.
-- [ ] `Repository.IsMirror` scanned in every `RepoStore` SELECT, with a test.
-- [ ] The `mirror.*` config with defaults and validation.
-- [ ] Commit `feat(mirror): add repo_mirrors schema, store and config`.
+- [x] Migration `NNN_repo_mirrors.sql`, the model, and `MirrorStore` with an integration test: concurrent claims don't overlap, an expired lease can be reclaimed, backoff is applied.
+- [x] `Repository.IsMirror` scanned in every `RepoStore` SELECT, with a test.
+- [x] The `mirror.*` config with defaults and validation.
+- [x] Commit `feat(mirror): add repo_mirrors schema, store and config`.
 
 ## Tickets 04–09
 

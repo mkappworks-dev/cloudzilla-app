@@ -52,6 +52,7 @@ type Stores struct {
 	CommitStats        *CommitStatsStore
 	ContributorStats   *ContributorStatsStore
 	EmailVerification  *EmailVerificationStore
+	Mirror             *MirrorStore
 }
 
 // New constructs and wires all stores from the given database connection.
@@ -103,5 +104,6 @@ func New(database *sql.DB) *Stores {
 		CommitStats:        NewCommitStatsStore(database),
 		ContributorStats:   NewContributorStatsStore(database),
 		EmailVerification:  NewEmailVerificationStore(database),
+		Mirror:             NewMirrorStore(database),
 	}
 }

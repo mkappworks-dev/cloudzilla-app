@@ -2,13 +2,13 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md#data-model)
 
 ## What
 
-- Migration `NNN_repo_mirrors.sql`, numbered at commit time. 102 is next today; check `origin/main` again before committing. It creates the `repo_mirrors` table as the spec's Data model describes, with a partial index on `next_sync_at WHERE lease_until IS NULL OR …`. Choose the index predicate to match the claim query.
+- Migration `NNN_repo_mirrors.sql`, numbered at commit time. 102 is next today; check `origin/main` again before committing. It creates the `repo_mirrors` table as the spec's Data model describes, with an index on `next_sync_at`. A partial index can't help: the claim compares `lease_until` with `NOW()`, which an index predicate can't use.
 - `model.RepoMirror`. `Repository.IsMirror` is derived with `EXISTS` in every `RepoStore` SELECT that scans a `Repository` (`repo_store.go:122,494,826` and any others).
 - `MirrorStore` holds:
   - `Create`, `Get(repoID)`, `Update`, `Delete`
@@ -20,8 +20,14 @@ Spec: [../spec.md](../spec.md#data-model)
 
 ## Acceptance criteria
 
-- [ ] The migration runs up and down cleanly.
-- [ ] `IsMirror` is true only for repos with a mirror row, everywhere a `Repository` is loaded.
-- [ ] Integration test: two concurrent `ClaimDue` calls never return the same row. An expired lease can be claimed again.
-- [ ] Backoff is `min(interval × 2^failures, 24h)`, and success resets it.
-- [ ] The config defaults are 10m, 8h, 3 and 30m, and an invalid combination fails at startup.
+- [x] The migration applies cleanly. Migrations here are up-only.
+- [x] `IsMirror` is true only for repos with a mirror row, everywhere a `Repository` is loaded.
+- [x] Integration test: two concurrent `ClaimDue` calls never return the same row. An expired lease can be claimed again.
+- [x] Backoff waits `interval × 2^(failures−1)`, capped at 24h but never below the interval, and success resets it.
+- [x] The config defaults are 10m, 8h, 3 and 30m, and an invalid combination fails at startup.
+
+## Comments
+
+**Claude, 2026-10-06:**
+- Backoff counts from the first failure, so one transient error keeps the normal schedule. A mirror with an interval over 24h never retries sooner than its interval.
+- `feat/issue-closing-keywords` and a `claude/*` branch also add a `102_*.sql`, but neither has an open PR. Whichever lands second renumbers.

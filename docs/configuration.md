@@ -35,6 +35,12 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `smtp.tls`                   | `false`                                      | `CZ_SMTP_TLS`                   | Use TLS for SMTP connection                     |
 | `import.allow_local_networks`| `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`| Let repository imports reach loopback, private and link-local addresses |
 | `import.timeout`             | `30m`                                        | `CZ_IMPORT_TIMEOUT`             | Time limit for one repository import            |
+| `mirror.enabled`             | `true`                                       | `CZ_MIRROR_ENABLED`             | Sync pull mirrors and offer mirror options. When off, existing mirrors stay read-only |
+| `mirror.allow_local_networks`| `false`                                      | `CZ_MIRROR_ALLOW_LOCAL_NETWORKS`| Let pull mirrors reach loopback, private and link-local addresses |
+| `mirror.min_interval`        | `10m`                                        | `CZ_MIRROR_MIN_INTERVAL`        | Shortest sync interval a mirror may use         |
+| `mirror.default_interval`    | `8h`                                         | `CZ_MIRROR_DEFAULT_INTERVAL`    | Sync interval for new mirrors (at most `720h`)  |
+| `mirror.max_concurrent`      | `3`                                          | `CZ_MIRROR_MAX_CONCURRENT`      | Syncs running at once on each server instance   |
+| `mirror.timeout`             | `30m`                                        | `CZ_MIRROR_TIMEOUT`             | Time limit for one sync                         |
 | `security.secret_key`        | `""`                                         | `CZ_SECURITY_SECRET_KEY`        | Key that encrypts stored credentials, such as mirror tokens. At least 32 bytes; see [Secret key](#secret-key) |
 
 ### Secret key

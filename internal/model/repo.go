@@ -28,6 +28,7 @@ type Repository struct {
 	IsArchived       bool       `db:"is_archived"    json:"is_archived"`
 	ArchivedAt       *time.Time `db:"archived_at"    json:"archived_at,omitempty"`
 	IsTemplate       bool       `db:"is_template"    json:"is_template"`
+	IsMirror         bool       `db:"-"              json:"is_mirror"`
 	DeletedAt        *time.Time `db:"deleted_at"        json:"deleted_at,omitempty"`
 	DeletedBy        *int64     `db:"deleted_by"        json:"deleted_by,omitempty"`
 	CreatedBy        int64      `db:"created_by"        json:"created_by,omitempty"` // attribution only, never access; set by single-repo lookups
