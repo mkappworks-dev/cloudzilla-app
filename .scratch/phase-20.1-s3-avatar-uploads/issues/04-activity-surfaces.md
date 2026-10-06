@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md (§8 activity surfaces)
 
 ## What to build
@@ -24,10 +24,10 @@ Queries that join `users` for an author add `u.avatar_key`. Username lists get t
 
 ## Acceptance criteria
 
-- [ ] Every activity surface listed in spec §8 renders the uploaded avatar, with initials when there is none.
-- [ ] Username lists resolve all their keys in one query per page.
-- [ ] `commits.templ`, `pr_commits.templ`, `commit.templ` and `repo.templ`'s latest commit still render initials.
-- [ ] A browser check shows the avatar next to a comment.
+- [x] Every activity surface listed in spec §8 renders the uploaded avatar, with initials when there is none.
+- [x] Username lists resolve all their keys in one query per page.
+- [x] `commits.templ`, `pr_commits.templ`, `commit.templ` and `repo.templ`'s latest commit still render initials.
+- [x] A browser check shows the avatar next to a comment.
 
 ## Blocked by
 

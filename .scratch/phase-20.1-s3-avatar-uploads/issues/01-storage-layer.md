@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md (§1, §2, §10)
 
 ## What to build
@@ -16,16 +16,18 @@ A new `internal/storage` package with a `Backend` interface (`Put`, `Get`, `Dele
 
 ## Acceptance criteria
 
-- [ ] `storagetest.Run(t, Backend)` covers put/get/exists/delete, overwrite, `ErrNotFound`, deleting a missing key, invalid keys, and prefix isolation.
-- [ ] The suite passes against `LocalBackend` on `t.TempDir()`.
-- [ ] The suite passes against `S3Backend` pointed at an `httptest` fake S3 server. The fake asserts that SigV4 `Authorization` is present and that no `x-amz-checksum-*` header is sent.
-- [ ] The suite also runs against a real server when the `TEST_S3_*` env vars are set.
-- [ ] A traversal test shows no key escapes the local root.
-- [ ] An unknown backend, or `s3` with no bucket, makes `storage.New` return a clear error, and startup fails.
-- [ ] `docker compose --profile s3 up` starts versitygw with a bucket.
+- [x] `storagetest.Run(t, Backend)` covers put/get/exists/delete, overwrite, `ErrNotFound`, deleting a missing key, invalid keys, and prefix isolation.
+- [x] The suite passes against `LocalBackend` on `t.TempDir()`.
+- [x] The suite passes against `S3Backend` pointed at an `httptest` fake S3 server. The fake asserts that SigV4 `Authorization` is present and that no `x-amz-checksum-*` header is sent.
+- [x] The suite also runs against a real server when the `TEST_S3_*` env vars are set.
+- [x] A traversal test shows no key escapes the local root.
+- [x] An unknown backend, or `s3` with no bucket, makes `storage.New` return a clear error, and startup fails.
+- [x] `docker compose --profile s3 up` starts versitygw with a bucket.
 
 ## Blocked by
 
 None.
 
 ## Comments
+
+**Claude, 2026-10-06.** The compose criterion was checked without Docker, which the cloud session lacks. The service's entrypoint matches the image's Dockerfile, and the same `versitygw --port :7070 posix /data` command ran locally; `TestS3Backend_Conformance_RealServer` passed against it. Prefix isolation is `TestS3Backend_PrefixIsolation`, outside `storagetest.Run`, because it needs two backends on one bucket.

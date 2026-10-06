@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md (§4 API, §7, §8 identity surfaces, §9, §10 docs)
 
 ## What to build
@@ -34,13 +34,13 @@ Spec: ../spec.md (§4 API, §7, §8 identity surfaces, §9, §10 docs)
 
 ## Acceptance criteria
 
-- [ ] Upload, replace and remove work from user settings and org settings, and a non-owner gets 403.
-- [ ] 413 over the cap, including on a cookie-authenticated multipart post without `X-CSRF-Token`.
-- [ ] 422 for a bad image, and 401 when signed out.
-- [ ] `/avatars/*` sends the cache headers, gives 304 on `If-None-Match`, and gives 404 on a malformed or unknown key.
-- [ ] Nav, settings, user profile, org pages, org members, search and stargazers render the `<img>` with the right `src`.
-- [ ] The API's `avatar_url` reflects the uploaded avatar.
-- [ ] The docs are updated.
+- [x] Upload, replace and remove work from user settings and org settings, and a non-owner gets 403.
+- [x] 413 over the cap, including on a cookie-authenticated multipart post without `X-CSRF-Token`.
+- [x] 422 for a bad image, and 401 when signed out.
+- [x] `/avatars/*` sends the cache headers, gives 304 on `If-None-Match`, and gives 404 on a malformed or unknown key.
+- [x] Nav, settings, user profile, org pages, org members, search and stargazers render the `<img>` with the right `src`.
+- [x] The API's `avatar_url` reflects the uploaded avatar.
+- [x] The docs are updated.
 
 ## Blocked by
 

@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md (§3–§6)
 
 ## What to build
@@ -24,11 +24,11 @@ Spec: ../spec.md (§3–§6)
 
 ## Acceptance criteria
 
-- [ ] Processing accepts PNG, JPEG, GIF and WebP.
-- [ ] Processing rejects SVG, HTML, a PNG renamed `.svg`, and SVG declared as `image/png`.
-- [ ] Processing rejects a file declaring 65535 × 65535 before decode, and a 2 MB + 1 byte input.
-- [ ] EXIF GPS is gone from the output, alpha gives PNG and opaque gives JPEG, and output is at most 460 px, square and never upscaled.
-- [ ] Service integration tests: upload, replace, the same image twice, remove, a failed key update, user and org deletion, and a non-owner refused.
+- [x] Processing accepts PNG, JPEG, GIF and WebP.
+- [x] Processing rejects SVG, HTML, a PNG renamed `.svg`, and SVG declared as `image/png`.
+- [x] Processing rejects a file declaring 65535 × 65535 before decode, and a 2 MB + 1 byte input.
+- [x] EXIF GPS is gone from the output, alpha gives PNG and opaque gives JPEG, and output is at most 460 px, square and never upscaled.
+- [x] Service integration tests: upload, replace, the same image twice, remove, a failed key update, user and org deletion, and a non-owner refused.
 
 ## Blocked by
 
