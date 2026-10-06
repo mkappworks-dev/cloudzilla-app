@@ -44,6 +44,7 @@ type Services struct {
 	SavedReply       *SavedReplyService
 	Email            *EmailService
 	EmailVerifier    *EmailVerificationService
+	PasswordReset    *PasswordResetService
 	OAuthApp         *OAuthAppService
 	Watch            *WatchService
 	Event            *EventService
@@ -99,7 +100,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
 		Org:              orgSvc,
-		Webhook:          NewWebhookService(stores.Webhook),
+		Webhook:          NewWebhookService(stores.Webhook, cfg.Webhook),
 		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,
 		Invitation:       NewInvitationService(stores.Invitation),
@@ -127,6 +128,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
 		EmailVerifier:    emailVerificationSvc,
+		PasswordReset:    NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL),
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
 		Event:            NewEventService(stores.Event, stores.User, stores.Repo),

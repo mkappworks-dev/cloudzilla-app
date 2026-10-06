@@ -27,7 +27,7 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `oauth.google_client_id`     | `""`                                         | `CZ_OAUTH_GOOGLE_CLIENT_ID`     | Google OAuth client ID (empty = disabled)       |
 | `oauth.google_client_secret` | `""`                                         | `CZ_OAUTH_GOOGLE_CLIENT_SECRET` | Google OAuth client secret                      |
 | `oauth.google_redirect_url`  | `http://localhost:8080/auth/google/callback` | `CZ_OAUTH_GOOGLE_REDIRECT_URL`  | OAuth redirect URI (must match Google Console)  |
-| `smtp.host`                  | `""`                                         | `CZ_SMTP_HOST`                  | SMTP server host (empty = email disabled). Also enables email-verified signup and email verification. |
+| `smtp.host`                  | `""`                                         | `CZ_SMTP_HOST`                  | SMTP server host (empty = email disabled). Also enables email-verified signup, email verification and password reset emails. |
 | `smtp.port`                  | `587`                                        | `CZ_SMTP_PORT`                  | SMTP server port                                |
 | `smtp.username`              | `""`                                         | `CZ_SMTP_USERNAME`              | SMTP username                                   |
 | `smtp.password`              | `""`                                         | `CZ_SMTP_PASSWORD`              | SMTP password                                   |
@@ -35,6 +35,7 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `smtp.tls`                   | `false`                                      | `CZ_SMTP_TLS`                   | Use TLS for SMTP connection                     |
 | `import.allow_local_networks`| `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`| Let repository imports reach loopback, private and link-local addresses |
 | `import.timeout`             | `30m`                                        | `CZ_IMPORT_TIMEOUT`             | Time limit for one repository import            |
+| `webhook.allow_local_networks`| `false`                                     | `CZ_WEBHOOK_ALLOW_LOCAL_NETWORKS`| Let webhooks be created for and delivered to loopback, private and link-local addresses |
 | `rate_limit.enabled`         | `true`                                       | `CZ_RATE_LIMIT_ENABLED`         | Rate-limit every request that isn't a static asset; see [Rate limits](#rate-limits) |
 | `rate_limit.window`          | `1h`                                         | `CZ_RATE_LIMIT_WINDOW`          | Length of the window each budget covers         |
 | `rate_limit.core.authenticated` | `5000`                                    | `CZ_RATE_LIMIT_CORE_AUTHENTICATED` | Pages and `/api/*` per signed-in bucket      |
@@ -145,7 +146,7 @@ environment:
   CZ_SMTP_TLS: "true"
 ```
 
-Verification links point at `server.base_url`, so set it to the public URL. Without SMTP, addresses stay unverified, which keeps Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from `/admin/settings`. See [Email Verification](./access-control.md#email-verification).
+Verification and password reset links point at `server.base_url`, so set it to the public URL. Without SMTP, nobody can reset a forgotten password from `/login`; an admin prints a link with [`cloudzilla-cli password-reset-link`](#cloudzilla-cli-password-reset-link). Without SMTP, addresses stay unverified, which keeps Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from `/admin/settings`. See [Email Verification](./access-control.md#email-verification).
 
 ### Persistent Data (Docker volumes)
 
@@ -297,6 +298,16 @@ make dev
 | `--password` | `cloudzilla-seed` | Password for every seeded account               |
 
 SMTP is switched off for the run, so the notifications it creates send no email.
+
+### `cloudzilla-cli password-reset-link`
+
+Print a single-use link that lets a user choose a new password, for when the instance can't send email or the user can't receive it. It works for 24 hours and replaces any link the user already has.
+
+```bash
+cloudzilla-cli password-reset-link alice --config /etc/cloudzilla/config.yaml
+```
+
+The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
 
 ### Instance management
 

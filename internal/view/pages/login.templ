@@ -41,6 +41,11 @@ templ Login(data view.LoginData) {
 	@layout.Base(data.BasePage, "Sign in") {
 		<div class="max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6">
 			@authCardHero("Cloudzilla", "Sign in to continue", "")
+			if data.Notice != "" {
+				<div class="mb-4 p-3 rounded-md border border-success/40 bg-success/10 text-success text-sm" role="status">
+					{ data.Notice }
+				</div>
+			}
 			if data.Error != "" {
 				<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">
 					{ data.Error }
@@ -58,7 +63,12 @@ templ Login(data view.LoginData) {
 					})
 				</div>
 				<div class="space-y-1.5">
-					<label for="password" class="block text-sm font-medium">Password</label>
+					<div class="flex items-baseline justify-between gap-3">
+						<label for="password" class="block text-sm font-medium">Password</label>
+						if data.ForgotPassword {
+							<a href="/auth/password/forgot" class="text-[12px] text-muted-foreground hover:text-foreground hover:underline">Forgot password?</a>
+						}
+					</div>
 					@components.PasswordInput(templ.Attributes{
 						"id":       "password",
 						"name":     "password",

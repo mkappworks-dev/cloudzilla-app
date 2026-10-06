@@ -94,11 +94,25 @@ Account settings → Security → **Change password** (`POST /settings/password`
 
 Accounts without a password (created by Google, LDAP or SAML sign-up) can't set one here: nothing could confirm it, and a stolen session could otherwise add a password sign-in.
 
+### Resetting a forgotten password
+
+`PasswordResetService` sets a new password from a single-use link. The routes sit under `/auth/`, a reserved owner name, so they can't shadow a user or org.
+
+**Asking for a link.** With SMTP on, `/login` shows **Forgot password?**, which leads to `GET /auth/password/forgot`. `POST` checks the address with `validEmail` and always renders the same "check your inbox" page. A background job (`concurrency.Go`) then looks the address up: an unknown address gets nothing, an account with a password gets a link (verified address or not), and an account without one gets a note naming how it signs in (Google, or single sign-on), never a link. Neither the response nor its timing shows whether an account exists. An account is mailed at most once per 5 minutes, enforced in the store's upsert so it holds across instances. The note counts too, and so does a failed delivery. While a link an admin issued is still usable, the form sends nothing, so it can't cancel that link. Without SMTP, `/login` has no link, and both forgot routes say to ask an administrator.
+
+**Links.** `<server.base_url>/auth/password/reset/<token>`, where the token is 32 `crypto/rand` bytes, base64url-encoded. `password_reset_tokens` (migration 102) keeps one row per account, so only the newest link works. The row holds the token's SHA-256, the address it was sent to, the account's `session_version` at issue, who issued it (`email`, `admin` or `cli`), `expires_at`, `used_at`, and `emailed_at` for the cooldown, which a manual link leaves alone. An emailed link lasts 1 hour. One from `IssueLink` (the CLI, or a future admin action) lasts 24 hours, skips the cooldown and replaces any outstanding link. A link works only while it is unused and unexpired, and the account still has a password, the same email and the same `session_version`. So a password change, **Sign out other sessions**, an email change or another reset revokes it. `middleware.Logger` logs the route pattern, not the token.
+
+**Resetting.** `GET /auth/password/reset/{token}` only checks the link, because mail scanners fetch links, and shows a form naming the account. `POST` checks, in order: that the confirmation matches and the length is 8 characters to 72 bytes; for a 2FA account, a TOTP or backup code (`ReauthService.CheckSecondFactor`, so wrong codes count against the per-user limit); then one transaction, with the user row locked first, re-checks the link, spends it, sets the hash, bumps `session_version`, and, for an emailed link only, sets `email_verified_at` if it was unset. Only the mailbox's owner could open an emailed link, but a link handed over by an admin proves nothing about the address. A failed check leaves the link usable, though a valid backup code is spent as soon as it is checked. Both respond with `Referrer-Policy: no-referrer` and `Cache-Control: no-store`. An expired link answers 410 and any other unusable one 400. Success redirects to `/login?reset=done`, signs nobody in, writes `user.password.reset` (`issued_by`) to the audit log, and mails the account a notice. Sign-in still asks 2FA accounts for a code. Personal access tokens, SSH keys and OAuth app grants keep working, and the notice says so and links to them.
+
+**Without SMTP.** `cloudzilla-cli password-reset-link <username>` prints a 24-hour link to pass on by hand ([CLI reference](./configuration.md#cloudzilla-cli-password-reset-link)). It refuses accounts without a password and writes `user.password.reset_link` to the audit log with no actor ID and the actor name `cloudzilla-cli`.
+
+Both `POST` routes are limited to 10 requests per client IP per 15 minutes, each with its own budget.
+
 ### Ending sessions
 
 Session JWTs are stateless, so each carries the user's `session_version` (claim `sv`, migration 093) from when it was issued. With `middleware.WithSessionStates`, which the router passes to `authMW` and `optAuthMW`, every JWT-authenticated request reads the user's current version and `is_superadmin`: one primary-key lookup (`UserStore.SessionState`). The request is refused (`authMW`) or treated as signed out (`optAuthMW`) when the version has moved on, the user no longer exists or is [suspended](#suspended-accounts). Otherwise the claims' `IsSuperadmin` is replaced with the stored one, so a promotion or demotion applies on the user's next request without signing them out. Tokens from before the claim existed read as version 0.
 
-Account settings → Sessions → **Sign out other sessions** (`POST /settings/sessions/revoke`) bumps the version, sets a fresh cookie for the current browser, and writes `user.sessions.revoke` to the audit log. Changing the password bumps it too. Personal access tokens, SSH keys and OAuth app grants are not sessions; they are revoked in their own sections.
+Account settings → Sessions → **Sign out other sessions** (`POST /settings/sessions/revoke`) bumps the version, sets a fresh cookie for the current browser, and writes `user.sessions.revoke` to the audit log. Changing or resetting the password bumps it too. Personal access tokens, SSH keys and OAuth app grants are not sessions; they are revoked in their own sections.
 
 ### JWT Claims
 
@@ -473,19 +487,21 @@ Nothing changes for other users: the profile, repositories, issues and comments 
 
 ### Authentication Endpoints (No Auth Required)
 
-| Method   | Path                    | Handler                                                               |
-| -------- | ----------------------- | --------------------------------------------------------------------- |
-| GET/POST | `/setup`                | PageSetup / PageSetupSubmit                                           |
-| GET/POST | `/invite/{token}`       | PageInvite / PageInviteSubmit                                         |
-| GET/POST | `/login`                | PageLogin / PageLoginSubmit                                           |
-| POST     | `/api/auth/login`       | Login                                                                 |
-| POST     | `/api/auth/logout`      | Logout                                                                |
-| GET      | `/auth/google`          | GoogleOAuthBegin                                                      |
-| GET      | `/auth/google/callback` | GoogleOAuthCallback                                                   |
-| POST     | `/auth/ldap`            | LDAPLogin                                                             |
-| GET/POST | `/auth/saml`            | InitiateSAML / SAMLCallback                                           |
-| GET/POST | `/auth/2fa`             | PageTOTPVerify / VerifyTOTP                                           |
-| GET/POST | `/verify-email`         | PageVerifyEmail / VerifyEmailSubmit (optAuthMW; the token authorizes) |
+| Method   | Path                           | Handler                                                               |
+| -------- | ------------------------------ | --------------------------------------------------------------------- |
+| GET/POST | `/setup`                       | PageSetup / PageSetupSubmit                                           |
+| GET/POST | `/invite/{token}`              | PageInvite / PageInviteSubmit                                         |
+| GET/POST | `/login`                       | PageLogin / PageLoginSubmit                                           |
+| POST     | `/api/auth/login`              | Login                                                                 |
+| POST     | `/api/auth/logout`             | Logout                                                                |
+| GET      | `/auth/google`                 | GoogleOAuthBegin                                                      |
+| GET      | `/auth/google/callback`        | GoogleOAuthCallback                                                   |
+| POST     | `/auth/ldap`                   | LDAPLogin                                                             |
+| GET/POST | `/auth/saml`                   | InitiateSAML / SAMLCallback                                           |
+| GET/POST | `/auth/2fa`                    | PageTOTPVerify / VerifyTOTP                                           |
+| GET/POST | `/verify-email`                | PageVerifyEmail / VerifyEmailSubmit (optAuthMW; the token authorizes) |
+| GET/POST | `/auth/password/forgot`        | PageForgotPassword / ForgotPasswordSubmit                             |
+| GET/POST | `/auth/password/reset/{token}` | PageResetPassword / ResetPasswordSubmit (the token authorizes)        |
 
 `/auth/google/callback` runs `optAuthMW`: its [link mode](#connecting-google-to-an-existing-account) needs the session.
 
@@ -681,10 +697,11 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set |
 | Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
 | Web commit paths   | No `.git` component (any case, NTFS or HFS+ alias); at most 4096 bytes           |
-| SSRF protection    | Webhook delivery blocks private/internal IPs                                     |
+| SSRF protection    | Webhooks and imports dial only vetted public addresses; webhooks follow no redirects |
 | Branch protection  | A push that violates a rule is refused per ref, before the ref is written        |
 | Password storage   | bcrypt hashed                                                                    |
 | TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                        |
 | PAT                | `crypto/rand` generated, SHA-256-hashed for storage, limited to its scopes       |
 | Email verification | 32 `crypto/rand` bytes, SHA-256 at rest, single use, 24 h, one link a minute     |
+| Password reset     | 32 `crypto/rand` bytes, SHA-256 at rest, single use, 1 h, one email per 5 min    |
 | SQL injection      | All queries use parameterized placeholders (`$1`, `$2`, ...)                     |
