@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: bug
-Status: needs-triage
+Status: ready-for-agent
 
 ## Problem
 
@@ -43,7 +43,18 @@ A sweep of every `.templ` file under `internal/view/` (2026-10-06) found no othe
 
 ## Acceptance criteria
 
-To be set once an option is chosen.
+- [ ] No page renders hardcoded CI runs. `actions.templ`, `PageActions` and `ActionsData` are gone, and `GET /{owner}/{repo}/actions` returns 404.
+- [ ] Every repo's subnav has a "Checks" tab linking to `/{owner}/{repo}/checks`, active on that page.
+- [ ] `/checks` shows one card per commit that has reported statuses, ordered by the commit's most recent status update. Each card shows:
+  - the combined state (`error` > `failure` > `pending` > `success`, as the status API combines them)
+  - the commit subject, or the bare SHA when the commit isn't in the repository (the status API doesn't check SHAs)
+  - "N of M passed", the short SHA linking to `/{owner}/{repo}/commit/{sha}`, and the relative time
+  - each context, with its state icon, its description, and a Details link when `target_url` is set
+- [ ] Commits paginate with Newer/Older links, the way the commit history does.
+- [ ] `/checks` follows the same read access as the other repo pages: a private repo is a 404 to anyone who can't read it.
+- [ ] With no statuses, the page explains how to post one: a `curl` example built from `server.base_url` and the repo's owner and name.
+- [ ] The PR Checks tab's link reads "View all checks →" and goes to `/checks`.
+- [ ] Integration tests cover the store query (grouping, ordering, pagination, repo isolation) and the page (cards, empty state, access).
 
 ## Relevant files
 
@@ -57,3 +68,19 @@ To be set once an option is chosen.
 - `internal/store/commit_status_store.go`, `internal/service/commit_status_service.go`, `internal/handler/commit_status_handler.go`: Commit Status API
 - `internal/db/migrations/021_create_commit_statuses.sql`: `commit_statuses` table
 - `docs/ROADMAP.md`: Phase 18
+
+## Comments
+
+**Malith Kuruppu, 2026-10-06.** Triage decisions:
+
+- Option 2: make the page real from commit statuses.
+- Name it "Checks", at `/{owner}/{repo}/checks`, matching the PR's Checks tab. Remove `/actions` without a redirect, leaving it free for Phase 18's pipeline runs.
+- Layout B: one card per commit (combined state, commit subject, "N of M passed", short SHA, time), with that commit's checks nested under it. The flat one-row-per-status list was rejected.
+
+**Claude, 2026-10-06.** Notes for implementation:
+
+- Don't look up the subject with `CodeService.GetCommit`: it diffs the whole commit. `ResolveRef` is cheap, but it tries branch names before SHAs, so a status posted against `main` would show the branch tip's subject. Parse the stored SHA as a full hash and read the commit object directly. If that fails, render the SHA alone.
+- Today the only index is `(repo_id, sha)`. Page the SHAs with `GROUP BY sha ORDER BY MAX(updated_at) DESC, sha` and `LIMIT pageSize+1` for `HasMore`, then load the page's statuses with one `IN (...)` query (numbered `$N` params, per CLAUDE.md). Add an index migration only if `EXPLAIN` shows the existing index doesn't serve the repo filter.
+- Move the worst-case combine in `CommitStatusStore.GetCombined` into a helper the page shares, so the two can't drift.
+- `internal/view/pages/time_helpers.go` has `relativeTime`. `components.PaginationLabeled` gives Newer/Older links.
+- `internal/handler/repo_page_access_test.go` lists `/actions` among the private-repo pages; change it to `/checks`. ROADMAP Phase 18.2/18.3 still say `/actions` will list pipeline runs, which stays true.
