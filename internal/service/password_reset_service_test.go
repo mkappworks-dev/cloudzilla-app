@@ -14,6 +14,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -471,4 +472,91 @@ func TestPasswordReset_ManualLinkAndEmailCooldown(t *testing.T) {
 	}
 	box.NextTo(t, email) // the reset notice
 	box.Empty(t, 300*time.Millisecond)
+}
+
+func TestPasswordReset_SuspendedAccountGetsNothing(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		seed func(t *testing.T, db *sql.DB) (int64, string)
+	}{
+		{"with a password", func(t *testing.T, db *sql.DB) (int64, string) {
+			return testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), testPassword)
+		}},
+		{"passwordless", func(t *testing.T, db *sql.DB) (int64, string) {
+			suffix := testutil.UniqueSuffix(t)
+			id := testutil.SeedPasswordlessUser(t, db, suffix, "g-"+suffix)
+			var email string
+			if err := db.QueryRow(`SELECT email FROM users WHERE id = $1`, id).Scan(&email); err != nil {
+				t.Fatal(err)
+			}
+			return id, email
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			smtp, box := testutil.FakeSMTP(t)
+			svc, db := newVerificationServices(t, smtp)
+			userID, email := tc.seed(t, db)
+			testutil.Exec(t, db, `UPDATE users SET suspended_at = NOW() WHERE id = $1`, userID)
+
+			if err := svc.PasswordReset.Request(context.Background(), email); err != nil {
+				t.Fatalf("Request: %v", err)
+			}
+			box.Empty(t, 300*time.Millisecond)
+		})
+	}
+}
+
+func TestPasswordReset_SuspensionRevokesLink(t *testing.T) {
+	svc, db := newVerificationServices(t, config.SMTPConfig{})
+	ctx := context.Background()
+	userID, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), testPassword)
+	link, err := svc.PasswordReset.IssueLink(ctx, userID, model.PasswordResetByAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := link[strings.LastIndex(link, "/")+1:]
+
+	// Set directly so the session_version bump that UserStore.Suspend makes can't be what revokes it.
+	testutil.Exec(t, db, `UPDATE users SET suspended_at = NOW() WHERE id = $1`, userID)
+	if got := linkState(t, svc, token); got != model.PasswordResetInvalid {
+		t.Errorf("Check state while suspended = %s, want invalid", got)
+	}
+	if _, _, err := svc.PasswordReset.Reset(ctx, token, newPassword, ""); !errors.Is(err, service.ErrPasswordResetInvalid) {
+		t.Errorf("Reset while suspended err = %v, want ErrPasswordResetInvalid", err)
+	}
+	if !passwordIs(t, db, userID, testPassword) {
+		t.Error("a suspended account's password changed")
+	}
+
+	// A real suspension revokes the link for good, so unsuspending doesn't bring it back.
+	testutil.Exec(t, db, `UPDATE users SET suspended_at = NULL WHERE id = $1`, userID)
+	if got := linkState(t, svc, token); got != model.PasswordResetPending {
+		t.Fatalf("Check state after clearing suspended_at = %s, want pending", got)
+	}
+	users := store.NewUserStore(db)
+	if _, err := users.Suspend(ctx, userID); err != nil {
+		t.Fatalf("Suspend: %v", err)
+	}
+	if _, err := users.Unsuspend(ctx, userID); err != nil {
+		t.Fatalf("Unsuspend: %v", err)
+	}
+	if got := linkState(t, svc, token); got != model.PasswordResetInvalid {
+		t.Errorf("Check state after suspend and unsuspend = %s, want invalid", got)
+	}
+}
+
+func TestPasswordReset_IssueLinkRefusesSuspendedAccount(t *testing.T) {
+	svc, db := newVerificationServices(t, config.SMTPConfig{})
+	userID, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), testPassword)
+	testutil.Exec(t, db, `UPDATE users SET suspended_at = NOW() WHERE id = $1`, userID)
+
+	for _, by := range []string{model.PasswordResetByAdmin, model.PasswordResetByCLI} {
+		if _, err := svc.PasswordReset.IssueLink(context.Background(), userID, by); !errors.Is(err, service.ErrUserSuspended) {
+			t.Errorf("IssueLink by %s err = %v, want ErrUserSuspended", by, err)
+		}
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM password_reset_tokens WHERE user_id = $1`, userID).Scan(&n); err != nil || n != 0 {
+		t.Errorf("password_reset_tokens rows = %d, %v; want none", n, err)
+	}
 }

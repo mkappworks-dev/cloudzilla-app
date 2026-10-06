@@ -66,3 +66,15 @@ func TestPasswordResetLink_Refusals(t *testing.T) {
 		t.Errorf("password_reset_tokens rows = %d, %v; want none", n, err)
 	}
 }
+
+func TestPasswordResetLink_SuspendedUser(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	testutil.Exec(t, db, `UPDATE users SET suspended_at = NOW() WHERE id = $1`, userID)
+
+	_, err := issuePasswordResetLink(context.Background(), store.New(db), &config.Config{}, "testpw_"+suffix)
+	if err == nil || !strings.Contains(err.Error(), "unsuspend") {
+		t.Errorf("suspended user err = %v, want an unsuspend hint", err)
+	}
+}
