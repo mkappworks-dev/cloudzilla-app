@@ -57,6 +57,7 @@ type Services struct {
 	Attention        *AttentionService
 	Language         *LanguageService
 	Import           *ImportService
+	IssueCloser      *IssueCloser
 }
 
 // New constructs and wires all services from the given stores and configuration.
@@ -85,17 +86,19 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
-	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention)
+	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
+	webhookSvc := NewWebhookService(stores.Webhook)
+	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	return &Services{
 		User:             userSvc,
 		Repo:             repoSvc,
-		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention),
+		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent),
 		Pull:             pullSvc,
 		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
 		Org:              orgSvc,
-		Webhook:          NewWebhookService(stores.Webhook),
+		Webhook:          webhookSvc,
 		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,
 		Invitation:       NewInvitationService(stores.Invitation),
@@ -125,7 +128,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		EmailVerifier:    emailVerificationSvc,
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
-		Event:            NewEventService(stores.Event, stores.User, stores.Repo),
+		Event:            eventSvc,
 		Discussion:       NewDiscussionService(stores.Discussion, stores.Repo),
 		Gist:             NewGistService(stores.Gist),
 		Topic:            NewTopicService(stores.Topic),
@@ -137,5 +140,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
+		IssueCloser:      NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc),
 	}
 }

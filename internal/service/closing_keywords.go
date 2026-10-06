@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // ClosingRef is an issue a closing keyword names. Owner and Repo are empty for
@@ -40,4 +42,34 @@ func ParseClosingRefs(text string) []ClosingRef {
 		out = append(out, ClosingRef{Owner: owner, Repo: repo, Number: int(n)})
 	}
 	return out
+}
+
+// ClosingRefsInMerge returns the closing references in the messages of the
+// commits merging headHash into base would bring in. Call it before the merge:
+// a fast-forward leaves nothing between the two afterwards.
+func (s *CodeService) ClosingRefsInMerge(owner, repoName, base string, headHash plumbing.Hash) ([]ClosingRef, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+	baseCommit, _, err := resolveRef(repo, base)
+	if err != nil {
+		return nil, err
+	}
+	commits, err := commitRange(repo, baseCommit.Hash, headHash)
+	if err != nil {
+		return nil, err
+	}
+	var out []ClosingRef
+	seen := map[ClosingRef]bool{}
+	for i := len(commits) - 1; i >= 0; i-- {
+		for _, ref := range ParseClosingRefs(commits[i].Message) {
+			key := ClosingRef{Owner: strings.ToLower(ref.Owner), Repo: strings.ToLower(ref.Repo), Number: ref.Number}
+			if !seen[key] {
+				seen[key] = true
+				out = append(out, ref)
+			}
+		}
+	}
+	return out, nil
 }

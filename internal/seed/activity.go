@@ -132,7 +132,7 @@ func (s *seeder) seedIssue(r *seedRepo) error {
 
 	if chance(s.rng, 0.35) {
 		closer := pick(s.rng, r.contributors)
-		closed, err := s.svcs.Issue.SetState(s.ctx, r.OwnerName, r.Name, issue.Number, model.IssueStateClosed)
+		closed, err := s.svcs.Issue.SetState(s.ctx, r.OwnerName, r.Name, issue.Number, model.IssueStateClosed, closer.ID, closer.Username)
 		if err != nil {
 			return err
 		}
@@ -202,11 +202,6 @@ func (s *seeder) seedPull(r *seedRepo, f featureResult) error {
 	}
 	s.report.Pulls++
 	s.event(author, r, model.EventPROpened, map[string]any{"number": pr.Number, "title": pr.Title})
-	if closes != nil {
-		if err := s.svcs.Issue.LinkPull(s.ctx, pr.ID, closes.ID); err != nil {
-			return err
-		}
-	}
 	if err := s.svcs.Assignee.AddToPull(s.ctx, r.OwnerName, r.Name, pr.Number, author.Username); err != nil {
 		return err
 	}
