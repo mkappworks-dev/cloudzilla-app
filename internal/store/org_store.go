@@ -38,9 +38,9 @@ func (s *OrgStore) Create(ctx context.Context, o *model.Organization) error {
 func (s *OrgStore) GetByName(ctx context.Context, name string) (*model.Organization, error) {
 	o := &model.Organization{}
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, display_name, description, avatar_url, website, location, contact_email, default_repo_visibility, default_branch_name, created_at, updated_at FROM organizations WHERE name = $1`,
+		`SELECT id, name, display_name, description, avatar_url, avatar_key, website, location, contact_email, default_repo_visibility, default_branch_name, created_at, updated_at FROM organizations WHERE name = $1`,
 		name,
-	).Scan(&o.ID, &o.Name, &o.DisplayName, &o.Description, &o.AvatarURL, &o.Website, &o.Location, &o.ContactEmail, &o.DefaultRepoVisibility, &o.DefaultBranchName, &o.CreatedAt, &o.UpdatedAt)
+	).Scan(&o.ID, &o.Name, &o.DisplayName, &o.Description, &o.AvatarURL, &o.AvatarKey, &o.Website, &o.Location, &o.ContactEmail, &o.DefaultRepoVisibility, &o.DefaultBranchName, &o.CreatedAt, &o.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("org get by name: %w", err)
 	}
@@ -50,9 +50,9 @@ func (s *OrgStore) GetByName(ctx context.Context, name string) (*model.Organizat
 func (s *OrgStore) GetByID(ctx context.Context, id int64) (*model.Organization, error) {
 	o := &model.Organization{}
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, display_name, description, avatar_url, website, location, contact_email, default_repo_visibility, default_branch_name, created_at, updated_at FROM organizations WHERE id = $1`,
+		`SELECT id, name, display_name, description, avatar_url, avatar_key, website, location, contact_email, default_repo_visibility, default_branch_name, created_at, updated_at FROM organizations WHERE id = $1`,
 		id,
-	).Scan(&o.ID, &o.Name, &o.DisplayName, &o.Description, &o.AvatarURL, &o.Website, &o.Location, &o.ContactEmail, &o.DefaultRepoVisibility, &o.DefaultBranchName, &o.CreatedAt, &o.UpdatedAt)
+	).Scan(&o.ID, &o.Name, &o.DisplayName, &o.Description, &o.AvatarURL, &o.AvatarKey, &o.Website, &o.Location, &o.ContactEmail, &o.DefaultRepoVisibility, &o.DefaultBranchName, &o.CreatedAt, &o.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("org get by id: %w", err)
 	}
@@ -85,30 +85,29 @@ var ErrOrgHasRepos = errors.New("organization still has repositories")
 // Delete removes an org with no live repos and returns its soft-deleted ones,
 // whose rows the cascade drops. The org row lock holds off a repo created or
 // transferred into the org (their FK checks need that row) until the check
-// below has seen it; the repo row locks do the same for a restore.
-func (s *OrgStore) Delete(ctx context.Context, id int64) ([]model.Repository, error) {
+// below has seen it; the repo row locks do the same for a restore. avatarKey is
+// read under the same lock.
+func (s *OrgStore) Delete(ctx context.Context, id int64) (deleted []model.Repository, avatarKey string, err error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("org delete begin tx: %w", err)
+		return nil, "", fmt.Errorf("org delete begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	var locked int
-	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM organizations WHERE id = $1 FOR UPDATE`, id).Scan(&locked); err != nil {
-		return nil, fmt.Errorf("org delete lock: %w", err)
+	if err := tx.QueryRowContext(ctx, `SELECT avatar_key FROM organizations WHERE id = $1 FOR UPDATE`, id).Scan(&avatarKey); err != nil {
+		return nil, "", fmt.Errorf("org delete lock: %w", err)
 	}
 	rows, err := tx.QueryContext(ctx,
 		`SELECT id, owner_name, name, deleted_at FROM repositories WHERE org_id = $1 FOR UPDATE`, id)
 	if err != nil {
-		return nil, fmt.Errorf("org delete list repos: %w", err)
+		return nil, "", fmt.Errorf("org delete list repos: %w", err)
 	}
-	var deleted []model.Repository
 	hasLive := false
 	for rows.Next() {
 		r := model.Repository{OrgID: id}
 		var deletedAt sql.NullTime
 		if err := rows.Scan(&r.ID, &r.OwnerName, &r.Name, &deletedAt); err != nil {
 			rows.Close()
-			return nil, fmt.Errorf("org delete scan repo: %w", err)
+			return nil, "", fmt.Errorf("org delete scan repo: %w", err)
 		}
 		if !deletedAt.Valid {
 			hasLive = true
@@ -119,18 +118,18 @@ func (s *OrgStore) Delete(ctx context.Context, id int64) ([]model.Repository, er
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("org delete list repos: %w", err)
+		return nil, "", fmt.Errorf("org delete list repos: %w", err)
 	}
 	if hasLive {
-		return nil, ErrOrgHasRepos
+		return nil, "", ErrOrgHasRepos
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM organizations WHERE id = $1`, id); err != nil {
-		return nil, fmt.Errorf("org delete: %w", err)
+		return nil, "", fmt.Errorf("org delete: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("org delete commit: %w", err)
+		return nil, "", fmt.Errorf("org delete commit: %w", err)
 	}
-	return deleted, nil
+	return deleted, avatarKey, nil
 }
 
 // UpdateProfile returns sql.ErrNoRows when no row matches id.
@@ -263,7 +262,7 @@ func (s *OrgStore) UpdateMemberRole(ctx context.Context, orgID, userID int64, ro
 
 func (s *OrgStore) ListByMember(ctx context.Context, userID int64) ([]model.Organization, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT o.id, o.name, o.display_name, o.description, o.avatar_url, o.website, o.location, o.contact_email, o.default_repo_visibility, o.default_branch_name, o.created_at, o.updated_at
+		`SELECT o.id, o.name, o.display_name, o.description, o.avatar_url, o.avatar_key, o.website, o.location, o.contact_email, o.default_repo_visibility, o.default_branch_name, o.created_at, o.updated_at
 		 FROM organizations o JOIN org_members om ON om.org_id = o.id
 		 WHERE om.user_id = $1 ORDER BY o.name ASC`,
 		userID,
@@ -275,10 +274,26 @@ func (s *OrgStore) ListByMember(ctx context.Context, userID int64) ([]model.Orga
 	var orgs []model.Organization
 	for rows.Next() {
 		var o model.Organization
-		if err := rows.Scan(&o.ID, &o.Name, &o.DisplayName, &o.Description, &o.AvatarURL, &o.Website, &o.Location, &o.ContactEmail, &o.DefaultRepoVisibility, &o.DefaultBranchName, &o.CreatedAt, &o.UpdatedAt); err != nil {
+		if err := rows.Scan(&o.ID, &o.Name, &o.DisplayName, &o.Description, &o.AvatarURL, &o.AvatarKey, &o.Website, &o.Location, &o.ContactEmail, &o.DefaultRepoVisibility, &o.DefaultBranchName, &o.CreatedAt, &o.UpdatedAt); err != nil {
 			return nil, err
 		}
 		orgs = append(orgs, o)
 	}
 	return orgs, rows.Err()
+}
+
+// SwapAvatarKey sets the org's avatar key and returns the one it replaced,
+// read under the row lock. It returns sql.ErrNoRows when the org doesn't exist.
+func (s *OrgStore) SwapAvatarKey(ctx context.Context, orgID int64, key string) (string, error) {
+	var old string
+	err := s.db.QueryRowContext(ctx,
+		`UPDATE organizations o SET avatar_key = $2, updated_at = NOW()
+		   FROM (SELECT id, avatar_key FROM organizations WHERE id = $1 FOR UPDATE) prev
+		  WHERE o.id = prev.id
+		 RETURNING prev.avatar_key`, orgID, key,
+	).Scan(&old)
+	if err != nil {
+		return "", fmt.Errorf("org swap avatar key: %w", err)
+	}
+	return old, nil
 }

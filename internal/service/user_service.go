@@ -66,6 +66,7 @@ type UserService struct {
 	verifier    *EmailVerificationService
 	reauth      *ReauthService
 	notices     *EmailService
+	avatars     *AvatarService
 }
 
 // NewUserService creates a UserService backed by the given user store and auth config.
@@ -362,13 +363,20 @@ func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 	} else if sole {
 		return ErrSoleOrgOwner
 	}
-	return s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
-		err := s.store.DeleteWithOwnedRepos(ctx, userID, livePersonalIDs)
+	var avatarKey string
+	err := s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
+		var err error
+		avatarKey, err = s.store.DeleteWithOwnedRepos(ctx, userID, livePersonalIDs)
 		if errors.Is(err, store.ErrLastOrgOwner) {
 			return ErrSoleOrgOwner
 		}
 		return err
 	})
+	if err != nil {
+		return err
+	}
+	s.avatars.DeleteObject(ctx, avatarKey)
+	return nil
 }
 
 func (s *UserService) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
@@ -404,6 +412,12 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 
 // Required by PinRepo and PinnedRepos, which apply repo visibility, and by
 // DeleteUser, which removes the user's repo directories.
+// WithAvatars removes a deleted user's avatar object.
+func (s *UserService) WithAvatars(a *AvatarService) *UserService {
+	s.avatars = a
+	return s
+}
+
 func (s *UserService) WithRepoService(repos *RepoService) *UserService {
 	s.repos = repos
 	return s

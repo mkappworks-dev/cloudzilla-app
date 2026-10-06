@@ -47,7 +47,7 @@ func NewUserStore(database *sql.DB) *UserStore {
 const userColumns = `id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 	is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
 	notify_pr_review, notify_mention, keep_email_private, email_verified_at, session_version,
-	code_theme_light, code_theme_dark`
+	code_theme_light, code_theme_dark, avatar_key`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -59,7 +59,7 @@ func scanUser(row rowScanner, u *model.User, extra ...any) error {
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
 		&u.NotifyPRReview, &u.NotifyMention, &u.KeepEmailPrivate, &u.EmailVerifiedAt, &u.SessionVersion,
-		&u.CodeThemeLight, &u.CodeThemeDark}
+		&u.CodeThemeLight, &u.CodeThemeDark, &u.AvatarKey}
 	return row.Scan(append(dest, extra...)...)
 }
 
@@ -671,14 +671,15 @@ var ghostReassignments = []struct{ table, idCol, nameCol string }{
 // row blocks new repo inserts (their FK check needs it), so the set is re-checked
 // here and a repo created or restored in the meantime aborts the delete. Org
 // repos have no owner_id, so neither the cascade nor this check touches them.
-func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, livePersonalIDs []int64) error {
+// It returns the deleted user's avatar key, read under the row lock.
+func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, livePersonalIDs []int64) (avatarKey string, err error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("user delete begin tx: %w", err)
+		return "", fmt.Errorf("user delete begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, `SELECT 1 FROM users WHERE id=$1 FOR UPDATE`, userID); err != nil {
-		return fmt.Errorf("user delete lock: %w", err)
+	if err := tx.QueryRowContext(ctx, `SELECT avatar_key FROM users WHERE id=$1 FOR UPDATE`, userID).Scan(&avatarKey); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return "", fmt.Errorf("user delete lock: %w", err)
 	}
 	// OrgStore.changeMember takes these locks too, so neither another owner
 	// leaving nor this user's promotion can land between this check and the
@@ -687,49 +688,49 @@ func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, live
 	if _, err := tx.ExecContext(ctx,
 		`SELECT 1 FROM organizations o JOIN org_members om ON om.org_id = o.id
 		 WHERE om.user_id = $1 ORDER BY o.id FOR NO KEY UPDATE OF o`, userID); err != nil {
-		return fmt.Errorf("user delete lock orgs: %w", err)
+		return "", fmt.Errorf("user delete lock orgs: %w", err)
 	}
 	var sole bool
 	if err := tx.QueryRowContext(ctx, `SELECT EXISTS (`+soleOwnedOrgs+`)`, userID).Scan(&sole); err != nil {
-		return fmt.Errorf("user delete check orgs: %w", err)
+		return "", fmt.Errorf("user delete check orgs: %w", err)
 	}
 	if sole {
-		return ErrLastOrgOwner
+		return "", ErrLastOrgOwner
 	}
 	rows, err := tx.QueryContext(ctx,
 		`SELECT id FROM repositories WHERE owner_id=$1 AND deleted_at IS NULL FOR UPDATE`, userID)
 	if err != nil {
-		return fmt.Errorf("user delete list repos: %w", err)
+		return "", fmt.Errorf("user delete list repos: %w", err)
 	}
 	var live []int64
 	for rows.Next() {
 		var id int64
 		if err := rows.Scan(&id); err != nil {
 			rows.Close()
-			return fmt.Errorf("user delete scan repo: %w", err)
+			return "", fmt.Errorf("user delete scan repo: %w", err)
 		}
 		live = append(live, id)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
-		return fmt.Errorf("user delete list repos: %w", err)
+		return "", fmt.Errorf("user delete list repos: %w", err)
 	}
 	slices.Sort(live)
 	expected := slices.Sorted(slices.Values(livePersonalIDs))
 	if !slices.Equal(live, expected) {
-		return ErrOwnedReposChanged
+		return "", ErrOwnedReposChanged
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM repositories WHERE owner_id=$1`, userID); err != nil {
-		return fmt.Errorf("user delete repos: %w", err)
+		return "", fmt.Errorf("user delete repos: %w", err)
 	}
 	// Review requests are addressed to the user, and the ghost can never answer one.
 	if _, err := tx.ExecContext(ctx, `DELETE FROM pull_reviews WHERE author_id=$1 AND state='pending'`, userID); err != nil {
-		return fmt.Errorf("user delete review requests: %w", err)
+		return "", fmt.Errorf("user delete review requests: %w", err)
 	}
 	var ghostID int64
 	var ghostName string
 	if err := tx.QueryRowContext(ctx, `SELECT id, username FROM users WHERE id = ghost_user_id()`).Scan(&ghostID, &ghostName); err != nil {
-		return fmt.Errorf("user delete load ghost: %w", err)
+		return "", fmt.Errorf("user delete load ghost: %w", err)
 	}
 	for _, r := range ghostReassignments {
 		q := `UPDATE ` + r.table + ` SET ` + r.idCol + ` = $2`
@@ -739,16 +740,16 @@ func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, live
 			args = append(args, ghostName)
 		}
 		if _, err := tx.ExecContext(ctx, q+` WHERE `+r.idCol+` = $1`, args...); err != nil {
-			return fmt.Errorf("user delete reassign %s.%s: %w", r.table, r.idCol, err)
+			return "", fmt.Errorf("user delete reassign %s.%s: %w", r.table, r.idCol, err)
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id=$1`, userID); err != nil {
-		return fmt.Errorf("user delete: %w", err)
+		return "", fmt.Errorf("user delete: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("user delete commit: %w", err)
+		return "", fmt.Errorf("user delete commit: %w", err)
 	}
-	return nil
+	return avatarKey, nil
 }
 
 func (s *UserStore) UpdateNotificationPrefs(ctx context.Context, userID int64, p model.NotificationPrefs) error {
@@ -978,4 +979,49 @@ func (s *UserStore) GetPinnedRepoIDs(ctx context.Context, userID int64) ([]int64
 		return nil, fmt.Errorf("user get pinned repo ids: %w", err)
 	}
 	return parsePGInt64Array(raw)
+}
+
+// SwapAvatarKey sets the user's avatar key and returns the one it replaced,
+// read under the row lock so two concurrent swaps each see the other's key.
+// It returns sql.ErrNoRows when the user doesn't exist.
+func (s *UserStore) SwapAvatarKey(ctx context.Context, userID int64, key string) (string, error) {
+	var old string
+	err := s.db.QueryRowContext(ctx,
+		`UPDATE users u SET avatar_key = $2, updated_at = NOW()
+		   FROM (SELECT id, avatar_key FROM users WHERE id = $1 FOR UPDATE) prev
+		  WHERE u.id = prev.id
+		 RETURNING prev.avatar_key`, userID, key,
+	).Scan(&old)
+	if err != nil {
+		return "", fmt.Errorf("user swap avatar key: %w", err)
+	}
+	return old, nil
+}
+
+// AvatarKeysByUsername maps each username that has an avatar to its key.
+func (s *UserStore) AvatarKeysByUsername(ctx context.Context, usernames []string) (map[string]string, error) {
+	keys := map[string]string{}
+	if len(usernames) == 0 {
+		return keys, nil
+	}
+	placeholders := make([]string, len(usernames))
+	args := make([]any, len(usernames))
+	for i, name := range usernames {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = name
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT username, avatar_key FROM users WHERE avatar_key <> '' AND username IN (`+strings.Join(placeholders, ",")+`)`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("user avatar keys: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name, key string
+		if err := rows.Scan(&name, &key); err != nil {
+			return nil, fmt.Errorf("user avatar keys scan: %w", err)
+		}
+		keys[name] = key
+	}
+	return keys, rows.Err()
 }

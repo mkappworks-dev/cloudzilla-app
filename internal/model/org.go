@@ -15,6 +15,7 @@ type Organization struct {
 	DisplayName           string    `db:"display_name"             json:"display_name"`
 	Description           string    `db:"description"              json:"description"`
 	AvatarURL             string    `db:"avatar_url"               json:"avatar_url"`
+	AvatarKey             string    `db:"avatar_key"               json:"-"`
 	Website               string    `db:"website"                  json:"website,omitempty"`
 	Location              string    `db:"location"                 json:"location,omitempty"`
 	ContactEmail          string    `db:"contact_email"            json:"contact_email,omitempty"`

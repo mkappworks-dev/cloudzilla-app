@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
@@ -57,6 +58,14 @@ type Services struct {
 	Attention        *AttentionService
 	Language         *LanguageService
 	Import           *ImportService
+	Avatar           *AvatarService
+}
+
+// WithStorage gives the avatar service its object store. Until it is called,
+// avatar uploads fail with ErrStorageUnconfigured.
+func (s *Services) WithStorage(b storage.Backend) *Services {
+	s.Avatar.WithBackend(b)
+	return s
 }
 
 // New constructs and wires all services from the given stores and configuration.
@@ -83,6 +92,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	userSvc.WithReauth(reauthSvc)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
+	avatarSvc := NewAvatarService(stores.User, stores.Org, orgSvc)
+	userSvc.WithAvatars(avatarSvc)
+	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention)
@@ -137,5 +149,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
+		Avatar:           avatarSvc,
 	}
 }
