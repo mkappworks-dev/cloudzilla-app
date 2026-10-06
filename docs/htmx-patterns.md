@@ -62,7 +62,7 @@ htmx 4 doesn't inherit attributes by default. `hx-target`, `hx-swap`, `hx-confir
 
 htmx 4 swaps 4xx and 5xx responses by default. `htmxConfig` in `layout.templ` turns that off (`noSwap: [204, 304, "4xx", "5xx"]`), because handlers answer errors with JSON (`writeError`) and the layout's `htmx:response:error` listener shows its `error` field as a toast. It also sets `defaultTimeout: 0`: htmx 4 aborts requests after 60 seconds by default, and a merge can take longer.
 
-A form in a modal dialog shows its error inline instead, where a toast would sit behind the backdrop. `renderFormError` answers 200 with `HX-Retarget` pointing at the form's error slot, so the form tells success from error by `ctx.hx.retarget`.
+A form in a modal dialog shows its error inline instead, where a toast would sit behind the backdrop, and so does a validation error on a page form, next to the fields (the repo settings General form). `renderFormError` answers 200 with `HX-Retarget` pointing at the form's error slot, so the form tells success from error by `ctx.hx.retarget`.
 
 ## hx-on Attributes
 
@@ -80,7 +80,7 @@ templ compiles an attribute that starts with `hx-on:` and has an `{ expr }` valu
 
 - **From the handler:** call `toast(w, type, message)` before writing the body. It sets `HX-Trigger: {"toast": …}`, and `ToastContainer` shows it.
 - **`data-toast` on the requesting element:** shown when the request succeeds. `htmx:after:request` fires before the swap, so this works even when the response swaps the element out. Don't also send a handler toast for that request, or both show. The listener skips a 4xx, a 5xx and any response carrying `HX-Retarget`: `renderFormError`'s form errors come back as 200s, so send that header only with form errors. When the response carries `HX-Redirect` or `HX-Refresh`, the listener stashes the toast for the next page instead.
-- **Across a reload or redirect:** stash the toast in `sessionStorage` under `cz-toast`, and the next page shows it. An `hx-on::after:request` handler that stashes one should look for `ctx.hx.redirect` or `ctx.hx.refresh` rather than trust the status alone, because form errors come back as 200 swaps. It should also check `event.target===this`, which skips requests that bubble up from controls inside the element, like the `ConfirmFields` email-code button. `stashToast` in `internal/view/pages/repo_transfers.templ` does both. A plain `<form method="POST" data-toast="…">` is stashed on submit.
+- **Across a reload or redirect:** stash the toast in `sessionStorage` under `cz-toast`, and the next page shows it. An `hx-on::after:request` handler that stashes one should look for `ctx.hx.redirect` or `ctx.hx.refresh` rather than trust the status alone, because form errors come back as 200 swaps. It should also check `event.target===this`, which skips requests that bubble up from controls inside the element, like the `ConfirmFields` email-code button. `stashToast` in `internal/view/pages/repo_transfers.templ` does both. A plain `<form method="POST" data-toast="…">` is stashed on submit, before the server answers, so a failed save still shows it on the next page: give a form whose handler can fail `hx-post` instead.
 
 ## Template Parsing
 
