@@ -8,7 +8,7 @@ In-app notifications for activity on issues, PRs and discussions you opened, @-m
 | ------------------ | ------------------------------------------- |
 | `issue_comment`    | Someone comments on an issue you opened     |
 | `pr_comment`       | Someone comments on a PR you opened         |
-| `issue_closed`     | Someone closes an issue you opened          |
+| `issue_closed`     | Someone closes an issue you opened, by hand or with a closing keyword in a merged PR or pushed commit |
 | `issue_reopened`   | Someone reopens an issue you opened         |
 | `pr_merged`        | Someone merges a PR you opened              |
 | `pr_closed`        | Someone closes a PR you opened              |
@@ -31,7 +31,7 @@ Sent only when SMTP is configured. Users set these on `/settings#notifications` 
 | `notify_mention`      | Off suppresses email for `mention`                                                                                              |
 | `notify_pr_review`    | Off suppresses email for `pr_review`                                                                                            |
 
-`wantsEmail(user, type, digestMode)` in `internal/service/email_service.go` decides per notification: `EmailService.SendNotification` calls it with `immediate`, and `NotificationService.ListUnreadForDigest` calls it with the digest mode. The digest job (`runEmailDigest` in `cmd/server/main.go`) first narrows users with `UserService.ListUsersForDigest`, whose SQL repeats the master-switch and digest-mode check.
+`wantsEmail(user, type, digestMode)` in `internal/service/email_service.go` decides per notification, and says no for a [suspended account](./access-control.md#suspended-accounts): `EmailService.SendNotification` calls it with `immediate`, and `NotificationService.ListUnreadForDigest` calls it with the digest mode. The digest job (`runEmailDigest` in `cmd/server/main.go`) first narrows users with `UserService.ListUsersForDigest`, whose SQL repeats the master-switch and digest-mode check.
 
 Immediate email goes only to the notification's direct recipient (the subject's author, or the mentioned user). Watchers also receive in-app copies of issue/PR notifications (`fanOutToWatchers`); those are never emailed immediately, but digests draw from all unread notifications, so daily/weekly users also get watched-repo activity, and `notify_pr_review` filters watched-repo reviews there too. The digest re-checks read access (`NotificationStore.ListUnreadReadable`, with `readableBy`) and leaves out notifications on repos the user can no longer read, keeping a `repo_transfer` notification while its transfer is still offered to the user.
 
@@ -59,7 +59,7 @@ HTMX responses swap `fragment-notifications-list` into `#notifications-list`.
 - `MarkAllRead(ctx, userID)` → `error`
 - `NotifyIssueComment(ctx, repo, issue, actorID, actorName)` — call from `CreateIssueComment` handler
 - `NotifyPRComment(ctx, repo, pr, actorID, actorName)` — call from `CreatePullComment` handler
-- `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler
+- `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler; `IssueCloser` calls it for each issue a closing keyword closes, with the merger or pusher as actor
 - `NotifyPRStateChange(ctx, repo, pr, actorID, actorName)` — call from `UpdatePull` handler
 - `NotifyPRReview(ctx, repo, pr, actorID, actorName)` — call from `SubmitReview` handler
 - `NotifyDiscussionReply(ctx, repo, discussion, actorID, actorName)` — call from `CreateReply` handler

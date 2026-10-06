@@ -217,3 +217,58 @@ func TestSessionHandler_RepoErrorsGoToStderr(t *testing.T) {
 		})
 	}
 }
+
+func TestSuspendedOwner_KeysRefused(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	reposRoot := t.TempDir()
+	cfg := &config.Config{Git: config.GitConfig{ReposRoot: reposRoot, SSHHostKey: filepath.Join(t.TempDir(), "host_key")}}
+	svcs := service.New(store.New(db), cfg)
+	addr := serve(t, New(cfg.Git, svcs))
+
+	sfx := testutil.UniqueSuffix(t)
+	owner := "testuser_susp_" + sfx
+	ownerID := testutil.SeedUser(t, db, "susp_"+sfx)
+	repo := "testrepo_susp_" + sfx
+	repoID := testutil.SeedRepo(t, db, ownerID, owner, "susp_"+sfx)
+	if _, err := gogit.PlainInit(filepath.Join(reposRoot, owner, repo+".git"), true); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	userKey, deployKey := newKey(t), newKey(t)
+	if _, err := svcs.SSHKey.AddKey(ctx, ownerID, "k", string(gossh.MarshalAuthorizedKey(userKey.PublicKey()))); err != nil {
+		t.Fatalf("add user key: %v", err)
+	}
+	if _, err := svcs.DeployKey.Add(ctx, repoID, "d", string(gossh.MarshalAuthorizedKey(deployKey.PublicKey())), true); err != nil {
+		t.Fatalf("add deploy key: %v", err)
+	}
+	clone := "git-upload-pack '/" + owner + "/" + repo + ".git'"
+
+	// The user's own key, also registered as a deploy key on someone else's repo.
+	otherID := testutil.SeedUser(t, db, "susp_other_"+sfx)
+	other, otherRepo := "testuser_susp_other_"+sfx, "testrepo_susp_other_"+sfx
+	otherRepoID := testutil.SeedRepo(t, db, otherID, other, "susp_other_"+sfx)
+	if _, err := gogit.PlainInit(filepath.Join(reposRoot, other, otherRepo+".git"), true); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	testutil.Exec(t, db, `INSERT INTO deploy_keys (repo_id, title, public_key, fingerprint) SELECT $1, 'dup', public_key, fingerprint FROM ssh_keys WHERE user_id = $2`, otherRepoID, ownerID)
+
+	testutil.Exec(t, db, `UPDATE users SET suspended_at = NOW() WHERE id = $1`, ownerID)
+	if client, err := gossh.Dial("tcp", addr, &gossh.ClientConfig{
+		User: "git", Auth: []gossh.AuthMethod{gossh.PublicKeys(userKey)},
+		HostKeyCallback: gossh.InsecureIgnoreHostKey(), Timeout: sessionTimeout,
+	}); err == nil {
+		_ = client.Close()
+		t.Error("a suspended user's key passed the handshake")
+	}
+	want := sshResult{stderr: "repository owner's account is suspended\n", status: 1}
+	if got := runSSH(t, addr, deployKey, clone, ""); got != want {
+		t.Errorf("deploy key while owner suspended: got %+v, want %+v", got, want)
+	}
+
+	testutil.Exec(t, db, `UPDATE users SET suspended_at = NULL WHERE id = $1`, ownerID)
+	for name, key := range map[string]gossh.Signer{"user key": userKey, "deploy key": deployKey} {
+		if got := runSSH(t, addr, key, clone, "0000"); got.status != 0 {
+			t.Errorf("%s after unsuspension: got %+v", name, got)
+		}
+	}
+}

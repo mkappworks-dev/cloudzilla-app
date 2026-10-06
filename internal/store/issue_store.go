@@ -222,9 +222,12 @@ func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string
 	return scanIssueRows(rows)
 }
 
+// LinkToPull links an issue to a pull by hand, which also makes a keyword link
+// manual so that editing the PR text no longer removes it.
 func (s *IssueStore) LinkToPull(ctx context.Context, pullID, issueID int64) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO pull_issue_links (pull_id, issue_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		`INSERT INTO pull_issue_links (pull_id, issue_id, source) VALUES ($1, $2, 'manual')
+		 ON CONFLICT (pull_id, issue_id) DO UPDATE SET source = 'manual'`,
 		pullID, issueID)
 	if err != nil {
 		return fmt.Errorf("link issue to pull: %w", err)
@@ -242,9 +245,114 @@ func (s *IssueStore) UnlinkFromPull(ctx context.Context, pullID, issueID int64) 
 	return nil
 }
 
-// ListLinkedToPull returns the issues linked to a pull that issueVisibleTo lets
-// the user see. A nil user sees only public issues.
+// ReplaceKeywordLinks makes issueIDs the pull's keyword links. Manual links are
+// left alone, including those to issues in issueIDs.
+func (s *IssueStore) ReplaceKeywordLinks(ctx context.Context, pullID int64, issueIDs []int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("replace keyword links begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if issueIDs == nil {
+		issueIDs = []int64{} // nil would bind as NULL, and NOT (x = ANY(NULL)) deletes nothing
+	}
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM pull_issue_links WHERE pull_id = $1 AND source = 'keyword' AND NOT (issue_id = ANY($2))`,
+		pullID, issueIDs,
+	); err != nil {
+		return fmt.Errorf("replace keyword links delete: %w", err)
+	}
+	for _, id := range issueIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO pull_issue_links (pull_id, issue_id, source) VALUES ($1, $2, 'keyword') ON CONFLICT DO NOTHING`,
+			pullID, id,
+		); err != nil {
+			return fmt.Errorf("replace keyword links insert: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("replace keyword links commit: %w", err)
+	}
+	return nil
+}
+
+// LinkedIssueIDs returns every issue linked to a pull, in any repo.
+func (s *IssueStore) LinkedIssueIDs(ctx context.Context, pullID int64) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT issue_id FROM pull_issue_links WHERE pull_id = $1 ORDER BY issue_id`, pullID)
+	if err != nil {
+		return nil, fmt.Errorf("linked issue ids: %w", err)
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// ListLinkedToPull returns the issues linked to a pull, in any repo the user can
+// read, that issueVisibleTo lets the user see. A nil user sees only public issues
+// in public repos.
 func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64, visibleToUserID *int64) ([]model.Issue, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT i.id, i.repo_id, i.number, i.author_id,
+		       COALESCE(u.username, '') AS author_name,
+		       i.title, i.body, i.state, i.priority,
+		       i.milestone_id, i.visibility,
+		       i.created_at, i.updated_at, i.closed_at,
+		       i.is_pinned, i.is_locked, i.locked_at,
+		       ir.owner_name, ir.name
+		FROM issues i
+		LEFT JOIN users u ON u.id = i.author_id
+		JOIN pull_issue_links pil ON pil.issue_id = i.id
+		JOIN repositories ir ON ir.id = i.repo_id AND ir.deleted_at IS NULL
+		WHERE pil.pull_id = $1 AND `+readableBy("ir", "$2")+` AND `+issueVisibleTo("i", "$2")+`
+		ORDER BY i.repo_id = (SELECT repo_id FROM pull_requests WHERE id = $1) DESC, ir.owner_name, ir.name, i.number`,
+		pullID, viewerID(visibleToUserID))
+	if err != nil {
+		return nil, fmt.Errorf("issue list linked to pull: %w", err)
+	}
+	defer rows.Close()
+	issues := []model.Issue{}
+	for rows.Next() {
+		var iss model.Issue
+		var closedAt, lockedAt sql.NullTime
+		var milestoneID sql.NullInt64
+		var priority sql.NullString
+		if err := rows.Scan(
+			&iss.ID, &iss.RepoID, &iss.Number, &iss.AuthorID,
+			&iss.AuthorName, &iss.Title, &iss.Body, &iss.State, &priority,
+			&milestoneID, &iss.Visibility, &iss.CreatedAt, &iss.UpdatedAt, &closedAt,
+			&iss.IsPinned, &iss.IsLocked, &lockedAt,
+			&iss.RepoOwner, &iss.RepoName,
+		); err != nil {
+			return nil, err
+		}
+		if closedAt.Valid {
+			iss.ClosedAt = &closedAt.Time
+		}
+		if lockedAt.Valid {
+			iss.LockedAt = &lockedAt.Time
+		}
+		if milestoneID.Valid {
+			iss.MilestoneID = &milestoneID.Int64
+		}
+		if priority.Valid {
+			iss.Priority = &priority.String
+		}
+		issues = append(issues, iss)
+	}
+	return issues, rows.Err()
+}
+
+// GetByID returns an issue regardless of visibility, for callers that enforce
+// their own authorization.
+func (s *IssueStore) GetByID(ctx context.Context, id int64) (*model.Issue, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT i.id, i.repo_id, i.number, i.author_id,
 		       COALESCE(u.username, '') AS author_name,
@@ -254,14 +362,19 @@ func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64, visible
 		       i.is_pinned, i.is_locked, i.locked_at
 		FROM issues i
 		LEFT JOIN users u ON u.id = i.author_id
-		JOIN pull_issue_links pil ON pil.issue_id = i.id
-		WHERE pil.pull_id = $1 AND `+issueVisibleTo("i", "$2")+`
-		ORDER BY i.number`, pullID, viewerID(visibleToUserID))
+		WHERE i.id = $1`, id)
 	if err != nil {
-		return nil, fmt.Errorf("issue list linked to pull: %w", err)
+		return nil, fmt.Errorf("issue get by id: %w", err)
 	}
 	defer rows.Close()
-	return scanIssueRows(rows)
+	issues, err := scanIssueRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("issue get by id: %w", err)
+	}
+	if len(issues) == 0 {
+		return nil, fmt.Errorf("issue get by id: %w", sql.ErrNoRows)
+	}
+	return &issues[0], nil
 }
 
 func (s *IssueStore) UpdateState(ctx context.Context, id int64, state model.IssueState) error {

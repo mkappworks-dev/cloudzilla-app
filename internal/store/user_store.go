@@ -47,7 +47,7 @@ func NewUserStore(database *sql.DB) *UserStore {
 const userColumns = `id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 	is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
 	notify_pr_review, notify_mention, keep_email_private, email_verified_at, session_version,
-	code_theme_light, code_theme_dark`
+	code_theme_light, code_theme_dark, suspended_at`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -59,7 +59,7 @@ func scanUser(row rowScanner, u *model.User, extra ...any) error {
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
 		&u.NotifyPRReview, &u.NotifyMention, &u.KeepEmailPrivate, &u.EmailVerifiedAt, &u.SessionVersion,
-		&u.CodeThemeLight, &u.CodeThemeDark}
+		&u.CodeThemeLight, &u.CodeThemeDark, &u.SuspendedAt}
 	return row.Scan(append(dest, extra...)...)
 }
 
@@ -404,6 +404,18 @@ func (s *UserStore) BumpSessionVersion(ctx context.Context, userID int64) (int, 
 	return v, nil
 }
 
+// SessionState returns sql.ErrNoRows for a suspended user, so their sessions die
+// on the next request.
+func (s *UserStore) SessionState(ctx context.Context, userID int64) (model.SessionState, error) {
+	var st model.SessionState
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT session_version, is_superadmin FROM users WHERE id = $1 AND suspended_at IS NULL`, userID,
+	).Scan(&st.Version, &st.IsSuperadmin); err != nil {
+		return model.SessionState{}, fmt.Errorf("user session state: %w", err)
+	}
+	return st, nil
+}
+
 func (s *UserStore) SessionVersion(ctx context.Context, userID int64) (int, error) {
 	var v int
 	if err := s.db.QueryRowContext(ctx, `SELECT session_version FROM users WHERE id = $1`, userID).Scan(&v); err != nil {
@@ -662,6 +674,7 @@ var ghostReassignments = []struct{ table, idCol, nameCol string }{
 	{"discussions", "author_id", "author_name"},
 	{"discussion_replies", "author_id", "author_name"},
 	{"pull_events", "actor_id", "actor_name"},
+	{"issue_events", "actor_id", "actor_name"},
 	{"repositories", "deleted_by", ""},
 }
 
@@ -677,6 +690,10 @@ func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, live
 		return fmt.Errorf("user delete begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	// Before the user's own row lock, so every path takes the superadmin locks first.
+	if err := keepActiveSuperadmin(ctx, tx, userID); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `SELECT 1 FROM users WHERE id=$1 FOR UPDATE`, userID); err != nil {
 		return fmt.Errorf("user delete lock: %w", err)
 	}

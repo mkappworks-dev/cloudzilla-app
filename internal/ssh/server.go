@@ -7,6 +7,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -118,6 +119,10 @@ func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		ctx.SetValue("cloudzilla_user", user)
 		return true
 	}
+	// The same key may also be registered as a deploy key, which mustn't let a suspended owner back in.
+	if errors.Is(err, service.ErrAccountSuspended) {
+		return false
+	}
 
 	// 2. Try deploy key
 	dk, err := s.services.DeployKey.AuthenticatePublicKey(ctx, gosshKey)
@@ -199,6 +204,15 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			return
 		}
 
+		// deploy_keys records no creator, so a personal repo's owner is the only
+		// person a key can be traced to; a suspended owner could otherwise keep pushing.
+		if repo.OwnerID != 0 {
+			if owner, err := s.services.User.GetByID(ctx, repo.OwnerID); err != nil || owner.Suspended() {
+				exitWithError(session, "repository owner's account is suspended\n")
+				return
+			}
+		}
+
 		// Enforce read-only restriction
 		if gitCmd == "git-receive-pack" && dk.ReadOnly {
 			exitWithError(session, "deploy key is read-only\n")
@@ -267,6 +281,15 @@ func (s *Server) sessionHandler(session ssh.Session) {
 				for _, ps := range s.services.Repo.PushSummaries(gitRepo, commands) {
 					s.services.Event.RecordPush(context.Background(), pusherID, pusherName, &repoID, repoName, ownerName, ps)
 				}
+			})
+		}
+
+		if dkVal == nil {
+			actor := service.CloseActor{UserID: pusherID, Username: pusherName}
+			concurrency.Go("issue_closer.close_for_push", func() {
+				bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+				defer cancel()
+				s.services.IssueCloser.CloseForPush(bg, actor, repo, gitRepo, commands)
 			})
 		}
 

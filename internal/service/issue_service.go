@@ -26,11 +26,23 @@ type IssueService struct {
 	pulls    *store.PullStore
 	repoSvc  *RepoService
 	mentions *store.MentionStore
+	events   *store.IssueEventStore
 }
 
 // NewIssueService creates an IssueService backed by the given stores.
 func NewIssueService(issues *store.IssueStore, repos *store.RepoStore, pulls *store.PullStore, repoSvc *RepoService) *IssueService {
 	return &IssueService{issues: issues, repos: repos, pulls: pulls, repoSvc: repoSvc}
+}
+
+// WithEventStore records manual closes and reopens on the issue timeline.
+func (s *IssueService) WithEventStore(events *store.IssueEventStore) *IssueService {
+	s.events = events
+	return s
+}
+
+// Events returns an issue's timeline events, oldest first.
+func (s *IssueService) Events(ctx context.Context, issueID int64, viewer *int64) ([]model.IssueEvent, error) {
+	return s.events.ListByIssue(ctx, issueID, viewer)
 }
 
 func (s *IssueService) WithMentionStore(m *store.MentionStore) *IssueService {
@@ -101,7 +113,9 @@ func (s *IssueService) Get(ctx context.Context, owner, repoName string, number i
 	return s.issues.GetByNumber(ctx, repo.ID, number, visibleToUserID)
 }
 
-func (s *IssueService) SetState(ctx context.Context, owner, repoName string, number int, state model.IssueState) (*model.Issue, error) {
+// SetState opens or closes an issue as actorID, recording the change on its
+// timeline.
+func (s *IssueService) SetState(ctx context.Context, owner, repoName string, number int, state model.IssueState, actorID int64, actorName string) (*model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -110,7 +124,12 @@ func (s *IssueService) SetState(ctx context.Context, owner, repoName string, num
 	if err != nil {
 		return nil, err
 	}
-	if err := s.issues.UpdateState(ctx, issue.ID, state); err != nil {
+	if s.events == nil {
+		err = s.issues.UpdateState(ctx, issue.ID, state)
+	} else {
+		_, err = s.events.SetState(ctx, state, &model.IssueEvent{IssueID: issue.ID, ActorID: actorID, ActorName: actorName})
+	}
+	if err != nil {
 		return nil, err
 	}
 	// Re-fetch so closed_at and updated_at reflect DB values
@@ -303,10 +322,15 @@ func (s *IssueService) CountsForUser(ctx context.Context, userID int64) (map[str
 	return s.issues.CountsForUser(ctx, userID)
 }
 
-func (s *IssueService) LinkedPRs(ctx context.Context, owner, repoName string, issueNumber int) ([]model.PullRequest, error) {
+// LinkedPRs returns the pulls linked to an issue, in any repo viewer can read.
+func (s *IssueService) LinkedPRs(ctx context.Context, owner, repoName string, issueNumber int, viewer *int64) ([]model.PullRequest, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	return s.pulls.ListLinkedToIssue(ctx, repo.ID, issueNumber)
+	issue, err := s.issues.GetByNumberUnfiltered(ctx, repo.ID, issueNumber)
+	if err != nil {
+		return nil, err
+	}
+	return s.pulls.ListLinkedToIssue(ctx, issue.ID, viewer)
 }

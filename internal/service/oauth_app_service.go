@@ -195,6 +195,9 @@ func (s *OAuthAppService) ResolveOAuthToken(ctx context.Context, rawToken string
 	if err != nil {
 		return nil, nil, fmt.Errorf("oauth token user lookup: %w", err)
 	}
+	if user.Suspended() {
+		return nil, nil, ErrAccountSuspended
+	}
 	return user, a.Scopes, nil
 }
 

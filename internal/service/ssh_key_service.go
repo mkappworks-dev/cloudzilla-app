@@ -76,6 +76,9 @@ func (s *SSHKeyService) AuthenticatePublicKey(ctx context.Context, pubKey ssh.Pu
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
+	if user.Suspended() {
+		return nil, ErrAccountSuspended
+	}
 
 	return user, nil
 }
