@@ -7,6 +7,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -117,6 +118,10 @@ func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	if err == nil {
 		ctx.SetValue("cloudzilla_user", user)
 		return true
+	}
+	// The same key may also be registered as a deploy key, which mustn't let a suspended owner back in.
+	if errors.Is(err, service.ErrAccountSuspended) {
+		return false
 	}
 
 	// 2. Try deploy key

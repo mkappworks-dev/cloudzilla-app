@@ -22,9 +22,10 @@ const activeSuperadminCond = `is_superadmin AND suspended_at IS NULL AND ` + not
 // keepActiveSuperadmin locks every active superadmin row and fails with
 // ErrLastSuperadmin when userID is the only one. Concurrent removals queue on
 // the locks, and the loser re-reads the rows the winner changed, so two admins
-// demoting each other can't both succeed.
+// demoting each other can't both succeed. NO KEY UPDATE still lets rows that
+// reference these users be written meanwhile.
 func keepActiveSuperadmin(ctx context.Context, tx *sql.Tx, userID int64) error {
-	rows, err := tx.QueryContext(ctx, `SELECT id FROM users WHERE `+activeSuperadminCond+` ORDER BY id FOR UPDATE`)
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM users WHERE `+activeSuperadminCond+` ORDER BY id FOR NO KEY UPDATE`)
 	if err != nil {
 		return fmt.Errorf("lock active superadmins: %w", err)
 	}

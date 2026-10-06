@@ -71,6 +71,9 @@ func TestAdminUsers_ListAndUserPage(t *testing.T) {
 	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), "testuser_listed_"+sfx) {
 		t.Errorf("list: %d, contains user %v", rr.Code, strings.Contains(rr.Body.String(), "testuser_listed_"+sfx))
 	}
+	if rr := adminRequest(t, h, http.MethodGet, "/admin/users?page=9223372036854775807", token, nil); rr.Code != http.StatusOK {
+		t.Errorf("huge page: want 200, got %d", rr.Code)
+	}
 	rr = adminRequest(t, h, http.MethodGet, "/admin/users/testuser_listed_"+sfx, token, nil)
 	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), "Revoke tokens and keys") {
 		t.Errorf("user page: %d", rr.Code)

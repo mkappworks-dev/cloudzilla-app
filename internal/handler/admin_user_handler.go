@@ -18,11 +18,14 @@ import (
 
 const adminUsersPerPage = 50
 
+// maxAdminUsersPage keeps the offset from overflowing into a negative one, which Postgres rejects.
+const maxAdminUsersPage = 1 << 20
+
 // PageAdminUsers serves GET /admin/users.
 func (h *Handler) PageAdminUsers(w http.ResponseWriter, r *http.Request) {
 	page := 1
 	if n, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && n > 0 {
-		page = n
+		page = min(n, maxAdminUsersPage)
 	}
 	f := model.AdminUserFilter{
 		Query:  strings.TrimSpace(r.URL.Query().Get("q")),

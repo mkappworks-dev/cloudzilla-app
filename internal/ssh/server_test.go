@@ -243,6 +243,15 @@ func TestSuspendedOwner_KeysRefused(t *testing.T) {
 	}
 	clone := "git-upload-pack '/" + owner + "/" + repo + ".git'"
 
+	// The user's own key, also registered as a deploy key on someone else's repo.
+	otherID := testutil.SeedUser(t, db, "susp_other_"+sfx)
+	other, otherRepo := "testuser_susp_other_"+sfx, "testrepo_susp_other_"+sfx
+	otherRepoID := testutil.SeedRepo(t, db, otherID, other, "susp_other_"+sfx)
+	if _, err := gogit.PlainInit(filepath.Join(reposRoot, other, otherRepo+".git"), true); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	testutil.Exec(t, db, `INSERT INTO deploy_keys (repo_id, title, public_key, fingerprint) SELECT $1, 'dup', public_key, fingerprint FROM ssh_keys WHERE user_id = $2`, otherRepoID, ownerID)
+
 	testutil.Exec(t, db, `UPDATE users SET suspended_at = NOW() WHERE id = $1`, ownerID)
 	if client, err := gossh.Dial("tcp", addr, &gossh.ClientConfig{
 		User: "git", Auth: []gossh.AuthMethod{gossh.PublicKeys(userKey)},
