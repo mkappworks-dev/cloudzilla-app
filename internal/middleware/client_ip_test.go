@@ -1,8 +1,11 @@
 package middleware_test
 
 import (
+	"bytes"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -59,5 +62,37 @@ func TestClientIP(t *testing.T) {
 				t.Errorf("want %s, got %s", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestClientIP_WarnsOnceAboutForwardedForFromAnUntrustedPeer(t *testing.T) {
+	var logs bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	trusted, _ := middleware.ParseTrustedProxies([]string{"10.0.0.1"})
+	h := middleware.ClientIP(trusted)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	send := func(peer, xff string) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.RemoteAddr = peer
+		if xff != "" {
+			req.Header.Set("X-Forwarded-For", xff)
+		}
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	send("10.0.0.1:1", "198.51.100.1")
+	send("203.0.113.9:1", "")
+	if logs.Len() != 0 {
+		t.Fatalf("a trusted proxy or a direct client must not warn; got %q", logs.String())
+	}
+	send("172.16.0.5:1", "198.51.100.1")
+	send("172.16.0.6:1", "198.51.100.2")
+	if n := strings.Count(logs.String(), "server.trusted_proxies"); n != 1 {
+		t.Errorf("want one warning, got %d: %q", n, logs.String())
+	}
+	if !strings.Contains(logs.String(), "peer=172.16.0.5") {
+		t.Errorf("the warning names the peer; got %q", logs.String())
 	}
 }
