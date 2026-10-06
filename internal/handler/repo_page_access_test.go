@@ -215,7 +215,7 @@ func TestRepoPages_PrivateRepoOwner_Renders(t *testing.T) {
 		"/refs", "/tree/{ref}", "/blob/{ref}/*", "/blame/{ref}/*", "/commits/{ref}", "/commit/{sha}",
 		"/issues", "/issues/1", "/pulls", "/pulls/1", "/releases", "/releases/tag/1",
 		"/milestones", "/milestones/1", "/projects", "/projects/{id}", "/discussions", "/discussions/1",
-		"/network/dependencies", "/actions", "/pulse", "/graphs/contributors", "/stargazers",
+		"/network/dependencies", "/checks", "/pulse", "/graphs/contributors", "/stargazers",
 	} {
 		t.Run(pattern, func(t *testing.T) {
 			rr := requestAPI(f.app, http.MethodGet, f.repo.path+f.params.Replace(pattern), f.repo.owner.token)

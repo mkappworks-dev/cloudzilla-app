@@ -56,6 +56,22 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS(cfg.Server.BaseURL))
+	if rl := cfg.RateLimit; rl.Enabled {
+		r.Use(middleware.APIRateLimit(middleware.APIRateLimitConfig{
+			Window: rl.Window,
+			Budgets: map[string]middleware.RateBudget{
+				middleware.ResourceCore:    middleware.RateBudget(rl.Core),
+				middleware.ResourceGit:     middleware.RateBudget(rl.Git),
+				middleware.ResourceArchive: middleware.RateBudget(rl.Archive),
+				middleware.ResourceSearch:  middleware.RateBudget(rl.Search),
+			},
+			JWTSecret:  cfg.Auth.JWTSecret,
+			CookieName: cfg.Auth.CookieName,
+			PAT:        services.AccessToken,
+			OAuth:      services.OAuthApp,
+			OnLimited:  h.RateLimited,
+		}))
+	}
 	// CSRF parses forms ahead of routing, so the cap is global and sized for the largest form, the New file upload.
 	r.Use(middleware.MaxFormBodySize(handler.MaxNewFileBodyBytes))
 	r.Use(middleware.CSRF(cfg.Auth.CookieSecure))
@@ -211,6 +227,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Get("/{owner}/{repo}/new/{ref}/*", h.PageNewFile)
 	r.With(authMW, middleware.MaxBodySize(handler.MaxNewFileBodyBytes)).Post("/{owner}/{repo}/new/{ref}", h.SubmitNewFile)
 	r.With(authMW, middleware.MaxBodySize(handler.MaxNewFileBodyBytes)).Post("/{owner}/{repo}/new/{ref}/*", h.SubmitNewFile)
+	r.With(authMW).Get("/{owner}/{repo}/edit/{ref}/*", h.PageEditFile)
+	r.With(authMW, middleware.MaxBodySize(handler.MaxEditFileBodyBytes)).Post("/{owner}/{repo}/edit/{ref}/*", h.SubmitEditFile)
+	r.With(authMW).Post("/{owner}/{repo}/delete/{ref}/*", h.DeleteFile)
 	r.With(optAuthMW).Get("/{owner}/{repo}/archive/{ref}", h.DownloadArchive)
 	r.With(optAuthMW).Get("/{owner}/{repo}/archive/{ref}/*", h.DownloadArchive)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits", h.PageCommitsRedirect)
@@ -230,7 +249,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Get("/{owner}/{repo}/discussions/new", h.PageNewDiscussion)
 	r.With(authMW).Post("/{owner}/{repo}/discussions/new", h.PageNewDiscussionSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions/{number}", h.PageDiscussionDetail)
-	r.With(optAuthMW).Get("/{owner}/{repo}/actions", h.PageActions)
+	r.With(optAuthMW).Get("/{owner}/{repo}/checks", h.PageChecks)
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)
@@ -610,5 +629,36 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		_, _ = w.Write(faviconBytes)
 	})
 
-	return r, nil
+	return &probeMux{Mux: r, probes: map[string]http.HandlerFunc{
+		HealthzPath: h.Healthz,
+		ReadyzPath:  h.Readyz,
+	}}, nil
+}
+
+const (
+	HealthzPath = "/healthz"
+	ReadyzPath  = "/readyz"
+)
+
+// ProbePaths are answered outside chi, so the route walk can't see them to check they're reserved.
+func ProbePaths() []string { return []string{HealthzPath, ReadyzPath} }
+
+// probeMux answers probes ahead of all middleware: no log line, cookie, setup redirect, auth or rate limit.
+type probeMux struct {
+	*chi.Mux
+	probes map[string]http.HandlerFunc
+}
+
+func (m *probeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	probe, ok := m.probes[r.URL.Path]
+	if !ok {
+		m.Mux.ServeHTTP(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	probe(w, r)
 }
