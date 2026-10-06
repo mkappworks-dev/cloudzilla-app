@@ -1,6 +1,8 @@
 package view
 
 import (
+	"strings"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -20,10 +22,20 @@ type PullsData struct {
 	Rows        []components.PRListRowData
 }
 
+// OtherRepo is "owner/repo" when the item is in a repo other than the page's
+// own, where an item from a query that doesn't name its repo is assumed to be.
+func OtherRepo(pageOwner, pageRepo, owner, repo string) string {
+	if owner == "" || strings.EqualFold(owner, pageOwner) && strings.EqualFold(repo, pageRepo) {
+		return ""
+	}
+	return owner + "/" + repo
+}
+
 type LinkedIssue struct {
-	Number int
-	Title  string
-	State  string
+	Number    int
+	Title     string
+	State     string
+	OtherRepo string
 }
 
 type LinkedIssuesSidebarData struct {

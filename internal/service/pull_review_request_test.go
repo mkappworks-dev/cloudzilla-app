@@ -42,7 +42,7 @@ func newReviewRequestFixture(t *testing.T) (
 
 	ctx := context.Background()
 	pr, err := pullSvc.Create(ctx, ownerName, repoName, ownerID,
-		"Request reviewers PR", "", "feature-branch", "main", false)
+		"Request reviewers PR", "", "feature-branch", "main", false, nil)
 	if err != nil {
 		t.Fatalf("Create PR: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestRequestReviewers_DoesNotClobberExistingReview(t *testing.T) {
 	pullSvc := service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc)
 
 	pr, err := pullSvc.Create(ctx, ownerName, repoName, ownerID,
-		"Clobber test PR", "", "feature-clobber", "main", false)
+		"Clobber test PR", "", "feature-clobber", "main", false, nil)
 	if err != nil {
 		t.Fatalf("Create PR: %v", err)
 	}
