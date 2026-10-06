@@ -187,3 +187,5 @@ Claude, 2026-10-06: The user chose the recommended option for questions 1–4:
 4. The admin fallback is a CLI subcommand, `cloudzilla-cli password-reset-link <username>`, which prints a 24-hour link. The admin UI button is left to the admin-user-management work, which can call `IssueLink`. A user who lost their authenticator is out of scope.
 
 Claude, 2026-10-06: The user chose the recommended option for question 5: unverified addresses get the link, and a completed reset sets `email_verified_at`. An address that is already verified keeps its original timestamp.
+
+Claude, 2026-10-06: UI picks. **Forgot password?** goes right-aligned on the Password label row of `/login`. The forgot, "check your inbox" and reset pages reuse the login/register auth card: heading, one short paragraph, fields, a full-width button, and a "Back to sign in" link. The reset page names the account under its heading.
