@@ -662,6 +662,7 @@ var ghostReassignments = []struct{ table, idCol, nameCol string }{
 	{"discussions", "author_id", "author_name"},
 	{"discussion_replies", "author_id", "author_name"},
 	{"pull_events", "actor_id", "actor_name"},
+	{"issue_events", "actor_id", "actor_name"},
 	{"repositories", "deleted_by", ""},
 }
 

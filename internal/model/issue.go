@@ -29,4 +29,8 @@ type Issue struct {
 	IsPinned    bool       `db:"is_pinned"    json:"is_pinned"`
 	IsLocked    bool       `db:"is_locked"    json:"is_locked"`
 	LockedAt    *time.Time `db:"locked_at"    json:"locked_at,omitempty"`
+
+	// Set only by queries that can return another repo's issues.
+	RepoOwner string `db:"-" json:"repo_owner,omitempty"`
+	RepoName  string `db:"-" json:"repo_name,omitempty"`
 }
