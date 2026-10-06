@@ -1,6 +1,8 @@
 package fragments
 
 import (
+	"net/url"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
@@ -21,7 +23,7 @@ templ BranchesList(data view.BranchesFragData) {
 						<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", branch.Name, "")) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
 						if data.CanWrite && !branch.IsDefault {
 							<button
-								hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches?name=" + branch.Name }
+								hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches?name=" + url.QueryEscape(branch.Name) }
 								hx-target="#branches-list"
 								hx-swap="outerHTML"
 								hx-confirm={ "Delete branch '" + branch.Name + "'?" }
@@ -50,7 +52,7 @@ templ TagsList(data view.TagsFragData) {
 						<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", tag.Name, "")) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
 						if data.CanWrite {
 							<button
-								hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/tags?name=" + tag.Name }
+								hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/tags?name=" + url.QueryEscape(tag.Name) }
 								hx-target="#tags-list"
 								hx-swap="outerHTML"
 								hx-confirm={ "Delete tag '" + tag.Name + "'?" }

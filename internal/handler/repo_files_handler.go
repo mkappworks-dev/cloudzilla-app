@@ -110,8 +110,7 @@ func (h *Handler) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RawFile(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := unescapeRouted(r, chi.URLParam(r, "ref"))
-	path := unescapeRouted(r, chi.URLParam(r, "*"))
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, viewerOf(r)) {

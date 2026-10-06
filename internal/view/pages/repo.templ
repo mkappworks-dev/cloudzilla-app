@@ -566,7 +566,7 @@ templ Repo(data view.RepoData) {
 
 // releaseCard renders the latest-release summary block in the sidebar.
 templ releaseCard(data view.RepoData, rel model.Release) {
-	<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + rel.TagName) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30">
+	<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + url.PathEscape(rel.TagName)) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30">
 		<p class="text-[13px] font-medium flex items-center gap-2">
 			<span class="truncate">
 				if rel.Name != "" {

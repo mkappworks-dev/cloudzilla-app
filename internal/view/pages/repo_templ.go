@@ -1761,9 +1761,9 @@ func releaseCard(data view.RepoData, rel model.Release) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var94 templ.SafeURL
-		templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + rel.TagName))
+		templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + url.PathEscape(rel.TagName)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 569, Col: 97}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 569, Col: 113}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 		if templ_7745c5c3_Err != nil {

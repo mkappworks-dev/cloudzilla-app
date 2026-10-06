@@ -328,7 +328,7 @@ func (h *Handler) PageReleaseNew(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	tagName := chi.URLParam(r, "tagName")
+	tagName := unescapeRouted(r, chi.URLParam(r, "tagName"))
 
 	repo, ok := h.readableRepoPage(w, r, owner, repoName)
 	if !ok {
