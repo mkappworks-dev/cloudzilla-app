@@ -163,7 +163,7 @@ func (h *Handler) IssueBodySection(w http.ResponseWriter, r *http.Request) {
 	if claims, found := middleware.ClaimsFromContext(r.Context()); found {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
-	h.render(w, r, fragments.IssueBodyCard(view.IssueBodyCardData{
+	h.render(w, h.withAvatars(r, issue.AuthorName), fragments.IssueBodyCard(view.IssueBodyCardData{
 		Owner:       owner,
 		RepoName:    repoName,
 		IssueNumber: number,
@@ -191,7 +191,7 @@ func (h *Handler) EditIssueBody(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	h.render(w, r, fragments.IssueBodyCard(view.IssueBodyCardData{
+	h.render(w, h.withAvatars(r, issue.AuthorName), fragments.IssueBodyCard(view.IssueBodyCardData{
 		Owner:       owner,
 		RepoName:    repoName,
 		IssueNumber: number,

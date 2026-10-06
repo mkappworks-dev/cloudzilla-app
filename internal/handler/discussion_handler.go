@@ -138,7 +138,11 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
-	h.render(w, r, pages.Discussions(view.DiscussionsData{
+	var avatarNames []string
+	for _, parts := range participantsByDisc {
+		avatarNames = append(avatarNames, parts...)
+	}
+	h.render(w, h.withAvatars(r, avatarNames...), pages.Discussions(view.DiscussionsData{
 		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
 		Repo:             *repo,
 		Owner:            owner,
@@ -259,7 +263,7 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
-	h.render(w, r, pages.DiscussionDetail(view.DiscussionDetailData{
+	h.render(w, h.withAvatars(r, participants...), pages.DiscussionDetail(view.DiscussionDetailData{
 		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
 		Repo:          *repo,
 		Owner:         owner,

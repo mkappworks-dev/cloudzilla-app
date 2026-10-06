@@ -424,3 +424,75 @@ func TestAvatar_RendersOnIdentitySurfaces(t *testing.T) {
 	orgAPI := e.get(t, "/api/orgs/"+org.Name, nil)
 	assertContains(t, orgAPI.Body.String(), `"avatar_url":"http://localhost:8080/`+gotOrg.AvatarKey+`"`)
 }
+
+func TestAvatar_RendersOnActivitySurfaces(t *testing.T) {
+	e := newAvatarRouterEnv(t)
+	ctx := context.Background()
+	author := seedSignedInUser(t, e.db)
+	commenter := seedSignedInUser(t, e.db)
+	viewer := seedSignedInUser(t, e.db) // no avatar, so the nav can't satisfy an assertion
+	for _, u := range []signedInUser{author, commenter} {
+		if rr := e.upload(t, "/settings/avatar", avatarPNG(t, color.NRGBA{uint8(u.id), 9, 9, 255}), uploadOpts{token: u.token}); rr.Code != http.StatusSeeOther {
+			t.Fatalf("upload for %s: %d", u.name, rr.Code)
+		}
+	}
+	authorSrc := `src="/` + e.userKey(t, author.id) + `"`
+	commenterSrc := `src="/` + e.userKey(t, commenter.id) + `"`
+
+	repo, err := e.svc.Repo.Create(ctx, author.id, author.name, "avrepo", "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create repo: %v", err)
+	}
+	issue, err := e.svc.Issue.Create(ctx, author.name, repo.Name, author.id, "Avatars", "", "")
+	if err != nil {
+		t.Fatalf("create issue: %v", err)
+	}
+	if _, err := e.svc.Comment.CreateForIssue(ctx, *repo, issue.ID, issue.Number, commenter.id, commenter.name, "hello"); err != nil {
+		t.Fatalf("comment: %v", err)
+	}
+	if err := e.svc.Assignee.AddToIssue(ctx, author.name, repo.Name, issue.Number, author.name); err != nil {
+		t.Fatalf("assign: %v", err)
+	}
+	pull := &model.PullRequest{RepoID: repo.ID, AuthorID: author.id, Title: "Avatars", State: model.PRStateOpen, HeadBranch: "main", BaseBranch: "main"}
+	if err := store.NewPullStore(e.db).Create(ctx, pull); err != nil {
+		t.Fatalf("create pull: %v", err)
+	}
+	if _, err := e.svc.Comment.CreateForPull(ctx, *repo, pull.ID, pull.Number, commenter.id, commenter.name, "lgtm"); err != nil {
+		t.Fatalf("pull comment: %v", err)
+	}
+	categories, err := e.svc.Discussion.ListCategories(ctx)
+	if err != nil || len(categories) == 0 {
+		t.Fatalf("categories: %v", err)
+	}
+	discussion, err := e.svc.Discussion.Create(ctx, author.name, repo.Name, commenter.id, commenter.name, categories[0].ID, "Question", "body")
+	if err != nil {
+		t.Fatalf("discussion: %v", err)
+	}
+	if _, err := e.svc.Gist.Create(ctx, author.id, author.name, "avatar gist "+testutil.UniqueSuffix(t), true, []model.GistFile{{Filename: "a.txt", Content: "x"}}); err != nil {
+		t.Fatalf("gist: %v", err)
+	}
+
+	repoPath := "/" + author.name + "/" + repo.Name
+	issuePage := e.page(t, repoPath+"/issues/"+strconv.Itoa(issue.Number), viewer.token)
+	assertContains(t, issuePage, authorSrc)    // issue author and assignee
+	assertContains(t, issuePage, commenterSrc) // comment author
+	pullPage := e.page(t, repoPath+"/pulls/"+strconv.Itoa(pull.Number), viewer.token)
+	assertContains(t, pullPage, authorSrc)
+	assertContains(t, pullPage, commenterSrc)
+	assertContains(t, e.page(t, repoPath+"/discussions/"+strconv.Itoa(discussion.Number), viewer.token), commenterSrc)
+	assertContains(t, e.page(t, repoPath+"/discussions", viewer.token), commenterSrc)
+	assertContains(t, e.page(t, "/gists", viewer.token), authorSrc)
+
+	// The htmx comment fragment carries the new comment's avatar too.
+	form := strings.NewReader("body=more")
+	req := httptest.NewRequest(http.MethodPost, "/api/repos"+repoPath+"/issues/"+strconv.Itoa(issue.Number)+"/comments", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", "Bearer "+commenter.token)
+	req.Header.Set("HX-Request", "true")
+	rr := httptest.NewRecorder()
+	e.router.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK && rr.Code != http.StatusCreated {
+		t.Fatalf("post comment: %d %.200s", rr.Code, rr.Body.String())
+	}
+	assertContains(t, rr.Body.String(), commenterSrc)
+}

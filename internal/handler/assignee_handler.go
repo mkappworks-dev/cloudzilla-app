@@ -230,7 +230,7 @@ func (h *Handler) renderIssueAssigneeFragment(w http.ResponseWriter, r *http.Req
 		}
 		collaborators, _ = h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	}
-	h.render(w, r, fragments.IssueAssignees(view.IssueAssigneeSidebarData{
+	h.render(w, h.withAvatars(r, append(usernames(assignees), collaboratorUsernames(collaborators)...)...), fragments.IssueAssignees(view.IssueAssigneeSidebarData{
 		Owner: owner, RepoName: repoName, IssueNumber: issueNumber,
 		Assignees: assignees, Collaborators: collaboratorUsernames(collaborators), CanWrite: canWrite,
 	}))
@@ -253,7 +253,7 @@ func (h *Handler) renderPullAssigneeFragment(w http.ResponseWriter, r *http.Requ
 		}
 		collaborators, _ = h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	}
-	h.render(w, r, fragments.PullAssignees(view.PullAssigneeSidebarData{
+	h.render(w, h.withAvatars(r, append(usernames(assignees), collaboratorUsernames(collaborators)...)...), fragments.PullAssignees(view.PullAssigneeSidebarData{
 		Owner: owner, RepoName: repoName, PullNumber: pullNumber,
 		Assignees: assignees, Collaborators: collaboratorUsernames(collaborators), CanWrite: canWrite,
 	}))

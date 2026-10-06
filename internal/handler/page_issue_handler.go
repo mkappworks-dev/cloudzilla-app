@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -278,6 +279,8 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("issue detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
+	collaboratorNames := collaboratorUsernames(collaborators)
+	r = h.withAvatars(r, slices.Concat([]string{issue.AuthorName}, commentAuthors(rendered), usernames(issueAssignees), collaboratorNames)...)
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
 		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:          *repo,
@@ -293,7 +296,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		AllMilestones: allIssueMilestones,
 		LinkedPRs:     linkedPRs,
 		RepoPulls:     repoPulls,
-		Collaborators: collaboratorUsernames(collaborators),
+		Collaborators: collaboratorNames,
 		CanWrite:      canWrite,
 		CanManage:     canManage,
 	}))
@@ -346,7 +349,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 	if canWrite {
 		h.loadIssueSidebarOptions(r, &data, repo, owner, repoName)
 	}
-	h.render(w, r, pages.IssueNew(data))
+	h.render(w, h.withAvatars(r, data.Collaborators...), pages.IssueNew(data))
 }
 
 // loadIssueSidebarOptions populates the new-issue metadata picker options
@@ -486,7 +489,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 		if canWrite {
 			h.loadIssueSidebarOptions(r, &data, repo, owner, repoName)
 		}
-		h.render(w, r, pages.IssueNew(data))
+		h.render(w, h.withAvatars(r, data.Collaborators...), pages.IssueNew(data))
 	}
 
 	if title == "" {

@@ -17,6 +17,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
@@ -229,9 +230,13 @@ func etagMatches(header, etag string) bool {
 	return false
 }
 
-// withAvatars looks up the avatars of the named users and orgs in one query and
-// puts them on the request context, where components.Avatar finds them.
+// withAvatars looks up the avatars of the named users and orgs, and of the
+// viewer, in one query and puts them on the request context, where
+// components.Avatar finds them.
 func (h *Handler) withAvatars(r *http.Request, names ...string) *http.Request {
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		names = append(names, claims.Username)
+	}
 	if len(names) == 0 {
 		return r
 	}
@@ -258,4 +263,28 @@ func userAvatarKeys(users []model.User) map[string]string {
 		keys[u.Username] = u.AvatarKey
 	}
 	return keys
+}
+
+func commentAuthors(comments []view.RenderedComment) []string {
+	names := make([]string, len(comments))
+	for i, c := range comments {
+		names[i] = c.AuthorName
+	}
+	return names
+}
+
+func usernames(users []model.User) []string {
+	names := make([]string, len(users))
+	for i, u := range users {
+		names[i] = u.Username
+	}
+	return names
+}
+
+func contributorNames(rows []service.ContributorWithTimeline) []string {
+	names := make([]string, len(rows))
+	for i, c := range rows {
+		names[i] = c.Username
+	}
+	return names
 }
