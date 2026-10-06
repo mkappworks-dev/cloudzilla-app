@@ -225,9 +225,13 @@ type ContributorsData struct {
 	Rows []service.ContributorWithTimeline
 }
 
-type ActionsData struct {
+type ChecksData struct {
 	BasePage
-	Repo     model.Repository
-	Owner    string
-	RepoName string
+	Repo         model.Repository
+	Owner        string
+	RepoName     string
+	Commits      []service.CommitChecks
+	NewerURL     string
+	OlderURL     string
+	StatusAPIURL string
 }

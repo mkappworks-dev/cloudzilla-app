@@ -389,6 +389,8 @@ Deleting a branch whose protection rule has `block_force_push` returns 422 `cann
 
 Valid `state` values: `pending`, `success`, `failure`, `error`. Combined state uses worst-case: `error` > `failure` > `pending` > `success`.
 
+The repository's Checks tab (`/{owner}/{repo}/checks`) lists the commits with reported statuses, most recently updated first.
+
 ## Milestones
 
 | Method | Path                                               | Auth     | Description                                                    |
