@@ -123,24 +123,18 @@ func TestRepoService_Create_NoInit(t *testing.T) {
 	if _, err := iter.Next(); err == nil {
 		t.Error("empty repo should have no commits")
 	}
-	assertBareHead(t, bareDir, repo.DefaultBranch)
+	assertBareDirHead(t, bareDir, repo.DefaultBranch)
 }
 
 // An empty repo's HEAD names the branch the first push should create, and it
 // must match the row's default_branch, not go-git's "master".
-func assertBareHead(t *testing.T, bareDir, branch string) {
+func assertBareDirHead(t *testing.T, bareDir, branch string) {
 	t.Helper()
 	bare, err := gogit.PlainOpen(bareDir)
 	if err != nil {
 		t.Fatalf("open bare: %v", err)
 	}
-	head, err := bare.Reference(plumbing.HEAD, false)
-	if err != nil {
-		t.Fatalf("read HEAD: %v", err)
-	}
-	if want := plumbing.NewBranchReferenceName(branch); head.Type() != plumbing.SymbolicReference || head.Target() != want {
-		t.Errorf("bare HEAD: want symbolic ref to %s, got %s", want, head)
-	}
+	assertBareHead(t, bare, branch)
 }
 
 func TestRepoService_CreateFromTemplate_MissingSourceDir_HeadIsDefaultBranch(t *testing.T) {
@@ -162,7 +156,7 @@ func TestRepoService_CreateFromTemplate_MissingSourceDir_HeadIsDefaultBranch(t *
 	if err != nil {
 		t.Fatalf("CreateFromTemplate: %v", err)
 	}
-	assertBareHead(t, filepath.Join(root, owner, repo.Name+".git"), repo.DefaultBranch)
+	assertBareDirHead(t, filepath.Join(root, owner, repo.Name+".git"), repo.DefaultBranch)
 }
 
 func TestRepoService_Create_InitCommitAuthorFollowsKeepEmailPrivate(t *testing.T) {

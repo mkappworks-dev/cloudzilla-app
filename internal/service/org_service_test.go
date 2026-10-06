@@ -391,7 +391,7 @@ func TestOrgService_CreateRepo_Empty_HeadIsOrgDefaultBranch(t *testing.T) {
 	if repo.DefaultBranch != "trunk" {
 		t.Fatalf("DefaultBranch: want trunk, got %q", repo.DefaultBranch)
 	}
-	assertBareHead(t, filepath.Join(root, org.Name, repo.Name+".git"), "trunk")
+	assertBareDirHead(t, filepath.Join(root, org.Name, repo.Name+".git"), "trunk")
 }
 
 // The website renders as a clickable link on the public org page, so a
