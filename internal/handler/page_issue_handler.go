@@ -257,7 +257,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		allIssueMilestones = []model.Milestone{}
 	}
 
-	linkedPRs, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issue.Number)
+	linkedPRs, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issue.Number, issueCallerID)
 	if err != nil {
 		slog.Warn("issue detail: linked PRs lookup failed", "owner", owner, "repo", repoName, "issue", issue.Number, "error", err)
 	}
@@ -278,11 +278,17 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("issue detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
+	events, err := h.Services.Issue.Events(r.Context(), issue.ID, issueCallerID)
+	if err != nil {
+		slog.Warn("issue detail: events lookup failed; timeline will be incomplete", "owner", owner, "repo", repoName, "issue", issue.Number, "error", err)
+	}
+
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
 		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:          *repo,
 		Issue:         *issue,
 		Comments:      rendered,
+		Events:        events,
 		Owner:         owner,
 		RepoName:      repoName,
 		BodyHTML:      bodyHTML,
@@ -370,7 +376,7 @@ func (h *Handler) loadIssueSidebarOptions(r *http.Request, data *view.IssueNewDa
 		slog.Warn("new issue: list milestones failed", "owner", owner, "repo", repoName, "error", err)
 	}
 	if pulls, err := h.Services.Pull.List(ctx, owner, repoName); err == nil {
-		data.RepoPulls = pullsToLinkedPulls(pulls)
+		data.RepoPulls = pullsToLinkedPulls(owner, repoName, pulls)
 	} else {
 		slog.Warn("new issue: list pulls failed", "owner", owner, "repo", repoName, "error", err)
 	}

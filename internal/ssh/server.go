@@ -284,6 +284,15 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			})
 		}
 
+		if dkVal == nil {
+			actor := service.CloseActor{UserID: pusherID, Username: pusherName}
+			concurrency.Go("issue_closer.close_for_push", func() {
+				bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+				defer cancel()
+				s.services.IssueCloser.CloseForPush(bg, actor, repo, gitRepo, commands)
+			})
+		}
+
 		concurrency.Go("repo.on_post_receive", func() {
 			bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer cancel()

@@ -119,7 +119,7 @@ func TestPullService_ListWithCIStatus(t *testing.T) {
 
 	ctx := context.Background()
 	pr, err := svc.Create(ctx, ownerName, repoName, ownerID,
-		"CI test PR", "", branchName, "main", false)
+		"CI test PR", "", branchName, "main", false, nil)
 	if err != nil {
 		t.Fatalf("Create PR: %v", err)
 	}

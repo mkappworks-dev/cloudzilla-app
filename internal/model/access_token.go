@@ -25,6 +25,22 @@ type AccessToken struct {
 	TargetsRaw string   `db:"targets" json:"-"`
 }
 
+// TargetsCover reports whether targets, the repositories ("owner/repo") and
+// organizations ("org") a token is limited to, include the repo owner/repo. An
+// organization covers every repository it owns.
+func TargetsCover(targets []string, owner, repo string) bool {
+	for _, t := range targets {
+		if tOwner, tRepo, isRepo := strings.Cut(t, "/"); isRepo {
+			if strings.EqualFold(tOwner, owner) && strings.EqualFold(tRepo, repo) {
+				return true
+			}
+		} else if strings.EqualFold(t, owner) {
+			return true
+		}
+	}
+	return false
+}
+
 // SignedRequest is what a key-bound token's request carries to prove its
 // holder has the private key. Signature is the base64 SSHSIG blob.
 type SignedRequest struct {

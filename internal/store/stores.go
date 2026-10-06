@@ -28,6 +28,7 @@ type Stores struct {
 	PullReview         *PullReviewStore
 	PullLineComment    *PullLineCommentStore
 	PullEvent          *PullEventStore
+	IssueEvent         *IssueEventStore
 	Search             *SearchStore
 	AccessToken        *AccessTokenStore
 	DeployKey          *DeployKeyStore
@@ -81,6 +82,7 @@ func New(database *sql.DB) *Stores {
 		PullReview:         NewPullReviewStore(database),
 		PullLineComment:    NewPullLineCommentStore(database),
 		PullEvent:          NewPullEventStore(database),
+		IssueEvent:         NewIssueEventStore(database),
 		Search:             NewSearchStore(database),
 		AccessToken:        NewAccessTokenStore(database),
 		DeployKey:          NewDeployKeyStore(database),

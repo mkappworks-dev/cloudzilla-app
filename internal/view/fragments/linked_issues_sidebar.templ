@@ -8,7 +8,7 @@ import (
 
 func linkedIssueLinked(linked []view.LinkedIssue, number int) bool {
 	for _, li := range linked {
-		if li.Number == number {
+		if li.OtherRepo == "" && li.Number == number {
 			return true
 		}
 	}
@@ -94,8 +94,8 @@ templ LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) {
 				for _, li := range data.Linked {
 					<li class="flex items-center gap-2">
 						@liStateIcon(li.State)
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(li.Number)) } class="hover:underline truncate">
-							<span class="font-mono text-muted-foreground">#{ strconv.Itoa(li.Number) }</span>
+						<a href={ templ.SafeURL("/" + linkedRepoPath(data.Owner, data.RepoName, li.OtherRepo) + "/issues/" + strconv.Itoa(li.Number)) } class="hover:underline truncate">
+							<span class="font-mono text-muted-foreground">{ li.OtherRepo }#{ strconv.Itoa(li.Number) }</span>
 							{ " " }{ li.Title }
 						</a>
 					</li>

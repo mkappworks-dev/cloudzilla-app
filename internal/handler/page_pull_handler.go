@@ -277,7 +277,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, isDraft)
+	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, isDraft, claims.Targets)
 	if err != nil {
 		renderErr(createFailedMessage(err, "pull request", "owner", owner, "repo", repoName))
 		return
@@ -513,8 +513,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Reviews:           reviews,
 		Comments:          comments,
 		Participants:      participants,
-		LinkedIssues:      linkedIssuesToView(linkedIssueModels),
-		LinkableIssues:    linkedIssuesToView(repoIssueModels),
+		LinkedIssues:      linkedIssuesToView(owner, repoName, linkedIssueModels),
+		LinkableIssues:    linkedIssuesToView(owner, repoName, repoIssueModels),
 		Subscribed:        subscribed,
 		Events:            pullEvents,
 		PullChromeCounts:  chromeCounts,
