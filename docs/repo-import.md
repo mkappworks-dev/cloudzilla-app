@@ -1,6 +1,6 @@
 # Repository import
 
-`/repos/import` copies a Git repository from another host into a new Cloudzilla repository: every branch and tag, with HEAD on the source's default branch. Issues, pull requests, wikis, releases and LFS objects are not imported, and the copy does not track the source afterwards.
+`/repos/import` copies a Git repository from another host into a new Cloudzilla repository: every branch and tag, with HEAD on the source's default branch. Issues, pull requests, wikis, releases and LFS objects are not imported, and the copy does not track the source afterwards unless it is created as a [pull mirror](./repo-mirrors.md).
 
 ## Flow
 

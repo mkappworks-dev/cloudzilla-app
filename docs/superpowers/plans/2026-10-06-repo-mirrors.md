@@ -80,6 +80,7 @@
 
 - [x] `GET`/`PATCH`/`DELETE /api/repos/{owner}/{repo}/mirror` (needs `CanManage`; `repo:admin` for tokens), the settings section from frame 2, and update/delete audit entries.
 
-## Ticket 09
+## Ticket 09: docs (done)
 
-These follow the ticket files. Expand this plan before starting each one.
+- [x] `docs/repo-mirrors.md`, linked from `CLAUDE.md`; the API reference, configuration and import docs updated.
+

@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02, 03, 04, 05, 06, 07, 08
 
 ## What
@@ -21,4 +21,4 @@ Blocked by: 02, 03, 04, 05, 06, 07, 08
 
 ## Acceptance criteria
 
-- [ ] Every config key and endpoint added by tickets 02–08 is documented.
+- [x] Every config key and endpoint added by tickets 02–08 is documented.
