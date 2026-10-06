@@ -600,14 +600,15 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	})
 
 	return &probeMux{Mux: r, probes: map[string]http.HandlerFunc{
-		"/healthz": h.Healthz,
-		"/readyz":  h.Readyz,
+		ProbePaths[0]: h.Healthz,
+		ProbePaths[1]: h.Readyz,
 	}}, nil
 }
 
-// probeMux answers health probes ahead of the global middleware, so a probe
-// writes no log line, sets no cookie, skips the setup redirect and auth, and
-// counts against no rate limit. Embedding keeps chi.Routes for route walks.
+// ProbePaths are answered outside chi, so the route walk can't see them to check they're reserved.
+var ProbePaths = []string{"/healthz", "/readyz"}
+
+// probeMux answers probes ahead of all middleware: no log line, cookie, setup redirect, auth or rate limit.
 type probeMux struct {
 	*chi.Mux
 	probes map[string]http.HandlerFunc

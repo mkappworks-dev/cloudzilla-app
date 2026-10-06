@@ -39,8 +39,7 @@ func (r Readiness) Ready() bool { return r.Status == CheckOK }
 type HealthService struct {
 	probe     HealthProbe
 	reposRoot string
-	// A binary's migration set is fixed and applied versions are never removed,
-	// so once nothing is pending that stays true for the process.
+	// Once nothing is pending it stays so: the embedded set is fixed and versions are never unapplied.
 	migrated atomic.Bool
 }
 
@@ -63,6 +62,9 @@ func (s *HealthService) Readiness(ctx context.Context) Readiness {
 		checks[check] = CheckFail
 		slog.Warn("readiness check failed", "check", check, "error", err)
 	}
+	// A hung mount must not hold the probe past the deadline.
+	storage := make(chan error, 1)
+	go func() { storage <- checkWritable(s.reposRoot) }()
 
 	if err := s.probe.Ping(ctx); err != nil {
 		fail("database", err)
@@ -78,8 +80,13 @@ func (s *HealthService) Readiness(ctx context.Context) Readiness {
 			s.migrated.Store(true)
 		}
 	}
-	if err := checkWritable(s.reposRoot); err != nil {
-		fail("storage", err)
+	select {
+	case err := <-storage:
+		if err != nil {
+			fail("storage", err)
+		}
+	case <-ctx.Done():
+		fail("storage", ctx.Err())
 	}
 
 	status := CheckOK

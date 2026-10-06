@@ -146,6 +146,7 @@ func TestProbes_HeadAllowed_OtherMethodsRejected(t *testing.T) {
 	}
 }
 
+// Guards against a global limiter catching probes; today's limits are per route.
 func TestProbes_NotRateLimited(t *testing.T) {
 	h := newProbeRouter(t, probeStub{})
 	captureLogs(t)
@@ -163,8 +164,8 @@ func TestProbes_NotRateLimited(t *testing.T) {
 }
 
 func TestProbes_ReservedOwnerNames(t *testing.T) {
-	for _, name := range []string{"healthz", "readyz"} {
-		if service.ValidateOwnerName(name) == nil {
+	for _, path := range router.ProbePaths {
+		if name := strings.TrimPrefix(path, "/"); service.ValidateOwnerName(name) == nil {
 			t.Errorf("%q is served by a probe; reserve it", name)
 		}
 	}
