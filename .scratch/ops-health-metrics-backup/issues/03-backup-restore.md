@@ -2,10 +2,10 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 Spec: [../spec.md](../spec.md) (Backup and restore)
 
-The spec's open questions 3 (form), 4 (hot or cold) and 7 (testing the restore) decide the shape of this issue. It's written for the recommended answers:
+Shaped by the spec's decisions 3 (form), 4 (hot or cold) and 7 (testing the restore):
 
 - a CLI command that wraps `pg_dump`;
 - hot capture in a safe order;
@@ -77,7 +77,7 @@ Then it:
   - back up, restore, compare.
 - **Concurrency.** A test pushes through `gittransport` while the repository copy runs, and checks that the copy's refs all resolve.
 - **Unit:** tar path validation, the manifest round trip, and the `pg_dump` version parse.
-- **CI.** CI's `go test ./...` has no Postgres, so the round trip runs only under `make test-integration`, unless open question 7 adds a CI job. The PR states which ran.
+- **CI.** CI's `go test ./...` has no Postgres, so the round trip runs only under `make test-integration`. The PR states which ran.
 
 ## Files
 

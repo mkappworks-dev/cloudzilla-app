@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 Spec: [../spec.md](../spec.md) (Health)
 
 ## What to build
@@ -19,7 +19,7 @@ The checks live behind a service, so the handler only calls services.
 
 **Dispatch.** A wrapper around the chi router answers the exact paths `/healthz` and `/readyz` before any global middleware runs: no `Logger` line, no CSRF cookie, no `RequireSetup` redirect, no auth, no rate limit. Other methods get 405. Every other path, including `/healthz/x`, goes on to the router.
 
-**Reserved names.** Add `healthz`, `readyz` and `metrics` to `reservedOwnerNames`. Add an "Upgrading" note to `docs/deployment.md` with SQL that lists existing users and organizations using those names. Their profile page at `/{owner}` is shadowed; their repositories aren't.
+**Reserved names.** Add `healthz` and `readyz` to `reservedOwnerNames`. Add an "Upgrading" note to `docs/deployment.md` with SQL that lists existing users and organizations using those names. Their profile page at `/{owner}` is shadowed; their repositories aren't.
 
 **Docker.** Add a `HEALTHCHECK` on `/healthz` using busybox `wget` and `${CZ_SERVER_PORT:-8080}`.
 
@@ -34,7 +34,7 @@ The checks live behind a service, so the handler only calls services.
 - [ ] Before setup completes, both endpoints answer directly instead of redirecting to `/setup`.
 - [ ] Neither endpoint sets a `csrf_token` cookie or writes a `request` log line, and neither is counted by `middleware.RateLimit`.
 - [ ] `POST /healthz` returns 405, and `GET /healthz/anything` reaches the router.
-- [ ] Creating a user or organization named `healthz`, `readyz` or `metrics` (any case) fails with the reserved-name error.
+- [ ] Creating a user or organization named `healthz` or `readyz` (any case) fails with the reserved-name error.
 - [ ] `docker build` then `docker run` reaches `healthy` on the image's own `HEALTHCHECK`.
 
 ## Tests

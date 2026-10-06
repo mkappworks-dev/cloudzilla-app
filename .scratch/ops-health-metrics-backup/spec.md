@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 
 ## Problem
 
@@ -34,7 +34,7 @@ What gets recorded today:
 - **Pushes:** `pack_bytes` and `duration_ms` are logged by `internal/handler/git_http.go` and `internal/ssh/server.go`, through the existing `gittransport.ByteCounter`.
 - **Fetches, imports, webhook deliveries and the DB pool:** nothing is recorded.
 
-There is no `/metrics` route and `go.mod` has no Prometheus client. The roadmap's cross-cutting rules say "No new Go dependencies needed". The roadmap already allows an exception for the S3 SDK in Phase 20.1.
+There is no `/metrics` route and `go.mod` has no Prometheus client. The roadmap's cross-cutting rules say "No new Go dependencies needed", but the user waived that rule for this work (see Decisions).
 
 ### Backup
 
@@ -78,7 +78,7 @@ Readiness deliberately skips three things:
 
 **Bypass.** A small handler wraps the chi router and answers the exact paths `/healthz` and `/readyz` before any global middleware runs. They therefore skip `RequestID`, `ClientIP`, `Logger`, `CORS`, `MaxFormBodySize`, `CSRF` (so no cookie is set), `RequireSetup`, `HighlightBudget` and all auth. They also skip every rate limiter: the route-level `RateLimit` and any global limiter the API rate-limiting session adds. `/healthz/x` and every other path still go to the router. Methods other than GET and HEAD get 405.
 
-**Reserved names.** An owner name is the first URL segment (see the comment on `reservedOwnerNames` in `internal/service/owner_name.go`). `healthz`, `readyz` and `metrics` are currently valid usernames, so they join the reserved list.
+**Reserved names.** An owner name is the first URL segment (see the comment on `reservedOwnerNames` in `internal/service/owner_name.go`). `healthz` and `readyz` are currently valid usernames, so they join the reserved list. `metrics` doesn't, because `/metrics` is served only on its own listener.
 
 An owner who already has one of those names keeps `/{owner}/{repo}` and everything below it. Only their profile page at `/{owner}` is shadowed. `docs/deployment.md` "Upgrading" gets the SQL to find them.
 
@@ -88,13 +88,11 @@ It probes liveness rather than readiness for two reasons. Orchestrators restart 
 
 ### Metrics (issue 02)
 
-**Exposition.** A small stdlib-only `internal/metrics` package writes the Prometheus text format 0.0.4 (`text/plain; version=0.0.4; charset=utf-8`).
+**Exposition.** `github.com/prometheus/client_golang` (v1.24.1 at the time of writing), served by `promhttp.HandlerFor`.
 
-- **Metric types:** counters, gauges and histograms with fixed label names, plus gauges computed at scrape time by callbacks.
-- **Label values:** escaped `\` `"` and newline.
-- **Histograms:** `_bucket{le=…}` lines including `+Inf`, plus `_sum` and `_count`.
-
-Every metric name is declared in one file, so the set can be read in one place.
+- **Registry:** an `internal/metrics` package owns its own `prometheus.Registry`, not the global default registry. That way a library can't add series behind our back, and tests can build a fresh registry.
+- **Collectors:** `collectors.NewGoCollector()`, `collectors.NewProcessCollector(…)` (process metrics are reported on Linux only) and `collectors.NewDBStatsCollector(db, "cloudzilla")`.
+- **Names:** every Cloudzilla metric is declared in one file, so the set can be read in one place.
 
 **Serving.** Off by default. Setting `metrics.listen_addr` (`CZ_METRICS_LISTEN_ADDR`, e.g. `127.0.0.1:9090`, or `:9090` on a private Docker network) starts a second `http.Server` that serves only `GET /metrics`. The port is never published or proxied, so the main listener never serves metrics. It shuts down with the main server.
 
@@ -112,11 +110,8 @@ Every metric name is declared in one file, so the set can be read in one place.
 | `imports_total` | counter | `result` (`succeeded`/`failed`) | `ImportService.finish` |
 | `webhook_deliveries_total` | counter | `attempt` (`first`/`retry`), `result` (`success`/`failure`) | `WebhookService.deliver` and `retryDeliver` |
 | `webhook_retries_due` | gauge | (none) | Set on each 60 s retry tick from `ListPendingRetry` |
-| `db_connections` | gauge | `state` (`in_use`/`idle`) | `sql.DB.Stats()` at scrape |
-| `db_connections_max_open` | gauge | (none) | `sql.DB.Stats()` |
-| `db_wait_total` | counter | (none) | `sql.DB.Stats().WaitCount` |
-| `db_wait_seconds_total` | counter | (none) | `sql.DB.Stats().WaitDuration` |
-| `go_goroutines`, `process_start_time_seconds` | gauge | (none) | Standard names, so stock dashboards work |
+| `go_sql_*{db_name="cloudzilla"}` | various | (none) | `collectors.NewDBStatsCollector`: open, in-use and idle connections, wait count and wait time |
+| `go_*`, `process_*` | various | (none) | The standard Go and process collectors, so stock dashboards work |
 
 Out of scope: per-repo or per-user labels (unbounded cardinality), SSH session gauges, OpenTelemetry, and exemplars.
 
@@ -172,7 +167,7 @@ The issues carry the full lists. In summary:
 - [ ] `/healthz` answers 200 with the database stopped. `/readyz` answers 503 with the database stopped, with a migration pending, or with `git.repos_root` read-only, and 200 once each is fixed.
 - [ ] Neither endpoint sets a cookie, logs a request line, redirects to `/setup`, needs auth or counts against any rate limit.
 - [ ] The Docker image reports `healthy` on its own `HEALTHCHECK`.
-- [ ] With `metrics.listen_addr` set, `/metrics` on that address serves the starting set in valid text format. The main port answers `/metrics` with the app's 404.
+- [ ] With `metrics.listen_addr` set, `/metrics` on that address serves the starting set. The main port doesn't serve metrics: there, `/metrics` is an ordinary `/{owner}` path.
 - [ ] `cloudzilla-cli backup` then `cloudzilla-cli restore` into an empty database and repos root gives the same rows in every table and the same refs in every repository. An integration test proves it.
 
 ## Relevant files
@@ -187,17 +182,34 @@ The issues carry the full lists. In summary:
 - `internal/service/import_service.go`: in-memory import jobs and slots
 - `internal/service/webhook_service.go`, `internal/store/webhook_store.go`: deliveries, `ListPendingRetry`
 - `internal/config/config.go`: new `metrics` section
+- `go.mod`: adds `github.com/prometheus/client_golang`
 - `cmd/cloudzilla/main.go`: cobra root; new `backup` and `restore` commands
 - `internal/service/repo_dirs.go`, `cmd/cloudzilla/gc.go`: repo directory layout and the gc grace period
 - `internal/seed`: test data for the restore round trip
 - `Dockerfile`, `docker-compose.yml`, `docs/deployment.md`, `docs/configuration.md`
 
-## Open questions
+## Decisions
 
-1. **Metrics exposition.** Hand-written text format (recommended; keeps the no-new-dependencies rule, and about 300 lines plus golden tests) or `prometheus/client_golang`? The library brings its runtime and process collectors, and about six transitive modules.
-2. **Protecting `/metrics`.** A separate listen address (recommended; no secret to manage, and the reverse proxy can't expose it), a bearer token on the main port (Gitea's approach; one port, but the token has to be managed), or both?
-3. **Backup form.** A CLI command that wraps `pg_dump` and adds `postgresql18-client` to the image (recommended)? A pure-Go dump that streams `COPY` through the pgx driver already in `go.mod` (no external binary, but a home-grown dump format whose restore correctness is ours)? Or a documented procedure only (`docker compose exec postgres pg_dump` plus a tar of the volume)?
-4. **Hot or cold capture.** Hot with the ordering above, plus a reconciliation report on restore (recommended), or require the server to be stopped?
-5. **`HEALTHCHECK` target.** Liveness (recommended) or readiness?
-6. **Paths.** `/healthz`, `/readyz` and `/metrics` with reserved owner names (recommended; conventional, and Prometheus scrapes `/metrics` by default), or GitLab-style `/-/health`? An owner name must start with a letter or digit, so those paths can never collide.
-7. **Testing the restore.** CI runs `go test ./...` without Postgres, so integration tests skip there. The round-trip test runs only under `make test-integration`, and needs `pg_dump`/`pg_restore` 18 on `PATH`. Accept that, or add a CI job with a Postgres 18 service?
+Settled with the user on 2026-10-06:
+
+1. **Metrics exposition:** `prometheus/client_golang`. The roadmap's no-new-dependencies rule is waived for this work.
+2. **Protecting `/metrics`:** a separate listen address (`metrics.listen_addr`, off by default). There's no token, and the main port never serves metrics.
+3. **Backup form:** `cloudzilla-cli backup` and `restore`, wrapping `pg_dump`/`pg_restore`. The image gains `postgresql18-client`.
+4. **Hot or cold:** hot capture in the order above, with a reconciliation report on restore. The stop-the-server variant is documented for a fully consistent copy.
+5. **`HEALTHCHECK` target:** liveness (`/healthz`).
+6. **Paths:** `/healthz` and `/readyz`, with `healthz` and `readyz` reserved as owner names.
+7. **Testing the restore:** the round trip runs under `make test-integration` only; each PR states what ran. Running integration tests in CI is a separate follow-up.
+
+## Delivery
+
+One PR per issue, in the order 01, 02, 03:
+
+- **01 Health:** on `feat/ops-health-metrics-backup`, which also carries this spec.
+- **02 Metrics:** on `feat/ops-metrics`.
+- **03 Backup and restore:** on `feat/ops-backup-restore`.
+
+The issues are independent, except that 03 reuses `db.Pending` from 01.
+
+## Comments
+
+**Claude, 2026-10-06:** Triaged with the user. The open questions are resolved as listed under Decisions, and the status is now `ready-for-agent`.
