@@ -140,7 +140,7 @@ Items marked (Qn) follow that open question's recommended answer and change if t
 - [ ] A 2FA account still needs its TOTP code at the next sign-in. (Q2) The reset form also requires a TOTP or backup code; a wrong one counts against the per-user reauth limit and doesn't spend the link.
 - [ ] (Q1) Personal access tokens, OAuth app grants and SSH keys keep working. The notice says so and links to settings.
 - [ ] (Q3) An account without a password gets the "signs in with …" note, never a link. `IssueLink` refuses it.
-- [ ] (Q4) The admin fallback issues a 24-hour link without SMTP, as specified once Open question 4 is answered.
+- [ ] (Q4) `cloudzilla-cli password-reset-link <username>` prints a 24-hour link, works without SMTP, refuses an account without a password, and writes `user.password.reset_link` to the audit log.
 - [ ] (Q5) Unverified addresses can reset, and a completed reset sets `email_verified_at`.
 - [ ] A completed reset mails the "password was reset" notice and writes `user.password.reset` to the audit log.
 - [ ] `POST /auth/password/forgot` and `POST /auth/password/reset/{token}` answer `429` past 10 requests per IP per 15 minutes.
@@ -178,3 +178,12 @@ Items marked (Qn) follow that open question's recommended answer and change if t
 5. **Reset to an unverified address, and verify it on success?** Recommendation: allow it, and set `email_verified_at` when the reset completes. Only the mailbox's owner could open the link, which is the reason a signup link already starts its account verified. Refusing would lock out every account created before migration 091 or through the classic no-SMTP `/register`.
 
 ## Comments
+
+Claude, 2026-10-06: The user chose the recommended option for questions 1–4:
+
+1. A reset ends sessions only. The notice says personal access tokens, SSH keys and authorized apps still work, and links to their settings.
+2. 2FA accounts must also enter a TOTP or backup code on the reset form.
+3. Accounts without a password get a "signs in with …" note and never a link. `IssueLink` refuses them.
+4. The admin fallback is a CLI subcommand, `cloudzilla-cli password-reset-link <username>`, which prints a 24-hour link. The admin UI button is left to the admin-user-management work, which can call `IssueLink`. A user who lost their authenticator is out of scope.
+
+Question 5 (unverified addresses) is still open.
