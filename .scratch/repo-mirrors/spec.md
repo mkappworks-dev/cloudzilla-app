@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -186,17 +186,17 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 
 ## Acceptance criteria
 
-- [ ] An import with "Keep this repository in sync" checked creates a pull mirror. Changes upstream reach it on the next sync: new commits, force pushes, new and deleted branches and tags, and a changed default branch. `refs/pull/*` is never copied.
-- [ ] An incremental sync succeeds, and a test fails if go-git starts requesting thin packs.
-- [ ] Creating a pull request whose base repo is a pull mirror is refused.
-- [ ] A pull mirror refuses HTTP and SSH pushes, and refuses web and API writes on every path in Read-only enforcement. Archived repos are refused on the same paths.
-- [ ] The UI hides write controls on a pull mirror and shows the source, the last sync time, the last error and "Sync now".
-- [ ] A sync fires push webhooks for updated branches and updates open PRs' head SHAs, contributor stats, the primary language, code search and dependencies. It records no activity events.
-- [ ] "Stop mirroring" turns a pull mirror into a regular, writable repository and deletes its stored credentials.
-- [ ] Mirror URLs follow the import's rules. Private-network targets are refused unless `mirror.allow_local_networks` is set.
-- [ ] Tokens are stored encrypted, never returned by the UI or API, and never logged. Without `security.secret_key`, credentialed mirrors are refused with a clear message.
-- [ ] Two server instances never run the same mirror's sync at once. Syncs never exceed `mirror.max_concurrent`, and a failing mirror backs off up to 24 h.
-- [ ] `docs/repo-mirrors.md` is linked from `CLAUDE.md`, and `docs/configuration.md` and `docs/api-reference.md` are updated.
+- [x] An import with "Keep this repository in sync" checked creates a pull mirror. Changes upstream reach it on the next sync: new commits, force pushes, new and deleted branches and tags, and a changed default branch. `refs/pull/*` is never copied.
+- [x] An incremental sync succeeds, and a test fails if go-git starts requesting thin packs.
+- [x] Creating a pull request whose base repo is a pull mirror is refused.
+- [x] A pull mirror refuses HTTP and SSH pushes, and refuses web and API writes on every path in Read-only enforcement. Archived repos are refused on the same paths.
+- [x] The UI hides write controls on a pull mirror and shows the source, the last sync time, the last error and "Sync now".
+- [x] A sync fires push webhooks for updated branches and updates open PRs' head SHAs, contributor stats, the primary language, code search and dependencies. It records no activity events.
+- [x] "Stop mirroring" turns a pull mirror into a regular, writable repository and deletes its stored credentials.
+- [x] Mirror URLs follow the import's rules. Private-network targets are refused unless `mirror.allow_local_networks` is set.
+- [x] Tokens are stored encrypted, never returned by the UI or API, and never logged. Without `security.secret_key`, credentialed mirrors are refused with a clear message.
+- [x] Two server instances never run the same mirror's sync at once. Syncs never exceed `mirror.max_concurrent`, and a failing mirror backs off up to 24 h.
+- [x] `docs/repo-mirrors.md` is linked from `CLAUDE.md`, and `docs/configuration.md` and `docs/api-reference.md` are updated.
 
 ## Tickets
 
