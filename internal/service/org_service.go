@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -280,7 +279,7 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		abandonNewRepo(ctx, s.repos, 0, repoPath)
 		return nil, repoNameErr("create org repo", err)
 	}
-	if _, err := gogit.PlainInit(repoPath, true); err != nil {
+	if err := initBareRepo(repoPath, r.DefaultBranch); err != nil {
 		abandonNewRepo(ctx, s.repos, r.ID, repoPath)
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}

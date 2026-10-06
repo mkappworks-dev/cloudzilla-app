@@ -361,6 +361,39 @@ func TestOrgService_CreateRepo_WithInitFiles(t *testing.T) {
 	}
 }
 
+func TestOrgService_CreateRepo_Empty_HeadIsOrgDefaultBranch(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	creatorID := testutil.SeedUser(t, db, suffix)
+	root := t.TempDir()
+
+	svc := service.NewOrgService(
+		store.NewOrgStore(db),
+		store.NewRepoStore(db),
+		store.NewUserStore(db),
+		config.GitConfig{ReposRoot: root},
+	)
+
+	ctx := context.Background()
+	org, err := svc.Create(ctx, creatorID, "testorg_emptyhead_"+suffix, "Org", "")
+	if err != nil {
+		t.Fatalf("Create org: %v", err)
+	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
+	if err := svc.UpdateRepoDefaults(ctx, org.ID, creatorID, "public", "trunk"); err != nil {
+		t.Fatalf("UpdateRepoDefaults: %v", err)
+	}
+
+	repo, err := svc.CreateRepo(ctx, org.ID, creatorID, "emptyrepo", "", false, service.RepoInitOptions{})
+	if err != nil {
+		t.Fatalf("CreateRepo: %v", err)
+	}
+	if repo.DefaultBranch != "trunk" {
+		t.Fatalf("DefaultBranch: want trunk, got %q", repo.DefaultBranch)
+	}
+	assertBareDirHead(t, filepath.Join(root, org.Name, repo.Name+".git"), "trunk")
+}
+
 // The website renders as a clickable link on the public org page, so a
 // javascript: URL saved here would run in every visitor's browser.
 func TestOrgService_UpdateProfile_RejectsNonHTTPWebsite(t *testing.T) {
