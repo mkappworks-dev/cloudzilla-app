@@ -538,6 +538,14 @@ func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*mode
 	return u, nil
 }
 
+func (s *UserStore) GetByUsernameWithTOTP(ctx context.Context, username string) (*model.User, error) {
+	u, err := s.queryUserWithTOTP(ctx, `WHERE username = $1 AND `+notGhost, username)
+	if err != nil {
+		return nil, fmt.Errorf("user get by username with totp: %w", err)
+	}
+	return u, nil
+}
+
 func (s *UserStore) queryUserWithTOTP(ctx context.Context, filter string, args ...any) (*model.User, error) {
 	u := &model.User{}
 	var backupCodesJSON sql.NullString

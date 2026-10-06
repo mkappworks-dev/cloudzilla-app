@@ -106,6 +106,36 @@ func TestAdminUserService_ResetTOTP(t *testing.T) {
 	}
 }
 
+func TestAdminUserService_ResetTOTPOffline(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	admin := newAdminUserServices(t, db).AdminUser
+	userID, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), "password1")
+	name := usernameOf(t, db, userID)
+	testutil.EnableTOTP(t, db, userID)
+	testutil.Exec(t, db, `UPDATE users SET totp_backup_codes = '{a,b}' WHERE id = $1`, userID)
+
+	u, changed, err := admin.ResetTOTPOffline(ctx, name)
+	if err != nil || !changed || u.ID != userID {
+		t.Fatalf("ResetTOTPOffline = %+v, %v, %v; want user %d changed", u, changed, err, userID)
+	}
+	var enabled bool
+	var secret, codes sql.NullString
+	if err := db.QueryRow(`SELECT totp_enabled, totp_secret, totp_backup_codes::text FROM users WHERE id = $1`, userID).Scan(&enabled, &secret, &codes); err != nil {
+		t.Fatal(err)
+	}
+	if enabled || secret.Valid || codes.Valid {
+		t.Errorf("after reset: enabled %v, secret %v, codes %v", enabled, secret, codes)
+	}
+
+	if _, changed, err := admin.ResetTOTPOffline(ctx, name); err != nil || changed {
+		t.Errorf("second reset = changed %v, %v; want unchanged", changed, err)
+	}
+	if _, _, err := admin.ResetTOTPOffline(ctx, "nobody_"+testutil.UniqueSuffix(t)); !errors.Is(err, sql.ErrNoRows) {
+		t.Errorf("unknown user err = %v; want sql.ErrNoRows", err)
+	}
+}
+
 func TestAdminUserService_Delete(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	ctx := context.Background()

@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 
 ## Problem
 
@@ -19,9 +19,10 @@ Example: the only superadmin of a small instance replaces their phone without mo
 
 - Clears the TOTP secret, flag and backup codes through the same code path as `AdminUserService.ResetTOTP` (`users.SetTOTPEnabled(ctx, id, false, "")` plus `notifySecurityChange(..., "admin_totp_reset", adminTOTPResetNotice)`), not a copy. `ResetTOTP` goes through `target`, which needs an acting admin ID, so the shared part has to be split out (e.g. an unexported method taking the resolved user, called by both `ResetTOTP` and a new offline entry point).
 - Mails the same security notice. Its wording says "An administrator turned off…", which still fits an operator.
-- Writes the audit entry through `AuditService.RecordOffline` with actor name `cloudzilla-cli` and no actor ID, as `password-reset-link` does. `password-reset-link` records the non-admin action `user.password.reset_link` (`model.AuditActionPasswordResetLink`), so the CLI-specific choice is a new `user.2fa.reset`-style action rather than reusing `admin.user.2fa_reset`. Settle this against how the audit log page renders actions.
+- Writes the audit entry through `AuditService.RecordOffline` with actor name `cloudzilla-cli` and no actor ID, as `password-reset-link` does. It reuses `admin.user.2fa_reset`: the audit log page shows the raw action string and filters on it exactly, and `user.password.reset_link` is likewise one action for the admin and CLI paths, told apart by the actor.
 - Prints a confirmation only after the audit write succeeds; a failed audit write exits non-zero.
-- A user without 2FA enabled: decide whether to no-op with a message or exit non-zero (no audit entry either way if nothing changed).
+- A user without 2FA enabled: prints that 2FA isn't on and exits 0, with no audit entry and no notice.
+- The notice is sent synchronously: `notifySecurityChange` mails from a `concurrency.Go` goroutine, which the CLI would exit before. A failed send is a warning on stderr, not a failure, since the reset and its audit entry already stand.
 
 ## Acceptance criteria
 
@@ -44,10 +45,18 @@ Example: the only superadmin of a small instance replaces their phone without mo
 - `internal/handler/admin_user_handler.go` (`AdminResetUserTOTP`)
 - `docs/configuration.md`, `docs/access-control.md`
 
-## Open questions
+## Decisions
 
-Walk through each with the user: concrete problem and example first, then options, then a recommendation.
+Agreed with the maintainer on 2026-10-06.
 
-1. Should the command also bump `session_version`? The admin `reset-2fa` doesn't. Check whether it should, for consistency with other security changes (e.g. `Suspend` bumps it).
-2. Should it refuse a suspended account, or should the CLI also get `unsuspend`? `keepActiveSuperadmin` already refuses suspending the last active superadmin (`ErrLastSuperadmin`), so the "only superadmin is suspended" case should be unreachable through the app; verify there's no other path.
-3. Should it require a `--yes` flag or an interactive confirmation? Check what `password-reset-link` and other CLI subcommands do.
+1. **No `session_version` bump**, as for the admin `reset-2fa` and self-service `TOTPService.Disable`. A bump would also revoke any outstanding password reset link (`password_reset_tokens.session_version`), so `password-reset-link` followed by `reset-2fa` would silently kill the link. The docs point to **Sign out other sessions** once the user is back in.
+2. **Suspended accounts are reset, with a note** that the account is still suspended. Suspension only happens through `AdminUserService.Suspend` → `UserStore.Suspend`, which calls `keepActiveSuperadmin`, so a suspended sole superadmin isn't reachable through the app. No `unsuspend` command.
+3. **No confirmation and no `--yes`**, like `password-reset-link`: running the CLI already takes the config and database credentials, and the user can re-enroll.
+
+## Plan
+
+1. `security_notice.go`: split the body of `notifySecurityChange` into `sendSecurityNotice(ctx, ...) error`; `notifySecurityChange` runs it in `concurrency.Go` and logs its error.
+2. `AdminUserService`: unexported `resetTOTP(ctx, u)` holds the clear; `ResetTOTP` calls it and the async notice. New `ResetTOTPOffline(ctx, username) (*model.User, bool, error)` looks the user up (ghost and unknown → `sql.ErrNoRows`), returns `false` without changes when 2FA is off, else calls `resetTOTP`. New `SendTOTPResetNotice(ctx, userID) error` mails `adminTOTPResetNotice` synchronously.
+3. `cmd/cloudzilla/reset_2fa.go`: `reset-2fa <username>` → `ResetTOTPOffline`, `RecordOffline` with `admin.user.2fa_reset`, `SendTOTPResetNotice` (warning on failure), then the confirmation and, for a suspended account, a note. Register in `main.go`.
+4. Tests first: service test for `ResetTOTPOffline` (clears, reports unchanged for no-2FA, unknown user); CLI test as in `password_reset_link_test.go` (output, audit row, no-2FA path writes no row, unknown user, suspended note).
+5. Docs: CLI reference in `docs/configuration.md`; `docs/access-control.md` under Two-factor authentication with the full sole-superadmin recovery path, plus the `reset-2fa` row in Managing accounts.
