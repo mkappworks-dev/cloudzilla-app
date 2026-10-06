@@ -64,7 +64,7 @@ A session is a bearer credential, so anything that adds a way in that outlives i
 - making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting an owner need nothing, since members get no repository until they're added to it. The owner check runs first, so a non-owner's request doesn't spend an attempt;
 - making a private repository public (making one private needs nothing);
 - deleting a repository, an organization or the account;
-- superadmin changes: site settings, invitations, manual email verification, and the LDAP and SAML configuration, including turning a provider on or off.
+- superadmin changes: site settings, invitations, manual email verification, the LDAP and SAML configuration, including turning a provider on or off, and every [account action](#managing-accounts).
 
 Editing a webhook's events needs nothing: it can't point the webhook somewhere new.
 
@@ -96,7 +96,7 @@ Accounts without a password (created by Google, LDAP or SAML sign-up) can't set 
 
 ### Ending sessions
 
-Session JWTs are stateless, so each carries the user's `session_version` (claim `sv`, migration 093) from when it was issued. With `middleware.WithSessionVersions`, which the router passes to `authMW` and `optAuthMW`, every JWT-authenticated request reads the user's current version: one primary-key lookup. The request is refused (`authMW`) or treated as signed out (`optAuthMW`) when the version has moved on or the user no longer exists. Tokens from before the claim existed read as version 0.
+Session JWTs are stateless, so each carries the user's `session_version` (claim `sv`, migration 093) from when it was issued. With `middleware.WithSessionStates`, which the router passes to `authMW` and `optAuthMW`, every JWT-authenticated request reads the user's current version and `is_superadmin`: one primary-key lookup (`UserStore.SessionState`). The request is refused (`authMW`) or treated as signed out (`optAuthMW`) when the version has moved on, the user no longer exists or is [suspended](#suspended-accounts). Otherwise the claims' `IsSuperadmin` is replaced with the stored one, so a promotion or demotion applies on the user's next request without signing them out. Tokens from before the claim existed read as version 0.
 
 Account settings → Sessions → **Sign out other sessions** (`POST /settings/sessions/revoke`) bumps the version, sets a fresh cookie for the current browser, and writes `user.sessions.revoke` to the audit log. Changing the password bumps it too. Personal access tokens, SSH keys and OAuth app grants are not sessions; they are revoked in their own sections.
 
@@ -185,7 +185,7 @@ PATs get the same open routes and scopes as OAuth-app tokens; being first-party 
 
 | Role         | Permissions                                                                                                     |
 | ------------ | --------------------------------------------------------------------------------------------------------------- |
-| `superadmin` | Everything. Manages instance settings, SSO, invitations, audit log. Cannot be locked out. Assigned at `/setup`. |
+| `superadmin` | Everything. Manages instance settings, SSO, invitations, accounts, audit log. The first is assigned at `/setup`; others are made at `/admin/users`. There is always at least one active superadmin (see [Managing accounts](#managing-accounts)). |
 | `user`       | Normal account. Access governed by org/repo permissions and instance settings.                                  |
 
 ### Organization Roles
@@ -393,7 +393,7 @@ Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner
 
 `POST /settings/delete-account` calls `UserService.DeleteUser`. In one transaction, `UserStore.DeleteWithOwnedRepos` deletes the user's personal repositories (soft-deleted ones included) and everything in them, drops the user's pending review requests, hands what the user wrote in repos they don't own, org repos included, to the [ghost user](#the-ghost-user), and deletes the user row, which cascades to gists, keys, tokens, stars, watches, reactions and activity. Org repos have no `owner_id`, so they stay with their org: their `created_by` becomes `NULL`, and a `deleted_by` naming the user passes to the ghost.
 
-`DeleteUser` first refuses (`ErrSoleOrgOwner`, shown as `sole_org_owner`) while the user is the only owner of an organization, before touching any directory. The transaction checks again with every org the user belongs to locked, the lock that promoting, demoting or removing a member also takes. Around that transaction, `RepoService.DeleteWithOwner` handles the repo directories:
+`DeleteUser` first refuses (`ErrSoleOrgOwner`, shown as `sole_org_owner`) while the user is the only owner of an organization, and (`ErrLastSuperadmin`, shown as `last_superadmin`) while they are the only active superadmin, before touching any directory; the transaction re-checks the latter under the lock described in [Managing accounts](#managing-accounts). The transaction checks again with every org the user belongs to locked, the lock that promoting, demoting or removing a member also takes. Around that transaction, `RepoService.DeleteWithOwner` handles the repo directories:
 
 1. `DeleteWithOwner` renames each personal repo's `<name>.git` and `<name>.wiki.git` to `.deleted.<unix_ts>`.
 2. If the transaction fails (for example `ErrOwnedReposChanged`, when a repo was created or restored after step 1), it renames them back.
@@ -414,6 +414,42 @@ As on GitHub, a deleted account's issues, pull requests, comments, reviews, disc
 - **Reviews:** submitted reviews pass to the ghost and stay on the pull request, but count toward neither merge gate. `CountApprovals`, used by branch protection and by the count the pull request page shows, skips them, and a ghost's `changes_requested` doesn't block merging, since nobody could withdraw it. The one-review-per-reviewer index excludes the ghost, so it can hold several reviews on one pull.
 - **Invitations:** pending instance invitations the user sent stay valid, sent by `ghost`. Delete them from the admin page to revoke them.
 
+## Managing accounts
+
+`/admin/users` lists every account but the ghost, 50 a page, newest first. `q` matches a username or email prefix, ignoring case (`%` and `_` are literal); `role` (`superadmin`, `user`) and `status` (`active`, `suspended`) filter it. `/admin/users/{username}` shows one account (email and verification, role, status, 2FA, sign-in methods, created date, last web sign-in from the latest `login` audit entry, organizations it solely owns) and its actions. An unknown username or the ghost is a 404.
+
+Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin's [confirmation](#confirming-sensitive-actions), refuses the admin's own account (`ErrAdminSelf`; use Settings), and writes an audit entry with the admin as actor and the account as target:
+
+| Action | Effect | Also refused when | Audit action |
+| --- | --- | --- | --- |
+| `suspend` (optional `reason`) | Sets `suspended_at` and bumps `session_version` in one `UPDATE`, so unsuspending doesn't revive old sessions. The dialog names organizations the user solely owns | It would leave no active superadmin | `admin.user.suspend` (reason) |
+| `unsuspend` | Clears `suspended_at`. Tokens, keys and app grants work again; sessions don't | — | `admin.user.unsuspend` |
+| `promote` | `is_superadmin = TRUE` | The account is suspended (`ErrUserSuspended`) | `admin.user.promote` |
+| `demote` | `is_superadmin = FALSE` | It would leave no active superadmin | `admin.user.demote` |
+| `reset-2fa` | Clears the TOTP secret, flag and backup codes; mails a security notice | — | `admin.user.2fa_reset` |
+| `revoke-credentials` | Deletes the account's PATs, SSH keys and OAuth app authorizations and bumps `session_version`; mails a security notice. Deploy keys and OAuth apps it owns stay | — | `admin.user.credentials_revoke` (counts) |
+| `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion) | The account solely owns an organization; it would leave no active superadmin | `admin.user.delete` (email) |
+
+An **active superadmin** is `is_superadmin AND suspended_at IS NULL`, excluding the ghost. Refusing the admin's own account keeps one admin alone from removing the last one; for concurrent actions, suspend, demote and account deletion each lock every active superadmin row (`SELECT … FOR UPDATE`, ordered by id, before any other row lock) and re-count in the same transaction (`keepActiveSuperadmin`), so of two admins removing each other, the second fails with `ErrLastSuperadmin`.
+
+## Suspended accounts
+
+`users.suspended_at` (migration 102) is set while an account is suspended. Who did it, and why, are in the audit log. A suspended account loses every way in:
+
+| Way in | Where it's refused |
+| --- | --- |
+| Web session (cookie or bearer JWT) | `UserStore.SessionState` excludes suspended users, so `sessionLive` drops the session on its next request |
+| Password, Google, LDAP, SAML and TOTP sign-in | `UserService.generateJWT` and `SSOService.generateJWT`, where every session is minted, return `ErrAccountSuspended` |
+| Personal access token, API | `AccessTokenService.Validate`; `servePAT` answers `403 {"error":"account_suspended"}` on `authMW` and `optAuthMW` alike, never anonymous |
+| Personal access token, git HTTP | `resolveGitUser` answers `403`, not `401`, so git keeps the stored credential |
+| OAuth app token | `OAuthAppService.ResolveOAuthToken`; `serveOAuth` answers as for a PAT |
+| SSH user key | `SSHKeyService.AuthenticatePublicKey`; the handshake fails |
+| SSH deploy key | `sessionHandler` refuses a deploy key on a personal repo whose owner is suspended. `deploy_keys` records no creator, so keys on org repos keep working |
+
+The suspension message, "This account is suspended. Contact your administrator.", appears only once the password (or provider) has checked out, so it doesn't tell a stranger the account exists. `POST /api/auth/login` answers `403 {"error":"account_suspended"}`.
+
+Nothing changes for other users: the profile, repositories, issues and comments stay, and collaborators keep their access to the account's repositories. Superadmins see a "Suspended" badge on the profile. `wantsEmail` skips suspended accounts, so they get no notification mail, immediate or digest; security notices still go out. OAuth apps the account owns keep serving the users who authorized them.
+
 ---
 
 ## Full Endpoint Authorization Matrix
@@ -423,12 +459,16 @@ As on GitHub, a deleted account's issues, pull requests, comments, reviews, disc
 | Method   | Path                                | Auth                  | AuthZ           | Handler                         |
 | -------- | ----------------------------------- | --------------------- | --------------- | ------------------------------- |
 | GET      | `/admin/settings`                   | authMW + superadminMW | Superadmin only | PageAdminSettings               |
+| GET      | `/admin/users`                      | authMW + superadminMW | Superadmin only | PageAdminUsers                  |
+| GET      | `/admin/users/{username}`           | authMW + superadminMW | Superadmin only | PageAdminUser                   |
 | GET      | `/admin/audit-log`                  | authMW + superadminMW | Superadmin only | PageAuditLog                    |
 | GET/POST | `/admin/sso`                        | authMW + superadminMW | Superadmin only | PageSSOSettings / SaveSSOConfig |
 | POST     | `/api/admin/settings`               | authMW + superadminMW | Superadmin only | UpdateSiteSetting               |
 | POST     | `/api/admin/invitations`            | authMW + superadminMW | Superadmin only | CreateInvitation                |
 | DELETE   | `/api/admin/invitations/{id}`       | authMW + superadminMW | Superadmin only | DeleteInvitation                |
 | POST     | `/api/admin/users/verify-email`     | authMW + superadminMW | Superadmin only | AdminVerifyEmail                |
+| POST     | `/api/admin/users/{username}/suspend`, `/unsuspend`, `/promote`, `/demote`, `/reset-2fa`, `/revoke-credentials` | authMW + superadminMW | Superadmin only, not on their own account | AdminSuspendUser, AdminUnsuspendUser, AdminPromoteUser, AdminDemoteUser, AdminResetUserTOTP, AdminRevokeUserCredentials |
+| POST     | `/api/admin/users/{username}/delete` | authMW + superadminMW | Superadmin only, not on their own account | AdminDeleteUser |
 | POST     | `/api/admin/sso/{provider}/enabled` | authMW + superadminMW | Superadmin only | SetSSOEnabled                   |
 
 ### Authentication Endpoints (No Auth Required)
