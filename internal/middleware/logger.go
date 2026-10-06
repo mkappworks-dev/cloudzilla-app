@@ -35,8 +35,8 @@ func Logger(next http.Handler) http.Handler {
 	})
 }
 
-// Invite and signup link tokens are credentials, so their routes log the
-// pattern. The pattern is only complete once routing has run.
+// Invite, signup and password reset link tokens are credentials, so their
+// routes log the pattern. The pattern is only complete once routing has run.
 func loggedPath(r *http.Request) string {
 	if rctx := chi.RouteContext(r.Context()); rctx != nil {
 		if pattern := rctx.RoutePattern(); strings.Contains(pattern, "{token}") {

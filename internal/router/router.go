@@ -21,6 +21,13 @@ const (
 	accountCreationWindow = 15 * time.Minute
 )
 
+// Each password reset route gets its own budget per client IP, on top of the
+// per-account email cooldown and the per-user limit on wrong two-factor codes.
+const (
+	passwordResetLimit  = 10
+	passwordResetWindow = 15 * time.Minute
+)
+
 const (
 	// Room for a person retrying a mistyped password; too few to guess passwords or probe emails at scale.
 	loginAttemptLimit = 30
@@ -110,6 +117,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW, middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.PageLoginSubmit)
 	r.With(optAuthMW).Get("/verify-email", h.PageVerifyEmail)
 	r.With(optAuthMW).Post("/verify-email", h.VerifyEmailSubmit)
+	r.Get("/auth/password/forgot", h.PageForgotPassword)
+	r.With(middleware.RateLimit(passwordResetLimit, passwordResetWindow)).Post("/auth/password/forgot", h.ForgotPasswordSubmit)
+	r.Get("/auth/password/reset/{token}", h.PageResetPassword)
+	r.With(middleware.RateLimit(passwordResetLimit, passwordResetWindow)).Post("/auth/password/reset/{token}", h.ResetPasswordSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
 	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)

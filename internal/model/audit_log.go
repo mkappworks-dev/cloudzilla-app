@@ -52,4 +52,6 @@ const (
 	AuditActionEmailChange         = "user.email.change"
 	AuditActionSessionsRevoke      = "user.sessions.revoke"
 	AuditActionPasswordChange      = "user.password.change"
+	AuditActionPasswordReset       = "user.password.reset"
+	AuditActionPasswordResetLink   = "user.password.reset_link"
 )
