@@ -13,7 +13,6 @@ import (
 
 const readinessTimeout = 3 * time.Second
 
-// Readiness check outcomes.
 const (
 	CheckOK      = "ok"
 	CheckFail    = "fail"
@@ -86,7 +85,15 @@ func (s *HealthService) Readiness(ctx context.Context) Readiness {
 			fail("storage", err)
 		}
 	case <-ctx.Done():
-		fail("storage", ctx.Err())
+		// The check may have finished as the database checks used up the deadline.
+		select {
+		case err := <-storage:
+			if err != nil {
+				fail("storage", err)
+			}
+		default:
+			fail("storage", ctx.Err())
+		}
 	}
 
 	status := CheckOK

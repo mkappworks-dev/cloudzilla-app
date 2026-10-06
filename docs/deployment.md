@@ -105,6 +105,8 @@ Two unauthenticated endpoints on the main HTTP port answer probes. They're serve
 - `migrations`: every migration embedded in the binary is recorded in `schema_migrations`. The server never migrates, so this fails after an upgrade until `cloudzilla-cli migrate` runs. It's `skipped` while the database check fails.
 - `storage`: a temporary `.readyz-*` file can be created, written and removed in `git.repos_root`. This catches a missing volume, a read-only mount and wrong ownership, but not a full disk.
 
+Give a Kubernetes `readinessProbe` a `timeoutSeconds` of at least 4: the default of 1 turns a slow database into a probe timeout instead of a 503.
+
 The body never says why a check failed; the server logs the cause at `WARN` with `msg="readiness check failed"`. Readiness doesn't depend on setup having completed, on the SSH listener, or on SMTP or OAuth.
 
 The image's `HEALTHCHECK` probes `/healthz`, not `/readyz`. Orchestrators restart unhealthy containers, and a restart fixes neither a database outage nor a pending migration; and on first boot readiness fails by design until `cloudzilla-cli migrate` runs. It requests `http://127.0.0.1:${CZ_SERVER_PORT:-8080}/healthz` with any proxy disabled, so it reads the port only from the `CZ_SERVER_PORT` environment variable, not from `config.yaml`, and it needs `server.host` to accept loopback connections (the default `0.0.0.0` does). Check it with `docker inspect --format '{{.State.Health.Status}}' <container>`.

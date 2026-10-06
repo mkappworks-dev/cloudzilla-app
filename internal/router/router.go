@@ -600,13 +600,18 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	})
 
 	return &probeMux{Mux: r, probes: map[string]http.HandlerFunc{
-		ProbePaths[0]: h.Healthz,
-		ProbePaths[1]: h.Readyz,
+		HealthzPath: h.Healthz,
+		ReadyzPath:  h.Readyz,
 	}}, nil
 }
 
+const (
+	HealthzPath = "/healthz"
+	ReadyzPath  = "/readyz"
+)
+
 // ProbePaths are answered outside chi, so the route walk can't see them to check they're reserved.
-var ProbePaths = []string{"/healthz", "/readyz"}
+func ProbePaths() []string { return []string{HealthzPath, ReadyzPath} }
 
 // probeMux answers probes ahead of all middleware: no log line, cookie, setup redirect, auth or rate limit.
 type probeMux struct {

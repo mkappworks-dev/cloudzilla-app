@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
@@ -107,4 +108,28 @@ func TestHealthReadiness_ReposRootReadOnly_FailsStorage(t *testing.T) {
 	svc := service.NewHealthService(&stubProbe{}, root)
 
 	wantChecks(t, svc.Readiness(context.Background()), "fail", "ok", "ok", "fail")
+}
+
+type hangingProbe struct{}
+
+func (hangingProbe) Ping(ctx context.Context) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+func (hangingProbe) PendingMigrations(context.Context) ([]string, error) { return nil, nil }
+
+// A storage check that finished before the deadline must report its own result,
+// not the deadline the database check ran into.
+func TestHealthReadiness_DatabaseHangs_StorageStillReportsOK(t *testing.T) {
+	svc := service.NewHealthService(hangingProbe{}, t.TempDir())
+	for range 30 {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		got := svc.Readiness(ctx)
+		cancel()
+		wantChecks(t, got, "fail", "fail", "skipped", "ok")
+		if t.Failed() {
+			return
+		}
+	}
 }

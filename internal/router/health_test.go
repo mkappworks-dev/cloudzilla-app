@@ -164,7 +164,7 @@ func TestProbes_NotRateLimited(t *testing.T) {
 }
 
 func TestProbes_ReservedOwnerNames(t *testing.T) {
-	for _, path := range router.ProbePaths {
+	for _, path := range router.ProbePaths() {
 		if name := strings.TrimPrefix(path, "/"); service.ValidateOwnerName(name) == nil {
 			t.Errorf("%q is served by a probe; reserve it", name)
 		}
