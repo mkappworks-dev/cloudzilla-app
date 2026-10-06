@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/utils/binary"
@@ -38,11 +39,15 @@ type TreeResult struct {
 
 // BlobResult holds the content of a single file as numbered lines.
 type BlobResult struct {
-	Ref         string
-	Path        string
-	Lines       []CodeLine
-	IsBinary    bool
-	Size        int64 // file size in bytes
+	Ref       string
+	Path      string
+	Lines     []CodeLine
+	IsBinary  bool
+	Size      int64 // file size in bytes
+	SHA       string
+	IsSymlink bool
+	// IsBranch is set when Ref named a branch rather than a tag or commit.
+	IsBranch    bool
 	Breadcrumbs []BreadcrumbPart
 	BlameURL    string
 }
@@ -134,6 +139,9 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 		Path:        path,
 		IsBinary:    isBinary,
 		Size:        file.Size,
+		SHA:         file.Hash.String(),
+		IsSymlink:   file.Mode == filemode.Symlink,
+		IsBranch:    isBranchAt(repo, resolvedRef, commit.Hash),
 		Breadcrumbs: buildBreadcrumbs(owner, repoName, resolvedRef, path, true),
 		BlameURL:    codeurl.Path(owner, repoName, "blame", resolvedRef, path),
 	}
@@ -156,6 +164,13 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 	}
 
 	return result, nil
+}
+
+// isBranchAt reports whether ref is a branch pointing at tip, as resolveRef
+// returns for a branch it resolved.
+func isBranchAt(repo *gogit.Repository, ref string, tip plumbing.Hash) bool {
+	b, err := repo.Reference(plumbing.NewBranchReferenceName(ref), true)
+	return err == nil && b.Hash() == tip
 }
 
 var ErrBlobTooLarge = errors.New("blob exceeds size limit")
