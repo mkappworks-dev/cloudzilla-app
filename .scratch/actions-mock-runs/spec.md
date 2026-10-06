@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: bug
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -43,18 +43,18 @@ A sweep of every `.templ` file under `internal/view/` (2026-10-06) found no othe
 
 ## Acceptance criteria
 
-- [ ] No page renders hardcoded CI runs. `actions.templ`, `PageActions` and `ActionsData` are gone, and `GET /{owner}/{repo}/actions` returns 404.
-- [ ] Every repo's subnav has a "Checks" tab linking to `/{owner}/{repo}/checks`, active on that page.
-- [ ] `/checks` shows one card per commit that has reported statuses, ordered by the commit's most recent status update. Each card shows:
+- [x] No page renders hardcoded CI runs. `actions.templ`, `PageActions` and `ActionsData` are gone, and `GET /{owner}/{repo}/actions` returns 404.
+- [x] Every repo's subnav has a "Checks" tab linking to `/{owner}/{repo}/checks`, active on that page.
+- [x] `/checks` shows one card per commit that has reported statuses, ordered by the commit's most recent status update. Each card shows:
   - the combined state (`error` > `failure` > `pending` > `success`, as the status API combines them)
   - the commit subject, or the bare SHA when the commit isn't in the repository (the status API doesn't check SHAs)
   - "N of M passed", the short SHA linking to `/{owner}/{repo}/commit/{sha}`, and the relative time
   - each context, with its state icon, its description, and a Details link when `target_url` is set
-- [ ] Commits paginate with Newer/Older links, the way the commit history does.
-- [ ] `/checks` follows the same read access as the other repo pages: a private repo is a 404 to anyone who can't read it.
-- [ ] With no statuses, the page explains how to post one: a `curl` example built from `server.base_url` and the repo's owner and name.
-- [ ] The PR Checks tab's link reads "View all checks →" and goes to `/checks`.
-- [ ] Integration tests cover the store query (grouping, ordering, pagination, repo isolation) and the page (cards, empty state, access).
+- [x] Commits paginate with Newer/Older links, the way the commit history does.
+- [x] `/checks` follows the same read access as the other repo pages: a private repo is a 404 to anyone who can't read it.
+- [x] With no statuses, the page explains how to post one: a `curl` example built from `server.base_url` and the repo's owner and name.
+- [x] The PR Checks tab's link reads "View all checks →" and goes to `/checks`.
+- [x] Integration tests cover the store query (grouping, ordering, pagination, repo isolation) and the page (cards, empty state, access).
 
 ## Relevant files
 
@@ -84,3 +84,5 @@ A sweep of every `.templ` file under `internal/view/` (2026-10-06) found no othe
 - Move the worst-case combine in `CommitStatusStore.GetCombined` into a helper the page shares, so the two can't drift.
 - `internal/view/pages/time_helpers.go` has `relativeTime`. `components.PaginationLabeled` gives Newer/Older links.
 - `internal/handler/repo_page_access_test.go` lists `/actions` among the private-repo pages; change it to `/checks`. ROADMAP Phase 18.2/18.3 still say `/actions` will list pipeline runs, which stays true.
+
+**Claude, 2026-10-06.** Done. `EXPLAIN` showed `idx_commit_statuses_repo_sha` serving the repo filter, and an `(repo_id, updated_at)` index wouldn't remove the sort over `MAX(updated_at)`, so there's no migration. A page past the end shows "No more checks." with a Newer link instead of the empty state.
