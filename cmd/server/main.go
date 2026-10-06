@@ -113,6 +113,10 @@ func main() {
 		}
 	}()
 
+	if cfg.Mirror.Enabled {
+		concurrency.Go("mirror.run", func() { services.Mirror.Run(workerCtx) })
+	}
+
 	// Daily purge of soft-deleted repos older than 30 days
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
@@ -164,6 +168,10 @@ func main() {
 	if err := sshSrv.Shutdown(sshCtx); err != nil {
 		slog.Error("ssh graceful shutdown failed", "error", err)
 	}
+
+	mirrorCtx, mirrorCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer mirrorCancel()
+	services.Mirror.Shutdown(mirrorCtx)
 
 	slog.Info("server stopped")
 }

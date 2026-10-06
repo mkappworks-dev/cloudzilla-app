@@ -24,12 +24,35 @@ templ RepoImport(data view.RepoImportData) {
 
 		<div class="grid lg:grid-cols-[1fr_280px] gap-8">
 			<div class="min-w-0">
-				<form id="import-form" class="border border-border rounded-lg bg-card p-6 space-y-6">
+				<form id="import-form" x-data="{ mirror: false }" class="border border-border rounded-lg bg-card p-6 space-y-6">
 					<div>
 						<label for="import-url" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Source repository URL *</label>
 						<input id="import-url" name="clone_url" type="url" required autofocus placeholder="https://github.com/owner/repo.git" value={ data.DefaultURL } class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"/>
 						<p class="mt-1 text-[12px] text-muted-foreground/70">An HTTP or HTTPS clone URL. SSH URLs aren't supported.</p>
 					</div>
+
+					if len(data.MirrorIntervals) > 0 {
+						<div class="rounded-md border p-3 flex flex-col gap-3" :class="mirror ? 'border-ring/60 bg-ring/5' : 'border-border'">
+							<label class="flex items-start gap-3 cursor-pointer">
+								<input id="import-mirror" name="mirror" type="checkbox" x-model="mirror" class="mt-0.5 h-4 w-4 accent-[hsl(var(--ring))]"/>
+								<span>
+									<span class="text-[13.5px] font-medium inline-flex items-center gap-2">
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"></path><path d="M3 21v-5h5"></path><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"></path><path d="M21 3v5h-5"></path></svg>
+										Keep this repository in sync
+									</span>
+									<span class="mt-0.5 block text-[12.5px] text-muted-foreground">Creates a pull mirror: new commits, branches and tags are fetched from the source on a schedule. The copy is read-only here, so pushes, merges and web edits are refused.</span>
+								</span>
+							</label>
+							<div x-show="mirror" x-cloak class="flex items-center gap-2.5 pl-7">
+								<label for="import-mirror-interval" class="text-[12px] font-medium text-muted-foreground">Sync every</label>
+								<select id="import-mirror-interval" name="mirror_interval" class="bg-background border border-border rounded-md px-2 py-1.5 text-[13px] text-foreground focus:outline-hidden focus:border-ring">
+									for _, opt := range data.MirrorIntervals {
+										<option value={ opt.Value } selected?={ opt.Selected }>{ opt.Label }</option>
+									}
+								</select>
+							</div>
+						</div>
+					}
 
 					<div x-data="{ open: false }" class="flex flex-col gap-3">
 						<button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" aria-controls="import-credentials" class="self-start inline-flex items-center gap-1.5 text-[13px] text-primary hover:underline">
@@ -45,7 +68,8 @@ templ RepoImport(data view.RepoImportData) {
 								<label for="import-token" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Access token</label>
 								<input id="import-token" name="auth_token" type="password" autocomplete="new-password" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 							</div>
-							<p class="sm:col-span-2 text-[12px] text-muted-foreground/70">Used once for this import and not stored. A token with read access to the repository is enough.</p>
+							<p x-show="!mirror" class="sm:col-span-2 text-[12px] text-muted-foreground/70">Used once for this import and not stored. A token with read access to the repository is enough.</p>
+							<p x-show="mirror" x-cloak class="sm:col-span-2 text-[12px] text-muted-foreground/70">Stored encrypted so the mirror can keep syncing, and never shown again. A token with read access to the repository is enough.</p>
 						</div>
 					</div>
 
@@ -88,12 +112,22 @@ templ RepoImport(data view.RepoImportData) {
 					<h2 id="ri-what" class="text-[12px] font-medium text-muted-foreground mb-2">What gets imported</h2>
 					<p class="text-[13px] text-muted-foreground/70 leading-relaxed">Every branch and tag, with full history. The new repository's default branch matches the source's.</p>
 				</section>
+				if len(data.MirrorIntervals) > 0 {
+					<section aria-labelledby="ri-sync" class="border-t border-border pt-5">
+						<h2 id="ri-sync" class="text-[12px] font-medium text-muted-foreground mb-2">Keeping it in sync</h2>
+						<p class="text-[13px] text-muted-foreground/70 leading-relaxed">A mirror follows force pushes and deleted branches too. Issues and wikis stay local. You can stop mirroring later from the repository's settings.</p>
+					</section>
+				}
 				<section aria-labelledby="ri-not" class="border-t border-border pt-5">
 					<h2 id="ri-not" class="text-[12px] font-medium text-muted-foreground mb-2">Not imported</h2>
 					<ul class="space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed">
 						<li>Issues, pull requests, wikis, and releases.</li>
 						<li>Git LFS files: only their pointer files come across.</li>
-						<li>Later changes to the source. An import is a one-time copy.</li>
+						if len(data.MirrorIntervals) > 0 {
+							<li>Later changes to the source, unless you keep it in sync.</li>
+						} else {
+							<li>Later changes to the source. An import is a one-time copy.</li>
+						}
 					</ul>
 				</section>
 			</aside>
@@ -105,6 +139,7 @@ templ RepoImport(data view.RepoImportData) {
 				const errBox = document.getElementById('import-form-error');
 				const urlInput = document.getElementById('import-url');
 				const nameInput = document.getElementById('import-name');
+				const mirrorBox = document.getElementById('import-mirror');
 				let nameEdited = nameInput.value !== '';
 				nameInput.addEventListener('input', function() { nameEdited = true; });
 				urlInput.addEventListener('input', function() {
@@ -137,7 +172,9 @@ templ RepoImport(data view.RepoImportData) {
 								owner: form.querySelector('[name=owner]').value,
 								name: nameInput.value.trim(),
 								description: form.querySelector('[name=description]').value,
-								private: form.querySelector('[name=visibility]:checked').value === 'private'
+								private: form.querySelector('[name=visibility]:checked').value === 'private',
+								mirror: !!(mirrorBox && mirrorBox.checked),
+								mirror_interval: mirrorBox && mirrorBox.checked ? document.getElementById('import-mirror-interval').value : ''
 							})
 						});
 					} catch (_) {

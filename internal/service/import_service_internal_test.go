@@ -100,7 +100,7 @@ func TestImportService_PanicFailsTheJob(t *testing.T) {
 		panic("hostile reply")
 	}
 
-	s.run(job, RepoTarget{}, "", false, nil)
+	s.run(job, RepoTarget{}, "", false, nil, nil)
 
 	got, err := s.Get(1, job.ID)
 	if err != nil {

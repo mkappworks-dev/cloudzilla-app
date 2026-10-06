@@ -427,6 +427,9 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		mergeabilityBox.CanThreeWayMerge = !mg.HasConflicts && mg.Ahead > 0
 		mergeabilityBox.CanSquash = !mg.HasConflicts && mg.Ahead > 0
 	}
+	if repo.ContentReadOnly() {
+		mergeabilityBox.CanFastForward, mergeabilityBox.CanThreeWayMerge, mergeabilityBox.CanSquash = false, false, false
+	}
 	if requiredChecks, passingChecks, err := h.Services.CommitStatus.Counts(r.Context(), pull.ID); err != nil {
 		slog.Warn("pull detail: commit status counts failed; hiding checks signal",
 			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)

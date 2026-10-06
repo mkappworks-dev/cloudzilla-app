@@ -158,6 +158,28 @@ func TestUpdateProfileReadme_RefusesAnArchivedProfileRepo(t *testing.T) {
 	}
 }
 
+func TestUpdateProfileReadme_RefusesAMirroredProfileRepo(t *testing.T) {
+	router, db, reposRoot := newEmailPrivacyRouter(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	owner := "testuser_" + suffix
+	var repoID int64
+	if err := db.QueryRow(
+		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch)
+		 VALUES ($1, $2, $2, '', false, 'main') RETURNING id`, userID, owner).Scan(&repoID); err != nil {
+		t.Fatalf("seed profile repo: %v", err)
+	}
+	makeMirror(t, db, repoID)
+	if _, err := gogit.PlainInit(filepath.Join(reposRoot, owner, owner+".git"), true); err != nil {
+		t.Fatalf("init bare repo: %v", err)
+	}
+
+	rr := postForm(t, router, makeIssueJWT(t, userID, owner), "/settings/profile-readme", url.Values{"content": {"# hi\n"}})
+	if want := "/" + owner + "?readme_error=profile_repo_mirror"; rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != want {
+		t.Errorf("want 303 to %s, got %d %q", want, rr.Code, rr.Header().Get("Location"))
+	}
+}
+
 // uploadCap is the largest file the New file form commits.
 const uploadCap = 25 << 20
 

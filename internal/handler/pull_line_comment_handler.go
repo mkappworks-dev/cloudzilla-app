@@ -321,7 +321,7 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
+	if _, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))

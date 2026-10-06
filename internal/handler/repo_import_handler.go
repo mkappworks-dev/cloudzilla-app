@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -22,6 +23,9 @@ type startImportRequest struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
 	Private      bool   `json:"private"`
+	Mirror       bool   `json:"mirror"`
+	// A Go duration such as "8h"; empty means mirror.default_interval.
+	MirrorInterval string `json:"mirror_interval"`
 }
 
 type importJobResponse struct {
@@ -52,19 +56,31 @@ func (h *Handler) StartImport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	var interval time.Duration
+	if req.Mirror && req.MirrorInterval != "" {
+		d, err := time.ParseDuration(req.MirrorInterval)
+		if err != nil {
+			writeError(w, http.StatusUnprocessableEntity, `mirror_interval must be a duration such as "8h"`)
+			return
+		}
+		interval = d
+	}
 	job, err := h.Services.Import.Start(r.Context(), claims.UserID, claims.Username, service.ImportRequest{
-		CloneURL:     req.CloneURL,
-		AuthUsername: req.AuthUsername,
-		AuthToken:    req.AuthToken,
-		Owner:        req.Owner,
-		Name:         req.Name,
-		Description:  req.Description,
-		Private:      req.Private,
+		CloneURL:       req.CloneURL,
+		AuthUsername:   req.AuthUsername,
+		AuthToken:      req.AuthToken,
+		Owner:          req.Owner,
+		Name:           req.Name,
+		Description:    req.Description,
+		Private:        req.Private,
+		Mirror:         req.Mirror,
+		MirrorInterval: interval,
 	})
 	switch {
 	case errors.Is(err, service.ErrImportURL), errors.Is(err, service.ErrImportURLUserinfo),
 		errors.Is(err, service.ErrImportCredentials),
-		errors.Is(err, service.ErrRepoNameTaken), errors.Is(err, service.ErrRepoNameReserved):
+		errors.Is(err, service.ErrRepoNameTaken), errors.Is(err, service.ErrRepoNameReserved),
+		errors.Is(err, service.ErrMirrorsDisabled), errors.Is(err, service.ErrMirrorInterval), errors.Is(err, service.ErrMirrorNoSecretKey):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	case errors.Is(err, service.ErrInvalidRepoName):
@@ -83,8 +99,11 @@ func (h *Handler) StartImport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Recorded at start, not on success: a refused request to a private address belongs in the log.
-	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoImport, model.AuditTargetRepo, 0, job.Name,
-		map[string]any{"owner": job.Owner, "source_url": job.SourceURL, "job_id": job.ID})
+	action, meta := model.AuditActionRepoImport, map[string]any{"owner": job.Owner, "source_url": job.SourceURL, "job_id": job.ID}
+	if req.Mirror {
+		action, meta["interval"] = model.AuditActionRepoMirrorCreate, req.MirrorInterval
+	}
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, action, model.AuditTargetRepo, 0, job.Name, meta)
 	writeJSON(w, http.StatusAccepted, importJobJSON(job))
 }
 
@@ -124,13 +143,25 @@ func (h *Handler) PageImportRepo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	h.render(w, r, pages.RepoImport(view.RepoImportData{
-		BasePage:       withAccountSubnav(basePage(r, h.Services), "repositories", h.accountCounts(ctx, claims.UserID)),
-		OwnedOrgs:      orgs,
-		DefaultOwner:   owner,
-		DefaultPrivate: private,
-		DefaultURL:     q.Get("url"),
-		DefaultName:    q.Get("name"),
+		BasePage:        withAccountSubnav(basePage(r, h.Services), "repositories", h.accountCounts(ctx, claims.UserID)),
+		OwnedOrgs:       orgs,
+		DefaultOwner:    owner,
+		DefaultPrivate:  private,
+		DefaultURL:      q.Get("url"),
+		DefaultName:     q.Get("name"),
+		MirrorIntervals: h.mirrorIntervalOptions(),
 	}))
+}
+
+func (h *Handler) mirrorIntervalOptions() []view.IntervalOption {
+	if !h.Services.Mirror.Enabled() {
+		return nil
+	}
+	var opts []view.IntervalOption
+	for _, c := range h.Services.Mirror.IntervalChoices() {
+		opts = append(opts, view.IntervalOption{Value: c.Value, Label: c.Label, Selected: c.Default})
+	}
+	return opts
 }
 
 func (h *Handler) PageImportStatus(w http.ResponseWriter, r *http.Request) {

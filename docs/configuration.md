@@ -55,6 +55,19 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `storage.s3.secret_access_key` | `""`                                       | `CZ_STORAGE_S3_SECRET_ACCESS_KEY` | Static secret; set with `access_key_id` or not at all |
 | `storage.s3.path_style`      | `false`                                      | `CZ_STORAGE_S3_PATH_STYLE`      | Path-style URLs, needed by most self-hosted S3 servers |
 | `storage.s3.prefix`          | `""`                                         | `CZ_STORAGE_S3_PREFIX`          | Key prefix, so several instances can share a bucket |
+| `mirror.enabled`             | `true`                                       | `CZ_MIRROR_ENABLED`             | Sync pull mirrors and offer mirror options. When off, existing mirrors stay read-only |
+| `mirror.allow_local_networks`| `false`                                      | `CZ_MIRROR_ALLOW_LOCAL_NETWORKS`| Let pull mirrors reach loopback, private and link-local addresses |
+| `mirror.min_interval`        | `10m`                                        | `CZ_MIRROR_MIN_INTERVAL`        | Shortest sync interval a mirror may use         |
+| `mirror.default_interval`    | `8h`                                         | `CZ_MIRROR_DEFAULT_INTERVAL`    | Sync interval for new mirrors (at most `720h`)  |
+| `mirror.max_concurrent`      | `3`                                          | `CZ_MIRROR_MAX_CONCURRENT`      | Syncs running at once on each server instance   |
+| `mirror.timeout`             | `30m`                                        | `CZ_MIRROR_TIMEOUT`             | Time limit for one sync                         |
+| `security.secret_key`        | `""`                                         | `CZ_SECURITY_SECRET_KEY`        | Key that encrypts stored credentials, such as mirror tokens. At least 32 bytes; see [Secret key](#secret-key) |
+
+### Secret key
+
+`security.secret_key` encrypts secrets the server has to read back later. Each use gets its own key, derived with HKDF-SHA256, and values are sealed with AES-256-GCM. When it is unset, features that store such secrets refuse to store them and say which setting to set.
+
+Generate one with `openssl rand -base64 32`. The string is used as-is, at least 32 bytes. Keep it apart from `auth.jwt_secret`, so rotating the JWT secret never touches stored credentials. **Losing or changing the key makes every stored credential unreadable;** they then have to be entered again.
 
 ### Environment Variable Mapping
 
@@ -322,7 +335,17 @@ Print a single-use link that lets a user choose a new password, for when the ins
 cloudzilla-cli password-reset-link alice --config /etc/cloudzilla/config.yaml
 ```
 
-The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. It also refuses a suspended account: unsuspend it first. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
+The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. It also refuses a suspended account: unsuspend it first. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link; if those are lost too, run [`reset-2fa`](#cloudzilla-cli-reset-2fa) first. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
+
+### `cloudzilla-cli reset-2fa`
+
+Turn off two-factor authentication for a user who has lost their authenticator and backup codes, such as a sole superadmin with no other admin to reset it from `/admin/users`.
+
+```bash
+cloudzilla-cli reset-2fa alice --config /etc/cloudzilla/config.yaml
+```
+
+It clears the TOTP secret, flag and backup codes through the same code as the admin `reset-2fa` action, records `admin.user.2fa_reset` in the audit log with no actor ID and the actor name `cloudzilla-cli`, and mails the user the same security notice when SMTP is configured. A failed notice prints a warning but doesn't undo the reset. It doesn't sign the user out or touch their password, and doesn't revoke a password reset link already issued. For a user without 2FA, it says so and changes nothing. A suspended account is reset but stays suspended. See [Two-factor authentication](./access-control.md#two-factor-authentication).
 
 ### Instance management
 

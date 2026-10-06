@@ -639,6 +639,8 @@ func readmeErrorMessage(code string) string {
 		return "Your profile repository is private. Make it public to publish a README."
 	case "profile_repo_archived":
 		return "Your profile repository is archived. Unarchive it to edit the README."
+	case "profile_repo_mirror":
+		return "Your profile repository is a pull mirror. Stop mirroring it to edit the README."
 	case "branch_moved":
 		return "The README changed while you were saving. Reload and try again."
 	case "save_failed":

@@ -98,6 +98,10 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "forbidden")
 			return
 		}
+		if errors.Is(err, service.ErrPullIntoMirror) {
+			writeError(w, http.StatusUnprocessableEntity, pullIntoMirrorMessage)
+			return
+		}
 		slog.Error("create pull: service create failed",
 			"owner", owner, "repo", repoName, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
@@ -194,6 +198,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	if (state == "merged" || autoMergeAction == "enable") && !claims.HasScope(model.ScopeRepoWrite) {
 		middleware.WriteInsufficientScope(w, model.ScopeRepoWrite)
 		return
+	}
+	if state == "merged" || autoMergeAction == "enable" {
+		if err := service.CheckContentWritable(repo); err != nil {
+			writeError(w, http.StatusForbidden, err.Error())
+			return
+		}
 	}
 
 	if titlePresent {
@@ -476,7 +486,7 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 		return
 	}
 	repo, err := h.Services.Repo.Get(ctx, owner, repoName)
-	if err != nil {
+	if err != nil || service.CheckContentWritable(repo) != nil {
 		return
 	}
 

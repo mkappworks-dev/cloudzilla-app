@@ -16,11 +16,13 @@ templ Pulls(data view.PullsData) {
 				<div class="min-w-0">
 					<h1 id="pulls-title" class="text-2xl font-semibold tracking-tight">Pull requests</h1>
 				</div>
-				@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/pulls/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
-					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
-						<path d="M12 5v14M5 12h14"></path>
-					</svg>
-					New pull request
+				if !data.Repo.IsMirror {
+					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/pulls/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+							<path d="M12 5v14M5 12h14"></path>
+						</svg>
+						New pull request
+					}
 				}
 			</section>
 

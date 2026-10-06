@@ -55,6 +55,7 @@ type Stores struct {
 	EmailVerification  *EmailVerificationStore
 	PasswordReset      *PasswordResetStore
 	Health             *HealthStore
+	Mirror             *MirrorStore
 	Avatar             *AvatarStore
 }
 
@@ -108,6 +109,7 @@ func New(database *sql.DB) *Stores {
 		CommitStats:        NewCommitStatsStore(database),
 		ContributorStats:   NewContributorStatsStore(database),
 		EmailVerification:  NewEmailVerificationStore(database),
+		Mirror:             NewMirrorStore(database),
 		PasswordReset:      NewPasswordResetStore(database),
 		Health:             NewHealthStore(database),
 		Avatar:             NewAvatarStore(database),
