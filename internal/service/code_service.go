@@ -10,6 +10,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
@@ -188,9 +189,9 @@ func buildBreadcrumbs(owner, repoName, ref, path string, isBlob bool) []Breadcru
 		isLast := i == len(segments)-1
 		var url string
 		if isLast && isBlob {
-			url = "/" + owner + "/" + repoName + "/blob/" + ref + "/" + accumulated
+			url = codeurl.Path(owner, repoName, "blob", ref, accumulated)
 		} else {
-			url = "/" + owner + "/" + repoName + "/tree/" + ref + "/" + accumulated
+			url = codeurl.Path(owner, repoName, "tree", ref, accumulated)
 		}
 		parts = append(parts, BreadcrumbPart{Name: seg, URL: url})
 	}

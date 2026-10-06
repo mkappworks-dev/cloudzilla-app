@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -81,7 +82,7 @@ func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entrie
 		if !e.IsDir {
 			kind = "blob"
 		}
-		href := "/" + owner + "/" + repoName + "/" + kind + "/" + ref + "/" + entryPath
+		href := codeurl.Path(owner, repoName, kind, ref, entryPath)
 		node := components.TreeNode{
 			Name:     e.Name,
 			IsDir:    e.IsDir,
@@ -90,7 +91,7 @@ func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entrie
 			IsActive: !e.IsDir && len(remainingPath) == 1 && e.Name == remainingPath[0],
 		}
 		if e.IsDir {
-			node.ChildrenURL = "/fragments/" + owner + "/" + repoName + "/tree/" + ref + "/" + entryPath
+			node.ChildrenURL = "/fragments" + codeurl.Path(owner, repoName, "tree", ref, entryPath)
 		}
 		onPath := len(remainingPath) > 0 && e.Name == remainingPath[0]
 		if e.IsDir && (onPath || open[entryPath]) {
@@ -116,7 +117,7 @@ func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entrie
 var expandAllBudget = 300
 
 func expandAllURL(owner, repoName, ref, activePath string) string {
-	return "/fragments/" + owner + "/" + repoName + "/tree/" + ref + "/?expand=all&active=" + url.QueryEscape(activePath)
+	return "/fragments" + codeurl.Path(owner, repoName, "tree", ref, "") + "/?expand=all&active=" + url.QueryEscape(activePath)
 }
 
 // expandAllLevel builds dirPath's entries with folders opened breadth-first,

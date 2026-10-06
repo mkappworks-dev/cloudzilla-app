@@ -310,3 +310,59 @@ func TestCodePages_ResolveEscapedPaths(t *testing.T) {
 		})
 	}
 }
+
+func TestCodePages_EscapeLinks(t *testing.T) {
+	h, r, _, _ := seedCodeRepoWith(t, oddPaths...)
+	p := r.path
+	const dir = "hash%23q%3F"
+	pages := []struct {
+		url  string
+		want []string
+	}{
+		{p + "/tree/main", []string{
+			`href="` + p + `/tree/main/` + dir + `"`,
+			`href="` + p + `/tree/main/odd%20%22q%27uote%22"`,
+			`href="` + p + `/tree/main/pct%2541"`,
+		}},
+		{p + "/blob/main/" + dir + "/n.txt", []string{
+			`href="` + p + `/tree/main/` + dir + `"`,
+			`href="` + p + `/blob/main/` + dir + `/n.txt"`,
+			`href="` + p + `/raw/main/` + dir + `/n.txt"`,
+			`href="` + p + `/blame/main/` + dir + `/n.txt"`,
+			`href="` + p + `/blob/main/` + dir + `/n.txt" aria-current="page"`,
+			`hx-get="/fragments` + p + `/tree/main/pct%2541"`,
+			`hx-get="/fragments` + p + `/tree/main/odd%20%22q%27uote%22"`,
+		}},
+		{p + "/blame/main/" + dir + "/n.txt", []string{
+			`href="` + p + `/blob/main/` + dir + `/n.txt"`,
+		}},
+	}
+	for _, pg := range pages {
+		t.Run(pg.url, func(t *testing.T) {
+			rr := getAnonymous(h, pg.url)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("want 200, got %d", rr.Code)
+			}
+			body := rr.Body.String()
+			for _, want := range pg.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("want %s in body", want)
+					continue
+				}
+				link := want[strings.Index(want, `"`)+1:]
+				link = link[:strings.Index(link, `"`)]
+				if rr := getAnonymous(h, link); rr.Code != http.StatusOK {
+					t.Errorf("GET %s: want 200, got %d", link, rr.Code)
+				}
+			}
+		})
+	}
+}
+
+func TestPageTree_RedirectsAnEscapedFileToItsEscapedBlobURL(t *testing.T) {
+	h, r, _, _ := seedCodeRepoWith(t, oddPaths...)
+	rr := getAnonymous(h, r.path+"/tree/main/hash%23q%3F/n.txt")
+	if want := r.path + "/blob/main/hash%23q%3F/n.txt"; rr.Code != http.StatusFound || rr.Header().Get("Location") != want {
+		t.Errorf("want 302 to %s, got %d to %q", want, rr.Code, rr.Header().Get("Location"))
+	}
+}

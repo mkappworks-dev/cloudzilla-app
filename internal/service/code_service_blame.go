@@ -6,6 +6,7 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 )
 
@@ -80,6 +81,6 @@ func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult,
 		Path:        path,
 		Lines:       lines,
 		Breadcrumbs: buildBreadcrumbs(owner, repoName, resolvedRef, path, true),
-		BlobURL:     "/" + owner + "/" + repoName + "/blob/" + resolvedRef + "/" + path,
+		BlobURL:     codeurl.Path(owner, repoName, "blob", resolvedRef, path),
 	}, nil
 }
