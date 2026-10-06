@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -14,12 +14,12 @@ Spec: [../spec.md](../spec.md)
 
 ## Acceptance criteria
 
-- [ ] `Request` for a suspended account's address sends no email (no link and no passwordless note) and returns nil.
-- [ ] A link issued while the account is active, then the account is suspended, stays invalid after unsuspending (existing `session_version` bump; covered by a test).
-- [ ] A link row for a suspended account (inserted directly) reads as invalid from `Check`, and `Reset` refuses it without changing the password.
-- [ ] Suspending the account between `Check` and `Reset` makes `Reset` refuse the link, through `Consume`'s recheck under lock.
-- [ ] `IssueLink` returns `ErrUserSuspended` for a suspended account, and the CLI prints an unsuspend hint.
-- [ ] `docs/access-control.md`'s password-reset section says suspended accounts get no reset.
+- [x] `Request` for a suspended account's address sends no email (no link and no passwordless note) and returns nil.
+- [x] A link issued while the account is active, then the account is suspended, stays invalid after unsuspending (existing `session_version` bump; covered by a test).
+- [x] A link row for a suspended account (inserted directly) reads as invalid from `Check`, and `Reset` refuses it without changing the password.
+- [x] Suspending the account between `Check` and `Reset` makes `Reset` refuse the link, through `Consume`'s recheck under lock.
+- [x] `IssueLink` returns `ErrUserSuspended` for a suspended account, and the CLI prints an unsuspend hint.
+- [x] `docs/access-control.md`'s password-reset section says suspended accounts get no reset.
 
 ## Blocked by
 
