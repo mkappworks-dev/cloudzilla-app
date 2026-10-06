@@ -249,7 +249,7 @@ func TestPullStore_ListLinkedToIssue_ReturnsMatchingPRs(t *testing.T) {
 		}
 	}
 
-	linked, err := ps.ListLinkedToIssue(ctx, repoID, 3)
+	linked, err := ps.ListLinkedToIssue(ctx, issueID, &ownerID)
 	if err != nil {
 		t.Fatalf("ListLinkedToIssue: %v", err)
 	}

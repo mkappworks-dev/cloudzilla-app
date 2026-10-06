@@ -96,16 +96,17 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	pr := &model.PullRequest{}
 	var mergedAt, closedAt, draftAt sql.NullTime
 	var autoMergeStrategy, headSHA sql.NullString
+	var autoMergeBy sql.NullInt64
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy, head_sha
+		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by
 		 FROM pull_requests WHERE repo_id = $1 AND number = $2`,
 		repoID, number,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
-		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA)
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy)
 	if err != nil {
 		return nil, fmt.Errorf("pr get: %w", err)
 	}
@@ -123,6 +124,9 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	}
 	if headSHA.Valid {
 		pr.HeadSHA = headSHA.String
+	}
+	if autoMergeBy.Valid {
+		pr.AutoMergeBy = &autoMergeBy.Int64
 	}
 	return pr, nil
 }
@@ -179,18 +183,23 @@ func (s *PullStore) UpdateBody(ctx context.Context, id int64, body string) error
 	return err
 }
 
-func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, strategy string) error {
+// SetAutoMerge arms auto-merge as byUserID, or disarms it when enabled is false.
+func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, strategy string, byUserID *int64) error {
 	var strat sql.NullString
 	if strategy != "" {
 		strat = sql.NullString{String: strategy, Valid: true}
+	}
+	if !enabled {
+		byUserID = nil
 	}
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE pull_requests
 		 SET auto_merge_enabled  = $2,
 		     auto_merge_strategy = $3,
+		     auto_merge_by       = $4,
 		     updated_at          = NOW()
 		 WHERE id = $1`,
-		id, enabled, strat,
+		id, enabled, strat, byUserID,
 	)
 	return err
 }
@@ -240,16 +249,17 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 	pr := &model.PullRequest{}
 	var mergedAt, closedAt, draftAt sql.NullTime
 	var autoMergeStrategy, headSHA sql.NullString
+	var autoMergeBy sql.NullInt64
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy, head_sha
+		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by
 		 FROM pull_requests WHERE id = $1`,
 		id,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
-		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA)
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy)
 	if err != nil {
 		return nil, fmt.Errorf("pr get by id: %w", err)
 	}
@@ -267,6 +277,9 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 	}
 	if headSHA.Valid {
 		pr.HeadSHA = headSHA.String
+	}
+	if autoMergeBy.Valid {
+		pr.AutoMergeBy = &autoMergeBy.Int64
 	}
 	return pr, nil
 }
@@ -440,27 +453,55 @@ func (s *PullStore) CountsForUser(ctx context.Context, userID int64) (map[string
 	}, nil
 }
 
-func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNumber int) ([]model.PullRequest, error) {
-	// Explicit links from the pull_issue_links table — the same set the issue
-	// sidebar's link/unlink dropdown writes to.
+// ListLinkedToIssue returns the pulls linked to an issue, in any repo the viewer
+// can read. A nil viewer sees only pulls in public repos.
+func (s *PullStore) ListLinkedToIssue(ctx context.Context, issueID int64, viewer *int64) ([]model.PullRequest, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
 		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
 		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
-		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
+		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha,
+		        r.owner_name, r.name
 		 FROM pull_requests pr
 		 LEFT JOIN users u ON u.id = pr.author_id
 		 JOIN pull_issue_links pil ON pil.pull_id = pr.id
-		 JOIN issues i ON i.id = pil.issue_id
-		 WHERE pr.repo_id = $1 AND i.repo_id = $1 AND i.number = $2
-		 ORDER BY pr.number DESC`,
-		repoID, issueNumber,
+		 JOIN repositories r ON r.id = pr.repo_id AND r.deleted_at IS NULL
+		 WHERE pil.issue_id = $1 AND `+readableBy("r", "$2")+`
+		 ORDER BY pr.repo_id = (SELECT repo_id FROM issues WHERE id = $1) DESC, r.owner_name, r.name, pr.number DESC`,
+		issueID, viewerID(viewer),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("pr linked to issue: %w", err)
 	}
 	defer rows.Close()
-	return scanPullRows(rows)
+	prs := []model.PullRequest{}
+	for rows.Next() {
+		var pr model.PullRequest
+		var mergedAt, closedAt, draftAt sql.NullTime
+		var autoMergeStrategy, headSHA sql.NullString
+		if err := rows.Scan(
+			&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.AuthorName, &pr.Title, &pr.Body,
+			&pr.State, &pr.HeadBranch, &pr.BaseBranch,
+			&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
+			&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA,
+			&pr.RepoOwner, &pr.RepoName,
+		); err != nil {
+			return nil, err
+		}
+		if mergedAt.Valid {
+			pr.MergedAt = &mergedAt.Time
+		}
+		if closedAt.Valid {
+			pr.ClosedAt = &closedAt.Time
+		}
+		if draftAt.Valid {
+			pr.DraftAt = &draftAt.Time
+		}
+		pr.AutoMergeStrategy = autoMergeStrategy.String
+		pr.HeadSHA = headSHA.String
+		prs = append(prs, pr)
+	}
+	return prs, rows.Err()
 }
 
 // AssignedAtForUser returns a map of pull_id → assignment created_at for all

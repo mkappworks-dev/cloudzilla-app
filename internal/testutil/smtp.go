@@ -106,6 +106,18 @@ func (m Mail) VerificationToken(t *testing.T) string {
 	return match[1]
 }
 
+var resetLinkRe = regexp.MustCompile(`https?://[^\s"<]+/auth/password/reset/([A-Za-z0-9_-]+)`)
+
+// PasswordResetToken returns the token in the message's password reset link.
+func (m Mail) PasswordResetToken(t *testing.T) string {
+	t.Helper()
+	match := resetLinkRe.FindStringSubmatch(m.Data)
+	if match == nil {
+		t.Fatalf("no password reset link in email: %.500s", m.Data)
+	}
+	return match[1]
+}
+
 var confirmCodeRe = regexp.MustCompile(`<strong>(\d{6})</strong>`)
 
 // ConfirmationCode returns the code in an emailed confirmation code.

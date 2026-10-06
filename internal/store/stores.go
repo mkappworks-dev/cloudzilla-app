@@ -28,6 +28,7 @@ type Stores struct {
 	PullReview         *PullReviewStore
 	PullLineComment    *PullLineCommentStore
 	PullEvent          *PullEventStore
+	IssueEvent         *IssueEventStore
 	Search             *SearchStore
 	AccessToken        *AccessTokenStore
 	DeployKey          *DeployKeyStore
@@ -52,6 +53,7 @@ type Stores struct {
 	CommitStats        *CommitStatsStore
 	ContributorStats   *ContributorStatsStore
 	EmailVerification  *EmailVerificationStore
+	PasswordReset      *PasswordResetStore
 	Health             *HealthStore
 	Avatar             *AvatarStore
 }
@@ -81,6 +83,7 @@ func New(database *sql.DB) *Stores {
 		PullReview:         NewPullReviewStore(database),
 		PullLineComment:    NewPullLineCommentStore(database),
 		PullEvent:          NewPullEventStore(database),
+		IssueEvent:         NewIssueEventStore(database),
 		Search:             NewSearchStore(database),
 		AccessToken:        NewAccessTokenStore(database),
 		DeployKey:          NewDeployKeyStore(database),
@@ -105,6 +108,7 @@ func New(database *sql.DB) *Stores {
 		CommitStats:        NewCommitStatsStore(database),
 		ContributorStats:   NewContributorStatsStore(database),
 		EmailVerification:  NewEmailVerificationStore(database),
+		PasswordReset:      NewPasswordResetStore(database),
 		Health:             NewHealthStore(database),
 		Avatar:             NewAvatarStore(database),
 	}

@@ -71,6 +71,24 @@ func (s *AuditService) Record(
 	}()
 }
 
+// RecordOffline writes an audit entry for an action with no HTTP request or
+// signed-in actor, such as a CLI command. Unlike Record it waits for the write,
+// because the process may exit right after.
+func (s *AuditService) RecordOffline(ctx context.Context, actorName, action, targetType string, targetID int64, targetName string, metadata map[string]any) error {
+	var tid *int64
+	if targetID != 0 {
+		tid = &targetID
+	}
+	return s.store.Create(ctx, &model.AuditEntry{
+		ActorName:  actorName,
+		Action:     action,
+		TargetType: targetType,
+		TargetID:   tid,
+		TargetName: targetName,
+		Metadata:   metadata,
+	})
+}
+
 // List returns a filtered, paginated slice of audit entries and the total count.
 func (s *AuditService) List(ctx context.Context, f model.AuditFilter, page, pageSize int) ([]model.AuditEntry, int, error) {
 	entries, err := s.store.List(ctx, f, page, pageSize)

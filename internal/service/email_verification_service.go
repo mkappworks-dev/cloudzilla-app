@@ -2,11 +2,7 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"html"
@@ -23,7 +19,6 @@ import (
 const (
 	EmailVerificationTTL      = 24 * time.Hour
 	EmailVerificationCooldown = time.Minute
-	verificationTokenBytes    = 32
 )
 
 var (
@@ -59,7 +54,7 @@ func (s *EmailVerificationService) Send(ctx context.Context, userID int64) error
 	if !s.Available() {
 		return ErrEmailVerificationUnavailable
 	}
-	raw, hash, err := newVerificationToken()
+	raw, hash, err := newLinkToken()
 	if err != nil {
 		return err
 	}
@@ -100,7 +95,7 @@ func (s *EmailVerificationService) LinkPending(ctx context.Context, userID int64
 
 // Check reports what Verify would do with rawToken, without spending it.
 func (s *EmailVerificationService) Check(ctx context.Context, rawToken string) (model.EmailVerificationLink, error) {
-	hash, ok := hashVerificationToken(rawToken)
+	hash, ok := hashLinkToken(rawToken)
 	if !ok {
 		return model.EmailVerificationLink{State: model.EmailVerificationInvalid}, nil
 	}
@@ -109,7 +104,7 @@ func (s *EmailVerificationService) Check(ctx context.Context, rawToken string) (
 
 // Verify spends rawToken. The user is returned only when it verified their address.
 func (s *EmailVerificationService) Verify(ctx context.Context, rawToken string) (model.EmailVerificationState, *model.User, error) {
-	hash, ok := hashVerificationToken(rawToken)
+	hash, ok := hashLinkToken(rawToken)
 	if !ok {
 		return model.EmailVerificationInvalid, nil, nil
 	}
@@ -137,28 +132,6 @@ func (s *EmailVerificationService) MarkVerified(ctx context.Context, username, e
 		return nil, ErrNoSuchUserEmail
 	}
 	return u, nil
-}
-
-func newVerificationToken() (raw, hash string, err error) {
-	b := make([]byte, verificationTokenBytes)
-	if _, err := rand.Read(b); err != nil {
-		return "", "", fmt.Errorf("generate verification token: %w", err)
-	}
-	raw = base64.RawURLEncoding.EncodeToString(b)
-	hash, _ = hashVerificationToken(raw)
-	return raw, hash, nil
-}
-
-// Anything but a well-formed token is refused before it reaches the database.
-func hashVerificationToken(raw string) (string, bool) {
-	if len(raw) != base64.RawURLEncoding.EncodedLen(verificationTokenBytes) {
-		return "", false
-	}
-	if _, err := base64.RawURLEncoding.DecodeString(raw); err != nil {
-		return "", false
-	}
-	sum := sha256.Sum256([]byte(raw))
-	return hex.EncodeToString(sum[:]), true
 }
 
 // Naming the account lets the owner of the address refuse to vouch for an
