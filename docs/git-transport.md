@@ -26,6 +26,27 @@ DELETE /api/user/keys/{id}
 - Fingerprints used for fast public key lookups during SSH handshakes
 - Users can have multiple keys with different titles
 
+### One fingerprint, one identity
+
+A fingerprint belongs to either a user SSH key or deploy keys, never both. `SSHKeyService.AddKey` refuses a key already in `deploy_keys` ("this key is already registered as a deploy key"), and `DeployKeyService.Add` refuses one already in `ssh_keys` ("this key is already registered as a user SSH key"). Both treat only `sql.ErrNoRows` as absent; any other lookup error fails the add.
+
+This matters because the SSH server's `publicKeyHandler` tries user keys first, then deploy keys: a key in both tables would authenticate as the user, shadowing the deploy key.
+
+The check is in the services, not the schema, so it has two gaps:
+
+- Rows added before both checks existed (`AddKey` had none) may already collide.
+- Two concurrent adds of the same key, one to each table, can both pass. Closing that needs a trigger or a shared fingerprint table.
+
+To find existing collisions:
+
+```sql
+SELECT s.fingerprint, s.id AS ssh_key_id, s.user_id, d.id AS deploy_key_id, d.repo_id
+FROM ssh_keys s
+JOIN deploy_keys d USING (fingerprint);
+```
+
+Resolve each by deleting whichever key the owner no longer wants; nothing removes them automatically.
+
 ---
 
 ## Git HTTP Smart Protocol

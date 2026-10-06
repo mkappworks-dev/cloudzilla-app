@@ -94,7 +94,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention),
 		Pull:             pullSvc,
 		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
-		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
+		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User, stores.DeployKey),
 		Code:             code,
 		Org:              orgSvc,
 		Webhook:          NewWebhookService(stores.Webhook, cfg.Webhook),
