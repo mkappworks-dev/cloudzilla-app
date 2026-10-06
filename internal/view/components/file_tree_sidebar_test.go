@@ -129,7 +129,27 @@ func TestFileTreeSidebar_ChevronRendersInItsState(t *testing.T) {
 	if got := strings.Count(out, `rotate-90"`); got != 1 {
 		t.Errorf("want only the open folder's chevron rendered rotated, got %d:\n%s", got, out)
 	}
-	if !strings.Contains(out, `:class="{ 'rotate-90': open }"`) {
+	if !strings.Contains(out, `:class="{ 'rotate-90': open || revealsChildren($el.closest('li')) }"`) {
 		t.Errorf("chevron binding must use the object form, which also removes a server-rendered class:\n%s", out)
+	}
+}
+
+func TestFileTreeSidebar_FilterRevealsNestedMatches(t *testing.T) {
+	out := renderSidebar(t, []TreeNode{
+		{Name: "lib", IsDir: true, Path: "lib", Href: "/o/r/tree/main/lib", Children: []TreeNode{
+			{Name: "inner.js", Path: "lib/inner.js", Href: "/o/r/blob/main/lib/inner.js"},
+		}},
+	})
+	for _, want := range []string{
+		`x-show="shows($el)"`,
+		`x-show="open || revealsChildren($el)"`,
+		`:class="{ 'rotate-90': open || revealsChildren($el.closest('li')) }"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("want %q in:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, `$el.dataset.name.toLowerCase().includes(filter`) {
+		t.Errorf("an item must not hide itself on its own name alone, or a match below it is hidden too:\n%s", out)
 	}
 }

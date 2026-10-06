@@ -18,7 +18,7 @@
 
 A ref may contain `/` (`feature/x`), so chi's one-segment `{ref}` can't tell where it ends. Handlers rejoin `{ref}` and `*` (`routeRefPath`) and split them with `CodeService.SplitRefPath`: the longest branch or tag that ends at a segment boundary wins, and otherwise the first segment is the ref. The new-file POST and archive routes take the whole tail as the ref.
 
-A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob pages share the file tree sidebar (`components.FileTreeSidebar`), built by `buildSidebarTree` from the requested ref and path. Folders the viewer opens stay open: `static/file_tree.js` keeps them in the per-repo session cookie `cz_tree_open`, which the server reads to render them open. A folder rendered closed loads its children once from `/fragments/{owner}/{repo}/tree/{ref}/{path}`.
+A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob pages share the file tree sidebar (`components.FileTreeSidebar`), built by `buildSidebarTree` from the requested ref and path. Folders the viewer opens stay open: `static/file_tree.js` keeps them in the per-repo session cookie `cz_tree_open`, which the server reads to render them open. A folder rendered closed loads its children once from `/fragments/{owner}/{repo}/tree/{ref}/{path}`. The filter shows each loaded item whose name matches along with the folders above it, deriving that from the DOM without touching `open` or the cookie.
 
 ---
 
