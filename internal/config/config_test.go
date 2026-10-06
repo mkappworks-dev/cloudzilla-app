@@ -121,3 +121,11 @@ func TestLoad_RateLimitRejectsBadValues(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad_RateLimitDisabledSkipsValidation(t *testing.T) {
+	t.Setenv("CZ_RATE_LIMIT_ENABLED", "false")
+	t.Setenv("CZ_RATE_LIMIT_WINDOW", "0s")
+	if _, err := config.Load(""); err != nil {
+		t.Errorf("a disabled limiter's settings don't matter; got %v", err)
+	}
+}

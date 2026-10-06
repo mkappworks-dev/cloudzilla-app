@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,7 +35,11 @@ func (t *tokenTable) Validate(_ context.Context, raw string) (*model.AccessToken
 	if err != nil {
 		return nil, nil, err
 	}
-	return &model.AccessToken{ID: u.ID * 100, Name: "ci", Scopes: []string{"repo"}}, u, nil
+	t2 := &model.AccessToken{ID: u.ID * 100, Name: "ci", Scopes: []string{"repo"}}
+	if strings.HasPrefix(raw, "czp_keybound") {
+		t2.SigningKey = "ssh-ed25519 AAAA"
+	}
+	return t2, u, nil
 }
 
 func (t *tokenTable) UpdateLastUsed(context.Context, int64) error { return nil }
@@ -107,7 +112,7 @@ func TestClassifyRequest(t *testing.T) {
 }
 
 func TestAPIRateLimit_Subject(t *testing.T) {
-	tokens := &tokenTable{users: map[string]int64{"czp_alice": 7, "oauth_alice": 7}}
+	tokens := &tokenTable{users: map[string]int64{"czp_alice": 7, "oauth_alice": 7, "czp_keybound": 7}}
 	l := newTestAPILimiter(nil, tokens, &fakeClock{})
 	session := makeValidJWT(t, 7, "alice", false)
 
@@ -125,6 +130,7 @@ func TestAPIRateLimit_Subject(t *testing.T) {
 		{"OAuth bearer", "/api/user", func(r *http.Request) { r.Header.Set("Authorization", "Bearer oauth_alice") }, "user:7:token", true},
 		{"git Basic PAT", "/acme/app/info/refs", func(r *http.Request) { r.SetBasicAuth("alice", "czp_alice") }, "user:7:token", true},
 		{"Basic PAT off git", "/api/user", func(r *http.Request) { r.SetBasicAuth("alice", "czp_alice") }, "ip:203.0.113.9", false},
+		{"key-bound PAT, whose signature only auth checks", "/api/user", func(r *http.Request) { r.Header.Set("Authorization", "Bearer czp_keybound") }, "ip:203.0.113.9", false},
 		{"unknown PAT", "/api/user", func(r *http.Request) { r.Header.Set("Authorization", "Bearer czp_nope") }, "ip:203.0.113.9", false},
 		{"unknown OAuth token", "/api/user", func(r *http.Request) { r.Header.Set("Authorization", "Bearer garbage") }, "ip:203.0.113.9", false},
 		{"expired session", "/", func(r *http.Request) { r.AddCookie(&http.Cookie{Name: "cz_token", Value: makeExpiredJWT(t)}) }, "ip:203.0.113.9", false},

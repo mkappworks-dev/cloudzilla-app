@@ -98,11 +98,12 @@ The limiter resolves the request's subject itself, because auth hasn't run yet:
 | Credential | Bucket key |
 | --- | --- |
 | Session JWT (cookie or `Bearer`) with a valid signature | `user:<id>:web` |
-| PAT (`Bearer czp_…`, or the Basic-auth password for git) that validates | `user:<id>:token` |
+| PAT (`Bearer czp_…`, or the Basic-auth password for git) that validates and isn't bound to a signing key | `user:<id>:token` |
 | OAuth-app token that resolves | `user:<id>:token` |
 | None, or one that doesn't verify | `ip:<IPv4>` or `ip:<IPv6 /64>` |
 
 - A credential that doesn't verify counts against the IP. Random tokens can't buy fresh buckets.
+- A PAT bound to a signing key also counts against the IP: only auth can check the request's signature, and a leaked token mustn't spend its owner's budget.
 - The key only picks a bucket; it never grants access. That is why the limiter skips the session-version check: a revoked but unexpired JWT is still signed by this server, so it can't be forged. Auth refuses it later.
 - A PAT or OAuth token that the limiter validated is stored in the request context. `servePAT`, `serveOAuth` and `resolveGitUser` use it instead of querying the database again.
 - Keeping browser sessions and tokens in separate buckets means a runaway CI token can't lock its owner out of the web UI. All of a user's tokens share one bucket, so minting more tokens doesn't raise the budget.
@@ -179,7 +180,7 @@ Suppose a request arrives with `X-Forwarded-For` from a peer that isn't in `serv
 
 Counts live in each process. Behind a round-robin load balancer, N instances allow up to N times each budget.
 
-The counter sits behind a small interface (`allow(key, limit, window, now) → remaining, reset, ok`). Phase 20.2 can then add a Postgres-backed one. Doing that now would add a database write to every request, page views included, before anything runs more than one instance.
+The counter is one small type (`fixedWindow.take(key, limit) → remaining, reset, ok`). Phase 20.2 can put a Postgres-backed one with the same method behind an interface. Doing that now would add a database write to every request, page views included, before anything runs more than one instance.
 
 `docs/deployment.md` states the limitation.
 
@@ -241,18 +242,18 @@ When a quota is set, user Settings and org settings show one line, for example `
 
 ### 01: rate limits
 
-- [ ] Anonymous requests to a counted route share a budget per IPv4 address or IPv6 /64. Over budget they get `429` with `Retry-After`.
-- [ ] A session request and a PAT request from the same user count against separate buckets. Two PATs of one user share a bucket.
-- [ ] `git clone` with a PAT as the Basic-auth password counts against the user's `token` bucket, not the IP.
-- [ ] A request carrying an invalid token counts against its IP.
-- [ ] A PAT is validated once per request, not once in the limiter and again in auth.
-- [ ] `git`, `archive` and `search` requests use their own budgets and leave `core` untouched. `POST /api/repos/{o}/{r}/archive` counts as `core`.
-- [ ] Counted responses carry `X-RateLimit-Limit`, `-Remaining`, `-Reset` and `-Resource`. Exempt paths carry none and are never refused.
-- [ ] A refused `/api/*` request gets a JSON error body, and git gets a plain-text one.
-- [ ] Every `rate_limit.*` key loads from YAML and from its `CZ_*` variable. `0` disables that class, a negative value fails startup, and `rate_limit.enabled: false` turns the limiter off.
-- [ ] The existing login and sign-up limits still apply with their own budgets, and `middleware.RateLimit`'s signature is unchanged.
-- [ ] `X-Forwarded-For` from an untrusted peer logs one warning per process.
-- [ ] `docs/configuration.md`, `docs/api-reference.md` (a Rate limits section) and `docs/deployment.md` describe the behaviour.
+- [x] Anonymous requests to a counted route share a budget per IPv4 address or IPv6 /64. Over budget they get `429` with `Retry-After`.
+- [x] A session request and a PAT request from the same user count against separate buckets. Two PATs of one user share a bucket.
+- [x] `git clone` with a PAT as the Basic-auth password counts against the user's `token` bucket, not the IP.
+- [x] A request carrying an invalid token counts against its IP.
+- [x] A PAT is validated once per request, not once in the limiter and again in auth.
+- [x] `git`, `archive` and `search` requests use their own budgets and leave `core` untouched. `POST /api/repos/{o}/{r}/archive` counts as `core`.
+- [x] Counted responses carry `X-RateLimit-Limit`, `-Remaining`, `-Reset` and `-Resource`. Exempt paths carry none and are never refused.
+- [x] A refused `/api/*` request gets a JSON error body, and git gets a plain-text one.
+- [x] Every `rate_limit.*` key loads from YAML and from its `CZ_*` variable. `0` disables that class, a negative value fails startup, and `rate_limit.enabled: false` turns the limiter off.
+- [x] The existing login and sign-up limits still apply with their own budgets, and `middleware.RateLimit`'s signature is unchanged.
+- [x] `X-Forwarded-For` from an untrusted peer logs one warning per process.
+- [x] `docs/configuration.md`, `docs/api-reference.md` (a Rate limits section) and `docs/deployment.md` describe the behaviour.
 
 ### 02: quotas
 

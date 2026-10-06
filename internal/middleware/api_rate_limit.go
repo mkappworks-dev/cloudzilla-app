@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-// Rate-limited resources. Each has its own budget per subject.
 const (
 	ResourceCore    = "core"
 	ResourceGit     = "git"
@@ -36,19 +35,16 @@ type APIRateLimitConfig struct {
 	OnLimited http.HandlerFunc
 }
 
-// exemptPaths, with everything under /static/, are never counted. Health and
-// metrics endpoints belong here too, since probes poll them.
+// exemptPaths, with everything under /static/, are never counted.
 var exemptPaths = map[string]bool{
 	"/htmx.min.js":   true,
 	"/alpine.min.js": true,
 	"/favicon.ico":   true,
 }
 
-// APIRateLimit charges every request that isn't exempt to one resource's
-// budget for its subject: the signed-in user, split into session and token
-// buckets, or else the client IPv4 address or IPv6 /64. It runs before routing,
-// so it resolves credentials itself; a token it looks up is kept in the request
-// context for Auth, OptionalAuth and ValidatePAT to reuse.
+// APIRateLimit charges each request to its subject's budget for one resource.
+// It runs before routing, so it resolves credentials itself and leaves what it
+// looked up in the request context for auth to reuse.
 func APIRateLimit(cfg APIRateLimitConfig) func(http.Handler) http.Handler {
 	return newAPIRateLimiter(cfg, time.Now).middleware
 }
@@ -88,7 +84,7 @@ func (l *apiRateLimiter) middleware(next http.Handler) http.Handler {
 		h := w.Header()
 		h.Set("X-RateLimit-Limit", strconv.Itoa(limit))
 		h.Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
-		h.Set("X-RateLimit-Reset", strconv.FormatInt(reset.Unix(), 10))
+		h.Set("X-RateLimit-Reset", strconv.FormatInt(reset.Add(time.Second-1).Unix(), 10))
 		h.Set("X-RateLimit-Resource", resource)
 		if !ok {
 			setRetryAfter(w, reset.Sub(l.counter.now()))
@@ -121,7 +117,9 @@ func (l *apiRateLimiter) subject(r *http.Request, resource string) (*http.Reques
 		}
 		token, user, err := l.cfg.PAT.Validate(r.Context(), raw)
 		r = withCredential(r, resolvedCredential{raw: raw, kind: credentialPAT, token: token, user: user, err: err})
-		if err != nil {
+		// A key-bound token proves nothing without its signature, which only auth can
+		// check, so a leaked one mustn't spend its owner's budget.
+		if err != nil || token.SigningKey != "" {
 			return r, ipKey, false
 		}
 		return r, tokenBucket(user.ID), true
@@ -145,18 +143,19 @@ func tokenBucket(userID int64) string {
 	return "user:" + strconv.FormatInt(userID, 10) + ":token"
 }
 
-// classifyRequest names the resource r is charged to, or reports that r isn't
-// counted. It runs before routing, so it matches the shapes of the routes'
-// paths, split as chi splits them.
+// classifyRequest names the resource r is charged to, or reports that r isn't counted.
 func classifyRequest(r *http.Request) (string, bool) {
-	path := r.URL.EscapedPath()
+	path := r.URL.RawPath
+	if path == "" {
+		path = r.URL.Path
+	}
 	if exemptPaths[path] || strings.HasPrefix(path, "/static/") {
 		return "", false
 	}
 	if path == "/search" || path == "/search/code" {
 		return ResourceSearch, true
 	}
-	seg := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	seg := pathSegments(r)
 	if seg[0] == "api" {
 		return ResourceCore, true
 	}

@@ -55,7 +55,7 @@ All config keys can be overridden via environment variables using the `CZ_` pref
 Each request counts against one resource's budget for its subject, per `rate_limit.window`:
 
 - **Resources.** `git` is `…/info/refs`, `…/git-upload-pack` and `…/git-receive-pack`: a clone, fetch or push is two requests. `archive` is `GET /{owner}/{repo}/archive/…`. `search` is `/search` and `/search/code`. `core` is everything else. Static assets (`/static/*`, `/htmx.min.js`, `/alpine.min.js`, `/favicon.ico`) aren't counted.
-- **Subjects.** A signed-in user has two buckets, each with the full `authenticated` budget: `web` for browser sessions, and `token` shared by all of their personal access tokens and OAuth-app tokens. Anything else, including a credential that doesn't verify, counts against the client's IPv4 address or IPv6 /64 with the `anonymous` budget.
+- **Subjects.** A signed-in user has two buckets, each with the full `authenticated` budget: `web` for browser sessions, and `token` shared by all of their personal access tokens and OAuth-app tokens. Anything else, including a credential that doesn't verify and a token bound to a signing key (whose signature only the route can check), counts against the client's IPv4 address or IPv6 /64 with the `anonymous` budget.
 - `0` makes a budget unlimited. A negative budget, or a window that isn't positive, stops the server at startup.
 
 The per-IP limits on sign-up and password login (see [Deployment](./deployment.md#behind-a-reverse-proxy)) apply on top and can't be configured. Behind a proxy, set `server.trusted_proxies`, or every anonymous client shares the proxy's budget. Git over SSH isn't rate-limited. API clients see their budget in response headers; see [Rate limits](./api-reference.md#rate-limits).

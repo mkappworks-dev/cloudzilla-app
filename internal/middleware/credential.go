@@ -18,9 +18,7 @@ const (
 	credentialOAuth
 )
 
-// resolvedCredential is what APIRateLimit learned about a raw credential, so
-// auth doesn't query the database for it a second time. A failed lookup is
-// kept too: err is what the lookup returned.
+// resolvedCredential is APIRateLimit's lookup of raw, failures included, so auth needn't repeat it.
 type resolvedCredential struct {
 	raw    string
 	kind   credentialKind

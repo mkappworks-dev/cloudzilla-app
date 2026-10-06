@@ -89,6 +89,9 @@ type RateBudget struct {
 }
 
 func (c RateLimitConfig) validate() error {
+	if !c.Enabled {
+		return nil
+	}
 	if c.Window <= 0 {
 		return fmt.Errorf("rate_limit.window must be positive, got %s", c.Window)
 	}

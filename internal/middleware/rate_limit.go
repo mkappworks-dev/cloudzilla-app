@@ -53,9 +53,7 @@ func rateLimitKey(r *http.Request) string {
 	return netip.PrefixFrom(addr, 64).Masked().String()
 }
 
-// fixedWindow counts requests per key in windows that start at a key's first
-// request. A Postgres-backed counter with the same take could replace it once
-// several instances need to share budgets.
+// fixedWindow counts requests per key in windows that start at a key's first request.
 type fixedWindow struct {
 	window time.Duration
 	now    func() time.Time

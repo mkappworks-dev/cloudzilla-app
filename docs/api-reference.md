@@ -4,7 +4,7 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ## Rate limits
 
-Every request except static assets counts against a budget per hour by default ([configuration](./configuration.md#rate-limits)). A signed-in user's browser sessions share one bucket, and all of their personal access tokens and OAuth-app tokens share another, so a busy CI token can't lock its owner out of the web UI. Requests without a valid credential count per IPv4 address or IPv6 /64. Each bucket has a separate budget for each resource:
+Every request except static assets counts against a budget per hour by default ([configuration](./configuration.md#rate-limits)). A signed-in user's browser sessions share one bucket, and all of their personal access tokens and OAuth-app tokens share another, so a busy CI token can't lock its owner out of the web UI. Requests without a valid credential count per IPv4 address or IPv6 /64, and so do requests made with a token bound to a signing key, so a leaked one can't spend its owner's budget. Each bucket has a separate budget for each resource:
 
 | Resource  | Requests                                                                       | Signed in | Anonymous |
 | --------- | ------------------------------------------------------------------------------ | --------- | --------- |
