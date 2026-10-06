@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -128,23 +128,23 @@ Every account created before migration 091 starts unverified, and so does every 
 
 Items marked (Qn) follow the answer to that open question (see Comments).
 
-- [ ] With SMTP on, `/login` links to `/auth/password/forgot`. With SMTP off, it doesn't, and the forgot page says to ask an administrator.
-- [ ] The forgot form returns the same page, status and timing for a registered address, an unregistered one and a passwordless one. Only a malformed address gets a different response (the form error).
-- [ ] A registered address with a password gets one email per 5 minutes at most, however many requests arrive, across instances.
-- [ ] The link is a 32-byte random token. Only its SHA-256 is stored, and its path is logged as the route pattern.
-- [ ] `GET` on a link doesn't spend it, names the account, and sends `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.
-- [ ] A link works once, only within 1 hour (24 hours when issued by an admin or the CLI), and only for the newest link.
-- [ ] A link stops working after a password change, a sign-out-everywhere, or an email change.
-- [ ] A short, overlong or mismatched new password re-renders the form without spending the link.
-- [ ] A successful reset sets the new hash, bumps `session_version` (so every existing session is refused), redirects to `/login` with a notice, and signs nobody in.
-- [ ] A 2FA account still needs its TOTP code at the next sign-in. (Q2) The reset form also requires a TOTP or backup code; a wrong one counts against the per-user reauth limit and doesn't spend the link.
-- [ ] (Q1) Personal access tokens, OAuth app grants and SSH keys keep working. The notice says so and links to settings.
-- [ ] (Q3) An account without a password gets the "signs in with …" note, never a link. `IssueLink` refuses it.
-- [ ] (Q4) `cloudzilla-cli password-reset-link <username>` prints a 24-hour link, works without SMTP, refuses an account without a password, and writes `user.password.reset_link` to the audit log.
-- [ ] (Q5) Unverified addresses can reset, and a completed reset sets `email_verified_at`.
-- [ ] A completed reset mails the "password was reset" notice and writes `user.password.reset` to the audit log.
-- [ ] `POST /auth/password/forgot` and `POST /auth/password/reset/{token}` answer `429` past 10 requests per IP per 15 minutes.
-- [ ] `docs/access-control.md` and `docs/configuration.md` describe the flow, routes and limits.
+- [x] With SMTP on, `/login` links to `/auth/password/forgot`. With SMTP off, it doesn't, and the forgot page says to ask an administrator.
+- [x] The forgot form returns the same page, status and timing for a registered address, an unregistered one and a passwordless one. Only a malformed address gets a different response (the form error).
+- [x] A registered address with a password gets one email per 5 minutes at most, however many requests arrive, across instances.
+- [x] The link is a 32-byte random token. Only its SHA-256 is stored, and its path is logged as the route pattern.
+- [x] `GET` on a link doesn't spend it, names the account, and sends `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.
+- [x] A link works once, only within 1 hour (24 hours when issued by an admin or the CLI), and only for the newest link.
+- [x] A link stops working after a password change, a sign-out-everywhere, or an email change.
+- [x] A short, overlong or mismatched new password re-renders the form without spending the link.
+- [x] A successful reset sets the new hash, bumps `session_version` (so every existing session is refused), redirects to `/login` with a notice, and signs nobody in.
+- [x] A 2FA account still needs its TOTP code at the next sign-in. (Q2) The reset form also requires a TOTP or backup code; a wrong one counts against the per-user reauth limit and doesn't spend the link.
+- [x] (Q1) Personal access tokens, OAuth app grants and SSH keys keep working. The notice says so and links to settings.
+- [x] (Q3) An account without a password gets the "signs in with …" note, never a link. `IssueLink` refuses it.
+- [x] (Q4) `cloudzilla-cli password-reset-link <username>` prints a 24-hour link, works without SMTP, refuses an account without a password, and writes `user.password.reset_link` to the audit log.
+- [x] (Q5) Unverified addresses can reset, and a completed reset from an emailed link sets `email_verified_at`.
+- [x] A completed reset mails the "password was reset" notice and writes `user.password.reset` to the audit log.
+- [x] `POST /auth/password/forgot` and `POST /auth/password/reset/{token}` answer `429` past 10 requests per IP per 15 minutes.
+- [x] `docs/access-control.md` and `docs/configuration.md` describe the flow, routes and limits.
 
 ## Relevant files
 
@@ -189,3 +189,9 @@ Claude, 2026-10-06: The user chose the recommended option for questions 1–4:
 Claude, 2026-10-06: The user chose the recommended option for question 5: unverified addresses get the link, and a completed reset sets `email_verified_at`. An address that is already verified keeps its original timestamp.
 
 Claude, 2026-10-06: UI picks. **Forgot password?** goes right-aligned on the Password label row of `/login`. The forgot, "check your inbox" and reset pages reuse the login/register auth card: heading, one short paragraph, fields, a full-width button, and a "Back to sign in" link. The reset page names the account under its heading.
+
+Claude, 2026-10-06: Built on `feat/password-reset`. Changes from the design above:
+
+- Q5 applies to emailed links only. A CLI or admin link is handed over by hand, so spending it proves nothing about the mailbox. Verifying from it would let an account registered with someone else's unverified address capture that person's later Google sign-in (found in the security review).
+- The cooldown uses a separate `emailed_at` column, so a manual link doesn't reset it. While a manual link is still usable, the forgot form sends nothing, so nobody can cancel that link with a form request.
+- The audit entry from the CLI has no actor ID and the actor name `cloudzilla-cli`, written through the new `AuditService.RecordOffline`.

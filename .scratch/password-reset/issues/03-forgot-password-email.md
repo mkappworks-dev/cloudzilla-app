@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -17,15 +17,19 @@ The self-service entry point.
 
 ## Acceptance criteria
 
-- [ ] With SMTP on, `/login` links to `/auth/password/forgot`. With SMTP off it doesn't, and the forgot page says to ask an administrator.
-- [ ] The forgot form returns the same page, status and timing for a registered address, an unregistered one and a passwordless one. Only a malformed address gets a different response (the form error).
-- [ ] A registered address gets one email per 5 minutes at most, however many requests arrive, across instances.
-- [ ] An unverified address gets a link like a verified one.
-- [ ] An account without a password gets the "signs in with Google / single sign-on" note and never a link.
-- [ ] An emailed link expires after 1 hour.
-- [ ] `POST /auth/password/forgot` answers `429` past 10 requests per IP per 15 minutes.
-- [ ] `docs/access-control.md` and `docs/configuration.md` describe the flow, routes and limits.
+- [x] With SMTP on, `/login` links to `/auth/password/forgot`. With SMTP off it doesn't, and the forgot page says to ask an administrator.
+- [x] The forgot form returns the same page, status and timing for a registered address, an unregistered one and a passwordless one. Only a malformed address gets a different response (the form error).
+- [x] A registered address gets one email per 5 minutes at most, however many requests arrive, across instances.
+- [x] An unverified address gets a link like a verified one.
+- [x] An account without a password gets the "signs in with Google / single sign-on" note and never a link.
+- [x] An emailed link expires after 1 hour.
+- [x] `POST /auth/password/forgot` answers `429` past 10 requests per IP per 15 minutes.
+- [x] `docs/access-control.md` and `docs/configuration.md` describe the flow, routes and limits.
 
 ## Blocked by
 
 - 01-reset-link-and-form
+
+## Comments
+
+Claude, 2026-10-06: Done. The link sits right-aligned on the Password label row, as picked. While a CLI or admin link is still usable, the forgot form sends nothing, so it can't cancel that link.

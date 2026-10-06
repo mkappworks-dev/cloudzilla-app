@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -14,12 +14,16 @@ A cobra subcommand in `cmd/cloudzilla/`, registered next to `gc`, `stats` and `s
 
 ## Acceptance criteria
 
-- [ ] `cloudzilla-cli password-reset-link <username>` prints a link that works for 24 hours, with SMTP unset.
-- [ ] It exits non-zero with a clear message for an unknown user or an account without a password, and issues nothing.
-- [ ] Running it again replaces the outstanding link (the old one stops working) and ignores the email cooldown.
-- [ ] It writes `user.password.reset_link` to the audit log with no actor, the user as target, and `{"issued_by":"cli"}`.
-- [ ] `docs/access-control.md` documents the command.
+- [x] `cloudzilla-cli password-reset-link <username>` prints a link that works for 24 hours, with SMTP unset.
+- [x] It exits non-zero with a clear message for an unknown user or an account without a password, and issues nothing.
+- [x] Running it again replaces the outstanding link (the old one stops working) and ignores the email cooldown.
+- [x] It writes `user.password.reset_link` to the audit log with no actor, the user as target, and `{"issued_by":"cli"}`.
+- [x] `docs/access-control.md` documents the command.
 
 ## Blocked by
 
 - 01-reset-link-and-form
+
+## Comments
+
+Claude, 2026-10-06: Done. `cmd/cloudzilla/password_reset_link.go` writes the audit entry through `AuditService.RecordOffline` and prints the link only once that write succeeds. The audit entry has no actor ID and the actor name `cloudzilla-cli`. A CLI link doesn't verify the address.

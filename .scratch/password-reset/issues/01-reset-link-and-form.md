@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -19,19 +19,23 @@ The core of the reset, end to end. It works before any email is sent, because te
 
 ## Acceptance criteria
 
-- [ ] The link is a 32-byte random token, only its SHA-256 is stored, and its path is logged as the route pattern.
-- [ ] `GET` doesn't spend the link, names the account, and sends `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.
-- [ ] A link works once, only before it expires, and only while it is the newest link for its account.
-- [ ] A link stops working after a password change, a sign-out-everywhere, or an email change.
-- [ ] A short, overlong or mismatched new password re-renders the form without spending the link.
-- [ ] A 2FA account must enter a TOTP or backup code. A wrong code counts against the per-user reauth limit and doesn't spend the link. The next sign-in still asks for TOTP.
-- [ ] A successful reset sets the new hash, bumps `session_version` (so existing sessions are refused), sets `email_verified_at` if it was unset, redirects to `/login` with a notice, and signs nobody in.
-- [ ] Personal access tokens, OAuth app grants and SSH keys keep working, and the notice says so and links to settings.
-- [ ] `IssueLink` refuses an account without a password.
-- [ ] A completed reset sends the "password was reset" notice and writes `user.password.reset` with `issued_by` in its metadata.
-- [ ] `POST /auth/password/reset/{token}` answers `429` past 10 requests per IP per 15 minutes.
-- [ ] Store and service integration tests cover each spend condition and the race of two concurrent spends.
+- [x] The link is a 32-byte random token, only its SHA-256 is stored, and its path is logged as the route pattern.
+- [x] `GET` doesn't spend the link, names the account, and sends `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.
+- [x] A link works once, only before it expires, and only while it is the newest link for its account.
+- [x] A link stops working after a password change, a sign-out-everywhere, or an email change.
+- [x] A short, overlong or mismatched new password re-renders the form without spending the link.
+- [x] A 2FA account must enter a TOTP or backup code. A wrong code counts against the per-user reauth limit and doesn't spend the link. The next sign-in still asks for TOTP.
+- [x] A successful reset sets the new hash, bumps `session_version` (so existing sessions are refused), sets `email_verified_at` if it was unset and the link was emailed, redirects to `/login` with a notice, and signs nobody in.
+- [x] Personal access tokens, OAuth app grants and SSH keys keep working, and the notice says so and links to settings.
+- [x] `IssueLink` refuses an account without a password.
+- [x] A completed reset sends the "password was reset" notice and writes `user.password.reset` with `issued_by` in its metadata.
+- [x] `POST /auth/password/reset/{token}` answers `429` past 10 requests per IP per 15 minutes.
+- [x] Integration tests cover each spend condition and the race of two concurrent spends.
 
 ## Blocked by
 
 None.
+
+## Comments
+
+Claude, 2026-10-06: Done. The spend conditions and the race are tested through `PasswordResetService` (`internal/service/password_reset_service_test.go`), which runs the real store against Postgres, rather than in a separate store test. The full flow, the headers, the old-session and PAT checks, and the rate limits are tested through the router (`internal/router/password_reset_test.go`).
