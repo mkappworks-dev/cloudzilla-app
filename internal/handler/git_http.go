@@ -47,7 +47,7 @@ func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 	if !ok || !strings.HasPrefix(password, "czp_") {
 		return nil, nil
 	}
-	token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
+	token, user, err := middleware.ValidatePAT(r, h.Services.AccessToken, password)
 	if err != nil {
 		return nil, nil
 	}

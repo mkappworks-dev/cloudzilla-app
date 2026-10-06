@@ -49,6 +49,22 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS(cfg.Server.BaseURL))
+	if rl := cfg.RateLimit; rl.Enabled {
+		r.Use(middleware.APIRateLimit(middleware.APIRateLimitConfig{
+			Window: rl.Window,
+			Budgets: map[string]middleware.RateBudget{
+				middleware.ResourceCore:    middleware.RateBudget(rl.Core),
+				middleware.ResourceGit:     middleware.RateBudget(rl.Git),
+				middleware.ResourceArchive: middleware.RateBudget(rl.Archive),
+				middleware.ResourceSearch:  middleware.RateBudget(rl.Search),
+			},
+			JWTSecret:  cfg.Auth.JWTSecret,
+			CookieName: cfg.Auth.CookieName,
+			PAT:        services.AccessToken,
+			OAuth:      services.OAuthApp,
+			OnLimited:  h.RateLimited,
+		}))
+	}
 	// CSRF parses forms ahead of routing, so the cap is global and sized for the largest form, the New file upload.
 	r.Use(middleware.MaxFormBodySize(handler.MaxNewFileBodyBytes))
 	r.Use(middleware.CSRF(cfg.Auth.CookieSecure))
