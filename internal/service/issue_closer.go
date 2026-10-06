@@ -28,7 +28,7 @@ func (r closingRefResolver) resolve(ctx context.Context, refs []ClosingRef, cont
 	var out []model.Issue
 	for _, ref := range refs {
 		repo := contextRepo
-		if ref.Owner != "" && !(strings.EqualFold(ref.Owner, contextRepo.OwnerName) && strings.EqualFold(ref.Repo, contextRepo.Name)) {
+		if ref.Owner != "" && (!strings.EqualFold(ref.Owner, contextRepo.OwnerName) || !strings.EqualFold(ref.Repo, contextRepo.Name)) {
 			other, err := r.repos.GetByOwnerName(ctx, ref.Owner, ref.Repo)
 			if err != nil {
 				continue

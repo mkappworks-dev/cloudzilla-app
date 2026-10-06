@@ -48,6 +48,9 @@ func linkSources(t *testing.T, db *sql.DB, pullID int64) map[int64]string {
 		}
 		out[id] = src
 	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
 	return out
 }
 
