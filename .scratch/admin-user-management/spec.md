@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -86,7 +86,7 @@ Audit actions: `admin.user.suspend` (metadata: reason), `admin.user.unsuspend`, 
 
 Refusing self-destructive actions means one admin alone can't remove the last active superadmin. Two cases remain:
 
-- **Concurrent actions.** Admins A and B each demote, suspend or delete the other at the same moment. Each check passes on its own. Each of these updates locks the active superadmin rows (`SELECT … FOR UPDATE`) and re-counts in the same transaction, so the second one fails.
+- **Concurrent actions.** Admins A and B each demote, suspend or delete the other at the same moment. Each check passes on its own. Each of these updates locks the active superadmin rows (`SELECT … FOR NO KEY UPDATE`) and re-counts in the same transaction, so the second one fails.
 - **Self-service deletion.** `DeleteUser` refuses (`ErrLastSuperadmin`, shown on Settings) when the account is the last active superadmin, under the same lock.
 
 ### What a suspended account shows
@@ -97,24 +97,24 @@ A suspended user who signs in with correct credentials sees "This account is sus
 
 ## Acceptance criteria
 
-- [ ] `/admin/users` lists every account but the ghost, 50 per page, with total count, `q` prefix search on username and email, and role and status filters; non-superadmins get `403`.
-- [ ] `/admin/users/{username}` shows the account's details and actions; an unknown or ghost username is a `404`.
-- [ ] A suspended user's existing web sessions stop working on their next request, and stay dead after unsuspension.
-- [ ] A suspended user can't start a session by password (web or API), Google, LDAP, SAML or the TOTP step, and sees the suspension message only after correct credentials.
-- [ ] A suspended user's PATs are refused on the API (`403 account_suspended`) and on git HTTP (`403`, not `401`).
-- [ ] A suspended user's OAuth app tokens are refused.
-- [ ] A suspended user's SSH keys are refused, and so are deploy keys on their personal repos; deploy keys on org repos still work.
-- [ ] After unsuspension, PATs, SSH keys, deploy keys and OAuth app tokens work again.
-- [ ] Promote and demote take effect on the user's next request, without signing them out.
-- [ ] Reset 2FA clears the secret, flag and backup codes, and mails the user.
-- [ ] Revoke tokens and keys deletes the user's PATs, SSH keys and OAuth app authorizations, ends their sessions, and mails the user; deploy keys are untouched.
-- [ ] The suspend dialog names the organizations the user solely owns.
-- [ ] Admin delete removes the account like self-service deletion, and refuses a sole organization owner.
-- [ ] No action applies to the acting admin's own account (except promote, which is moot).
-- [ ] No sequence of actions, concurrent or not, and no self-service deletion leaves zero active superadmins.
-- [ ] Every action needs the admin's password (and 2FA code) and writes its audit entry.
-- [ ] A suspended user gets no notification email.
-- [ ] `docs/access-control.md` (endpoint matrix, instance roles, a new "Suspended accounts" section) and `docs/api-reference.md` describe the new routes and behaviour.
+- [x] `/admin/users` lists every account but the ghost, 50 per page, with total count, `q` prefix search on username and email, and role and status filters; non-superadmins get `403`.
+- [x] `/admin/users/{username}` shows the account's details and actions; an unknown or ghost username is a `404`.
+- [x] A suspended user's existing web sessions stop working on their next request, and stay dead after unsuspension.
+- [x] A suspended user can't start a session by password (web or API), Google, LDAP, SAML or the TOTP step, and sees the suspension message only after correct credentials.
+- [x] A suspended user's PATs are refused on the API (`403 account_suspended`) and on git HTTP (`403`, not `401`).
+- [x] A suspended user's OAuth app tokens are refused.
+- [x] A suspended user's SSH keys are refused, and so are deploy keys on their personal repos; deploy keys on org repos still work.
+- [x] After unsuspension, PATs, SSH keys, deploy keys and OAuth app tokens work again.
+- [x] Promote and demote take effect on the user's next request, without signing them out.
+- [x] Reset 2FA clears the secret, flag and backup codes, and mails the user.
+- [x] Revoke tokens and keys deletes the user's PATs, SSH keys and OAuth app authorizations, ends their sessions, and mails the user; deploy keys are untouched.
+- [x] The suspend dialog names the organizations the user solely owns.
+- [x] Admin delete removes the account like self-service deletion, and refuses a sole organization owner.
+- [x] No action applies to the acting admin's own account (except promote, which is moot).
+- [x] No sequence of actions, concurrent or not, and no self-service deletion leaves zero active superadmins.
+- [x] Every action needs the admin's password (and 2FA code) and writes its audit entry.
+- [x] A suspended user gets no notification email.
+- [x] `docs/access-control.md` (endpoint matrix, instance roles, a new "Suspended accounts" section) and `docs/api-reference.md` describe the new routes and behaviour.
 
 ## Relevant files
 

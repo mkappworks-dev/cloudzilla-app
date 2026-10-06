@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -18,9 +18,9 @@ Three more actions on the user page, same pattern as ticket 05:
 
 ## Acceptance criteria
 
-- [ ] Promote and demote take effect on the user's next request, without signing them out.
-- [ ] Reset 2FA clears the secret, flag and backup codes, and mails the user.
-- [ ] No action applies to the acting admin's own account (except promote, which is moot).
+- [x] Promote and demote take effect on the user's next request, without signing them out.
+- [x] Reset 2FA clears the secret, flag and backup codes, and mails the user.
+- [x] No action applies to the acting admin's own account (except promote, which is moot).
 
 ## Tests
 

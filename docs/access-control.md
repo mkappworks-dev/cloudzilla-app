@@ -430,11 +430,11 @@ Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin'
 | `revoke-credentials` | Deletes the account's PATs, SSH keys and OAuth app authorizations and bumps `session_version`; mails a security notice. Deploy keys and OAuth apps it owns stay | — | `admin.user.credentials_revoke` (counts) |
 | `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion) | The account solely owns an organization; it would leave no active superadmin | `admin.user.delete` (email) |
 
-An **active superadmin** is `is_superadmin AND suspended_at IS NULL`, excluding the ghost. Refusing the admin's own account keeps one admin alone from removing the last one; for concurrent actions, suspend, demote and account deletion each lock every active superadmin row (`SELECT … FOR UPDATE`, ordered by id, before any other row lock) and re-count in the same transaction (`keepActiveSuperadmin`), so of two admins removing each other, the second fails with `ErrLastSuperadmin`.
+An **active superadmin** is `is_superadmin AND suspended_at IS NULL`, excluding the ghost. Refusing the admin's own account keeps one admin alone from removing the last one; for concurrent actions, suspend, demote and account deletion each lock every active superadmin row (`SELECT … FOR NO KEY UPDATE`, ordered by id, before any other row lock) and re-count in the same transaction (`keepActiveSuperadmin`), so of two admins removing each other, the second fails with `ErrLastSuperadmin`.
 
 ## Suspended accounts
 
-`users.suspended_at` (migration 102) is set while an account is suspended. Who did it, and why, are in the audit log. A suspended account loses every way in:
+`users.suspended_at` (migration 103) is set while an account is suspended. Who did it, and why, are in the audit log. A suspended account loses every way in:
 
 | Way in | Where it's refused |
 | --- | --- |

@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -14,7 +14,7 @@ A new admin tab, `GET /admin/users`, behind `authMW` and `superadminMW`. `UserSt
 
 ## Acceptance criteria
 
-- [ ] `/admin/users` lists every account but the ghost, 50 per page, with total count, `q` prefix search on username and email, and role and status filters; non-superadmins get `403`.
+- [x] `/admin/users` lists every account but the ghost, 50 per page, with total count, `q` prefix search on username and email, and role and status filters; non-superadmins get `403`.
 
 ## Tests
 

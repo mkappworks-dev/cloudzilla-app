@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -21,14 +21,14 @@ Add `users.suspended_at TIMESTAMPTZ` (next free migration number) and `model.Use
 
 ## Acceptance criteria
 
-- [ ] A suspended user's existing web sessions stop working on their next request.
-- [ ] A suspended user can't start a session by password (web or API), Google, LDAP, SAML or the TOTP step, and sees the suspension message only after correct credentials.
-- [ ] A suspended user's PATs are refused on the API (`403 account_suspended`) and on git HTTP (`403`, not `401`).
-- [ ] A suspended user's OAuth app tokens are refused.
-- [ ] A suspended user's SSH keys are refused, and so are deploy keys on their personal repos; deploy keys on org repos still work.
-- [ ] Clearing `suspended_at` makes PATs, SSH keys, deploy keys and OAuth app tokens work again.
-- [ ] A suspended user gets no notification email.
-- [ ] `docs/access-control.md` gains a "Suspended accounts" section.
+- [x] A suspended user's existing web sessions stop working on their next request.
+- [x] A suspended user can't start a session by password (web or API), Google, LDAP, SAML or the TOTP step, and sees the suspension message only after correct credentials.
+- [x] A suspended user's PATs are refused on the API (`403 account_suspended`) and on git HTTP (`403`, not `401`).
+- [x] A suspended user's OAuth app tokens are refused.
+- [x] A suspended user's SSH keys are refused, and so are deploy keys on their personal repos; deploy keys on org repos still work.
+- [x] Clearing `suspended_at` makes PATs, SSH keys, deploy keys and OAuth app tokens work again.
+- [x] A suspended user gets no notification email.
+- [x] `docs/access-control.md` gains a "Suspended accounts" section.
 
 ## Tests
 

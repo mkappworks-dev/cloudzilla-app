@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -22,12 +22,12 @@ The public profile (`user.templ`) shows a "Suspended" badge to superadmins only.
 
 ## Acceptance criteria
 
-- [ ] `/admin/users/{username}` shows the account's details and actions; an unknown or ghost username is a `404`.
-- [ ] Suspension ends existing sessions, which stay dead after unsuspension.
-- [ ] Revoke tokens and keys deletes the user's PATs, SSH keys and OAuth app authorizations, ends their sessions, and mails the user; deploy keys are untouched.
-- [ ] The suspend dialog names the organizations the user solely owns.
-- [ ] Each action refuses the acting admin's own account, needs the admin's password (and 2FA code), and writes its audit entry.
-- [ ] The profile's "Suspended" badge shows only to superadmins.
+- [x] `/admin/users/{username}` shows the account's details and actions; an unknown or ghost username is a `404`.
+- [x] Suspension ends existing sessions, which stay dead after unsuspension.
+- [x] Revoke tokens and keys deletes the user's PATs, SSH keys and OAuth app authorizations, ends their sessions, and mails the user; deploy keys are untouched.
+- [x] The suspend dialog names the organizations the user solely owns.
+- [x] Each action refuses the acting admin's own account, needs the admin's password (and 2FA code), and writes its audit entry.
+- [x] The profile's "Suspended" badge shows only to superadmins.
 
 ## Tests
 

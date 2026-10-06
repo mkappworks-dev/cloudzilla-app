@@ -52,42 +52,42 @@ docs/access-control.md, docs/api-reference.md
 
 ## Task 1 — suspension (ticket 01)
 
-- [ ] Migration `ALTER TABLE users ADD COLUMN suspended_at TIMESTAMPTZ`.
-- [ ] `SuspendedAt *time.Time` in the model, `userColumns` and `scanUser`.
-- [ ] Failing tests for each way in, then the checks.
-- [ ] `SessionVersion` → `SessionState` returning version and superadmin flag, refusing suspended users.
-- [ ] `ErrAccountSuspended` surfaced by `servePAT`/`serveOAuth` (403), `resolveGitUser` (403), sign-in pages and `POST /api/auth/login`.
-- [ ] SSH user and deploy keys; `wantsEmail`.
+- [x] Migration `ALTER TABLE users ADD COLUMN suspended_at TIMESTAMPTZ`.
+- [x] `SuspendedAt *time.Time` in the model, `userColumns` and `scanUser`.
+- [x] Failing tests for each way in, then the checks.
+- [x] `SessionVersion` → `SessionState` returning version and superadmin flag, refusing suspended users.
+- [x] `ErrAccountSuspended` surfaced by `servePAT`/`serveOAuth` (403), `resolveGitUser` (403), sign-in pages and `POST /api/auth/login`.
+- [x] SSH user and deploy keys; `wantsEmail`.
 
 ## Task 2 — fresh superadmin (ticket 02)
 
-- [ ] Middleware test, then overwrite `claims.IsSuperadmin` from `SessionState`.
+- [x] Middleware test, then overwrite `claims.IsSuperadmin` from `SessionState`.
 
 ## Task 3 — last superadmin (ticket 03)
 
-- [ ] `lockActiveSuperadmins(tx, excluding)` helper; `ErrLastSuperadmin`.
-- [ ] `DeleteWithOwnedRepos` runs it; `DeleteAccount` shows the message.
+- [x] `lockActiveSuperadmins(tx, excluding)` helper; `ErrLastSuperadmin`.
+- [x] `DeleteWithOwnedRepos` runs it; `DeleteAccount` shows the message.
 
 ## Task 4 — list (ticket 04)
 
-- [ ] `ListForAdmin` store test, then the query.
-- [ ] Handler, view-model, templ, tab, route.
+- [x] `ListForAdmin` store test, then the query.
+- [x] Handler, view-model, templ, tab, route.
 
 ## Task 5 — user page, suspend, unsuspend, revoke (ticket 05)
 
-- [ ] Store methods and tests; `AdminUserService` with self and last-admin guards and audit.
-- [ ] Handler, templ with `ConfirmFields`, routes, profile badge.
+- [x] Store methods and tests; `AdminUserService` with self and last-admin guards and audit.
+- [x] Handler, templ with `ConfirmFields`, routes, profile badge.
 
 ## Task 6 — promote, demote, 2FA reset (ticket 06)
 
-- [ ] Store and service, tests, handler and buttons.
+- [x] Store and service, tests, handler and buttons.
 
 ## Task 7 — delete (ticket 07)
 
-- [ ] Service and handler with typed-username check; docs.
+- [x] Service and handler with typed-username check; docs.
 
 ## Task 8 — review
 
-- [ ] `go vet ./...`, `go test ./...` with `TEST_DATABASE_DSN`, `make generate-templ` leaves no diff.
-- [ ] Subagent review pass; fix findings.
-- [ ] Tick acceptance criteria; set `Status: done` on spec and tickets.
+- [x] `go vet ./...`, `go test ./...` with `TEST_DATABASE_DSN`, `make generate-templ` leaves no diff.
+- [x] Subagent review pass; fix findings.
+- [x] Tick acceptance criteria; set `Status: done` on spec and tickets.

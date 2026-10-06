@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -16,8 +16,8 @@ Document the new routes in `docs/api-reference.md` and the endpoint matrix and i
 
 ## Acceptance criteria
 
-- [ ] Admin delete removes the account like self-service deletion, and refuses a sole organization owner.
-- [ ] `docs/access-control.md` (endpoint matrix, instance roles, "Suspended accounts") and `docs/api-reference.md` describe the new routes and behaviour.
+- [x] Admin delete removes the account like self-service deletion, and refuses a sole organization owner.
+- [x] `docs/access-control.md` (endpoint matrix, instance roles, "Suspended accounts") and `docs/api-reference.md` describe the new routes and behaviour.
 
 ## Tests
 

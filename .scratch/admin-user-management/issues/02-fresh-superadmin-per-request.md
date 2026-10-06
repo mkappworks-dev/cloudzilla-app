@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -14,8 +14,8 @@ Blocked by: 01
 
 ## Acceptance criteria
 
-- [ ] Promoting or demoting a user takes effect on their next request, without signing them out.
-- [ ] Token claims never carry `IsSuperadmin`.
+- [x] Promoting or demoting a user takes effect on their next request, without signing them out.
+- [x] Token claims never carry `IsSuperadmin`.
 
 ## Tests
 
