@@ -91,7 +91,7 @@ This PR ships pull mirrors and the pieces push mirrors will reuse: the scheduler
 
 ### Data model
 
-Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time (105 once main's 102–104 landed).
+Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time (107 once main's 102–106 landed).
 
 - **`repo_mirrors`** holds the pull mirror; a repo has at most one. Its columns:
   - `repo_id`: the primary key, referencing `repositories` with `ON DELETE CASCADE`

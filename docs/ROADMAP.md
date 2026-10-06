@@ -1372,7 +1372,7 @@ GET /admin/audit    (authMW + superadmin)   page
 
 _Enterprise identity provider integration allowing employees to sign in with corporate credentials._
 
-**Migration** (`036_create_sso_config.sql`):
+**Migration** (`106_create_sso_config.sql`):
 
 ```sql
 CREATE TABLE sso_configs (
@@ -2419,7 +2419,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 7.3   | Comment Reactions                    | ✅ Done    | 033          |
 | 8.1   | Two-Factor Auth (TOTP)               | ✅ Done    | 034          |
 | 8.2   | Audit Log                            | ✅ Done    | 035          |
-| 8.3   | LDAP / SAML SSO                      | ✅ Done    | 036          |
+| 8.3   | LDAP / SAML SSO                      | ✅ Done    | 106          |
 | 9.1   | Project Boards / Kanban              | ✅ Done    | 036          |
 | 9.2   | Wiki                                 | ✅ Done    | —            |
 | 9.3   | Issue Pinning & Locking              | ✅ Done    | 038          |
