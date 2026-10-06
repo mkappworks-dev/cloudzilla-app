@@ -1,4 +1,4 @@
-CREATE TABLE sso_configs (
+CREATE TABLE IF NOT EXISTS sso_configs (
     id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     provider   TEXT NOT NULL UNIQUE CHECK(provider IN ('ldap','saml')),
     config     JSONB NOT NULL DEFAULT '{}',
