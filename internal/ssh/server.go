@@ -7,6 +7,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -118,6 +119,10 @@ func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		ctx.SetValue("cloudzilla_user", user)
 		return true
 	}
+	// The same key may also be registered as a deploy key, which mustn't let a suspended owner back in.
+	if errors.Is(err, service.ErrAccountSuspended) {
+		return false
+	}
 
 	// 2. Try deploy key
 	dk, err := s.services.DeployKey.AuthenticatePublicKey(ctx, gosshKey)
@@ -197,6 +202,15 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		if repo.ID != dk.RepoID {
 			exitWithError(session, "deploy key not authorized for this repository\n")
 			return
+		}
+
+		// deploy_keys records no creator, so a personal repo's owner is the only
+		// person a key can be traced to; a suspended owner could otherwise keep pushing.
+		if repo.OwnerID != 0 {
+			if owner, err := s.services.User.GetByID(ctx, repo.OwnerID); err != nil || owner.Suspended() {
+				exitWithError(session, "repository owner's account is suspended\n")
+				return
+			}
 		}
 
 		// Enforce read-only restriction

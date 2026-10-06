@@ -234,9 +234,12 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.Services.User.DeleteUser(r.Context(), claims.UserID); err != nil {
 		code := "delete_failed"
-		if errors.Is(err, service.ErrSoleOrgOwner) {
+		switch {
+		case errors.Is(err, service.ErrSoleOrgOwner):
 			code = "sole_org_owner"
-		} else {
+		case errors.Is(err, service.ErrLastSuperadmin):
+			code = "last_superadmin"
+		default:
 			slog.Error("delete account failed", "user_id", claims.UserID, "error", err)
 		}
 		http.Redirect(w, r, "/settings?profile_error="+code+"#delete", http.StatusSeeOther)

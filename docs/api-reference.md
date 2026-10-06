@@ -30,7 +30,7 @@ Over budget, the response is `429` with `Retry-After` in seconds. `/api/*` answe
 
 | Method | Path                    | Auth | Description                                                                                                                                                                                                                    |
 | ------ | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/api/auth/login`       | --   | Login (JSON `email`, `password`); sets `cz_token` cookie and returns token in body. A user with TOTP on gets `401 {"error":"totp_required"}` and must use a PAT ([details](./access-control.md#two-factor-authentication))     |
+| POST   | `/api/auth/login`       | --   | Login (JSON `email`, `password`); sets `cz_token` cookie and returns token in body. A user with TOTP on gets `401 {"error":"totp_required"}` and must use a PAT ([details](./access-control.md#two-factor-authentication)). A suspended account gets `403 {"error":"account_suspended"}` once its password checks out     |
 | POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`                                                                                                                                                                 |
 | GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                                                                                                                                                                                  |
 | GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/`; links an existing account only when both Google and the account have verified the email; re-renders login with 403 if Google hasn't verified the email, 409 if the matching account's email is unverified or it is linked to another Google account; redirects to `/auth/2fa` when TOTP is on ([details](./access-control.md#google-oauth-sign-in)) |
@@ -574,7 +574,18 @@ A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` w
 | POST   | `/api/admin/settings`        | Superadmin | Toggle a setting (`key`, `value`, plus `password` and, with 2FA, `code`; HTMX-aware) |
 | POST   | `/api/admin/invitations`     | Superadmin | Create invitation (`email`, plus `password` and, with 2FA, `code`; HTMX-aware)        |
 | DELETE | `/api/admin/invitations/:id` | Superadmin | Delete an invitation (HTMX-aware)                         |
+| GET    | `/admin/users`               | Superadmin | Account list (`q` username or email prefix, `role` = `superadmin`/`user`, `status` = `active`/`suspended`, `page`; 50 per page) |
+| GET    | `/admin/users/:username`     | Superadmin | One account's details and actions; 404 for an unknown username or the ghost |
+| POST   | `/api/admin/users/:username/suspend` | Superadmin | Suspend (optional `reason`); ends the account's sessions. 409 if it would leave no active superadmin |
+| POST   | `/api/admin/users/:username/unsuspend` | Superadmin | Unsuspend; tokens and keys work again, sessions don't |
+| POST   | `/api/admin/users/:username/promote` | Superadmin | Make a superadmin; 409 while suspended |
+| POST   | `/api/admin/users/:username/demote` | Superadmin | Remove superadmin; 409 if it would leave no active superadmin |
+| POST   | `/api/admin/users/:username/reset-2fa` | Superadmin | Turn the account's 2FA off and mail it a notice |
+| POST   | `/api/admin/users/:username/revoke-credentials` | Superadmin | Delete the account's PATs, SSH keys and OAuth app authorizations, end its sessions, and mail it a notice |
+| POST   | `/api/admin/users/:username/delete` | Superadmin | Delete the account (`confirm_username` must equal it; 400 otherwise). 409 for a sole organization owner or the last active superadmin. HTMX: `HX-Redirect` to `/admin/users` |
 | POST   | `/api/admin/users/verify-email` | Superadmin | Mark a user's email verified (`username`, `email`, plus `password` and, with 2FA, `code`; `email` must be their current address, else 404; 400 when either is missing). HTMX: 204, form: 303 to `/admin/settings`; audit-logged |
+
+The `/api/admin/users/:username/…` actions take `password` and, with 2FA, `code`, refuse the admin's own account with 403, and are audit-logged. HTMX requests get 204 with `HX-Refresh`, forms a 303 to the user page. See [Managing accounts](./access-control.md#managing-accounts). A suspended account's personal access tokens and OAuth app tokens get `403 {"error":"account_suspended"}` on every endpoint.
 
 ## Setup & Invitations
 

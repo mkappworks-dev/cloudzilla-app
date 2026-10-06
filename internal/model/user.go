@@ -2,8 +2,13 @@ package model
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 )
+
+// ErrAccountSuspended is returned wherever a suspended account tries to sign
+// in or use a token or key. It lives here so the middleware can match it.
+var ErrAccountSuspended = errors.New("this account is suspended")
 
 type User struct {
 	ID                 int64          `db:"id"               json:"id"`
@@ -34,10 +39,22 @@ type User struct {
 	SessionVersion     int            `db:"session_version"     json:"-"`
 	CodeThemeLight     string         `db:"code_theme_light"    json:"-"`
 	CodeThemeDark      string         `db:"code_theme_dark"     json:"-"`
+	SuspendedAt        *time.Time     `db:"suspended_at"        json:"-"`
 }
 
 func (u *User) EmailVerified() bool {
 	return u.EmailVerifiedAt != nil
+}
+
+func (u *User) Suspended() bool {
+	return u.SuspendedAt != nil
+}
+
+// SessionState is what each session request reads from the user row: the
+// version its JWT must carry, and the role, which may have changed since.
+type SessionState struct {
+	Version      int
+	IsSuperadmin bool
 }
 
 const (

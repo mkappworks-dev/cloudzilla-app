@@ -78,7 +78,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 	r.Use(middleware.HighlightBudget(requestHighlightBytes, requestHighlightTime))
 
-	sessions := middleware.WithSessionVersions(services.User)
+	sessions := middleware.WithSessionStates(services.User)
 	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized, sessions)
 	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions)
 	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB
@@ -98,6 +98,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 
 	// Admin routes
 	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
+	r.With(authMW, superadminMW).Get("/admin/users", h.PageAdminUsers)
+	r.With(authMW, superadminMW).Get("/admin/users/{username}", h.PageAdminUser)
 	r.With(authMW, superadminMW).Get("/admin/audit-log", h.PageAuditLog)
 	r.With(authMW, superadminMW).Get("/admin/sso", h.PageSSOSettings)
 	r.With(authMW, superadminMW).Post("/admin/sso", h.SaveSSOConfig)
@@ -541,6 +543,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Post("/invitations", h.CreateInvitation)
 		r.Delete("/invitations/{id}", h.DeleteInvitation)
 		r.Post("/users/verify-email", h.AdminVerifyEmail)
+		r.Post("/users/{username}/suspend", h.AdminSuspendUser)
+		r.Post("/users/{username}/unsuspend", h.AdminUnsuspendUser)
+		r.Post("/users/{username}/promote", h.AdminPromoteUser)
+		r.Post("/users/{username}/demote", h.AdminDemoteUser)
+		r.Post("/users/{username}/reset-2fa", h.AdminResetUserTOTP)
+		r.Post("/users/{username}/revoke-credentials", h.AdminRevokeUserCredentials)
+		r.Post("/users/{username}/delete", h.AdminDeleteUser)
 		r.Post("/sso/{provider}/enabled", h.SetSSOEnabled)
 	})
 

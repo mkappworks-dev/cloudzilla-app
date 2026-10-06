@@ -9,6 +9,7 @@ import (
 // Services bundles all application service instances used by HTTP handlers.
 type Services struct {
 	User             *UserService
+	AdminUser        *AdminUserService
 	Repo             *RepoService
 	Issue            *IssueService
 	Pull             *PullService
@@ -103,8 +104,10 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
 	webhookSvc := NewWebhookService(stores.Webhook, cfg.Webhook)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
+	auditSvc := NewAuditService(stores.AuditLog)
 	return &Services{
 		User:             userSvc,
+		AdminUser:        NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc),
 		Repo:             repoSvc,
 		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent),
 		Pull:             pullSvc,
@@ -134,7 +137,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		TOTP:             totpSvc,
 		OAuthLink:        NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
 		Reauth:           reauthSvc,
-		AuditLog:         NewAuditService(stores.AuditLog),
+		AuditLog:         auditSvc,
 		Project:          NewProjectService(stores.Project, repoSvc),
 		SSO:              ssoSvc,
 		SavedReply:       NewSavedReplyService(stores.SavedReply),

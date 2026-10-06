@@ -102,7 +102,7 @@ func (s *EmailService) SendSecurityNotice(u *model.User, subject, htmlBody strin
 
 // The immediate path and the digest job share this gate so the per-type toggles apply to both.
 func wantsEmail(u *model.User, t model.NotificationType, digestMode string) bool {
-	if !u.EmailNotifications || u.Email == "" || u.EmailDigest != digestMode {
+	if !u.EmailNotifications || u.Email == "" || u.EmailDigest != digestMode || u.Suspended() {
 		return false
 	}
 	switch t {

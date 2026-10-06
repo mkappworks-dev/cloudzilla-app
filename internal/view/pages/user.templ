@@ -59,6 +59,15 @@ templ User(data view.UserData) {
 								}
 							</div>
 						}
+						if data.User.Suspended() && data.CurrentUser != nil && data.CurrentUser.IsSuperadmin {
+							<div>
+								<a href={ templ.SafeURL("/admin/users/" + data.User.Username) }>
+									@components.Badge(components.BadgeDestructive) {
+										Suspended
+									}
+								</a>
+							</div>
+						}
 					</dl>
 				</div>
 				if data.IsOwnProfile {
