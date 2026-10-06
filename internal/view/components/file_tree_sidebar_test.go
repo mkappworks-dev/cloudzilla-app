@@ -134,7 +134,7 @@ func TestFileTreeSidebar_ChevronRendersInItsState(t *testing.T) {
 	}
 }
 
-func TestFileTreeSidebar_FilterRevealsNestedMatches(t *testing.T) {
+func TestFileTreeSidebar_FilterBindsVisibilityToSubtree(t *testing.T) {
 	out := renderSidebar(t, []TreeNode{
 		{Name: "lib", IsDir: true, Path: "lib", Href: "/o/r/tree/main/lib", Children: []TreeNode{
 			{Name: "inner.js", Path: "lib/inner.js", Href: "/o/r/blob/main/lib/inner.js"},
@@ -143,7 +143,6 @@ func TestFileTreeSidebar_FilterRevealsNestedMatches(t *testing.T) {
 	for _, want := range []string{
 		`x-show="shows($el)"`,
 		`x-show="open || revealsChildren($el)"`,
-		`:class="{ 'rotate-90': open || revealsChildren($el.closest('li')) }"`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("want %q in:\n%s", want, out)

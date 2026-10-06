@@ -1,6 +1,6 @@
 # 2026-10-06 — File tree filter shows nested matches
 
-**Status:** Approved
+**Status:** Implemented on `fix/file-tree-filter-nested`
 **Builds on:** [2026-10-04-file-tree-remembers-folders-design.md](2026-10-04-file-tree-remembers-folders-design.md)
 **Affected subsystem:** Code browser — `cmd/server/frontend/static/file_tree.js`, `internal/view/components/file_tree_sidebar.templ`
 
@@ -30,7 +30,7 @@ Visibility is computed from the DOM on each evaluation. It is never stored in Al
 
 ### `fileTree` scope (`file_tree.js`)
 
-- `rev: 0`. It is bumped by an `htmx:after:swap` listener on the aside, added in `init()`. Alpine can't track DOM queries, so the bump re-runs every binding that reads `rev` after new items are inserted. Swap events bubble from their target, so both lazy-loaded folder lists and the Expand all swap of the root `<ol>` reach it.
+- `rev: 0`. It is bumped by an `htmx:after:swap` listener on the aside, added in `init()`. Alpine can't track DOM queries, so the bump re-runs every binding that reads `rev` after new items are inserted. htmx 4 fires the event on the element that issued the request (a folder's toggle or the Expand all button) and it bubbles, so both reach the aside.
 - `matches(li)` checks whether `li.dataset.name.toLowerCase()` includes `filter.toLowerCase()`.
 - `revealsChildren(el)` reads `rev`. It is true when `filter` is non-empty and some `li[data-name]` below `el` matches.
 - `shows(li)` reads `rev`. It is true when `filter` is empty, when `matches(li)` is true, or when `revealsChildren(li)` is true.
@@ -50,6 +50,10 @@ Names reach JS only through `data-name`. No name is spliced into an expression.
 ### Behaviour of a folder whose own name matches
 
 A folder whose own name matches stays visible, and its children follow the usual rules: they show if the folder is open or if they match. This is the same as before the fix.
+
+### Toggling a folder while the filter reveals it
+
+The chevron still flips `open` and updates the cookie, as any user toggle does, but the folder stays expanded while its children are revealed; the toggle takes visible effect once the filter is cleared. Ignoring the click instead would lose the user's intent.
 
 ## Cost
 
