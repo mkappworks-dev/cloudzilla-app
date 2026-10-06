@@ -152,3 +152,24 @@ func TestFileTreeSidebar_FilterBindsVisibilityToSubtree(t *testing.T) {
 		t.Errorf("an item must not hide itself on its own name alone, or a match below it is hidden too:\n%s", out)
 	}
 }
+
+func TestFileTreeSidebar_TreeItemReportsExpandedState(t *testing.T) {
+	out := renderSidebar(t, []TreeNode{
+		{Name: "open", IsDir: true, IsOpen: true, Path: "open", Href: "/o/r/tree/main/open"},
+		{Name: "shut", IsDir: true, Path: "shut", Href: "/o/r/tree/main/shut"},
+		{Name: "main.go", Path: "main.go", Href: "/o/r/blob/main/main.go"},
+	})
+	for _, want := range []string{`aria-expanded="true"`, `aria-expanded="false"`} {
+		if got := strings.Count(out, want); got != 1 {
+			t.Errorf("want %q once, got %d:\n%s", want, got, out)
+		}
+	}
+	// The binding only reaches aria-expanded when it shares the treeitem's Alpine scope.
+	for _, li := range strings.Split(out, "<li")[1:] {
+		li = li[:strings.Index(li, ">")]
+		if strings.Contains(li, "aria-expanded") &&
+			(!strings.Contains(li, `x-data="{ open: `) || !strings.Contains(li, `:aria-expanded="open || revealsChildren($el)"`)) {
+			t.Errorf("treeitem's aria-expanded must bind to open in its own x-data: <li%s>", li)
+		}
+	}
+}

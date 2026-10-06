@@ -136,47 +136,45 @@ templ treeItem(n TreeNode, depth int) {
 		x-show="shows($el)"
 		role="treeitem"
 		if n.IsDir {
-			aria-expanded?={ n.IsOpen }
+			data-path={ n.Path }
+			x-data={ "{ open: " + boolStr(n.IsOpen) + " }" }
+			x-init="open && remember($el.dataset.path); $watch('open', o => o ? remember($el.dataset.path) : forget($el.dataset.path))"
+			x-on:cz-tree-collapse-all.window="open = false"
+			aria-expanded={ boolStr(n.IsOpen) }
+			:aria-expanded="open || revealsChildren($el)"
 		}
 	>
 		if n.IsDir {
-			<div
-				data-path={ n.Path }
-				x-data={ "{ open: " + boolStr(n.IsOpen) + " }" }
-				x-init="open && remember($el.dataset.path); $watch('open', o => o ? remember($el.dataset.path) : forget($el.dataset.path))"
-				x-on:cz-tree-collapse-all.window="open = false"
-			>
-				<div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style={ "padding-left: " + depthPx(depth) + "px" }>
-					<button
-						type="button"
-						x-on:click="open = !open"
-						if !n.IsOpen {
-							hx-get={ n.ChildrenURL }
-							hx-trigger="click once"
-							hx-target="next ol"
-							hx-swap="innerHTML"
-						}
-						class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50"
-						aria-label="Toggle folder"
-					>
-						<svg class={ chevronClass(n.IsOpen) } :class="{ 'rotate-90': open || revealsChildren($el.closest('li')) }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
-							<path d="M9 6l6 6-6 6"></path>
-						</svg>
-					</button>
-					<a
-						href={ templ.SafeURL(n.Href) }
-						class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]"
-					>
-						<svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-							<path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path>
-						</svg>
-						<span class="truncate">{ n.Name }</span>
-					</a>
-				</div>
-				<ol x-show="open || revealsChildren($el)" role="group">
-					@FileTreeItems(n.Children, depth+1)
-				</ol>
+			<div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style={ "padding-left: " + depthPx(depth) + "px" }>
+				<button
+					type="button"
+					x-on:click="open = !open"
+					if !n.IsOpen {
+						hx-get={ n.ChildrenURL }
+						hx-trigger="click once"
+						hx-target="next ol"
+						hx-swap="innerHTML"
+					}
+					class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50"
+					aria-label="Toggle folder"
+				>
+					<svg class={ chevronClass(n.IsOpen) } :class="{ 'rotate-90': open || revealsChildren($el.closest('li')) }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+						<path d="M9 6l6 6-6 6"></path>
+					</svg>
+				</button>
+				<a
+					href={ templ.SafeURL(n.Href) }
+					class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]"
+				>
+					<svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+						<path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path>
+					</svg>
+					<span class="truncate">{ n.Name }</span>
+				</a>
 			</div>
+			<ol x-show="open || revealsChildren($el)" role="group">
+				@FileTreeItems(n.Children, depth+1)
+			</ol>
 		} else {
 			<a
 				href={ templ.SafeURL(n.Href) }
