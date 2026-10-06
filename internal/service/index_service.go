@@ -66,9 +66,9 @@ func (s *IndexService) IndexRepo(ctx context.Context, repo *model.Repository) er
 	})
 }
 
-// Search performs full-text search across the code index.
-func (s *IndexService) Search(ctx context.Context, query string, repoID *int64, lang string, page, pageSize int) ([]model.CodeSearchResult, int, error) {
-	return s.codeSearch.Search(ctx, query, repoID, lang, page, pageSize)
+// Search performs full-text search across the code index of the repos viewer can read.
+func (s *IndexService) Search(ctx context.Context, query string, viewer, repoID *int64, lang string, page, pageSize int) ([]model.CodeSearchResult, int, error) {
+	return s.codeSearch.Search(ctx, query, viewer, repoID, lang, page, pageSize)
 }
 
 // DeleteRepo removes all indexed content for a repository.
