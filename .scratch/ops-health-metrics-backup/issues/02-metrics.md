@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: in-progress
 Spec: [../spec.md](../spec.md) (Metrics)
 
 Shaped by the spec's decisions 1 (`client_golang`) and 2 (a separate listen address).
