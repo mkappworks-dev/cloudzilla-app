@@ -140,11 +140,38 @@ func (s *AdminUserService) ResetTOTP(ctx context.Context, actorID int64, usernam
 	if err != nil {
 		return nil, err
 	}
-	if err := s.users.SetTOTPEnabled(ctx, u.ID, false, ""); err != nil {
-		return nil, fmt.Errorf("admin reset totp: %w", err)
+	if err := s.resetTOTP(ctx, u); err != nil {
+		return nil, err
 	}
 	notifySecurityChange(s.notices, s.users, u.ID, "admin_totp_reset", adminTOTPResetNotice)
 	return u, nil
+}
+
+// ResetTOTPOffline is ResetTOTP for cloudzilla-cli, which has no acting admin; the caller mails SendTOTPResetNotice.
+func (s *AdminUserService) ResetTOTPOffline(ctx context.Context, username string) (*model.User, bool, error) {
+	u, err := s.users.GetByUsernameWithTOTP(ctx, username)
+	if err != nil {
+		return nil, false, err
+	}
+	if !u.TOTPEnabled {
+		return u, false, nil
+	}
+	if err := s.resetTOTP(ctx, u); err != nil {
+		return nil, false, err
+	}
+	return u, true, nil
+}
+
+// SendTOTPResetNotice mails ResetTOTP's notice and waits for the send.
+func (s *AdminUserService) SendTOTPResetNotice(ctx context.Context, userID int64) error {
+	return sendSecurityNotice(ctx, s.notices, s.users, userID, adminTOTPResetNotice)
+}
+
+func (s *AdminUserService) resetTOTP(ctx context.Context, u *model.User) error {
+	if err := s.users.SetTOTPEnabled(ctx, u.ID, false, ""); err != nil {
+		return fmt.Errorf("admin reset totp: %w", err)
+	}
+	return nil
 }
 
 // RevokeCredentials deletes the account's tokens, SSH keys and app grants and

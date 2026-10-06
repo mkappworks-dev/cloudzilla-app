@@ -20,16 +20,27 @@ func notifySecurityChange(email *EmailService, users *store.UserStore, userID in
 	concurrency.Go(kind+".notice", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		u, err := users.GetByID(ctx, userID)
-		if err != nil {
-			slog.Error(kind+" notice: load user", "user_id", userID, "error", err)
-			return
-		}
-		subject, body := compose(u.Username)
-		if err := email.SendSecurityNotice(u, subject, body); err != nil {
-			slog.Error(kind+" notice: send", "user_id", userID, "error", err)
+		if err := sendSecurityNotice(ctx, email, users, userID, compose); err != nil {
+			slog.Error(kind+" notice", "user_id", userID, "error", err)
 		}
 	})
+}
+
+// sendSecurityNotice is notifySecurityChange in the foreground, for callers
+// such as the CLI that exit before a background send would finish.
+func sendSecurityNotice(ctx context.Context, email *EmailService, users *store.UserStore, userID int64, compose func(username string) (subject, body string)) error {
+	if email == nil {
+		return nil
+	}
+	u, err := users.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("load user: %w", err)
+	}
+	subject, body := compose(u.Username)
+	if err := email.SendSecurityNotice(u, subject, body); err != nil {
+		return fmt.Errorf("send: %w", err)
+	}
+	return nil
 }
 
 func passwordChangedNotice(username string) (subject, body string) {

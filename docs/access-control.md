@@ -45,6 +45,12 @@ TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDA
 
 Turning TOTP on needs the password as well as a code from the new authenticator: a code enrolled from a stolen session would lock the owner out at their next sign-in. Turning it off needs the password and a current code. Both mail the account a notice.
 
+**Lost authenticator.** A superadmin turns 2FA off for another account with `reset-2fa` under [Managing accounts](#managing-accounts). A sole superadmin, who can't use that on their own account, recovers from the server instead:
+
+1. `cloudzilla-cli reset-2fa <username>` turns 2FA off ([CLI reference](./configuration.md#cloudzilla-cli-reset-2fa)). It writes `admin.user.2fa_reset` with no actor ID and the actor name `cloudzilla-cli`, and mails the security notice.
+2. If the password is lost too, `cloudzilla-cli password-reset-link <username>` prints a link (see [Resetting a forgotten password](#resetting-a-forgotten-password)). Neither command bumps `session_version`, so the link survives the reset in either order.
+3. Sign in, turn 2FA back on from Settings, and, if the old device might be in someone else's hands, use **Sign out other sessions** (see [Ending sessions](#ending-sessions)).
+
 Google and SAML users get the prompt too, even when the IdP enforces its own MFA. Cloudzilla can't tell whether it did: it neither requests nor checks a SAML `AuthnContext`, and Google's userinfo doesn't say. Because TOTP is opt-in, only users who enrolled are asked, so a user whose IdP already handles MFA can leave it off. Gitea and GitLab make the same default, with a per-provider bypass that Cloudzilla doesn't have yet.
 
 `POST /api/auth/login` has no second step. After the password and `AllowLogin` checks, it refuses a user with TOTP on with `401 {"error":"totp_required"}`: no `cz_token`, no token in the body, and no `login` event. API clients of such users authenticate with a personal access token instead. The endpoint accepts no TOTP code on purpose: a code field would add a second place to guess codes while giving nothing a PAT doesn't.
@@ -440,7 +446,7 @@ Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin'
 | `unsuspend` | Clears `suspended_at`. Tokens, keys and app grants work again; sessions don't | — | `admin.user.unsuspend` |
 | `promote` | `is_superadmin = TRUE` | The account is suspended (`ErrUserSuspended`) | `admin.user.promote` |
 | `demote` | `is_superadmin = FALSE` | It would leave no active superadmin | `admin.user.demote` |
-| `reset-2fa` | Clears the TOTP secret, flag and backup codes; mails a security notice | — | `admin.user.2fa_reset` |
+| `reset-2fa` | Clears the TOTP secret, flag and backup codes; mails a security notice. Sessions stay signed in. `cloudzilla-cli reset-2fa` does the same for any account, including the operator's own (see [Two-factor authentication](#two-factor-authentication)) | — | `admin.user.2fa_reset` |
 | `revoke-credentials` | Deletes the account's PATs, SSH keys and OAuth app authorizations and bumps `session_version`; mails a security notice. Deploy keys and OAuth apps it owns stay | — | `admin.user.credentials_revoke` (counts) |
 | `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion) | The account solely owns an organization; it would leave no active superadmin | `admin.user.delete` (email) |
 
