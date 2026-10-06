@@ -11,6 +11,7 @@ cloudzilla.db
 cloudzilla.db-shm
 cloudzilla.db-wal
 git-repos*/
+/storage/
 /server
 /cloudzilla
 

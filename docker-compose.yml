@@ -28,6 +28,7 @@ services:
       CZ_DATABASE_DSN: postgres://cloudzilla:cloudzilla@postgres:5432/cloudzilla?sslmode=disable
       CZ_GIT_REPOS_ROOT: /data/git-repos
       CZ_GIT_SSH_HOST_KEY: /data/cloudzilla_host_key
+      CZ_STORAGE_LOCAL_ROOT: /data/storage
       CZ_AUTH_JWT_SECRET: change-me-in-production
       CZ_AUTH_JWT_EXPIRY: 24h
       CZ_SERVER_PORT: 8080
@@ -37,6 +38,24 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Local S3 endpoint for storage.backend: s3, started with --profile s3.
+  # Point the app at it with CZ_STORAGE_BACKEND=s3 CZ_STORAGE_S3_ENDPOINT=http://localhost:7070
+  # CZ_STORAGE_S3_BUCKET=cloudzilla CZ_STORAGE_S3_PATH_STYLE=true and the keys below.
+  versitygw:
+    image: versity/versitygw:latest
+    profiles: ["s3"]
+    # The posix backend serves each top-level directory as a bucket.
+    entrypoint: ["/bin/sh", "-c", "mkdir -p /data/cloudzilla && exec versitygw --port :7070 posix /data"]
+    environment:
+      ROOT_ACCESS_KEY: cloudzilla-dev
+      ROOT_SECRET_KEY: cloudzilla-dev-secret
+    ports:
+      - "7070:7070"
+    volumes:
+      - versitygw_data:/data
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   cloudzilla_data:
+  versitygw_data:
