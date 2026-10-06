@@ -19,7 +19,7 @@ Cloudzilla ships a multi-stage `Dockerfile` and `docker-compose.yml`.
 | Stage     | Base                 | Purpose                                                                                                                     |
 | --------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `builder` | `golang:1.27-alpine` | Downloads Tailwind CLI (arch-aware musl build), compiles CSS, builds both Go binaries with `CGO_ENABLED=0 -ldflags="-s -w"` |
-| runtime   | `alpine:3.24`        | Copies binaries; installs `ca-certificates tzdata`; exposes 8080/2222                                                       |
+| runtime   | `alpine:3.24`        | Copies binaries; installs `ca-certificates tzdata`; exposes 8080/2222; `HEALTHCHECK` on `/healthz`                          |
 
 ### Persistent volume (`/data`)
 
@@ -90,11 +90,45 @@ Then open `http://localhost:8080` — the first request redirects to `/setup` wh
 
 The SSH host key is auto-generated into the named volume on first boot — no manual `ssh-keygen` step needed.
 
+### Health checks
+
+Two unauthenticated endpoints on the main HTTP port answer probes. They're served ahead of all middleware, so they write no request log line, set no cookie, skip the `/setup` redirect and count against no rate limit. Both accept `GET` and `HEAD`, and send `Cache-Control: no-store`.
+
+| Endpoint   | Answers                                                                                          | Use it for                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `/healthz` | Liveness: `200 ok` whenever the process serves HTTP. Touches neither the database nor the disk. | Docker `HEALTHCHECK`, Kubernetes `livenessProbe`                   |
+| `/readyz`  | Readiness: `200` when every check passes, otherwise `503`.                                       | Load-balancer health checks, Kubernetes `readinessProbe`           |
+
+`/readyz` returns JSON such as `{"status":"fail","checks":{"database":"ok","migrations":"fail","storage":"ok"}}`. Each check is `ok`, `fail` or `skipped`, and all of them share a 3-second deadline:
+
+- `database`: the server can ping Postgres.
+- `migrations`: every migration embedded in the binary is recorded in `schema_migrations`. The server never migrates, so this fails after an upgrade until `cloudzilla-cli migrate` runs. It's `skipped` while the database check fails.
+- `storage`: a temporary `.readyz-*` file can be created, written and removed in `git.repos_root`. This catches a missing volume, a read-only mount and wrong ownership, but not a full disk.
+
+Give a Kubernetes `readinessProbe` a `timeoutSeconds` of at least 4: the default of 1 turns a slow database into a probe timeout instead of a 503.
+
+The body never says why a check failed; the server logs the cause at `WARN` with `msg="readiness check failed"`. Readiness doesn't depend on setup having completed, on the SSH listener, or on SMTP or OAuth.
+
+The image's `HEALTHCHECK` probes `/healthz`, not `/readyz`. Orchestrators restart unhealthy containers, and a restart fixes neither a database outage nor a pending migration; and on first boot readiness fails by design until `cloudzilla-cli migrate` runs. It requests `http://127.0.0.1:${CZ_SERVER_PORT:-8080}/healthz` with any proxy disabled, so it reads the port only from the `CZ_SERVER_PORT` environment variable, not from `config.yaml`, and it needs `server.host` to accept loopback connections (the default `0.0.0.0` does). Check it with `docker inspect --format '{{.State.Health.Status}}' <container>`.
+
 ### Behind a reverse proxy
 
 Set `server.trusted_proxies` (`CZ_SERVER_TRUSTED_PROXIES`) to the proxy's IP or CIDR, e.g. `CZ_SERVER_TRUSTED_PROXIES=172.16.0.0/12` for a Docker network. `X-Forwarded-For` is ignored from any other peer, because clients can forge it. A trusted proxy must write bare IP addresses into `X-Forwarded-For`: Cloudzilla reads it right to left and stops at a hop written as `ip:port` or `[v6]`, so those clients share the proxy's budget. Without this setting, audit-log IPs and the per-IP rate limits see only the proxy's address, so every client shares one budget. The limits are 10 attempts per 15 minutes on account creation (`/register`, `/register/complete/{token}` and `/invite/{token}`) and 30 per 15 minutes on password login (`/login`, `/api/auth/login` and `/auth/ldap`); each route has its own budget, and an IPv6 client is counted per /64.
 
+The global [rate limits](./configuration.md#rate-limits) count anonymous requests per client IP the same way, so a missing `server.trusted_proxies` puts every anonymous visitor behind the proxy into one budget. When a request carries `X-Forwarded-For` from a peer that isn't trusted, Cloudzilla logs one warning naming the peer.
+
+### Several instances
+
+Rate-limit counts live in each process. Behind a round-robin load balancer, N instances allow up to N times each budget.
+
 ### Upgrading
+
+`healthz` and `readyz` are reserved owner names, because `/healthz` and `/readyz` are the health-check endpoints. An existing user or organization with either name keeps its repositories at `/{owner}/{repo}`, but its profile page at `/{owner}` is shadowed. Find them with:
+
+```sql
+SELECT id, username FROM users WHERE lower(username) IN ('healthz', 'readyz');
+SELECT id, name FROM organizations WHERE lower(name) IN ('healthz', 'readyz');
+```
 
 Migration `082_users_email_case_insensitive` refuses to run while two accounts have emails that differ only by case. Its error names their user IDs; change or merge those accounts, then run `cloudzilla-cli migrate` again.
 

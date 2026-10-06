@@ -367,3 +367,21 @@ func buildHunks(chunks []gogitdiff.Chunk) []DiffHunk {
 func chunkLines(chunk gogitdiff.Chunk) []string {
 	return strings.Split(strings.TrimSuffix(chunk.Content(), "\n"), "\n")
 }
+
+// CommitSubjects maps each full SHA that names a commit in the repo to its subject; statuses can name any string, so refs are never resolved.
+func (s *CodeService) CommitSubjects(owner, repoName string, shas []string) map[string]string {
+	subjects := make(map[string]string, len(shas))
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return subjects
+	}
+	for _, sha := range shas {
+		if !plumbing.IsHash(sha) {
+			continue
+		}
+		if commit, err := repo.CommitObject(plumbing.NewHash(sha)); err == nil {
+			subjects[sha] = commitSubject(commit.Message)
+		}
+	}
+	return subjects
+}

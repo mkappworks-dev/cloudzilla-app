@@ -58,6 +58,7 @@ type Services struct {
 	Language         *LanguageService
 	Import           *ImportService
 	IssueCloser      *IssueCloser
+	Health           *HealthService
 }
 
 // New constructs and wires all services from the given stores and configuration.
@@ -141,5 +142,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
 		IssueCloser:      NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc),
+		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
 	}
 }

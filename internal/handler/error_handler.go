@@ -35,6 +35,16 @@ func (h *Handler) Unauthorized(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, view.WithNext("/login", safeNextPath(r.URL.RequestURI())), http.StatusSeeOther)
 }
 
+// RateLimited answers a request over its rate limit: JSON for the API, plain
+// text otherwise, which git shows to the user.
+func (h *Handler) RateLimited(w http.ResponseWriter, r *http.Request) {
+	if isAPIRequest(r) {
+		writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
+		return
+	}
+	http.Error(w, "Rate limit exceeded. Try again after the time in the Retry-After header.", http.StatusTooManyRequests)
+}
+
 // Forbidden renders the branded 403 page for HTML or a JSON error for API requests.
 func (h *Handler) Forbidden(w http.ResponseWriter, r *http.Request) {
 	if isAPIRequest(r) {

@@ -37,7 +37,7 @@ type gitUser struct {
 // resolveGitUser returns the authenticated user for git operations, or nil for an
 // anonymous request. It checks claims first, set by the auth middleware after it
 // enforced token scopes, then HTTP Basic Auth whose password is a PAT (git CLI:
-// username:czp_xxx). The middleware never sees a Basic PAT, so its scopes are
+// username:czp_xxx). Auth never sees a Basic PAT, so its scopes are
 // enforced here: the error names the scope the token lacks for r. Callers answer
 // it with 403, not 401, because on a 401 git's credential helper erases the token.
 func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
@@ -48,7 +48,7 @@ func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 	if !ok || !strings.HasPrefix(password, "czp_") {
 		return nil, nil
 	}
-	token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
+	token, user, err := middleware.ValidatePAT(r, h.Services.AccessToken, password)
 	if err != nil {
 		return nil, nil
 	}
