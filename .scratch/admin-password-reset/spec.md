@@ -3,7 +3,6 @@
 Created: 2026-10-06
 Category: enhancement
 Status: needs-triage
-Blocked by: `feat/password-reset` merging to main
 
 ## Problem
 
@@ -16,3 +15,7 @@ An action on `/admin/users/{username}` that issues a reset token through the pas
 ## Open questions
 
 - Should the shown-once link expire sooner than a self-service reset link?
+
+## Comments
+
+**Malith Kuruppu, 2026-10-06:** Unblocked: password reset (#175) and admin user management (#176) are both on main. `PasswordResetService.IssueLink` already returns a 24-hour link without mailing it, so this action builds on it. The spec's `admin.user.password_reset` audit action should be reconciled with the existing `user.password.reset_link` that the CLI writes. Still to settle before `ready-for-agent`: emailing vs. showing the link when SMTP is on, the link's lifetime, whether the forgot/reset flows should also skip suspended accounts, and confirming the refusal on the admin's own account.
