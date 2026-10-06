@@ -72,6 +72,10 @@
 
 - [x] `ImportRequest.Mirror`/`MirrorInterval`, sealed token, mirror row in the import's publish step, the form's sync card, `repo.mirror.create` audit.
 
-## Tickets 07–09
+## Ticket 07: read-only mirrors (done)
+
+- [x] `ContentReadOnly` covers mirrors, `ErrRepoMirror` and `PushRefusal`, PR creation refused, option A banner and badge, Sync now endpoint.
+
+## Tickets 08–09
 
 These follow the ticket files. Expand this plan before starting each one.

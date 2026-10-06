@@ -32,15 +32,29 @@ var ErrInvalidRepoName = errors.New("invalid repository name")
 
 var ErrInvalidDefaultBranch = errors.New("invalid default branch")
 
-var ErrRepoArchived = errors.New("repository is archived")
+var (
+	ErrRepoArchived = errors.New("repository is archived")
+	ErrRepoMirror   = errors.New("repository is a pull mirror")
+)
 
 // CheckContentWritable refuses any change to a repo's refs or commits. Every
 // git-content write calls it, whatever the caller's role.
 func CheckContentWritable(repo *model.Repository) error {
-	if repo.ContentReadOnly() {
+	switch {
+	case repo.IsArchived:
 		return ErrRepoArchived
+	case repo.IsMirror:
+		return ErrRepoMirror
 	}
 	return nil
+}
+
+// PushRefusal is what a git client shows for a push CheckContentWritable refuses.
+func PushRefusal(err error) string {
+	if errors.Is(err, ErrRepoMirror) {
+		return "Repository is a mirror and is read-only."
+	}
+	return "Repository is archived and read-only."
 }
 
 // ValidateName checks that a repository or owner name is safe for filesystem

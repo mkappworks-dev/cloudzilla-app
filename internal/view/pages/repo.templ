@@ -27,6 +27,10 @@ templ Repo(data view.RepoData) {
 				</div>
 			}
 
+			if data.Mirror != nil {
+				@mirrorBanner(*data.Mirror)
+			}
+
 			<!-- Repo header -->
 			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="repo-title">
 				<div class="min-w-0">
@@ -44,6 +48,11 @@ templ Repo(data view.RepoData) {
 						if data.IsArchived {
 							@components.Badge(components.BadgeDraft) {
 								Archived
+							}
+						}
+						if data.Mirror != nil {
+							@components.Badge(components.BadgeDraft) {
+								Mirror
 							}
 						}
 					</h1>
@@ -151,7 +160,7 @@ templ Repo(data view.RepoData) {
 								<kbd class="font-mono absolute right-2 top-1.5 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground" aria-hidden="true">T</kbd>
 							</div>
 
-							if data.CanWrite && !data.IsArchived {
+							if data.CanWrite && !data.Repo.ContentReadOnly() {
 								<div class="relative" x-data="{ open: false }" x-on:keydown.escape.window="open = false">
 									<button
 										type="button"
@@ -304,7 +313,7 @@ templ Repo(data view.RepoData) {
 					} else {
 						<section x-show="!q" class="rounded-md border border-border bg-card px-6 py-12 text-center">
 							<p class="text-sm text-muted-foreground">This repository is empty.</p>
-							if data.CanWrite && !data.IsArchived {
+							if data.CanWrite && !data.Repo.ContentReadOnly() {
 								<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Repo.DefaultBranch, "")) } class="inline-flex items-center gap-1.5 mt-3 h-8 px-3 text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">
 									Create your first file
 								</a>
@@ -728,4 +737,52 @@ func contributorAriaLabel(c service.ContributorStat) string {
 
 func contributorTooltip(c service.ContributorStat) string {
 	return contributorDisplayName(c) + " — " + strconv.Itoa(c.Commits) + " commits"
+}
+
+templ mirrorSyncIcon(class string) {
+	<svg class={ class } width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"></path><path d="M3 21v-5h5"></path><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"></path><path d="M21 3v5h-5"></path></svg>
+}
+
+// mirrorBanner is option A of the mirror mockups: a strip above the header
+// that turns red while the last sync is failing.
+templ mirrorBanner(m view.MirrorBanner) {
+	if m.Failed {
+		<div role="alert" class="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm">
+			<svg class="h-4 w-4 shrink-0 text-destructive" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+				<path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
+			</svg>
+			<div class="flex-1 min-w-0">
+				<p>
+					Mirror of <a href={ templ.SafeURL(m.RemoteURL) } rel="noopener noreferrer" class="font-mono text-[12.5px] hover:underline">{ m.RemoteLabel }</a>
+					<span class="text-destructive"> · last sync failed { m.SyncedAgo }</span>
+				</p>
+				<p class="text-[12.5px] text-muted-foreground">{ m.Error } Next try { m.NextTry }; the last good copy stays available.</p>
+			</div>
+			@mirrorBannerActions(m)
+		</div>
+	} else {
+		<div role="status" class="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-md border border-border bg-muted px-4 py-2.5 text-sm">
+			@mirrorSyncIcon("shrink-0 text-muted-foreground")
+			<p class="flex-1 min-w-0">
+				Mirror of <a href={ templ.SafeURL(m.RemoteURL) } rel="noopener noreferrer" class="font-mono text-[12.5px] hover:underline">{ m.RemoteLabel }</a>
+				<span class="text-muted-foreground">
+					if m.SyncedAgo == "" {
+						· read-only · not synced yet
+					} else {
+						· read-only · synced { m.SyncedAgo }
+					}
+				</span>
+			</p>
+			@mirrorBannerActions(m)
+		</div>
+	}
+}
+
+templ mirrorBannerActions(m view.MirrorBanner) {
+	if m.SettingsURL != "" && m.Failed {
+		<a href={ templ.SafeURL(m.SettingsURL) } class="h-7 px-2.5 inline-flex items-center rounded-md border border-border bg-background text-[12.5px] font-medium hover:bg-accent">Mirror settings</a>
+	}
+	if m.SyncURL != "" {
+		<button type="button" hx-post={ m.SyncURL } hx-swap="none" class="h-7 px-2.5 inline-flex items-center rounded-md border border-border bg-background text-[12.5px] font-medium hover:bg-accent">Sync now</button>
+	}
 }

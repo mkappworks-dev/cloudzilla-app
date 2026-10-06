@@ -159,6 +159,9 @@ func TestSessionHandler_RepoErrorsGoToStderr(t *testing.T) {
 	theirsID := testutil.SeedRepo(t, db, otherID, other, "theirs_"+sfx)
 	testutil.SeedRepo(t, db, otherID, other, "theirspub_"+sfx)
 	testutil.Exec(t, db, `UPDATE repositories SET is_archived = true WHERE id = $1`, archivedID)
+	mirrored := "testrepo_mirrored_" + sfx
+	mirroredID := testutil.SeedRepo(t, db, meID, me, "mirrored_"+sfx)
+	testutil.Exec(t, db, `INSERT INTO repo_mirrors (repo_id, remote_url, interval_seconds, next_sync_at) VALUES ($1, 'https://example.com/x.git', 3600, NOW())`, mirroredID)
 	testutil.Exec(t, db, `UPDATE repositories SET private = true WHERE id = $1`, theirsID)
 	if _, err := gogit.PlainInit(filepath.Join(reposRoot, me, mine+".git"), true); err != nil {
 		t.Fatalf("init %s: %v", mine, err)
@@ -184,6 +187,7 @@ func TestSessionHandler_RepoErrorsGoToStderr(t *testing.T) {
 		{"no read access, push", userKey, "git-receive-pack '/" + other + "/" + theirs + ".git'", "repository not found\n"},
 		{"no write access", userKey, "git-receive-pack '/" + other + "/" + theirsPublic + ".git'", "access denied\n"},
 		{"push to archived repo", userKey, "git-receive-pack '/" + me + "/" + archived + ".git'", "Repository is archived and read-only.\n"},
+		{"push to pull mirror", userKey, "git-receive-pack '/" + me + "/" + mirrored + ".git'", "Repository is a mirror and is read-only.\n"},
 		{"no repository directory", userKey, "git-upload-pack '/" + me + "/" + archived + ".git'", "failed to open repository\n"},
 		{"deploy key for another repo", deployKey, "git-upload-pack '/" + me + "/" + archived + ".git'", "deploy key not authorized for this repository\n"},
 		{"deploy key for a private repo", deployKey, "git-upload-pack '/" + other + "/" + theirs + ".git'", "repository not found\n"},

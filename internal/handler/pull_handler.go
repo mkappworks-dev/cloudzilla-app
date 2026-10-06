@@ -96,6 +96,10 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "forbidden")
 			return
 		}
+		if errors.Is(err, service.ErrPullIntoMirror) {
+			writeError(w, http.StatusUnprocessableEntity, pullIntoMirrorMessage)
+			return
+		}
 		slog.Error("create pull: service create failed",
 			"owner", owner, "repo", repoName, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")

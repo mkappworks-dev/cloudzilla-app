@@ -216,9 +216,11 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		}
 	}
 
-	if gitCmd == "git-receive-pack" && service.CheckContentWritable(repo) != nil {
-		exitWithError(session, "Repository is archived and read-only.\n")
-		return
+	if gitCmd == "git-receive-pack" {
+		if err := service.CheckContentWritable(repo); err != nil {
+			exitWithError(session, "%s\n", service.PushRefusal(err))
+			return
+		}
 	}
 
 	diskRepoPath, err := service.RepoDir(s.cfg.ReposRoot, owner, repoName+".git")

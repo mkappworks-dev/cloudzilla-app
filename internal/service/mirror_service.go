@@ -59,6 +59,11 @@ func NewMirrorService(mirrors *store.MirrorStore, repoStore *store.RepoStore, re
 		secrets: secrets, git: git, cfg: cfg, wake: make(chan struct{}, 1)}
 }
 
+// Get wraps sql.ErrNoRows when the repo isn't a mirror.
+func (s *MirrorService) Get(ctx context.Context, repoID int64) (*model.RepoMirror, error) {
+	return s.mirrors.Get(ctx, repoID)
+}
+
 // SealToken encrypts an upstream token for storage.
 func (s *MirrorService) SealToken(token string) ([]byte, error) {
 	sealed, err := s.secrets.Seal(mirrorCredentialPurpose, []byte(token))

@@ -1,9 +1,10 @@
 package handler_test
 
 // Integration tests: every path that writes git content refuses an archived
-// repo. All tests require TEST_DATABASE_DSN and skip otherwise.
+// repo and a pull mirror. All tests require TEST_DATABASE_DSN and skip otherwise.
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -20,77 +21,103 @@ import (
 
 const archivedJSON = `{"error":"repository is archived"}` + "\n"
 
-func TestArchivedRepo_ContentWrites_Refused(t *testing.T) {
+// readOnlyKinds make a seeded repo read-only, each with its refusal message.
+var readOnlyKinds = []struct {
+	name, msg string
+	apply     func(t *testing.T, db *sql.DB, repoID int64)
+}{
+	{"archived", "repository is archived", archiveRepo},
+	{"mirror", "repository is a pull mirror", makeMirror},
+}
+
+func archiveRepo(t *testing.T, db *sql.DB, repoID int64) {
+	t.Helper()
+	testutil.Exec(t, db, `UPDATE repositories SET is_archived = true, archived_at = NOW() WHERE id = $1`, repoID)
+}
+
+func makeMirror(t *testing.T, db *sql.DB, repoID int64) {
+	t.Helper()
+	testutil.Exec(t, db, `INSERT INTO repo_mirrors (repo_id, remote_url, interval_seconds, next_sync_at)
+		VALUES ($1, 'https://example.com/upstream.git', 3600, NOW() + interval '1 hour')`, repoID)
+}
+
+func TestReadOnlyRepo_ContentWrites_Refused(t *testing.T) {
 	tests := []struct {
-		name     string
-		wantBody string
-		send     func(t *testing.T, api http.Handler, r raceRepo, suggestionID int64) *httptest.ResponseRecorder
+		name string
+		json bool
+		send func(t *testing.T, api http.Handler, r raceRepo, suggestionID int64) *httptest.ResponseRecorder
 	}{
-		{"create branch", archivedJSON, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
+		{"create branch", true, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
 			return postForm(t, api, r.owner.token, "/api/repos"+r.path+"/branches", url.Values{"name": {"new"}})
 		}},
-		{"delete branch", archivedJSON, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
+		{"delete branch", true, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
 			return requestDeleteBranch(api, r.seededRepo, "feature", false)
 		}},
-		{"create tag", archivedJSON, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
+		{"create tag", true, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
 			return postForm(t, api, r.owner.token, "/api/repos"+r.path+"/tags", url.Values{"name": {"v1"}})
 		}},
-		{"delete tag", archivedJSON, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
+		{"delete tag", true, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
 			return requestAPI(api, http.MethodDelete, "/api/repos"+r.path+"/tags?name=v0", r.owner.token)
 		}},
-		{"merge pull", archivedJSON, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
+		{"merge pull", true, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
 			return requestAPIBody(api, http.MethodPatch, "/api/repos"+r.path+"/pulls/1", r.owner.token,
 				`{"state":"merged","merge_strategy":"merge"}`)
 		}},
-		{"apply suggestion", archivedJSON, func(t *testing.T, api http.Handler, r raceRepo, id int64) *httptest.ResponseRecorder {
+		{"apply suggestion", true, func(t *testing.T, api http.Handler, r raceRepo, id int64) *httptest.ResponseRecorder {
 			return requestAPI(api, http.MethodPost,
 				"/api/repos"+r.path+"/pulls/1/line_comments/"+strconv.FormatInt(id, 10)+"/apply", r.owner.token)
 		}},
-		{"create release", archivedJSON, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
+		{"create release", true, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
 			return requestAPIBody(api, http.MethodPost, "/api/repos"+r.path+"/releases", r.owner.token,
 				`{"tag_name":"v2","name":"v2"}`)
 		}},
-		{"change default branch", "repository is archived\n", func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
+		{"change default branch", false, func(t *testing.T, api http.Handler, r raceRepo, _ int64) *httptest.ResponseRecorder {
 			return postForm(t, api, r.owner.token, r.path+"/settings/general",
 				url.Values{"description": {"d"}, "default_branch": {"feature"}})
 		}},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			db := testutil.OpenTestDB(t)
-			reposRoot := t.TempDir()
-			api := newAPIRouterAt(t, db, reposRoot)
-			r := seedRaceRepo(t, db, reposRoot)
-			if err := r.git.Storer.SetReference(plumbing.NewHashReference(plumbing.NewTagReferenceName("v0"), r.mainTip)); err != nil {
-				t.Fatalf("seed tag: %v", err)
-			}
-			pullID := seedOpenPull(t, db, r.seededRepo)
-			var suggestionID int64
-			if err := db.QueryRow(
-				`INSERT INTO pull_line_comments (pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body)
-				 VALUES ($1, $2, $3, $4, 'f.txt', 'right', 1, 'try this', true, 'uno') RETURNING id`,
-				pullID, r.id, r.owner.id, r.owner.name,
-			).Scan(&suggestionID); err != nil {
-				t.Fatalf("seed suggestion: %v", err)
-			}
-			testutil.Exec(t, db, `UPDATE repositories SET is_archived = true, archived_at = NOW() WHERE id = $1`, r.id)
-			before := allRefs(t, r)
-
-			rr := tt.send(t, api, r, suggestionID)
-
-			if rr.Code != http.StatusForbidden || rr.Body.String() != tt.wantBody {
-				t.Errorf("want 403 %q, got %d %q", tt.wantBody, rr.Code, rr.Body.String())
-			}
-			after := allRefs(t, r)
-			if len(after) != len(before) {
-				t.Errorf("refs = %v, want %v", after, before)
-			}
-			for name, ref := range before {
-				if after[name] != ref {
-					t.Errorf("%s = %s, want %s", name, after[name], ref)
+	for _, kind := range readOnlyKinds {
+		for _, tt := range tests {
+			t.Run(kind.name+"/"+tt.name, func(t *testing.T) {
+				db := testutil.OpenTestDB(t)
+				reposRoot := t.TempDir()
+				api := newAPIRouterAt(t, db, reposRoot)
+				r := seedRaceRepo(t, db, reposRoot)
+				if err := r.git.Storer.SetReference(plumbing.NewHashReference(plumbing.NewTagReferenceName("v0"), r.mainTip)); err != nil {
+					t.Fatalf("seed tag: %v", err)
 				}
-			}
-		})
+				pullID := seedOpenPull(t, db, r.seededRepo)
+				var suggestionID int64
+				if err := db.QueryRow(
+					`INSERT INTO pull_line_comments (pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body)
+				 VALUES ($1, $2, $3, $4, 'f.txt', 'right', 1, 'try this', true, 'uno') RETURNING id`,
+					pullID, r.id, r.owner.id, r.owner.name,
+				).Scan(&suggestionID); err != nil {
+					t.Fatalf("seed suggestion: %v", err)
+				}
+				kind.apply(t, db, r.id)
+				before := allRefs(t, r)
+
+				rr := tt.send(t, api, r, suggestionID)
+
+				want := kind.msg + "\n"
+				if tt.json {
+					want = `{"error":"` + kind.msg + `"}` + "\n"
+				}
+				if rr.Code != http.StatusForbidden || rr.Body.String() != want {
+					t.Errorf("want 403 %q, got %d %q", want, rr.Code, rr.Body.String())
+				}
+				after := allRefs(t, r)
+				if len(after) != len(before) {
+					t.Errorf("refs = %v, want %v", after, before)
+				}
+				for name, ref := range before {
+					if after[name] != ref {
+						t.Errorf("%s = %s, want %s", name, after[name], ref)
+					}
+				}
+			})
+		}
 	}
 }
 
@@ -189,18 +216,23 @@ func TestArchivedRepo_DescriptionStillEditable(t *testing.T) {
 	}
 }
 
-func TestArchivedRepo_PagesHideContentWriteControls(t *testing.T) {
-	for _, archived := range []bool{false, true} {
-		t.Run(map[bool]string{false: "active", true: "archived"}[archived], func(t *testing.T) {
+func TestReadOnlyRepo_PagesHideContentWriteControls(t *testing.T) {
+	for _, kind := range append([]struct {
+		name, msg string
+		apply     func(t *testing.T, db *sql.DB, repoID int64)
+	}{{"active", "", nil}}, readOnlyKinds...) {
+		archived := kind.apply != nil
+		t.Run(kind.name, func(t *testing.T) {
 			db := testutil.OpenTestDB(t)
 			reposRoot := t.TempDir()
 			api := newAPIRouterAt(t, db, reposRoot)
 			r := seedRaceRepo(t, db, reposRoot)
 			seedOpenPull(t, db, r.seededRepo)
 			if archived {
-				testutil.Exec(t, db, `UPDATE repositories SET is_archived = true, archived_at = NOW() WHERE id = $1`, r.id)
+				kind.apply(t, db, r.id)
 			}
 			controls := []struct{ page, marker string }{
+				{"", `href="` + r.path + `/new/main"`},
 				{"/refs", `aria-label="Delete branch feature"`},
 				{"/refs", `hx-post="/api/repos` + r.path + `/branches"`},
 				{"/refs", `hx-post="/api/repos` + r.path + `/tags"`},

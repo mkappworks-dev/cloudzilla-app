@@ -35,9 +35,10 @@ type Repository struct {
 	PrimaryLanguage  *string    `db:"primary_language"  json:"primary_language,omitempty"`
 }
 
-// ContentReadOnly reports whether the repo's refs and commits must not change.
+// ContentReadOnly reports whether the repo's refs and commits must not change:
+// it is archived, or a pull mirror whose refs follow its upstream.
 func (r Repository) ContentReadOnly() bool {
-	return r.IsArchived
+	return r.IsArchived || r.IsMirror
 }
 
 // RepositoryWithStats augments a Repository with an aggregated star count for

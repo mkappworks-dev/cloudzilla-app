@@ -12,7 +12,7 @@ Spec: [../spec.md](../spec.md#api)
 - A settings card in `repo_settings.templ` (`CanManage`) shows the URL, the username, the token as "set" or "not set", the interval, the last sync, the last error, Sync now, Save and Stop mirroring. The agreed layout is frame 2 of the [mockups](https://claude.ai/artifact/1qdQ3E9jfTCzmijzWhWRgq): its own "Mirror" section in the settings sidebar, with a status strip and the form. The token is write-only ("Stored · enter a new one to replace it") with a "Remove the stored token" checkbox. The interval uses the same fixed choices as the import form. "Stop mirroring" is a separate red card.
 - API:
   - `GET`, `PATCH` and `DELETE /api/repos/{owner}/{repo}/mirror`
-  - `POST …/mirror/sync`, which returns 202
+  - `POST …/mirror/sync`, which returns 202. It already exists from ticket 07; this ticket only opens it to scoped tokens.
   - The token is never returned. `PATCH` can replace or clear it.
 - `mirror` is added to `repoAdminResources` in `middleware/scope.go`. `scope_test.go:58-59` currently uses `/mirror` as its unlisted example, so pick another path there.
 - Stop mirroring deletes the row, and with it the credentials. The repo becomes writable.

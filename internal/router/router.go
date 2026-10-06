@@ -352,6 +352,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(optAuthMW).Get("/{owner}/{repo}/watch", h.GetWatchButton)
 
 		// Branches and tags
+		r.With(authMW).Post("/{owner}/{repo}/mirror/sync", h.SyncMirror)
 		r.With(authMW).Post("/{owner}/{repo}/branches", h.CreateBranch)
 		r.With(authMW).Delete("/{owner}/{repo}/branches", h.DeleteBranch)
 		r.With(authMW).Post("/{owner}/{repo}/tags", h.CreateTag)

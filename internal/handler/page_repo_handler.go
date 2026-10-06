@@ -205,6 +205,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		LatestRelease: latestRelease,
 		Topics:        topics,
 		IsArchived:    repo.IsArchived,
+		Mirror:        h.mirrorBanner(r.Context(), repo, canWrite, canManage),
 		Languages:     languages,
 		TopContribs:   topContribs,
 		Releases:      releases,
@@ -315,7 +316,7 @@ func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
 			settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
 			return
 		}
-		if errors.Is(err, service.ErrRepoArchived) {
+		if errors.Is(err, service.ErrRepoArchived) || errors.Is(err, service.ErrRepoMirror) {
 			settingsError(w, r, http.StatusForbidden, err.Error())
 			return
 		}
