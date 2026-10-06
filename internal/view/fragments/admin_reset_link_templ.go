@@ -37,7 +37,7 @@ func AdminResetLink(data view.AdminResetLinkFragData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"admin-user-reset-link\" class=\"flex flex-col gap-2\"><h3 class=\"text-sm font-medium\">Password reset link</h3><div role=\"status\" class=\"border border-success/40 bg-success/10 rounded-md p-4 flex flex-col gap-2\" x-data=\"{ copied: false }\"><p class=\"font-semibold text-success text-[13px]\">Copy this link now — it won't be shown again. It works once, until <time datetime=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"admin-user-reset-link\" class=\"flex flex-col gap-2\" x-data x-init=\"document.querySelectorAll('#admin-user-confirm input').forEach(i => i.value = '')\"><h3 class=\"text-sm font-medium\">Password reset link</h3><div role=\"status\" class=\"border border-success/40 bg-success/10 rounded-md p-4 flex flex-col gap-2\" x-data=\"{ copied: false }\"><p class=\"font-semibold text-success text-[13px]\">Copy this link now — it won't be shown again. It works once, until <time datetime=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

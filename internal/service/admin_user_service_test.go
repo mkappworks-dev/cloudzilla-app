@@ -188,6 +188,8 @@ func TestAdminUserService_IssuePasswordResetLink(t *testing.T) {
 		t.Fatalf("Check = %+v, %v; want a pending admin link for user %d", got, err, userID)
 	}
 
+	box.Empty(t, 300*time.Millisecond)
+	svc.AdminUser.NotifyPasswordResetLink(userID)
 	notice := box.NextTo(t, email)
 	if !strings.Contains(notice.Data, "administrator") || strings.Contains(notice.Data, token) {
 		t.Errorf("notice = %.500s, want an administrator notice without the link", notice.Data)

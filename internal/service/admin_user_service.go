@@ -168,8 +168,8 @@ func (s *AdminUserService) RevokeCredentials(ctx context.Context, actorID int64,
 	return u, revoked, nil
 }
 
-// IssuePasswordResetLink returns a link for the admin to hand over, and tells
-// the user one was issued without mailing them the link.
+// IssuePasswordResetLink returns a link for the admin to hand over. The caller
+// sends NotifyPasswordResetLink once the link is recorded.
 func (s *AdminUserService) IssuePasswordResetLink(ctx context.Context, actorID int64, username string) (*model.User, string, error) {
 	u, err := s.target(ctx, actorID, username)
 	if err != nil {
@@ -179,8 +179,12 @@ func (s *AdminUserService) IssuePasswordResetLink(ctx context.Context, actorID i
 	if err != nil {
 		return nil, "", err
 	}
-	notifySecurityChange(s.notices, s.users, u.ID, "admin_password_reset_link", adminPasswordResetLinkNotice)
 	return u, link, nil
+}
+
+// NotifyPasswordResetLink tells the user a link was issued, without the link.
+func (s *AdminUserService) NotifyPasswordResetLink(userID int64) {
+	notifySecurityChange(s.notices, s.users, userID, "admin_password_reset_link", adminPasswordResetLinkNotice)
 }
 
 // Delete removes the account as self-service deletion would. confirm must be

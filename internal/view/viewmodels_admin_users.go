@@ -33,6 +33,6 @@ type AdminResetLinkFragData struct {
 	Username  string
 	Link      string
 	ExpiresAt time.Time
-	// Notified is set when SMTP is on, so the user was emailed a notice.
+	// Notified is set when SMTP is on, so a notice was sent to the user.
 	Notified bool
 }

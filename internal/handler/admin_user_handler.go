@@ -63,6 +63,8 @@ func (h *Handler) PageAdminUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to load user", http.StatusInternalServerError)
 		return
 	}
+	// A reset link swapped into this page must not come back from the back-forward cache.
+	w.Header().Set("Cache-Control", "no-store")
 	h.render(w, r, pages.AdminUser(view.AdminUserData{
 		BasePage: basePage(r, h.Services),
 		Detail:   *detail,
@@ -182,6 +184,8 @@ func (h *Handler) AdminIssuePasswordResetLink(w http.ResponseWriter, r *http.Req
 		return
 	}
 	username := chi.URLParam(r, "username")
+	// Taken before issuing, so the shown expiry is never later than the stored one.
+	expiresAt := time.Now().Add(service.PasswordResetManualTTL)
 	u, link, err := h.Services.AdminUser.IssuePasswordResetLink(r.Context(), claims.UserID, username)
 	if err != nil {
 		status, msg := adminUserActionError(err)
@@ -198,7 +202,7 @@ func (h *Handler) AdminIssuePasswordResetLink(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusInternalServerError, "Couldn't record the link, so it wasn't shown. Please try again.")
 		return
 	}
-	expiresAt := time.Now().Add(service.PasswordResetManualTTL)
+	h.Services.AdminUser.NotifyPasswordResetLink(u.ID)
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Header.Get("HX-Request") != "true" {
 		writeJSON(w, http.StatusOK, map[string]any{"link": link, "expires_at": expiresAt.UTC().Format(time.RFC3339)})

@@ -48,7 +48,7 @@ func TestAdminPasswordResetLink(t *testing.T) {
 		t.Fatalf("issue: %d %s", rr.Code, rr.Body.String())
 	}
 	m := resetLinkToken.FindStringSubmatch(rr.Body.String())
-	if m == nil || !strings.Contains(rr.Body.String(), "won't be shown again") {
+	if m == nil || !strings.Contains(rr.Body.String(), "won't be shown again") || !strings.Contains(rr.Body.String(), ">Copy<") {
 		t.Fatalf("issue body has no shown-once link: %s", rr.Body.String())
 	}
 	if got := rr.Header().Get("Cache-Control"); got != "no-store" {
@@ -130,5 +130,25 @@ func TestAdminPasswordResetLink_Refusals(t *testing.T) {
 		if page.Code != http.StatusOK || strings.Contains(page.Body.String(), "Password reset link") {
 			t.Errorf("%s page: %d, offers a reset link %v", name, page.Code, strings.Contains(page.Body.String(), "Password reset link"))
 		}
+	}
+}
+
+func TestAdminPasswordResetLink_TwoFactorAdminNeedsCode(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	h := newAPIRouter(t, db)
+	sfx := testutil.UniqueSuffix(t)
+	adminID := testutil.SeedSuperadmin(t, db, sfx)
+	testutil.SetPassword(t, db, adminID, "admin-password")
+	testutil.EnableTOTP(t, db, adminID)
+	userID, _ := testutil.SeedUserWithPassword(t, db, sfx, "user-password")
+	token := makeIssueJWT(t, adminID, "testadmin_"+sfx)
+
+	rr := adminRequest(t, h, http.MethodPost, "/api/admin/users/testpw_"+sfx+"/password-reset-link", token, url.Values{"password": {"admin-password"}})
+	if rr.Code == http.StatusOK || resetLinkToken.MatchString(rr.Body.String()) {
+		t.Errorf("without a 2FA code: %d %s, want a refusal", rr.Code, rr.Body.String())
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM password_reset_tokens WHERE user_id = $1`, userID).Scan(&n); err != nil || n != 0 {
+		t.Errorf("password_reset_tokens rows = %d, %v; want none", n, err)
 	}
 }
