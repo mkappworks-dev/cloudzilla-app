@@ -599,5 +599,30 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		_, _ = w.Write(faviconBytes)
 	})
 
-	return r, nil
+	return &probeMux{Mux: r, probes: map[string]http.HandlerFunc{
+		"/healthz": h.Healthz,
+		"/readyz":  h.Readyz,
+	}}, nil
+}
+
+// probeMux answers health probes ahead of the global middleware, so a probe
+// writes no log line, sets no cookie, skips the setup redirect and auth, and
+// counts against no rate limit. Embedding keeps chi.Routes for route walks.
+type probeMux struct {
+	*chi.Mux
+	probes map[string]http.HandlerFunc
+}
+
+func (m *probeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	probe, ok := m.probes[r.URL.Path]
+	if !ok {
+		m.Mux.ServeHTTP(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	probe(w, r)
 }

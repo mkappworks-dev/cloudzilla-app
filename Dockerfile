@@ -44,4 +44,8 @@ RUN mkdir -p /data/git-repos
 
 EXPOSE 8080 2222
 
+# Liveness, not readiness: a restart fixes neither a database outage nor a pending migration.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -q -O /dev/null "http://127.0.0.1:${CZ_SERVER_PORT:-8080}/healthz" || exit 1
+
 ENTRYPOINT ["/app/cloudzilla"]

@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Spec: [../spec.md](../spec.md) (Health)
 
 ## What to build
@@ -27,14 +27,14 @@ The checks live behind a service, so the handler only calls services.
 
 ## Acceptance criteria
 
-- [ ] `/healthz` returns 200 while the database is unreachable.
-- [ ] `/readyz` returns 503 with `database: fail` and `migrations: skipped` when the database is unreachable.
-- [ ] `/readyz` returns 503 with `migrations: fail` while an embedded migration is missing from `schema_migrations`, and 200 after `cloudzilla-cli migrate`.
-- [ ] `/readyz` returns 503 with `storage: fail` when `git.repos_root` is missing or not writable, and leaves no `.readyz-*` file behind on success.
-- [ ] Before setup completes, both endpoints answer directly instead of redirecting to `/setup`.
-- [ ] Neither endpoint sets a `csrf_token` cookie or writes a `request` log line, and neither is counted by `middleware.RateLimit`.
-- [ ] `POST /healthz` returns 405, and `GET /healthz/anything` reaches the router.
-- [ ] Creating a user or organization named `healthz` or `readyz` (any case) fails with the reserved-name error.
+- [x] `/healthz` returns 200 while the database is unreachable.
+- [x] `/readyz` returns 503 with `database: fail` and `migrations: skipped` when the database is unreachable.
+- [x] `/readyz` returns 503 with `migrations: fail` while an embedded migration is missing from `schema_migrations`, and 200 after `cloudzilla-cli migrate`.
+- [x] `/readyz` returns 503 with `storage: fail` when `git.repos_root` is missing or not writable, and leaves no `.readyz-*` file behind on success.
+- [x] Before setup completes, both endpoints answer directly instead of redirecting to `/setup`.
+- [x] Neither endpoint sets a `csrf_token` cookie or writes a `request` log line, and neither is counted by `middleware.RateLimit`.
+- [x] `POST /healthz` returns 405, and `GET /healthz/anything` reaches the router.
+- [x] Creating a user or organization named `healthz` or `readyz` (any case) fails with the reserved-name error.
 - [ ] `docker build` then `docker run` reaches `healthy` on the image's own `HEALTHCHECK`.
 
 ## Tests
@@ -60,3 +60,7 @@ The checks live behind a service, so the handler only calls services.
 - `internal/service/owner_name.go`
 - `Dockerfile`
 - `docs/deployment.md`
+
+## Comments
+
+**Claude, 2026-10-06:** Implemented per [the plan](../../../docs/superpowers/plans/2026-10-06-ops-health-endpoints.md). Unit and integration tests pass against Postgres 16, and the built server was probed by hand. The `docker build` / `HEALTHCHECK` criterion is unticked: the session had no Docker, so it needs a check on a machine that has it.
