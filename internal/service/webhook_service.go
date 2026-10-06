@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -151,6 +152,7 @@ func (s *WebhookService) Dispatch(repoID int64, event string, payload any) {
 
 func (s *WebhookService) deliver(ctx context.Context, wh model.Webhook, event string, payload []byte) {
 	code, err := s.send(ctx, wh, event, payload)
+	recordWebhookDelivery("first", code, err)
 	d := &model.WebhookDelivery{
 		WebhookID:    wh.ID,
 		Event:        event,
@@ -173,6 +175,7 @@ func (s *WebhookService) deliver(ctx context.Context, wh model.Webhook, event st
 func (s *WebhookService) retry(ctx context.Context, wh model.Webhook, d model.WebhookDelivery) {
 	attempt := d.AttemptCount + 1
 	code, err := s.send(ctx, wh, d.Event, []byte(d.Payload))
+	recordWebhookDelivery("retry", code, err)
 	if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextWebhookRetry(attempt, code, err), attempt, code, deliveryError(err)); retryErr != nil {
 		slog.Warn("webhook: failed to update retry state", "delivery_id", d.ID, "error", retryErr)
 	}
@@ -195,6 +198,14 @@ func (s *WebhookService) send(ctx context.Context, wh model.Webhook, event strin
 	}
 	_ = resp.Body.Close()
 	return resp.StatusCode, nil
+}
+
+func recordWebhookDelivery(attempt string, code int, err error) {
+	result := "failure"
+	if err == nil && code >= 200 && code < 300 {
+		result = "success"
+	}
+	metrics.WebhookDeliveries.WithLabelValues(attempt, result).Inc()
 }
 
 func deliveryError(err error) string {
@@ -253,6 +264,7 @@ func (s *WebhookService) RetryPending(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("retry pending list: %w", err)
 	}
+	metrics.WebhookRetriesDue.Set(float64(len(pending)))
 	var wg sync.WaitGroup
 	for _, d := range pending {
 		wh, err := s.webhooks.GetByID(ctx, d.WebhookID)

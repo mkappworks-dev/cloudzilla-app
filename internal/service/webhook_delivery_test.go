@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
+	promtestutil "github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 type webhookFixture struct {
@@ -133,9 +135,17 @@ func TestWebhookRetryPending_AllowLocalNetworks(t *testing.T) {
 	f := newWebhookFixture(t, http.StatusOK)
 	d := f.pendingDelivery(t)
 	svc := service.NewWebhookService(f.store, config.WebhookConfig{AllowLocalNetworks: true})
+	retried := metrics.WebhookDeliveries.WithLabelValues("retry", "success")
+	before := promtestutil.ToFloat64(retried)
 
 	if err := svc.RetryPending(context.Background()); err != nil {
 		t.Fatalf("RetryPending: %v", err)
+	}
+	if delta := promtestutil.ToFloat64(retried) - before; delta < 1 {
+		t.Errorf("webhook_deliveries_total{retry,success} delta = %v, want at least 1", delta)
+	}
+	if due := promtestutil.ToFloat64(metrics.WebhookRetriesDue); due < 1 {
+		t.Errorf("webhook_retries_due = %v, want at least 1", due)
 	}
 	got, err := f.store.GetDeliveryByID(context.Background(), d.ID)
 	if err != nil {
@@ -157,6 +167,8 @@ func TestWebhookDispatch_RecordsARedirectAndRetriesIt(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
+	failed := metrics.WebhookDeliveries.WithLabelValues("first", "failure")
+	before := promtestutil.ToFloat64(failed)
 	svc.Dispatch(f.repoID, "push", map[string]any{"ref": "refs/heads/main"})
 	deadline := time.Now().Add(5 * time.Second)
 	for {
@@ -167,6 +179,9 @@ func TestWebhookDispatch_RecordsARedirectAndRetriesIt(t *testing.T) {
 		if len(ds) == 1 && ds[0].NextRetryAt != nil {
 			if ds[0].ResponseCode != http.StatusFound || ds[0].AttemptCount != 1 {
 				t.Errorf("delivery = code %d attempt %d, want 302 attempt 1", ds[0].ResponseCode, ds[0].AttemptCount)
+			}
+			if delta := promtestutil.ToFloat64(failed) - before; delta != 1 {
+				t.Errorf("webhook_deliveries_total{first,failure} delta = %v, want 1", delta)
 			}
 			return
 		}

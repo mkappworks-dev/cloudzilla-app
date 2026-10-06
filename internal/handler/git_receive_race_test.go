@@ -20,8 +20,10 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
+	promtestutil "github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 var (
@@ -454,4 +456,49 @@ func TestGitReceivePack_NoReportStatus_RefusesPerRef(t *testing.T) {
 	assertRef(t, r, "main", r.mainTip)
 	assertRef(t, r, "feature", r.featureTip)
 	assertRef(t, r, "topic", r.featurePushed)
+}
+
+func TestGitHTTP_CountsPushAndClone(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	counter := func(service, result string) float64 {
+		return promtestutil.ToFloat64(metrics.GitOperations.WithLabelValues("http", service, result))
+	}
+	bytesOf := func(service string) float64 {
+		return promtestutil.ToFloat64(metrics.GitBytes.WithLabelValues("http", service))
+	}
+	pushOps, pushBytes := counter("receive-pack", "ok"), bytesOf("receive-pack")
+	cloneOps, cloneBytes := counter("upload-pack", "ok"), bytesOf("upload-pack")
+
+	receivePack(t, h, r, &packp.Command{Name: mainRef, Old: r.mainTip, New: r.mainPushed})
+
+	req := packp.NewUploadPackRequest()
+	req.Wants = []plumbing.Hash{r.mainPushed}
+	var body bytes.Buffer
+	if err := req.UploadRequest.Encode(&body); err != nil {
+		t.Fatalf("encode request: %v", err)
+	}
+	hr := httptest.NewRequest(http.MethodPost, r.path+"/git-upload-pack", &body)
+	hr.Header.Set("Content-Type", "application/x-git-upload-pack-request")
+	hr.Header.Set("Authorization", "Bearer "+r.owner.token)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, hr)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("upload-pack: %d %q", rr.Code, rr.Body.String())
+	}
+
+	if d := counter("receive-pack", "ok") - pushOps; d != 1 {
+		t.Errorf("receive-pack ok delta = %v, want 1", d)
+	}
+	if d := bytesOf("receive-pack") - pushBytes; d <= 0 {
+		t.Errorf("receive-pack bytes delta = %v, want > 0", d)
+	}
+	if d := counter("upload-pack", "ok") - cloneOps; d != 1 {
+		t.Errorf("upload-pack ok delta = %v, want 1", d)
+	}
+	if d := bytesOf("upload-pack") - cloneBytes; d != float64(rr.Body.Len()) {
+		t.Errorf("upload-pack bytes delta = %v, want the %d bytes served", d, rr.Body.Len())
+	}
 }

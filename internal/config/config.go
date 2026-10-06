@@ -28,6 +28,7 @@ type Config struct {
 	Storage   StorageConfig   `mapstructure:"storage"`
 	Security  SecurityConfig  `mapstructure:"security"`
 	Mirror    MirrorConfig    `mapstructure:"mirror"`
+	Metrics   MetricsConfig   `mapstructure:"metrics"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -142,6 +143,12 @@ type S3StorageConfig struct {
 	Prefix          string `mapstructure:"prefix"`
 }
 
+// MetricsConfig holds the Prometheus listener settings.
+type MetricsConfig struct {
+	// Empty turns the listener off. The address must stay private: /metrics has no auth.
+	ListenAddr string `mapstructure:"listen_addr"`
+}
+
 // MaxMirrorInterval is the longest sync interval a pull mirror may have.
 const MaxMirrorInterval = 30 * 24 * time.Hour
 
@@ -252,6 +259,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("mirror.default_interval", "8h")
 	v.SetDefault("mirror.max_concurrent", 3)
 	v.SetDefault("mirror.timeout", "30m")
+	v.SetDefault("metrics.listen_addr", "")
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.window", "1h")
 	v.SetDefault("rate_limit.core.authenticated", 5000)

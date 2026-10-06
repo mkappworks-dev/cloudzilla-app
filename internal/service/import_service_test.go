@@ -14,9 +14,11 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
+	promtestutil "github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 func newImportEnv(t *testing.T, allowLocal bool) (*service.ImportService, *service.RepoService, *sql.DB, string) {
@@ -51,6 +53,8 @@ func TestImport_PublishesTheSource(t *testing.T) {
 	ctx := context.Background()
 	uid, uname := seedImportUser(t, db)
 	src := testutil.SeedSourceRepo(t)
+	succeeded := metrics.Imports.WithLabelValues("succeeded")
+	before := promtestutil.ToFloat64(succeeded)
 
 	job, err := imports.Start(ctx, uid, uname, service.ImportRequest{
 		CloneURL: testutil.ServeGitHTTP(t, src.Dir, "", ""), Name: "imported", Description: "copied", Private: true,
@@ -63,6 +67,9 @@ func TestImport_PublishesTheSource(t *testing.T) {
 	}
 	if done := waitImport(t, imports, uid, job.ID); done.Status != service.ImportDone {
 		t.Fatalf("status %s: %s", done.Status, done.Error)
+	}
+	if got := promtestutil.ToFloat64(succeeded) - before; got != 1 {
+		t.Errorf("imports_total{succeeded} delta = %v, want 1", got)
 	}
 	repo, err := repoSvc.Get(ctx, uname, "imported")
 	if err != nil || repo.DefaultBranch != "develop" || !repo.Private || repo.Description != "copied" {
@@ -102,12 +109,17 @@ func TestImport_BlocksPrivateNetworksByDefault(t *testing.T) {
 	ctx := context.Background()
 	uid, uname := seedImportUser(t, db)
 	url := testutil.ServeGitHTTP(t, testutil.SeedSourceRepo(t).Dir, "", "")
+	failed := metrics.Imports.WithLabelValues("failed")
+	before := promtestutil.ToFloat64(failed)
 
 	job, err := imports.Start(ctx, uid, uname, service.ImportRequest{CloneURL: url, Name: "blocked"})
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 	got := waitImport(t, imports, uid, job.ID)
+	if d := promtestutil.ToFloat64(failed) - before; d != 1 {
+		t.Errorf("imports_total{failed} delta = %v, want 1", d)
+	}
 	want := "127.0.0.1 resolves to a private network address. An administrator can allow this with import.allow_local_networks."
 	if got.Status != service.ImportFailed || got.Error != want {
 		t.Errorf("got %s %q, want failed %q", got.Status, got.Error, want)

@@ -19,6 +19,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/metrics"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
@@ -302,9 +303,27 @@ func (s *ImportService) finish(job *importJob, failure string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job.Status, job.FinishedAt = ImportDone, time.Now()
+	result := "succeeded"
 	if failure != "" {
 		job.Status, job.Error = ImportFailed, failure
+		result = "failed"
 	}
+	metrics.Imports.WithLabelValues(result).Inc()
+}
+
+// JobCounts reports the jobs not yet finished, by state.
+func (s *ImportService) JobCounts() (queued, running int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, job := range s.jobs {
+		switch job.Status {
+		case ImportQueued:
+			queued++
+		case ImportRunning:
+			running++
+		}
+	}
+	return queued, running
 }
 
 func (s *ImportService) sweepLocked(now time.Time) {

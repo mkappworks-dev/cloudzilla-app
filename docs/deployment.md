@@ -115,6 +115,48 @@ The body never says why a check failed; the server logs the cause at `WARN` with
 
 The image's `HEALTHCHECK` probes `/healthz`, not `/readyz`. Orchestrators restart unhealthy containers, and a restart fixes neither a database outage nor a pending migration; and on first boot readiness fails by design until `cloudzilla-cli migrate` runs. It requests `http://127.0.0.1:${CZ_SERVER_PORT:-8080}/healthz` with any proxy disabled, so it reads the port only from the `CZ_SERVER_PORT` environment variable, not from `config.yaml`, and it needs `server.host` to accept loopback connections (the default `0.0.0.0` does). Check it with `docker inspect --format '{{.State.Health.Status}}' <container>`.
 
+### Metrics
+
+Cloudzilla exposes Prometheus metrics on a separate listener, off by default. Set `metrics.listen_addr` (`CZ_METRICS_LISTEN_ADDR`) to start it; it serves only `GET /metrics`. The main port never serves metrics: there, `/metrics` is an ordinary `/{owner}` path.
+
+**The metrics port has no authentication. Don't publish it, and don't proxy it.** Bind it to loopback (`127.0.0.1:9090`), or to a private network that only Prometheus can reach. Metric labels carry route patterns, never user or repository names.
+
+Under Docker Compose, set the address and leave the port out of `ports:`; Prometheus on the same Compose network reaches it as `cloudzilla:9090`:
+
+```yaml
+  cloudzilla:
+    ports:
+      - "8080:8080"
+      - "2222:2222"
+      # no "9090:9090" here
+    environment:
+      CZ_METRICS_LISTEN_ADDR: ":9090"
+```
+
+A Prometheus `scrape_config`:
+
+```yaml
+scrape_configs:
+  - job_name: cloudzilla
+    static_configs:
+      - targets: ["cloudzilla:9090"]
+```
+
+| Metric | Type | Labels | Meaning |
+| ------ | ---- | ------ | ------- |
+| `cloudzilla_build_info` | gauge | `version` | Always 1 |
+| `cloudzilla_http_requests_total` | counter | `method`, `route`, `code` | Requests by chi route pattern (`unmatched` when routing found none); a method outside the standard verbs is `other`. `/healthz` and `/readyz` aren't counted |
+| `cloudzilla_http_request_duration_seconds` | histogram | `method`, `route` | Request duration, buckets from 5 ms to 60 s |
+| `cloudzilla_http_requests_in_flight` | gauge | | Requests being served |
+| `cloudzilla_git_operations_total` | counter | `transport` (`http`, `ssh`), `service` (`upload-pack`, `receive-pack`), `result` (`ok`, `error`) | Transport exchanges. One HTTP fetch can take several `upload-pack` POSTs, so this isn't a count of fetches |
+| `cloudzilla_git_bytes_total` | counter | `transport`, `service` | Bytes received (`receive-pack`) or sent (`upload-pack`) |
+| `cloudzilla_import_jobs` | gauge | `state` (`queued`, `running`) | Imports in memory, read at scrape time |
+| `cloudzilla_imports_total` | counter | `result` (`succeeded`, `failed`) | Finished imports |
+| `cloudzilla_webhook_deliveries_total` | counter | `attempt` (`first`, `retry`), `result` (`success`, `failure`) | Delivery attempts; a non-2xx response is a failure |
+| `cloudzilla_webhook_retries_due` | gauge | | Deliveries due for retry at the last 60-second retry tick |
+| `go_sql_*` | various | `db_name="cloudzilla"` | Connection pool: open, in-use and idle connections, wait count and wait time |
+| `go_*`, `process_*` | various | | Go runtime and process stats (`process_*` on Linux only) |
+
 ### Behind a reverse proxy
 
 Set `server.trusted_proxies` (`CZ_SERVER_TRUSTED_PROXIES`) to the proxy's IP or CIDR, e.g. `CZ_SERVER_TRUSTED_PROXIES=172.16.0.0/12` for a Docker network. `X-Forwarded-For` is ignored from any other peer, because clients can forge it. A trusted proxy must write bare IP addresses into `X-Forwarded-For`: Cloudzilla reads it right to left and stops at a hop written as `ip:port` or `[v6]`, so those clients share the proxy's budget. Without this setting, audit-log IPs and the per-IP rate limits see only the proxy's address, so every client shares one budget. The limits are 10 attempts per 15 minutes on account creation (`/register`, `/register/complete/{token}` and `/invite/{token}`) and 30 per 15 minutes on password login (`/login`, `/api/auth/login` and `/auth/ldap`); each route has its own budget, and an IPv6 client is counted per /64.
