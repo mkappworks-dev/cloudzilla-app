@@ -20,6 +20,7 @@ type User struct {
 	Company            string         `db:"company"          json:"company"`
 	Location           string         `db:"location"         json:"location"`
 	AvatarURL          string         `db:"avatar_url"       json:"avatar_url"`
+	AvatarKey          string         `db:"avatar_key"       json:"-"`
 	OAuthProvider      string         `db:"oauth_provider"   json:"-"`
 	OAuthID            string         `db:"oauth_id"         json:"-"`
 	IsSuperadmin       bool           `db:"is_superadmin"    json:"-"`

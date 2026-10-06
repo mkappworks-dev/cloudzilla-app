@@ -48,7 +48,7 @@ templ Commits(data view.CommitsData) {
 						}
 						<div class="rounded-md border border-border bg-card">
 							<div class="flex items-start gap-3 px-4 py-3">
-								@components.Avatar(c.Author, components.AvatarSizeSM, c.Author)
+								@components.Initials(c.Author, components.AvatarSizeSM, c.Author)
 								<div class="min-w-0 flex-1">
 									<a
 										href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + c.FullHash) }

@@ -40,7 +40,8 @@ COPY --from=builder /app/dist/cloudzilla     /app/cloudzilla
 COPY --from=builder /app/dist/cloudzilla-cli /app/cloudzilla-cli
 
 # Data directory for SQLite DB, git repos, SSH host key
-RUN mkdir -p /data/git-repos
+RUN mkdir -p /data/git-repos /data/storage
+ENV CZ_STORAGE_LOCAL_ROOT=/data/storage
 
 EXPOSE 8080 2222
 

@@ -21,12 +21,19 @@ var ErrInvalidOrgName = errors.New("invalid organization name")
 
 // OrgService manages organization creation, membership, and ownership transfers.
 type OrgService struct {
-	orgs  *store.OrgStore
-	repos *store.RepoStore
-	users *store.UserStore
-	stars *store.StarStore
-	repo  *RepoService
-	cfg   config.GitConfig
+	orgs    *store.OrgStore
+	repos   *store.RepoStore
+	users   *store.UserStore
+	stars   *store.StarStore
+	repo    *RepoService
+	cfg     config.GitConfig
+	avatars *AvatarService
+}
+
+// WithAvatars removes a deleted org's avatar object.
+func (s *OrgService) WithAvatars(a *AvatarService) *OrgService {
+	s.avatars = a
+	return s
 }
 
 func (s *OrgService) WithRepoService(repo *RepoService) *OrgService {
@@ -94,10 +101,11 @@ func (s *OrgService) Delete(ctx context.Context, orgID, requestingUserID int64) 
 	if !s.IsOwner(ctx, orgID, requestingUserID) {
 		return fmt.Errorf("only org owners can delete an organization")
 	}
-	deleted, err := s.orgs.Delete(ctx, orgID)
+	deleted, avatarKey, err := s.orgs.Delete(ctx, orgID)
 	if err != nil {
 		return err
 	}
+	s.avatars.DeleteObject(ctx, avatarKey)
 	// The org_id cascade drops these rows, so nothing could restore or purge
 	// their copies later.
 	if s.repo != nil {

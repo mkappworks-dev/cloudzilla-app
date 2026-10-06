@@ -108,7 +108,7 @@ func (s *StarStore) ListByUser(ctx context.Context, userID int64) ([]model.Repos
 
 func (s *StarStore) ListStargazers(ctx context.Context, repoID int64) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT u.id, u.username, u.email, u.bio, u.avatar_url, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
+		`SELECT u.id, u.username, u.email, u.bio, u.avatar_url, u.avatar_key, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
 		 FROM users u JOIN stars st ON u.id = st.user_id
 		 WHERE st.repo_id = $1 ORDER BY st.created_at DESC`,
 		repoID,

@@ -125,6 +125,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(middleware.RateLimit(passwordResetLimit, passwordResetWindow)).Post("/auth/password/reset/{token}", h.ResetPasswordSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
+	r.With(authMW, middleware.MaxBodySize(handler.AvatarBodyBytes)).Post("/settings/avatar", h.UploadUserAvatar)
+	r.With(authMW).Post("/settings/avatar/delete", h.RemoveUserAvatar)
 	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)
 	r.With(authMW).Post("/settings/email", h.UpdateEmailSettings)
 	r.With(authMW).Post("/settings/email/resend-verification", h.ResendVerificationEmail)
@@ -192,6 +194,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
+	// Outside /api/orgs, whose 1 MB body limit is smaller than an avatar.
+	r.With(authMW, middleware.MaxBodySize(handler.AvatarBodyBytes)).Post("/orgs/{org}/settings/avatar", h.UploadOrgAvatar)
+	r.With(authMW).Post("/orgs/{org}/settings/avatar/delete", h.RemoveOrgAvatar)
+	r.Get("/avatars/*", h.ServeAvatar)
+	r.Head("/avatars/*", h.ServeAvatar)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(authMW).Get("/{owner}/{repo}/fork", h.PageForkRepo)

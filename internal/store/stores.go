@@ -55,6 +55,7 @@ type Stores struct {
 	EmailVerification  *EmailVerificationStore
 	PasswordReset      *PasswordResetStore
 	Health             *HealthStore
+	Avatar             *AvatarStore
 }
 
 // New constructs and wires all stores from the given database connection.
@@ -109,5 +110,6 @@ func New(database *sql.DB) *Stores {
 		EmailVerification:  NewEmailVerificationStore(database),
 		PasswordReset:      NewPasswordResetStore(database),
 		Health:             NewHealthStore(database),
+		Avatar:             NewAvatarStore(database),
 	}
 }

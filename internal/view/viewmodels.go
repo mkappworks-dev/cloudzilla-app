@@ -39,6 +39,8 @@ type BasePage struct {
 	// CodeLight and CodeDark are the viewer's code themes; read them through CodeThemeLight/CodeThemeDark.
 	CodeLight string
 	CodeDark  string
+	// AvatarKey is the viewer's avatar, for the nav menu.
+	AvatarKey string
 }
 
 // CodeThemeLight falls back to the default for pages built without basePage(), such as setup and error pages.

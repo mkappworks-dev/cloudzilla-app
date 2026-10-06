@@ -67,7 +67,7 @@ func (h *Handler) PagePulse(w http.ResponseWriter, r *http.Request) {
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
-	h.render(w, r, pages.Pulse(view.PulseData{
+	h.render(w, h.withAvatars(r, contributorNames(contributors)...), pages.Pulse(view.PulseData{
 		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:          *repo,
 		Owner:         owner,
@@ -103,7 +103,7 @@ func (h *Handler) PageContributors(w http.ResponseWriter, r *http.Request) {
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
-	h.render(w, r, pages.Contributors(view.ContributorsData{
+	h.render(w, h.withAvatars(r, contributorNames(rows)...), pages.Contributors(view.ContributorsData{
 		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:     repo,
 		Rows:     rows,

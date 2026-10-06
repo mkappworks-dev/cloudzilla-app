@@ -23,6 +23,7 @@ type Config struct {
 	Import    ImportConfig    `mapstructure:"import"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 	Webhook   WebhookConfig   `mapstructure:"webhook"`
+	Storage   StorageConfig   `mapstructure:"storage"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -114,6 +115,29 @@ func (c RateLimitConfig) validate() error {
 	return nil
 }
 
+// StorageConfig selects where uploaded objects, such as avatars, are kept.
+type StorageConfig struct {
+	Backend string             `mapstructure:"backend"`
+	Local   LocalStorageConfig `mapstructure:"local"`
+	S3      S3StorageConfig    `mapstructure:"s3"`
+}
+
+type LocalStorageConfig struct {
+	Root string `mapstructure:"root"`
+}
+
+// S3StorageConfig works for AWS and S3-compatible servers. Without both keys
+// the AWS SDK's default credential chain applies.
+type S3StorageConfig struct {
+	Endpoint        string `mapstructure:"endpoint"`
+	Region          string `mapstructure:"region"`
+	Bucket          string `mapstructure:"bucket"`
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	SecretAccessKey string `mapstructure:"secret_access_key"`
+	PathStyle       bool   `mapstructure:"path_style"`
+	Prefix          string `mapstructure:"prefix"`
+}
+
 // OAuthConfig holds Google OAuth provider settings.
 type OAuthConfig struct {
 	GoogleClientID     string `mapstructure:"google_client_id"`
@@ -165,6 +189,15 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("smtp.tls", false)
 	v.SetDefault("import.allow_local_networks", false)
 	v.SetDefault("import.timeout", "30m")
+	v.SetDefault("storage.backend", "local")
+	v.SetDefault("storage.local.root", "./storage")
+	v.SetDefault("storage.s3.endpoint", "")
+	v.SetDefault("storage.s3.region", "us-east-1")
+	v.SetDefault("storage.s3.bucket", "")
+	v.SetDefault("storage.s3.access_key_id", "")
+	v.SetDefault("storage.s3.secret_access_key", "")
+	v.SetDefault("storage.s3.path_style", false)
+	v.SetDefault("storage.s3.prefix", "")
 	v.SetDefault("webhook.allow_local_networks", false)
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.window", "1h")
