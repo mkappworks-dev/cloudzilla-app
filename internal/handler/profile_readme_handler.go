@@ -40,7 +40,7 @@ func (h *Handler) UpdateProfileReadme(w http.ResponseWriter, r *http.Request) {
 		redirectReadmeError(w, r, user.Username, "profile_repo_private")
 		return
 	}
-	if repo.IsArchived {
+	if service.CheckContentWritable(repo) != nil {
 		redirectReadmeError(w, r, user.Username, "profile_repo_archived")
 		return
 	}

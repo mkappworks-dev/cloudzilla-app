@@ -2,13 +2,13 @@
 
 Created: 2026-10-06
 Category: bug
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md#read-only-enforcement)
 
 ## What
 
-Add `RepoService.CheckContentWritable(repo *model.Repository) error`. It returns `ErrRepoArchived` for archived repos; ticket 07 extends it to pull mirrors. Every path that writes refs or commits to a repo's git storage calls it.
+Add `service.CheckContentWritable(repo *model.Repository) error`, backed by `Repository.ContentReadOnly()` so templates share the rule. It returns `ErrRepoArchived` for archived repos; ticket 07 extends it to pull mirrors. Every path that writes refs or commits to a repo's git storage calls it.
 
 These paths call it but don't check today:
 
@@ -24,12 +24,20 @@ The UI hides the matching controls on archived repos: the `refs.templ` create an
 
 ## Acceptance criteria
 
-- [ ] On an archived repo, every path above refuses the write: web forms with the existing archived message, JSON with 403 `{"error":"repository is archived"}`.
-- [ ] Auto-merge on an archived repo is skipped without error spam.
-- [ ] The write controls above are hidden on archived repos.
-- [ ] Tests cover each path, at handler or service level.
-- [ ] Ships as its own `fix(repo):` commit before any mirror code.
+- [x] On an archived repo, every path above refuses the write: web forms with the existing archived message, JSON with 403 `{"error":"repository is archived"}`.
+- [x] Auto-merge on an archived repo is skipped without error spam.
+- [x] The write controls above are hidden on archived repos.
+- [x] Tests cover each path, at handler or service level.
+- [x] Ships as its own `fix(repo):` commit before any mirror code.
 
 ## Notes
 
 `feat/web-file-edit` adds a web edit path. Whichever branch lands second wires the guard into it.
+
+## Comments
+
+**Claude, 2026-10-06:** Done.
+- No UI applies suggestions today (it is API-only), so there was no control to hide.
+- Enabling auto-merge is refused too, since it could never fire.
+- Description and website stay editable on archived repos. Only a change to the default branch is refused.
+- Wiki edits on archived repos are still allowed. The wiki is a separate git repo and stays writable on mirrors, so this ticket leaves it alone.

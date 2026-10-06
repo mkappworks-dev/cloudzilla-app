@@ -195,8 +195,8 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	if repo.IsArchived {
-		http.Error(w, "repository is archived", http.StatusForbidden)
+	if err := service.CheckContentWritable(repo); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 	if ref == "" {

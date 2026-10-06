@@ -136,7 +136,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
   - It snapshots the refs before and after, and diffs them into `[]*packp.Command` for the post-push steps.
   - When upstream's HEAD target changes, the repo's HEAD and `default_branch` follow it.
 - **Read-only:**
-  - One predicate, `RepoService.CheckContentWritable(repo) error`, returns `ErrRepoArchived` or `ErrRepoMirror`. Push and every unchecked write path listed under [Read-only enforcement](#read-only-enforcement) call it.
+  - One predicate, `service.CheckContentWritable(repo) error` (backed by `Repository.ContentReadOnly()`), returns `ErrRepoArchived` or `ErrRepoMirror`. Push and every unchecked write path listed under [Read-only enforcement](#read-only-enforcement) call it.
   - An HTTP push gets `403 Repository is a mirror and is read-only.`; an SSH push gets the same text on stderr. Web and API writes get a 403 or 422 JSON error.
   - The UI hides the Add file menu, branch and tag create/delete, the merge box, apply suggestion, new release and the default-branch field.
   - The repo header shows a banner: "Mirror of `<url>` · synced 5 minutes ago · Sync now".

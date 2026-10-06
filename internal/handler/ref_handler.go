@@ -22,7 +22,7 @@ func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
 		return
 	}
@@ -71,7 +71,7 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
 		return
 	}
@@ -130,7 +130,7 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
 		return
 	}
@@ -178,7 +178,7 @@ func (h *Handler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
 		return
 	}

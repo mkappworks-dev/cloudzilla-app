@@ -193,6 +193,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		middleware.WriteInsufficientScope(w, model.ScopeRepoWrite)
 		return
 	}
+	if state == "merged" || autoMergeAction == "enable" {
+		if err := service.CheckContentWritable(repo); err != nil {
+			writeError(w, http.StatusForbidden, err.Error())
+			return
+		}
+	}
 
 	if titlePresent {
 		if prTitle = strings.TrimSpace(prTitle); prTitle == "" {
@@ -430,7 +436,7 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 	}
 
 	repo, err := h.Services.Repo.Get(ctx, owner, repoName)
-	if err != nil {
+	if err != nil || service.CheckContentWritable(repo) != nil {
 		return
 	}
 

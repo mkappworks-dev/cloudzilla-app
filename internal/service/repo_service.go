@@ -32,6 +32,17 @@ var ErrInvalidRepoName = errors.New("invalid repository name")
 
 var ErrInvalidDefaultBranch = errors.New("invalid default branch")
 
+var ErrRepoArchived = errors.New("repository is archived")
+
+// CheckContentWritable refuses any change to a repo's refs or commits. Every
+// git-content write calls it, whatever the caller's role.
+func CheckContentWritable(repo *model.Repository) error {
+	if repo.ContentReadOnly() {
+		return ErrRepoArchived
+	}
+	return nil
+}
+
 // ValidateName checks that a repository or owner name is safe for filesystem
 // use and URL routing. Names must start with an alphanumeric character and
 // contain only alphanumeric, dot, underscore, or hyphen characters.
@@ -964,6 +975,11 @@ func (s *RepoService) UpdateGeneral(ctx context.Context, repoID, userID int64, d
 	branch := strings.TrimSpace(defaultBranch)
 	if branch == "" {
 		branch = repo.DefaultBranch
+	}
+	if branch != repo.DefaultBranch {
+		if err := CheckContentWritable(repo); err != nil {
+			return err
+		}
 	}
 	branchRef := plumbing.NewBranchReferenceName(branch)
 	if err := branchRef.Validate(); err != nil {

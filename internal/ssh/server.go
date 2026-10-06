@@ -216,7 +216,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		}
 	}
 
-	if gitCmd == "git-receive-pack" && repo.IsArchived {
+	if gitCmd == "git-receive-pack" && service.CheckContentWritable(repo) != nil {
 		exitWithError(session, "Repository is archived and read-only.\n")
 		return
 	}

@@ -250,7 +250,7 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 	canWrite := false
 	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canWrite = !repo.ContentReadOnly() && h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 
@@ -304,6 +304,10 @@ func (h *Handler) PageReleaseNew(w http.ResponseWriter, r *http.Request) {
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if err := service.CheckContentWritable(repo); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
@@ -455,7 +459,7 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
+	if _, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 

@@ -34,6 +34,11 @@ type Repository struct {
 	PrimaryLanguage  *string    `db:"primary_language"  json:"primary_language,omitempty"`
 }
 
+// ContentReadOnly reports whether the repo's refs and commits must not change.
+func (r Repository) ContentReadOnly() bool {
+	return r.IsArchived
+}
+
 // RepositoryWithStats augments a Repository with an aggregated star count for
 // display on explore/trending pages.
 type RepositoryWithStats struct {

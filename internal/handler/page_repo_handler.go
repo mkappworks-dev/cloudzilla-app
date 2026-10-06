@@ -315,6 +315,10 @@ func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
 			settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
 			return
 		}
+		if errors.Is(err, service.ErrRepoArchived) {
+			settingsError(w, r, http.StatusForbidden, err.Error())
+			return
+		}
 		if errors.Is(err, service.ErrInvalidDefaultBranch) {
 			if r.Header.Get("HX-Request") == "true" {
 				renderFormError(w, repoGeneralFormError, err.Error())
@@ -430,7 +434,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
+	canWrite := userID != nil && !repo.ContentReadOnly() && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Refs(view.RefsData{
