@@ -28,6 +28,7 @@ type AdminUserService struct {
 	user    *UserService
 	audit   *AuditService
 	notices *EmailService
+	resets  *PasswordResetService
 }
 
 func NewAdminUserService(users *store.UserStore, user *UserService, audit *AuditService) *AdminUserService {
@@ -37,6 +38,11 @@ func NewAdminUserService(users *store.UserStore, user *UserService, audit *Audit
 // Without it, 2FA resets and credential revocations mail no notice.
 func (s *AdminUserService) WithSecurityNotices(e *EmailService) *AdminUserService {
 	s.notices = e
+	return s
+}
+
+func (s *AdminUserService) WithPasswordResets(r *PasswordResetService) *AdminUserService {
+	s.resets = r
 	return s
 }
 
@@ -162,6 +168,21 @@ func (s *AdminUserService) RevokeCredentials(ctx context.Context, actorID int64,
 	return u, revoked, nil
 }
 
+// IssuePasswordResetLink returns a link for the admin to hand over, and tells
+// the user one was issued without mailing them the link.
+func (s *AdminUserService) IssuePasswordResetLink(ctx context.Context, actorID int64, username string) (*model.User, string, error) {
+	u, err := s.target(ctx, actorID, username)
+	if err != nil {
+		return nil, "", err
+	}
+	link, err := s.resets.IssueLink(ctx, u.ID, model.PasswordResetByAdmin)
+	if err != nil {
+		return nil, "", err
+	}
+	notifySecurityChange(s.notices, s.users, u.ID, "admin_password_reset_link", adminPasswordResetLinkNotice)
+	return u, link, nil
+}
+
 // Delete removes the account as self-service deletion would. confirm must be
 // the username typed out.
 func (s *AdminUserService) Delete(ctx context.Context, actorID int64, username, confirm string) (*model.User, error) {
@@ -188,4 +209,10 @@ func adminCredentialsRevokedNotice(username string) (subject, body string) {
 	return "An administrator revoked your Cloudzilla tokens and keys",
 		fmt.Sprintf("<p>An administrator deleted the personal access tokens, SSH keys and app authorizations of <strong>@%s</strong>, and signed it out everywhere.</p>"+
 			"<p>Sign in again and create new ones as needed.</p>", html.EscapeString(username))
+}
+
+func adminPasswordResetLinkNotice(username string) (subject, body string) {
+	return "An administrator issued a password reset link for your Cloudzilla account",
+		fmt.Sprintf("<p>An administrator issued a link that sets a new password for <strong>@%s</strong>. They will pass it on to you. It works once, within 24 hours, and your password stays the same until it is used.</p>"+
+			"<p>If you didn't ask for this, tell your administrator.</p>", html.EscapeString(username))
 }

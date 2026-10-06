@@ -160,7 +160,7 @@ environment:
   CZ_SMTP_TLS: "true"
 ```
 
-Verification and password reset links point at `server.base_url`, so set it to the public URL. Without SMTP, nobody can reset a forgotten password from `/login`; an admin prints a link with [`cloudzilla-cli password-reset-link`](#cloudzilla-cli-password-reset-link). Without SMTP, addresses stay unverified, which keeps Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from `/admin/settings`. See [Email Verification](./access-control.md#email-verification).
+Verification and password reset links point at `server.base_url`, so set it to the public URL. Without SMTP, nobody can reset a forgotten password from `/login`; a superadmin issues a link from `/admin/users/{username}` or prints one with [`cloudzilla-cli password-reset-link`](#cloudzilla-cli-password-reset-link). Without SMTP, addresses stay unverified, which keeps Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from `/admin/settings`. See [Email Verification](./access-control.md#email-verification).
 
 ### Persistent Data (Docker volumes)
 
@@ -322,7 +322,7 @@ Print a single-use link that lets a user choose a new password, for when the ins
 cloudzilla-cli password-reset-link alice --config /etc/cloudzilla/config.yaml
 ```
 
-The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
+The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. It also refuses a suspended account: unsuspend it first. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
 
 ### Instance management
 

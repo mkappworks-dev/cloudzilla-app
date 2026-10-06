@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -111,6 +113,8 @@ func adminUserActionError(err error) (int, string) {
 		return http.StatusConflict, "Unsuspend the account first."
 	case errors.Is(err, service.ErrSoleOrgOwner):
 		return http.StatusConflict, "This account is the only owner of an organization. Add another owner or delete the organization first."
+	case errors.Is(err, service.ErrPasswordResetNoPassword):
+		return http.StatusConflict, "This account signs in with Google or single sign-on, so it has no password to reset."
 	case errors.Is(err, service.ErrDeleteConfirmMismatch):
 		return http.StatusBadRequest, "Type the username to confirm."
 	}
@@ -164,6 +168,48 @@ func (h *Handler) AdminRevokeUserCredentials(w http.ResponseWriter, r *http.Requ
 		u, n, err := h.Services.AdminUser.RevokeCredentials(r.Context(), c.UserID, username)
 		return u, map[string]any{"access_tokens": n.AccessTokens, "ssh_keys": n.SSHKeys, "oauth_authorizations": n.OAuthAuthorizations}, err
 	})
+}
+
+// AdminIssuePasswordResetLink answers with the link instead of reloading the
+// page, since this response is the only place it is ever shown.
+func (h *Handler) AdminIssuePasswordResetLink(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok || !claims.IsSuperadmin {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
+	username := chi.URLParam(r, "username")
+	u, link, err := h.Services.AdminUser.IssuePasswordResetLink(r.Context(), claims.UserID, username)
+	if err != nil {
+		status, msg := adminUserActionError(err)
+		if status == http.StatusInternalServerError {
+			slog.Error("admin issue password reset link", "username", username, "error", err)
+		}
+		writeError(w, status, msg)
+		return
+	}
+	// A link that isn't in the audit log is never shown.
+	if err := h.Services.AuditLog.RecordNow(r.Context(), r, claims.UserID, claims.Username, model.AuditActionPasswordResetLink,
+		model.AuditTargetUser, u.ID, u.Username, map[string]any{"issued_by": model.PasswordResetByAdmin}); err != nil {
+		slog.Error("admin issue password reset link: audit", "username", username, "error", err)
+		writeError(w, http.StatusInternalServerError, "Couldn't record the link, so it wasn't shown. Please try again.")
+		return
+	}
+	expiresAt := time.Now().Add(service.PasswordResetManualTTL)
+	w.Header().Set("Cache-Control", "no-store")
+	if r.Header.Get("HX-Request") != "true" {
+		writeJSON(w, http.StatusOK, map[string]any{"link": link, "expires_at": expiresAt.UTC().Format(time.RFC3339)})
+		return
+	}
+	h.render(w, r, fragments.AdminResetLink(view.AdminResetLinkFragData{
+		Username:  u.Username,
+		Link:      link,
+		ExpiresAt: expiresAt,
+		Notified:  h.Services.Email.Enabled(),
+	}))
 }
 
 // AdminDeleteUser answers with a redirect to the list, since the user page is gone.

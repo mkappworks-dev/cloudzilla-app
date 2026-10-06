@@ -12,7 +12,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-func adminRequest(t *testing.T, h http.Handler, method, path, token string, form url.Values) *httptest.ResponseRecorder {
+// headers are name, value pairs.
+func adminRequest(t *testing.T, h http.Handler, method, path, token string, form url.Values, headers ...string) *httptest.ResponseRecorder {
 	t.Helper()
 	var body *strings.Reader
 	if form != nil {
@@ -25,6 +26,9 @@ func adminRequest(t *testing.T, h http.Handler, method, path, token string, form
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
+	for i := 0; i+1 < len(headers); i += 2 {
+		req.Header.Set(headers[i], headers[i+1])
+	}
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 	return rr

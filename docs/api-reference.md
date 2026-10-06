@@ -582,10 +582,11 @@ A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` w
 | POST   | `/api/admin/users/:username/demote` | Superadmin | Remove superadmin; 409 if it would leave no active superadmin |
 | POST   | `/api/admin/users/:username/reset-2fa` | Superadmin | Turn the account's 2FA off and mail it a notice |
 | POST   | `/api/admin/users/:username/revoke-credentials` | Superadmin | Delete the account's PATs, SSH keys and OAuth app authorizations, end its sessions, and mail it a notice |
+| POST   | `/api/admin/users/:username/password-reset-link` | Superadmin | Issue a 24-hour single-use password reset link, replacing any earlier one, and mail the account a notice without it. 200 with `{"link", "expires_at"}`, or for HTMX the shown-once panel; `Cache-Control: no-store`. 409 for a suspended or passwordless account |
 | POST   | `/api/admin/users/:username/delete` | Superadmin | Delete the account (`confirm_username` must equal it; 400 otherwise). 409 for a sole organization owner or the last active superadmin. HTMX: `HX-Redirect` to `/admin/users` |
 | POST   | `/api/admin/users/verify-email` | Superadmin | Mark a user's email verified (`username`, `email`, plus `password` and, with 2FA, `code`; `email` must be their current address, else 404; 400 when either is missing). HTMX: 204, form: 303 to `/admin/settings`; audit-logged |
 
-The `/api/admin/users/:username/…` actions take `password` and, with 2FA, `code`, refuse the admin's own account with 403, and are audit-logged. HTMX requests get 204 with `HX-Refresh`, forms a 303 to the user page. See [Managing accounts](./access-control.md#managing-accounts). A suspended account's personal access tokens and OAuth app tokens get `403 {"error":"account_suspended"}` on every endpoint.
+The `/api/admin/users/:username/…` actions take `password` and, with 2FA, `code`, refuse the admin's own account with 403, and are audit-logged. HTMX requests get 204 with `HX-Refresh`, forms a 303 to the user page, except `password-reset-link`, which answers with the link. See [Managing accounts](./access-control.md#managing-accounts). A suspended account's personal access tokens and OAuth app tokens get `403 {"error":"account_suspended"}` on every endpoint.
 
 ## Setup & Invitations
 

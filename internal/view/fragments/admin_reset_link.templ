@@ -1,0 +1,36 @@
+package fragments
+
+import (
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+// AdminResetLink replaces the "Password reset link" row of the admin user page.
+templ AdminResetLink(data view.AdminResetLinkFragData) {
+	<div id="admin-user-reset-link" class="flex flex-col gap-2">
+		<h3 class="text-sm font-medium">Password reset link</h3>
+		<div role="status" class="border border-success/40 bg-success/10 rounded-md p-4 flex flex-col gap-2" x-data="{ copied: false }">
+			<p class="font-semibold text-success text-[13px]">
+				Copy this link now — it won't be shown again. It works once, until <time datetime={ data.ExpiresAt.UTC().Format(time.RFC3339) }>{ data.ExpiresAt.Format("Jan 2, 2006 15:04") }</time>.
+			</p>
+			<div class="flex flex-wrap items-center gap-2">
+				<code x-ref="link" class="min-w-0 flex-1 bg-background border border-success/40 rounded-sm px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">{ data.Link }</code>
+				@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+					"type":   "button",
+					"@click": "navigator.clipboard.writeText($refs.link.textContent).then(() => { copied = true; setTimeout(() => copied = false, 2000) })",
+				}) {
+					<span x-text="copied ? 'Copied' : 'Copy'">Copy</span>
+				}
+			</div>
+			<p class="text-[12px] text-muted-foreground">
+				Pass it on to { "@" + data.Username } yourself.
+				if data.Notified {
+					They were emailed a notice that you issued it, without the link.
+				}
+				Issuing another link replaces this one.
+			</p>
+		</div>
+	</div>
+}
