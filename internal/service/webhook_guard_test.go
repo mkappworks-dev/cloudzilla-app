@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -145,5 +146,28 @@ func TestCheckWebhookURL(t *testing.T) {
 		if !errors.As(err, &urlErr) || !strings.Contains(urlErr.Reason, tc.wantReason) {
 			t.Errorf("checkWebhookURL(%q, %v) = %v, want WebhookURLError containing %q", tc.url, tc.allowLocal, err, tc.wantReason)
 		}
+	}
+}
+
+func TestDeliveryError_HidesTheResolver(t *testing.T) {
+	err := &net.OpError{Op: "dial", Err: &net.DNSError{Err: "no such host", Name: "hooks.example", Server: "10.0.0.2:53", IsNotFound: true}}
+	if got := deliveryError(err); got != "lookup hooks.example: no such host" {
+		t.Errorf("deliveryError = %q", got)
+	}
+}
+
+func TestAddressDeadline_SharesTheBudget(t *testing.T) {
+	deadline := time.Now().Add(10 * time.Second)
+	if got := time.Until(addressDeadline(deadline, 2)); got > 5*time.Second || got < 4*time.Second {
+		t.Errorf("first of two addresses gets %v, want about 5s", got)
+	}
+	if got := time.Until(addressDeadline(deadline, 1)); got < 9*time.Second {
+		t.Errorf("last address gets %v, want the rest", got)
+	}
+	if got := time.Until(addressDeadline(time.Now().Add(3*time.Second), 10)); got < 1900*time.Millisecond {
+		t.Errorf("share below the floor = %v, want about 2s", got)
+	}
+	if got := time.Until(addressDeadline(time.Now().Add(time.Second), 10)); got > time.Second {
+		t.Errorf("share = %v, must not pass the deadline", got)
 	}
 }

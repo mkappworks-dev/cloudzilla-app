@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"net"
+	"time"
 )
 
 // PrivateNetworkError names the host, never the address, so a refusal can't map the internal network.
@@ -15,6 +16,14 @@ func (e *PrivateNetworkError) Error() string {
 var blockedNets = []*net.IPNet{
 	mustCIDR("0.0.0.0/8"),
 	mustCIDR("100.64.0.0/10"), // CGNAT; some cloud metadata services live here
+	mustCIDR("192.0.0.0/24"),
+	mustCIDR("198.18.0.0/15"),
+	mustCIDR("240.0.0.0/4"),
+	// These embed an IPv4 address that a gateway may translate to a private one.
+	mustCIDR("64:ff9b::/96"),
+	mustCIDR("64:ff9b:1::/48"),
+	mustCIDR("2002::/16"),
+	mustCIDR("fec0::/10"),
 }
 
 func mustCIDR(s string) *net.IPNet {
@@ -65,13 +74,34 @@ func dialPublic(ctx context.Context, d *net.Dialer, network, addr string) (net.C
 	if err != nil {
 		return nil, err
 	}
+	deadline, hasDeadline := ctx.Deadline()
+	if d.Timeout > 0 && (!hasDeadline || time.Now().Add(d.Timeout).Before(deadline)) {
+		deadline, hasDeadline = time.Now().Add(d.Timeout), true
+	}
 	var lastErr error
-	for _, ip := range ips {
-		conn, err := d.DialContext(ctx, network, net.JoinHostPort(ip.IP.String(), port))
+	for i, ip := range ips {
+		attemptCtx, cancel := ctx, context.CancelFunc(func() {})
+		if hasDeadline {
+			attemptCtx, cancel = context.WithDeadline(ctx, addressDeadline(deadline, len(ips)-i))
+		}
+		conn, err := d.DialContext(attemptCtx, network, net.JoinHostPort(ip.IP.String(), port))
+		cancel()
 		if err == nil {
 			return conn, nil
 		}
 		lastErr = err
 	}
 	return nil, lastErr
+}
+
+// addressDeadline shares the time left between the addresses still to try, as
+// net.Dialer does, so one that drops packets can't use up the whole budget.
+func addressDeadline(deadline time.Time, remaining int) time.Time {
+	const floor = 2 * time.Second
+	left := time.Until(deadline)
+	share := left / time.Duration(remaining)
+	if share < floor {
+		share = min(floor, left)
+	}
+	return time.Now().Add(share)
 }

@@ -21,7 +21,7 @@ import (
 type webhookFixture struct {
 	store  *store.WebhookStore
 	repoID int64
-	srv    *httptest.Server
+	url    string
 	hits   *atomic.Int32
 }
 
@@ -31,13 +31,22 @@ func newWebhookFixture(t *testing.T, status int) webhookFixture {
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	// RetryPending sees every test's due rows, and a later server may reuse this
+	// port, so count only this test's path and leave no retry behind.
+	path := "/hook-" + suffix
 	var hits atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hits.Add(1)
+		if r.URL.Path == path {
+			hits.Add(1)
+		}
 		w.WriteHeader(status)
 	}))
 	t.Cleanup(srv.Close)
-	return webhookFixture{store: store.NewWebhookStore(db), repoID: repoID, srv: srv, hits: &hits}
+	t.Cleanup(func() {
+		testutil.Exec(t, db, `UPDATE webhook_deliveries SET next_retry_at = NULL
+			WHERE webhook_id IN (SELECT id FROM webhooks WHERE repo_id = $1)`, repoID)
+	})
+	return webhookFixture{store: store.NewWebhookStore(db), repoID: repoID, url: srv.URL + path, hits: &hits}
 }
 
 // pendingDelivery stores, past the create-time check, a webhook on the
@@ -45,7 +54,7 @@ func newWebhookFixture(t *testing.T, status int) webhookFixture {
 func (f webhookFixture) pendingDelivery(t *testing.T) model.WebhookDelivery {
 	t.Helper()
 	ctx := context.Background()
-	wh := &model.Webhook{RepoID: f.repoID, URL: f.srv.URL + "/hook", Events: "push", Active: true}
+	wh := &model.Webhook{RepoID: f.repoID, URL: f.url, Events: "push", Active: true}
 	if err := f.store.Create(ctx, wh); err != nil {
 		t.Fatalf("create webhook: %v", err)
 	}
@@ -143,7 +152,7 @@ func TestWebhookRetryPending_AllowLocalNetworks(t *testing.T) {
 func TestWebhookDispatch_RecordsARedirectAndRetriesIt(t *testing.T) {
 	f := newWebhookFixture(t, http.StatusFound)
 	svc := service.NewWebhookService(f.store, config.WebhookConfig{AllowLocalNetworks: true})
-	wh, err := svc.Create(context.Background(), f.repoID, f.srv.URL+"/hook", "", "push")
+	wh, err := svc.Create(context.Background(), f.repoID, f.url, "", "push")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -171,7 +180,7 @@ func TestWebhookDispatch_RecordsARedirectAndRetriesIt(t *testing.T) {
 func TestWebhookCreate_RefusesPrivateURL(t *testing.T) {
 	f := newWebhookFixture(t, http.StatusOK)
 	svc := service.NewWebhookService(f.store, config.WebhookConfig{})
-	_, err := svc.Create(context.Background(), f.repoID, f.srv.URL+"/hook", "", "push")
+	_, err := svc.Create(context.Background(), f.repoID, f.url, "", "push")
 	var urlErr *service.WebhookURLError
 	if !errors.As(err, &urlErr) {
 		t.Fatalf("Create = %v, want WebhookURLError", err)

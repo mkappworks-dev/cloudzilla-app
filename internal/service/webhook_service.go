@@ -199,11 +199,15 @@ func (s *WebhookService) send(ctx context.Context, wh model.Webhook, event strin
 
 func deliveryError(err error) string {
 	var blocked *PrivateNetworkError
+	var dnsErr *net.DNSError
 	switch {
 	case err == nil:
 		return ""
 	case errors.As(err, &blocked):
 		return blocked.Error()
+	case errors.As(err, &dnsErr):
+		// DNSError.Error() names the resolver, an internal address.
+		return "lookup " + dnsErr.Name + ": " + dnsErr.Err
 	}
 	return err.Error()
 }

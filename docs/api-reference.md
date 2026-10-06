@@ -124,7 +124,7 @@ See [Email Verification](./access-control.md#email-verification).
 | Method | Path                               | Auth      | Description                                         |
 | ------ | ---------------------------------- | --------- | --------------------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/keys`     | CanManage | List deploy keys for a repository                   |
-| POST   | `/api/repos/:owner/:repo/keys`     | CanManage | Add deploy key (`title`, `public_key`, `read_only`, plus `password` and, with 2FA, `code`; 400 for a URL that isn't http(s) or resolves to a private address, 403 on a wrong confirmation, 429 when throttled) |
+| POST   | `/api/repos/:owner/:repo/keys`     | CanManage | Add deploy key (`title`, `public_key`, `read_only`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled) |
 | DELETE | `/api/repos/:owner/:repo/keys/:id` | CanManage | Delete a deploy key by ID                           |
 
 Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` key cannot push; a read-write key can. Each key is scoped to a single repository.

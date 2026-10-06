@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: bug
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -28,10 +28,10 @@ The repo-import guard in `internal/service/import_guard.go` already closes all o
 
 ## Acceptance criteria
 
-- [ ] Delivery to a loopback, private, link-local, CGNAT or unspecified address is refused at dial time, on first delivery, retry and redelivery alike, including a hostname that resolves to one.
-- [ ] Redirects are not followed; the 3xx is recorded and retried.
-- [ ] A refused delivery is recorded with an error that names the host, not an address, and is not retried.
-- [ ] Deliveries don't go through `HTTP_PROXY`/`HTTPS_PROXY`.
-- [ ] Creating a webhook with a non-http(s) URL, no host, or a host resolving to a private address answers 400 with the reason.
-- [ ] `webhook.allow_local_networks: true` allows local targets for both the create check and delivery.
-- [ ] `docs/webhooks.md`, `docs/configuration.md` and `docs/access-control.md` describe the guard and the knob.
+- [x] Delivery to a loopback, private, link-local, CGNAT or unspecified address is refused at dial time, on first delivery, retry and redelivery alike, including a hostname that resolves to one.
+- [x] Redirects are not followed; the 3xx is recorded and retried.
+- [x] A refused delivery is recorded with an error that names the host, not an address, and is not retried.
+- [x] Deliveries don't go through `HTTP_PROXY`/`HTTPS_PROXY`.
+- [x] Creating a webhook with a non-http(s) URL, no host, or a host resolving to a private address answers 400 with the reason.
+- [x] `webhook.allow_local_networks: true` allows local targets for both the create check and delivery.
+- [x] `docs/webhooks.md`, `docs/configuration.md` and `docs/access-control.md` describe the guard and the knob.
