@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 
 ## Problem
 
@@ -125,6 +125,7 @@ Only the decoders above are registered in the package, so `image.Decode` can't b
 | `GET` | `/avatars/*` | no auth; serves objects |
 
 - Upload routes get `middleware.MaxBodySize(avatarBodyBytes)`, which is 2 MB + 64 KB for multipart overhead.
+- A non-htmx post without `X-CSRF-Token` is parsed by `CSRF` under the global 26 MB cap before the route limit runs. `Process` still rejects the file with `ErrTooLarge`, so the response is 413; buffering up to 26 MB first is accepted.
 - `ErrTooLarge` and `*http.MaxBytesError` give 413.
 - `ErrUnsupportedType` and `ErrDimensions` give 422 with a message in the form's error slot, for example "Use a PNG, JPEG, GIF or WebP image." or "Images can be at most 4096 × 4096 pixels."
 - A non-owner gets 403 and an unknown org gets 404.
@@ -163,7 +164,7 @@ The disabled "Upload new picture" buttons become a working control on both setti
 - shows errors inline
 - shows the same toast as the profile form
 
-The help text becomes "PNG, JPEG, GIF or WebP, max 2 MB." The exact layout is settled by a mockup before implementation.
+The help text becomes "PNG, JPEG, GIF or WebP, max 2 MB." Layout (mockup picked 2026-10-06): the avatar on the left, then an "Upload new picture" button and a "Remove" button on one row, with the help text and the error slot below them. The block moves above the profile form and is swapped in place on success.
 
 ### 10. Dev stack and docs
 
