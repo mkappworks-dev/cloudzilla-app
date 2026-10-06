@@ -615,5 +615,36 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		_, _ = w.Write(faviconBytes)
 	})
 
-	return r, nil
+	return &probeMux{Mux: r, probes: map[string]http.HandlerFunc{
+		HealthzPath: h.Healthz,
+		ReadyzPath:  h.Readyz,
+	}}, nil
+}
+
+const (
+	HealthzPath = "/healthz"
+	ReadyzPath  = "/readyz"
+)
+
+// ProbePaths are answered outside chi, so the route walk can't see them to check they're reserved.
+func ProbePaths() []string { return []string{HealthzPath, ReadyzPath} }
+
+// probeMux answers probes ahead of all middleware: no log line, cookie, setup redirect, auth or rate limit.
+type probeMux struct {
+	*chi.Mux
+	probes map[string]http.HandlerFunc
+}
+
+func (m *probeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	probe, ok := m.probes[r.URL.Path]
+	if !ok {
+		m.Mux.ServeHTTP(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	probe(w, r)
 }
