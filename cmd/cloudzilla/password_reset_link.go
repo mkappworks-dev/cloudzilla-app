@@ -20,7 +20,7 @@ func passwordResetLinkCmd() *cobra.Command {
 		Use:   "password-reset-link <username>",
 		Short: "Print a 24-hour password reset link for a user",
 		Long: "Prints a single-use link that lets the user choose a new password, for passing on by hand. " +
-			"It needs no SMTP and replaces any link the user already has. Accounts that sign in with Google, LDAP or SAML have no password and get no link.",
+			"It needs no SMTP and replaces any link the user already has. Accounts created through Google, LDAP or SAML sign-up have no password and get no link.",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -55,7 +55,7 @@ func issuePasswordResetLink(ctx context.Context, stores *store.Stores, cfg *conf
 	resets := service.NewPasswordResetService(stores.PasswordReset, stores.User, nil, service.NewEmailService(cfg.SMTP), cfg.Server.BaseURL)
 	link, err := resets.IssueLink(ctx, u.ID, model.PasswordResetByCLI)
 	if errors.Is(err, service.ErrPasswordResetNoPassword) {
-		return "", fmt.Errorf("@%s has no password to reset: it signs in with Google, LDAP or SAML", u.Username)
+		return "", fmt.Errorf("@%s has no password to reset: it was created through Google, LDAP or SAML sign-up", u.Username)
 	}
 	if err != nil {
 		return "", err

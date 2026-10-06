@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
@@ -71,6 +73,32 @@ func TestPasswordReset_FlowThroughRouter(t *testing.T) {
 	h, svc, db := newVerificationRouter(t, smtp)
 	suffix := testutil.UniqueSuffix(t)
 	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	username := "testpw_" + suffix
+
+	signIn := serve(h, browserRequest(http.MethodPost, "/login", "", url.Values{"email": {email}, "password": {"password1"}}))
+	var session string
+	for _, c := range signIn.Result().Cookies() {
+		if c.Name == "cz_token" {
+			session = c.Value
+		}
+	}
+	if session == "" {
+		t.Fatalf("sign-in: %d, no session cookie", signIn.Code)
+	}
+	repoID := testutil.SeedRepo(t, db, userID, username, suffix)
+	testutil.Exec(t, db, `UPDATE repositories SET private = TRUE WHERE id = $1`, repoID)
+	pat, _, err := svc.AccessToken.Create(context.Background(), userID, service.NewToken{Name: "ci", Scopes: []string{model.ScopeRepoRead}})
+	if err != nil {
+		t.Fatalf("create token: %v", err)
+	}
+	readRepo := func() int {
+		req := httptest.NewRequest(http.MethodGet, "/api/repos/"+username+"/testrepo_"+suffix, nil)
+		req.Header.Set("Authorization", "Bearer "+pat)
+		return serve(h, req).Code
+	}
+	if code := readRepo(); code != http.StatusOK {
+		t.Fatalf("PAT before reset: %d, want 200", code)
+	}
 
 	rr := serve(h, browserRequest(http.MethodPost, "/auth/password/forgot", "", url.Values{"email": {email}}))
 	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), "Check your inbox") {
@@ -108,6 +136,15 @@ func TestPasswordReset_FlowThroughRouter(t *testing.T) {
 	}
 	if rr := serve(h, browserRequest(http.MethodGet, "/login?reset=done", "", nil)); !strings.Contains(rr.Body.String(), "Sign in with the new password") {
 		t.Error("/login?reset=done shows no notice")
+	}
+	if rr := serve(h, browserRequest(http.MethodGet, "/settings", session, nil)); rr.Code == http.StatusOK {
+		t.Error("the session from before the reset still opens /settings")
+	}
+	if code := readRepo(); code != http.StatusOK {
+		t.Errorf("PAT after reset: %d, want 200", code)
+	}
+	if !isEmailVerified(t, db, userID) {
+		t.Error("an emailed reset left the address unverified")
 	}
 
 	rr = serve(h, browserRequest(http.MethodGet, resetPath(token), "", nil))
@@ -169,13 +206,13 @@ func TestPasswordReset_ForgotAnswersEveryAddressAlike(t *testing.T) {
 
 func TestPasswordReset_RoutesAreRateLimited(t *testing.T) {
 	h, _, _ := newVerificationRouter(t, config.SMTPConfig{})
+	// The second route must start with a full budget, so neither shares the other's.
 	for _, path := range []string{"/auth/password/forgot", resetPath("unknown")} {
-		var code int
-		for range 11 {
-			code = serve(h, browserRequest(http.MethodPost, path, "", url.Values{"email": {"x@test.invalid"}})).Code
-		}
-		if code != http.StatusTooManyRequests {
-			t.Errorf("POST %s: request 11 got %d, want 429", path, code)
+		for i := 1; i <= 11; i++ {
+			code := serve(h, browserRequest(http.MethodPost, path, "", url.Values{"email": {"x@test.invalid"}})).Code
+			if limited := code == http.StatusTooManyRequests; limited != (i == 11) {
+				t.Fatalf("POST %s: request %d got %d", path, i, code)
+			}
 		}
 	}
 }

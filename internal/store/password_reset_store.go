@@ -23,12 +23,14 @@ func NewPasswordResetStore(database *sql.DB) *PasswordResetStore {
 }
 
 // Issue replaces userID's link with tokenHash, bound to their current email
-// and session version. An empty tokenHash records an email that carried no
-// link. A cooldown above zero refuses the issue while an emailed one is newer.
-func (s *PasswordResetStore) Issue(ctx context.Context, userID int64, tokenHash, issuedBy string, ttl, cooldown time.Duration) error {
+// and session version, and returns that email. An empty tokenHash records an
+// email that carried no link. A cooldown above zero marks an emailed issue: it
+// is refused while the last email is newer than the cooldown, or while a link
+// an admin issued is still usable, so the forgot form can't cancel that link.
+func (s *PasswordResetStore) Issue(ctx context.Context, userID int64, tokenHash, issuedBy string, ttl, cooldown time.Duration) (string, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("password reset issue begin tx: %w", err)
+		return "", fmt.Errorf("password reset issue begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
@@ -37,36 +39,38 @@ func (s *PasswordResetStore) Issue(ctx context.Context, userID int64, tokenHash,
 	if err := tx.QueryRowContext(ctx,
 		`SELECT email, session_version FROM users WHERE id = $1 FOR UPDATE`, userID,
 	).Scan(&email, &sessionVersion); err != nil {
-		return fmt.Errorf("password reset issue lock user: %w", err)
+		return "", fmt.Errorf("password reset issue lock user: %w", err)
 	}
 	if cooldown > 0 {
-		var recent bool
+		var blocked bool
 		if err := tx.QueryRowContext(ctx,
-			`SELECT EXISTS (SELECT 1 FROM password_reset_tokens
-			                 WHERE user_id = $1 AND issued_by = 'email'
-			                   AND created_at > NOW() - make_interval(secs => $2))`,
+			`SELECT EXISTS (SELECT 1 FROM password_reset_tokens t JOIN users u ON u.id = t.user_id
+			                 WHERE t.user_id = $1
+			                   AND (t.emailed_at > NOW() - make_interval(secs => $2)
+			                        OR (t.issued_by <> 'email' AND t.expires_at > NOW() AND `+passwordResetUsable+`)))`,
 			userID, cooldown.Seconds(),
-		).Scan(&recent); err != nil {
-			return fmt.Errorf("password reset issue cooldown: %w", err)
+		).Scan(&blocked); err != nil {
+			return "", fmt.Errorf("password reset issue cooldown: %w", err)
 		}
-		if recent {
-			return ErrPasswordResetCooldown
+		if blocked {
+			return "", ErrPasswordResetCooldown
 		}
 	}
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO password_reset_tokens (user_id, email, token_hash, session_version, issued_by, expires_at)
-		 VALUES ($1, $2, NULLIF($3, ''), $4, $5, NOW() + make_interval(secs => $6))
+		`INSERT INTO password_reset_tokens (user_id, email, token_hash, session_version, issued_by, expires_at, emailed_at)
+		 VALUES ($1, $2, NULLIF($3, ''), $4, $5, NOW() + make_interval(secs => $6), CASE WHEN $5 = 'email' THEN NOW() END)
 		 ON CONFLICT (user_id) DO UPDATE
 		   SET email = EXCLUDED.email, token_hash = EXCLUDED.token_hash, session_version = EXCLUDED.session_version,
-		       issued_by = EXCLUDED.issued_by, created_at = NOW(), expires_at = EXCLUDED.expires_at, used_at = NULL`,
+		       issued_by = EXCLUDED.issued_by, created_at = NOW(), expires_at = EXCLUDED.expires_at, used_at = NULL,
+		       emailed_at = COALESCE(EXCLUDED.emailed_at, password_reset_tokens.emailed_at)`,
 		userID, email, tokenHash, sessionVersion, issuedBy, ttl.Seconds(),
 	); err != nil {
-		return fmt.Errorf("password reset issue upsert: %w", err)
+		return "", fmt.Errorf("password reset issue upsert: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("password reset issue commit: %w", err)
+		return "", fmt.Errorf("password reset issue commit: %w", err)
 	}
-	return nil
+	return email, nil
 }
 
 // Every condition but expiry makes a link invalid rather than expired, so it
@@ -100,8 +104,9 @@ func (s *PasswordResetStore) Lookup(ctx context.Context, tokenHash string) (mode
 	return link, nil
 }
 
-// Consume spends tokenHash: it sets passwordHash, ends every session, and
-// verifies the address the link was sent to. The user and who issued the link
+// Consume spends tokenHash: it sets passwordHash and ends every session. An
+// emailed link also verifies its address, since only the mailbox's owner could
+// open it; one an admin handed over proves nothing about the address. The user and who issued the link
 // are returned only when the result is PasswordResetDone.
 func (s *PasswordResetStore) Consume(ctx context.Context, tokenHash, passwordHash string) (state model.PasswordResetState, u *model.User, issuedBy string, err error) {
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -149,9 +154,10 @@ func (s *PasswordResetStore) Consume(ctx context.Context, tokenHash, passwordHas
 	u = &model.User{}
 	if err := scanUser(tx.QueryRowContext(ctx,
 		`UPDATE users SET password_hash = $2, session_version = session_version + 1,
-		        email_verified_at = COALESCE(email_verified_at, NOW()), updated_at = NOW()
+		        email_verified_at = CASE WHEN $3 = 'email' THEN COALESCE(email_verified_at, NOW()) ELSE email_verified_at END,
+		        updated_at = NOW()
 		  WHERE id = $1 RETURNING `+userColumns,
-		userID, passwordHash,
+		userID, passwordHash, issuedBy,
 	), u); err != nil {
 		return "", nil, "", fmt.Errorf("password reset consume update user: %w", err)
 	}

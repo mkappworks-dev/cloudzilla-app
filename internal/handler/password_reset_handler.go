@@ -63,7 +63,7 @@ func (h *Handler) PageResetPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	h.renderResetPassword(w, r, view.ResetPasswordData{Link: link, Token: token}, http.StatusOK)
+	h.renderResetPassword(w, r, view.ResetPasswordData{Link: link}, http.StatusOK)
 }
 
 // ResetPasswordSubmit handles POST /auth/password/reset/{token}. It never signs
@@ -76,7 +76,7 @@ func (h *Handler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	data := view.ResetPasswordData{Link: link, Token: token}
+	data := view.ResetPasswordData{Link: link}
 	if link.State != model.PasswordResetPending {
 		h.renderResetPassword(w, r, data, http.StatusOK)
 		return

@@ -277,7 +277,7 @@ Print a single-use link that lets a user choose a new password, for when the ins
 cloudzilla-cli password-reset-link alice --config /etc/cloudzilla/config.yaml
 ```
 
-The link is built from `server.base_url`. Accounts that sign in with Google, LDAP or SAML have no password, so the command refuses them. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
+The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
 
 ### Instance management
 

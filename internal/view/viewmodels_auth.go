@@ -88,6 +88,5 @@ type ForgotPasswordData struct {
 type ResetPasswordData struct {
 	BasePage
 	Link  model.PasswordResetLink
-	Token string
 	Error string
 }

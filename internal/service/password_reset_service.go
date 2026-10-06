@@ -48,7 +48,9 @@ func (s *PasswordResetService) Available() bool {
 
 // Request mails the account with this address a reset link, or, if it has no
 // password, a note saying how it signs in. It sends nothing for an unknown
-// address, or while an email sent in the last 5 minutes is the account's newest.
+// address, if the account was mailed in the last 5 minutes, or while a link an
+// admin issued is still usable. A failed delivery still counts, since the
+// server may have accepted the message before failing.
 func (s *PasswordResetService) Request(ctx context.Context, email string) error {
 	if !s.Available() {
 		return ErrPasswordResetUnavailable
@@ -66,7 +68,8 @@ func (s *PasswordResetService) Request(ctx context.Context, email string) error 
 			return err
 		}
 	}
-	err = s.store.Issue(ctx, u.ID, hash, model.PasswordResetByEmail, PasswordResetEmailTTL, PasswordResetCooldown)
+	// The link is bound to the address Issue read under lock, which an email change may have replaced since the lookup.
+	to, err := s.store.Issue(ctx, u.ID, hash, model.PasswordResetByEmail, PasswordResetEmailTTL, PasswordResetCooldown)
 	if errors.Is(err, store.ErrPasswordResetCooldown) {
 		return nil
 	}
@@ -75,9 +78,9 @@ func (s *PasswordResetService) Request(ctx context.Context, email string) error 
 	}
 	if raw == "" {
 		subject, body := passwordlessResetNote(u)
-		return s.email.Send(u.Email, subject, body)
+		return s.email.Send(to, subject, body)
 	}
-	return s.email.Send(u.Email, "Reset your Cloudzilla password", passwordResetEmailBody(s.linkURL(raw), u.Username))
+	return s.email.Send(to, "Reset your Cloudzilla password", passwordResetEmailBody(s.linkURL(raw), u.Username))
 }
 
 // IssueLink returns a 24-hour link for userID instead of mailing it, replacing
@@ -98,7 +101,7 @@ func (s *PasswordResetService) IssueLink(ctx context.Context, userID int64, issu
 	if err != nil {
 		return "", err
 	}
-	if err := s.store.Issue(ctx, userID, hash, issuedBy, PasswordResetManualTTL, 0); err != nil {
+	if _, err := s.store.Issue(ctx, userID, hash, issuedBy, PasswordResetManualTTL, 0); err != nil {
 		return "", err
 	}
 	return s.linkURL(raw), nil
@@ -118,8 +121,8 @@ func (s *PasswordResetService) Check(ctx context.Context, rawToken string) (mode
 }
 
 // Reset spends rawToken to set newPassword and sign the account out everywhere.
-// An account with 2FA must also give a TOTP or backup code as code. Nothing is
-// spent unless every check passes. It returns the user and who issued the link.
+// An account with 2FA must also give a TOTP or backup code as code. A failed
+// check leaves the link usable. It returns the user and who issued the link.
 func (s *PasswordResetService) Reset(ctx context.Context, rawToken, newPassword, code string) (*model.User, string, error) {
 	switch {
 	case len(newPassword) < MinPasswordLen:

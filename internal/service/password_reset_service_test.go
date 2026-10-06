@@ -191,7 +191,7 @@ func TestPasswordReset_CooldownLimitsEmails(t *testing.T) {
 		t.Fatalf("a request inside the cooldown changed the first link to %s", got)
 	}
 
-	testutil.Exec(t, db, `UPDATE password_reset_tokens SET created_at = NOW() - INTERVAL '6 minutes' WHERE user_id = $1`, userID)
+	testutil.Exec(t, db, `UPDATE password_reset_tokens SET emailed_at = NOW() - INTERVAL '6 minutes' WHERE user_id = $1`, userID)
 	second := requestReset(t, svc, box, email)
 	if got := linkState(t, svc, first); got != model.PasswordResetInvalid {
 		t.Errorf("replaced link state = %s, want invalid", got)
@@ -418,4 +418,57 @@ func TestPasswordReset_ConcurrentResetsSpendOnce(t *testing.T) {
 	if got := sessionVersion(t, db, userID); got != before+1 {
 		t.Errorf("session_version = %d, want %d", got, before+1)
 	}
+}
+
+func TestPasswordReset_ManualLinkDoesNotVerifyAddress(t *testing.T) {
+	svc, db := newVerificationServices(t, config.SMTPConfig{})
+	userID, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), testPassword)
+	link, err := svc.PasswordReset.IssueLink(context.Background(), userID, model.PasswordResetByAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := svc.PasswordReset.Reset(context.Background(), link[strings.LastIndex(link, "/")+1:], newPassword, ""); err != nil {
+		t.Fatalf("Reset: %v", err)
+	}
+	if emailVerified(t, db, userID) {
+		t.Error("a handed-over link verified an address nobody proved they own")
+	}
+}
+
+func TestPasswordReset_ManualLinkAndEmailCooldown(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	svc, db := newVerificationServices(t, smtp)
+	ctx := context.Background()
+	userID, email := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), testPassword)
+
+	emailed := requestReset(t, svc, box, email)
+	link, err := svc.PasswordReset.IssueLink(ctx, userID, model.PasswordResetByCLI)
+	if err != nil {
+		t.Fatalf("IssueLink inside the email cooldown: %v", err)
+	}
+	if got := linkState(t, svc, emailed); got != model.PasswordResetInvalid {
+		t.Errorf("emailed link after IssueLink = %s, want invalid", got)
+	}
+	manual := link[strings.LastIndex(link, "/")+1:]
+
+	// Past the cooldown, the forgot form still can't cancel a live manual link.
+	testutil.Exec(t, db, `UPDATE password_reset_tokens SET emailed_at = NOW() - INTERVAL '6 minutes' WHERE user_id = $1`, userID)
+	if err := svc.PasswordReset.Request(ctx, email); err != nil {
+		t.Fatalf("Request: %v", err)
+	}
+	box.Empty(t, 300*time.Millisecond)
+	if got := linkState(t, svc, manual); got != model.PasswordResetPending {
+		t.Fatalf("manual link after a forgot request = %s, want pending", got)
+	}
+
+	// A manual link doesn't reset the cooldown of the last email.
+	testutil.Exec(t, db, `UPDATE password_reset_tokens SET emailed_at = NOW() WHERE user_id = $1`, userID)
+	if _, _, err := svc.PasswordReset.Reset(ctx, manual, newPassword, ""); err != nil {
+		t.Fatalf("Reset: %v", err)
+	}
+	if err := svc.PasswordReset.Request(ctx, email); err != nil {
+		t.Fatalf("Request: %v", err)
+	}
+	box.NextTo(t, email) // the reset notice
+	box.Empty(t, 300*time.Millisecond)
 }
