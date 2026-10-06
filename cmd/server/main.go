@@ -169,6 +169,10 @@ func main() {
 		slog.Error("ssh graceful shutdown failed", "error", err)
 	}
 
+	mirrorCtx, mirrorCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer mirrorCancel()
+	services.Mirror.Shutdown(mirrorCtx)
+
 	slog.Info("server stopped")
 }
 

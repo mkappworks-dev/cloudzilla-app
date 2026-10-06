@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -24,6 +26,9 @@ import (
 )
 
 const mirrorCredentialPurpose = "mirror-credential"
+
+// mirrorSideEffectTimeout bounds a sync's post-fetch work, as for a push.
+const mirrorSideEffectTimeout = 5 * time.Minute
 
 // Not a mirror's +refs/*:refs/*, which would also copy GitHub's refs/pull/*.
 var mirrorRefSpecs = []gitconfig.RefSpec{"+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"}
@@ -51,12 +56,19 @@ type MirrorService struct {
 	git       config.GitConfig
 	cfg       config.MirrorConfig
 	wake      chan struct{}
+
+	// Shutdown cancels stopCtx, under which syncs run, and waits on inflight.
+	stopCtx  context.Context
+	stop     context.CancelFunc
+	stopping atomic.Bool
+	inflight sync.WaitGroup
 }
 
 func NewMirrorService(mirrors *store.MirrorStore, repoStore *store.RepoStore, repos *RepoService, webhooks *WebhookService,
 	index *IndexService, deps *DependencyService, secrets *secretbox.Box, git config.GitConfig, cfg config.MirrorConfig) *MirrorService {
+	stopCtx, stop := context.WithCancel(context.Background())
 	return &MirrorService{mirrors: mirrors, repoStore: repoStore, repos: repos, webhooks: webhooks, index: index, deps: deps,
-		secrets: secrets, git: git, cfg: cfg, wake: make(chan struct{}, 1)}
+		secrets: secrets, git: git, cfg: cfg, wake: make(chan struct{}, 1), stopCtx: stopCtx, stop: stop}
 }
 
 // Get wraps sql.ErrNoRows when the repo isn't a mirror.
@@ -111,9 +123,15 @@ func (s *MirrorService) Sync(ctx context.Context, m *model.RepoMirror) error {
 		Name: "upstream", URLs: []string{m.RemoteURL}, Fetch: mirrorRefSpecs,
 	})
 	advertised, err := remote.ListContext(ctx, &gogit.ListOptions{Auth: auth})
-	if err == nil {
-		err = remote.FetchContext(ctx, &gogit.FetchOptions{Auth: auth, Tags: gogit.NoTags, Prune: true, Force: true})
+	if err != nil {
+		return s.syncError(ctx, repo, guard, err)
 	}
+	// With prune, a fetch from an upstream with no branches would delete every one here.
+	branch, err := defaultImportBranch(advertised)
+	if err != nil {
+		return &MirrorSyncError{Msg: "The source repository has no branches. The mirror keeps its last copy.", Err: err}
+	}
+	err = remote.FetchContext(ctx, &gogit.FetchOptions{Auth: auth, Tags: gogit.NoTags, Prune: true, Force: true})
 	if err != nil && !errors.Is(err, gogit.NoErrAlreadyUpToDate) {
 		return s.syncError(ctx, repo, guard, err)
 	}
@@ -121,11 +139,14 @@ func (s *MirrorService) Sync(ctx context.Context, m *model.RepoMirror) error {
 	if err != nil {
 		return err
 	}
-	if err := s.followHead(ctx, repo, local, advertised); err != nil {
-		return err
-	}
-	s.afterSync(ctx, repo, local, refChanges(before, after))
-	return nil
+
+	// The refs have moved: their side effects run even if what follows fails
+	// or the sync's own time is nearly up, since the next sync won't see them.
+	sideCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), mirrorSideEffectTimeout)
+	defer cancel()
+	headErr := s.followHead(sideCtx, repo, local, branch)
+	s.afterSync(sideCtx, repo, local, refChanges(before, after))
+	return headErr
 }
 
 func (s *MirrorService) auth(m *model.RepoMirror) (transport.AuthMethod, error) {
@@ -166,13 +187,9 @@ func (s *MirrorService) syncError(ctx context.Context, repo *model.Repository, g
 	return &MirrorSyncError{Msg: msg, Err: err}
 }
 
-// followHead points HEAD and the default branch where the upstream's point,
-// choosing as an import does when the upstream doesn't say.
-func (s *MirrorService) followHead(ctx context.Context, repo *model.Repository, local *gogit.Repository, advertised []*plumbing.Reference) error {
-	branch, err := defaultImportBranch(advertised)
-	if err != nil {
-		return nil
-	}
+// followHead points HEAD and the default branch at branch, the upstream's
+// default as an import would choose it.
+func (s *MirrorService) followHead(ctx context.Context, repo *model.Repository, local *gogit.Repository, branch string) error {
 	target := plumbing.NewBranchReferenceName(branch)
 	if head, err := local.Storer.Reference(plumbing.HEAD); err != nil || head.Target() != target {
 		if err := local.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, target)); err != nil {
@@ -320,7 +337,7 @@ type mirrorSpec struct {
 func (s *MirrorService) create(ctx context.Context, repo *model.Repository, spec mirrorSpec) error {
 	return s.mirrors.Create(ctx, &model.RepoMirror{
 		RepoID: repo.ID, RemoteURL: spec.remoteURL, AuthUsername: spec.username, AuthTokenEnc: spec.tokenEnc,
-		Interval: spec.interval, NextSyncAt: time.Now().Add(spec.interval), CreatedBy: spec.createdBy,
+		Interval: spec.interval, CreatedBy: spec.createdBy,
 	})
 }
 
@@ -345,69 +362,81 @@ type MirrorUpdate struct {
 	Interval     *time.Duration
 }
 
-// Update saves u. A new source or credentials are tried at once; a new
-// interval counts from the last sync.
-func (s *MirrorService) Update(ctx context.Context, repoID int64, u MirrorUpdate) (*model.RepoMirror, error) {
+// Update saves u and returns the fields it changed. A new source or new
+// credentials are tried at once; a new interval counts from the last sync.
+func (s *MirrorService) Update(ctx context.Context, repoID int64, u MirrorUpdate) (*model.RepoMirror, []string, error) {
 	m, err := s.mirrors.Get(ctx, repoID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	retryNow := false
+	var changed []string
 	if u.RemoteURL != nil {
 		src, err := ParseImportURL(*u.RemoteURL)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		retryNow = retryNow || src != m.RemoteURL
-		m.RemoteURL = src
+		if src != m.RemoteURL {
+			m.RemoteURL, changed = src, append(changed, "remote_url")
+		}
 	}
 	if u.AuthUsername != nil {
-		name := strings.TrimSpace(*u.AuthUsername)
-		retryNow = retryNow || name != m.AuthUsername
-		m.AuthUsername = name
+		if name := strings.TrimSpace(*u.AuthUsername); name != m.AuthUsername {
+			m.AuthUsername, changed = name, append(changed, "auth_username")
+		}
 	}
 	switch {
-	case u.ClearToken:
-		retryNow = retryNow || m.AuthTokenEnc != nil
-		m.AuthTokenEnc = nil
-	case u.AuthToken != nil && *u.AuthToken != "":
+	case u.ClearToken && m.AuthTokenEnc != nil:
+		m.AuthTokenEnc, changed = nil, append(changed, "auth_token")
+	case !u.ClearToken && u.AuthToken != nil && *u.AuthToken != "":
 		if m.AuthTokenEnc, err = s.SealToken(*u.AuthToken); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		retryNow = true
+		changed = append(changed, "auth_token")
 	}
 	if m.AuthTokenEnc != nil && m.AuthUsername == "" {
-		return nil, ErrImportCredentials
+		return nil, nil, ErrImportCredentials
 	}
+	intervalChanged := false
 	if u.Interval != nil {
-		if m.Interval, err = s.Interval(*u.Interval); err != nil {
-			return nil, err
+		interval, err := s.Interval(*u.Interval)
+		if err != nil {
+			return nil, nil, err
+		}
+		if interval != m.Interval {
+			m.Interval, intervalChanged, changed = interval, true, append(changed, "interval")
 		}
 	}
 
-	now := time.Now()
+	sched := store.MirrorKeepSchedule
 	switch {
-	case retryNow:
-		m.NextSyncAt = now
-	case u.Interval != nil:
-		m.NextSyncAt = now.Add(m.Interval)
-		if m.LastSyncAt != nil {
-			m.NextSyncAt = m.LastSyncAt.Add(m.Interval)
-			if m.NextSyncAt.Before(now) {
-				m.NextSyncAt = now
-			}
-		}
+	case slices.ContainsFunc(changed, func(f string) bool { return f != "interval" }):
+		sched = store.MirrorSyncNow
+	case intervalChanged:
+		sched = store.MirrorFromLastSync
 	}
-	if err := s.mirrors.Update(ctx, m); err != nil {
-		return nil, err
+	if err := s.mirrors.Update(ctx, m, sched); err != nil {
+		return nil, nil, err
 	}
-	if retryNow {
+	if sched == store.MirrorSyncNow {
 		s.Wake()
 	}
-	return m, nil
+	return m, changed, nil
 }
 
+var ErrMirrorSyncRunning = errors.New("a sync is running")
+
 // Stop turns a mirror into a regular repository, deleting its stored token.
+// It refuses while a sync runs, which would force-fetch over pushes to the
+// now writable repo.
 func (s *MirrorService) Stop(ctx context.Context, repoID int64) error {
-	return s.mirrors.Delete(ctx, repoID)
+	deleted, err := s.mirrors.DeleteUnleased(ctx, repoID)
+	if err != nil {
+		return err
+	}
+	if !deleted {
+		if _, err := s.mirrors.Get(ctx, repoID); err == nil {
+			return ErrMirrorSyncRunning
+		}
+	}
+	return nil
 }

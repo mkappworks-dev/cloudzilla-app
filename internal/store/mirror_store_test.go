@@ -59,7 +59,7 @@ func TestMirrorStore_CreateGetUpdateDelete(t *testing.T) {
 	}
 
 	m.RemoteURL, m.AuthTokenEnc, m.Interval = "https://example.com/other.git", nil, time.Hour
-	if err := f.store.Update(ctx, m); err != nil {
+	if err := f.store.Update(ctx, m, store.MirrorKeepSchedule); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 	m, _ = f.store.Get(ctx, repoID)
@@ -253,4 +253,122 @@ func TestRepoStore_IsMirror(t *testing.T) {
 			t.Errorf("list: repo %d IsMirror = %v", r.ID, r.IsMirror)
 		}
 	}
+}
+
+func TestMirrorStore_RequestDuringSync_OutlivesItsResult(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		record func(f mirrorFixture, id int64) error
+	}{
+		{"success", func(f mirrorFixture, id int64) error { return f.store.RecordSuccess(context.Background(), id) }},
+		{"failure", func(f mirrorFixture, id int64) error { return f.store.RecordFailure(context.Background(), id, "x") }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newMirrorFixture(t)
+			ctx := context.Background()
+			id := f.seed(t, time.Hour, time.Now().Add(-time.Minute))
+			if got, _ := f.store.ClaimDue(ctx, 1, time.Minute); len(got) != 1 {
+				t.Fatal("claim failed")
+			}
+			if err := f.store.MarkDue(ctx, id); err != nil {
+				t.Fatalf("MarkDue: %v", err)
+			}
+			if err := tc.record(f, id); err != nil {
+				t.Fatalf("record: %v", err)
+			}
+			if again, _ := f.store.ClaimDue(ctx, 1, time.Minute); len(again) != 1 {
+				t.Errorf("a Sync now made during the sync was lost: %+v", f.getOrFail(t, id))
+			}
+		})
+	}
+}
+
+func TestMirrorStore_RecordWithoutRequest_KeepsTheInterval(t *testing.T) {
+	f := newMirrorFixture(t)
+	ctx := context.Background()
+	id := f.seed(t, time.Hour, time.Now().Add(-time.Minute))
+	_ = f.store.MarkDue(ctx, id) // before the claim: the claim answers it
+	if got, _ := f.store.ClaimDue(ctx, 1, time.Minute); len(got) != 1 {
+		t.Fatal("claim failed")
+	}
+	if err := f.store.RecordSuccess(ctx, id); err != nil {
+		t.Fatalf("RecordSuccess: %v", err)
+	}
+	if again, _ := f.store.ClaimDue(ctx, 1, time.Minute); len(again) != 0 {
+		t.Error("a request answered by the claim forced another sync")
+	}
+}
+
+func TestMirrorStore_DeleteUnleased_AndReleaseLease(t *testing.T) {
+	f := newMirrorFixture(t)
+	ctx := context.Background()
+	id := f.seed(t, time.Hour, time.Now().Add(-time.Minute))
+	if got, _ := f.store.ClaimDue(ctx, 1, time.Hour); len(got) != 1 {
+		t.Fatal("claim failed")
+	}
+
+	if deleted, err := f.store.DeleteUnleased(ctx, id); err != nil || deleted {
+		t.Fatalf("DeleteUnleased during a lease = %v, %v; want refused", deleted, err)
+	}
+	if err := f.store.ReleaseLease(ctx, id); err != nil {
+		t.Fatalf("ReleaseLease: %v", err)
+	}
+	m := f.getOrFail(t, id)
+	if m.LeaseUntil != nil || m.NextSyncAt.After(time.Now()) || m.ConsecutiveFailures != 0 || m.LastSyncAt != nil {
+		t.Errorf("after ReleaseLease: %+v; want unleased, due now, nothing recorded", m)
+	}
+	if deleted, err := f.store.DeleteUnleased(ctx, id); err != nil || !deleted {
+		t.Errorf("DeleteUnleased after release = %v, %v; want deleted", deleted, err)
+	}
+}
+
+func TestMirrorStore_UpdateSchedules(t *testing.T) {
+	f := newMirrorFixture(t)
+	ctx := context.Background()
+	later := time.Now().Add(5 * time.Hour).Truncate(time.Microsecond)
+	id := f.seed(t, time.Hour, later)
+	testutil.Exec(t, f.db, `UPDATE repo_mirrors SET last_sync_at = NOW() - interval '30 minutes' WHERE repo_id = $1`, id)
+
+	m := f.getOrFail(t, id)
+	if err := f.store.Update(ctx, m, store.MirrorKeepSchedule); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if got := f.getOrFail(t, id).NextSyncAt; !got.Equal(later) {
+		t.Errorf("keep: next = %v, want %v", got, later)
+	}
+
+	m.Interval = 2 * time.Hour
+	if err := f.store.Update(ctx, m, store.MirrorFromLastSync); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if until := time.Until(f.getOrFail(t, id).NextSyncAt); until < 89*time.Minute || until > 91*time.Minute {
+		t.Errorf("from last sync: next in %v, want 90m (2h after a sync 30m ago)", until)
+	}
+
+	if err := f.store.Update(ctx, m, store.MirrorSyncNow); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if got, _ := f.store.ClaimDue(ctx, 1, time.Minute); len(got) != 1 {
+		t.Error("sync now: the mirror isn't due")
+	}
+}
+
+func TestMirrorStore_Create_ZeroNextSyncIsOneIntervalAway(t *testing.T) {
+	f := newMirrorFixture(t)
+	repoID := testutil.SeedRepo(t, f.db, f.userID, f.owner, testutil.UniqueSuffix(t))
+	if err := f.store.Create(context.Background(), &model.RepoMirror{RepoID: repoID, RemoteURL: "https://example.com/x.git", Interval: time.Hour}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if until := time.Until(f.getOrFail(t, repoID).NextSyncAt); until < 59*time.Minute || until > time.Hour {
+		t.Errorf("next sync in %v, want one interval", until)
+	}
+}
+
+func (f mirrorFixture) getOrFail(t *testing.T, id int64) *model.RepoMirror {
+	t.Helper()
+	m, err := f.store.Get(context.Background(), id)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	return m
 }

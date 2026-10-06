@@ -35,13 +35,24 @@ func (h *Handler) mirrorBanner(ctx context.Context, repo *model.Repository, canW
 		b.Failed, b.Error, b.NextTry = true, m.LastError, view.In(m.NextSyncAt)
 	}
 	path := "/" + repo.OwnerName + "/" + repo.Name
-	if canWrite {
+	if canWrite && h.mirrorSyncBlocked(repo) == "" {
 		b.SyncURL = "/api/repos" + path + "/mirror/sync"
 	}
 	if canManage {
 		b.SettingsURL = path + "/settings#mirror"
 	}
 	return b
+}
+
+// mirrorSyncBlocked says why no sync would run for repo, or "" when one would.
+func (h *Handler) mirrorSyncBlocked(repo *model.Repository) string {
+	switch {
+	case !h.Services.Mirror.Enabled():
+		return "Mirroring is turned off on this instance."
+	case repo.IsArchived:
+		return "Archived mirrors don't sync."
+	}
+	return ""
 }
 
 // SyncMirror queues a sync of a pull mirror now.
@@ -57,6 +68,10 @@ func (h *Handler) SyncMirror(w http.ResponseWriter, r *http.Request) {
 	}
 	if !repo.IsMirror {
 		writeError(w, http.StatusNotFound, "repository is not a mirror")
+		return
+	}
+	if msg := h.mirrorSyncBlocked(repo); msg != "" {
+		writeError(w, http.StatusConflict, msg)
 		return
 	}
 	if err := h.Services.Mirror.SyncNow(r.Context(), repo.ID); err != nil {
@@ -167,7 +182,7 @@ func (h *Handler) UpdateMirror(w http.ResponseWriter, r *http.Request) {
 		}
 		update.Interval = &d
 	}
-	m, err := h.Services.Mirror.Update(r.Context(), repo.ID, update)
+	m, changed, err := h.Services.Mirror.Update(r.Context(), repo.ID, update)
 	switch {
 	case errors.Is(err, service.ErrImportURL), errors.Is(err, service.ErrImportURLUserinfo), errors.Is(err, service.ErrImportCredentials),
 		errors.Is(err, service.ErrMirrorInterval), errors.Is(err, service.ErrMirrorNoSecretKey):
@@ -179,16 +194,10 @@ func (h *Handler) UpdateMirror(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var changed []string
-	for field, set := range map[string]bool{"remote_url": req.RemoteURL != nil, "auth_username": req.AuthUsername != nil,
-		"auth_token": req.AuthToken != nil && *req.AuthToken != "" || req.ClearToken, "interval": req.Interval != nil} {
-		if set {
-			changed = append(changed, field)
-		}
+	if len(changed) > 0 {
+		h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoMirrorUpdate,
+			model.AuditTargetRepo, repo.ID, repo.OwnerName+"/"+repo.Name, map[string]any{"fields": changed, "remote_url": m.RemoteURL})
 	}
-	slices.Sort(changed)
-	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoMirrorUpdate,
-		model.AuditTargetRepo, repo.ID, repo.OwnerName+"/"+repo.Name, map[string]any{"fields": changed, "remote_url": m.RemoteURL})
 	if r.Header.Get("HX-Request") == "true" {
 		redirectToRepoSettings(w, r, repo.OwnerName, repo.Name)
 		return
@@ -210,7 +219,12 @@ func (h *Handler) StopMirror(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := h.Services.Mirror.Stop(r.Context(), repo.ID); err != nil {
+	err := h.Services.Mirror.Stop(r.Context(), repo.ID)
+	if errors.Is(err, service.ErrMirrorSyncRunning) {
+		settingsError(w, r, http.StatusConflict, "A sync is running. Stop mirroring once it finishes.")
+		return
+	}
+	if err != nil {
 		slog.Error("stop mirror failed", "repo_id", repo.ID, "error", err)
 		settingsError(w, r, http.StatusInternalServerError, "could not stop mirroring")
 		return
@@ -239,7 +253,10 @@ func (h *Handler) mirrorSettings(ctx context.Context, repo *model.Repository) *v
 	s := &view.MirrorSettings{
 		RemoteURL: m.RemoteURL, AuthUsername: m.AuthUsername, HasToken: m.AuthTokenEnc != nil,
 		LastSynced: "never", NextSync: view.In(m.NextSyncAt), Failing: m.LastError != "", LastError: m.LastError,
-		APIURL: "/api/repos" + path + "/mirror", SyncURL: "/api/repos" + path + "/mirror/sync",
+		APIURL: "/api/repos" + path + "/mirror",
+	}
+	if h.mirrorSyncBlocked(repo) == "" {
+		s.SyncURL = "/api/repos" + path + "/mirror/sync"
 	}
 	if m.LastSyncAt != nil {
 		s.LastSynced = view.Ago(*m.LastSyncAt)

@@ -203,8 +203,8 @@ A transfer into an organization you own, or into your own account (an org repo y
 |--------|------|------|-------------|
 | GET    | `/api/repos/:owner/:repo/mirror`      | Manage | `{remote_url, auth_username, has_token, interval, next_sync_at, last_sync_at, last_success_at, last_error, consecutive_failures}`. Never the token |
 | PATCH  | `/api/repos/:owner/:repo/mirror`      | Manage | Change any of `remote_url`, `auth_username`, `auth_token`, `interval`; `clear_token: true` removes the token. An empty `auth_token` keeps the stored one. Returns the mirror |
-| DELETE | `/api/repos/:owner/:repo/mirror`      | Manage | Stop mirroring: the repository becomes writable and the token is deleted. 204 |
-| POST   | `/api/repos/:owner/:repo/mirror/sync` | Write  | Sync now. 202 `{status: "queued"}` |
+| DELETE | `/api/repos/:owner/:repo/mirror`      | Manage | Stop mirroring: the repository becomes writable and the token is deleted. 204, or 409 while a sync runs |
+| POST   | `/api/repos/:owner/:repo/mirror/sync` | Write  | Sync now. 202 `{status: "queued"}`, or 409 while mirroring is off or the mirror is archived |
 
 A repository that isn't a mirror is 404. Invalid values are 422, with the same rules as on import. Scoped tokens need `repo:admin` for every mirror endpoint. A new URL, username or token makes the mirror sync at once; a new interval counts from the last sync. A pull mirror refuses pushes and every write to its branches, tags and default branch, and `POST …/pulls` into it is 422.
 

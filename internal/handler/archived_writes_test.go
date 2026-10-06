@@ -249,7 +249,7 @@ func TestReadOnlyRepo_PagesHideContentWriteControls(t *testing.T) {
 				}
 			}
 			rr := requestAPI(api, http.MethodGet, r.path+"/settings", r.owner.token)
-			readOnly := regexp.MustCompile(`id="repo-default-branch"[^>]*readonly`).MatchString(rr.Body.String())
+			readOnly := regexp.MustCompile(`id="repo-default-branch"[^>]* disabled[\s>/]`).MatchString(rr.Body.String())
 			if readOnly != archived {
 				t.Errorf("default branch field readonly = %v, want %v", readOnly, archived)
 			}

@@ -70,7 +70,7 @@ func TestMirror_CreatePull_Refused(t *testing.T) {
 func TestMirror_Banner(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	api := newAPIRouterAt(t, db, reposRoot)
+	api := newMirrorAPIRouter(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	makeMirror(t, db, r.id)
 	testutil.Exec(t, db, `UPDATE repo_mirrors SET last_sync_at = NOW() - interval '5 minutes', last_success_at = NOW() - interval '5 minutes' WHERE repo_id = $1`, r.id)
@@ -102,7 +102,7 @@ func TestMirror_Banner(t *testing.T) {
 
 func TestMirror_SyncNow(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	api := newAPIRouter(t, db)
+	api := newMirrorAPIRouter(t, db, t.TempDir())
 	repo := seedOwnedRepo(t, db, false)
 	makeMirror(t, db, repo.id)
 	stranger := seedSignedInUser(t, db)
@@ -123,6 +123,26 @@ func TestMirror_SyncNow(t *testing.T) {
 	plain := seedOwnedRepo(t, db, false)
 	if rr := requestAPI(api, http.MethodPost, "/api/repos"+plain.path+"/mirror/sync", plain.owner.token); rr.Code != http.StatusNotFound {
 		t.Errorf("not a mirror: want 404, got %d", rr.Code)
+	}
+
+	archiveRepo(t, db, repo.id)
+	if rr := requestAPI(api, http.MethodPost, "/api/repos"+repo.path+"/mirror/sync", repo.owner.token); rr.Code != http.StatusConflict {
+		t.Errorf("archived mirror: want 409, got %d %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestMirror_SyncNow_MirroringOff(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	api := newAPIRouter(t, db) // mirror.enabled is off
+	repo := seedOwnedRepo(t, db, false)
+	makeMirror(t, db, repo.id)
+
+	rr := requestAPI(api, http.MethodPost, "/api/repos"+repo.path+"/mirror/sync", repo.owner.token)
+	if rr.Code != http.StatusConflict || !strings.Contains(rr.Body.String(), "turned off") {
+		t.Errorf("want 409 saying mirroring is off, got %d %s", rr.Code, rr.Body.String())
+	}
+	if page := requestAPI(api, http.MethodGet, repo.path, repo.owner.token).Body.String(); strings.Contains(page, "/mirror/sync") {
+		t.Error("the banner offers Sync now while mirroring is off")
 	}
 }
 

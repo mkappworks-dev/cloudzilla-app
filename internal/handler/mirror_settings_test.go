@@ -220,3 +220,21 @@ func TestMirrorSettings_FormSave(t *testing.T) {
 		t.Errorf("bad URL: %d, HX-Retarget %q; want the form's error slot", rr.Code, rr.Header().Get("HX-Retarget"))
 	}
 }
+
+func TestMirrorAPI_StopRefusedWhileASyncRuns(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	api := newMirrorAPIRouter(t, db, t.TempDir())
+	repo := seedOwnedRepo(t, db, false)
+	makeMirror(t, db, repo.id)
+	testutil.Exec(t, db, `UPDATE repo_mirrors SET lease_until = NOW() + interval '10 minutes' WHERE repo_id = $1`, repo.id)
+
+	rr := requestAPI(api, http.MethodDelete, "/api/repos"+repo.path+"/mirror", repo.owner.token)
+	if rr.Code != http.StatusConflict || !strings.Contains(rr.Body.String(), "sync is running") {
+		t.Errorf("want 409, got %d %s", rr.Code, rr.Body.String())
+	}
+	var left int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM repo_mirrors WHERE repo_id = $1`, repo.id).Scan(&left)
+	if left != 1 {
+		t.Error("the mirror was stopped under a running sync")
+	}
+}

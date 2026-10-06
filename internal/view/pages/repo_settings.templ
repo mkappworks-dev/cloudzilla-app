@@ -178,7 +178,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 									</div>
 									<div class="space-y-1.5">
 										<label for="repo-default-branch" class="block text-sm font-medium">Default branch</label>
-										<input id="repo-default-branch" type="text" name="default_branch" value={ data.Repo.DefaultBranch } readonly?={ data.Repo.ContentReadOnly() } class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring read-only:text-muted-foreground"/>
+										<input id="repo-default-branch" type="text" name="default_branch" value={ data.Repo.DefaultBranch } disabled?={ data.Repo.ContentReadOnly() } class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring disabled:text-muted-foreground"/>
 										if data.Repo.ContentReadOnly() {
 											<p class="text-xs text-muted-foreground">This repository is read-only, so its default branch can't change.</p>
 										}
@@ -778,8 +778,10 @@ templ mirrorSettingsSection(m view.MirrorSettings) {
 								<dd class="font-medium">{ m.NextSync }</dd>
 							</div>
 						</dl>
-						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "hx-post": m.SyncURL, "hx-swap": "none"}) {
-							Sync now
+						if m.SyncURL != "" {
+							@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "hx-post": m.SyncURL, "hx-swap": "none"}) {
+								Sync now
+							}
 						}
 					</div>
 					if m.Failing {

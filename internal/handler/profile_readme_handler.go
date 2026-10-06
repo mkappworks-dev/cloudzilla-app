@@ -40,8 +40,12 @@ func (h *Handler) UpdateProfileReadme(w http.ResponseWriter, r *http.Request) {
 		redirectReadmeError(w, r, user.Username, "profile_repo_private")
 		return
 	}
-	if service.CheckContentWritable(repo) != nil {
-		redirectReadmeError(w, r, user.Username, "profile_repo_archived")
+	if err := service.CheckContentWritable(repo); err != nil {
+		code := "profile_repo_archived"
+		if errors.Is(err, service.ErrRepoMirror) {
+			code = "profile_repo_mirror"
+		}
+		redirectReadmeError(w, r, user.Username, code)
 		return
 	}
 
