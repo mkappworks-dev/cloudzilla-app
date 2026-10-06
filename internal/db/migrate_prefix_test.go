@@ -7,13 +7,6 @@ import (
 	"testing"
 )
 
-// The runner records applied migrations by full filename, so renaming one of
-// these would re-run it on every deployed database. They stay as they are.
-var legacySharedPrefixes = map[string]bool{
-	"036": true,
-	"102": true,
-}
-
 func TestMigrations_NumericPrefixesAreUnique(t *testing.T) {
 	entries, err := os.ReadDir("migrations")
 	if err != nil {
@@ -36,11 +29,8 @@ func TestMigrations_NumericPrefixesAreUnique(t *testing.T) {
 	sort.Strings(prefixes)
 	for _, p := range prefixes {
 		files := byPrefix[p]
-		switch {
-		case len(files) > 1 && !legacySharedPrefixes[p]:
+		if len(files) > 1 {
 			t.Errorf("migrations share the number %s: %s; give the newer one the next free number", p, strings.Join(files, ", "))
-		case len(files) == 1 && legacySharedPrefixes[p]:
-			t.Errorf("number %s is no longer shared; remove it from legacySharedPrefixes", p)
 		}
 	}
 }
