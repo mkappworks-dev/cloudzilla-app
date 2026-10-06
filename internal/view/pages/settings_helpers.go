@@ -134,20 +134,9 @@ func codeThemeOptions(themes []highlight.Theme) []components.SelectMenuOption {
 	return out
 }
 
-func avatarInitials(name, username string) string {
-	src := strings.TrimSpace(name)
-	if src == "" {
-		src = username
+func displayNameOr(name, username string) string {
+	if strings.TrimSpace(name) != "" {
+		return name
 	}
-	if src == "" {
-		return "?"
-	}
-	parts := strings.Fields(src)
-	if len(parts) >= 2 {
-		return strings.ToUpper(parts[0][:1] + parts[1][:1])
-	}
-	if len(src) >= 2 {
-		return strings.ToUpper(src[:2])
-	}
-	return strings.ToUpper(src[:1])
+	return username
 }

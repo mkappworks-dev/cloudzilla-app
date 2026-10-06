@@ -316,11 +316,22 @@ func (s *UserService) UpdateCodeThemes(ctx context.Context, userID int64, light,
 }
 
 func (s *UserService) CodeThemes(ctx context.Context, userID int64) (light, dark string, err error) {
-	light, dark, err = s.store.GetCodeThemes(ctx, userID)
+	p, err := s.LayoutPrefs(ctx, userID)
+	return p.CodeLight, p.CodeDark, err
+}
+
+// LayoutPrefs is what every page's layout needs about its viewer, read in one query.
+type LayoutPrefs struct {
+	CodeLight, CodeDark string
+	AvatarKey           string
+}
+
+func (s *UserService) LayoutPrefs(ctx context.Context, userID int64) (LayoutPrefs, error) {
+	light, dark, avatarKey, err := s.store.GetLayoutPrefs(ctx, userID)
 	if err != nil {
-		return "", "", err
+		return LayoutPrefs{}, err
 	}
-	return highlight.NormalizeLight(light), highlight.NormalizeDark(dark), nil
+	return LayoutPrefs{CodeLight: highlight.NormalizeLight(light), CodeDark: highlight.NormalizeDark(dark), AvatarKey: avatarKey}, nil
 }
 
 // Username is deliberately not editable: repo owner names, on-disk repo paths, and JWT claims key off it.

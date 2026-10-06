@@ -97,6 +97,7 @@ func (h *Handler) GetOrg(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "org not found")
 		return
 	}
+	org.AvatarURL = apiAvatarURL(h.Cfg.Server.BaseURL, org.AvatarKey, org.AvatarURL)
 	writeJSON(w, http.StatusOK, org)
 }
 
@@ -180,7 +181,7 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID)
 	if htmx {
-		h.render(w, r, fragments.OrgMembers(view.OrgMembersFragData{
+		h.render(w, h.withAvatars(r, memberNames(members)...), fragments.OrgMembers(view.OrgMembersFragData{
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: canManage,
@@ -225,7 +226,7 @@ func (h *Handler) RemoveOrgMember(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID)
 	if r.Header.Get("HX-Request") == "true" {
-		h.render(w, r, fragments.OrgMembers(view.OrgMembersFragData{
+		h.render(w, h.withAvatars(r, memberNames(members)...), fragments.OrgMembers(view.OrgMembersFragData{
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: canManage,
@@ -281,7 +282,7 @@ func (h *Handler) UpdateOrgMemberRole(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		// Sent as a header: the promote dialog that asked is gone once the list is swapped.
 		toast(w, "success", "Member role updated")
-		h.render(w, r, fragments.OrgMembers(view.OrgMembersFragData{
+		h.render(w, h.withAvatars(r, memberNames(members)...), fragments.OrgMembers(view.OrgMembersFragData{
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: true,

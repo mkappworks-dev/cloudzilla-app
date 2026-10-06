@@ -28,7 +28,10 @@ All mutable state lives under `/data` inside the container, mounted as a named D
 | What             | Path                        |
 | ---------------- | --------------------------- |
 | Git repositories | `/data/git-repos/`          |
+| Uploaded files   | `/data/storage/`            |
 | SSH host key     | `/data/cloudzilla_host_key` |
+
+`/data/storage` holds avatars when `storage.backend` is `local`, the default. Back it up with the database. To keep uploads in S3 or an S3-compatible bucket instead, set `CZ_STORAGE_BACKEND=s3` and the `CZ_STORAGE_S3_*` variables; see [storage](./storage.md) for AWS and R2 examples and the backup notes.
 
 ### PostgreSQL volume (`postgres_data`)
 
@@ -62,6 +65,7 @@ CZ_DATABASE_DRIVER=postgres
 CZ_DATABASE_DSN=postgres://cloudzilla:cloudzilla@postgres:5432/cloudzilla?sslmode=disable
 CZ_GIT_REPOS_ROOT=/data/git-repos
 CZ_GIT_SSH_HOST_KEY=/data/cloudzilla_host_key
+CZ_STORAGE_LOCAL_ROOT=/data/storage
 CZ_AUTH_JWT_SECRET=<strong secret>
 CZ_SERVER_PORT=8080
 CZ_GIT_SSH_PORT=2222

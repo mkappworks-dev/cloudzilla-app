@@ -187,7 +187,11 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		data = h.buildGistsTabData(r, data, user.ID, isOwn, page, gistsTotal)
 	}
 
-	h.render(w, r, pages.User(data))
+	keys := map[string]string{user.Username: user.AvatarKey}
+	for _, m := range orgs {
+		keys[m.Org.Name] = m.Org.AvatarKey
+	}
+	h.render(w, withKnownAvatars(r, keys), pages.User(data))
 }
 
 func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos []model.Repository, profileOwnerID, viewerUserID int64, page int) view.UserData {
@@ -459,6 +463,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 
 	base := basePage(r, h.Services)
 	base.OwnerContext = org.Name
+	r = withKnownAvatars(h.withAvatars(r, memberNames(members)...), map[string]string{org.Name: org.AvatarKey})
 	h.render(w, r, pages.Org(view.OrgData{
 		BasePage:      base,
 		Org:           *org,
@@ -542,8 +547,13 @@ func (h *Handler) PageOrganizations(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	h.render(w, r, pages.Organizations(view.OrgListData{
-		BasePage: basePage(r, h.Services),
+	base := basePage(r, h.Services)
+	keys := map[string]string{claims.Username: base.AvatarKey}
+	for _, m := range memberships {
+		keys[m.Org.Name] = m.Org.AvatarKey
+	}
+	h.render(w, withKnownAvatars(r, keys), pages.Organizations(view.OrgListData{
+		BasePage: base,
 		Entries:  entries,
 	}))
 }
@@ -595,7 +605,7 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 
 	base := basePage(r, h.Services)
 	base.OwnerContext = org.Name
-	h.render(w, r, pages.OrgSettings(view.OrgSettingsData{
+	h.render(w, h.withAvatars(r, memberNames(members)...), pages.OrgSettings(view.OrgSettingsData{
 		BasePage:     base,
 		Org:          *org,
 		Members:      members,

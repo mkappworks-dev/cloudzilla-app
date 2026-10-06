@@ -112,3 +112,23 @@ func (s *AvatarService) DeleteObject(ctx context.Context, key string) {
 		slog.Warn("avatar: delete object failed; leaving an orphan", "key", key, "error", err)
 	}
 }
+
+// KeysByOwnerName maps the user and org names among names that have an avatar
+// to their keys. Avatars are decoration, so a failed lookup logs and returns
+// an empty map: the page falls back to initials.
+func (s *AvatarService) KeysByOwnerName(ctx context.Context, names ...string) map[string]string {
+	seen := make(map[string]bool, len(names))
+	unique := make([]string, 0, len(names))
+	for _, n := range names {
+		if n != "" && !seen[n] {
+			seen[n] = true
+			unique = append(unique, n)
+		}
+	}
+	keys, err := s.users.AvatarKeysByOwnerName(ctx, unique)
+	if err != nil {
+		slog.Warn("avatar: look up keys", "error", err)
+		return map[string]string{}
+	}
+	return keys
+}

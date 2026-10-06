@@ -35,6 +35,15 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `smtp.tls`                   | `false`                                      | `CZ_SMTP_TLS`                   | Use TLS for SMTP connection                     |
 | `import.allow_local_networks`| `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`| Let repository imports reach loopback, private and link-local addresses |
 | `import.timeout`             | `30m`                                        | `CZ_IMPORT_TIMEOUT`             | Time limit for one repository import            |
+| `storage.backend`            | `local`                                      | `CZ_STORAGE_BACKEND`            | Where uploaded files such as avatars go: `local` or `s3`. See [storage](./storage.md) |
+| `storage.local.root`         | `./storage`                                  | `CZ_STORAGE_LOCAL_ROOT`         | Directory for the `local` backend               |
+| `storage.s3.endpoint`        | `""` (AWS)                                   | `CZ_STORAGE_S3_ENDPOINT`        | Endpoint URL of an S3-compatible server (R2, B2, Garage, versitygw) |
+| `storage.s3.region`          | `us-east-1`                                  | `CZ_STORAGE_S3_REGION`          | Bucket region (`auto` for R2)                   |
+| `storage.s3.bucket`          | `""`                                         | `CZ_STORAGE_S3_BUCKET`          | Bucket name; required for `s3`                  |
+| `storage.s3.access_key_id`   | `""`                                         | `CZ_STORAGE_S3_ACCESS_KEY_ID`   | Static key; empty uses the AWS default credential chain |
+| `storage.s3.secret_access_key` | `""`                                       | `CZ_STORAGE_S3_SECRET_ACCESS_KEY` | Static secret; set with `access_key_id` or not at all |
+| `storage.s3.path_style`      | `false`                                      | `CZ_STORAGE_S3_PATH_STYLE`      | Path-style URLs, needed by most self-hosted S3 servers |
+| `storage.s3.prefix`          | `""`                                         | `CZ_STORAGE_S3_PREFIX`          | Key prefix, so several instances can share a bucket |
 
 ### Environment Variable Mapping
 
@@ -80,6 +89,11 @@ git:
   ssh_port: 2222
   ssh_host_key: /etc/cloudzilla/ssh_host_key
 
+storage:
+  backend: local
+  local:
+    root: /var/lib/cloudzilla/storage
+
 smtp:
   host: "smtp.example.com"
   port: 587
@@ -124,6 +138,7 @@ Verification links point at `server.base_url`, so set it to the public URL. With
 | ---------------- | -------------------- | ---------------------------------------------------------- |
 | PostgreSQL data  | `cloudzilla_pg_data` | (managed by PostgreSQL container)                          |
 | Git repositories | `cloudzilla_data`    | `/data/git-repos/`                                         |
+| Uploaded files   | `cloudzilla_data`    | `/data/storage/` (avatars; see [storage](./storage.md))    |
 | SSH host key     | `cloudzilla_data`    | `/data/cloudzilla_host_key` (auto-generated on first boot) |
 
 ---
@@ -148,7 +163,7 @@ scp dist/cloudzilla dist/cloudzilla-cli user@yourserver:/usr/local/bin/
 
 ```bash
 sudo mkdir -p /etc/cloudzilla
-sudo mkdir -p /var/lib/cloudzilla/git-repos
+sudo mkdir -p /var/lib/cloudzilla/git-repos /var/lib/cloudzilla/storage
 ```
 
 Write `/etc/cloudzilla/config.yaml` (see Production Config above).

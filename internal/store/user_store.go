@@ -776,14 +776,15 @@ func (s *UserStore) UpdateCodeThemes(ctx context.Context, userID int64, light, d
 	return nil
 }
 
-func (s *UserStore) GetCodeThemes(ctx context.Context, userID int64) (light, dark string, err error) {
+// GetLayoutPrefs reads what every page's layout needs about its viewer.
+func (s *UserStore) GetLayoutPrefs(ctx context.Context, userID int64) (light, dark, avatarKey string, err error) {
 	err = s.db.QueryRowContext(ctx,
-		`SELECT code_theme_light, code_theme_dark FROM users WHERE id=$1`, userID,
-	).Scan(&light, &dark)
+		`SELECT code_theme_light, code_theme_dark, avatar_key FROM users WHERE id=$1`, userID,
+	).Scan(&light, &dark, &avatarKey)
 	if err != nil {
-		return "", "", fmt.Errorf("user get code themes: %w", err)
+		return "", "", "", fmt.Errorf("user get layout prefs: %w", err)
 	}
-	return light, dark, nil
+	return light, dark, avatarKey, nil
 }
 
 func (s *UserStore) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
@@ -998,28 +999,32 @@ func (s *UserStore) SwapAvatarKey(ctx context.Context, userID int64, key string)
 	return old, nil
 }
 
-// AvatarKeysByUsername maps each username that has an avatar to its key.
-func (s *UserStore) AvatarKeysByUsername(ctx context.Context, usernames []string) (map[string]string, error) {
+// AvatarKeysByOwnerName maps each user or org name that has an avatar to its
+// key. Users and orgs share one namespace, so a name matches at most one row.
+func (s *UserStore) AvatarKeysByOwnerName(ctx context.Context, names []string) (map[string]string, error) {
 	keys := map[string]string{}
-	if len(usernames) == 0 {
+	if len(names) == 0 {
 		return keys, nil
 	}
-	placeholders := make([]string, len(usernames))
-	args := make([]any, len(usernames))
-	for i, name := range usernames {
+	placeholders := make([]string, len(names))
+	args := make([]any, len(names))
+	for i, name := range names {
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = name
 	}
+	in := strings.Join(placeholders, ",")
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT username, avatar_key FROM users WHERE avatar_key <> '' AND username IN (`+strings.Join(placeholders, ",")+`)`, args...)
+		`SELECT username, avatar_key FROM users WHERE avatar_key <> '' AND username IN (`+in+`)
+		 UNION ALL
+		 SELECT name, avatar_key FROM organizations WHERE avatar_key <> '' AND name IN (`+in+`)`, args...)
 	if err != nil {
-		return nil, fmt.Errorf("user avatar keys: %w", err)
+		return nil, fmt.Errorf("avatar keys by owner name: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var name, key string
 		if err := rows.Scan(&name, &key); err != nil {
-			return nil, fmt.Errorf("user avatar keys scan: %w", err)
+			return nil, fmt.Errorf("avatar keys by owner name scan: %w", err)
 		}
 		keys[name] = key
 	}

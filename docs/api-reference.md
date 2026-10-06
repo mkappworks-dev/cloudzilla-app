@@ -140,7 +140,7 @@ Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` 
 
 `:id` is a numeric user ID and must be the caller's own (403 otherwise). Both pin endpoints return `{"ok": true}`.
 
-Public user objects — returned by `GET /api/users/:username` and by `/api/repos/:owner/:repo/stargazers` (JSON only with `HX-Request: true`; otherwise it renders the stargazers page) — contain only `id`, `username`, `bio`, `avatar_url`, and `created_at`. Email addresses and notification preferences are never returned.
+Public user objects — returned by `GET /api/users/:username` and by `/api/repos/:owner/:repo/stargazers` (JSON only with `HX-Request: true`; otherwise it renders the stargazers page) — contain only `id`, `username`, `bio`, `avatar_url`, and `created_at`. Email addresses and notification preferences are never returned. `avatar_url` is the absolute URL of the uploaded avatar (`<server.base_url>/avatars/...`) when the user has one, and otherwise the picture stored at Google sign-up, or `""`. `GET /api/orgs/:org` fills `avatar_url` the same way.
 
 ## Repositories
 
@@ -447,6 +447,18 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 
 See [access-control.md](access-control.md) for the full permission model. `CanManage` requires owner, org owner, or `admin` collaborator role.
 
+## Avatars
+
+| Method | Path | Auth | Description |
+| ------ | ---- | ---- | ----------- |
+| POST   | `/settings/avatar`                   | Required | Upload the caller's avatar as multipart field `avatar`: PNG, JPEG, GIF or WebP, at most 2 MB and 4096 × 4096 px. Redirects (303) to `/settings`; 413 over 2 MB; 422 for anything else that isn't such an image |
+| POST   | `/settings/avatar/delete`            | Required | Remove the caller's avatar |
+| POST   | `/orgs/:org/settings/avatar`         | Required | Upload the org's avatar; owner only (403), 404 for an unknown org; writes `org.avatar.update` to the audit log |
+| POST   | `/orgs/:org/settings/avatar/delete`  | Required | Remove the org's avatar; owner only; writes `org.avatar.remove` |
+| GET    | `/avatars/:key`                      | --       | Serve a stored avatar with `Cache-Control: public, max-age=31536000, immutable` and an `ETag` (304 on `If-None-Match`); 404 for an unknown or malformed key |
+
+With `HX-Request: true`, upload errors come back as a message for the form's error slot instead of a 4xx. See [storage](./storage.md).
+
 ## Organizations
 
 | Method | Path                                    | Auth     | Description                                                                                                                         |
@@ -462,6 +474,8 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 | POST   | `/api/orgs/:org/profile`                | Required | Update profile (`display_name`, `description`, `website`, `location`, `contact_email` form fields); owner only                      |
 | POST   | `/api/orgs/:org/repo-defaults`          | Required | Update repo defaults (`default_repo_visibility`, `default_branch_name` form fields); owner only                                     |
 | POST   | `/api/orgs/:org/delete`                 | Required | Delete the organization (`confirm_name`, plus `password` and, with 2FA, `code`); owner only; 422 while the org still owns repositories |
+
+Org avatars are uploaded outside `/api/orgs`, whose 1 MB body limit is smaller than an image; see [Avatars](#avatars).
 
 Add, remove, and role-change requests sent with `HX-Request: true` respond with the refreshed members-list fragment.
 

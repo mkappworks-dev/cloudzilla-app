@@ -10,6 +10,7 @@ const (
 	AvatarSizeSM      AvatarSize = "sm"      // 24px — list rows
 	AvatarSizeDefault AvatarSize = "default" // 28px — nav bar
 	AvatarSizeLG      AvatarSize = "lg"      // 40px — profile chrome
+	AvatarSizeXL      AvatarSize = "xl"      // 64px — settings
 )
 
 func avatarSizeClass(s AvatarSize) string {
@@ -20,8 +21,25 @@ func avatarSizeClass(s AvatarSize) string {
 		return "h-6 w-6 text-[10px]"
 	case AvatarSizeLG:
 		return "h-10 w-10 text-sm"
+	case AvatarSizeXL:
+		return "h-16 w-16 text-base"
 	default:
 		return "h-7 w-7 text-xs"
+	}
+}
+
+func avatarSizePx(s AvatarSize) string {
+	switch s {
+	case AvatarSizeXS:
+		return "20"
+	case AvatarSizeSM:
+		return "24"
+	case AvatarSizeLG:
+		return "40"
+	case AvatarSizeXL:
+		return "64"
+	default:
+		return "28"
 	}
 }
 
@@ -38,11 +56,34 @@ func initials(name string) string {
 	return strings.ToUpper(parts[0][:1] + parts[len(parts)-1][:1])
 }
 
-// Avatar renders an initials-only avatar with a subtle bordered background.
-// `name` is the full display name; the component computes initials from it.
-// `alt` is what screen readers will announce — usually the same as `name`,
-// but pass "" for purely decorative avatars to keep them out of the a11y tree.
+// Avatar renders the uploaded avatar of the user or org called name, looked up
+// in the keys the handler put on ctx with WithAvatarKeys, or initials when
+// there is none. `alt` is what screen readers announce; pass "" for purely
+// decorative avatars to keep them out of the a11y tree.
 templ Avatar(name string, size AvatarSize, alt string) {
+	@AvatarImage(name, AvatarURL(avatarKeyFor(ctx, name)), size, alt)
+}
+
+// AvatarImage renders the image at url, or initials from name when url is "".
+templ AvatarImage(name, url string, size AvatarSize, alt string) {
+	if url != "" {
+		<img
+			src={ url }
+			alt={ alt }
+			width={ avatarSizePx(size) }
+			height={ avatarSizePx(size) }
+			loading="lazy"
+			decoding="async"
+			class={ "inline-block shrink-0 rounded-full bg-muted border border-border object-cover", avatarSizeClass(size) }
+		/>
+	} else {
+		@Initials(name, size, alt)
+	}
+}
+
+// Initials never shows an image: it is for names that aren't accounts, such
+// as git commit authors, which could match an unrelated username.
+templ Initials(name string, size AvatarSize, alt string) {
 	if alt == "" {
 		<span
 			class={ "inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground", avatarSizeClass(size) }

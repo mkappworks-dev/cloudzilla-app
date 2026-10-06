@@ -56,17 +56,18 @@ templ OrgSettings(data view.OrgSettingsData) {
 					<section id="general" class="rounded-md border border-border bg-card p-6">
 						<h2 class="text-base font-semibold tracking-tight mb-1">General</h2>
 						<p class="text-[12.5px] text-muted-foreground mb-6">How { data.Org.Name } appears across Cloudzilla.</p>
+						<div class="mb-5">
+							@fragments.AvatarControl(fragments.AvatarControlData{
+								Name:      data.Org.Name,
+								AvatarKey: data.Org.AvatarKey,
+								UploadURL: "/orgs/" + data.Org.Name + "/settings/avatar",
+								RemoveURL: "/orgs/" + data.Org.Name + "/settings/avatar/delete",
+								ErrorSlot: "org-avatar-form-error",
+							})
+						</div>
 
 						<form hx-post={ "/api/orgs/" + data.Org.Name + "/profile" } hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#org-profile-form-error').textContent=''" class="space-y-5" data-toast="Organization saved">
 							<div id="org-profile-form-error" class="empty:hidden"></div>
-							<div class="flex items-start gap-4">
-								@components.Avatar(data.Org.Name, components.AvatarSizeLG, data.Org.Name)
-								<div class="space-y-2">
-									<button type="button" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent" disabled aria-disabled="true" title="Avatar uploads aren't available yet">Upload new picture</button>
-									<p class="text-[11.5px] text-muted-foreground">Square PNG or JPG, max 2 MB.</p>
-								</div>
-							</div>
-
 							<div>
 								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-display-name">Display name</label>
 								@components.Input(templ.Attributes{

@@ -5,12 +5,14 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // model.User carries the email; this is all anyone else may see.
@@ -22,14 +24,23 @@ type publicUser struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func newPublicUser(u model.User) publicUser {
+func newPublicUser(u model.User, baseURL string) publicUser {
 	return publicUser{
 		ID:        u.ID,
 		Username:  u.Username,
 		Bio:       u.Bio,
-		AvatarURL: u.AvatarURL,
+		AvatarURL: apiAvatarURL(baseURL, u.AvatarKey, u.AvatarURL),
 		CreatedAt: u.CreatedAt,
 	}
+}
+
+// apiAvatarURL is the absolute URL of an uploaded avatar, or the stored
+// avatar_url, such as a Google picture, when none was uploaded.
+func apiAvatarURL(baseURL, key, stored string) string {
+	if key == "" {
+		return stored
+	}
+	return strings.TrimRight(baseURL, "/") + components.AvatarURL(key)
 }
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +50,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
-	writeJSON(w, http.StatusOK, newPublicUser(*user))
+	writeJSON(w, http.StatusOK, newPublicUser(*user, h.Cfg.Server.BaseURL))
 }
 
 func (h *Handler) PinRepo(w http.ResponseWriter, r *http.Request) {

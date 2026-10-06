@@ -73,11 +73,11 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 		count = 0
 	}
 	page := BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration}
-	if light, dark, err := services.User.CodeThemes(r.Context(), claims.UserID); err != nil {
-		slog.Error("basePage: code theme lookup failed; rendering defaults",
+	if prefs, err := services.User.LayoutPrefs(r.Context(), claims.UserID); err != nil {
+		slog.Error("basePage: layout prefs lookup failed; rendering defaults",
 			"error", err, "user_id", claims.UserID, "path", r.URL.Path)
 	} else {
-		page.CodeLight, page.CodeDark = light, dark
+		page.CodeLight, page.CodeDark, page.AvatarKey = prefs.CodeLight, prefs.CodeDark, prefs.AvatarKey
 	}
 	memberships, err := services.Org.ListMembershipsForUser(r.Context(), claims.UserID)
 	if err != nil {
