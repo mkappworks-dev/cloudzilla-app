@@ -138,6 +138,12 @@ storage:
   local:
     root: /var/lib/cloudzilla/storage
 
+security:
+  secret_key: "replace-with-at-least-32-random-bytes"
+
+metrics:
+  listen_addr: "127.0.0.1:9090"
+
 smtp:
   host: "smtp.example.com"
   port: 587

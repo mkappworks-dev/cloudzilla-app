@@ -67,6 +67,7 @@ CZ_GIT_REPOS_ROOT=/data/git-repos
 CZ_GIT_SSH_HOST_KEY=/data/cloudzilla_host_key
 CZ_STORAGE_LOCAL_ROOT=/data/storage
 CZ_AUTH_JWT_SECRET=<strong secret>
+CZ_SECURITY_SECRET_KEY=<at least 32 bytes>
 CZ_SERVER_PORT=8080
 CZ_GIT_SSH_PORT=2222
 ```
