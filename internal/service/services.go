@@ -65,6 +65,7 @@ type Services struct {
 	Health           *HealthService
 	Avatar           *AvatarService
 	Mirror           *MirrorService
+	Push             *PushService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
 }
@@ -115,6 +116,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
+	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
 	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
 	return &Services{
 		User:             userSvc,
@@ -169,10 +171,11 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
-		IssueCloser:      NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc),
+		IssueCloser:      issueCloser,
 		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:           avatarSvc,
 		Mirror:           mirrorSvc,
+		Push:             NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
 		Secrets:          secrets,
 	}
 }

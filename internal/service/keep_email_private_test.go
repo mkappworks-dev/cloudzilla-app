@@ -49,7 +49,7 @@ func TestRepoService_TopContributors_MergesAUsersAuthorEmails(t *testing.T) {
 		{"Stranger", "stranger_" + suffix + "@test.invalid", "d.txt"},
 	}
 	for _, c := range commits {
-		if err := code.CommitFile(username, repoName, "main", c.path, []byte(c.path), service.GitAuthor{Name: c.name, Email: c.email}, "Add "+c.path); err != nil {
+		if _, err := code.CommitFile(username, repoName, "main", c.path, []byte(c.path), service.GitAuthor{Name: c.name, Email: c.email}, "Add "+c.path); err != nil {
 			t.Fatalf("commit %s: %v", c.path, err)
 		}
 	}

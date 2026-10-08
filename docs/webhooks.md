@@ -4,7 +4,7 @@ Webhooks let repo owners receive HTTP POST callbacks when events occur in a repo
 
 ## Supported Events
 
-- `push` — fired when commits are pushed (HTTP or SSH receive-pack)
+- `push` — fired when commits are pushed (HTTP or SSH receive-pack) or committed in the browser (new file, edit, rename, delete, profile README, applied suggestion)
 - `issues` — fired on issue create, close, reopen, including closes by a closing keyword in a merged PR or a pushed commit (see [pr-merge](./pr-merge.md#closing-issues)), which fire on the issue's repo
 - `pull_request` — fired on PR create, close, merge
 

@@ -211,7 +211,7 @@ func TestRepoService_Fork_DefaultBranchOnly_FollowsTheSettingsDefault(t *testing
 	if err := env.code.CreateBranch(owner, "upstream", "develop", "main"); err != nil {
 		t.Fatalf("create branch: %v", err)
 	}
-	if err := env.code.CommitFile(owner, "upstream", "develop", "NOTES.md", []byte("develop only"), dirsTestAuthor, "work on develop"); err != nil {
+	if _, err := env.code.CommitFile(owner, "upstream", "develop", "NOTES.md", []byte("develop only"), dirsTestAuthor, "work on develop"); err != nil {
 		t.Fatalf("commit on develop: %v", err)
 	}
 	if err := env.code.CreateTag(owner, "upstream", "v1", "main"); err != nil {

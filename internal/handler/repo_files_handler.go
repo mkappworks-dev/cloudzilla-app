@@ -268,7 +268,8 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message); err != nil {
+	upd, err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message)
+	if err != nil {
 		if errors.Is(err, service.ErrRefMoved) {
 			http.Error(w, branchMovedMsg, http.StatusConflict)
 			return
@@ -285,6 +286,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
+	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
 	http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, path), http.StatusSeeOther)
 }
 
@@ -498,9 +500,10 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Services.Code.EditFile(owner, repoName, ref, path, newPath, data.BlobSHA, []byte(content), author, message)
+	upd, err := h.Services.Code.EditFile(owner, repoName, ref, path, newPath, data.BlobSHA, []byte(content), author, message)
 	switch {
 	case err == nil:
+		h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
 		http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, newPath), http.StatusSeeOther)
 	case errors.Is(err, service.ErrRefNotFound):
 		h.NotFound(w, r)
@@ -531,7 +534,8 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	if _, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
@@ -553,9 +557,10 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dir, err := h.Services.Code.DeleteFile(owner, repoName, ref, path, r.FormValue("blob_sha"), author, message)
+	dir, upd, err := h.Services.Code.DeleteFile(owner, repoName, ref, path, r.FormValue("blob_sha"), author, message)
 	switch {
 	case err == nil:
+		h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
 		redirectAfterSave(w, r, codeurl.Path(owner, repoName, "tree", ref, dir))
 	case errors.Is(err, service.ErrRefNotFound) || errors.Is(err, service.ErrEmptyRepo):
 		writeError(w, http.StatusNotFound, "branch not found")

@@ -321,7 +321,8 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	if _, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
@@ -359,11 +360,12 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load user")
 		return
 	}
-	if err := h.Services.Code.ApplySuggestion(
+	upd, err := h.Services.Code.ApplySuggestion(
 		owner, repoName, pr.HeadBranch, comment.Path,
 		comment.Line, comment.SuggestionBody,
 		author,
-	); err != nil {
+	)
+	if err != nil {
 		if errors.Is(err, service.ErrRefMoved) {
 			writeError(w, http.StatusConflict, branchMovedMsg)
 			return
@@ -371,6 +373,7 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to apply suggestion: "+err.Error())
 		return
 	}
+	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Redirect", fmt.Sprintf("/%s/%s/pulls/%d", owner, repoName, number))

@@ -485,7 +485,8 @@ func wikiMutateTree(
 // wikiCommit writes filename/content into the bare repo as a new commit on
 // the default (main) branch, preserving all other files from HEAD.
 func wikiCommit(repo *gogit.Repository, filename string, content []byte, author GitAuthor, message string) error {
-	return commitSingleFile(repo, plumbing.NewBranchReferenceName("main"), author, message, filename, content)
+	_, err := commitSingleFile(repo, plumbing.NewBranchReferenceName("main"), author, message, filename, content)
+	return err
 }
 
 // commitSingleFile writes filename/content into the bare repo as a new commit
@@ -499,7 +500,7 @@ func commitSingleFile(
 	message string,
 	filename string,
 	content []byte,
-) error {
+) (RefUpdate, error) {
 	now := time.Now()
 	sig := author.signature(now)
 
@@ -510,17 +511,17 @@ func commitSingleFile(
 	blobObj.SetSize(int64(len(content)))
 	w, err := blobObj.Writer()
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	if _, err = w.Write(content); err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	if err = w.Close(); err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	blobHash, err := storer.SetEncodedObject(blobObj)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	entries := []object.TreeEntry{}
@@ -529,13 +530,13 @@ func commitSingleFile(
 	if branchHead, herr := storer.Reference(branchRef); herr == nil {
 		parentCommit, err := repo.CommitObject(branchHead.Hash())
 		if err != nil {
-			return err
+			return RefUpdate{}, err
 		}
 		oldTip = parentCommit.Hash
 		parentHashes = []plumbing.Hash{parentCommit.Hash}
 		existingTree, err := parentCommit.Tree()
 		if err != nil {
-			return err
+			return RefUpdate{}, err
 		}
 		for _, e := range existingTree.Entries {
 			if e.Name != filename {
@@ -551,7 +552,7 @@ func commitSingleFile(
 	})
 	treeHash, err := writeTree(repo, entries)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	commitObj := storer.NewEncodedObject()
@@ -563,23 +564,23 @@ func commitSingleFile(
 		ParentHashes: parentHashes,
 	}
 	if err := commit.Encode(commitObj); err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	commitHash, err := storer.SetEncodedObject(commitObj)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	if err := gitref.Move(storer, branchRef, oldTip, commitHash); err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	headRef, headErr := storer.Reference(plumbing.HEAD)
 	if headErr != nil || headRef.Type() == plumbing.HashReference || headRef.Target() != branchRef {
 		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)
 		if err := storer.SetReference(symRef); err != nil {
-			return fmt.Errorf("set symbolic HEAD: %w", err)
+			return RefUpdate{}, fmt.Errorf("set symbolic HEAD: %w", err)
 		}
 	}
-	return nil
+	return RefUpdate{Branch: branchRef.Short(), Old: oldTip, New: commitHash}, nil
 }

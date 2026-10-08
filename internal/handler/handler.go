@@ -158,6 +158,11 @@ func (h *Handler) writableRepoJSON(w http.ResponseWriter, r *http.Request, owner
 	return h.permittedRepoJSON(w, r, owner, repoName, userID, h.Services.Repo.CanWrite)
 }
 
+// webCommitActor is who a commit made in the browser counts as when its push side effects run.
+func webCommitActor(c middleware.Claims) service.CloseActor {
+	return service.CloseActor{UserID: c.UserID, Username: c.Username, Targets: c.Targets}
+}
+
 // contentWritableRepoJSON also refuses a repo whose git content is read-only.
 func (h *Handler) contentWritableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) (*model.Repository, bool) {
 	repo, ok := h.writableRepoJSON(w, r, owner, repoName, userID)

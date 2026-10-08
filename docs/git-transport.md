@@ -171,6 +171,14 @@ Tags and other refs may point at any object.
 
 ---
 
+## After a push
+
+Both transports hand the refs that applied to `PushService.AfterPush(repo, gitRepo, actor, commands)`, which starts each of these in the background: the `push` webhook per updated branch, a push activity event, closing keywords in commits that fast-forward the default branch, `OnPostReceive` (contributor stats, open PRs' head SHA, primary language), the code-search re-index and the dependency parse. An actor with no `Username` (a deploy key) records no activity and closes no issues.
+
+A commit made in the browser reaches the same method through `AfterWebCommit`, with one create or update command built from the `RefUpdate` the commit returned, so it fires everything a push of that commit would. Pull mirrors and the seeder keep their own variants (no actor, so no events). PR merges and wiki commits don't call it yet.
+
+---
+
 ## Delete-only pushes
 
 git sends no pack when every command is a delete (`git push origin :branch`). go-git's receive-pack parses a pack whenever the request carries one, and decoding a request always attaches the rest of the stream, so `NewServer` drops it for a delete-only push. Otherwise the HTTP body fails as `empty packfile` (HTTP 500), and an SSH push hangs, since the client holds the stream open until it reads the status. Branch protection still vets each delete.
