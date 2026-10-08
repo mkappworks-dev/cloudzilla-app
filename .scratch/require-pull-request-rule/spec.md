@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: done
 
 ## Problem
 
@@ -23,3 +23,14 @@ A branch protection rule's `require_review_count` and `require_status_checks` ga
 ## Comments
 
 **Malith Kuruppu, 2026-10-06:** Split out of web-file-edit triage.
+
+**Triage, 2026-10-08:** Nothing of this exists. `BranchProtectionService` has `CheckPushCommand` (only `block_force_push`), `CheckDelete` and `CheckMerge`; `ErrPushRequiresPR` appears only in `docs/ROADMAP.md`. The rule model has no such field (`internal/model/branch_protection.go`), so it needs a migration (next is 108). Enforcement points: receive-pack over HTTP (`git_http.go:342`) and SSH (`ssh/server.go:253`), both through `CheckPushCommand`; the web file edit/rename/delete handlers in `repo_files_handler.go`, which call no protection check today; and the server-side merge, which must stay allowed. Category stays enhancement, so the branch is `feat/`. Held at `needs-info` because both open questions change behaviour and a rule can't be migrated cleanly after the fact. Recommended answers:
+
+1. **New flag, `require_pull_request`, default off.** Implying it from `require_review_count > 0` would silently start refusing pushes on every existing rule that has reviews set, and would leave no way to require a PR without requiring a review. The rule form gets a checkbox; the API gets a field.
+2. **No admin bypass in this ticket.** Anyone who can manage the repo can already edit or delete the rule, so a bypass would only repeat that in a weaker form, and "admins may push" is the case the rule exists to stop. A `bypass` list can follow as its own ticket.
+
+Also to confirm: a flagged rule refuses branch deletion (as `block_force_push` does), and the PR merge itself and applied suggestions (commits to a PR's head branch) are not "direct updates" of the base branch.
+
+Once answered, this is `ready-for-agent`: three tickets (model + store + migration + rule form; receive-pack/SSH enforcement; web-commit enforcement) and a plan in `docs/superpowers/plans/`.
+
+**Malith Kuruppu, 2026-10-08:** Accepted the recommendations: a new `require_pull_request` flag (default off), no admin bypass, a flagged rule also refuses branch deletion, and merges and applied suggestions are not direct updates. Tickets are in `issues/`; the plan is `docs/superpowers/plans/2026-10-08-require-pull-request-rule.md`.

@@ -90,6 +90,10 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "cannot delete a branch whose protection rule blocks force pushes")
 			return
 		}
+		if errors.Is(err, service.ErrPushRequiresPR) {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
 		slog.Error("check branch protection", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return

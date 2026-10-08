@@ -16,6 +16,11 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 					<div class="min-w-0 flex-1">
 						<div class="flex items-center gap-2 flex-wrap">
 							<span class="font-mono text-sm font-medium text-foreground">{ rule.Pattern }</span>
+							if rule.RequirePullRequest {
+								@components.Badge(components.BadgeDestructive) {
+									Pull request required
+								}
+							}
 							if rule.BlockForcePush {
 								@components.Badge(components.BadgeDestructive) {
 									Force push blocked
@@ -35,7 +40,7 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 							"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections/" + strconv.FormatInt(rule.ID, 10),
 							"hx-target":           "#branch-protections",
 							"hx-swap":             "outerHTML",
-							"hx-confirm":          "The " + rule.Pattern + " branch will no longer require reviews or block force pushes.",
+							"hx-confirm":          "The " + rule.Pattern + " branch will no longer require pull requests or reviews, or block force pushes.",
 							"data-confirm-title":  "Remove this protection rule?",
 							"data-confirm-label":  "Remove",
 							"data-confirm-danger": "true",

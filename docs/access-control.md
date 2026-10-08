@@ -708,7 +708,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
 | Web commit paths   | No `.git` component (any case, NTFS or HFS+ alias); at most 4096 bytes           |
 | SSRF protection    | Webhooks and imports dial only vetted public addresses; webhooks follow no redirects |
-| Branch protection  | A push that violates a rule is refused per ref, before the ref is written        |
+| Branch protection  | A push that violates a rule is refused per ref, before the ref is written; `require_pull_request` also refuses browser commits and branch deletes, admins included |
 | Password storage   | bcrypt hashed                                                                    |
 | TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                        |
 | PAT                | `crypto/rand` generated, SHA-256-hashed for storage, limited to its scopes       |
