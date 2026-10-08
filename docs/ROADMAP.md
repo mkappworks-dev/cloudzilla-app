@@ -1044,7 +1044,7 @@ CREATE TABLE branch_protections (
 
 - `internal/model/branch_protection.go` — `BranchProtection{ID, RepoID, Pattern, RequireReviewCount, RequireStatusChecks, BlockForcePush}`
 - `internal/store/branch_protection_store.go` — `Create`, `ListByRepo`, `GetByRepoAndPattern`, `Update`, `Delete`, `MatchForBranch(ctx, repoID, branchName)` (returns first matching rule or nil)
-- `internal/service/branch_protection_service.go` — `Create`, `List`, `Update`, `Delete`; `CheckPush(ctx, repo, branchName, pusherID)` → `error` (returns sentinel `ErrForcePushBlocked`, and `ErrPushRequiresPR` for a rule with `require_pull_request`, added later in migration 108); `CheckMerge(ctx, repo, pr, actorID)` → `error` (returns `ErrInsufficientReviews`, `ErrStatusCheckFailed`)
+- `internal/service/branch_protection_service.go` — `Create`, `List`, `Update`, `Delete`; `CheckPush(ctx, repo, branchName, pusherID)` → `error` (returns sentinel `ErrForcePushBlocked`, and `ErrPushRequiresPR` for a rule with `require_pull_request`); `CheckMerge(ctx, repo, pr, actorID)` → `error` (returns `ErrInsufficientReviews`, `ErrStatusCheckFailed`)
 - `internal/handler/branch_protection_handler.go` — CRUD handlers; HTMX-aware; renders `fragment-branch-protections`
 
 **Pattern matching:** Simple glob — `*` matches any single path segment, `**` is not needed. `fnmatch`-style: `main` matches exactly, `release/*` matches `release/v1.0`. Implement as `strings.HasPrefix` / `filepath.Match` (stdlib, no new deps).

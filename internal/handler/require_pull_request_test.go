@@ -115,6 +115,26 @@ func TestRequirePullRequest_RuleFormSetsTheFlag(t *testing.T) {
 	}
 }
 
+// A push that creates a matching branch is refused, so the API can't create one either.
+func TestRequirePullRequest_RefusesBranchCreates(t *testing.T) {
+	r := seedEditRepo(t)
+	r.requirePullRequest(t, "release/*")
+	branches := "/api/repos/" + r.owner.name + "/" + r.name + "/branches"
+
+	rr := send(t, r.api, http.MethodPost, r.owner.token, branches, url.Values{"name": {"release/1"}, "from": {"main"}}, false)
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "pull request required") {
+		t.Fatalf("want 422 naming the requirement, got %d: %.300s", rr.Code, rr.Body.String())
+	}
+	if _, err := r.git.Reference("refs/heads/release/1", false); err == nil {
+		t.Error("release/1 was created")
+	}
+
+	rr = send(t, r.api, http.MethodPost, r.owner.token, branches, url.Values{"name": {"topic"}, "from": {"main"}}, false)
+	if rr.Code >= 300 {
+		t.Errorf("an unmatched name should still be created, got %d: %.300s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestRequirePullRequest_RefusesBranchDeletes(t *testing.T) {
 	r := seedEditRepo(t)
 	r.requirePullRequest(t, "feature")

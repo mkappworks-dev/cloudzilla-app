@@ -36,6 +36,10 @@ func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
 	if from == "" {
 		from = repo.DefaultBranch
 	}
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, name); status != 0 {
+		writeError(w, status, msg)
+		return
+	}
 
 	if err := h.Services.Code.CreateBranch(owner, repoName, name, from); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())

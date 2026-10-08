@@ -361,16 +361,16 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 | PATCH  | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Update an existing rule (same fields as POST except `pattern`; a field left out is reset, so `require_pull_request` turns off) |
 | DELETE | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Delete a protection rule                                                                                                     |
 
-`require_pull_request` (default `false`) refuses every direct update of a matching branch, with no bypass for admins: a push (create, update or delete), a branch delete and a file created, edited, renamed or deleted from the browser. Changes reach the branch only by merging a pull request. The refusal is `422 pull request required by branch protection: rule "<pattern>"`; over git it is the per-ref status of the push ([git-transport](./git-transport.md#concurrent-ref-updates)).
+`require_pull_request` (default `false`) refuses every direct update of a matching branch, with no bypass for admins: a push (create, update or delete), a branch create or delete through the API, and a file created, edited, renamed or deleted from the browser. Changes reach the branch only by merging a pull request. The refusal is `422 pull request required by branch protection: rule "<pattern>"`; over git it is the per-ref status of the push ([git-transport](./git-transport.md#concurrent-ref-updates)).
 
 ## Branches & Tags
 
-| Method | Path                                      | Auth     | Description                                                                   |
-| ------ | ----------------------------------------- | -------- | ----------------------------------------------------------------------------- |
-| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch) |
-| DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push` or `require_pull_request`) |
-| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields)                                       |
-| DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                    |
+| Method | Path                                      | Auth     | Description                                                                                                     |
+| ------ | ----------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`) |
+| DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push` or `require_pull_request`)              |
+| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields)                                                                         |
+| DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                                                      |
 
 All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.
 
