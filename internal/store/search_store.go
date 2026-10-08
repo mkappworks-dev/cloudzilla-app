@@ -97,6 +97,75 @@ LIMIT $2`
 	return users, rows.Err()
 }
 
+// SuggestRepos matches a prefix of the repo name or of owner/name.
+func (s *SearchStore) SuggestRepos(ctx context.Context, query string, requestingUserID *int64, limit int) ([]model.Repository, error) {
+	q := `
+SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private,
+       r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count
+FROM repositories r
+WHERE (lower(r.name) LIKE $1 OR lower(r.owner_name || '/' || r.name) LIKE $1)
+  AND r.deleted_at IS NULL
+  AND ` + readableBy("r", "$2") + `
+ORDER BY (lower(r.name) = lower($4)) DESC, r.updated_at DESC
+LIMIT $3`
+
+	rows, err := s.db.QueryContext(ctx, q, likePrefix(query), viewerID(requestingUserID), limit, query)
+	if err != nil {
+		return nil, fmt.Errorf("suggest repos: %w", err)
+	}
+	defer rows.Close()
+	return scanSearchRepos(rows)
+}
+
+// SuggestUsers matches a prefix of the username.
+func (s *SearchStore) SuggestUsers(ctx context.Context, query string, limit int) ([]model.User, error) {
+	const q = `
+SELECT id, username, email, bio, avatar_url, avatar_key, created_at, updated_at
+FROM users
+WHERE lower(username) LIKE $1 AND ` + notGhost + `
+ORDER BY username
+LIMIT $2`
+	rows, err := s.db.QueryContext(ctx, q, likePrefix(query), limit)
+	if err != nil {
+		return nil, fmt.Errorf("suggest users: %w", err)
+	}
+	defer rows.Close()
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.AvatarKey, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// SuggestOrgs matches a prefix of the org name or display name. Orgs are
+// public, so there is no viewer filter.
+func (s *SearchStore) SuggestOrgs(ctx context.Context, query string, limit int) ([]model.Organization, error) {
+	const q = `
+SELECT id, name, display_name, description, avatar_url, avatar_key
+FROM organizations
+WHERE lower(name) LIKE $1 OR lower(display_name) LIKE $1
+ORDER BY name
+LIMIT $2`
+	rows, err := s.db.QueryContext(ctx, q, likePrefix(query), limit)
+	if err != nil {
+		return nil, fmt.Errorf("suggest orgs: %w", err)
+	}
+	defer rows.Close()
+	var orgs []model.Organization
+	for rows.Next() {
+		var o model.Organization
+		if err := rows.Scan(&o.ID, &o.Name, &o.DisplayName, &o.Description, &o.AvatarURL, &o.AvatarKey); err != nil {
+			return nil, err
+		}
+		orgs = append(orgs, o)
+	}
+	return orgs, rows.Err()
+}
+
 func scanSearchRepos(rows *sql.Rows) ([]model.Repository, error) {
 	var repos []model.Repository
 	for rows.Next() {

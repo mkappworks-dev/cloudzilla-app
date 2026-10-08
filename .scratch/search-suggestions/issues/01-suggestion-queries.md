@@ -2,7 +2,7 @@
 
 Created: 2026-10-08
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -14,11 +14,11 @@ Spec: [../spec.md](../spec.md)
 
 ## Acceptance criteria
 
-- [ ] Integration test (modelled on `search_visibility_test.go`): a private repo is suggested to its owner and to a collaborator, not to a stranger or an anonymous viewer; a soft-deleted repo to nobody.
-- [ ] `q` of `%` or `_` matches nothing instead of everything.
-- [ ] The ghost user is never suggested; orgs match on `name` and `display_name`.
-- [ ] Per-type limits are respected.
-- [ ] `Suggest` returns empty for a one-character query without touching the store.
+- [x] Integration test (modelled on `search_visibility_test.go`): a private repo is suggested to its owner and to a collaborator, not to a stranger or an anonymous viewer; a soft-deleted repo to nobody.
+- [x] `q` of `%` or `_` matches nothing instead of everything.
+- [x] The ghost user is never suggested; orgs match on `name` and `display_name`.
+- [x] Per-type limits are respected.
+- [x] `Suggest` returns empty for a one-character query without touching the store.
 
 ## Blocked by
 
