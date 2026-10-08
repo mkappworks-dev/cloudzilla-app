@@ -20,8 +20,10 @@ type SettingsData struct {
 	BackupCodes         []string
 	NewToken            string
 	NoreplyEmail        string
-	ProfileSaved        bool
-	ProfileError        string
+	// QuotaSummary is "" when the instance sets no quota for the user.
+	QuotaSummary string
+	ProfileSaved bool
+	ProfileError string
 	// EmailVerificationAvailable is false when no SMTP server is configured.
 	EmailVerificationAvailable bool
 	// VerificationLinkSent is whether a live link for the current address is out.

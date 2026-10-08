@@ -97,7 +97,10 @@ templ settingsNavLink(href, label string, active bool) {
 templ settingsProfileSection(data view.SettingsData) {
 	<section id="profile" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
 		<h2 class="text-base font-semibold tracking-tight mb-1">Profile</h2>
-		<p class="text-[12.5px] text-muted-foreground mb-6">How others see you across Cloudzilla.</p>
+		<p class={ templ.KV("mb-6", data.QuotaSummary == ""), templ.KV("mb-1", data.QuotaSummary != ""), "text-[12.5px] text-muted-foreground" }>How others see you across Cloudzilla.</p>
+		if data.QuotaSummary != "" {
+			<p id="quota-usage" class="text-[12.5px] text-muted-foreground mb-6">{ data.QuotaSummary }</p>
+		}
 		<div class="mb-5">
 			@fragments.AvatarControl(fragments.AvatarControlData{
 				Name:      displayNameOr(data.User.Name, data.User.Username),

@@ -209,6 +209,10 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
+	if status, msg := h.storageRefusal(r, repo); status != 0 {
+		http.Error(w, msg, status)
+		return
+	}
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
@@ -285,6 +289,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
+	h.Services.Quota.Recompute(repo)
 	http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, path), http.StatusSeeOther)
 }
 
@@ -320,6 +325,21 @@ func (h *Handler) editableRepo(w http.ResponseWriter, r *http.Request, owner, re
 		return nil, false
 	}
 	return repo, true
+}
+
+// storageRefusal is the status and message for a web write to repo that its
+// owner's storage quota refuses, or 0 when it may go ahead.
+func (h *Handler) storageRefusal(r *http.Request, repo *model.Repository) (int, string) {
+	err := h.Services.Quota.CheckStorage(r.Context(), repo)
+	switch {
+	case err == nil:
+		return 0, ""
+	case errors.Is(err, service.ErrQuotaReached):
+		return http.StatusForbidden, err.Error()
+	default:
+		slog.Error("check storage quota", "repo_id", repo.ID, "error", err)
+		return http.StatusInternalServerError, "failed to check the storage quota"
+	}
 }
 
 // editRefusal says why the browser editor can't open f, or "" when it can.
@@ -452,6 +472,10 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 			slog.Error("render failed", "error", err)
 		}
 	}
+	if status, msg := h.storageRefusal(r, repo); status != 0 {
+		refuse(status, msg)
+		return
+	}
 	conflict := func() {
 		data.ConflictURL = codeurl.Path(owner, repoName, "blob", ref, path)
 		if file == nil {
@@ -501,6 +525,7 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 	err = h.Services.Code.EditFile(owner, repoName, ref, path, newPath, data.BlobSHA, []byte(content), author, message)
 	switch {
 	case err == nil:
+		h.Services.Quota.Recompute(repo)
 		http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, newPath), http.StatusSeeOther)
 	case errors.Is(err, service.ErrRefNotFound):
 		h.NotFound(w, r)
@@ -531,7 +556,8 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	if _, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
@@ -556,6 +582,7 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	dir, err := h.Services.Code.DeleteFile(owner, repoName, ref, path, r.FormValue("blob_sha"), author, message)
 	switch {
 	case err == nil:
+		h.Services.Quota.Recompute(repo)
 		redirectAfterSave(w, r, codeurl.Path(owner, repoName, "tree", ref, dir))
 	case errors.Is(err, service.ErrRefNotFound) || errors.Is(err, service.ErrEmptyRepo):
 		writeError(w, http.StatusNotFound, "branch not found")

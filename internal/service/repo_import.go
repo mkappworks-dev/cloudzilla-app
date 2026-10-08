@@ -44,6 +44,10 @@ func (s *RepoService) createFromImport(ctx context.Context, t RepoTarget, name, 
 		return nil, err
 	}
 
+	if err := s.CheckNewRepoQuota(ctx, t); err != nil {
+		return nil, err
+	}
+
 	gitDir, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, t.OwnerName, name)
 	if err != nil {
 		return nil, err
@@ -78,5 +82,6 @@ func (s *RepoService) createFromImport(ctx context.Context, t RepoTarget, name, 
 		abandonNewRepo(ctx, s.repos, r.ID, gitDir)
 		return nil, fmt.Errorf("move imported repo into place: %w", err)
 	}
+	s.quota.Recompute(r)
 	return r, nil
 }

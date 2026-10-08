@@ -536,6 +536,9 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 		License:   req.License,
 	})
 	switch {
+	case errors.Is(err, service.ErrQuotaReached):
+		writeError(w, http.StatusForbidden, err.Error())
+		return
 	case errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return

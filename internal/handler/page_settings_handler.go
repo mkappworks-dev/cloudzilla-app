@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -38,6 +39,16 @@ func (h *Handler) takeSettingsFlash(w http.ResponseWriter, r *http.Request, name
 		HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure, SameSite: http.SameSiteLaxMode,
 	})
 	return c.Value
+}
+
+// quotaSummary is "" when no quota applies or its usage can't be read: the line is a courtesy, not worth failing the page.
+func (h *Handler) quotaSummary(ctx context.Context, o service.QuotaOwner) string {
+	u, err := h.Services.Quota.Usage(ctx, o)
+	if err != nil {
+		slog.Warn("read quota usage", "user_id", o.UserID, "org_id", o.OrgID, "error", err)
+		return ""
+	}
+	return u.Summary()
 }
 
 func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
@@ -83,6 +94,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 
 		ConnectedAccountsNotice: h.takeSettingsFlash(w, r, settingsNoticeCookieName),
 	}
+	data.QuotaSummary = h.quotaSummary(ctx, service.QuotaOwner{UserID: claims.UserID})
 	data.EmailVerificationAvailable = h.Services.EmailVerifier.Available()
 	if data.EmailVerificationAvailable && !user.EmailVerified() {
 		if data.VerificationLinkSent, err = h.Services.EmailVerifier.LinkPending(ctx, claims.UserID); err != nil {

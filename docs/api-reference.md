@@ -26,6 +26,14 @@ Over budget, the response is `429` with `Retry-After` in seconds. `/api/*` answe
 
 ---
 
+## Quotas
+
+When the operator sets [quotas](./configuration.md#quotas), these requests are refused with `403` and `{"error":"repository quota reached (50 of 50)"}` once the target owner holds that many live repositories: `POST /api/repos`, `POST /api/orgs/{org}/repos`, `POST /api/repos/{owner}/{repo}/fork`, `POST /api/imports`, `POST /api/repos/from-template`, `POST /api/repos/{owner}/{repo}/restore`, and a repository transfer (`POST /api/repos/{owner}/{repo}/transfer` when it is offered to a recipient who is full, and again when the recipient accepts it).
+
+Git over HTTP answers `413` with `storage quota reached (X of Y)` for a push that would take the owner past the storage quota; over SSH the same message arrives on stderr. A push that only deletes refs is unaffected. Committing a file or editing a wiki page through the web returns `403` with the same message while the owner is at or over the quota. With no quota set, none of this applies.
+
+---
+
 ## Auth
 
 | Method | Path                    | Auth | Description                                                                                                                                                                                                                    |

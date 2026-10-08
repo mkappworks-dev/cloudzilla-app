@@ -108,7 +108,7 @@ To work around this without giving up the "no git binary required" invariant, bo
 
 **Observability:** each receive-pack that completes emits an `INFO` log line — `git-http: receive-pack complete` over HTTP, `ssh: receive-pack complete` over SSH — with `pack_bytes`, `duration_ms`, and `refs_ok`/`refs_failed` counts. "Complete" means the pack was ingested without a transport error; `refs_failed > 0` flags a push where some ref updates were rejected.
 
-**Size limit:** the post-decompression pack size is capped by `git.max_pack_bytes` (default 2 GiB; `0` disables). Enforcing it after gzip inflation bounds both an oversized pack and a decompression bomb. An over-limit push is rejected — HTTP `413`, SSH error — rather than parsed in full.
+**Size limit:** the post-decompression pack size is capped by `git.max_pack_bytes` (default 2 GiB; `0` disables). Enforcing it after gzip inflation bounds both an oversized pack and a decompression bomb. An over-limit push is rejected — HTTP `413`, SSH error — rather than parsed in full. With a [storage quota](./configuration.md#quotas) set, the cap for one push is also lowered to the space the owner has left, once the ref commands are read; a push that only deletes refs is never capped.
 
 **Fetches** (pull mirrors) don't need the wrapper. go-git's client strips `thin-pack` from what it asks for, so the packs it fetches are self-contained and keep the fast path. `TestMirrorSync_GoGitNeverRequestsThinPacks` fails if that changes.
 
@@ -191,6 +191,8 @@ cloudzilla gc --grace 336h       # change the age threshold (default 14 days)
 ```
 
 A loose object is removed only when it is unreachable from every ref **and** older than `--grace`. The grace period avoids racing a push that has written objects but not yet updated its ref. Packed objects are never touched. Safe to run on a schedule (e.g. cron).
+
+When the database is reachable, a real (non `--dry-run`) run also re-measures each repository it pruned, so [storage quotas](./configuration.md#quotas) see the space it freed. If it can't connect, it says so and the sizes stay as they were.
 
 ---
 

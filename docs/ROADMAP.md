@@ -2325,19 +2325,11 @@ When any rows exist in `ip_allowlists` with `enabled = TRUE`, a middleware (`mid
 
 ### Phase 19.3 — API Rate Limiting & Quotas
 
-**Migration** (`060_create_rate_limit_config.sql`):
+_Done in two PRs; the design is in [`.scratch/phase-19.3-api-rate-limiting/spec.md`](../.scratch/phase-19.3-api-rate-limiting/spec.md). Limits come from config and `CZ_*` variables, not an admin page or a `rate_limit_config` table, and use a fixed window rather than `golang.org/x/time/rate`._
 
-```sql
-CREATE TABLE rate_limit_config (
-    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    subject_type    TEXT NOT NULL DEFAULT 'global' CHECK(subject_type IN ('global','user','token')),
-    requests_per_hr INTEGER NOT NULL DEFAULT 5000,
-    burst           INTEGER NOT NULL DEFAULT 100,
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
+**Rate limits** (no migration): `middleware.APIRateLimit` counts every request that isn't a static asset against a per-subject budget for one of four resources (`core`, `git`, `archive`, `search`). Signed-in users get a `web` and a `token` bucket; everything else counts per client IP. Counted responses carry `X-RateLimit-*` headers and a refusal is `429` with `Retry-After`. See [configuration](./configuration.md#rate-limits) and the [API reference](./api-reference.md#rate-limits).
 
-A `RateLimitMiddleware` uses an in-memory token bucket per `(subject_type, subject_id)` (`sync.Map` of `*rate.Limiter` from `golang.org/x/time/rate` — the only new dependency). Returns `429 Too Many Requests` with `Retry-After` header when the bucket is exhausted. Limits: authenticated users get `requests_per_hr / 3600` tokens per second; unauthenticated requests share a global bucket. Superadmins configure limits in the admin panel.
+**Quotas** (`108_repo_size_bytes.sql`): `quota.user.*` and `quota.org.*` cap an owner's live repositories and the disk their git and wiki directories use. Both are off (`0`) by default and the same for every owner, and a superadmin's personal account is exempt. `QuotaService` refuses a new repository at the count, caps each push at the space left (a delete-only push still goes through), and refuses web commits and wiki edits at or over the storage quota. `repositories.size_bytes` is backfilled at startup and re-measured after writes and `cloudzilla gc`. Settings and org settings show the usage. See [configuration](./configuration.md#quotas).
 
 ---
 
@@ -2452,7 +2444,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 18.3  | CI Status Dashboard                  | ⬜ Planned | —            |
 | 19.1  | LDAP / SAML Improvements             | ⬜ Planned | —            |
 | 19.2  | IP Allowlisting & Access Policies    | ⬜ Planned | 059          |
-| 19.3  | API Rate Limiting & Quotas           | ⬜ Planned | 060          |
+| 19.3  | API Rate Limiting & Quotas           | ✅ Done    | 108          |
 | 20.1  | S3/GCS Storage Backend (avatars done) | 🚧 Partial | 104          |
 | 20.2  | Instance Clustering / HA             | ⬜ Planned | —            |
 | 20.3  | GraphQL API v2                       | ⬜ Planned | —            |

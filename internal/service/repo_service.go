@@ -84,6 +84,7 @@ type RepoService struct {
 	language         *LanguageService
 	pulls            *store.PullStore
 	transfers        *store.RepoTransferStore
+	quota            *QuotaService
 	cfg              config.GitConfig
 }
 
@@ -100,6 +101,16 @@ func (s *RepoService) WithNoreplyHostFrom(baseURL string) *RepoService {
 func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
 	s.language = lang
 	return s
+}
+
+func (s *RepoService) WithQuota(q *QuotaService) *RepoService {
+	s.quota = q
+	return s
+}
+
+// CheckNewRepoQuota lets a caller refuse a repo for t before doing the work of creating it.
+func (s *RepoService) CheckNewRepoQuota(ctx context.Context, t RepoTarget) error {
+	return s.quota.CheckNewRepo(ctx, targetQuotaOwner(t))
 }
 
 func (s *RepoService) WithPullStore(pulls *store.PullStore) *RepoService {
@@ -161,6 +172,7 @@ type postReceiveCommit struct {
 
 // Dedupes commits shared across multiple updated branches; returns an aggregate error only when every walk fails so a stuck repo doesn't go silent.
 func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) error {
+	s.quota.Recompute(repo)
 	if s.contributorStats == nil || gitRepo == nil || repo == nil {
 		return nil
 	}
@@ -402,6 +414,9 @@ func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, 
 		return nil, err
 	}
 
+	if err := s.quota.CheckNewRepo(ctx, QuotaOwner{UserID: owner.ID}); err != nil {
+		return nil, err
+	}
 	repoPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, ownerUsername, name)
 	if err != nil {
 		return nil, err
@@ -435,6 +450,7 @@ func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, 
 		}
 	}
 
+	s.quota.Recompute(r)
 	return r, nil
 }
 
@@ -760,6 +776,9 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 	if strings.EqualFold(target.OwnerName, orig.OwnerName) {
 		return nil, ErrForkIntoSourceOwner
 	}
+	if err := s.CheckNewRepoQuota(ctx, target); err != nil {
+		return nil, err
+	}
 
 	forkName, dstPath, err := s.claimForkName(ctx, target.OwnerName, originalName, opts.Name)
 	if err != nil {
@@ -806,6 +825,7 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 
 	forked.ForkOfOwner = originalOwner
 	forked.ForkOfName = originalName
+	s.quota.Recompute(forked)
 	return forked, nil
 }
 
@@ -1098,6 +1118,9 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 	if _, err := s.personalOwner(ctx, newOwnerID, newOwnerUsername); err != nil {
 		return nil, err
 	}
+	if err := s.quota.CheckNewRepo(ctx, QuotaOwner{UserID: newOwnerID}); err != nil {
+		return nil, err
+	}
 
 	dstPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, newOwnerUsername, newName)
 	if err != nil {
@@ -1128,6 +1151,7 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 		return nil, fmt.Errorf("git init bare for template copy: %w", err)
 	}
 
+	s.quota.Recompute(newRepo)
 	return newRepo, nil
 }
 
@@ -1183,6 +1207,9 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 	if !isSuperadmin && !s.IsOwner(ctx, repo, requesterID) {
 		return fmt.Errorf("forbidden: only the repo's owner or a superadmin can restore a repo")
 	}
+	if err := s.quota.CheckNewRepo(ctx, RepoQuotaOwner(repo)); err != nil {
+		return err
+	}
 
 	// A soft-deleted org repo does not hold its name, so the name may have a new
 	// holder even when this row's copy is gone; restoring beside it would share
@@ -1210,6 +1237,7 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 		revertDirs(restored)
 		return err
 	}
+	s.quota.Recompute(repo)
 	return nil
 }
 

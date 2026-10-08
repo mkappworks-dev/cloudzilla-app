@@ -65,6 +65,7 @@ type Services struct {
 	Health           *HealthService
 	Avatar           *AvatarService
 	Mirror           *MirrorService
+	Quota            *QuotaService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
 }
@@ -89,10 +90,11 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
+	quotaSvc := NewQuotaService(stores.Repo, stores.User, cfg.Quota, cfg.Git.ReposRoot)
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).
-		WithTransferStore(stores.RepoTransfer).WithNoreplyHostFrom(cfg.Server.BaseURL)
+		WithTransferStore(stores.RepoTransfer).WithNoreplyHostFrom(cfg.Server.BaseURL).WithQuota(quotaSvc)
 	mirrorSvc := NewMirrorService(stores.Mirror, stores.Repo, repoSvc, webhookSvc, index, depSvc, secrets, cfg.Git, cfg.Mirror)
-	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc)
+	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc).WithQuota(quotaSvc)
 	languageSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(languageSvc)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
@@ -173,6 +175,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:           avatarSvc,
 		Mirror:           mirrorSvc,
+		Quota:            quotaSvc,
 		Secrets:          secrets,
 	}
 }
