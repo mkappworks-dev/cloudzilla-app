@@ -2,7 +2,7 @@
 
 Created: 2026-10-08
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -17,11 +17,11 @@ In `internal/view/layout/layout.templ`:
 
 ## Acceptance criteria
 
-- [ ] Verified in the browser on a throwaway server and scratch DB: debounce, arrows with wrap, Enter on a row and with none active, Escape, click outside.
-- [ ] Rapid typing never leaves a stale list (check the `hx-sync` ordering).
-- [ ] `/` focuses the field and is ignored while typing elsewhere; ⌘K still opens the command palette.
-- [ ] Signed-in and anonymous views of a private repo checked end to end.
-- [ ] `make generate-templ`, `go build ./...`, `go vet ./...`, `make lint`, `make test` and `make test-integration` pass.
+- [x] Verified in the browser on a throwaway server and scratch DB: debounce, arrows with wrap, Enter on a row and with none active, Escape, click outside.
+- [x] Rapid typing never leaves a stale list (check the `hx-sync` ordering).
+- [x] `/` focuses the field and is ignored while typing elsewhere; ⌘K still opens the command palette.
+- [x] Signed-in and anonymous views of a private repo checked end to end.
+- [x] `make generate-templ`, `go build ./...`, `go vet ./...`, `make lint`, `make test` and `make test-integration` pass.
 
 ## Blocked by
 

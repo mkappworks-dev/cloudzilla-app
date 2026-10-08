@@ -2,7 +2,7 @@
 
 Created: 2026-10-08
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -22,7 +22,7 @@ Example: typing `clou` in the topnav shows nothing until Enter. The full-text `s
 - **Response varies by viewer**: `Cache-Control: private, no-store`.
 - **UI**: the input becomes an ARIA combobox. `hx-get`, `hx-trigger="input changed delay:200ms"`, `hx-sync="this:replace"` so a stale response can't overwrite a newer one. Alpine state (`open`, `active`) lives on the `<form>`. ArrowDown/ArrowUp move and wrap, Enter follows the active row or submits the form when none is active, Escape closes and keeps the text, click outside closes. Rows: repo `owner/name` with a Private badge and description, user and org with `components.Avatar` (handler wraps the request with `withKnownAvatars` like `PageSearch`), and a last `Search for "q"` row linking to `/search?q=`.
 - **Shortcut**: ⌘K stays with the command palette (`CommandKHook`, `layout.templ`). `/` focuses the field, ignored while typing in an input, textarea, select or contenteditable, and with modifier keys. The `⌘K` badge in the input becomes `/`.
-- **Parallel branch** `feat/search-clear-and-wider-topnav` (not on origin yet) widens the input (`w-72`, `focus:w-96`) and adds `x-data="{ q: '' }"`. Our Alpine component goes on the `<form>`; when that branch merges first, rebase, fold `q` in and keep its widths. The dropdown is `absolute left-0 right-0` under the input wrapper, so it follows the width.
+- **Parallel branch** `feat/search-clear-and-wider-topnav` (not on origin yet) widens the input (`w-72`, `focus:w-96`) and adds `x-data="{ q: '' }"`. Our Alpine component goes on the `<form>`; when that branch merges first, rebase, fold `q` in and keep its widths. The dropdown is `w-80` and right-aligned under the input wrapper, independent of the input's width: at the old `w-56` input, repo names truncated to a few characters.
 
 No migration or model change.
 
@@ -30,12 +30,12 @@ Out of scope: issue and PR suggestions, recent searches, highlighting the matche
 
 ## Acceptance criteria
 
-- [ ] Typing 2+ characters shows matching repos, users and orgs under the input; fewer shows nothing.
-- [ ] A private repo is suggested to its owner and to a user with a `permissions` row, and never to a stranger or an anonymous viewer. A soft-deleted repo is never suggested.
-- [ ] Arrow keys, Enter and Escape work as described; the last row runs the full search.
-- [ ] `/` focuses the field outside text inputs; ⌘K still opens the palette.
-- [ ] Rapid typing never leaves a stale result list showing.
-- [ ] Tests cover the store visibility rules, the short-query path, the handler (including HTML escaping) and the `classifyRequest` row.
+- [x] Typing 2+ characters shows matching repos, users and orgs under the input; fewer shows nothing.
+- [x] A private repo is suggested to its owner and to a user with a `permissions` row, and never to a stranger or an anonymous viewer. A soft-deleted repo is never suggested.
+- [x] Arrow keys, Enter and Escape work as described; the last row runs the full search.
+- [x] `/` focuses the field outside text inputs; ⌘K still opens the palette.
+- [x] Rapid typing never leaves a stale result list showing.
+- [x] Tests cover the store visibility rules, the short-query path, the handler (including HTML escaping) and the `classifyRequest` row.
 
 ## Relevant files
 
