@@ -33,13 +33,14 @@ FROM alpine:3.24
 
 # ca-certificates: needed for Google OAuth outbound HTTPS
 # tzdata: correct timestamps in commits/issues/PRs
-RUN apk add --no-cache ca-certificates tzdata
+# postgresql18-client: pg_dump and pg_restore for `cloudzilla-cli backup` and `restore`; its major must be at least the server's (compose runs postgres:18)
+RUN apk add --no-cache ca-certificates tzdata postgresql18-client
 
 WORKDIR /app
 COPY --from=builder /app/dist/cloudzilla     /app/cloudzilla
 COPY --from=builder /app/dist/cloudzilla-cli /app/cloudzilla-cli
 
-# Data directory for SQLite DB, git repos, SSH host key
+# Data directory for git repos, uploaded files, SSH host key
 RUN mkdir -p /data/git-repos /data/storage
 ENV CZ_STORAGE_LOCAL_ROOT=/data/storage
 

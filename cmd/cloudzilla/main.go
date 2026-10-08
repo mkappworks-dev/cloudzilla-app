@@ -36,6 +36,8 @@ func init() {
 	rootCmd.AddCommand(seedCmd())
 	rootCmd.AddCommand(passwordResetLinkCmd())
 	rootCmd.AddCommand(reset2FACmd())
+	rootCmd.AddCommand(backupCmd())
+	rootCmd.AddCommand(restoreCmd())
 }
 
 func migrateCmd() *cobra.Command {
