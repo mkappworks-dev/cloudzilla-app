@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: needs-triage
+Status: needs-info
 Spec: ../spec.md (Out of scope)
 
 ## Problem
@@ -24,3 +24,11 @@ Users can't paste or drop images into issue, PR and comment markdown. The storag
 - 01
 
 ## Comments
+
+**Claude, 2026-10-08 (triage: needs-info).** Not ready for an agent: the three open questions are product decisions that change the data model and the serving path, and the spec doesn't settle them. Nothing on `origin/main` or in open branches covers this yet. Answers needed, with a recommendation for each:
+
+1. **Access.** Recommend serving through the repo's `CanRead` check (`RepoService.CanRead`), not unguessable URLs. A leaked or pasted URL would otherwise expose a private repo's image forever, and a repo made private later would keep serving its old images. The cost is that attachments can't be cached `public` or served from a CDN, and each request does a repo lookup plus a permission check. Unguessable URLs are simpler but give up that guarantee.
+2. **Limits.** Recommend images only (PNG, JPEG, GIF, WebP, typed from the bytes as in `avatar.Process`), at most 10 MB each, with no re-encoding, so animated GIFs survive. Decide whether EXIF should be stripped (privacy) and whether non-image files (zip, log, PDF) are wanted at all. Non-images need a `Content-Disposition: attachment` serving path and are a bigger decision.
+3. **Repo deletion.** Recommend deleting the objects after the repo's database delete commits, as avatars do for users and orgs. Say if a retention window is wanted instead.
+
+Also to confirm: orphan cleanup (uploads never referenced, or whose comment was deleted) as a sweep job on a grace period, rather than on every comment edit.
