@@ -484,6 +484,15 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 
 See [access-control.md](access-control.md) for the full permission model. `CanManage` requires owner, org owner, or `admin` collaborator role.
 
+## Markdown image attachments
+
+| Method | Path                           | Auth     | Description |
+| ------ | ------------------------------ | -------- | ----------- |
+| POST   | `/:owner/:repo/attachments`    | Required | Upload an image as multipart field `file`: PNG, JPEG, GIF or WebP, at most 10 MB. Returns `{"url": "/attachments/<token>.<ext>", "markdown": "![name](/attachments/<token>.<ext>)"}`. 404 when the repo is unknown or the caller can't read it; 413 over 10 MB; 422 for anything else that isn't such an image |
+| GET    | `/attachments/:name`           | Optional | Serve the image if the caller can read its repo, with `Cache-Control: private, no-cache` and an `ETag` (304 on `If-None-Match`); 404 otherwise, including for an unknown or malformed name |
+
+See [storage](./storage.md#markdown-image-attachments).
+
 ## Avatars
 
 | Method | Path | Auth | Description |

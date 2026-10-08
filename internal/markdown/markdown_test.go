@@ -623,3 +623,10 @@ func TestRender_HighlightedCodeIsEscaped(t *testing.T) {
 		t.Errorf("Render = %q, want the script tag escaped", got)
 	}
 }
+
+func TestRender_AttachmentImageKeepsItsRelativeURL(t *testing.T) {
+	got := markdown.Render("![shot](/attachments/0123456789abcdef0123456789abcdef.png)")
+	if !strings.Contains(got, `<img src="/attachments/0123456789abcdef0123456789abcdef.png" alt="shot"`) {
+		t.Errorf("rendered %q", got)
+	}
+}

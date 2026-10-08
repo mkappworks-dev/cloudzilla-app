@@ -84,6 +84,7 @@ type RepoService struct {
 	language         *LanguageService
 	pulls            *store.PullStore
 	transfers        *store.RepoTransferStore
+	attachments      *AttachmentService
 	cfg              config.GitConfig
 }
 
@@ -94,6 +95,12 @@ func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.
 
 func (s *RepoService) WithNoreplyHostFrom(baseURL string) *RepoService {
 	s.noreplyHost = noreplyHostFromBaseURL(baseURL)
+	return s
+}
+
+// WithAttachments removes a purged repo's attachments.
+func (s *RepoService) WithAttachments(a *AttachmentService) *RepoService {
+	s.attachments = a
 	return s
 }
 
@@ -1226,6 +1233,11 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 	for _, r := range expired {
 		removeDeletedCopy(s.cfg.ReposRoot, r)
 		s.removeStrandedWiki(ctx, r.OwnerName, r.Name)
+		if s.attachments != nil {
+			if err := s.attachments.DeleteForRepo(ctx, r.ID); err != nil {
+				slog.Warn("repo purge: delete attachments failed; the sweep will retry", "repo_id", r.ID, "error", err)
+			}
+		}
 	}
 	return nil
 }
