@@ -223,6 +223,9 @@
 
 [x-cloak] { display: none !important; }
 
+/* Replaced by the Alpine clear button next to each search input. */
+input[type="search"]::-webkit-search-cancel-button { appearance: none; display: none; }
+
 /* PR diff viewer (see internal/view/pages/pr_files.templ).
  * Toggling unified/split and hide-whitespace is JS-driven; these rules
  * react to the #diff-root[data-view] / .hide-ws state set by that script. */

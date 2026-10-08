@@ -147,10 +147,13 @@ templ Base(base view.BasePage, title string) {
 						if !base.SetupPending {
 							<form action="/search" method="GET" class="hidden md:block">
 								<label for="topnav-search" class="sr-only">Search Cloudzilla</label>
-								<div class="relative">
-									<input id="topnav-search" name="q" type="search" placeholder="Search…" class="w-56 h-7 pl-7 pr-10 text-[13px] bg-muted border border-transparent hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground"/>
+								<div class="relative" x-data="{ q: '' }">
+									<input id="topnav-search" name="q" type="search" x-ref="q" x-model="q" placeholder="Search…" class="w-72 focus:w-96 transition-[width] duration-150 h-7 pl-7 pr-14 text-[13px] bg-muted border border-transparent hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground"/>
 									<svg class="absolute left-2 top-1.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-									<kbd class="absolute right-1.5 top-1 text-[10px] px-1.5 py-0.5 bg-background border border-border rounded-sm text-muted-foreground font-mono" aria-hidden="true">⌘K</kbd>
+									<button type="button" x-cloak x-show="q" x-on:click="q = ''; $refs.q.focus()" class="absolute right-1.5 top-1 h-5 w-5 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">
+										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg>
+									</button>
+									<kbd x-show="!q" class="absolute right-1.5 top-1 text-[10px] px-1.5 py-0.5 bg-background border border-border rounded-sm text-muted-foreground font-mono" aria-hidden="true">⌘K</kbd>
 								</div>
 							</form>
 						}
