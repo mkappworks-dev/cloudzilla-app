@@ -1,0 +1,85 @@
+package fragments
+
+import (
+	"net/url"
+	"strconv"
+	"unicode/utf8"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+type suggestRow struct {
+	Kind    string
+	Href    string
+	Title   string
+	Detail  string
+	Private bool
+}
+
+// suggestRows flattens the groups in display order; a row's position is its
+// option id, which the combobox's arrow keys walk.
+func suggestRows(s *service.Suggestions) []suggestRow {
+	rows := make([]suggestRow, 0, len(s.Repos)+len(s.Users)+len(s.Orgs))
+	for _, r := range s.Repos {
+		rows = append(rows, suggestRow{"repo", "/" + r.OwnerName + "/" + r.Name, r.OwnerName + "/" + r.Name, r.Description, r.Private})
+	}
+	for _, u := range s.Users {
+		rows = append(rows, suggestRow{Kind: "user", Href: "/" + u.Username, Title: u.Username})
+	}
+	for _, o := range s.Orgs {
+		rows = append(rows, suggestRow{Kind: "org", Href: "/" + o.Name, Title: o.Name, Detail: o.DisplayName})
+	}
+	return rows
+}
+
+func suggestOptionID(i int) string { return "suggest-" + strconv.Itoa(i) }
+
+func suggestSearchHref(q string) templ.SafeURL {
+	return templ.SafeURL("/search?q=" + url.QueryEscape(q))
+}
+
+func suggestKindLabel(kind string) string {
+	switch kind {
+	case "repo":
+		return "Repositories"
+	case "user":
+		return "Users"
+	default:
+		return "Organizations"
+	}
+}
+
+// SearchSuggestions is the body of the topnav dropdown. Below the minimum query
+// length it renders nothing, which closes the dropdown.
+templ SearchSuggestions(data view.SearchSuggestionsData) {
+	if utf8.RuneCountInString(data.Suggestions.Query) >= service.SuggestMinQuery {
+		{{ rows := suggestRows(data.Suggestions) }}
+		<div role="listbox" aria-label="Search suggestions" class="py-1">
+			for i, row := range rows {
+				if i == 0 || rows[i-1].Kind != row.Kind {
+					<div role="presentation" class="px-3 pt-1.5 pb-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">{ suggestKindLabel(row.Kind) }</div>
+				}
+				<a id={ suggestOptionID(i) } role="option" aria-selected="false" data-suggest-item href={ templ.SafeURL(row.Href) } class="flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-accent aria-selected:bg-accent">
+					if row.Kind == "repo" {
+						<svg class="shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+					} else {
+						@components.Avatar(row.Title, components.AvatarSizeXS, "")
+					}
+					<span class="truncate font-medium">{ row.Title }</span>
+					if row.Private {
+						<span class="shrink-0 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span>
+					}
+					if row.Detail != "" {
+						<span class="truncate text-muted-foreground">{ row.Detail }</span>
+					}
+				</a>
+			}
+			<a id={ suggestOptionID(len(rows)) } role="option" aria-selected="false" data-suggest-item href={ suggestSearchHref(data.Suggestions.Query) } class="flex items-center gap-2 px-3 py-1.5 text-[13px] border-t border-border text-muted-foreground hover:bg-accent aria-selected:bg-accent">
+				<svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+				<span class="truncate">Search for “{ data.Suggestions.Query }”</span>
+			</a>
+		</div>
+	}
+}

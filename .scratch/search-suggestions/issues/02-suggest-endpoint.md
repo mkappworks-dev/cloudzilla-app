@@ -2,7 +2,7 @@
 
 Created: 2026-10-08
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -15,10 +15,10 @@ Spec: [../spec.md](../spec.md)
 
 ## Acceptance criteria
 
-- [ ] Router test (page-check harness): an anonymous request for a private repo's prefix is 200 and omits it; the owner's request includes it.
-- [ ] `q=a` is 200 with no options; `q=<script>` is escaped in the `Search for` row.
-- [ ] The response carries `Cache-Control: private, no-store`.
-- [ ] `{"GET", "/search/suggest", ResourceSearch, true}` is in the `classifyRequest` table test.
+- [x] Router test (page-check harness): an anonymous request for a private repo's prefix is 200 and omits it; the owner's request includes it.
+- [x] `q=a` is 200 with no options; `q=<script>` is escaped in the `Search for` row.
+- [x] The response carries `Cache-Control: private, no-store`.
+- [x] `{"GET", "/search/suggest", ResourceSearch, true}` is in the `classifyRequest` table test.
 
 ## Blocked by
 

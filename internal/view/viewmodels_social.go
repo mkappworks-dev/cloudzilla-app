@@ -112,6 +112,10 @@ type SearchData struct {
 	Results *service.SearchResults
 }
 
+type SearchSuggestionsData struct {
+	Suggestions *service.Suggestions
+}
+
 type TopicData struct {
 	BasePage
 	TopicName string

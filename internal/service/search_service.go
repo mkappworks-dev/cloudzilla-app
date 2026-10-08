@@ -88,7 +88,7 @@ func (s *SearchService) Search(ctx context.Context, query, searchType string, re
 }
 
 const (
-	suggestMinQuery  = 2
+	SuggestMinQuery  = 2
 	suggestMaxQuery  = 100
 	suggestRepoLimit = 4
 	suggestUserLimit = 3
@@ -103,7 +103,7 @@ type Suggestions struct {
 	Query string // trimmed and capped; what the "Search for" row links to
 }
 
-// Suggest returns nothing for a query under suggestMinQuery characters, so a
+// Suggest returns nothing for a query under SuggestMinQuery characters, so a
 // single keystroke never scans the tables.
 func (s *SearchService) Suggest(ctx context.Context, query string, requestingUserID *int64) (*Suggestions, error) {
 	query = strings.TrimSpace(query)
@@ -111,7 +111,7 @@ func (s *SearchService) Suggest(ctx context.Context, query string, requestingUse
 		query = string(r[:suggestMaxQuery])
 	}
 	out := &Suggestions{Query: query}
-	if utf8.RuneCountInString(query) < suggestMinQuery {
+	if utf8.RuneCountInString(query) < SuggestMinQuery {
 		return out, nil
 	}
 

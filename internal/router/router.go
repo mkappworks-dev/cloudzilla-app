@@ -108,6 +108,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Search
 	r.With(optAuthMW).Get("/search", h.PageSearch)
 	r.With(optAuthMW).Get("/search/code", h.PageCodeSearch)
+	r.With(optAuthMW).Get("/search/suggest", h.SearchSuggest)
 
 	// Page routes
 	r.With(optAuthMW).Get("/", h.PageHome)
