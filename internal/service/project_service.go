@@ -410,6 +410,10 @@ type KanbanCardView struct {
 	ColumnID        int64
 }
 
+// maxBoardRefs bounds the #N lookup so a huge description can't exceed the
+// query's parameter limit; refs past it render as plain text.
+const maxBoardRefs = 200
+
 // cardOverdue: a card whose linked item is already resolved is never overdue.
 func cardOverdue(due *time.Time, linkState string, today time.Time) bool {
 	if due == nil || linkState == "closed" || linkState == "merged" {
@@ -454,13 +458,18 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 	}
 	var refNums []int
 	seenRef := map[int]bool{}
+collect:
 	for _, col := range cols {
 		for _, c := range col.Cards {
 			for _, n := range markdown.RefNumbers(c.Note) {
-				if !seenRef[n] {
-					seenRef[n] = true
-					refNums = append(refNums, n)
+				if seenRef[n] {
+					continue
 				}
+				if len(refNums) == maxBoardRefs {
+					break collect
+				}
+				seenRef[n] = true
+				refNums = append(refNums, n)
 			}
 		}
 	}

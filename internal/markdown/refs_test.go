@@ -17,6 +17,9 @@ func TestRefNumbers(t *testing.T) {
 		{"start of text", "#4 first", []int{4}},
 		{"path and heading marks", "/x/#9 ## 8", nil},
 		{"out of int range", "#99999999999999999999", nil},
+		{"above int32 dropped", "#2147483648", nil},
+		{"int32 max kept", "#2147483647", []int{2147483647}},
+		{"zero dropped", "#0", nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

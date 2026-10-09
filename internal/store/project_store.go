@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -331,10 +332,16 @@ func (s *ProjectStore) RefKinds(ctx context.Context, repoID int64, nums []int) (
 		return out, nil
 	}
 	args := []any{repoID}
-	ph := make([]string, len(nums))
-	for i, n := range nums {
+	var ph []string
+	for _, n := range nums {
+		if n <= 0 || n > math.MaxInt32 {
+			continue
+		}
 		args = append(args, n)
-		ph[i] = fmt.Sprintf("$%d", i+2)
+		ph = append(ph, fmt.Sprintf("$%d", len(args)))
+	}
+	if len(ph) == 0 {
+		return out, nil
 	}
 	in := strings.Join(ph, ",")
 	rows, err := s.db.QueryContext(ctx,

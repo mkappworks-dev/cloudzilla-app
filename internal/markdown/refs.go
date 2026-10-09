@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"context"
+	"math"
 	"regexp"
 	"strconv"
 
@@ -22,7 +23,7 @@ func RefNumbers(src string) []int {
 	seen := map[int]bool{}
 	for _, m := range refRe.FindAllStringSubmatch(src, -1) {
 		n, err := strconv.Atoi(m[2])
-		if err != nil || seen[n] {
+		if err != nil || n <= 0 || n > math.MaxInt32 || seen[n] {
 			continue
 		}
 		seen[n] = true
