@@ -86,8 +86,8 @@ Checked on 2026-10-06 in the desktop app's built-in browser against a throwaway 
 ## Out of scope
 
 - Fork-and-PR editing for users without write access.
-- Push side effects for web commits: `.scratch/web-commit-push-side-effects/spec.md`.
-- A protection rule that requires a pull request, refusing direct pushes and web edits: `.scratch/require-pull-request-rule/spec.md`.
+- Push side effects for web commits: `.scratch/2026-10-06-web-commit-push-side-effects/spec.md`.
+- A protection rule that requires a pull request, refusing direct pushes and web edits: `.scratch/2026-10-06-require-pull-request-rule/spec.md`.
 - The profile README editor, which also commits textarea CRLF and has no stale-save check.
 
 ## Comments

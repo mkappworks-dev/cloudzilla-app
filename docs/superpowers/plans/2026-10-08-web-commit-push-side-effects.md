@@ -4,7 +4,7 @@
 
 **Architecture:** A new `PushService` owns the post-receive block that `git_http.go` and `ssh/server.go` duplicated: `AfterPush(repo, gitRepo, actor, commands)`. `AfterWebCommit(repo, actor, RefUpdate)` builds the one push command for a web commit and calls it. `CodeService`'s single-commit writes return the `RefUpdate` they made; handlers pass it on after a successful commit.
 
-**Spec:** [`.scratch/web-commit-push-side-effects/spec.md`](../../../.scratch/web-commit-push-side-effects/spec.md)
+**Spec:** [`.scratch/2026-10-06-web-commit-push-side-effects/spec.md`](../../../.scratch/2026-10-06-web-commit-push-side-effects/spec.md)
 
 ## Constraints
 

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, chi, PostgreSQL, templ v0.3, htmx 4, Alpine.js, Tailwind v4.
 
-**Spec:** [`.scratch/admin-password-reset/spec.md`](../../../.scratch/admin-password-reset/spec.md); tickets in [`.scratch/admin-password-reset/issues/`](../../../.scratch/admin-password-reset/issues/).
+**Spec:** [`.scratch/2026-10-06-admin-password-reset/spec.md`](../../../.scratch/2026-10-06-admin-password-reset/spec.md); tickets in [`.scratch/2026-10-06-admin-password-reset/issues/`](../../../.scratch/2026-10-06-admin-password-reset/issues/).
 
 ## Global Constraints
 

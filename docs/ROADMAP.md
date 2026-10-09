@@ -2325,7 +2325,7 @@ When any rows exist in `ip_allowlists` with `enabled = TRUE`, a middleware (`mid
 
 ### Phase 19.3 — API Rate Limiting & Quotas
 
-_Done in two PRs; the design is in [`.scratch/phase-19.3-api-rate-limiting/spec.md`](../.scratch/phase-19.3-api-rate-limiting/spec.md). Limits come from config and `CZ_*` variables, not an admin page or a `rate_limit_config` table, and use a fixed window rather than `golang.org/x/time/rate`._
+_Done in two PRs; the design is in [`.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md`](../.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md). Limits come from config and `CZ_*` variables, not an admin page or a `rate_limit_config` table, and use a fixed window rather than `golang.org/x/time/rate`._
 
 **Rate limits** (no migration): `middleware.APIRateLimit` counts every request that isn't a static asset against a per-subject budget for one of four resources (`core`, `git`, `archive`, `search`). Signed-in users get a `web` and a `token` bucket; everything else counts per client IP. Counted responses carry `X-RateLimit-*` headers and a refusal is `429` with `Retry-After`. See [configuration](./configuration.md#rate-limits) and the [API reference](./api-reference.md#rate-limits).
 

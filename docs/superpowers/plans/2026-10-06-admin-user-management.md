@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, chi, PostgreSQL, templ v0.3, HTMX, Alpine.js, Tailwind v4.
 
-**Spec:** [`.scratch/admin-user-management/spec.md`](../../../.scratch/admin-user-management/spec.md); tickets in [`.scratch/admin-user-management/issues/`](../../../.scratch/admin-user-management/issues/).
+**Spec:** [`.scratch/2026-10-06-admin-user-management/spec.md`](../../../.scratch/2026-10-06-admin-user-management/spec.md); tickets in [`.scratch/2026-10-06-admin-user-management/issues/`](../../../.scratch/2026-10-06-admin-user-management/issues/).
 
 ## Global Constraints
 

@@ -6,7 +6,7 @@
 
 **Architecture:** `internal/backup` owns the archive format (`Manifest`, entry-name validation), the capture order (`Create`: dump, then per repo refs before objects) and the restore sequence (`Restore`: validate whole archive, check preconditions, `pg_restore`, extract, host key, migrate, reconcile). `cmd/cloudzilla/{backup,restore}.go` only parse flags and wire config. `pg_dump` and `pg_restore` run as child processes; the connection goes in `PG*` environment variables so the password never reaches the process list.
 
-**Spec:** [`.scratch/ops-health-metrics-backup/issues/03-backup-restore.md`](../../../.scratch/ops-health-metrics-backup/issues/03-backup-restore.md)
+**Spec:** [`.scratch/2026-10-06-ops-health-metrics-backup/issues/03-backup-restore.md`](../../../.scratch/2026-10-06-ops-health-metrics-backup/issues/03-backup-restore.md)
 
 ## Global Constraints
 
