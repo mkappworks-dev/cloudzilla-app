@@ -88,7 +88,8 @@ func TestListColumnsWithCardsExpanded_LinkedCardWithTitle(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := cols[0].Cards[0]
-	if c.Kind != "note" || c.Title != "custom" || c.LinkKind != "issue" || c.LinkNumber != 7 || c.LinkState != "open" {
+	if c.Kind != "note" || c.Title != "custom" || c.LinkKind != "issue" || c.LinkNumber != 7 || c.LinkState != "open" ||
+		c.LinkID != issueID || c.LinkTitle != "issue title" {
 		t.Errorf("card = %+v", c)
 	}
 }

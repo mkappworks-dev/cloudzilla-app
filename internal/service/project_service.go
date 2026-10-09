@@ -408,8 +408,10 @@ type KanbanCardView struct {
 	Assignees       []model.CardUser
 	Labels          []model.Label
 	LinkKind        string // "issue" | "pull" | "" (unlinked)
+	LinkID          int64
 	LinkNumber      int
 	LinkState       string
+	LinkTitle       string
 	RepoFullName    string
 	Position        int
 	ColumnID        int64
@@ -507,9 +509,11 @@ collect:
 			switch {
 			case c.IssueID != nil:
 				cv.LinkKind, cv.LinkNumber, cv.LinkState = "issue", c.IssueNumber, c.IssueState
+				cv.LinkID, cv.LinkTitle = *c.IssueID, c.IssueTitle
 				cv.Kind, cv.Title, cv.Number, cv.State = "issue", c.IssueTitle, c.IssueNumber, c.IssueState
 			case c.PullID != nil:
 				cv.LinkKind, cv.LinkNumber, cv.LinkState = "pull", c.PullNumber, c.PullState
+				cv.LinkID, cv.LinkTitle = *c.PullID, c.PullTitle
 				cv.Kind, cv.Title, cv.Number, cv.State = "pull", c.PullTitle, c.PullNumber, c.PullState
 			default:
 				cv.Kind = "note"

@@ -68,6 +68,7 @@ func TestProjects_Create(t *testing.T) {
 		{"outsider", metaReq{method: "POST", target: e.path("/projects"), token: e.outsider.token, json: `{"name":"x"}`}, http.StatusForbidden},
 		{"bad json", metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{`}, http.StatusBadRequest},
 		{"no name", metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{"description":"x"}`}, http.StatusBadRequest},
+		{"blank name", metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{"name":"   "}`}, http.StatusBadRequest},
 		{"unknown repo", metaReq{method: "POST", target: "/api/repos/" + e.owner.name + "/nope/projects", token: e.owner.token, json: `{"name":"x"}`}, http.StatusNotFound},
 	}
 	for _, c := range cases {
@@ -472,4 +473,32 @@ func TestProjects_Pages(t *testing.T) {
 	testutil.Exec(t, e.db, `UPDATE repositories SET allow_projects = TRUE, private = TRUE WHERE id = $1`, e.repoID)
 	wantStatus(t, e.page(t, e.pagePath("/projects"), e.outsider.token, false), http.StatusNotFound)
 	wantStatus(t, e.page(t, e.pagePath("/projects/%d", open), e.outsider.token, false), http.StatusNotFound)
+}
+
+func TestProjects_BoardPanelData(t *testing.T) {
+	e := newGitMetaEnv(t)
+	board := e.createProject(t, "Panel board")
+	col := e.createColumn(t, board, "Todo")
+	e.createNote(t, board, col, "panel card")
+	e.seedLabel(t, "triage-me")
+
+	rr := e.page(t, e.pagePath("/projects/%d", board), e.writer.token, false)
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "data-panel-people")
+	bodyHas(t, rr, fmt.Sprintf(`x-model="panel.assignees" value="%d"`, e.owner.id))
+	bodyHas(t, rr, fmt.Sprintf(`x-model="panel.assignees" value="%d"`, e.writer.id))
+	bodyHas(t, rr, "data-panel-labels")
+	bodyHas(t, rr, "triage-me")
+	bodyHas(t, rr, `@click="savePanel()"`)
+	bodyHas(t, rr, "cardComposer(")
+
+	rr = e.page(t, e.pagePath("/projects/%d", board), "", false)
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "panel card")
+	bodyHas(t, rr, `id="card-panel-title-input"`)
+	for _, gone := range []string{"data-panel-people", "data-panel-labels", "triage-me", "savePanel", "cardComposer(", "linkPicker"} {
+		if strings.Contains(rr.Body.String(), gone) {
+			t.Errorf("anonymous board renders %q", gone)
+		}
+	}
 }

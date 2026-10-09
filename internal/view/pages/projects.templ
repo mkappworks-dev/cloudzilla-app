@@ -45,9 +45,10 @@ templ Projects(data view.ProjectsData) {
 				@components.Dialog("new-project-dialog") {
 					<form
 						x-data="{ projName: '', projDesc: '', error: '', busy: false }"
+						x-init="$el.closest('dialog').addEventListener('close', () => { projName = ''; projDesc = ''; error = ''; busy = false })"
 						data-owner={ data.Owner }
 						data-repo-name={ data.RepoName }
-						x-on:submit.prevent="(async function(f){ busy=true; error=''; const csrf=(document.cookie.match(/csrf_token=([^;]+)/)||[])[1]||''; try { const r=await fetch('/api/repos/'+f.dataset.owner+'/'+f.dataset.repoName+'/projects',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({name:projName,description:projDesc})}); if(!r.ok) throw new Error('Could not create the project ('+r.status+')'); const p=await r.json(); window.location.href='/'+f.dataset.owner+'/'+f.dataset.repoName+'/projects/'+p.id } catch(e) { error=e.message; busy=false } })($el)"
+						x-on:submit.prevent="(async function(f){ busy=true; error=''; const csrf=(document.cookie.match(/csrf_token=([^;]+)/)||[])[1]||''; try { const r=await fetch('/api/repos/'+f.dataset.owner+'/'+f.dataset.repoName+'/projects',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({name:projName,description:projDesc})}); if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.error||('Could not create the project ('+r.status+')')) } const p=await r.json(); window.location.href='/'+f.dataset.owner+'/'+f.dataset.repoName+'/projects/'+p.id } catch(e) { error=e.message; busy=false } })($el)"
 					>
 						@components.DialogHeader() {
 							@components.DialogTitle("new-project-dialog") {
@@ -143,7 +144,7 @@ templ Projects(data view.ProjectsData) {
 									</svg>
 									<div class="min-w-0 flex-1">
 										<div class="flex items-center gap-2">
-											<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10)) } class="text-[14px] font-medium text-foreground hover:underline after:absolute after:inset-0 focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-ring">{ p.Name }</a>
+											<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10)) } class="text-[14px] font-medium text-foreground hover:underline after:absolute after:inset-0 focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring">{ p.Name }</a>
 											if p.IsClosed() {
 												@components.Badge(components.BadgeDraft) {
 													closed

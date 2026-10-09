@@ -1,14 +1,94 @@
 package pages
 
 import (
+	"encoding/json"
+	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
+
+type cardPanelLabel struct {
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+type cardPanelState struct {
+	ID          int64            `json:"id"`
+	Column      string           `json:"column"`
+	Title       string           `json:"title"`
+	Description string           `json:"description"`
+	DueDate     string           `json:"due_date"`
+	Assignees   []model.CardUser `json:"assignees"`
+	Labels      []cardPanelLabel `json:"labels"`
+	LinkKind    string           `json:"link_kind"`
+	LinkID      int64            `json:"link_id"`
+	LinkNumber  int              `json:"link_number"`
+	LinkTitle   string           `json:"link_title"`
+}
+
+// cardPanelJSON is the card's editable state, read by kanban.js when the panel opens.
+func cardPanelJSON(card service.KanbanCardView, column string) string {
+	s := cardPanelState{
+		ID:          card.ID,
+		Column:      column,
+		Title:       card.Title,
+		Description: card.Description,
+		DueDate:     card.DueDate,
+		Assignees:   []model.CardUser{},
+		Labels:      []cardPanelLabel{},
+		LinkKind:    card.LinkKind,
+		LinkID:      card.LinkID,
+		LinkNumber:  card.LinkNumber,
+		LinkTitle:   card.LinkTitle,
+	}
+	s.Assignees = append(s.Assignees, card.Assignees...)
+	for _, l := range card.Labels {
+		s.Labels = append(s.Labels, cardPanelLabel{ID: l.ID, Name: l.Name, Color: l.Color})
+	}
+	b, err := json.Marshal(s)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
+}
+
+// opensPanel: a card without its own title is a plain link to an issue or PR and navigates there.
+func opensPanel(card service.KanbanCardView) bool {
+	return card.Kind == "note"
+}
+
+var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+// labelChipStyle fills the chip with the label colour and picks dark or light text by luminance.
+func labelChipStyle(color string) string {
+	if !hexColor.MatchString(color) {
+		return ""
+	}
+	r, _ := strconv.ParseUint(color[1:3], 16, 8)
+	g, _ := strconv.ParseUint(color[3:5], 16, 8)
+	b, _ := strconv.ParseUint(color[5:7], 16, 8)
+	fg := "#ffffff"
+	if (0.299*float64(r)+0.587*float64(g)+0.114*float64(b))/255 > 0.6 {
+		fg = "#1f2328"
+	}
+	return "background-color: " + color + "; color: " + fg
+}
+
+func cardDueLabel(due string) string {
+	t, err := time.Parse("2006-01-02", due)
+	if err != nil {
+		return due
+	}
+	return t.Format("Jan 2, 2006")
+}
 
 templ ProjectDetail(data view.ProjectDetailData) {
 	@layout.Base(data.BasePage, data.Project.Name+" · "+data.Owner+"/"+data.RepoName) {
@@ -17,13 +97,15 @@ templ ProjectDetail(data view.ProjectDetailData) {
 			data-owner={ data.Owner }
 			data-repo-name={ data.RepoName }
 			data-project-id={ strconv.FormatInt(data.Project.ID, 10) }
+			data-can-write={ strconv.FormatBool(data.CanWrite) }
 			x-data="kanbanBoard"
 			@dragstart="onDragStart($event)"
 			@dragover="onDragOver($event)"
 			@drop="onDrop($event)"
 			@click="onCardClick($event)"
-			@keydown.enter="onCardKey($event)"
+			@keydown="onCardKey($event)"
 		>
+			@cardPanel(data)
 			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="project-title">
 				<div class="min-w-0">
 					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -95,126 +177,11 @@ templ ProjectDetail(data view.ProjectDetailData) {
 						</header>
 						<ul class="space-y-2 px-2 pb-2 min-h-2" data-cards>
 							for _, card := range col.Cards {
-								<li
-									class="group relative rounded-md border border-border bg-card p-3 shadow-xs cursor-grab hover:border-ring/60 active:cursor-grabbing"
-									data-card-id={ strconv.FormatInt(card.ID, 10) }
-									data-card-kind={ card.Kind }
-									data-drag="kanban-card"
-									draggable="true"
-									if card.Kind == "note" {
-										data-title={ card.Title }
-										data-note={ card.Description }
-										tabindex="0"
-										role="button"
-										aria-label={ "Open note: " + card.Title }
-									}
-								>
-									if card.Kind == "issue" {
-										<div class="flex items-start gap-2">
-											<svg class="mt-0.5 shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-												<circle cx="12" cy="12" r="9"></circle>
-												<circle cx="12" cy="12" r="1" fill="currentColor"></circle>
-											</svg>
-											<a
-												href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(card.Number)) }
-												draggable="false"
-												class="min-w-0 text-[13px] font-medium after:absolute after:inset-0 after:rounded-md focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-ring"
-											>{ card.Title }</a>
-										</div>
-										<div class="mt-2 flex items-center gap-2 pl-[22px]">
-											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.Number) }</span>
-											@components.IssueStateBadge(card.State)
-										</div>
-									} else if card.Kind == "pull" {
-										<div class="flex items-start gap-2">
-											<svg class="mt-0.5 shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-												<circle cx="6" cy="6" r="2.5"></circle>
-												<circle cx="6" cy="18" r="2.5"></circle>
-												<circle cx="18" cy="18" r="2.5"></circle>
-												<path d="M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-3"></path>
-											</svg>
-											<a
-												href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.Number)) }
-												draggable="false"
-												class="min-w-0 text-[13px] font-medium after:absolute after:inset-0 after:rounded-md focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-ring"
-											>{ card.Title }</a>
-										</div>
-										<div class="mt-2 flex items-center gap-2 pl-[22px]">
-											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.Number) }</span>
-											@components.PullStateBadge(model.PRState(card.State), false)
-										</div>
-									} else {
-										<p class="text-[13px] line-clamp-3 break-words">{ card.Title }</p>
-									}
-									if data.CanWrite && card.Kind != "note" {
-										<button
-											type="button"
-											aria-label="Remove from board"
-											onclick={ deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
-											class="absolute right-1.5 top-1.5 z-10 rounded px-1 text-xs text-muted-foreground opacity-0 hover:bg-muted hover:text-destructive focus:opacity-100 group-hover:opacity-100"
-										>✕</button>
-									}
-								</li>
+								@kanbanCard(data, card, col.Name)
 							}
 						</ul>
 						if data.CanWrite {
-							<div
-								class="px-2 pb-2"
-								x-data={ "cardComposer(" + strconv.FormatInt(col.ID, 10) + ")" }
-							>
-								<button
-									type="button"
-									x-show="!open"
-									@click="show()"
-									class="w-full rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
-								>+ Add item</button>
-								<div x-show="open" x-cloak class="relative">
-									<label class="sr-only" for={ "composer-" + strconv.FormatInt(col.ID, 10) }>New item</label>
-									<textarea
-										id={ "composer-" + strconv.FormatInt(col.ID, 10) }
-										x-ref="input"
-										x-model="text"
-										rows="2"
-										placeholder="Enter a note, or type # to find an issue or pull request"
-										class="w-full resize-none rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
-										@input="search()"
-										@keydown.enter="onEnter($event)"
-										@keydown.escape="close()"
-										@keydown.arrow-down.prevent="move(1)"
-										@keydown.arrow-up.prevent="move(-1)"
-									></textarea>
-									<ul
-										x-show="isQuery && results.length"
-										role="listbox"
-										class="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md"
-									>
-										<template x-for="(t, i) in results" x-bind:key="t.kind + t.id">
-											<li role="option" x-bind:aria-selected="(i === active).toString()">
-												<button
-													type="button"
-													@mousedown.prevent="pick(t)"
-													x-bind:class="i === active ? 'bg-muted' : ''"
-													class="flex w-full items-baseline gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-muted"
-												>
-													<span class="shrink-0 font-mono text-[11px] text-muted-foreground" x-text="(t.kind === 'pull' ? 'PR #' : '#') + t.number"></span>
-													<span class="min-w-0 flex-1 truncate" x-text="t.title"></span>
-													<span class="shrink-0 text-[11px] text-muted-foreground" x-text="t.state"></span>
-												</button>
-											</li>
-										</template>
-									</ul>
-									<p x-show="error" x-cloak x-text="error" class="mt-1 text-[12px] text-destructive" role="alert"></p>
-									<div class="mt-2 flex items-center gap-2">
-										<button
-											type="button"
-											@click="submit()"
-											x-bind:disabled="busy || !text.trim()"
-											class="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-										>Add</button>
-										<button type="button" @click="close()" class="px-1 text-[12px] text-muted-foreground hover:text-foreground">Cancel</button>
-									</div>
-								</div>
-							</div>
+							@cardComposer(col.ID)
 						}
 					</section>
 				}
@@ -229,10 +196,10 @@ templ ProjectDetail(data view.ProjectDetailData) {
 						<div x-show="adding" x-cloak class="space-y-2 rounded-md border border-border bg-muted/30 p-2">
 							<label for="new-col-name" class="sr-only">Column name</label>
 							@components.Input(templ.Attributes{
-								"id":            "new-col-name",
-								"type":          "text",
-								"placeholder":   "Column name",
-								"x-ref":         "name",
+								"id":                     "new-col-name",
+								"type":                   "text",
+								"placeholder":            "Column name",
+								"x-ref":                  "name",
 								"@keydown.enter.prevent": "$refs.add.click()",
 								"@keydown.escape":        "adding = false",
 							})
@@ -249,55 +216,412 @@ templ ProjectDetail(data view.ProjectDetailData) {
 					</div>
 				}
 			</div>
-			@components.Dialog("note-dialog") {
-				@components.DialogHeader() {
-					@components.DialogTitle("note-dialog") {
-						Note
-					}
-				}
-				@components.DialogBody() {
-					<label for="note-text" class="sr-only">Note text</label>
-					<textarea
-						id="note-text"
-						x-model="noteText"
-						rows="6"
-						readonly?={ !data.CanWrite }
-						class="w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring"
-					></textarea>
-					<p x-show="noteError" x-cloak x-text="noteError" class="mt-2 text-[12px] text-destructive" role="alert"></p>
-				}
-				@components.DialogFooter() {
-					if data.CanWrite {
-						<button
-							type="button"
-							@click="deleteNote()"
-							class="mr-auto inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium text-destructive hover:bg-muted"
-						>Delete</button>
-					}
-					<button
-						type="button"
-						onclick="this.closest('dialog').close()"
-						class="inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-					>
-						if data.CanWrite {
-							Cancel
-						} else {
-							Close
-						}
-					</button>
-					if data.CanWrite {
-						<button
-							type="button"
-							@click="saveNote()"
-							x-bind:disabled="noteBusy || !noteText.trim()"
-							class="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-						>Save</button>
-					}
-				}
-			}
 		</div>
 		<script src={ assets.URL("/static/kanban.js") } defer></script>
 	}
+}
+
+templ kanbanCard(data view.ProjectDetailData, card service.KanbanCardView, column string) {
+	<li
+		class="group relative rounded-md border border-border bg-card p-3 shadow-xs hover:border-ring/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+		data-card-id={ strconv.FormatInt(card.ID, 10) }
+		data-card-kind={ card.Kind }
+		data-drag="kanban-card"
+		if data.CanWrite {
+			draggable="true"
+		}
+		if opensPanel(card) {
+			data-card-panel
+			data-card-json={ cardPanelJSON(card, column) }
+			tabindex="0"
+			role="button"
+			aria-label={ "Open card: " + card.Title }
+		}
+	>
+		if opensPanel(card) && card.DescriptionHTML != "" {
+			<template id={ "desc-" + strconv.FormatInt(card.ID, 10) }>
+				@templ.Raw(card.DescriptionHTML)
+			</template>
+		}
+		if opensPanel(card) {
+			<p class="text-[13px] font-medium line-clamp-3 break-words">{ card.Title }</p>
+		} else {
+			<div class="flex items-start gap-2">
+				@linkKindIcon(card.LinkKind)
+				<a
+					href={ templ.SafeURL(linkedItemURL(data, card)) }
+					draggable="false"
+					class="min-w-0 text-[13px] font-medium after:absolute after:inset-0 after:rounded-md focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-ring"
+				>{ card.Title }</a>
+			</div>
+		}
+		if card.Description != "" {
+			<p class="mt-1 text-[12px] text-muted-foreground line-clamp-1 break-all">{ card.Description }</p>
+		}
+		if len(card.Labels) > 0 {
+			<div class="mt-2 flex flex-wrap gap-1">
+				for _, l := range card.Labels {
+					<span class="inline-flex max-w-full items-center truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium" style={ labelChipStyle(l.Color) } data-card-label>{ l.Name }</span>
+				}
+			</div>
+		}
+		if card.LinkKind != "" {
+			<div class="mt-2 flex items-center gap-2" data-card-link>
+				if opensPanel(card) {
+					@linkKindIcon(card.LinkKind)
+				}
+				<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.LinkNumber) }</span>
+				if card.LinkKind == "pull" {
+					@components.PullStateBadge(model.PRState(card.LinkState), false)
+				} else {
+					@components.IssueStateBadge(card.LinkState)
+				}
+			</div>
+		}
+		if card.DueDate != "" || len(card.Assignees) > 0 {
+			<div class="mt-2 flex items-center justify-between gap-2">
+				if card.DueDate != "" {
+					<span class={ "inline-flex items-center gap-1 text-[11px]", templ.KV("text-destructive font-medium", card.Overdue), templ.KV("text-muted-foreground", !card.Overdue) } data-card-due>
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+							<rect x="3" y="5" width="18" height="16" rx="2"></rect>
+							<path d="M3 10h18M8 3v4M16 3v4"></path>
+						</svg>
+						<time datetime={ card.DueDate }>{ cardDueLabel(card.DueDate) }</time>
+						if card.Overdue {
+							<span class="sr-only">(overdue)</span>
+						}
+					</span>
+				} else {
+					<span></span>
+				}
+				if len(card.Assignees) > 0 {
+					<div class="flex -space-x-1.5" data-card-assignees>
+						for _, a := range card.Assignees {
+							<span class="rounded-full ring-2 ring-card" title={ a.Username }>
+								@components.Avatar(a.Username, components.AvatarSizeXS, a.Username)
+							</span>
+						}
+					</div>
+				}
+			</div>
+		}
+		if data.CanWrite && !opensPanel(card) {
+			<button
+				type="button"
+				aria-label="Remove from board"
+				onclick={ deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
+				class="absolute right-1.5 top-1.5 z-10 rounded px-1 text-xs text-muted-foreground opacity-0 hover:bg-muted hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+			>✕</button>
+		}
+	</li>
+}
+
+func linkedItemURL(data view.ProjectDetailData, card service.KanbanCardView) string {
+	kind := "issues"
+	if card.LinkKind == "pull" {
+		kind = "pulls"
+	}
+	return "/" + data.Owner + "/" + data.RepoName + "/" + kind + "/" + strconv.Itoa(card.LinkNumber)
+}
+
+templ linkKindIcon(kind string) {
+	if kind == "pull" {
+		<svg class="mt-0.5 shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+			<circle cx="6" cy="6" r="2.5"></circle>
+			<circle cx="6" cy="18" r="2.5"></circle>
+			<circle cx="18" cy="18" r="2.5"></circle>
+			<path d="M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-3"></path>
+		</svg>
+	} else {
+		<svg class="mt-0.5 shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+			<circle cx="12" cy="12" r="9"></circle>
+			<circle cx="12" cy="12" r="1" fill="currentColor"></circle>
+		</svg>
+	}
+}
+
+// targetResults is the picker dropdown; it is position:fixed because the board row's
+// overflow-x-auto would clip an absolutely positioned list.
+templ targetResults() {
+	<div
+		x-show="showList"
+		x-cloak
+		x-bind:style="listStyle"
+		class="z-50 max-h-72 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+		data-picker-list
+	>
+		<p x-show="pending && !results.length" class="px-2 py-1.5 text-[12px] text-muted-foreground">Searching…</p>
+		<p x-show="error" x-text="error" class="px-2 py-1.5 text-[12px] text-destructive" role="alert"></p>
+		<p x-show="searched && !pending && !error && !results.length" class="px-2 py-1.5 text-[12px] text-muted-foreground">No matching issues or pull requests</p>
+		<ul role="listbox" aria-label="Issues and pull requests" class="flex flex-col">
+			<template x-for="(t, i) in results" x-bind:key="t.kind + t.id">
+				<li role="option" x-bind:aria-selected="(i === active).toString()">
+					<button
+						type="button"
+						tabindex="-1"
+						@mousedown.prevent="pick(t)"
+						x-bind:class="i === active ? 'bg-muted' : ''"
+						class="flex w-full items-baseline gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-muted"
+					>
+						<span class="shrink-0 font-mono text-[11px] text-muted-foreground" x-text="(t.kind === 'pull' ? 'PR #' : '#') + t.number"></span>
+						<span class="min-w-0 flex-1 truncate" x-text="t.title"></span>
+						<span class="shrink-0 text-[11px] text-muted-foreground" x-text="t.state"></span>
+					</button>
+				</li>
+			</template>
+		</ul>
+	</div>
+}
+
+templ cardComposer(columnID int64) {
+	<div class="px-2 pb-2" x-data={ "cardComposer(" + strconv.FormatInt(columnID, 10) + ")" }>
+		<button
+			type="button"
+			x-show="!open"
+			@click="show()"
+			class="w-full rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
+		>+ Add item</button>
+		<div x-show="open" x-cloak>
+			<label class="sr-only" for={ "composer-" + strconv.FormatInt(columnID, 10) }>New item</label>
+			<textarea
+				id={ "composer-" + strconv.FormatInt(columnID, 10) }
+				x-ref="input"
+				x-model="text"
+				rows="2"
+				placeholder="Add a title, or type # to link an issue or pull request"
+				class="w-full resize-none rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+				@input="search()"
+				@keydown.enter="onEnter($event)"
+				@keydown.escape="close()"
+				@keydown.arrow-down="query !== null && ($event.preventDefault(), move(1))"
+				@keydown.arrow-up="query !== null && ($event.preventDefault(), move(-1))"
+			></textarea>
+			@targetResults()
+			<p x-show="createError" x-cloak x-text="createError" class="mt-1 text-[12px] text-destructive" role="alert"></p>
+			<div class="mt-2 flex items-center gap-2">
+				<button
+					type="button"
+					@click="submit()"
+					x-bind:disabled="busy || !text.trim() || query !== null"
+					class="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+				>Add</button>
+				<button type="button" @click="close()" class="px-1 text-[12px] text-muted-foreground hover:text-foreground">Cancel</button>
+			</div>
+		</div>
+	</div>
+}
+
+templ cardPanel(data view.ProjectDetailData) {
+	<aside
+		x-show="panel.open"
+		x-cloak
+		role="dialog"
+		aria-labelledby="card-panel-title"
+		class="fixed inset-y-0 right-0 z-30 flex w-[380px] max-w-full flex-col border-l border-border bg-background shadow-lg"
+		@keydown.escape.window="closePanel()"
+		@card-link-picked="panel.link = $event.detail"
+		data-card-panel-root
+	>
+		<header class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+			<h2 id="card-panel-title" class="min-w-0 truncate text-[13px] font-semibold">Card in <span x-text="panel.column"></span></h2>
+			<button
+				type="button"
+				x-ref="panelClose"
+				aria-label="Close panel"
+				@click="closePanel()"
+				class="rounded px-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+			>✕</button>
+		</header>
+		<div class="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-4">
+			<div>
+				<label for="card-panel-title-input" class="mb-1 block text-[12px] font-medium text-muted-foreground">Title</label>
+				<input
+					id="card-panel-title-input"
+					type="text"
+					x-ref="panelTitle"
+					x-model="panel.title"
+					maxlength="256"
+					disabled?={ !data.CanWrite }
+					class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70"
+				/>
+			</div>
+			<div>
+				<div class="mb-1 flex items-center justify-between gap-2">
+					<span id="card-panel-desc-label" class="text-[12px] font-medium text-muted-foreground">Description</span>
+					if data.CanWrite {
+						<div class="flex items-center gap-0.5 rounded-md bg-muted p-0.5 text-[12px]">
+							<button
+								type="button"
+								@click="panel.tab = 'write'"
+								x-bind:aria-pressed="(panel.tab === 'write').toString()"
+								x-bind:class="panel.tab === 'write' ? 'bg-background shadow-xs text-foreground' : 'text-muted-foreground'"
+								class="rounded px-2 py-0.5"
+							>Write</button>
+							<button
+								type="button"
+								@click="panel.tab = 'preview'"
+								x-bind:aria-pressed="(panel.tab === 'preview').toString()"
+								x-bind:class="panel.tab === 'preview' ? 'bg-background shadow-xs text-foreground' : 'text-muted-foreground'"
+								class="rounded px-2 py-0.5"
+							>Preview</button>
+						</div>
+					}
+				</div>
+				if data.CanWrite {
+					<textarea
+						x-show="panel.tab === 'write'"
+						x-model="panel.description"
+						@input="panel.descDirty = true"
+						rows="6"
+						aria-labelledby="card-panel-desc-label"
+						placeholder="Markdown supported. Reference #123 to link an issue or pull request."
+						class="w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+					></textarea>
+				}
+				<div x-show="panel.tab === 'preview'" class="flex flex-col gap-2 rounded-md border border-border bg-card px-3 py-2">
+					<p x-show="panel.descDirty" class="text-[11px] text-muted-foreground">Save to refresh the preview</p>
+					<div x-show="panel.previewHTML" x-html="panel.previewHTML" class="prose prose-sm dark:prose-invert max-w-none break-words" data-card-preview></div>
+					<p x-show="!panel.previewHTML" class="text-[12px] text-muted-foreground">No description</p>
+				</div>
+			</div>
+			<div>
+				<span class="mb-1 block text-[12px] font-medium text-muted-foreground">Linked item</span>
+				<div x-show="panel.link" class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[13px]">
+					<span class="shrink-0 font-mono text-[11px] text-muted-foreground" x-text="panel.link ? (panel.link.kind === 'pull' ? 'PR #' : '#') + panel.link.number : ''"></span>
+					<span class="min-w-0 flex-1 truncate" x-text="panel.link ? panel.link.title : ''"></span>
+					if data.CanWrite {
+						<button
+							type="button"
+							aria-label="Remove link"
+							@click="panel.link = null"
+							class="rounded px-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
+						>✕</button>
+					}
+				</div>
+				if data.CanWrite {
+					<div x-show="!panel.link" x-data="linkPicker">
+						<label for="card-panel-link" class="sr-only">Find an issue or pull request</label>
+						<input
+							id="card-panel-link"
+							type="text"
+							x-ref="input"
+							x-model="text"
+							placeholder="Search issues and pull requests"
+							autocomplete="off"
+							class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+							@input="search()"
+							@keydown.enter.prevent="enterPick()"
+							@keydown.escape="showList && ($event.stopPropagation(), reset())"
+							@keydown.arrow-down.prevent="move(1)"
+							@keydown.arrow-up.prevent="move(-1)"
+						/>
+						@targetResults()
+					</div>
+				} else {
+					<p x-show="!panel.link" class="text-[12px] text-muted-foreground">None</p>
+				}
+			</div>
+			<div>
+				<span id="card-panel-assignees" class="mb-1 block text-[12px] font-medium text-muted-foreground">Assignees</span>
+				if data.CanWrite {
+					if len(data.People) == 0 {
+						<p class="text-[12px] text-muted-foreground">No collaborators</p>
+					} else {
+						<div role="group" aria-labelledby="card-panel-assignees" class="flex flex-col gap-1" data-panel-people>
+							for _, p := range data.People {
+								<label class="flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted">
+									<input type="checkbox" x-model="panel.assignees" value={ strconv.FormatInt(p.ID, 10) } class="accent-primary"/>
+									@components.Avatar(p.Username, components.AvatarSizeXS, "")
+									<span class="truncate">{ p.Username }</span>
+								</label>
+							}
+						</div>
+					}
+				} else {
+					<p x-show="!panel.card.assignees.length" class="text-[12px] text-muted-foreground">None</p>
+					<ul class="flex flex-col gap-1 text-[13px]">
+						<template x-for="a in panel.card.assignees" x-bind:key="a.id">
+							<li x-text="a.username"></li>
+						</template>
+					</ul>
+				}
+			</div>
+			<div>
+				<span id="card-panel-labels" class="mb-1 block text-[12px] font-medium text-muted-foreground">Labels</span>
+				if data.CanWrite {
+					if len(data.Labels) == 0 {
+						<p class="text-[12px] text-muted-foreground">No labels in this repository</p>
+					} else {
+						<div role="group" aria-labelledby="card-panel-labels" class="flex flex-col gap-1" data-panel-labels>
+							for _, l := range data.Labels {
+								<label class="flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted">
+									<input type="checkbox" x-model="panel.labels" value={ strconv.FormatInt(l.ID, 10) } class="accent-primary"/>
+									<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" style={ labelChipStyle(l.Color) }></span>
+									<span class="truncate">{ l.Name }</span>
+								</label>
+							}
+						</div>
+					}
+				} else {
+					<p x-show="!panel.card.labels.length" class="text-[12px] text-muted-foreground">None</p>
+					<ul class="flex flex-col gap-1 text-[13px]">
+						<template x-for="l in panel.card.labels" x-bind:key="l.id">
+							<li class="flex items-center gap-2">
+								<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" x-bind:style="{ backgroundColor: l.color }"></span>
+								<span x-text="l.name"></span>
+							</li>
+						</template>
+					</ul>
+				}
+			</div>
+			<div>
+				<label for="card-panel-due" class="mb-1 block text-[12px] font-medium text-muted-foreground">Due date</label>
+				<input
+					id="card-panel-due"
+					type="date"
+					x-model="panel.dueDate"
+					disabled?={ !data.CanWrite }
+					class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70"
+				/>
+			</div>
+			<p x-show="panel.error" x-text="panel.error" class="text-[12px] text-destructive" role="alert"></p>
+		</div>
+		<footer class="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
+			if data.CanWrite {
+				<button
+					type="button"
+					@click="savePanel()"
+					x-bind:disabled="panel.busy || !panel.title.trim()"
+					class="inline-flex h-8 items-center rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+				>Save</button>
+				<button
+					type="button"
+					@click="closePanel()"
+					class="inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground"
+				>Cancel</button>
+				<button
+					type="button"
+					x-show="!panel.link && panel.title.trim()"
+					@click="convertPanel()"
+					x-bind:disabled="panel.busy"
+					class="ml-auto inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+				>Convert to issue</button>
+				<button
+					type="button"
+					@click="deletePanel()"
+					x-bind:disabled="panel.busy"
+					class="inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium text-destructive hover:bg-muted disabled:opacity-50"
+					x-bind:class="!panel.link && panel.title.trim() ? '' : 'ml-auto'"
+				>Delete</button>
+			} else {
+				<button
+					type="button"
+					@click="closePanel()"
+					class="ml-auto inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground"
+				>Close</button>
+			}
+		</footer>
+	</aside>
 }
 
 script setProjectClosedJS(owner, repoName string, projectID int64, closed bool) {
