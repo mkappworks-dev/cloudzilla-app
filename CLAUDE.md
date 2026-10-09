@@ -75,7 +75,7 @@ Read the matching doc before working in an area:
 
 `<type>/<slug>`, where `type` is `feat`, `fix` (or `bug`), or `tech`. Prefix the slug with `phase-<n>-` when the work belongs to a roadmap phase — e.g. `feat/phase-12.3-discussions`, `fix/contributor-stats-sha-dedup`.
 
-Worktrees go in `.worktrees/<type>+<slug>` (gitignored), mirroring the branch: `git worktree add .worktrees/fix+foo -b fix/foo`.
+Worktrees go in `<main checkout>/.worktrees/<type>+<slug>` (gitignored), mirroring the branch: `git worktree add .worktrees/fix+foo -b fix/foo`. From inside another worktree (e.g. one under `.claude/worktrees/`), pass the main checkout's absolute path, or the new one nests inside that worktree.
 
 ## Pull requests
 
