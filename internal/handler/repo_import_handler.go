@@ -77,6 +77,9 @@ func (h *Handler) StartImport(w http.ResponseWriter, r *http.Request) {
 		MirrorInterval: interval,
 	})
 	switch {
+	case errors.Is(err, service.ErrQuotaReached):
+		writeError(w, http.StatusForbidden, err.Error())
+		return
 	case errors.Is(err, service.ErrImportURL), errors.Is(err, service.ErrImportURLUserinfo),
 		errors.Is(err, service.ErrImportCredentials),
 		errors.Is(err, service.ErrRepoNameTaken), errors.Is(err, service.ErrRepoNameReserved),

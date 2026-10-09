@@ -55,7 +55,10 @@ templ OrgSettings(data view.OrgSettingsData) {
 
 					<section id="general" class="rounded-md border border-border bg-card p-6">
 						<h2 class="text-base font-semibold tracking-tight mb-1">General</h2>
-						<p class="text-[12.5px] text-muted-foreground mb-6">How { data.Org.Name } appears across Cloudzilla.</p>
+						<p class={ templ.KV("mb-6", data.QuotaSummary == ""), templ.KV("mb-1", data.QuotaSummary != ""), "text-[12.5px] text-muted-foreground" }>How { data.Org.Name } appears across Cloudzilla.</p>
+						if data.QuotaSummary != "" {
+							<p id="quota-usage" class="text-[12.5px] text-muted-foreground mb-6">{ data.QuotaSummary }</p>
+						}
 						<div class="mb-5">
 							@fragments.AvatarControl(fragments.AvatarControlData{
 								Name:      data.Org.Name,

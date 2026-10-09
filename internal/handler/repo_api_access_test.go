@@ -35,10 +35,16 @@ func newAPIRouter(t *testing.T, db *sql.DB) http.Handler {
 
 func newAPIRouterAt(t *testing.T, db *sql.DB, reposRoot string) http.Handler {
 	t.Helper()
+	return newAPIRouterWithQuota(t, db, reposRoot, config.QuotaConfig{})
+}
+
+func newAPIRouterWithQuota(t *testing.T, db *sql.DB, reposRoot string, quota config.QuotaConfig) http.Handler {
+	t.Helper()
 	cfg := &config.Config{
 		Server: config.ServerConfig{BaseURL: "http://localhost:8080"},
 		Auth:   config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
 		Git:    config.GitConfig{ReposRoot: reposRoot},
+		Quota:  quota,
 	}
 	h, err := router.New(service.New(store.New(db), cfg), cfg, fstest.MapFS{})
 	if err != nil {

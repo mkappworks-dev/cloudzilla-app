@@ -128,6 +128,7 @@ func main() {
 		concurrency.Go("mirror.run", func() { services.Mirror.Run(workerCtx) })
 	}
 
+	concurrency.Go("quota.backfill", func() { services.Quota.Backfill(workerCtx) })
 	concurrency.Go("attachment.sweep", func() { services.Attachment.Run(workerCtx) })
 
 	// Daily purge of soft-deleted repos older than 30 days

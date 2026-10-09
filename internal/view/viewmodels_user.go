@@ -104,10 +104,12 @@ type OrgListEntry struct {
 // OrgSettingsData holds template data for the organization settings page.
 type OrgSettingsData struct {
 	BasePage
-	Org          model.Organization
-	Members      []model.OrgMember
-	MemberCount  int
-	RepoCount    int
+	Org         model.Organization
+	Members     []model.OrgMember
+	MemberCount int
+	RepoCount   int
+	// QuotaSummary is "" when the instance sets no quota for orgs.
+	QuotaSummary string
 	AuditEntries []model.AuditEntry
 	// What the viewer confirms making someone an owner with.
 	Confirm components.ConfirmFactors
