@@ -77,7 +77,8 @@ func TestDeviceGrantService_PollLifecycle(t *testing.T) {
 	if err := svc.Approve(ctx, dc.UserCode, uid, []string{"repo:read"}); err != nil {
 		t.Fatalf("Approve: %v", err)
 	}
-	svc.SetClock(func() time.Time { return time.Now().Add(time.Minute) })
+	pollAt := time.Now().Add(time.Minute)
+	svc.SetClock(func() time.Time { return pollAt })
 	tok, err := svc.Poll(ctx, dc.DeviceCode)
 	if err != nil {
 		t.Fatalf("poll after approval: %v", err)
@@ -89,7 +90,7 @@ func TestDeviceGrantService_PollLifecycle(t *testing.T) {
 		t.Errorf("Validate: %v", err)
 	}
 	list, _ := tokens.List(ctx, uid)
-	wantName := "cz (mk-laptop[31m) · " + time.Now().UTC().Format("2006-01-02")
+	wantName := "cz (mk-laptop[31m) · " + pollAt.UTC().Format("2006-01-02")
 	if len(list) != 1 || list[0].Name != wantName || list[0].ExpiresAt != nil {
 		t.Errorf("listed tokens = %+v; want one named %q (escape byte stripped), no expiry", list, wantName)
 	}
@@ -131,5 +132,23 @@ func TestDeviceGrantService_ApproveCannotAddScopes(t *testing.T) {
 	}
 	if err := svc.Approve(ctx, strings.ToLower(dc.UserCode), uid, []string{"repo:read"}); err != nil {
 		t.Errorf("Approve with a lower-case code: %v", err)
+	}
+}
+
+func TestDeviceGrantService_ApproveDedupesScopes(t *testing.T) {
+	svc, _, uid, ip := newDeviceSvc(t)
+	ctx := context.Background()
+	dc, _ := svc.Create(ctx, ip, []string{"repo:read", "repo:write"}, "")
+	if err := svc.Approve(ctx, dc.UserCode, uid, []string{"repo:read", "repo:read"}); err != nil {
+		t.Fatalf("Approve: %v", err)
+	}
+	pollAt := time.Now().Add(time.Minute)
+	svc.SetClock(func() time.Time { return pollAt })
+	tok, err := svc.Poll(ctx, dc.DeviceCode)
+	if err != nil {
+		t.Fatalf("Poll: %v", err)
+	}
+	if len(tok.Scopes) != 1 || tok.Scopes[0] != "repo:read" {
+		t.Errorf("Scopes = %v; want exactly [repo:read]", tok.Scopes)
 	}
 }

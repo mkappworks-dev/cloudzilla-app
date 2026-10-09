@@ -191,6 +191,13 @@ func (s *DeviceGrantService) Approve(ctx context.Context, userCode string, userI
 	if err != nil {
 		return err
 	}
+	var unique []string
+	for _, sc := range scopes {
+		if !slices.Contains(unique, sc) {
+			unique = append(unique, sc)
+		}
+	}
+	scopes = unique
 	if len(scopes) == 0 || slices.ContainsFunc(scopes, func(sc string) bool { return !slices.Contains(g.Scopes, sc) }) {
 		return ErrInvalidScope
 	}
