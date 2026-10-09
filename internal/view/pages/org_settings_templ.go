@@ -834,7 +834,7 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "</li></ul></section></div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "</li></ul></section></div></div><script>\n\t\t\t\t(function () {\n\t\t\t\t\tvar links = Array.prototype.slice.call(\n\t\t\t\t\t\tdocument.querySelectorAll('aside[aria-label=\"Settings sections\"] a[href^=\"#\"]')\n\t\t\t\t\t);\n\t\t\t\t\tvar pairs = links.map(function (l) {\n\t\t\t\t\t\treturn { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) };\n\t\t\t\t\t}).filter(function (p) { return p.el; });\n\t\t\t\t\tif (!pairs.length) return;\n\t\t\t\t\tfunction setActive(active) {\n\t\t\t\t\t\tpairs.forEach(function (p) {\n\t\t\t\t\t\t\tvar on = p === active;\n\t\t\t\t\t\t\tvar danger = p.link.classList.contains('text-destructive');\n\t\t\t\t\t\t\tp.link.classList.toggle('bg-accent', on);\n\t\t\t\t\t\t\tp.link.classList.toggle('font-medium', on);\n\t\t\t\t\t\t\tif (!danger) {\n\t\t\t\t\t\t\t\tp.link.classList.toggle('text-foreground', on);\n\t\t\t\t\t\t\t\tp.link.classList.toggle('text-muted-foreground', !on);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tif (on) p.link.setAttribute('aria-current', 'true');\n\t\t\t\t\t\t\telse p.link.removeAttribute('aria-current');\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tvar lockUntilIdle = false;\n\t\t\t\t\tvar idleTimer;\n\t\t\t\t\tfunction spy() {\n\t\t\t\t\t\tif (lockUntilIdle) return;\n\t\t\t\t\t\tvar best = pairs[0];\n\t\t\t\t\t\tvar atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;\n\t\t\t\t\t\tif (atBottom) {\n\t\t\t\t\t\t\tbest = pairs[pairs.length - 1];\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tfor (var i = 0; i < pairs.length; i++) {\n\t\t\t\t\t\t\t\tif (pairs[i].el.getBoundingClientRect().top <= 100) best = pairs[i];\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t\tsetActive(best);\n\t\t\t\t\t}\n\t\t\t\t\tpairs.forEach(function (p) {\n\t\t\t\t\t\tp.link.addEventListener('click', function () {\n\t\t\t\t\t\t\tsetActive(p);\n\t\t\t\t\t\t\tlockUntilIdle = true;\n\t\t\t\t\t\t\tclearTimeout(idleTimer);\n\t\t\t\t\t\t\tidleTimer = setTimeout(function () { lockUntilIdle = false; }, 300);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t\twindow.addEventListener('scroll', function () {\n\t\t\t\t\t\tif (lockUntilIdle) {\n\t\t\t\t\t\t\tclearTimeout(idleTimer);\n\t\t\t\t\t\t\tidleTimer = setTimeout(function () { lockUntilIdle = false; }, 150);\n\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t}\n\t\t\t\t\t\tspy();\n\t\t\t\t\t}, { passive: true });\n\t\t\t\t\tspy();\n\t\t\t\t})();\n\t\t\t</script></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -910,7 +910,7 @@ func orgInviteMemberDialog(orgName string, confirm components.ConfirmFactors) te
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/orgs/" + orgName + "/members")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 419, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 476, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var38)
 			if templ_7745c5c3_Err != nil {
@@ -947,7 +947,7 @@ func orgInviteMemberDialog(orgName string, confirm components.ConfirmFactors) te
 					var templ_7745c5c3_Var41 string
 					templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs("Invite member to " + orgName)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 428, Col: 36}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 485, Col: 36}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 					if templ_7745c5c3_Err != nil {
@@ -1107,7 +1107,7 @@ func orgTransferDialog(orgName string, confirm components.ConfirmFactors) templ.
 			var templ_7745c5c3_Var47 string
 			templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/orgs/" + orgName + "/transfer")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 481, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 538, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var47)
 			if templ_7745c5c3_Err != nil {
@@ -1156,7 +1156,7 @@ func orgTransferDialog(orgName string, confirm components.ConfirmFactors) templ.
 					var templ_7745c5c3_Var50 string
 					templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs("Transfer " + orgName)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 487, Col: 59}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 544, Col: 59}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 					if templ_7745c5c3_Err != nil {
@@ -1223,7 +1223,7 @@ func orgTransferDialog(orgName string, confirm components.ConfirmFactors) templ.
 				var templ_7745c5c3_Var53 string
 				templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(orgName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 510, Col: 61}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 567, Col: 61}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 				if templ_7745c5c3_Err != nil {
@@ -1236,7 +1236,7 @@ func orgTransferDialog(orgName string, confirm components.ConfirmFactors) templ.
 				var templ_7745c5c3_Var54 string
 				templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.ResolveAttributeValue(orgName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 517, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 574, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var54)
 				if templ_7745c5c3_Err != nil {
@@ -1336,7 +1336,7 @@ func orgDeleteDialog(orgName string, memberCount int, confirm components.Confirm
 			var templ_7745c5c3_Var58 string
 			templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/orgs/" + orgName + "/delete")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 536, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 593, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var58)
 			if templ_7745c5c3_Err != nil {
@@ -1385,7 +1385,7 @@ func orgDeleteDialog(orgName string, memberCount int, confirm components.Confirm
 					var templ_7745c5c3_Var61 string
 					templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs("Delete " + orgName)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 542, Col: 57}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 599, Col: 57}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 					if templ_7745c5c3_Err != nil {
@@ -1425,7 +1425,7 @@ func orgDeleteDialog(orgName string, memberCount int, confirm components.Confirm
 						var templ_7745c5c3_Var63 string
 						templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs("its 1 member row.")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 547, Col: 27}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 604, Col: 27}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 						if templ_7745c5c3_Err != nil {
@@ -1435,7 +1435,7 @@ func orgDeleteDialog(orgName string, memberCount int, confirm components.Confirm
 						var templ_7745c5c3_Var64 string
 						templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs("all " + strconv.Itoa(memberCount) + " member rows.")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 549, Col: 60}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 606, Col: 60}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 						if templ_7745c5c3_Err != nil {
@@ -1477,7 +1477,7 @@ func orgDeleteDialog(orgName string, memberCount int, confirm components.Confirm
 				var templ_7745c5c3_Var66 string
 				templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(orgName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 559, Col: 61}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 616, Col: 61}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 				if templ_7745c5c3_Err != nil {
@@ -1490,7 +1490,7 @@ func orgDeleteDialog(orgName string, memberCount int, confirm components.Confirm
 				var templ_7745c5c3_Var67 string
 				templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.ResolveAttributeValue(orgName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 566, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 623, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var67)
 				if templ_7745c5c3_Err != nil {
