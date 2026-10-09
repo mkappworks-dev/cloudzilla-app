@@ -2,23 +2,27 @@ package router_test
 
 import (
 	"database/sql"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"testing/fstest"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/router"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// newGoogleRouter has Google sign-in configured. No test here sends a code: the
-// token exchange would reach the real Google.
+// newGoogleRouter has Google sign-in configured. A test that sends a code must
+// first point the exchange at a fake with fakeGoogle.
 func newGoogleRouter(t *testing.T, clientID string) (http.Handler, *service.Services, *sql.DB) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
@@ -192,5 +196,79 @@ func TestGoogleOAuthRoutes_ProviderSignInMismatchFails(t *testing.T) {
 	}
 	if loc := rr.Header().Get("Location"); strings.Contains(loc, "evil.test") {
 		t.Errorf("Location = %q; return_to must be a local path", loc)
+	}
+}
+
+// fakeGoogle answers the token and userinfo calls and counts the token exchanges.
+func fakeGoogle(t *testing.T, googleID string) *atomic.Int32 {
+	t.Helper()
+	var exchanges atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/token":
+			exchanges.Add(1)
+			_, _ = io.WriteString(w, `{"access_token":"fake-token","token_type":"Bearer","expires_in":3600}`)
+		case "/userinfo":
+			_, _ = fmt.Fprintf(w, `{"id":%q,"email":%q,"verified_email":true}`, googleID, googleID+"@example.test")
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	handler.UseFakeGoogle(t, srv.URL)
+	return &exchanges
+}
+
+func TestGoogleOAuthRoutes_CallbackRefusesEmptyOrMismatchedStateBeforeExchange(t *testing.T) {
+	h, _, _ := newGoogleRouter(t, "client-123")
+	exchanges := fakeGoogle(t, "g-"+testutil.UniqueSuffix(t))
+
+	callback := func(query string, cookies ...*http.Cookie) *http.Request {
+		req := httptest.NewRequest(http.MethodGet, "/auth/google/callback?"+query, nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		return req
+	}
+	cookie := func(name, value string) *http.Cookie { return &http.Cookie{Name: name, Value: value} }
+	cases := map[string]*http.Request{
+		"no cookie, no state":                  callback("code=c"),
+		"no cookie, empty state":               callback("state=&code=c"),
+		"empty cookie, no state":               callback("code=c", cookie("oauth_state", "")),
+		"empty cookie, empty state":            callback("state=&code=c", cookie("oauth_state", "")),
+		"empty cookie, state set":              callback("state=abc&code=c", cookie("oauth_state", "")),
+		"mismatched cookie":                    callback("state=abc&code=c", cookie("oauth_state", "other")),
+		"empty link cookie, empty state":       callback("state=&code=c", cookie("oauth_link_state", "")),
+		"empty reauth cookie, empty state":     callback("state=&code=c", cookie("oauth_reauth_state", "")),
+		"all three cookies empty, empty state": callback("state=&code=c", cookie("oauth_state", ""), cookie("oauth_link_state", ""), cookie("oauth_reauth_state", "")),
+	}
+	for name, req := range cases {
+		rr := serve(h, req)
+		if rr.Code != http.StatusBadRequest || !strings.Contains(rr.Body.String(), "invalid OAuth state") {
+			t.Errorf("%s: %d %q, want 400 invalid OAuth state", name, rr.Code, rr.Body.String())
+		}
+		if setCookie(rr, "cz_token") != nil {
+			t.Errorf("%s: a session cookie was issued", name)
+		}
+	}
+	if n := exchanges.Load(); n != 0 {
+		t.Errorf("%d token exchanges, want 0: a refused callback must not reach Google", n)
+	}
+}
+
+func TestGoogleOAuthRoutes_CallbackWithMatchingStateSignsIn(t *testing.T) {
+	h, _, _ := newGoogleRouter(t, "client-123")
+	exchanges := fakeGoogle(t, "g-"+testutil.UniqueSuffix(t))
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/google/callback?state=s1&code=c", nil)
+	req.AddCookie(&http.Cookie{Name: "oauth_state", Value: "s1"})
+	rr := serve(h, req)
+	wantStatus(t, rr, http.StatusSeeOther)
+	if setCookie(rr, "cz_token") == nil {
+		t.Error("a matching state issued no session cookie")
+	}
+	if n := exchanges.Load(); n != 1 {
+		t.Errorf("%d token exchanges, want 1", n)
 	}
 }
