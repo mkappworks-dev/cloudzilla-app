@@ -16,10 +16,23 @@ type AccessTokenStore struct{ db *sql.DB }
 // NewAccessTokenStore creates an AccessTokenStore backed by the given database.
 func NewAccessTokenStore(db *sql.DB) *AccessTokenStore { return &AccessTokenStore{db: db} }
 
+type queryRower interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
 func (s *AccessTokenStore) Create(ctx context.Context, t *model.AccessToken) error {
+	return s.insert(ctx, s.db, t)
+}
+
+// CreateTx inserts t inside tx, for callers that must commit it with other changes.
+func (s *AccessTokenStore) CreateTx(ctx context.Context, tx *sql.Tx, t *model.AccessToken) error {
+	return s.insert(ctx, tx, t)
+}
+
+func (s *AccessTokenStore) insert(ctx context.Context, q queryRower, t *model.AccessToken) error {
 	t.ScopesRaw = strings.Join(t.Scopes, ",")
 	t.TargetsRaw = strings.Join(t.Targets, ",")
-	err := s.db.QueryRowContext(ctx,
+	err := q.QueryRowContext(ctx,
 		`INSERT INTO access_tokens (user_id, name, token_hash, last_eight, scopes, expires_at, signing_key, targets)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at`,
 		t.UserID, t.Name, t.TokenHash, t.LastEight, t.ScopesRaw, t.ExpiresAt, t.SigningKey, t.TargetsRaw,

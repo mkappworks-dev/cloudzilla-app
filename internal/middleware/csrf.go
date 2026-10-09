@@ -44,9 +44,9 @@ func CSRF(secure bool) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Skip CSRF for the OAuth token endpoint: clients call it from their own
-			// backend and authenticate with their client secret, not a cookie.
-			if r.URL.Path == "/oauth/token" {
+			// These endpoints are called by CLIs and backends that hold no cookie; they
+			// authenticate with a client secret or a device code.
+			if r.URL.Path == "/oauth/token" || r.URL.Path == "/api/auth/device/code" || r.URL.Path == "/api/auth/device/token" {
 				next.ServeHTTP(w, r)
 				return
 			}

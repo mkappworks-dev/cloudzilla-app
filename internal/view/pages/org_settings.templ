@@ -403,6 +403,63 @@ templ OrgSettings(data view.OrgSettingsData) {
 				</div>
 
 			</div>
+			<script>
+				(function () {
+					var links = Array.prototype.slice.call(
+						document.querySelectorAll('aside[aria-label="Settings sections"] a[href^="#"]')
+					);
+					var pairs = links.map(function (l) {
+						return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) };
+					}).filter(function (p) { return p.el; });
+					if (!pairs.length) return;
+					function setActive(active) {
+						pairs.forEach(function (p) {
+							var on = p === active;
+							var danger = p.link.classList.contains('text-destructive');
+							p.link.classList.toggle('bg-accent', on);
+							p.link.classList.toggle('font-medium', on);
+							if (!danger) {
+								p.link.classList.toggle('text-foreground', on);
+								p.link.classList.toggle('text-muted-foreground', !on);
+							}
+							if (on) p.link.setAttribute('aria-current', 'true');
+							else p.link.removeAttribute('aria-current');
+						});
+					}
+					var lockUntilIdle = false;
+					var idleTimer;
+					function spy() {
+						if (lockUntilIdle) return;
+						var best = pairs[0];
+						var atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+						if (atBottom) {
+							best = pairs[pairs.length - 1];
+						} else {
+							for (var i = 0; i < pairs.length; i++) {
+								if (pairs[i].el.getBoundingClientRect().top <= 100) best = pairs[i];
+							}
+						}
+						setActive(best);
+					}
+					pairs.forEach(function (p) {
+						p.link.addEventListener('click', function () {
+							setActive(p);
+							lockUntilIdle = true;
+							clearTimeout(idleTimer);
+							idleTimer = setTimeout(function () { lockUntilIdle = false; }, 300);
+						});
+					});
+					window.addEventListener('scroll', function () {
+						if (lockUntilIdle) {
+							clearTimeout(idleTimer);
+							idleTimer = setTimeout(function () { lockUntilIdle = false; }, 150);
+							return;
+						}
+						spy();
+					}, { passive: true });
+					spy();
+				})();
+			</script>
 		</div>
 
 		@orgInviteMemberDialog(data.Org.Name, data.Confirm)

@@ -151,31 +151,35 @@ func (s *AccessTokenService) Check(ctx context.Context, userID int64, t NewToken
 	return t, nil
 }
 
+// newToken builds a token record and its raw value without storing either.
+func newToken(userID int64, nt NewToken) (string, *model.AccessToken, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", nil, fmt.Errorf("generate token bytes: %w", err)
+	}
+	rawHex := "czp_" + hex.EncodeToString(raw)
+	sum := sha256.Sum256([]byte(rawHex))
+	return rawHex, &model.AccessToken{
+		UserID:     userID,
+		Name:       nt.Name,
+		TokenHash:  hex.EncodeToString(sum[:]),
+		LastEight:  rawHex[len(rawHex)-8:],
+		Scopes:     nt.Scopes,
+		ExpiresAt:  nt.ExpiresAt,
+		SigningKey: nt.SigningKey,
+		Targets:    nt.Targets,
+	}, nil
+}
+
 // Create checks nt (see Check) and creates the token, returning the raw token once.
 func (s *AccessTokenService) Create(ctx context.Context, userID int64, nt NewToken) (string, *model.AccessToken, error) {
 	nt, err := s.Check(ctx, userID, nt)
 	if err != nil {
 		return "", nil, err
 	}
-
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		return "", nil, fmt.Errorf("generate token bytes: %w", err)
-	}
-	rawHex := "czp_" + hex.EncodeToString(raw)
-
-	sum := sha256.Sum256([]byte(rawHex))
-	hash := hex.EncodeToString(sum[:])
-
-	t := &model.AccessToken{
-		UserID:     userID,
-		Name:       nt.Name,
-		TokenHash:  hash,
-		LastEight:  rawHex[len(rawHex)-8:],
-		Scopes:     nt.Scopes,
-		ExpiresAt:  nt.ExpiresAt,
-		SigningKey: nt.SigningKey,
-		Targets:    nt.Targets,
+	rawHex, t, err := newToken(userID, nt)
+	if err != nil {
+		return "", nil, err
 	}
 	if err := s.tokens.Create(ctx, t); err != nil {
 		return "", nil, err
