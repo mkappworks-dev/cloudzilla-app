@@ -476,6 +476,31 @@ git commit -m "feat(projects): rich cards, composer and side panel on the board"
 
 ---
 
+### Task 7a: Seed data for pulls, milestones, issues, projects and releases
+
+Requested by the user after the plan was written. Run after Task 6 so the seed can exercise the final UI. The seed already creates issues (`seedIssues`), milestones (inside `seedIssues`), pull requests (`seedPulls`) and releases (`seedReleases`) in `internal/seed/activity.go`; it creates no projects.
+
+**Files:**
+- Modify: `internal/seed/seed.go` (`Report` gains `Projects`, `Cards`; register `{"projects", s.seedProjects}` after pulls and issues), `internal/seed/activity.go` or a new `internal/seed/projects.go` (`seedProjects`), `internal/seed/seed_test.go`
+- Docs: the seed section of `docs/` if one lists what is seeded (grep `cz-admin seed` and `seed` in `docs/`)
+
+**Interfaces:**
+- Consumes: `s.svcs.Project` (`CreateProject`, `CreateColumn`, `CreateCard(ctx, projectID, columnID, userID, model.CardDetails)`, `ConvertCardToIssue`, `SetProjectClosed`), `seedRepo` fields `milestones`, issues and PRs created earlier in the run, repo labels and collaborators.
+- Produces: `func (s *seeder) seedProjects() error`; `Report.Projects`, `Report.Cards`.
+
+- [ ] **Step 1: Failing seed test.** In `seed_test.go` (follow its existing structure) assert that after a seed run: at least one repo has a project with three or more columns; cards exist covering each shape — titled note with description and due date, note with assignees and labels, note linked to an issue, plain linked issue card, plain linked PR card, a card with a past due date, a card whose description contains a `#N` that resolves to a seeded issue; one project is closed; and the report counts match the database. Also assert, for the other entities the user asked to cover, that the run seeded open and closed milestones with issues attached, issues in both states, PRs in open, merged and closed states, and published releases including a prerelease; if any of those shapes is missing from the current seed, extend `seedIssues`/`seedPulls`/`seedReleases` minimally to produce it (deterministic from the seed's rng, no new randomness sources).
+- [ ] **Step 2: Run to verify failure.** `TEST_DATABASE_DSN=... go test ./internal/seed/ -count=1`.
+- [ ] **Step 3: Implement `seedProjects`.** For roughly a third of the repos with `AllowProjects`, create one or two boards via the service layer (never raw SQL) with columns To do / In progress / Done, cards of every shape above distributed across columns using the repo's own issues, PRs, labels, collaborators and the rng for variety, a past due date on some, and `#N` references in some descriptions; close one board; bump the report counters.
+- [ ] **Step 4: Run tests and a real seed.** `TEST_DATABASE_DSN=... go test ./internal/seed/ -count=1`, then seed a scratch database (a second `createdb` in the :5497 container or a fresh container; never the shared dev DB) with `CZ_DATABASE_DSN=<scratch> go run ./cmd/cz-admin/. seed`, and confirm the counts printed in the summary.
+- [ ] **Step 5: Commit.**
+
+```bash
+git add internal/seed docs
+git commit -m "feat(seed): seed projects, and cover milestones, pulls, issues and releases"
+```
+
+---
+
 ### Task 7: Docs, tickets and cleanup
 
 **Files:**
