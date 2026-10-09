@@ -20,7 +20,7 @@ func newDeviceSvc(t *testing.T) (*service.DeviceGrantService, *service.AccessTok
 	uid := testutil.SeedUser(t, db, suffix)
 	ip := "ip_" + suffix
 	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM device_grants WHERE requester_ip = $1`, ip) })
-	return service.NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken),
+	return service.NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken, stores.User),
 		service.NewAccessTokenService(stores.AccessToken, stores.User), uid, ip
 }
 
@@ -91,6 +91,9 @@ func TestDeviceGrantService_PollLifecycle(t *testing.T) {
 	}
 	list, _ := tokens.List(ctx, uid)
 	wantName := "cz (mk-laptop[31m) · " + pollAt.UTC().Format("2006-01-02")
+	if tok.UserID != uid || tok.TokenName != wantName {
+		t.Errorf("token owner/name = %d, %q; want %d, %q", tok.UserID, tok.TokenName, uid, wantName)
+	}
 	if len(list) != 1 || list[0].Name != wantName || list[0].ExpiresAt != nil {
 		t.Errorf("listed tokens = %+v; want one named %q (escape byte stripped), no expiry", list, wantName)
 	}
@@ -151,4 +154,9 @@ func TestDeviceGrantService_ApproveDedupesScopes(t *testing.T) {
 	if len(tok.Scopes) != 1 || tok.Scopes[0] != "repo:read" {
 		t.Errorf("Scopes = %v; want exactly [repo:read]", tok.Scopes)
 	}
+}
+
+func TestDeviceGrantService_NotifyApprovedWithoutEmailIsANoop(t *testing.T) {
+	svc, _, uid, _ := newDeviceSvc(t)
+	svc.NotifyApproved(uid, "laptop", "203.0.113.7", []string{"repo:read"}) // must not panic
 }
