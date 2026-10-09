@@ -210,7 +210,7 @@ func TestReleases_Update(t *testing.T) {
 		{"bad id", metaReq{method: "PATCH", target: e.path("/releases/x"), token: e.owner.token, json: `{"tag_name":"x"}`}, http.StatusBadRequest},
 		{"bad json", metaReq{method: "PATCH", target: e.path("/releases/%d", id), token: e.owner.token, json: `{`}, http.StatusBadRequest},
 		{"invalid tag", metaReq{method: "PATCH", target: e.path("/releases/%d", id), token: e.owner.token, json: `{"tag_name":"a b"}`}, http.StatusUnprocessableEntity},
-		{"tag already used", metaReq{method: "PATCH", target: e.path("/releases/%d", id), token: e.owner.token, json: `{"tag_name":"v2"}`}, http.StatusInternalServerError},
+		{"tag already used", metaReq{method: "PATCH", target: e.path("/releases/%d", id), token: e.owner.token, json: `{"tag_name":"v2"}`}, http.StatusUnprocessableEntity},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
