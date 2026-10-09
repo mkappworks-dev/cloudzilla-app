@@ -91,7 +91,7 @@ Before creating, reading, triaging or finishing a spec or ticket (markdown under
 
 ### Triage labels
 
-New work enters through the tracker: write the spec and tickets under `.scratch/`, then triage them (`/triage`) before any code.
+New work enters through the tracker as a spec and tickets under `.scratch/`. `/to-spec` and `/to-tickets` output is already `ready-for-agent`; run `/triage` on anything else (a bug, a rough idea, a ticket with no `Status:`) before any code.
 
 When setting a triage role, write it on the ticket's `Status:` line as `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human` or `wontfix`. See `docs/agents/triage-labels.md`.
 
