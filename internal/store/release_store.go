@@ -117,6 +117,10 @@ func (s *ReleaseStore) Update(ctx context.Context, r *model.Release) error {
 		r.TagName, r.Name, r.Body, r.IsPrerelease, r.IsDraft, r.PublishedAt, r.ID, r.RepoID,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrReleaseTagInUseStore
+		}
 		return fmt.Errorf("release update: %w", err)
 	}
 	return nil

@@ -6,7 +6,7 @@ Status: done
 
 ## Problem
 
-A branch protection rule's `require_review_count` and `require_status_checks` gate only PR merges (`BranchProtectionService.CheckMerge`). Push enforcement (`CheckPushCommand`) checks only `block_force_push`. A writer can therefore `git push origin main` straight past a rule that requires two approving reviews. Web edits, renames and deletes (`.scratch/web-file-edit/spec.md`) follow the same rules as a push, so they get through as well.
+A branch protection rule's `require_review_count` and `require_status_checks` gate only PR merges (`BranchProtectionService.CheckMerge`). Push enforcement (`CheckPushCommand`) checks only `block_force_push`. A writer can therefore `git push origin main` straight past a rule that requires two approving reviews. Web edits, renames and deletes (`.scratch/2026-10-06-web-file-edit/spec.md`) follow the same rules as a push, so they get through as well.
 
 `docs/ROADMAP.md` (Phase 6.1) lists an `ErrPushRequiresPR` sentinel that was never built.
 

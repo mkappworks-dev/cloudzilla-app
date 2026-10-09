@@ -59,7 +59,7 @@ func (s *SearchStore) SearchIssues(ctx context.Context, query string, requesting
 	}
 	q := `
 SELECT i.id, i.repo_id, i.number, i.author_id, u.username, i.title, i.body, i.state,
-       i.created_at, i.updated_at, i.closed_at
+       i.created_at, i.updated_at, i.closed_at, i.visibility, r.owner_name, r.name
 FROM issues i
 JOIN users u ON u.id = i.author_id
 JOIN repositories r ON r.id = i.repo_id
@@ -84,7 +84,8 @@ func (s *SearchStore) SearchPulls(ctx context.Context, query string, requestingU
 	}
 	q := `
 SELECT p.id, p.repo_id, p.number, p.author_id, u.username, p.title, p.body, p.state,
-       p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at
+       p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at,
+       p.is_draft, r.owner_name, r.name
 FROM pull_requests p
 JOIN users u ON u.id = p.author_id
 JOIN repositories r ON r.id = p.repo_id
@@ -171,6 +172,15 @@ LIMIT $2`
 // SuggestOrgs matches a prefix of the org name or display name. Orgs are
 // public, so there is no viewer filter.
 func (s *SearchStore) SuggestOrgs(ctx context.Context, query string, limit int) ([]model.Organization, error) {
+	return s.orgsByPrefix(ctx, query, limit)
+}
+
+// SearchOrgs is the results-page twin of SuggestOrgs, with a larger limit from the caller.
+func (s *SearchStore) SearchOrgs(ctx context.Context, query string, limit int) ([]model.Organization, error) {
+	return s.orgsByPrefix(ctx, query, limit)
+}
+
+func (s *SearchStore) orgsByPrefix(ctx context.Context, query string, limit int) ([]model.Organization, error) {
 	const q = `
 SELECT id, name, display_name, description, avatar_url, avatar_key
 FROM organizations
@@ -179,7 +189,7 @@ ORDER BY name
 LIMIT $2`
 	rows, err := s.db.QueryContext(ctx, q, likePrefix(query), limit)
 	if err != nil {
-		return nil, fmt.Errorf("suggest orgs: %w", err)
+		return nil, fmt.Errorf("search orgs: %w", err)
 	}
 	defer rows.Close()
 	var orgs []model.Organization
@@ -223,6 +233,7 @@ func scanIssues(rows *sql.Rows) ([]model.Issue, error) {
 		if err := rows.Scan(
 			&i.ID, &i.RepoID, &i.Number, &i.AuthorID, &i.AuthorName,
 			&i.Title, &i.Body, &i.State, &i.CreatedAt, &i.UpdatedAt, &closedAt,
+			&i.Visibility, &i.RepoOwner, &i.RepoName,
 		); err != nil {
 			return nil, err
 		}
@@ -243,6 +254,7 @@ func scanPulls(rows *sql.Rows) ([]model.PullRequest, error) {
 			&p.ID, &p.RepoID, &p.Number, &p.AuthorID, &p.AuthorName,
 			&p.Title, &p.Body, &p.State, &p.HeadBranch, &p.BaseBranch,
 			&p.CreatedAt, &p.UpdatedAt, &mergedAt, &closedAt,
+			&p.IsDraft, &p.RepoOwner, &p.RepoName,
 		); err != nil {
 			return nil, err
 		}

@@ -12,7 +12,7 @@
 
 **Tech stack:** Go, chi v5, go-git v5, PostgreSQL, Templ.
 
-**Spec:** `.scratch/repo-mirrors/spec.md`, with tickets in `.scratch/repo-mirrors/issues/`.
+**Spec:** `.scratch/2026-10-06-repo-mirrors/spec.md`, with tickets in `.scratch/2026-10-06-repo-mirrors/issues/`.
 
 ## Global constraints
 

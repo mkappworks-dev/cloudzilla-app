@@ -237,6 +237,7 @@ func TestHandleSAMLCallback_Rejects(t *testing.T) {
 		{"unparseable NotOnOrAfter", nil, func(s *samlSpec) { s.NotOnOrAfter = "tomorrow" }, nil, "NotOnOrAfter unparseable"},
 		{"no assertion ID", nil, func(s *samlSpec) { s.ID = "" }, nil, "ID"},
 		{"audience for another SP", nil, func(s *samlSpec) { s.Audience = "someone-else" }, nil, "audience"},
+		{"no audience restriction", nil, func(s *samlSpec) { s.Audience = "" }, nil, "audience"},
 		{"recipient is another ACS", nil, func(s *samlSpec) { s.Recipient = "https://evil.test.invalid/acs" }, nil, "recipient mismatch"},
 		{"blank NameID", nil, func(s *samlSpec) { s.NameID = "   " }, nil, "missing NameID"},
 		{"email already has a password account", nil, func(s *samlSpec) { s.Attrs = map[string]string{"email": email} }, nil, "already exists"},
