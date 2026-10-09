@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 04-results-page-rows
 
 ## What
@@ -11,11 +11,11 @@ Add `components.Highlight(text, query string)`, a templ-renderable helper that w
 
 ## Acceptance criteria
 
-- [ ] `bra` highlights `brave` in `acme/brave-core`; `BRAVE` in a title matches case-insensitively.
-- [ ] A match in the middle of a word is not highlighted (`rave` does not mark `brave`).
-- [ ] HTML in a title (`<script>`) is escaped, with and without a match.
-- [ ] Unicode letters and a query of only punctuation render the text unmarked.
-- [ ] Unit tests for the above.
+- [x] `bra` highlights `brave` in `acme/brave-core`; `BRAVE` in a title matches case-insensitively.
+- [x] A match in the middle of a word is not highlighted (`rave` does not mark `brave`).
+- [x] HTML in a title (`<script>`) is escaped, with and without a match.
+- [x] Unicode letters and a query of only punctuation render the text unmarked.
+- [x] Unit tests for the above.
 
 ## Relevant files
 

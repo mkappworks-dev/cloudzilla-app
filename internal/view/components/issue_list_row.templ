@@ -13,6 +13,7 @@ type IssueListRowData struct {
 	OpenedAt  string // pre-formatted relative
 	OpenedISO string
 	Labels    []LabelChip
+	Query     string // highlights matching words in the title
 }
 
 templ IssueListRow(d IssueListRowData) {
@@ -34,7 +35,7 @@ templ IssueListRow(d IssueListRowData) {
 					if d.Private {
 						<span class="inline-flex items-center mr-1 text-warning" title="Private" aria-label="Private">🔒</span>
 					}
-					<span class="hover:underline">{ d.Title }</span>
+					<span class="hover:underline">@Highlight(d.Title, d.Query)</span>
 				</div>
 				<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
 					if d.Repo != "" {

@@ -21,6 +21,7 @@ type PRListRowData struct {
 	LabelChips          []LabelChip
 	ReviewerAvatars     []string // initials
 	OpenedAt            string   // pre-formatted relative
+	Query               string   // highlights matching words in the title
 }
 
 type LabelChip struct {
@@ -35,7 +36,7 @@ templ PRListRow(d PRListRowData) {
 			<div class="flex items-start gap-3 mb-1.5">
 				@prStateIcon(d.State)
 				<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-					<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ d.Title }</p>
+					<p class="text-[13.5px] font-medium leading-snug group-hover:underline">@Highlight(d.Title, d.Query)</p>
 					@prStateBadge(d.State)
 				</div>
 			</div>

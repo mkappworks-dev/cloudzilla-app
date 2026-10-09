@@ -65,7 +65,7 @@ func TestRepoListRow(t *testing.T) {
 
 func TestPersonListRow(t *testing.T) {
 	var buf bytes.Buffer
-	if err := PersonListRow("brave-software", "Brave Software").Render(context.Background(), &buf); err != nil {
+	if err := PersonListRow("brave-software", "Brave Software", "").Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	for _, want := range []string{`href="/brave-software"`, "Brave Software"} {

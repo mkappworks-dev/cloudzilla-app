@@ -54,6 +54,7 @@ templ Search(data view.SearchData) {
 									Name:        repo.Name,
 									Description: repo.Description,
 									Private:     repo.Private,
+									Query:       data.Query,
 								})
 							}
 						}
@@ -61,7 +62,7 @@ templ Search(data view.SearchData) {
 					if searchShows(data, "orgs") && len(data.Results.Orgs) > 0 {
 						@searchGroup(data, "Organizations") {
 							for _, o := range data.Results.Orgs {
-								@components.PersonListRow(o.Name, orgSubtitle(o))
+								@components.PersonListRow(o.Name, orgSubtitle(o), data.Query)
 							}
 						}
 					}
@@ -78,6 +79,7 @@ templ Search(data view.SearchData) {
 									Private:   issue.Visibility == "private",
 									OpenedAt:  formatRelative(issue.CreatedAt),
 									OpenedISO: issue.CreatedAt.UTC().Format(time.RFC3339),
+									Query:     data.Query,
 								})
 							}
 						}
@@ -94,6 +96,7 @@ templ Search(data view.SearchData) {
 									Author:    pr.AuthorName,
 									State:     pullRowState(pr),
 									OpenedAt:  formatRelative(pr.CreatedAt),
+									Query:     data.Query,
 								})
 							}
 						}
@@ -101,7 +104,7 @@ templ Search(data view.SearchData) {
 					if searchShows(data, "users") && len(data.Results.Users) > 0 {
 						@searchGroup(data, "Users") {
 							for _, u := range data.Results.Users {
-								@components.PersonListRow(u.Username, u.Bio)
+								@components.PersonListRow(u.Username, u.Bio, data.Query)
 							}
 						}
 					}

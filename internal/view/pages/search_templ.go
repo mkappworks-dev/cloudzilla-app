@@ -200,6 +200,7 @@ func Search(data view.SearchData) templ.Component {
 									Name:        repo.Name,
 									Description: repo.Description,
 									Private:     repo.Private,
+									Query:       data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
@@ -230,7 +231,7 @@ func Search(data view.SearchData) templ.Component {
 							}
 							ctx = templ.InitializeContext(ctx)
 							for _, o := range data.Results.Orgs {
-								templ_7745c5c3_Err = components.PersonListRow(o.Name, orgSubtitle(o)).Render(ctx, templ_7745c5c3_Buffer)
+								templ_7745c5c3_Err = components.PersonListRow(o.Name, orgSubtitle(o), data.Query).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -270,6 +271,7 @@ func Search(data view.SearchData) templ.Component {
 									Private:   issue.Visibility == "private",
 									OpenedAt:  formatRelative(issue.CreatedAt),
 									OpenedISO: issue.CreatedAt.UTC().Format(time.RFC3339),
+									Query:     data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
@@ -309,6 +311,7 @@ func Search(data view.SearchData) templ.Component {
 									Author:    pr.AuthorName,
 									State:     pullRowState(pr),
 									OpenedAt:  formatRelative(pr.CreatedAt),
+									Query:     data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
@@ -339,7 +342,7 @@ func Search(data view.SearchData) templ.Component {
 							}
 							ctx = templ.InitializeContext(ctx)
 							for _, u := range data.Results.Users {
-								templ_7745c5c3_Err = components.PersonListRow(u.Username, u.Bio).Render(ctx, templ_7745c5c3_Buffer)
+								templ_7745c5c3_Err = components.PersonListRow(u.Username, u.Bio, data.Query).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -420,7 +423,7 @@ func searchGroup(data view.SearchData, title string) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 124, Col: 109}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 127, Col: 109}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
