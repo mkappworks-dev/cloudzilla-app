@@ -20,6 +20,10 @@ func (f ConfirmFactors) Any() bool {
 	return f.Password || f.Code || f.Directory || f.Provider != "" || f.Email || f.Unavailable
 }
 
+// AwaitingProvider reports that the only way forward is a provider sign-in or an emailed code,
+// neither of which the browser has yet.
+func (f ConfirmFactors) AwaitingProvider() bool { return f.Provider != "" && !f.ProviderReady }
+
 // Needs names what confirming takes, to finish a sentence like "This needs …".
 func (f ConfirmFactors) Needs() string {
 	switch {

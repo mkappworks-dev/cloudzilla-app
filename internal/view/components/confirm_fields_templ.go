@@ -28,6 +28,10 @@ func (f ConfirmFactors) Any() bool {
 	return f.Password || f.Code || f.Directory || f.Provider != "" || f.Email || f.Unavailable
 }
 
+// AwaitingProvider reports that the only way forward is a provider sign-in or an emailed code,
+// neither of which the browser has yet.
+func (f ConfirmFactors) AwaitingProvider() bool { return f.Provider != "" && !f.ProviderReady }
+
 // Needs names what confirming takes, to finish a sentence like "This needs …".
 func (f ConfirmFactors) Needs() string {
 	switch {
@@ -155,7 +159,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-password")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 75, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 79, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -193,7 +197,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-password")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 85, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 89, Col: 38}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -227,7 +231,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-code")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 91, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 95, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -240,7 +244,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-code")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 92, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 96, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -270,7 +274,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs("Confirmed by signing in again with " + providerName(f.Provider) + ". It works for one change, within 10 minutes.")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 97, Col: 180}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 101, Col: 180}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -305,7 +309,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs("Confirm with " + providerName(f.Provider))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 101, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 105, Col: 49}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -335,7 +339,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-email-code")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 111, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 115, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 			if templ_7745c5c3_Err != nil {
@@ -348,7 +352,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-email-code")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 113, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 117, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
@@ -371,7 +375,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-email-code-status")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 113, Col: 267}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 117, Col: 267}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 			if templ_7745c5c3_Err != nil {
@@ -384,7 +388,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + idPrefix + "-email-code-status")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 118, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 122, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 			if templ_7745c5c3_Err != nil {
@@ -397,7 +401,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-email-code-status")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 123, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/confirm_fields.templ`, Line: 127, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 			if templ_7745c5c3_Err != nil {

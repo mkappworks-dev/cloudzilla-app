@@ -95,7 +95,7 @@ func (s *DeviceGrantService) NotifyApproved(userID int64, deviceName, ip string,
 		if deviceName == "" {
 			deviceName = defaultDeviceName
 		}
-		body := fmt.Sprintf("<p>A login from the device <strong>%s</strong> (IP %s) was approved on the Cloudzilla account <strong>@%s</strong>. It can use: <code>%s</code>.</p>"+
+		body := fmt.Sprintf("<p>A login from a device calling itself <strong>%s</strong> (name unverified, IP %s) was approved on the Cloudzilla account <strong>@%s</strong>. It can use: <code>%s</code>.</p>"+
 			"<p>If that wasn't you, revoke the token under Account settings → Access tokens and change your password.</p>",
 			html.EscapeString(deviceName), html.EscapeString(ip), html.EscapeString(u.Username), html.EscapeString(strings.Join(scopes, " ")))
 		if err := s.email.SendSecurityNotice(u, "A new device was authorized to use your account", body); err != nil {

@@ -95,9 +95,12 @@ func (h *Handler) deviceGrantFromCookie(w http.ResponseWriter, r *http.Request) 
 			if lerr == nil {
 				return g, true
 			}
-			if !errors.Is(lerr, service.ErrDeviceGrantNotFound) {
-				slog.Error("device login: look up code", "error", lerr)
+			if errors.Is(lerr, service.ErrDeviceGrantNotFound) {
+				// Only a cookie we signed for this user gets told; anything else is treated as no cookie.
+				h.renderDeviceEntry(w, r, http.StatusGone, answeredMessage)
+				return nil, false
 			}
+			slog.Error("device login: look up code", "error", lerr)
 		}
 	}
 	h.setDeviceCookie(w, 0, "", -1)
@@ -112,7 +115,7 @@ func (h *Handler) renderDeviceConfirm(w http.ResponseWriter, r *http.Request, cl
 	}
 	h.render(w, r, pages.DeviceConfirm(view.DeviceConfirmData{
 		BasePage: basePage(r, h.Services), Username: claims.Username, UserCode: formatUserCode(g.UserCode),
-		DeviceName: g.DeviceName, RequesterIP: g.RequesterIP, RequestedAt: view.Ago(g.CreatedAt),
+		DeviceName: g.DeviceName, RequesterIP: g.RequesterIP, ViewerIP: middleware.RemoteIP(r), RequestedAt: view.Ago(g.CreatedAt),
 		Scopes: g.Scopes, Selected: selected, Confirm: h.confirmFactors(r, claims.UserID), Error: msg,
 	}))
 }

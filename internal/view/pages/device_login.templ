@@ -2,6 +2,7 @@ package pages
 
 import (
 	"slices"
+	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -60,11 +61,18 @@ templ DeviceConfirm(data view.DeviceConfirmData) {
 						</dd>
 					</div>
 					<div class="flex items-center justify-between gap-3 px-3 py-2"><dt class="text-muted-foreground">Requested from</dt><dd>{ data.RequesterIP }, { data.RequestedAt }</dd></div>
+					<div class="flex items-center justify-between gap-3 px-3 py-2"><dt class="text-muted-foreground">This browser</dt><dd>{ data.ViewerIP }</dd></div>
 				</dl>
 				if data.Error != "" {
 					<div role="alert" class="border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]">{ data.Error }</div>
 				}
-				<form method="POST" action="/login/device/approve" class="space-y-4">
+				<form
+					method="POST"
+					action="/login/device/approve"
+					class="space-y-4"
+					x-data={ "{ gated: " + strconv.FormatBool(data.Confirm.AwaitingProvider()) + ", proven: " + strconv.FormatBool(!data.Confirm.AwaitingProvider()) + " }" }
+					@input="if (gated && $event.target.name === 'email_code') proven = $event.target.value.trim() !== ''"
+				>
 					<fieldset class="space-y-2">
 						<legend class="text-[12px] font-medium text-muted-foreground mb-2">Access this token will have</legend>
 						for _, s := range data.Scopes {
@@ -87,7 +95,7 @@ templ DeviceConfirm(data view.DeviceConfirmData) {
 						</div>
 					}
 					<div class="flex items-center gap-2">
-						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "approve", "type": "submit"}) {
+						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "approve", "type": "submit", "disabled": data.Confirm.AwaitingProvider(), ":disabled": "!proven"}) {
 							Authorize cz
 						}
 						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "deny", "type": "submit", "formnovalidate": true}) {
@@ -95,7 +103,7 @@ templ DeviceConfirm(data view.DeviceConfirmData) {
 						}
 					</div>
 				</form>
-				<p class="text-[11px] text-muted-foreground">You can revoke this token any time under Settings, Tokens.</p>
+				<p class="text-[11px] text-muted-foreground">You can revoke this token any time under Settings → Access tokens.</p>
 			</div>
 		</div>
 	}

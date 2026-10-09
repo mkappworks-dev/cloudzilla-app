@@ -67,6 +67,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	h.setDeviceCookie(w, 0, "", -1)
 	http.SetCookie(w, &http.Cookie{
 		Name:     h.Cfg.Auth.CookieName,
 		Value:    "",

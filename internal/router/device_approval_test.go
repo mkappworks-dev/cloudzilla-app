@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -98,6 +99,31 @@ func (f deviceFlow) poll(t *testing.T) (*service.DeviceToken, error) {
 
 func approveForm(password string, scopes ...string) url.Values {
 	return url.Values{"password": {password}, "scope": scopes}
+}
+
+// assertNoAudit fails as soon as an audit row for action appears within a short window.
+// The row is written by a goroutine, so absence can only be shown over a bounded wait.
+func assertNoAudit(t *testing.T, db *sql.DB, action string, actorID int64) {
+	t.Helper()
+	for deadline := time.Now().Add(300 * time.Millisecond); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		if n := countRows(t, db, `SELECT COUNT(*) FROM audit_log WHERE action = $1 AND actor_id = $2`, action, actorID); n != 0 {
+			t.Fatalf("%d %s audit rows; want none", n, action)
+		}
+	}
+}
+
+// expireAfterLookups makes the grant look expired from the service's clock after n reads of it,
+// which lands a request between the handler's lookup and the service's own.
+func (f deviceFlow) expireAfterLookups(t *testing.T, n int) {
+	t.Helper()
+	var calls atomic.Int32
+	f.svc.DeviceGrant.SetClock(func() time.Time {
+		if int(calls.Add(1)) > n {
+			return time.Now().Add(time.Hour)
+		}
+		return time.Now()
+	})
+	t.Cleanup(func() { f.svc.DeviceGrant.SetClock(time.Now) })
 }
 
 func clearsDeviceCookie(rec *httptest.ResponseRecorder) bool {
@@ -340,6 +366,9 @@ func TestDeviceLogin_TokensCannotUseThePages(t *testing.T) {
 	}
 	for _, tc := range []struct{ method, path string }{
 		{http.MethodGet, "/login/device"},
+		{http.MethodPost, "/login/device"},
+		{http.MethodGet, "/login/device/confirm"},
+		{http.MethodGet, "/login/device/approve"},
 		{http.MethodPost, "/login/device/approve"},
 	} {
 		req := httptest.NewRequest(tc.method, tc.path, nil)
@@ -358,13 +387,10 @@ func TestDeviceLogin_DenyLosesRaceToApproval(t *testing.T) {
 	}
 
 	rec := f.approve(c, url.Values{"action": {"deny"}})
-	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/login/device" {
-		t.Errorf("deny after approval = %d to %q; want 303 to /login/device", rec.Code, rec.Header().Get("Location"))
+	if rec.Code != http.StatusGone || !strings.Contains(rec.Body.String(), "expired or was already answered") || !clearsDeviceCookie(rec) {
+		t.Errorf("deny after approval = %d; want 410 with the answered message and a cleared cookie", rec.Code)
 	}
-	time.Sleep(200 * time.Millisecond)
-	if n := countRows(t, f.db, `SELECT COUNT(*) FROM audit_log WHERE action = $1 AND actor_id = $2`, model.AuditActionDeviceDeny, f.userID); n != 0 {
-		t.Errorf("%d deny audit rows; want none", n)
-	}
+	assertNoAudit(t, f.db, model.AuditActionDeviceDeny, f.userID)
 	if got := f.status(t); got != model.DeviceGrantApproved {
 		t.Errorf("status = %s; want approved", got)
 	}
@@ -378,12 +404,84 @@ func TestDeviceLogin_ApproveAfterAnswerGoesBackToEntry(t *testing.T) {
 	}
 
 	rec := f.approve(c, approveForm("password1", "repo:read"))
-	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/login/device" {
-		t.Errorf("approve after deny = %d to %q; want 303 to /login/device", rec.Code, rec.Header().Get("Location"))
+	if rec.Code != http.StatusGone || !strings.Contains(rec.Body.String(), "expired or was already answered") {
+		t.Errorf("approve after deny = %d; want 410 with the answered message", rec.Code)
 	}
-	time.Sleep(200 * time.Millisecond)
-	if n := countRows(t, f.db, `SELECT COUNT(*) FROM audit_log WHERE action = $1 AND actor_id = $2`, model.AuditActionDeviceApprove, f.userID); n != 0 {
-		t.Errorf("%d approve audit rows; want none", n)
+	assertNoAudit(t, f.db, model.AuditActionDeviceApprove, f.userID)
+	if got := f.status(t); got != model.DeviceGrantDenied {
+		t.Errorf("status = %s; want denied", got)
+	}
+}
+
+func TestDeviceLogin_LosingARaceInsideTheLookupWindowAnswers410(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		form   url.Values
+		action string
+	}{
+		{"deny", url.Values{"action": {"deny"}}, model.AuditActionDeviceDeny},
+		{"approve", approveForm("password1", "repo:read"), model.AuditActionDeviceApprove},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newReadWriteDeviceFlow(t)
+			c := f.cookie(t)
+			// Reads: the handler's lookup, then the service's lookup passes, then its write sees the expiry.
+			f.expireAfterLookups(t, 2)
+
+			rec := f.approve(c, tc.form)
+			if rec.Code != http.StatusGone || !strings.Contains(rec.Body.String(), "expired or was already answered") || !clearsDeviceCookie(rec) {
+				t.Errorf("%s = %d; want 410 with the answered message and a cleared cookie", tc.name, rec.Code)
+			}
+			assertNoAudit(t, f.db, tc.action, f.userID)
+			if got := f.status(t); got != model.DeviceGrantPending {
+				t.Errorf("status = %s; the lost race must change nothing", got)
+			}
+		})
+	}
+}
+
+func TestDeviceLogin_ConfirmPageTellsAnExpiredOrAnsweredRequestApart(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	c := f.cookie(t)
+	if err := f.svc.DeviceGrant.Deny(context.Background(), f.dc.UserCode, f.userID); err != nil {
+		t.Fatal(err)
+	}
+	req := browserRequest(http.MethodGet, "/login/device/confirm", f.session, nil)
+	req.AddCookie(c)
+	rec := serve(f.h, req)
+	if rec.Code != http.StatusGone || !strings.Contains(rec.Body.String(), "expired or was already answered") || !clearsDeviceCookie(rec) {
+		t.Errorf("confirm after the request was answered = %d; want 410 with the answered message and a cleared cookie", rec.Code)
+	}
+}
+
+func TestDeviceLogin_ConfirmPageShowsBothIPs(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	var ip string
+	if err := f.db.QueryRowContext(context.Background(), `SELECT requester_ip FROM device_grants WHERE user_code = $1`, f.rawCode()).Scan(&ip); err != nil {
+		t.Fatal(err)
+	}
+	req := browserRequest(http.MethodGet, "/login/device/confirm", f.session, nil)
+	req.RemoteAddr = "198.51.100.9:5555"
+	req.AddCookie(f.cookie(t))
+	body := serve(f.h, req).Body.String()
+	if !strings.Contains(body, ip) || !strings.Contains(body, "198.51.100.9") {
+		t.Errorf("confirm page should show the requester %s and the viewer 198.51.100.9", ip)
+	}
+}
+
+func TestDeviceLogin_CookieAttributes(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	c := f.cookie(t)
+	if c.SameSite != http.SameSiteLaxMode || c.MaxAge != int(service.DeviceGrantTTL.Seconds()) || c.Secure {
+		t.Errorf("cookie SameSite=%v MaxAge=%d Secure=%v; want Lax, %d, not Secure on a plain-HTTP test config", c.SameSite, c.MaxAge, c.Secure, int(service.DeviceGrantTTL.Seconds()))
+	}
+}
+
+func TestDeviceLogin_SigningOutClearsTheCookie(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	rec := serve(f.h, browserRequest(http.MethodPost, "/api/auth/logout", f.session, url.Values{}))
+	if !clearsDeviceCookie(rec) {
+		t.Errorf("logout = %d; want it to clear cz_device_code", rec.Code)
 	}
 }
 
@@ -527,4 +625,161 @@ func TestDeviceLogin_AuditDetails(t *testing.T) {
 	if md["source"] != "device login" || !strings.Contains(fmt.Sprint(md["token"]), "mk-laptop") {
 		t.Errorf("token details = %v", md)
 	}
+}
+
+func TestDeviceLogin_LDAPAccountConfirmsWithItsDirectoryPassword(t *testing.T) {
+	h, svc, db := newTestRouter(t)
+	ctx := context.Background()
+	host, port := testutil.FakeLDAP(t, "dirpass")
+	prior, err := svc.SSO.GetConfig(ctx, "ldap")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if prior == nil {
+			testutil.Exec(t, db, `DELETE FROM sso_configs WHERE provider = 'ldap'`)
+		} else if err := svc.SSO.SetConfig(ctx, "ldap", prior.Config, prior.Enabled); err != nil {
+			t.Errorf("restore ldap config: %v", err)
+		}
+	})
+	if err := svc.SSO.SetConfig(ctx, "ldap", map[string]string{
+		model.LDAPKeyHost: host, model.LDAPKeyPort: port, model.LDAPKeyBindDNTmpl: "uid=%s,ou=people,dc=test",
+	}, true); err != nil {
+		t.Fatal(err)
+	}
+
+	suffix := testutil.UniqueSuffix(t)
+	username := "testldap_" + suffix
+	var uid int64
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO users (username, email, password_hash, sso_provider, sso_id, is_invited)
+		 VALUES ($1, $2, '', 'ldap', $3, true) RETURNING id`,
+		username, username+"@ldap.local", "uid="+username+",ou=people,dc=test",
+	).Scan(&uid); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, uid) })
+	f := startDeviceGrant(t, h, svc, db, uid, username, "mk-laptop", "repo:read")
+	c := f.cookie(t)
+
+	req := browserRequest(http.MethodGet, "/login/device/confirm", f.session, nil)
+	req.AddCookie(c)
+	if body := serve(h, req).Body.String(); !strings.Contains(body, "Directory password") || strings.Contains(body, "Email me a code") {
+		t.Error("an LDAP account should be asked for its directory password and not offered an emailed code")
+	}
+
+	if rec := f.approve(c, approveForm("not-the-password", "repo:read")); rec.Code != http.StatusForbidden {
+		t.Errorf("wrong directory password = %d; want 403", rec.Code)
+	}
+	if got := f.status(t); got != model.DeviceGrantPending {
+		t.Errorf("status = %s; want pending", got)
+	}
+	rec := f.approve(c, approveForm("dirpass", "repo:read"))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Device authorized") {
+		t.Fatalf("right directory password = %d; want 200 Device authorized", rec.Code)
+	}
+	if got := f.status(t); got != model.DeviceGrantApproved {
+		t.Errorf("status = %s; want approved", got)
+	}
+	takeAudit(t, db, model.AuditActionDeviceApprove, uid)
+}
+
+// A real Google or SAML round trip needs the provider; these cover everything on our side of it:
+// starting the sign-in from the device page, and the one-time code it leaves in cz_reauth.
+func TestDeviceLogin_ProviderAccountConfirmsWithTheSignInCode(t *testing.T) {
+	h, svc, db := newGoogleRouter(t, "client-123")
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	uid := testutil.SeedPasswordlessUser(t, db, suffix, "g_dev_"+suffix)
+	otherID := testutil.SeedPasswordlessUser(t, db, suffix+"_o", "g_other_"+suffix)
+	f := startDeviceGrant(t, h, svc, db, uid, "testnopw_"+suffix, "mk-laptop", "repo:read")
+	c := f.cookie(t)
+
+	signIn := func(userID int64, googleID string) *http.Cookie {
+		t.Helper()
+		state, _, err := svc.Reauth.BeginProviderSignIn(ctx, userID, "google")
+		if err != nil {
+			t.Fatal(err)
+		}
+		gotID, code, err := svc.Reauth.FinishGoogleSignIn(ctx, state, googleID)
+		if err != nil || gotID != userID {
+			t.Fatalf("FinishGoogleSignIn = %d, %v", gotID, err)
+		}
+		return &http.Cookie{Name: "cz_reauth", Value: code}
+	}
+	confirmPage := func(extra *http.Cookie) string {
+		req := browserRequest(http.MethodGet, "/login/device/confirm", f.session, nil)
+		req.AddCookie(c)
+		if extra != nil {
+			req.AddCookie(extra)
+		}
+		return serve(h, req).Body.String()
+	}
+	approveWith := func(code *http.Cookie) *httptest.ResponseRecorder {
+		req := browserRequest(http.MethodPost, "/login/device/approve", f.session, url.Values{"scope": {"repo:read"}})
+		req.AddCookie(c)
+		req.AddCookie(code)
+		return serve(h, req)
+	}
+
+	start := browserRequest(http.MethodPost, "/settings/reauth/google", f.session, url.Values{"return_to": {"/login/device/confirm"}})
+	rec := serve(h, start)
+	if loc := rec.Header().Get("Location"); rec.Code != http.StatusSeeOther || !strings.HasPrefix(loc, "https://accounts.google.com/") {
+		t.Fatalf("start sign-in = %d to %q; want 303 to Google", rec.Code, loc)
+	}
+	if ret := setCookie(rec, "cz_reauth_return"); ret == nil || ret.Value != "/login/device/confirm" {
+		t.Errorf("cz_reauth_return = %+v; want the confirm page", ret)
+	}
+
+	before := confirmPage(nil)
+	if !strings.Contains(before, "Confirm with Google") || !strings.Contains(before, "disabled") {
+		t.Error("before signing in, the page offers Google and Authorize is disabled")
+	}
+	if rec := f.approve(c, url.Values{"scope": {"repo:read"}}); rec.Code != http.StatusForbidden {
+		t.Errorf("without a code = %d; want 403", rec.Code)
+	}
+
+	if rec := approveWith(signIn(otherID, "g_other_"+suffix)); rec.Code != http.StatusForbidden {
+		t.Errorf("another account's sign-in code = %d; want 403", rec.Code)
+	}
+	if got := f.status(t); got != model.DeviceGrantPending {
+		t.Errorf("status = %s; want pending", got)
+	}
+
+	mine := signIn(uid, "g_dev_"+suffix)
+	if after := confirmPage(mine); !strings.Contains(after, "Confirmed by signing in again with Google") {
+		t.Error("after signing in, the page says so")
+	}
+	if rec := approveWith(mine); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Device authorized") {
+		t.Fatalf("own sign-in code = %d; want 200 Device authorized", rec.Code)
+	}
+	if got := f.status(t); got != model.DeviceGrantApproved {
+		t.Errorf("status = %s; want approved", got)
+	}
+	takeAudit(t, db, model.AuditActionDeviceApprove, uid)
+
+	g := startDeviceGrant(t, h, svc, db, uid, "testnopw_"+suffix, "second", "repo:read")
+	req := browserRequest(http.MethodPost, "/login/device/approve", g.session, url.Values{"scope": {"repo:read"}})
+	req.AddCookie(g.cookie(t))
+	req.AddCookie(mine)
+	if rec := serve(h, req); rec.Code != http.StatusForbidden {
+		t.Errorf("the spent code again = %d; want 403", rec.Code)
+	}
+}
+
+func TestDeviceLogin_NoticeNamesAnUnnamedDeviceAndFlagsItUnverified(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	h, svc, db := newVerificationRouter(t, smtp)
+	suffix := testutil.UniqueSuffix(t)
+	uid, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	f := startDeviceGrant(t, h, svc, db, uid, "testpw_"+suffix, "", "repo:read")
+
+	if rec := f.approve(f.cookie(t), approveForm("password1", "repo:read")); rec.Code != http.StatusOK {
+		t.Fatalf("approve = %d", rec.Code)
+	}
+	mail := box.NextTo(t, email)
+	if !strings.Contains(mail.Data, "cz CLI") || !strings.Contains(mail.Data, "name unverified") || !strings.Contains(mail.Data, "Access tokens") {
+		t.Errorf("notice should name the default device, flag the name unverified and point to Access tokens:\n%.800s", mail.Data)
+	}
+	takeAudit(t, db, model.AuditActionDeviceApprove, uid)
 }

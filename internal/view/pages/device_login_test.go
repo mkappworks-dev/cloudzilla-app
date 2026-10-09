@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -24,7 +25,7 @@ func TestDeviceConfirm_Content(t *testing.T) {
 		`name="scope" value="repo:write"`, `name="scope" value="repo:read"`,
 		`action="/login/device/approve"`, `name="password"`, `name="code"`,
 		`name="action"`, `type="submit" value="approve"`, `type="submit" value="deny"`,
-		"Settings, Tokens",
+		"Settings → Access tokens",
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("confirm page is missing %q", want)
@@ -75,5 +76,55 @@ func TestDeviceEntryAndDone(t *testing.T) {
 	}
 	if !strings.Contains(renderPage(t, DeviceDone(view.DeviceDoneData{BasePage: testBasePage()})), "denied") {
 		t.Error("denied page should say so")
+	}
+}
+
+var (
+	buttonTagRe    = regexp.MustCompile(`<button[^>]*>`)
+	disabledAttrRe = regexp.MustCompile(`\sdisabled[\s=>]`)
+)
+
+func TestDeviceConfirm_AuthorizeWaitsForAProviderAccountToConfirm(t *testing.T) {
+	disabled := func(f components.ConfirmFactors, action string) bool {
+		html := renderPage(t, DeviceConfirm(view.DeviceConfirmData{BasePage: testBasePage(), UserCode: "BCDF-GHJK", Scopes: []string{"repo:read"}, Confirm: f}))
+		for _, tag := range buttonTagRe.FindAllString(html, -1) {
+			if strings.Contains(tag, `value="`+action+`"`) {
+				return disabledAttrRe.MatchString(tag)
+			}
+		}
+		t.Fatalf("no %s button", action)
+		return false
+	}
+
+	for _, tc := range []struct {
+		name string
+		f    components.ConfirmFactors
+		want bool
+	}{
+		{"google, not yet signed in", components.ConfirmFactors{Provider: "google"}, true},
+		{"google or emailed code", components.ConfirmFactors{Provider: "google", Email: true}, true},
+		{"google, signed in again", components.ConfirmFactors{Provider: "google", ProviderReady: true}, false},
+		{"password", components.ConfirmFactors{Password: true}, false},
+		{"directory password", components.ConfirmFactors{Directory: true}, false},
+		{"emailed code only", components.ConfirmFactors{Email: true}, false},
+	} {
+		if got := disabled(tc.f, "approve"); got != tc.want {
+			t.Errorf("%s: Authorize disabled = %v; want %v", tc.name, got, tc.want)
+		}
+		if disabled(tc.f, "deny") {
+			t.Errorf("%s: Deny must stay available", tc.name)
+		}
+	}
+
+	html := renderPage(t, DeviceConfirm(view.DeviceConfirmData{BasePage: testBasePage(), UserCode: "BCDF-GHJK", Scopes: []string{"repo:read"}, Confirm: components.ConfirmFactors{Provider: "google", Email: true}}))
+	if !strings.Contains(html, "gated: true, proven: false") {
+		t.Error("typing an emailed code should be able to enable Authorize")
+	}
+}
+
+func TestDeviceConfirm_ShowsTheViewersIP(t *testing.T) {
+	html := renderPage(t, DeviceConfirm(view.DeviceConfirmData{BasePage: testBasePage(), UserCode: "BCDF-GHJK", RequesterIP: "203.0.113.7", ViewerIP: "198.51.100.9", Scopes: []string{"repo:read"}}))
+	if !strings.Contains(html, "203.0.113.7") || !strings.Contains(html, "198.51.100.9") || !strings.Contains(html, "This browser") {
+		t.Error("the page should show the requester's IP and this browser's")
 	}
 }

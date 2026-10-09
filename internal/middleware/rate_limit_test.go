@@ -175,3 +175,16 @@ func TestUserLimiter_CountsPerUser(t *testing.T) {
 		t.Errorf("onLimited ran %d times; want 1", limited)
 	}
 }
+
+func TestUserLimiter_LetsRequestsWithoutClaimsThrough(t *testing.T) {
+	l := newUserLimiter(1, time.Hour, time.Now)
+	h := l.Middleware(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusTooManyRequests) })(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }))
+	for i := range 3 {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("POST", "/x", nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("request %d without claims = %d; want 200, leaving the auth middleware to refuse it", i+1, rec.Code)
+		}
+	}
+}
