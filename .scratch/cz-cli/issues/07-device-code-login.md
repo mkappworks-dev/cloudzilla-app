@@ -20,7 +20,8 @@ A device-code flow modelled on GitHub's OAuth device flow (RFC 8628), so `cz aut
 3. **Scopes.** `cz auth login` requests `repo:write` by default (the only scope that admits merge, repo create/fork and push); `--scope` narrows. The approval page shows the requested scopes as pre-ticked boxes the user may untick, never add to, with at least one left. `repo:admin` and unknown scopes are rejected at code request (`400 invalid_scope`) and again at approval.
 4. **Approval re-checks `Reauth.Confirm`**, as `POST /oauth/authorize` does: password plus a code with 2FA; LDAP users type their directory password; Google/SAML users use "Confirm with Google/SSO" (`cz_reauth` cookie) or an emailed code, via `components.ConfirmFactors`. Shares the 5-failures-per-15-minutes per-user throttle. Denying needs nothing.
 5. **No expiry on the issued token**, as for a manually created non-admin PAT; `cz` has no refresh logic. Mitigations: an email on approval, `last_used_at` in Settings, one-click revoke.
-6. **Token shown once, at the first successful poll**, not at approval, so the raw token never sits in the database.
+6. **The code never travels in a URL.** No `verification_uri_complete`, no `?user_code=`: a one-click link would let a phisher skip the step where the user compares the code with their terminal, and URLs leak into history and logs. `cz` copies the code to the clipboard instead, as `gh` does.
+7. **Token shown once, at the first successful poll**, not at approval, so the raw token never sits in the database.
 
 ### Table: `device_grants` (migration: next free number; 111 on `feat/cz-cli`)
 
@@ -28,11 +29,11 @@ A device-code flow modelled on GitHub's OAuth device flow (RFC 8628), so `cz aut
 
 ### Endpoints
 
-- `POST /api/auth/device/code`: form or JSON `scope` (space-separated, default `repo:write`), `device_name`. Answers `{device_code, user_code, verification_uri, verification_uri_complete, expires_in: 900, interval: 5}`. `user_code` is `XXXX-XXXX`; `verification_uri` is `<host>/login/device`.
+- `POST /api/auth/device/code`: form or JSON `scope` (space-separated, default `repo:write`), `device_name`. Answers `{device_code, user_code, verification_uri, expires_in: 900, interval: 5}`. `user_code` is `XXXX-XXXX`; `verification_uri` is `<host>/login/device`. There is no `verification_uri_complete` (RFC 8628 makes it optional): a link that carries the code would take a phished user straight to the confirm step.
 - `POST /api/auth/device/token`: `grant_type=urn:ietf:params:oauth:grant-type:device_code`, `device_code`. Success `200 {access_token, token_type: "bearer", scope}`. Errors are `400 {"error": …}`: `authorization_pending`, `slow_down` (interval +5 s, persisted), `expired_token`, `access_denied`, `invalid_grant` (unknown or already consumed), `unsupported_grant_type`, `invalid_request`. Every response carries `Cache-Control: no-store`.
 - Both are added to the CSRF exemption beside `/oauth/token` in `internal/middleware/csrf.go`: they carry no cookie. The browser forms keep CSRF.
 - Both are outside `middleware/scope.go`'s allow-list on purpose: they authenticate by device code, not by a token. They are not added to `middleware/setup.go`'s path check: no user exists before setup completes, so nothing can be approved.
-- `GET /login/device` (`optAuthMW`): code entry; a signed-out user is redirected to `/login?next=…`. `POST /login/device` (entry, 50 per hour per user) renders the confirm step: device name (marked unverified), requester IP and time, scopes. `POST /login/device/approve` (`action=approve|deny`, `scope[]`, `password`, `code`). `verification_uri_complete` pre-fills the code but never approves. The confirm page sends `X-Frame-Options: DENY` and `frame-ancestors 'none'`.
+- `GET /login/device` (`optAuthMW`): code entry; a signed-out user is redirected to `/login?next=…`. `POST /login/device` (entry, 50 per hour per user) renders the confirm step: device name (marked unverified), requester IP and time, scopes. `POST /login/device/approve` (`action=approve|deny`, `scope[]`, `password`, `code`). No route accepts the code in a query string; the user always types it. The confirm page sends `X-Frame-Options: DENY` and `frame-ancestors 'none'`.
 
 ### Lifecycle (all transitions are conditional `UPDATE`s, so races lose)
 
@@ -53,7 +54,7 @@ New events: `user.device.approve`, `user.device.deny`, and `user.token.create` f
 
 ### `cz auth login`
 
-Device flow is the default. It prints the URL and code to stderr always and opens a browser only on a TTY without `--no-browser`. It needs no stdin, so it works headless and over SSH with approval on another machine. It honors `slow_down`, stops at `expires_in`, cancels on Ctrl-C, and verifies the token with `GET /api/user` before saving, as the PAT path does. `--with-token` and `CZ_TOKEN` are unchanged. A `404` from the code endpoint (an older server) prints a pointer to `--with-token`. `--scope` narrows the request.
+Device flow is the default. It prints the URL and code to stderr always, copies the code to the clipboard where it can, and opens the plain URL in a browser only on a TTY without `--no-browser`. It needs no stdin, so it works headless and over SSH with approval on another machine. It honors `slow_down`, stops at `expires_in`, cancels on Ctrl-C, and verifies the token with `GET /api/user` before saving, as the PAT path does. `--with-token` and `CZ_TOKEN` are unchanged. A `404` from the code endpoint (an older server) prints a pointer to `--with-token`. `--scope` narrows the request.
 
 ### Threat model
 
@@ -64,6 +65,7 @@ Device flow is the default. It prints the URL and code to stderr always and open
 | Polling brute force or a leaked `device_code` | 256-bit value, hash-only storage, interval enforcement, token returned once. A leaked code is useless until a user approves, and an approved grant is consumed by the first poll. |
 | Replay or double redemption | Conditional `UPDATE`s; dead states are terminal. |
 | Scope escalation to `repo:admin` | Rejected at code request and at approval. |
+| A link that carries the code (phishing, history, logs) | None exists; the user types the code after reading it from their own terminal. |
 | Spoofed device name | Displayed as unverified, capped, stripped, HTML-escaped by Templ. |
 
 ### Split
