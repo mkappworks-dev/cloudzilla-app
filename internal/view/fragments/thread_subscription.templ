@@ -1,0 +1,79 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+)
+
+templ ThreadSubscription(data view.ThreadSubscriptionData) {
+	<div id="thread-subscription">
+		<h3 class="text-[12px] font-medium text-muted-foreground mb-2 flex items-center gap-2">
+			Notifications
+			if data.State == model.ThreadStateMuted {
+				<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border border-border bg-muted text-muted-foreground">Muted</span>
+			}
+		</h3>
+		if data.State == model.ThreadStateSubscribed {
+			<button
+				type="button"
+				hx-put={ threadSubscriptionURL(data) }
+				hx-vals={ `{"state":"muted"}` }
+				hx-target="#thread-subscription"
+				hx-swap="outerHTML"
+				aria-pressed="true"
+				class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70"
+			>
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M13.7 21a2 2 0 01-3.4 0M18.6 13A17 17 0 0118 8M6.3 6.3A6 6 0 006 8c0 7-3 9-3 9h14M18 8a6 6 0 00-9.3-5M1 1l22 22"></path></svg>
+				Unsubscribe
+			</button>
+		} else {
+			<button
+				type="button"
+				hx-put={ threadSubscriptionURL(data) }
+				hx-vals={ `{"state":"subscribed"}` }
+				hx-target="#thread-subscription"
+				hx-swap="outerHTML"
+				aria-pressed="false"
+				class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-muted-foreground text-[13px] hover:bg-accent hover:text-foreground"
+			>
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
+				Subscribe
+			</button>
+		}
+		<p class="mt-2 text-[12px] text-muted-foreground">
+			if data.State == model.ThreadStateSubscribed {
+				<span>You’re receiving notifications. <em>{ threadReasonText(data.Reason) }</em></span>
+			} else if data.State == model.ThreadStateMuted {
+				<span>You muted this thread. You won’t be notified unless someone <em>{ "@-mentions you" }</em>.</span>
+			} else {
+				<span>You’re not receiving notifications from this thread.</span>
+			}
+		</p>
+	</div>
+}
+
+func threadSubscriptionURL(data view.ThreadSubscriptionData) string {
+	return "/api/repos/" + data.Owner + "/" + data.RepoName + "/" + data.Segment + "/" + strconv.Itoa(data.Number) + "/subscription"
+}
+
+func threadReasonText(reason string) string {
+	switch reason {
+	case model.ThreadReasonAuthor:
+		return "You opened this thread."
+	case model.ThreadReasonComment:
+		return "You commented."
+	case model.ThreadReasonMention:
+		return "You were @-mentioned."
+	case model.ThreadReasonAssign:
+		return "You were assigned."
+	case model.ThreadReasonReview:
+		return "You reviewed this pull request."
+	case model.ThreadReasonManual:
+		return "You subscribed to this thread."
+	case model.ThreadReasonWatching:
+		return "You’re watching this repository."
+	}
+	return ""
+}

@@ -45,7 +45,9 @@ type Notification struct {
 	SubjectID  int64            `db:"subject_id"  json:"subject_id"`
 	SubjectURL string           `db:"subject_url" json:"subject_url"`
 	// SubjectTitle is empty for mentions, transfers and rows older than migration 112.
-	SubjectTitle string    `db:"subject_title" json:"subject_title"`
-	Read         bool      `db:"read"        json:"read"`
-	CreatedAt    time.Time `db:"created_at"  json:"created_at"`
+	SubjectTitle string `db:"subject_title" json:"subject_title"`
+	// SubjectKind is a ThreadKind* value, or empty for repo transfers.
+	SubjectKind string    `db:"subject_kind" json:"subject_kind"`
+	Read        bool      `db:"read"        json:"read"`
+	CreatedAt   time.Time `db:"created_at"  json:"created_at"`
 }

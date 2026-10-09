@@ -38,7 +38,6 @@ func (h *Handler) notificationsData(r *http.Request, userID int64) (view.Notific
 		InboxCount:    np.InboxCount,
 		UnreadCount:   np.UnreadCount,
 		ReadCount:     np.ReadCount,
-		WatchedRepos:  np.WatchedRepos,
 	}, r, nil
 }
 
@@ -67,9 +66,9 @@ func (h *Handler) MarkNotificationsDone(w http.ResponseWriter, r *http.Request) 
 	h.bulkNotificationAction(w, r, "failed to mark done", h.Services.Notification.MarkReadMany)
 }
 
-// UnsubscribeNotifications stops watching the repos behind the selected notifications.
+// UnsubscribeNotifications mutes the threads behind the selected notifications.
 func (h *Handler) UnsubscribeNotifications(w http.ResponseWriter, r *http.Request) {
-	h.bulkNotificationAction(w, r, "failed to unsubscribe", h.Services.Notification.UnsubscribeFromRepos)
+	h.bulkNotificationAction(w, r, "failed to unsubscribe", h.Services.Notification.MuteThreads)
 }
 
 func (h *Handler) bulkNotificationAction(w http.ResponseWriter, r *http.Request, failMsg string, act func(ctx context.Context, userID int64, ids []int64) error) {

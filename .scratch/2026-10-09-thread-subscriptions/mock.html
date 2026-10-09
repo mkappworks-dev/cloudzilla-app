@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thread subscriptions mock</title>
+<style>
+:root{--bg:#fff;--fg:#0a0a0b;--card:#fafafa;--muted:#f4f4f5;--mfg:#5c5c66;--border:#e4e4e7;--primary:#18181b;--pfg:#fafafa;--accent:#f4f4f5;--ok:#15803d;--warn:#b45309}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--fg:#ededed;--card:#0a0a0a;--muted:#1a1a1a;--mfg:#b5b5b5;--border:#27272a;--primary:#fafafa;--pfg:#000;--accent:#1a1a1a;--ok:#4ade80;--warn:#fbbf24}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 ui-sans-serif,system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 64px}
+h1{font-size:16px;margin:0 0 4px}
+.sub{color:var(--mfg);font-size:13px;margin:0 0 16px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tabs button{background:none;border:0;color:var(--mfg);padding:8px 12px;font:inherit;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--fg);border-color:var(--primary);font-weight:600}
+.panel[hidden]{display:none}
+.mockbar{border:1px dashed var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px;background:var(--card);font-size:12.5px}
+.mockbar b{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mfg);margin-right:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--border);background:var(--bg);color:var(--fg);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--primary);color:var(--pfg);border-color:var(--primary)}
+.page{display:grid;grid-template-columns:1fr 240px;gap:32px}
+@media(max-width:720px){.page{grid-template-columns:1fr}}
+.title{font-size:20px;font-weight:600;margin:0 0 4px}
+.meta{color:var(--mfg);font-size:12.5px;margin-bottom:14px}
+.comment{border:1px solid var(--border);border-radius:8px;margin-bottom:12px}
+.comment header{background:var(--card);padding:8px 12px;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--mfg);border-radius:8px 8px 0 0}
+.comment div{padding:12px;font-size:13.5px}
+aside section{padding-top:20px;margin-top:20px;border-top:1px solid var(--border);font-size:12.5px}
+aside section:first-child{border:0;margin-top:0;padding-top:0}
+aside h3{font-size:12px;font-weight:500;color:var(--mfg);margin:0 0 8px}
+.ph{height:22px;border-radius:999px;background:var(--muted);width:60%}
+.sbtn{width:100%;height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;cursor:pointer}
+.sbtn:hover{background:var(--accent)}
+.hint{color:var(--mfg);font-size:12px;margin:8px 0 0}
+.hint em{font-style:normal;color:var(--fg)}
+.pill{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--border);margin-left:6px;background:var(--muted)}
+.pill.mute{color:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:8px}
+th,td{border:1px solid var(--border);padding:6px 8px;text-align:left;vertical-align:top}
+th{background:var(--card);font-weight:600}
+.y{color:var(--ok);font-weight:600}.n{color:var(--warn);font-weight:600}
+.note{border-left:3px solid var(--warn);padding:6px 10px;background:var(--card);font-size:12.5px;margin:12px 0}
+/* inbox */
+.inbox{border:1px solid var(--border);border-radius:8px;background:var(--card);overflow:hidden}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);min-height:44px}
+.ib{height:28px;padding:0 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--fg);font:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.ib:hover{background:var(--accent)}
+.grp{padding:8px 16px;font:600 13px ui-monospace,monospace;background:var(--muted);border-bottom:1px solid var(--border)}
+.row{display:flex;align-items:center;gap:12px;padding:8px 16px;min-height:46px;border-bottom:1px solid var(--border);transition:opacity .25s}
+.row:hover{background:var(--accent)}
+.row.gone{opacity:0;pointer-events:none}
+.row .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t span{color:var(--mfg);font-size:12px;margin-left:8px}
+.row .dot{width:7px;height:7px;border-radius:50%;background:var(--primary)}
+.row .r{position:relative;width:150px;height:28px;display:flex;align-items:center;justify-content:flex-end;font-size:12px;color:var(--mfg)}
+.row .acts{position:absolute;right:0;top:0;display:none;gap:4px}
+.row:hover .r time{visibility:hidden}.row:hover .acts{display:flex}
+.sq{width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--mfg);cursor:pointer}
+.sq:hover{color:var(--fg);background:var(--accent)}
+.sq[disabled]{opacity:.4;cursor:not-allowed}
+.rsn{font-size:11px;border:1px solid var(--border);border-radius:999px;padding:0 7px;color:var(--mfg);margin-left:8px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--primary);color:var(--pfg);padding:9px 14px;border-radius:8px;font-size:13px;display:none;gap:14px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast.on{display:flex}.toast button{background:none;border:0;color:inherit;text-decoration:underline;font:inherit;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Thread subscriptions — mock</h1>
+<p class="sub">Throwaway HTML. Click around; nothing here is wired to the app. Colors follow the app's tokens.</p>
+
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-tab="side">1 · Sidebar control</button>
+  <button role="tab" aria-selected="false" data-tab="inbox">2 · Inbox row</button>
+  <button role="tab" aria-selected="false" data-tab="rules">3 · Who gets notified</button>
+</div>
+
+<!-- 1. SIDEBAR -->
+<div class="panel" id="side">
+  <div class="mockbar">
+    <div><b>Page</b></div>
+    <div class="chips" id="kinds"></div>
+    <div style="margin-top:10px"><b>Your situation (mock only)</b></div>
+    <div class="chips" id="states"></div>
+  </div>
+  <div class="page">
+    <div>
+      <p class="title" id="ptitle"></p>
+      <p class="meta" id="pmeta"></p>
+      <div class="comment"><header>octocat commented</header><div>Description text… the main column is unchanged by this feature.</div></div>
+      <div class="comment"><header>hubot commented</header><div>Another comment.</div></div>
+    </div>
+    <aside>
+      <section><h3>Assignees</h3><div class="ph"></div></section>
+      <section><h3>Labels</h3><div class="ph" style="width:40%"></div></section>
+      <section>
+        <h3>Notifications <span class="pill mute" id="mutedPill" hidden>Muted</span></h3>
+        <button class="sbtn" id="sbtn" type="button" aria-pressed="false"></button>
+        <p class="hint" id="shint"></p>
+      </section>
+      <section><h3 id="parts"></h3><div class="ph" style="width:45%"></div></section>
+    </aside>
+  </div>
+  <div class="note">The control sits in the same slot as today's PR "Subscribe" button (Notifications section, above Participants), and is added to the issue and discussion sidebars. It reads/writes the thread row, never the repo watch. Anonymous viewers don't see it.</div>
+</div>
+
+<!-- 2. INBOX -->
+<div class="panel" id="inbox" hidden>
+  <div class="mockbar"><b>Behaviour</b>Hover a row, click the bell-off icon: that <em style="font-style:normal">thread</em> is muted and the row leaves the inbox (Undo in the toast). The repo watch is not touched. Select rows to use the bulk button.</div>
+  <div class="inbox">
+    <div class="bar">
+      <input type="checkbox" id="all" aria-label="Select all">
+      <span id="selcount" style="font-size:12px;color:var(--mfg)">0 selected</span>
+      <span style="flex:1"></span>
+      <button class="ib" id="bulkDone">✓ Done</button>
+      <button class="ib" id="bulkMute" title="Mute the selected threads">🔕 Unsubscribe</button>
+    </div>
+    <div id="rows"></div>
+  </div>
+  <div class="note"><b>Open question for you:</b> today the row button means "stop watching this repo". With thread subscriptions it means "mute this thread". Stopping a repo watch then lives only on the repo page's Watch menu (and the "Watching" settings page if one exists). Row hover tooltip makes this explicit: <em style="font-style:normal">"Unsubscribe: mute this thread. Repo watch unchanged."</em></div>
+</div>
+
+<!-- 3. RULES -->
+<div class="panel" id="rules" hidden>
+  <p class="sub">Fan-out rule for one new comment on a thread, per recipient.</p>
+  <table>
+    <tr><th>Recipient state</th><th>In-app</th><th>Immediate email</th><th>Digest</th><th>Why</th></tr>
+    <tr><td>Thread: subscribed</td><td class="y">yes</td><td class="y">yes*</td><td class="y">yes</td><td>explicit or auto-subscribed. *Today only direct recipients get immediate email; subscribers would join them.</td></tr>
+    <tr><td>Thread: none, watches repo (<code>watching</code>)</td><td class="y">yes</td><td class="n">no</td><td class="y">yes</td><td>unchanged from today</td></tr>
+    <tr><td>Thread: none, <code>releases_only</code> / <code>ignoring</code></td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td>unchanged</td></tr>
+    <tr><td>Thread: <b>muted</b>, watches repo</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td>the point of the feature</td></tr>
+    <tr><td>Thread: muted, @-mentioned in this comment</td><td class="y">yes</td><td class="y">yes</td><td class="y">yes</td><td>recommended: a direct mention breaks through and re-subscribes (GitHub does this). <b>Needs your call.</b></td></tr>
+    <tr><td>Thread: subscribed, repo <code>ignoring</code></td><td class="y">yes</td><td class="y">yes*</td><td class="y">yes</td><td>following a single thread in a repo you don't watch</td></tr>
+    <tr><td>Thread: subscribed, but can no longer read repo</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td>existing <code>CanRead</code> check still wins</td></tr>
+    <tr><td>Actor is the recipient</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td>self-actions stay silent</td></tr>
+  </table>
+  <p class="sub" style="margin-top:14px">Auto-subscribe triggers (never overrides an existing <code>muted</code> row except via @-mention): author, comment, review, @-mention, assign.</p>
+</div>
+</div>
+
+<div class="toast" id="toast"><span id="tmsg"></span><button id="undo">Undo</button></div>
+
+<script>
+const KINDS={issue:{n:'Issue',t:'Crash when saving empty form #42',m:'octocat opened this issue · 3 comments'},pull:{n:'Pull request',t:'Add retry to webhook dispatcher #57',m:'octocat wants to merge 2 commits into main'},discussion:{n:'Discussion',t:'Should we support SSH certificates? #12',m:'octocat started this discussion · 5 replies'}};
+const STATES=[
+ ['none','Not watching, no history'],['author','Authored'],['comment','Commented'],['mention','@-mentioned'],['assign','Assigned'],['review','Reviewed (PR)'],['manual','Subscribed manually'],['watch','Watching repo only'],['muted','Muted']];
+const WHY={author:'You opened this thread.',comment:'You commented.',mention:'You were @-mentioned.',assign:'You were assigned.',review:'You reviewed this pull request.',manual:'You subscribed to this thread.',watch:'You’re watching this repository.'};
+let kind='issue',state='none';
+const $=s=>document.querySelector(s);
+const bell='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg>';
+const bellOff='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M13.7 21a2 2 0 01-3.4 0M18.6 13A17 17 0 0118 8M6.3 6.3A6 6 0 006 8c0 7-3 9-3 9h14M18 8a6 6 0 00-9.3-5M1 1l22 22"/></svg>';
+function chips(el,items,cur,fn){el.innerHTML='';items.forEach(([k,l])=>{const b=document.createElement('button');b.className='chip';b.textContent=l;b.setAttribute('aria-pressed',k===cur);b.onclick=()=>fn(k);el.appendChild(b)})}
+function render(){
+ const k=KINDS[kind];
+ chips($('#kinds'),Object.entries(KINDS).map(([a,b])=>[a,b.n]),kind,v=>{kind=v;if(v!=='pull'&&state==='review')state='none';render()});
+ chips($('#states'),STATES.filter(s=>s[0]!=='review'||kind==='pull'),state,v=>{state=v;render()});
+ $('#ptitle').textContent=k.t;$('#pmeta').textContent=k.m;$('#parts').textContent=kind==='discussion'?'3 participants':'3 participants';
+ const muted=state==='muted',sub=state!=='none'&&!muted;
+ $('#mutedPill').hidden=!muted;
+ const b=$('#sbtn');b.setAttribute('aria-pressed',sub);
+ b.innerHTML=(sub?bellOff+' Unsubscribe':bell+' Subscribe');
+ $('#shint').innerHTML=muted?'You muted this thread. You won’t be notified unless someone <em>@-mentions you</em>.':sub?'You’re receiving notifications. <em>'+WHY[state]+'</em>':'You’re not receiving notifications from this thread.';
+}
+$('#sbtn').onclick=()=>{
+ if(state==='muted'||state==='none')state='manual';else state='muted';
+ toast(state==='muted'?'Unsubscribed from this '+KINDS[kind].n.toLowerCase():'Subscribed to this '+KINDS[kind].n.toLowerCase(),false);render()};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
+ document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!==b.dataset.tab)});
+
+/* inbox */
+const ROWS=[
+ ['acme/api','Flaky CI on arm64 #31','octocat commented','issue','comment'],
+ ['acme/api','Add retry to webhook dispatcher #57','hubot reviewed','pull','author'],
+ ['acme/api','Bump go-git to 5.12 #60','dependabot opened','pull','watch'],
+ ['acme/web','Should we support SSH certificates? #12','octocat replied','discussion','mention'],
+ ['acme/web','Transfer of acme/legacy','octocat wants to transfer','transfer','']];
+const RS={comment:'commented',author:'authored',watch:'watching repo',mention:'mentioned'};
+let last=null;
+function rows(){
+ const el=$('#rows');el.innerHTML='';let g='';
+ ROWS.forEach((r,i)=>{
+  if(r[0]!==g){g=r[0];const h=document.createElement('div');h.className='grp';h.textContent=g;el.appendChild(h)}
+  const d=document.createElement('div');d.className='row';d.id='r'+i;
+  const t=r[3]==='transfer';
+  d.innerHTML='<span class="dot"></span><input type="checkbox" class="ck" aria-label="Select"><div class="t"><b style="font-weight:600">'+r[1]+'</b><span>'+r[2]+'</span>'+(t?'':'<span class="rsn">'+RS[r[4]]+'</span>')+'</div><div class="r"><time>2h</time><div class="acts"><button class="sq" title="Done">✓</button><button class="sq mute" '+(t?'disabled title="A repository transfer has no thread to unsubscribe from"':'title="Unsubscribe: mute this thread. Repo watch unchanged."')+'>'+bellOff+'</button></div></div>';
+  d.querySelector('.mute').onclick=()=>mute([i]);
+  d.querySelector('.ck').onchange=count;
+  el.appendChild(d)})
+ count()}
+function count(){const n=document.querySelectorAll('.ck:checked').length;$('#selcount').textContent=n+' selected'}
+function mute(ids){last=ids;ids.forEach(i=>{const e=$('#r'+i);if(e&&!e.querySelector('.mute').disabled)e.classList.add('gone')});toast(ids.length>1?'Muted '+ids.length+' threads':'Muted this thread',true)}
+$('#all').onchange=e=>{document.querySelectorAll('.ck').forEach(c=>c.checked=e.target.checked);count()};
+$('#bulkMute').onclick=()=>{const ids=[...document.querySelectorAll('.ck:checked')].map(c=>+c.closest('.row').id.slice(1));if(ids.length)mute(ids)};
+$('#bulkDone').onclick=()=>{document.querySelectorAll('.ck:checked').forEach(c=>c.closest('.row').classList.add('gone'))};
+let tt;function toast(m,undo){clearTimeout(tt);$('#tmsg').textContent=m;$('#undo').style.display=undo?'':'none';$('#toast').classList.add('on');tt=setTimeout(()=>$('#toast').classList.remove('on'),4500)}
+$('#undo').onclick=()=>{(last||[]).forEach(i=>$('#r'+i).classList.remove('gone'));$('#toast').classList.remove('on')};
+render();rows();
+</script>
+</body>
+</html>

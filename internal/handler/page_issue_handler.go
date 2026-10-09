@@ -284,27 +284,33 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("issue detail: events lookup failed; timeline will be incomplete", "owner", owner, "repo", repoName, "issue", issue.Number, "error", err)
 	}
 
+	threadSub, err := h.threadSubscriptionData(r, repo, model.ThreadKindIssue, "issues", issue.Number)
+	if err != nil {
+		slog.Warn("issue detail: subscription lookup failed; rendering as not subscribed", "owner", owner, "repo", repoName, "issue", issue.Number, "error", err)
+	}
+
 	collaboratorNames := collaboratorUsernames(collaborators)
 	r = h.withAvatars(r, slices.Concat([]string{issue.AuthorName}, commentAuthors(rendered), usernames(issueAssignees), collaboratorNames)...)
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
-		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
-		Repo:          *repo,
-		Issue:         *issue,
-		Comments:      rendered,
-		Events:        events,
-		Owner:         owner,
-		RepoName:      repoName,
-		BodyHTML:      bodyHTML,
-		Labels:        issueLabels,
-		Assignees:     issueAssignees,
-		AllLabels:     allLabels,
-		Milestone:     issueMilestone,
-		AllMilestones: allIssueMilestones,
-		LinkedPRs:     linkedPRs,
-		RepoPulls:     repoPulls,
-		Collaborators: collaboratorNames,
-		CanWrite:      canWrite,
-		CanManage:     canManage,
+		BasePage:           h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
+		Repo:               *repo,
+		Issue:              *issue,
+		Comments:           rendered,
+		Events:             events,
+		Owner:              owner,
+		RepoName:           repoName,
+		BodyHTML:           bodyHTML,
+		Labels:             issueLabels,
+		Assignees:          issueAssignees,
+		AllLabels:          allLabels,
+		Milestone:          issueMilestone,
+		AllMilestones:      allIssueMilestones,
+		LinkedPRs:          linkedPRs,
+		RepoPulls:          repoPulls,
+		Collaborators:      collaboratorNames,
+		CanWrite:           canWrite,
+		CanManage:          canManage,
+		ThreadSubscription: threadSub,
 	}))
 }
 
