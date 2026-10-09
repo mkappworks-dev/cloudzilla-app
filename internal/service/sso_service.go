@@ -366,7 +366,10 @@ func parseLDAPBindResponse(data []byte) error {
 	}
 	pos += 2 + int(data[pos+1]) // skip INTEGER TLV
 	// Now at APPLICATION 1 (BindResponse = tag 0x61)
-	if pos+2 > len(data) || data[pos] != 0x61 {
+	if pos+2 > len(data) {
+		return fmt.Errorf("ldap response truncated at protocol op")
+	}
+	if data[pos] != 0x61 {
 		return fmt.Errorf("ldap unexpected protocol op tag: %02x", data[pos])
 	}
 	pos += 2
@@ -711,7 +714,7 @@ func verifySAMLSignature(xmlBytes []byte, assertion *samlAssertion, cert *x509.C
 			if idx >= 0 {
 				// Verify the ID attribute is present on this element.
 				idAttr := []byte(`ID="` + assertionID + `"`)
-				if bytes.Contains(xmlBytes[idx:idx+512], idAttr) {
+				if bytes.Contains(xmlBytes[idx:min(idx+512, len(xmlBytes))], idAttr) {
 					assertionStart = idx
 					break
 				}
