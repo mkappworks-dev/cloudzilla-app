@@ -159,8 +159,10 @@ func TestUserLimiter_CountsPerUser(t *testing.T) {
 		}
 		return rec.Code
 	}
-	if call(1) != 200 || call(1) != 200 || call(1) != 429 {
-		t.Fatal("user 1 should get two requests, then 429")
+	for i, want := range []int{200, 200, 429} {
+		if got := call(1); got != want {
+			t.Fatalf("user 1 request %d = %d; want %d", i+1, got, want)
+		}
 	}
 	if call(2) != 200 {
 		t.Error("user 2 has a budget of its own")
