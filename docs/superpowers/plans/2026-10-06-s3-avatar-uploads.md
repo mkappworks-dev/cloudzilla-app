@@ -13,7 +13,7 @@
 
 **Tech Stack:** Go, chi v5, aws-sdk-go-v2 (`config`, `credentials`, `service/s3`), `golang.org/x/image` (WebP, CatmullRom), PostgreSQL, Templ, htmx.
 
-**Spec:** `.scratch/phase-20.1-s3-avatar-uploads/spec.md`. **Tickets:** `.scratch/phase-20.1-s3-avatar-uploads/issues/01–05`.
+**Spec:** `.scratch/2026-10-06-phase-20.1-s3-avatar-uploads/spec.md`. **Tickets:** `.scratch/2026-10-06-phase-20.1-s3-avatar-uploads/issues/01–05`.
 
 ## Global Constraints
 

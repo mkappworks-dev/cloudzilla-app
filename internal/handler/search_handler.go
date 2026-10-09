@@ -28,5 +28,12 @@ func (h *Handler) PageSearch(w http.ResponseWriter, r *http.Request) {
 		data.Results = results
 	}
 
-	h.render(w, withKnownAvatars(r, userAvatarKeys(data.Results.Users)), pages.Search(data))
+	var avatars map[string]string
+	if data.Results != nil {
+		avatars = userAvatarKeys(data.Results.Users)
+		for _, o := range data.Results.Orgs {
+			avatars[o.Name] = o.AvatarKey
+		}
+	}
+	h.render(w, withKnownAvatars(r, avatars), pages.Search(data))
 }

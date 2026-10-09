@@ -20,8 +20,14 @@ type SearchResults struct {
 	Issues []model.Issue
 	Pulls  []model.PullRequest
 	Users  []model.User
+	Orgs   []model.Organization
 	Query  string
 	Type   string // "all","repos","issues","pulls","users"
+}
+
+// Empty reports whether nothing matched in any group.
+func (r *SearchResults) Empty() bool {
+	return len(r.Repos)+len(r.Issues)+len(r.Pulls)+len(r.Users)+len(r.Orgs) == 0
 }
 
 // SearchService provides full-text search across repositories, issues, PRs, and users.
@@ -79,6 +85,17 @@ func (s *SearchService) Search(ctx context.Context, query, searchType string, re
 				return nil
 			}
 			results.Users = users
+			return nil
+		})
+	}
+
+	if searchType == "all" || searchType == "orgs" || searchType == "" {
+		g.Go(func() error {
+			orgs, err := s.search.SearchOrgs(ctx, query, searchLimit)
+			if err != nil {
+				return nil
+			}
+			results.Orgs = orgs
 			return nil
 		})
 	}

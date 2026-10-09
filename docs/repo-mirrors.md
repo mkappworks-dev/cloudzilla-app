@@ -1,6 +1,6 @@
 # Repository mirrors
 
-A **pull mirror** is a read-only repository that keeps its branches and tags equal to an upstream's: a copy of `https://github.com/go-git/go-git` that builds and browsing can use, and that survives the upstream going away. Push mirrors are not built yet; see the spec in `.scratch/repo-mirrors/spec.md`.
+A **pull mirror** is a read-only repository that keeps its branches and tags equal to an upstream's: a copy of `https://github.com/go-git/go-git` that builds and browsing can use, and that survives the upstream going away. Push mirrors are not built yet; see the spec in `.scratch/2026-10-06-repo-mirrors/spec.md`.
 
 ## Creating one
 

@@ -42,7 +42,7 @@ func suggestRows(s *service.Suggestions) []suggestRow {
 	return rows
 }
 
-func suggestOptionID(i int) string { return "suggest-" + strconv.Itoa(i) }
+func suggestOptionID(listID string, i int) string { return listID + "-" + strconv.Itoa(i) }
 
 // The options live inside the topnavSearch Alpine scope, which owns `active`.
 func suggestActive(i int) string { return "active === " + strconv.Itoa(i) }
@@ -118,9 +118,9 @@ func SearchSuggestions(data view.SearchSuggestionsData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
-				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(suggestOptionID(i))
+				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(suggestOptionID(data.ListID, i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 69, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 69, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 				if templ_7745c5c3_Err != nil {
@@ -133,7 +133,7 @@ func SearchSuggestions(data view.SearchSuggestionsData) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(suggestActive(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 69, Col: 102}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 69, Col: 115}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 				if templ_7745c5c3_Err != nil {
@@ -146,7 +146,7 @@ func SearchSuggestions(data view.SearchSuggestionsData) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(suggestHover(i))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 69, Col: 138}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 69, Col: 151}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 				if templ_7745c5c3_Err != nil {
@@ -159,7 +159,7 @@ func SearchSuggestions(data view.SearchSuggestionsData) templ.Component {
 				var templ_7745c5c3_Var6 templ.SafeURL
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(row.Href))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 69, Col: 189}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 69, Col: 202}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -232,9 +232,9 @@ func SearchSuggestions(data view.SearchSuggestionsData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(suggestOptionID(len(rows)))
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(suggestOptionID(data.ListID, len(rows)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 84, Col: 37}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 84, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
@@ -247,7 +247,7 @@ func SearchSuggestions(data view.SearchSuggestionsData) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(suggestActive(len(rows)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 84, Col: 117}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 84, Col: 130}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
@@ -260,7 +260,7 @@ func SearchSuggestions(data view.SearchSuggestionsData) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(suggestHover(len(rows)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 84, Col: 161}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 84, Col: 174}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 			if templ_7745c5c3_Err != nil {
@@ -273,7 +273,7 @@ func SearchSuggestions(data view.SearchSuggestionsData) templ.Component {
 			var templ_7745c5c3_Var12 templ.SafeURL
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(suggestSearchHref(data.Suggestions.Query))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 84, Col: 230}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/search_suggestions.templ`, Line: 84, Col: 243}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {

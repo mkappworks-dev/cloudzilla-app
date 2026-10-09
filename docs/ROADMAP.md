@@ -2325,7 +2325,7 @@ When any rows exist in `ip_allowlists` with `enabled = TRUE`, a middleware (`mid
 
 ### Phase 19.3 — API Rate Limiting & Quotas
 
-_Done in two PRs; the design is in [`.scratch/phase-19.3-api-rate-limiting/spec.md`](../.scratch/phase-19.3-api-rate-limiting/spec.md). Limits come from config and `CZ_*` variables, not an admin page or a `rate_limit_config` table, and use a fixed window rather than `golang.org/x/time/rate`._
+_Done in two PRs; the design is in [`.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md`](../.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md). Limits come from config and `CZ_*` variables, not an admin page or a `rate_limit_config` table, and use a fixed window rather than `golang.org/x/time/rate`._
 
 **Rate limits** (no migration): `middleware.APIRateLimit` counts every request that isn't a static asset against a per-subject budget for one of four resources (`core`, `git`, `archive`, `search`). Signed-in users get a `web` and a `token` bucket; everything else counts per client IP. Counted responses carry `X-RateLimit-*` headers and a refusal is `429` with `Retry-After`. See [configuration](./configuration.md#rate-limits) and the [API reference](./api-reference.md#rate-limits).
 
@@ -2353,6 +2353,8 @@ type Backend interface {
 ```
 
 **First consumer (2026-10-06): avatars.** `internal/storage` ships with `LocalBackend` and `S3Backend` (aws-sdk-go-v2, so AWS, R2, B2, Garage and versitygw all work), and user and org avatars are stored through it (migration 104 adds `avatar_key`). The "no new Go dependencies" rule is waived for this phase: it adds aws-sdk-go-v2 and `golang.org/x/image`. Layout and backup notes are in [storage](./storage.md). **Second consumer (2026-10-08): markdown image attachments**, served through the repo's read check (migration 109). Still to come: GCS, git repos and the other consumers below, and `migrate-storage`.
+
+**Second consumer: markdown image attachments** (migration 109), through the same `Backend`. See [`storage.md`](./storage.md).
 
 Implementations: `LocalBackend` (current disk storage, default), `S3Backend` (AWS SDK v2 — new dependency when enabled), `GCSBackend` (Google Cloud Storage client — new dependency when enabled). All git repos, LFS objects, release assets, registry blobs, and package files are routed through the backend interface. Config: `storage.backend: local|s3|gcs`; backend-specific keys under `storage.s3.*` / `storage.gcs.*`. Migration from local to S3 is a one-time `cz-admin migrate-storage` command.
 
@@ -2445,7 +2447,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 19.1  | LDAP / SAML Improvements             | ⬜ Planned | —            |
 | 19.2  | IP Allowlisting & Access Policies    | ⬜ Planned | 059          |
 | 19.3  | API Rate Limiting & Quotas           | ✅ Done    | 110          |
-| 20.1  | S3/GCS Storage Backend (avatars done) | 🚧 Partial | 104          |
+| 20.1  | S3/GCS Storage Backend (avatars and attachments done) | 🚧 Partial | 104, 109     |
 | 20.2  | Instance Clustering / HA             | ⬜ Planned | —            |
 | 20.3  | GraphQL API v2                       | ⬜ Planned | —            |
 

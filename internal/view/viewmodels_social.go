@@ -114,6 +114,7 @@ type SearchData struct {
 
 type SearchSuggestionsData struct {
 	Suggestions *service.Suggestions
+	ListID      string // id of the element the rows are swapped into; prefixes the option ids
 }
 
 type TopicData struct {
