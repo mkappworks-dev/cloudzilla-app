@@ -177,30 +177,64 @@ func TestRun_RefusesANonEmptyReposRoot(t *testing.T) {
 }
 
 func TestRun_SameSeedBuildsTheSameWorld(t *testing.T) {
-	names := func() []string {
+	// Each query yields one stable-keyed line per row; database ids never appear.
+	fingerprints := map[string]string{
+		"repositories": `SELECT owner_name || '/' || name FROM repositories`,
+		"milestones":   `SELECT r.owner_name || '/' || r.name || ' ' || m.title || ' ' || m.state || ' ' || coalesce(m.due_date::text, '') FROM milestones m JOIN repositories r ON r.id = m.repo_id`,
+		"issues":       `SELECT r.owner_name || '/' || r.name || '#' || i.number || ' ' || i.state || ' ' || coalesce(m.title, '') FROM issues i JOIN repositories r ON r.id = i.repo_id LEFT JOIN milestones m ON m.id = i.milestone_id`,
+		"pulls":        `SELECT r.owner_name || '/' || r.name || '#' || p.number || ' ' || p.state || ' draft=' || p.is_draft || ' ' || coalesce(m.title, '') FROM pull_requests p JOIN repositories r ON r.id = p.repo_id LEFT JOIN milestones m ON m.id = p.milestone_id`,
+		"releases":     `SELECT r.owner_name || '/' || r.name || ' ' || e.tag_name || ' draft=' || e.is_draft || ' pre=' || e.is_prerelease FROM releases e JOIN repositories r ON r.id = e.repo_id`,
+		"projects":     `SELECT r.owner_name || '/' || r.name || ' ' || p.name || ' closed=' || (p.closed_at IS NOT NULL) FROM projects p JOIN repositories r ON r.id = p.repo_id`,
+		"cards": `SELECT r.owner_name || '/' || r.name || ' ' || p.name || ' [' || pc.name || '] ' || c.title || ' | ' || c.note || ' | due=' || coalesce(c.due_date::text, '') ||
+			' | ' || CASE WHEN i.id IS NOT NULL THEN 'issue#' || i.number WHEN pr.id IS NOT NULL THEN 'pull#' || pr.number ELSE 'note' END ||
+			' | @' || coalesce((SELECT string_agg(u.username, ',' ORDER BY u.username) FROM card_assignees a JOIN users u ON u.id = a.user_id WHERE a.card_id = c.id), '') ||
+			' | ' || coalesce((SELECT string_agg(l.name, ',' ORDER BY l.name) FROM card_labels cl JOIN labels l ON l.id = cl.label_id WHERE cl.card_id = c.id), '')
+			FROM project_cards c JOIN project_columns pc ON pc.id = c.column_id JOIN projects p ON p.id = pc.project_id
+			JOIN repositories r ON r.id = p.repo_id LEFT JOIN issues i ON i.id = c.issue_id LEFT JOIN pull_requests pr ON pr.id = c.pull_id`,
+	}
+	world := func() map[string][]string {
 		svcs, db, root := newInstance(t)
-		if _, err := seed.Run(context.Background(), svcs, root, smallWorld(9)); err != nil {
+		if _, err := seed.Run(context.Background(), svcs, root, seed.Options{Users: 8, Orgs: 2, Repos: 14, Seed: 9, Now: testNow}); err != nil {
 			t.Fatalf("Run: %v", err)
 		}
-		rows, err := db.Query(`SELECT owner_name || '/' || name FROM repositories ORDER BY id`)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer rows.Close()
-		var out []string
-		for rows.Next() {
-			var n string
-			if err := rows.Scan(&n); err != nil {
+		out := map[string][]string{}
+		for name, query := range fingerprints {
+			rows, err := db.Query(query)
+			if err != nil {
+				t.Fatalf("%s: %v", name, err)
+			}
+			for rows.Next() {
+				var line string
+				if err := rows.Scan(&line); err != nil {
+					t.Fatal(err)
+				}
+				out[name] = append(out[name], line)
+			}
+			if err := rows.Err(); err != nil {
 				t.Fatal(err)
 			}
-			out = append(out, n)
-		}
-		if err := rows.Err(); err != nil {
-			t.Fatal(err)
+			_ = rows.Close()
+			slices.Sort(out[name])
 		}
 		return out
 	}
-	if a, b := names(), names(); !slices.Equal(a, b) {
-		t.Errorf("repositories differ between runs:\n%v\n%v", a, b)
+	a, b := world(), world()
+	for name := range fingerprints {
+		if len(a[name]) == 0 {
+			t.Errorf("%s: empty fingerprint, the comparison proves nothing", name)
+		}
+		if slices.Equal(a[name], b[name]) {
+			continue
+		}
+		for _, line := range a[name] {
+			if !slices.Contains(b[name], line) {
+				t.Errorf("%s only in the first run: %s", name, line)
+			}
+		}
+		for _, line := range b[name] {
+			if !slices.Contains(a[name], line) {
+				t.Errorf("%s only in the second run: %s", name, line)
+			}
+		}
 	}
 }
