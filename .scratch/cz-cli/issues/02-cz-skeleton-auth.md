@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 02a
 
 Part of [spec](../spec.md).
@@ -24,11 +24,11 @@ Token store: OS keychain; fallback to a `0600` file under the user config dir; `
 
 ## Acceptance criteria
 
-- [ ] Login with a good PAT saves it and `status` reports the user; a bad token saves nothing and exits non-zero.
-- [ ] `CZ_TOKEN` + `CZ_HOST` work with no stored login.
-- [ ] Keychain unavailable → file fallback with mode `0600`; `status` says which.
-- [ ] `403 insufficient_scope` names the missing scope; `401` suggests `cz auth login`.
-- [ ] `cz api GET /api/repos/` works against a test server.
-- [ ] Tests run the client against `httptest` servers; a test fails if `cmd/cz` imports `internal/store` or `internal/service`.
+- [x] Login with a good PAT saves it and `status` reports the user; a bad token saves nothing and exits non-zero.
+- [x] `CZ_TOKEN` + `CZ_HOST` work with no stored login.
+- [x] Keychain unavailable → file fallback with mode `0600`; `status` says which.
+- [x] `403 insufficient_scope` names the missing scope; `401` suggests `cz auth login`.
+- [x] `cz api GET /api/repos/` works against a test server.
+- [x] Tests run the client against `httptest` servers; a test fails if `cmd/cz` imports `internal/store` or `internal/service`.
 
 ## Comments

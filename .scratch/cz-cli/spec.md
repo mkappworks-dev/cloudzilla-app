@@ -71,6 +71,7 @@ Agreed with the maintainer on 2026-10-09.
 2. **Command name `cz`; admin binary renamed `cz-admin`.**
 3. **PAT first, device flow second**, as `gh auth login` offers a browser device flow plus `--with-token`/`GH_TOKEN`. The device flow is the better experience but is server work, so it doesn't gate the client.
 4. **Core command set above**; the rest follows once it is used.
+5. **Client package is `internal/cli/`; keychain library is `github.com/zalando/go-keyring`** (decided 2026-10-09, ticket 02). A package under `internal/` lets tickets 03-05 and `cmd/cz` share it without a nested `cmd/cz/internal/`, and a test on `go list -deps` keeps it off the store and service layers. go-keyring is pure Go on macOS, Linux and Windows, so `cz` stays cgo-free and cross-compiles.
 
 ## Plan
 
