@@ -94,6 +94,57 @@ func TestRun_SeedsAFreshInstance(t *testing.T) {
 	}
 }
 
+func TestRun_SeedsEveryShapeTheUIRenders(t *testing.T) {
+	svcs, db, root := newInstance(t)
+	// Milestones scale with repo popularity, which is skewed low, so five repos rarely carry every shape.
+	rep, err := seed.Run(context.Background(), svcs, root, seed.Options{Users: 8, Orgs: 2, Repos: 14, Seed: 7, Now: testNow})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	for _, c := range []struct{ name, query string }{
+		{"issue open", `SELECT count(*) FROM issues WHERE state = 'open'`},
+		{"issue closed", `SELECT count(*) FROM issues WHERE state = 'closed'`},
+		{"pull open", `SELECT count(*) FROM pull_requests WHERE state = 'open' AND NOT is_draft`},
+		{"pull draft", `SELECT count(*) FROM pull_requests WHERE state = 'open' AND is_draft`},
+		{"pull merged", `SELECT count(*) FROM pull_requests WHERE state = 'merged'`},
+		{"pull closed", `SELECT count(*) FROM pull_requests WHERE state = 'closed'`},
+		{"pull in a milestone", `SELECT count(*) FROM pull_requests WHERE milestone_id IS NOT NULL`},
+		{"release published", `SELECT count(*) FROM releases WHERE NOT is_draft AND NOT is_prerelease`},
+		{"release prerelease", `SELECT count(*) FROM releases WHERE NOT is_draft AND is_prerelease`},
+		{"release draft", `SELECT count(*) FROM releases WHERE is_draft`},
+		{"open milestone with issues", `SELECT count(DISTINCT m.id) FROM milestones m JOIN issues i ON i.milestone_id = m.id WHERE m.state = 'open'`},
+		{"closed milestone with issues", `SELECT count(DISTINCT m.id) FROM milestones m JOIN issues i ON i.milestone_id = m.id WHERE m.state = 'closed'`},
+		{"milestone due in the past", `SELECT count(*) FROM milestones WHERE due_date < '2026-10-01'`},
+		{"milestone due in the future", `SELECT count(*) FROM milestones WHERE due_date > '2026-10-01'`},
+		{"issue with labels and assignee", `SELECT count(*) FROM issues i WHERE EXISTS (SELECT 1 FROM issue_labels l WHERE l.issue_id = i.id) AND EXISTS (SELECT 1 FROM issue_assignees a WHERE a.issue_id = i.id)`},
+		{"board with three columns", `SELECT count(*) FROM (SELECT project_id FROM project_columns GROUP BY project_id HAVING count(*) >= 3) b`},
+		{"closed board", `SELECT count(*) FROM projects WHERE closed_at IS NOT NULL`},
+		{"open board", `SELECT count(*) FROM projects WHERE closed_at IS NULL`},
+		{"note with description and due date", `SELECT count(*) FROM project_cards WHERE title <> '' AND note <> '' AND due_date IS NOT NULL AND issue_id IS NULL AND pull_id IS NULL`},
+		{"note with assignees and labels", `SELECT count(*) FROM project_cards c WHERE c.title <> '' AND EXISTS (SELECT 1 FROM card_assignees a WHERE a.card_id = c.id) AND EXISTS (SELECT 1 FROM card_labels l WHERE l.card_id = c.id)`},
+		{"titled note linked to an issue", `SELECT count(*) FROM project_cards WHERE title <> '' AND issue_id IS NOT NULL`},
+		{"plain issue card", `SELECT count(*) FROM project_cards WHERE title = '' AND issue_id IS NOT NULL`},
+		{"plain pull card", `SELECT count(*) FROM project_cards WHERE title = '' AND pull_id IS NOT NULL`},
+		{"overdue card", `SELECT count(*) FROM project_cards WHERE due_date < '2026-10-01'`},
+		{"card referencing a seeded issue", `SELECT count(*) FROM project_cards c JOIN project_columns pc ON pc.id = c.column_id JOIN projects p ON p.id = pc.project_id JOIN issues i ON i.repo_id = p.repo_id AND c.note LIKE '%#' || i.number || '%'`},
+	} {
+		if got := count(t, db, c.query); got == 0 {
+			t.Errorf("no %s", c.name)
+		}
+	}
+
+	if got := count(t, db, `SELECT count(*) FROM projects`); got != rep.Projects {
+		t.Errorf("projects = %d, report says %d", got, rep.Projects)
+	}
+	if got := count(t, db, `SELECT count(*) FROM project_cards`); got != rep.Cards {
+		t.Errorf("cards = %d, report says %d", got, rep.Cards)
+	}
+	if got := count(t, db, `SELECT count(*) FROM issues`); got != rep.Issues {
+		t.Errorf("issues = %d, report says %d: a converted card creates an issue the report must count", got, rep.Issues)
+	}
+}
+
 func TestRun_RefusesAnInstanceThatAlreadyHasAccounts(t *testing.T) {
 	svcs, db, root := newInstance(t)
 	ctx := context.Background()

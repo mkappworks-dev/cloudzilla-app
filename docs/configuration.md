@@ -317,7 +317,7 @@ Migrations are embedded in the binary and run in order. Safe to run repeatedly -
 
 ### `cz-admin seed`
 
-Fill a fresh instance with test data for manual testing: a superadmin (`siteadmin`, `admin@example.test`), 100 users, 10 organizations and 150 repositories with a year of backdated git history, plus issues, pull requests, reviews, discussions, releases, stars and gists. The default size takes under a minute.
+Fill a fresh instance with test data for manual testing: a superadmin (`siteadmin`, `admin@example.test`), 100 users, 10 organizations and 150 repositories with a year of backdated git history, plus issues, milestones, pull requests, reviews, project boards with cards of every kind (one board closed), discussions, releases (including a prerelease and a draft), stars and gists. The default size takes under a minute.
 
 In development, seed the dev instance right after migrating it:
 
