@@ -181,6 +181,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/login/device", h.PageDeviceEntry)
 	r.With(authMW, deviceEntryLimiter.Middleware(h.RateLimited)).Post("/login/device", h.DeviceLookup)
 	r.With(authMW).Get("/login/device/confirm", h.PageDeviceConfirm)
+	r.With(authMW).Get("/login/device/approve", h.PageDeviceApproveRedirect)
 	r.With(authMW).Post("/login/device/approve", h.DeviceApprove)
 
 	// Gist page routes

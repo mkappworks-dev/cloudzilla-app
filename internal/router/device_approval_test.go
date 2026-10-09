@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -31,13 +32,18 @@ func newDeviceFlow(t *testing.T, scopes ...string) deviceFlow {
 	h, svc, db := newTestRouter(t)
 	suffix := testutil.UniqueSuffix(t)
 	uid, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	return startDeviceGrant(t, h, svc, db, uid, "testpw_"+suffix, "mk-laptop", scopes...)
+}
+
+func startDeviceGrant(t *testing.T, h http.Handler, svc *service.Services, db *sql.DB, uid int64, username, device string, scopes ...string) deviceFlow {
+	t.Helper()
 	ip := deviceTestIP()
 	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM device_grants WHERE requester_ip = $1`, ip) })
-	dc, err := svc.DeviceGrant.Create(context.Background(), ip, scopes, "mk-laptop")
+	dc, err := svc.DeviceGrant.Create(context.Background(), ip, scopes, device)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return deviceFlow{h, svc, db, uid, makeJWT(t, uid, "testpw_"+suffix), dc}
+	return deviceFlow{h, svc, db, uid, makeJWT(t, uid, username), dc}
 }
 
 func newReadWriteDeviceFlow(t *testing.T) deviceFlow {
@@ -399,4 +405,126 @@ func TestDeviceLogin_FailedConfirmationKeepsUntickedScopesUnticked(t *testing.T)
 		t.Errorf("token = %+v, %v; want [repo:read]", tok, err)
 	}
 	takeAudit(t, f.db, model.AuditActionDeviceApprove, f.userID)
+}
+
+func TestDeviceLogin_ForgedOrForeignCookieActsLikeNone(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	signed := f.cookie(t)
+
+	suffix := testutil.UniqueSuffix(t) + "b"
+	otherID, _ := testutil.SeedUserWithPassword(t, f.db, suffix, "password1")
+	other := makeJWT(t, otherID, "testpw_"+suffix)
+
+	for _, tc := range []struct {
+		name    string
+		session string
+		cookie  *http.Cookie
+	}{
+		{"an unsigned code", f.session, &http.Cookie{Name: "cz_device_code", Value: f.rawCode()}},
+		{"garbage", f.session, &http.Cookie{Name: "cz_device_code", Value: "not.a.cookie"}},
+		{"another user's cookie", other, signed},
+	} {
+		get := browserRequest(http.MethodGet, "/login/device/confirm", tc.session, nil)
+		get.AddCookie(tc.cookie)
+		post := browserRequest(http.MethodPost, "/login/device/approve", tc.session, url.Values{"action": {"deny"}})
+		post.AddCookie(tc.cookie)
+		for _, req := range []*http.Request{get, post} {
+			rec := serve(f.h, req)
+			if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/login/device" {
+				t.Errorf("%s: %s %s = %d to %q; want 303 to /login/device", tc.name, req.Method, req.URL.Path, rec.Code, rec.Header().Get("Location"))
+			}
+		}
+		if got := f.status(t); got != model.DeviceGrantPending {
+			t.Errorf("%s: status = %s; want pending", tc.name, got)
+		}
+	}
+}
+
+func TestDeviceLogin_ApproveRedirectsGetBackToConfirm(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	rec := serve(f.h, browserRequest(http.MethodGet, "/login/device/approve", f.session, nil))
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/login/device/confirm" {
+		t.Errorf("signed in = %d to %q; want 303 to /login/device/confirm", rec.Code, rec.Header().Get("Location"))
+	}
+	rec = serve(f.h, httptest.NewRequest(http.MethodGet, "/login/device/approve", nil))
+	if rec.Code != http.StatusSeeOther || !strings.HasPrefix(rec.Header().Get("Location"), "/login") {
+		t.Errorf("signed out = %d to %q; want a redirect to sign in", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestDeviceLogin_PasswordlessAccountConfirmsWithAnEmailedCode(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	h, svc, db := newVerificationRouter(t, smtp)
+	suffix := testutil.UniqueSuffix(t)
+	uid := testutil.SeedPasswordlessUser(t, db, suffix, "g_dev_"+suffix)
+	f := startDeviceGrant(t, h, svc, db, uid, "testnopw_"+suffix, "mk-laptop", "repo:read")
+	c := f.cookie(t)
+
+	if rec := f.approve(c, url.Values{"scope": {"repo:read"}}); rec.Code != http.StatusForbidden {
+		t.Fatalf("without a code = %d; want 403", rec.Code)
+	}
+	rec := serve(h, htmxRequest(browserRequest(http.MethodPost, "/settings/confirm-code", f.session, url.Values{})))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Code sent") {
+		t.Fatalf("send code = %d %s", rec.Code, rec.Body)
+	}
+	code := box.NextTo(t, "testnopw_"+suffix+"@test.invalid").ConfirmationCode(t)
+
+	rec = f.approve(c, url.Values{"scope": {"repo:read"}, "email_code": {code}})
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Device authorized") {
+		t.Fatalf("with the emailed code = %d; want 200 Device authorized", rec.Code)
+	}
+	if got := f.status(t); got != model.DeviceGrantApproved {
+		t.Errorf("status = %s; want approved", got)
+	}
+	takeAudit(t, db, model.AuditActionDeviceApprove, uid)
+}
+
+func TestDeviceLogin_ApprovalMailsAnEscapedNotice(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	h, svc, db := newVerificationRouter(t, smtp)
+	suffix := testutil.UniqueSuffix(t)
+	uid, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	f := startDeviceGrant(t, h, svc, db, uid, "testpw_"+suffix, "<b>x</b>", "repo:read")
+
+	if rec := f.approve(f.cookie(t), approveForm("password1", "repo:read")); rec.Code != http.StatusOK {
+		t.Fatalf("approve = %d", rec.Code)
+	}
+	mail := box.NextTo(t, email)
+	var ip string
+	if err := db.QueryRowContext(context.Background(), `SELECT requester_ip FROM device_grants WHERE user_code = $1`, f.rawCode()).Scan(&ip); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(mail.Data, "&lt;b&gt;x&lt;/b&gt;") || strings.Contains(mail.Data, "<b>x</b>") || !strings.Contains(mail.Data, ip) {
+		t.Errorf("notice should carry the escaped device name and %s:\n%.800s", ip, mail.Data)
+	}
+	box.Empty(t, 300*time.Millisecond)
+	takeAudit(t, db, model.AuditActionDeviceApprove, uid)
+}
+
+func TestDeviceLogin_AuditDetails(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	if rec := f.approve(f.cookie(t), approveForm("password1", "repo:read")); rec.Code != http.StatusOK {
+		t.Fatalf("approve = %d", rec.Code)
+	}
+	var ip string
+	if err := f.db.QueryRowContext(context.Background(), `SELECT requester_ip FROM device_grants WHERE user_code = $1`, f.rawCode()).Scan(&ip); err != nil {
+		t.Fatal(err)
+	}
+	md := takeAuditMetadata(t, f.db, model.AuditActionDeviceApprove, f.userID)
+	scopes, _ := md["scopes"].([]any)
+	if md["device"] != "mk-laptop" || md["ip"] != ip || len(scopes) != 1 || scopes[0] != "repo:read" {
+		t.Errorf("approve details = %v", md)
+	}
+
+	testutil.Exec(t, f.db, `UPDATE device_grants SET last_polled_at = $2 WHERE user_code = $1`, f.rawCode(), time.Now().Add(-time.Hour))
+	rec := postDevice(f.h, "/api/auth/device/token", url.Values{
+		"grant_type": {"urn:ietf:params:oauth:grant-type:device_code"}, "device_code": {f.dc.DeviceCode},
+	}, ip)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("poll = %d %s", rec.Code, rec.Body)
+	}
+	md = takeAuditMetadata(t, f.db, model.AuditActionTokenCreate, f.userID)
+	if md["source"] != "device login" || !strings.Contains(fmt.Sprint(md["token"]), "mk-laptop") {
+		t.Errorf("token details = %v", md)
+	}
 }

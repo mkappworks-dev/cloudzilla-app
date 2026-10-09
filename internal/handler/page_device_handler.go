@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -21,9 +22,13 @@ const (
 )
 
 // The typed code rides in a cookie, not a URL, so a provider sign-in can return to the confirm page.
-func (h *Handler) setDeviceCookie(w http.ResponseWriter, userCode string, maxAge int) {
+func (h *Handler) setDeviceCookie(w http.ResponseWriter, userID int64, userCode string, maxAge int) {
+	value := ""
+	if maxAge > 0 {
+		value = signDeviceCode(h.Cfg.Auth.JWTSecret, userID, userCode, time.Now().Add(time.Duration(maxAge)*time.Second))
+	}
 	http.SetCookie(w, &http.Cookie{
-		Name: deviceCodeCookie, Value: userCode, Path: devicePath, MaxAge: maxAge,
+		Name: deviceCodeCookie, Value: value, Path: devicePath, MaxAge: maxAge,
 		HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure, SameSite: http.SameSiteLaxMode,
 	})
 }
@@ -52,7 +57,7 @@ func (h *Handler) PageDeviceEntry(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) renderDeviceEntry(w http.ResponseWriter, r *http.Request, status int, msg string) {
 	deviceFrameGuard(w)
-	h.setDeviceCookie(w, "", -1)
+	h.setDeviceCookie(w, 0, "", -1)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
@@ -61,6 +66,7 @@ func (h *Handler) renderDeviceEntry(w http.ResponseWriter, r *http.Request, stat
 
 // DeviceLookup handles POST /login/device: the user types the code from their terminal.
 func (h *Handler) DeviceLookup(w http.ResponseWriter, r *http.Request) {
+	claims, _ := middleware.ClaimsFromContext(r.Context())
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -75,23 +81,26 @@ func (h *Handler) DeviceLookup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	h.setDeviceCookie(w, g.UserCode, int(service.DeviceGrantTTL.Seconds()))
+	h.setDeviceCookie(w, claims.UserID, g.UserCode, int(service.DeviceGrantTTL.Seconds()))
 	http.Redirect(w, r, devicePath+"/confirm", http.StatusSeeOther)
 }
 
 // deviceGrantFromCookie returns the grant the user entered, or sends them back to the entry page.
 func (h *Handler) deviceGrantFromCookie(w http.ResponseWriter, r *http.Request) (*model.DeviceGrant, bool) {
-	c, err := r.Cookie(deviceCodeCookie)
-	if err == nil {
-		g, lerr := h.Services.DeviceGrant.Lookup(r.Context(), c.Value)
-		if lerr == nil {
-			return g, true
-		}
-		if !errors.Is(lerr, service.ErrDeviceGrantNotFound) {
-			slog.Error("device login: look up code", "error", lerr)
+	claims, _ := middleware.ClaimsFromContext(r.Context())
+	// Only POST /login/device is rate limited, so a cookie the client could forge would be a free guessing oracle.
+	if c, err := r.Cookie(deviceCodeCookie); err == nil {
+		if code, ok := verifyDeviceCode(h.Cfg.Auth.JWTSecret, c.Value, claims.UserID, time.Now()); ok {
+			g, lerr := h.Services.DeviceGrant.Lookup(r.Context(), code)
+			if lerr == nil {
+				return g, true
+			}
+			if !errors.Is(lerr, service.ErrDeviceGrantNotFound) {
+				slog.Error("device login: look up code", "error", lerr)
+			}
 		}
 	}
-	h.setDeviceCookie(w, "", -1)
+	h.setDeviceCookie(w, 0, "", -1)
 	http.Redirect(w, r, devicePath, http.StatusSeeOther)
 	return nil, false
 }
@@ -116,6 +125,12 @@ func (h *Handler) PageDeviceConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.renderDeviceConfirm(w, r, claims, g, g.Scopes, http.StatusOK, "")
+}
+
+// PageDeviceApproveRedirect answers the GET a provider sign-in returns to after a failed
+// approval rendered at the POST URL.
+func (h *Handler) PageDeviceApproveRedirect(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, devicePath+"/confirm", http.StatusSeeOther)
 }
 
 // DeviceApprove handles POST /login/device/approve.
@@ -185,6 +200,6 @@ func (h *Handler) DeviceApprove(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) finishDevice(w http.ResponseWriter, r *http.Request, approved bool) {
 	deviceFrameGuard(w)
-	h.setDeviceCookie(w, "", -1)
+	h.setDeviceCookie(w, 0, "", -1)
 	h.render(w, r, pages.DeviceDone(view.DeviceDoneData{BasePage: basePage(r, h.Services), Approved: approved}))
 }
