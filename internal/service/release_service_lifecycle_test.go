@@ -231,8 +231,8 @@ func TestReleaseService_Update(t *testing.T) {
 		t.Error("re-saving a published release must keep its original PublishedAt")
 	}
 
-	if _, err := svc.Update(ctx, owner, repo, other.ID, "v1-final", "", "", false, false); err == nil {
-		t.Error("renaming onto another release's tag must fail")
+	if _, err := svc.Update(ctx, owner, repo, other.ID, "v1-final", "", "", false, false); !errors.Is(err, service.ErrReleaseTagInUse) {
+		t.Errorf("renaming onto another release's tag: got %v, want ErrReleaseTagInUse", err)
 	}
 }
 

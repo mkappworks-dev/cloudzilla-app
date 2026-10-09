@@ -583,7 +583,9 @@ func (s *SSOService) HandleSAMLCallback(ctx context.Context, samlResponseB64 str
 				}
 			}
 		}
-		if !audienceOK && len(resp.Assertion.Conditions.AudienceRestriction) > 0 {
+		// An assertion with no AudienceRestriction must fail too: the bearer profile
+		// requires one, and without it an assertion meant for any SP would be accepted.
+		if !audienceOK {
 			return nil, "", fmt.Errorf("saml assertion audience does not match entity_id")
 		}
 	}
