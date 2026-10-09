@@ -155,6 +155,7 @@ Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` 
 
 | Method | Path                                  | Auth     | Description                                                                                           |
 | ------ | ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| GET    | `/api/user`                           | Required | The caller's `{id, username}`; 401 without valid credentials; open to tokens with any read scope        |
 | GET    | `/api/users/:username`                | --       | Get a user's public profile                                                                           |
 | GET    | `/api/users/:username/repos`          | --       | List user's repositories                                                                              |
 | POST   | `/api/users/:id/pinned-repos/:repoID` | Required | Pin a repo to the profile; idempotent; 422 past 6 pins; 404 if the repo is not readable by the caller |

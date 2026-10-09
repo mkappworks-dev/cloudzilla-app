@@ -53,6 +53,24 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, newPublicUser(*user, h.Cfg.Server.BaseURL))
 }
 
+func (h *Handler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	// Claims can carry a username from before a rename, so read it fresh.
+	user, err := h.Services.User.GetByID(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	writeJSON(w, http.StatusOK, struct {
+		ID       int64  `json:"id"`
+		Username string `json:"username"`
+	}{user.ID, user.Username})
+}
+
 func (h *Handler) PinRepo(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

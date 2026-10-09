@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none
 
 Part of [spec](../spec.md). Found while starting 02: `cz auth login` must verify a token and learn the username in one call, and no endpoint does that.
@@ -22,11 +22,11 @@ Part of [spec](../spec.md). Found while starting 02: `cz auth login` must verify
 
 ## Acceptance criteria
 
-- [ ] `GET /api/user` with a valid PAT of each read scope returns `{id, username}`.
-- [ ] A missing, malformed, expired or revoked token gets `401`, never an anonymous result.
-- [ ] A suspended account's token is refused as on every other authenticated route.
-- [ ] `/api/user/tokens`, `/api/user/keys` and the rest of `/api/user/*` are still `403 insufficient_scope` for a PAT; a test pins this.
-- [ ] `docs/api-reference.md` lists the endpoint and `docs/access-control.md`'s scope table shows it open to the read scopes.
-- [ ] Handler and `scope.go` tests cover the cases above.
+- [x] `GET /api/user` with a valid PAT of each read scope returns `{id, username}`.
+- [x] A missing, malformed, expired or revoked token gets `401`, never an anonymous result.
+- [x] A suspended account's token is refused as on every other authenticated route.
+- [x] `/api/user/tokens`, `/api/user/keys` and the rest of `/api/user/*` are still `403 insufficient_scope` for a PAT; a test pins this.
+- [x] `docs/api-reference.md` lists the endpoint and `docs/access-control.md`'s scope table shows it open to the read scopes.
+- [x] Handler and `scope.go` tests cover the cases above.
 
 ## Comments
