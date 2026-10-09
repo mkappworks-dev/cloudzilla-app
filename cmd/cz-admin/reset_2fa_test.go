@@ -45,8 +45,8 @@ func TestReset2FA(t *testing.T) {
 		model.AuditActionAdminUser2FAReset, userID).Scan(&actorID, &actorName); err != nil {
 		t.Fatalf("audit row: %v", err)
 	}
-	if actorID != nil || actorName != "cloudzilla-cli" {
-		t.Errorf("audit row = actor %v %q; want no actor id, cloudzilla-cli", actorID, actorName)
+	if actorID != nil || actorName != "cz-admin" {
+		t.Errorf("audit row = actor %v %q; want no actor id, cz-admin", actorID, actorName)
 	}
 
 	out.Reset()

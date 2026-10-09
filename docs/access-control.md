@@ -47,8 +47,8 @@ Turning TOTP on needs the password as well as a code from the new authenticator:
 
 **Lost authenticator.** A superadmin turns 2FA off for another account with `reset-2fa` under [Managing accounts](#managing-accounts). A sole superadmin, who can't use that on their own account, recovers from the server instead:
 
-1. `cloudzilla-cli reset-2fa <username>` turns 2FA off ([CLI reference](./configuration.md#cloudzilla-cli-reset-2fa)). It writes `admin.user.2fa_reset` with no actor ID and the actor name `cloudzilla-cli`, and mails the security notice.
-2. If the password is lost too, `cloudzilla-cli password-reset-link <username>` prints a link (see [Resetting a forgotten password](#resetting-a-forgotten-password)). Neither command bumps `session_version`, so the link survives the reset in either order.
+1. `cz-admin reset-2fa <username>` turns 2FA off ([CLI reference](./configuration.md#cz-admin-reset-2fa)). It writes `admin.user.2fa_reset` with no actor ID and the actor name `cz-admin`, and mails the security notice.
+2. If the password is lost too, `cz-admin password-reset-link <username>` prints a link (see [Resetting a forgotten password](#resetting-a-forgotten-password)). Neither command bumps `session_version`, so the link survives the reset in either order.
 3. Sign in, turn 2FA back on from Settings, and, if the old device might be in someone else's hands, use **Sign out other sessions** (see [Ending sessions](#ending-sessions)).
 
 Google and SAML users get the prompt too, even when the IdP enforces its own MFA. Cloudzilla can't tell whether it did: it neither requests nor checks a SAML `AuthnContext`, and Google's userinfo doesn't say. Because TOTP is opt-in, only users who enrolled are asked, so a user whose IdP already handles MFA can leave it off. Gitea and GitLab make the same default, with a per-provider bypass that Cloudzilla doesn't have yet.
@@ -112,7 +112,7 @@ Accounts without a password (created by Google, LDAP or SAML sign-up) can't set 
 
 **Issued by an admin.** A superadmin can issue a link from `/admin/users/{username}` (see [Managing accounts](#managing-accounts)), with or without SMTP. The link is shown to the admin once and never emailed, since the action is for users whose mail doesn't reach them. With SMTP on, the account is emailed a notice that an administrator issued one, without the link. Refusals and the audit entry are under [Managing accounts](#managing-accounts); a 2FA account still needs its code to use the link.
 
-**From the CLI.** `cloudzilla-cli password-reset-link <username>` prints a 24-hour link to pass on by hand ([CLI reference](./configuration.md#cloudzilla-cli-password-reset-link)). It refuses accounts without a password and suspended accounts, and writes `user.password.reset_link` to the audit log with no actor ID and the actor name `cloudzilla-cli`.
+**From the CLI.** `cz-admin password-reset-link <username>` prints a 24-hour link to pass on by hand ([CLI reference](./configuration.md#cz-admin-password-reset-link)). It refuses accounts without a password and suspended accounts, and writes `user.password.reset_link` to the audit log with no actor ID and the actor name `cz-admin`.
 
 Both `POST` routes are limited to 10 requests per client IP per 15 minutes, each with its own budget.
 
@@ -166,7 +166,7 @@ Open routes:
 - `/api/repos` (list, create), `POST /api/repos/from-template`, `/api/repos/{owner}/{repo}` (read only — `PATCH` changes settings).
 - Content sub-resources of `/api/repos/{owner}/{repo}`: `issues`, `pulls`, `labels`, `milestones`, `releases`, `statuses`, `commits`, `branches` (not `branches/protections`), `tags`, `comments`, `stargazers`, `star`, `watch`, `fork`, `projects`, `wiki`, `discussions`. A few of these `GET`s return HTML fragments (e.g. the watch button, issue title/body sections) carrying the same data as the JSON.
 - `GET /api/orgs/{org}`, `GET /api/orgs/{org}/members`, `POST /api/orgs/{org}/repos`.
-- `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
+- `GET /api/user` (exactly this path: `{id, username}` of the token's owner; every `/api/user/*` route stays closed), `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
 - Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
 
 | Scope          | Admits on the open routes                                                                                |
@@ -448,7 +448,7 @@ Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin'
 | `unsuspend` | Clears `suspended_at`. Tokens, keys and app grants work again; sessions don't | — | `admin.user.unsuspend` |
 | `promote` | `is_superadmin = TRUE` | The account is suspended (`ErrUserSuspended`) | `admin.user.promote` |
 | `demote` | `is_superadmin = FALSE` | It would leave no active superadmin | `admin.user.demote` |
-| `reset-2fa` | Clears the TOTP secret, flag and backup codes; mails a security notice. Sessions stay signed in. `cloudzilla-cli reset-2fa` does the same for any account, including the operator's own (see [Two-factor authentication](#two-factor-authentication)) | — | `admin.user.2fa_reset` |
+| `reset-2fa` | Clears the TOTP secret, flag and backup codes; mails a security notice. Sessions stay signed in. `cz-admin reset-2fa` does the same for any account, including the operator's own (see [Two-factor authentication](#two-factor-authentication)) | — | `admin.user.2fa_reset` |
 | `revoke-credentials` | Deletes the account's PATs, SSH keys and OAuth app authorizations and bumps `session_version`; mails a security notice. Deploy keys and OAuth apps it owns stay | — | `admin.user.credentials_revoke` (counts) |
 | `password-reset-link` | `PasswordResetService.IssueLink` with `issued_by = admin`: a 24-hour [reset link](#resetting-a-forgotten-password) that replaces any outstanding one. The response is the link, shown once (htmx swaps it into the page; otherwise JSON `{link, expires_at}`), with `Cache-Control: no-store`. Mails a security notice without the link. The audit entry is written before the response, and a failed write shows no link | The account is suspended (`ErrUserSuspended`) or has no password (`ErrPasswordResetNoPassword`), both 409 | `user.password.reset_link` (`issued_by`), the same action the CLI writes |
 | `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion) | The account solely owns an organization (an admin can [add another owner](#adding-an-organization-owner)); it would leave no active superadmin | `admin.user.delete` (email) |

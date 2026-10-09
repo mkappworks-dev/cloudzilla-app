@@ -1,5 +1,5 @@
 // Package backup writes and reads the single-tar archive behind
-// `cloudzilla-cli backup` and `restore`.
+// `cz-admin backup` and `restore`.
 package backup
 
 import (

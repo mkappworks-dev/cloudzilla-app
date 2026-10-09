@@ -41,7 +41,7 @@ For example, an anonymous loop over `GET /acme/app/archive/main` zips the reposi
 Nothing limits how many repositories an owner creates or how much disk they use.
 
 - No repository size is recorded: there is no column, no computed size and no UI.
-- Pushes write loose objects, so disk use only shrinks when an operator runs `cloudzilla gc` (`cmd/cloudzilla/gc.go`, `gitgc.Prune`).
+- Pushes write loose objects, so disk use only shrinks when an operator runs `cz-admin gc` (`cmd/cz-admin/gc.go`, `gitgc.Prune`).
 - The only caps are per request:
   - `git.max_pack_bytes`: 2 GiB per push, after decompression
   - the web file form: 25 MB
@@ -219,7 +219,7 @@ Four instance-wide limits, all off by default:
   - a wiki write
   - an import
   - a fork or a template creation
-  - `cloudzilla gc`
+  - `cz-admin gc`
   - the web file edit and mirror sync paths, which parallel sessions are adding; whichever lands second wires them in
 - **Staleness.** Usage can lag a write by one recompute. That is accepted.
 
@@ -259,7 +259,7 @@ When a quota is set, user Settings and org settings show one line, for example `
 
 - [x] With every quota at `0`, behaviour is unchanged.
 - [x] An owner at `quota.*.repos` can't create, fork, import, generate from a template, accept a transfer of, or restore a repository. Each of those is refused with a message stating the count.
-- [x] `size_bytes` is backfilled at startup and recomputed after pushes, web commits, wiki writes, imports, forks, template creations and `cloudzilla gc`.
+- [x] `size_bytes` is backfilled at startup and recomputed after pushes, web commits, wiki writes, imports, forks, template creations and `cz-admin gc`.
 - [x] A push that would take the owner past `quota.*.storage_bytes` is refused over HTTP (413) and SSH, and a delete-only push still succeeds.
 - [x] Web commits and wiki writes are refused when the owner is at or over the storage quota.
 - [x] Soft-deleted repositories don't count toward either quota.
@@ -282,7 +282,7 @@ When a quota is set, user Settings and org settings show one line, for example `
 - `internal/service/repo_dirs.go` (`claimRepo`), `repo_service.go` (`Create`, `Fork`, `CreateFromTemplate`, `Restore`, `OnPostReceive`), `repo_import.go`, `import_service.go`, `repo_transfer.go`, `org_service.go`
 - `internal/service/code_service_files.go` (`CommitFile`), `code_service_wiki.go`
 - `internal/store/repo_store.go` (`CountForUser`)
-- `cmd/cloudzilla/gc.go`, `internal/gitgc/gitgc.go`
+- `cmd/cz-admin/gc.go`, `internal/gitgc/gitgc.go`
 - `internal/view/pages/settings.templ`, `org_settings.templ`
 - `docs/configuration.md`, `docs/api-reference.md`, `docs/deployment.md`, `docs/ROADMAP.md`
 

@@ -15,7 +15,7 @@ var cfgFile string
 var version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:     "cloudzilla",
+	Use:     "cz-admin",
 	Short:   "Cloudzilla admin CLI",
 	Version: version,
 }

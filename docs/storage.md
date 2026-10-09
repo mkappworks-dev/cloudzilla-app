@@ -90,7 +90,7 @@ attachments/repo/<repo id>/<token>.<png|jpg|gif|webp>
 
 ## Backup and restore
 
-`cloudzilla-cli backup` includes the local storage root in its archive, next to the database; an S3 bucket is not copied (see [Backup and restore](./deployment.md#backup-and-restore)). Back up the bucket and prefix with your provider's versioning or replication.
+`cz-admin backup` includes the local storage root in its archive, next to the database; an S3 bucket is not copied (see [Backup and restore](./deployment.md#backup-and-restore)). Back up the bucket and prefix with your provider's versioning or replication.
 
 | Restored | Result |
 | --- | --- |

@@ -104,7 +104,7 @@ Cloudzilla's transport is pure-Go and uses `go-git`'s `server.ReceivePack`. go-g
 
 To work around this without giving up the "no git binary required" invariant, both transports serve receive-pack through `gittransport.NewServer`, which routes the storer through `gittransport.WrapForReceive`. The wrapper hides the storer's `PackfileWriter` method via interface-embedding, which forces `UpdateObjectStorage` onto its slower `NewParserWithStorage` branch. That parser *can* see the storage, so external delta bases are resolved correctly.
 
-**Trade-off:** received objects land loose under `objects/xx/yyy…` rather than packed. Native git treats this as routine; reclaim unreferenced loose objects with `cloudzilla gc` (see [Maintenance](#maintenance)).
+**Trade-off:** received objects land loose under `objects/xx/yyy…` rather than packed. Native git treats this as routine; reclaim unreferenced loose objects with `cz-admin gc` (see [Maintenance](#maintenance)).
 
 **Observability:** each receive-pack that completes emits an `INFO` log line — `git-http: receive-pack complete` over HTTP, `ssh: receive-pack complete` over SSH — with `pack_bytes`, `duration_ms`, and `refs_ok`/`refs_failed` counts. "Complete" means the pack was ingested without a transport error; `refs_failed > 0` flags a push where some ref updates were rejected.
 
@@ -195,13 +195,13 @@ git sends no pack when every command is a delete (`git push origin :branch`). go
 
 ### Loose-object GC
 
-receive-pack writes objects loose (see [Thin packs](#thin-packs)); rejected or churny pushes leave unreferenced objects that nothing reclaims automatically. The `cloudzilla gc` command prunes them:
+receive-pack writes objects loose (see [Thin packs](#thin-packs)); rejected or churny pushes leave unreferenced objects that nothing reclaims automatically. The `cz-admin gc` command prunes them:
 
 ```bash
-cloudzilla gc                    # prune every repository under git.repos_root
-cloudzilla gc --repo owner/name  # prune a single repository
-cloudzilla gc --dry-run          # report what would be pruned, delete nothing
-cloudzilla gc --grace 336h       # change the age threshold (default 14 days)
+cz-admin gc                    # prune every repository under git.repos_root
+cz-admin gc --repo owner/name  # prune a single repository
+cz-admin gc --dry-run          # report what would be pruned, delete nothing
+cz-admin gc --grace 336h       # change the age threshold (default 14 days)
 ```
 
 A loose object is removed only when it is unreachable from every ref **and** older than `--grace`. The grace period avoids racing a push that has written objects but not yet updated its ref. Packed objects are never touched. Safe to run on a schedule (e.g. cron).

@@ -6,7 +6,9 @@
 make build   # produces dist/cloudzilla (single binary, embedded templates + CSS)
 ```
 
-The binaries report `git describe --tags --always --dirty` (e.g. `v0.4.0-41-g8ab8c6e4`) as their version in the page footer and `cloudzilla-cli --version`. Override it with `make build VERSION=v0.4.0`.
+The binaries report `git describe --tags --always --dirty` (e.g. `v0.4.0-41-g8ab8c6e4`) as their version in the page footer and `cz-admin --version`. Override it with `make build VERSION=v0.4.0`.
+
+`make build` also produces `dist/cz`. `cz-admin` is the operator tool and runs on the server host; `cz` is the separate remote client that developers run on their own machines, so the server image and archive leave it out. See [cli](./cli.md).
 
 No Node.js, npm, or Bun needed at runtime. Set config via `config.yaml` or environment variables.
 
@@ -88,7 +90,7 @@ make docker-down    # docker compose down
 
 ```bash
 make docker-run
-docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
+docker exec -it cloudzilla-cloudzilla-1 /app/cz-admin migrate
 ```
 
 Then open `http://localhost:8080` — the first request redirects to `/setup` where you create the superadmin account via the web wizard.
@@ -107,14 +109,14 @@ Two unauthenticated endpoints on the main HTTP port answer probes. They're serve
 `/readyz` returns JSON such as `{"status":"fail","checks":{"database":"ok","migrations":"fail","storage":"ok"}}`. Each check is `ok`, `fail` or `skipped`, and all of them share a 3-second deadline:
 
 - `database`: the server can ping Postgres.
-- `migrations`: every migration embedded in the binary is recorded in `schema_migrations`. The server never migrates, so this fails after an upgrade until `cloudzilla-cli migrate` runs. It's `skipped` while the database check fails.
+- `migrations`: every migration embedded in the binary is recorded in `schema_migrations`. The server never migrates, so this fails after an upgrade until `cz-admin migrate` runs. It's `skipped` while the database check fails.
 - `storage`: a temporary `.readyz-*` file can be created, written and removed in `git.repos_root`. This catches a missing volume, a read-only mount and wrong ownership, but not a full disk.
 
 Give a Kubernetes `readinessProbe` a `timeoutSeconds` of at least 4: the default of 1 turns a slow database into a probe timeout instead of a 503.
 
 The body never says why a check failed; the server logs the cause at `WARN` with `msg="readiness check failed"`. Readiness doesn't depend on setup having completed, on the SSH listener, or on SMTP or OAuth.
 
-The image's `HEALTHCHECK` probes `/healthz`, not `/readyz`. Orchestrators restart unhealthy containers, and a restart fixes neither a database outage nor a pending migration; and on first boot readiness fails by design until `cloudzilla-cli migrate` runs. It requests `http://127.0.0.1:${CZ_SERVER_PORT:-8080}/healthz` with any proxy disabled, so it reads the port only from the `CZ_SERVER_PORT` environment variable, not from `config.yaml`, and it needs `server.host` to accept loopback connections (the default `0.0.0.0` does). Check it with `docker inspect --format '{{.State.Health.Status}}' <container>`.
+The image's `HEALTHCHECK` probes `/healthz`, not `/readyz`. Orchestrators restart unhealthy containers, and a restart fixes neither a database outage nor a pending migration; and on first boot readiness fails by design until `cz-admin migrate` runs. It requests `http://127.0.0.1:${CZ_SERVER_PORT:-8080}/healthz` with any proxy disabled, so it reads the port only from the `CZ_SERVER_PORT` environment variable, not from `config.yaml`, and it needs `server.host` to accept loopback connections (the default `0.0.0.0` does). Check it with `docker inspect --format '{{.State.Health.Status}}' <container>`.
 
 ### Metrics
 
@@ -160,7 +162,7 @@ scrape_configs:
 
 ### Backup and restore
 
-`cloudzilla-cli backup` writes one uncompressed tar holding the database (`pg_dump --format=custom`), every repository under `git.repos_root`, the local storage root (avatars, when `storage.backend` is `local`) and the SSH host key. `cloudzilla-cli restore` rebuilds an empty instance from it. Both run `pg_dump` / `pg_restore` from `PATH`; the Docker image includes `postgresql18-client`. On a binary install, add your OS's client package. Its major version must be at least the server's: `backup` fails, naming the version needed, when the client is missing or older. `--pg-dump` and `--pg-restore` point at a specific binary.
+`cz-admin backup` writes one uncompressed tar holding the database (`pg_dump --format=custom`), every repository under `git.repos_root`, the local storage root (avatars, when `storage.backend` is `local`) and the SSH host key. `cz-admin restore` rebuilds an empty instance from it. Both run `pg_dump` / `pg_restore` from `PATH`; the Docker image includes `postgresql18-client`. On a binary install, add your OS's client package. Its major version must be at least the server's: `backup` fails, naming the version needed, when the client is missing or older. `--pg-dump` and `--pg-restore` point at a specific binary.
 
 **The archive holds password hashes, webhook and TOTP secrets, every private repository and the SSH host key's private half.** Store it encrypted and mode 0600 (the file is created that way).
 
@@ -171,13 +173,13 @@ What a backup doesn't cover:
 
 #### Hot backup
 
-The server can keep running. `pg_dump` takes one consistent snapshot first. Then each repository is copied refs first (`HEAD`, `config`, `packed-refs`, `refs/`) and objects second. Git writes objects before it moves a ref, so every ref in the copy resolves, and so does every commit the database names, even when a push lands mid-copy. **Don't run `cloudzilla-cli gc` while a backup runs:** it could prune an object the copy still needs.
+The server can keep running. `pg_dump` takes one consistent snapshot first. Then each repository is copied refs first (`HEAD`, `config`, `packed-refs`, `refs/`) and objects second. Git writes objects before it moves a ref, so every ref in the copy resolves, and so does every commit the database names, even when a push lands mid-copy. **Don't run `cz-admin gc` while a backup runs:** it could prune an object the copy still needs.
 
 A repository created, renamed, transferred or deleted during the copy can disagree with its database row. `restore` lists those as warnings. For a copy that is consistent by construction, stop the server first:
 
 ```bash
 docker compose stop cloudzilla
-docker compose run --rm -T --no-deps --entrypoint /app/cloudzilla-cli cloudzilla backup --output - \
+docker compose run --rm -T --no-deps --entrypoint /app/cz-admin cloudzilla backup --output - \
   | zstd -q -o "/backups/cloudzilla-$(date +%F).tar.zst"
 docker compose start cloudzilla
 ```
@@ -187,7 +189,7 @@ docker compose start cloudzilla
 `--output -` writes the archive to stdout, so it can leave the container compressed and encrypted without touching a volume. This crontab line keeps one archive per day:
 
 ```cron
-0 3 * * * umask 077; cd /srv/cloudzilla && docker compose exec -T cloudzilla /app/cloudzilla-cli backup --output - | zstd -q | age -r age1yourpublickey... -o /backups/cloudzilla-$(date +\%F).tar.zst.age
+0 3 * * * umask 077; cd /srv/cloudzilla && docker compose exec -T cloudzilla /app/cz-admin backup --output - | zstd -q | age -r age1yourpublickey... -o /backups/cloudzilla-$(date +\%F).tar.zst.age
 ```
 
 The summary prints to stderr. Test a restore from your newest archive now and then; an untested backup is a hope.
@@ -209,7 +211,7 @@ Restore only runs into a new, empty database and an empty (or missing) `git.repo
    ```bash
    docker compose up -d --wait postgres
    age -d -i key.txt /backups/cloudzilla-2026-10-08.tar.zst.age | zstd -dc \
-     | docker compose run --rm -T --no-deps --entrypoint /app/cloudzilla-cli cloudzilla restore --input -
+     | docker compose run --rm -T --no-deps --entrypoint /app/cz-admin cloudzilla restore --input -
    ```
 
 4. Read the report. Warnings name repository rows without a directory, and directories without a row. Migrations newer than the backup are applied, so a backup from an older release restores into a newer one.
@@ -236,7 +238,7 @@ SELECT id, username FROM users WHERE lower(username) IN ('healthz', 'readyz');
 SELECT id, name FROM organizations WHERE lower(name) IN ('healthz', 'readyz');
 ```
 
-Migration `082_users_email_case_insensitive` refuses to run while two accounts have emails that differ only by case. Its error names their user IDs; change or merge those accounts, then run `cloudzilla-cli migrate` again.
+Migration `082_users_email_case_insensitive` refuses to run while two accounts have emails that differ only by case. Its error names their user IDs; change or merge those accounts, then run `cz-admin migrate` again.
 
 The owner-name rule (see [access-control](./access-control.md)) is checked only when a user or organization is created, so names from before it may fail it. An owner whose name fails `service.ValidateName` can't create, fork or receive repositories, and one whose name isn't a single safe path segment (containing `/`, `\`, `*`, `?`, `[` or `]`, or equal to `.` or `..`) has its repositories refused on the web, the API, SSH and Git smart-HTTP. List every name that fails the rule with:
 

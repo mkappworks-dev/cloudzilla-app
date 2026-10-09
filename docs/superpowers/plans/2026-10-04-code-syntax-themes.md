@@ -747,7 +747,7 @@ ALTER TABLE users
   ADD COLUMN code_theme_dark  TEXT NOT NULL DEFAULT 'github-dark';
 ```
 
-Apply it to the test DB: `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cloudzilla migrate`. If the Bash guard refuses `$VAR`, use the literal DSN.
+Apply it to the test DB: `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cz-admin migrate`. If the Bash guard refuses `$VAR`, use the literal DSN.
 
 - [ ] **Step 2: Write the failing tests**
 

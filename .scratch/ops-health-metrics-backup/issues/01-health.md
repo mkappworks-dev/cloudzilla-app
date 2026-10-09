@@ -29,7 +29,7 @@ The checks live behind a service, so the handler only calls services.
 
 - [x] `/healthz` returns 200 while the database is unreachable.
 - [x] `/readyz` returns 503 with `database: fail` and `migrations: skipped` when the database is unreachable.
-- [x] `/readyz` returns 503 with `migrations: fail` while an embedded migration is missing from `schema_migrations`, and 200 after `cloudzilla-cli migrate`.
+- [x] `/readyz` returns 503 with `migrations: fail` while an embedded migration is missing from `schema_migrations`, and 200 after `cz-admin migrate`.
 - [x] `/readyz` returns 503 with `storage: fail` when `git.repos_root` is missing or not writable, and leaves no `.readyz-*` file behind on success.
 - [x] Before setup completes, both endpoints answer directly instead of redirecting to `/setup`.
 - [x] Neither endpoint sets a `csrf_token` cookie or writes a `request` log line, and neither is counted by `middleware.RateLimit`.

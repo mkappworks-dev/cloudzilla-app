@@ -283,6 +283,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Post("/logout", h.Logout)
 	})
 
+	r.With(authMW).Get("/api/user", h.GetCurrentUser)
+
 	// User routes
 	r.Route("/api/users", func(r chi.Router) {
 		r.Use(optAuthMW)
