@@ -30,6 +30,19 @@ Discussion replies never reached watchers, so they still don't: author and subsc
 
 A failure to list muted users or subscribers is logged and the fan-out is skipped, rather than notifying someone who muted the thread.
 
+## Auto-subscribe
+
+Taking part in a thread subscribes you to it through `ThreadSubscriptionService.AutoSubscribe`, which inserts only if you have no row: the first reason is kept and a mute is never undone.
+
+| Action | Service | Reason | Who |
+| ------ | ------- | ------ | --- |
+| Open an issue, PR or discussion | `IssueService.Create`, `PullService.Create`, `DiscussionService.Create` | `author` | the author |
+| Comment on an issue or PR, reply to a discussion | `CommentService.CreateForIssue` / `CreateForPull`, `DiscussionService.CreateReply` | `comment` | the commenter |
+| Submit a PR review | `PullReviewService.SubmitReview` | `review` | the reviewer |
+| Assign someone | `AssigneeService.AddToIssue` / `AddToPull` | `assign` | the assignee, not the actor |
+
+Each service gets the subscriber through `WithThreadSubscriptions`; without it nothing is recorded. A failed write is logged and the request still succeeds. Mentions subscribe through `NotifyMention` instead. Threads that existed before the feature get no rows.
+
 ## Thread kind
 
 `notifications.subject_kind` is `issue`, `pull` or `discussion`: the kind of thread `subject_id` numbers, since the number alone doesn't say. Every `Notify*` call sets it except `NotifyRepoTransfer`, which leaves it NULL. Migration 114 backfilled older rows from `type`, and mentions from the section of `subject_url`; a mention whose URL names no section stays NULL. `model.Notification.SubjectKind` is empty for NULL.

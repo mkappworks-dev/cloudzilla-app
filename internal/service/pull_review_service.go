@@ -14,11 +14,18 @@ type PullReviewService struct {
 	pulls       *store.PullStore
 	repos       *store.RepoStore
 	protections *store.BranchProtectionStore
+	threads     threadAutoSubscriber
 }
 
 // `protections` may be nil in test fixtures; Counts will then return (0, 0, nil).
 func NewPullReviewService(reviews *store.PullReviewStore, pulls *store.PullStore, repos *store.RepoStore, protections *store.BranchProtectionStore) *PullReviewService {
 	return &PullReviewService{reviews: reviews, pulls: pulls, repos: repos, protections: protections}
+}
+
+// WithThreadSubscriptions makes participation subscribe the user to the thread.
+func (s *PullReviewService) WithThreadSubscriptions(t threadAutoSubscriber) *PullReviewService {
+	s.threads = t
+	return s
 }
 
 func (s *PullReviewService) SubmitReview(ctx context.Context, owner, repoName string, pullNumber int, reviewerID int64, reviewerName, state, body string) (*model.PullReview, error) {
@@ -44,6 +51,7 @@ func (s *PullReviewService) SubmitReview(ctx context.Context, owner, repoName st
 	if err := s.reviews.Upsert(ctx, r); err != nil {
 		return nil, fmt.Errorf("upsert review: %w", err)
 	}
+	autoSubscribe(ctx, s.threads, reviewerID, repo.ID, model.ThreadKindPull, pr.Number, model.ThreadReasonReview)
 	return r, nil
 }
 

@@ -122,7 +122,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
-	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
+	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue).WithThreadSubscriptions(threadSubSvc)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
@@ -131,9 +131,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		User:               userSvc,
 		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
 		Repo:               repoSvc,
-		Issue:              NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent),
+		Issue:              NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent).WithThreadSubscriptions(threadSubSvc),
 		Pull:               pullSvc,
-		Comment:            NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
+		Comment:            NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc).WithThreadSubscriptions(threadSubSvc),
 		SSHKey:             NewSSHKeyService(stores.SSHKey, stores.User, stores.DeployKey),
 		Code:               code,
 		Org:                orgSvc,
@@ -143,12 +143,12 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Invitation:         NewInvitationService(stores.Invitation),
 		Signup:             NewSignupService(stores.SignupToken, stores.User, emailSvc, cfg.Server.BaseURL),
 		Label:              NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull, stores.Discussion),
-		Assignee:           NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
+		Assignee:           NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User).WithThreadSubscriptions(threadSubSvc),
 		Star:               NewStarService(stores.Star, stores.Repo, stores.User),
 		Release:            NewReleaseService(stores.Release, stores.Repo, code),
 		CommitStatus:       commitStatusSvc,
 		Milestone:          NewMilestoneService(stores.Milestone, stores.Repo),
-		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection),
+		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection).WithThreadSubscriptions(threadSubSvc),
 		PullLineComment:    NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
 		PullEvent:          NewPullEventService(stores.PullEvent),
 		Search:             NewSearchService(stores.Search),
@@ -171,7 +171,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Watch:              NewWatchService(stores.Watch, stores.Repo),
 		ThreadSubscription: threadSubSvc,
 		Event:              eventSvc,
-		Discussion:         NewDiscussionService(stores.Discussion, stores.Repo),
+		Discussion:         NewDiscussionService(stores.Discussion, stores.Repo).WithThreadSubscriptions(threadSubSvc),
 		Gist:               NewGistService(stores.Gist),
 		Topic:              NewTopicService(stores.Topic),
 		Index:              index,
