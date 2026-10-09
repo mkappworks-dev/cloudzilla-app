@@ -30,3 +30,10 @@ Part of [07](./07-device-code-login.md); read its Design section first. This tic
 - [x] Tests cover the lifecycle and each error response; `docs/api-reference.md` is updated.
 
 ## Comments
+
+2026-10-09, closing note from the 07b session: accepted test debt. These behaviors are implemented and were checked by review; only the tests are missing, and adding them is a small follow-up.
+
+- No test asserts that the default scope is `repo:write`.
+- Revoking the minted token is untested (listing it is tested).
+- No test shows that the browser forms still require CSRF.
+- The live-grant 429 test does not assert `Retry-After` (the 20-per-hour 429 test does).
