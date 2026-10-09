@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -293,6 +294,10 @@ func (s *ProjectService) SearchCardTargets(ctx context.Context, projectID, userI
 	}
 	query = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(query), "#"))
 	number, _ := strconv.Atoi(query)
+	// number is compared against an INTEGER column; anything outside int4 can match nothing.
+	if number < 0 || number > math.MaxInt32 {
+		number = 0
+	}
 	return s.projects.SearchCardTargets(ctx, repo.ID, query, number, cardTargetLimit)
 }
 

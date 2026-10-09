@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -341,8 +342,13 @@ func TestProjects_CardTargets(t *testing.T) {
 	if got := search("crash"); len(got) != 1 || got[0] != "issue:Fix login Crash" {
 		t.Errorf("title match = %v", got)
 	}
-	if got := search(fmt.Sprintf("%%23%d", issueNum)); len(got) == 0 {
-		t.Error("#number matched nothing")
+	if got := search(fmt.Sprintf("%%23%d", issueNum)); !slices.Contains(got, "issue:Fix login Crash") {
+		t.Errorf("#number match = %v, want it to contain issue:Fix login Crash", got)
+	}
+	rr := e.do(t, metaReq{method: "GET", target: target("%2399999999999"), token: e.writer.token})
+	wantStatus(t, rr, http.StatusOK)
+	if body := strings.TrimSpace(rr.Body.String()); body != "[]" {
+		t.Errorf("out-of-range #number body = %q, want []", body)
 	}
 	if got := search("%25_"); len(got) != 1 || got[0] != "pull:Add 100%_done flag" {
 		t.Errorf("literal wildcard match = %v", got)
