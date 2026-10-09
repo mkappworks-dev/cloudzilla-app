@@ -65,6 +65,9 @@ func TestProjectCardDetailsMigration_SplitsNotesIntoTitleAndDescription(t *testi
 		}
 		i++
 	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
 	if i != len(want) {
 		t.Errorf("got %d cards, want %d", i, len(want))
 	}
