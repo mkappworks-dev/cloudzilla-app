@@ -177,7 +177,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/oauth/authorize", h.ConfirmAuthorize)
 	r.Post("/oauth/token", h.TokenEndpoint)
 
-	// Device login approval
 	deviceEntryLimiter := middleware.NewUserLimiter(deviceEntryLimit, deviceEntryWindow)
 	r.With(optAuthMW).Get("/login/device", h.PageDeviceEntry)
 	r.With(authMW, deviceEntryLimiter.Middleware(h.RateLimited)).Post("/login/device", h.DeviceLookup)

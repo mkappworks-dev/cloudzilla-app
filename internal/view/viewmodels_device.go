@@ -13,8 +13,9 @@ type DeviceConfirmData struct {
 	UserCode    string // XXXX-XXXX
 	DeviceName  string // already cleaned; empty means unknown
 	RequesterIP string
-	RequestedAt string // relative, e.g. "just now"
-	Scopes      []string
+	RequestedAt string   // relative, e.g. "just now"
+	Scopes      []string // every option the request offers
+	Selected    []string // the options rendered ticked
 	Confirm     components.ConfirmFactors
 	Error       string
 }

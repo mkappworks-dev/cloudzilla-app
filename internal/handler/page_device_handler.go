@@ -13,6 +13,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
+const answeredMessage = "That request expired or was already answered. Run cz auth login again."
+
 const (
 	deviceCodeCookie = "cz_device_code"
 	devicePath       = "/login/device"
@@ -94,7 +96,7 @@ func (h *Handler) deviceGrantFromCookie(w http.ResponseWriter, r *http.Request) 
 	return nil, false
 }
 
-func (h *Handler) renderDeviceConfirm(w http.ResponseWriter, r *http.Request, claims middleware.Claims, g *model.DeviceGrant, status int, msg string) {
+func (h *Handler) renderDeviceConfirm(w http.ResponseWriter, r *http.Request, claims middleware.Claims, g *model.DeviceGrant, selected []string, status int, msg string) {
 	deviceFrameGuard(w)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -102,7 +104,7 @@ func (h *Handler) renderDeviceConfirm(w http.ResponseWriter, r *http.Request, cl
 	h.render(w, r, pages.DeviceConfirm(view.DeviceConfirmData{
 		BasePage: basePage(r, h.Services), Username: claims.Username, UserCode: formatUserCode(g.UserCode),
 		DeviceName: g.DeviceName, RequesterIP: g.RequesterIP, RequestedAt: view.Ago(g.CreatedAt),
-		Scopes: g.Scopes, Confirm: h.confirmFactors(r, claims.UserID), Error: msg,
+		Scopes: g.Scopes, Selected: selected, Confirm: h.confirmFactors(r, claims.UserID), Error: msg,
 	}))
 }
 
@@ -113,7 +115,7 @@ func (h *Handler) PageDeviceConfirm(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	h.renderDeviceConfirm(w, r, claims, g, http.StatusOK, "")
+	h.renderDeviceConfirm(w, r, claims, g, g.Scopes, http.StatusOK, "")
 }
 
 // DeviceApprove handles POST /login/device/approve.
@@ -132,7 +134,11 @@ func (h *Handler) DeviceApprove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.PostFormValue("action") == "deny" {
-		if err := h.Services.DeviceGrant.Deny(r.Context(), g.UserCode, claims.UserID); err != nil && !errors.Is(err, service.ErrDeviceGrantNotFound) {
+		if err := h.Services.DeviceGrant.Deny(r.Context(), g.UserCode, claims.UserID); err != nil {
+			if errors.Is(err, service.ErrDeviceGrantNotFound) {
+				h.renderDeviceEntry(w, r, http.StatusGone, answeredMessage)
+				return
+			}
 			slog.Error("device login: deny", "error", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -150,7 +156,7 @@ func (h *Handler) DeviceApprove(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(scopes) == 0 {
-		h.renderDeviceConfirm(w, r, claims, g, http.StatusBadRequest, "Keep at least one permission, or deny the request.")
+		h.renderDeviceConfirm(w, r, claims, g, g.Scopes, http.StatusBadRequest, "Keep at least one permission, or deny the request.")
 		return
 	}
 	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
@@ -160,12 +166,12 @@ func (h *Handler) DeviceApprove(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		h.renderDeviceConfirm(w, r, claims, g, status, pages.SettingsErrorMessage(code))
+		h.renderDeviceConfirm(w, r, claims, g, scopes, status, pages.SettingsErrorMessage(code))
 		return
 	}
 	if err := h.Services.DeviceGrant.Approve(r.Context(), g.UserCode, claims.UserID, scopes); err != nil {
 		if errors.Is(err, service.ErrDeviceGrantNotFound) {
-			h.renderDeviceEntry(w, r, http.StatusGone, "That request expired or was already answered. Run cz auth login again.")
+			h.renderDeviceEntry(w, r, http.StatusGone, answeredMessage)
 			return
 		}
 		slog.Error("device login: approve", "error", err)

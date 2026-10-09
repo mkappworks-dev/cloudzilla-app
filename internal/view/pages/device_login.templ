@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"slices"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -67,7 +69,7 @@ templ DeviceConfirm(data view.DeviceConfirmData) {
 						<legend class="text-[12px] font-medium text-muted-foreground mb-2">Access this token will have</legend>
 						for _, s := range data.Scopes {
 							<label class="flex items-start gap-3 rounded-md border border-border px-3 py-2.5 text-[13px] cursor-pointer">
-								<input type="checkbox" name="scope" value={ s } checked class="mt-1"/>
+								<input type="checkbox" name="scope" value={ s } checked?={ slices.Contains(data.Selected, s) } class="mt-1"/>
 								<span>
 									<span class="block font-mono">{ s }</span>
 									<span class="block text-[12px] text-muted-foreground">{ model.ScopeDescription(s) }</span>

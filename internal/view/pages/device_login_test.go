@@ -14,8 +14,9 @@ func TestDeviceConfirm_Content(t *testing.T) {
 	html := renderPage(t, DeviceConfirm(view.DeviceConfirmData{
 		BasePage: testBasePage(), Username: "mk", UserCode: "BCDF-GHJK",
 		DeviceName: `<script>alert(1)</script>`, RequesterIP: "203.0.113.7", RequestedAt: "just now",
-		Scopes:  []string{"repo:write", "repo:read"},
-		Confirm: components.ConfirmFactors{Password: true, Code: true},
+		Scopes:   []string{"repo:write", "repo:read"},
+		Selected: []string{"repo:write", "repo:read"},
+		Confirm:  components.ConfirmFactors{Password: true, Code: true},
 	}))
 	for _, want := range []string{
 		"Authorize cz", "mk", "BCDF-GHJK", "unverified", "203.0.113.7", "just now",
@@ -32,11 +33,26 @@ func TestDeviceConfirm_Content(t *testing.T) {
 	if strings.Contains(html, "<script>alert(1)</script>") {
 		t.Error("the device name must be escaped")
 	}
-	if strings.Count(html, "checked") < 2 {
-		t.Error("every requested scope starts ticked")
+	for _, sc := range []string{"repo:write", "repo:read"} {
+		if !strings.Contains(html, `value="`+sc+`" checked`) {
+			t.Errorf("scope %s should be ticked", sc)
+		}
 	}
 	if strings.Contains(html, `name="user_code"`) {
 		t.Error("the code is held in a cookie, never in a form field")
+	}
+}
+
+func TestDeviceConfirm_OnlySelectedScopesAreTicked(t *testing.T) {
+	html := renderPage(t, DeviceConfirm(view.DeviceConfirmData{
+		BasePage: testBasePage(), UserCode: "BCDF-GHJK",
+		Scopes: []string{"repo:write", "repo:read"}, Selected: []string{"repo:read"},
+	}))
+	if !strings.Contains(html, `value="repo:read" checked`) || strings.Contains(html, `value="repo:write" checked`) {
+		t.Error("only repo:read should be ticked")
+	}
+	if !strings.Contains(html, `value="repo:write"`) {
+		t.Error("repo:write should still be offered")
 	}
 }
 

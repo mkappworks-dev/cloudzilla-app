@@ -343,3 +343,60 @@ func TestDeviceLogin_TokensCannotUseThePages(t *testing.T) {
 		}
 	}
 }
+
+func TestDeviceLogin_DenyLosesRaceToApproval(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	c := f.cookie(t)
+	if err := f.svc.DeviceGrant.Approve(context.Background(), f.dc.UserCode, f.userID, []string{"repo:read"}); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := f.approve(c, url.Values{"action": {"deny"}})
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/login/device" {
+		t.Errorf("deny after approval = %d to %q; want 303 to /login/device", rec.Code, rec.Header().Get("Location"))
+	}
+	time.Sleep(200 * time.Millisecond)
+	if n := countRows(t, f.db, `SELECT COUNT(*) FROM audit_log WHERE action = $1 AND actor_id = $2`, model.AuditActionDeviceDeny, f.userID); n != 0 {
+		t.Errorf("%d deny audit rows; want none", n)
+	}
+	if got := f.status(t); got != model.DeviceGrantApproved {
+		t.Errorf("status = %s; want approved", got)
+	}
+}
+
+func TestDeviceLogin_ApproveAfterAnswerGoesBackToEntry(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	c := f.cookie(t)
+	if err := f.svc.DeviceGrant.Deny(context.Background(), f.dc.UserCode, f.userID); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := f.approve(c, approveForm("password1", "repo:read"))
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/login/device" {
+		t.Errorf("approve after deny = %d to %q; want 303 to /login/device", rec.Code, rec.Header().Get("Location"))
+	}
+	time.Sleep(200 * time.Millisecond)
+	if n := countRows(t, f.db, `SELECT COUNT(*) FROM audit_log WHERE action = $1 AND actor_id = $2`, model.AuditActionDeviceApprove, f.userID); n != 0 {
+		t.Errorf("%d approve audit rows; want none", n)
+	}
+}
+
+func TestDeviceLogin_FailedConfirmationKeepsUntickedScopesUnticked(t *testing.T) {
+	f := newReadWriteDeviceFlow(t)
+	c := f.cookie(t)
+
+	rec := f.approve(c, approveForm("wrong", "repo:read"))
+	body := rec.Body.String()
+	if rec.Code != http.StatusForbidden || !strings.Contains(body, `value="repo:read" checked`) || strings.Contains(body, `value="repo:write" checked`) || !strings.Contains(body, `value="repo:write"`) {
+		t.Fatalf("failed confirmation = %d; want 403 with repo:read ticked and repo:write offered unticked", rec.Code)
+	}
+
+	if rec := f.approve(c, approveForm("password1", "repo:read")); rec.Code != http.StatusOK {
+		t.Fatalf("resubmit = %d; want 200", rec.Code)
+	}
+	tok, err := f.poll(t)
+	if err != nil || !slices.Equal(tok.Scopes, []string{"repo:read"}) {
+		t.Errorf("token = %+v, %v; want [repo:read]", tok, err)
+	}
+	takeAudit(t, f.db, model.AuditActionDeviceApprove, f.userID)
+}
