@@ -32,7 +32,7 @@ Part of [07](./07-device-code-login.md); read its Design section first. The brow
 - [ ] A user with 2FA completes an approval end to end; a Google/SAML-only user and an LDAP user can confirm.
 - [x] Unticking scopes narrows the issued token; a forged extra scope in the form is ignored; `repo:admin` cannot be added.
 - [x] Entry beyond 50 per hour per user gets `429`.
-- [ ] The approval writes the audit events and sends the notice; the device name is escaped on the page and in the email.
+- [x] The approval writes the audit events and sends the notice; the device name is escaped on the page and in the email.
 - [x] The confirm page cannot be framed.
 - [ ] Tests cover each case above; the docs are updated.
 

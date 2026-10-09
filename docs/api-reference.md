@@ -83,6 +83,7 @@ These routes are HTML pages for people to use in a browser, not API. They need a
 | GET    | `/login/device`         | Optional session    | Code entry; signed-out users are redirected to `/login?next=/login/device`; a `user_code` query parameter is ignored                                                         |
 | POST   | `/login/device`         | Session             | `user_code`; `303` to `/login/device/confirm` with the `cz_device_code` cookie, or `400` with one generic message; 50 requests per hour per user, `429` beyond               |
 | GET    | `/login/device/confirm` | Session             | Shows the code, device and scopes; needs the cookie, otherwise `303` to `/login/device`                                                                                      |
+| GET    | `/login/device/approve` | Session             | `303` to `/login/device/confirm`; where a Google/SAML sign-in returns after a failed approval                                                                                |
 | POST   | `/login/device/approve` | Session             | `action=approve\|deny`, `scope` repeated, and `password`, `code` or `email_code`; `403` and `429` as for `POST /oauth/authorize`; `400` when no valid scope remains; `410` if the grant was answered meanwhile |
 
 ## Confirmed actions
