@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -17,6 +19,8 @@ var ErrForbidden = errors.New("forbidden")
 // ErrCardTargetNotFound covers an issue or pull request that is missing or lives
 // in another repository; the two read alike so ids elsewhere can't be probed.
 var ErrCardTargetNotFound = errors.New("issue or pull request not found in this repository")
+
+var ErrEmptyNote = errors.New("note is required")
 
 // ErrInvalidPosition re-exports the store sentinel so handlers map it to 400.
 var ErrInvalidPosition = store.ErrInvalidPosition
@@ -251,6 +255,46 @@ func (s *ProjectService) DeleteCard(ctx context.Context, projectID, cardID, user
 	return s.projects.DeleteCard(ctx, cardID, projectID)
 }
 
+func (s *ProjectService) UpdateCardNote(ctx context.Context, projectID, cardID, userID int64, note string) error {
+	repo, err := s.repoForProject(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	if !s.repos.CanWrite(ctx, repo, userID) {
+		return ErrForbidden
+	}
+	if strings.TrimSpace(note) == "" {
+		return ErrEmptyNote
+	}
+	if err := s.projects.UpdateCardNote(ctx, cardID, projectID, note); err != nil {
+		if errors.Is(err, store.ErrCardNotInProject) {
+			return ErrProjectNotFound
+		}
+		return err
+	}
+	if err := s.projects.TouchProject(ctx, projectID); err != nil {
+		log.Printf("TouchProject(%d): %v", projectID, err)
+	}
+	return nil
+}
+
+const cardTargetLimit = 8
+
+// SearchCardTargets backs the board's "#" picker with the project repo's
+// issues and pull requests matching a title fragment or a number.
+func (s *ProjectService) SearchCardTargets(ctx context.Context, projectID, userID int64, query string) ([]model.CardTarget, error) {
+	repo, err := s.repoForProject(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if !s.repos.CanWrite(ctx, repo, userID) {
+		return nil, ErrForbidden
+	}
+	query = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(query), "#"))
+	number, _ := strconv.Atoi(query)
+	return s.projects.SearchCardTargets(ctx, repo.ID, query, number, cardTargetLimit)
+}
+
 // ListColumnsWithCards returns all columns for a project, each with its cards pre-loaded.
 func (s *ProjectService) ListColumnsWithCards(ctx context.Context, projectID int64) ([]ColumnWithCards, error) {
 	cols, err := s.projects.ListColumns(ctx, projectID)
@@ -286,6 +330,7 @@ type KanbanCardView struct {
 	Number       int
 	State        string // "open" | "closed" | "merged" | "" (note)
 	Kind         string // "issue" | "pull" | "note"
+	Note         string // full text of a note card; Title holds only its first line
 	RepoFullName string
 	Position     int
 	ColumnID     int64
@@ -334,6 +379,7 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 				cv.State = c.PullState
 			default:
 				cv.Kind = "note"
+				cv.Note = c.Note
 				t := FirstLine(c.Note)
 				if r := []rune(t); len(r) > 120 {
 					t = string(r[:120])

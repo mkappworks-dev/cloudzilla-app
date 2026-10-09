@@ -43,3 +43,12 @@ type ProjectCard struct {
 	PullNumber  int    `db:"pull_number"  json:"pull_number,omitempty"`
 	PullState   string `db:"pull_state"   json:"pull_state,omitempty"`
 }
+
+// CardTarget is an issue or pull request a board card can link to.
+type CardTarget struct {
+	ID     int64  `json:"id"`
+	Kind   string `json:"kind"` // "issue" | "pull"
+	Number int    `json:"number"`
+	Title  string `json:"title"`
+	State  string `json:"state"`
+}

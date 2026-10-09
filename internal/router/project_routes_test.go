@@ -259,6 +259,99 @@ func TestProjects_Cards(t *testing.T) {
 	}
 }
 
+func TestProjects_EditNote(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	col := e.createColumn(t, p, "To do")
+	other := e.createProject(t, "Other board")
+	note := e.createNote(t, p, col, "before")
+	issueID, _ := e.seedIssue(t, "linked", "open")
+	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards", p), token: e.writer.token,
+		json: fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID)})
+	wantStatus(t, rr, http.StatusCreated)
+	var linked struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &linked); err != nil {
+		t.Fatal(err)
+	}
+
+	target := e.path("/projects/%d/cards/%d/note", p, note)
+	body := `{"note":"after"}`
+	cases := []struct {
+		name string
+		req  metaReq
+		want int
+	}{
+		{"anonymous", metaReq{method: "PATCH", target: target, json: body}, http.StatusUnauthorized},
+		{"outsider", metaReq{method: "PATCH", target: target, token: e.outsider.token, json: body}, http.StatusForbidden},
+		{"bad json", metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{`}, http.StatusBadRequest},
+		{"blank note", metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{"note":"  "}`}, http.StatusBadRequest},
+		{"bad card id", metaReq{method: "PATCH", target: e.path("/projects/%d/cards/x/note", p), token: e.owner.token, json: body}, http.StatusBadRequest},
+		{"linked card", metaReq{method: "PATCH", target: e.path("/projects/%d/cards/%d/note", p, linked.ID), token: e.owner.token, json: body}, http.StatusNotFound},
+		{"card of another project", metaReq{method: "PATCH", target: e.path("/projects/%d/cards/%d/note", other, note), token: e.owner.token, json: body}, http.StatusNotFound},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
+	}
+	noteOf := func(id int64) string {
+		var s string
+		if err := e.db.QueryRow(`SELECT note FROM project_cards WHERE id = $1`, id).Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	if got := noteOf(note); got != "before" {
+		t.Fatalf("refusals changed the note to %q", got)
+	}
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.writer.token, json: body}), http.StatusNoContent)
+	if got := noteOf(note); got != "after" {
+		t.Errorf("note = %q, want after", got)
+	}
+}
+
+func TestProjects_CardTargets(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	_, issueNum := e.seedIssue(t, "Fix login Crash", "open")
+	e.seedPull(t, "Add 100%_done flag", "open")
+	e.seedIssue(t, "unrelated", "closed")
+	target := func(q string) string { return e.path("/projects/%d/card-targets?q=%s", p, q) }
+
+	wantStatus(t, e.do(t, metaReq{method: "GET", target: target("x")}), http.StatusUnauthorized)
+	wantStatus(t, e.do(t, metaReq{method: "GET", target: target("x"), token: e.outsider.token}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "GET", target: e.path("/projects/999999999/card-targets"), token: e.owner.token}), http.StatusNotFound)
+
+	search := func(q string) []string {
+		rr := e.do(t, metaReq{method: "GET", target: target(q), token: e.writer.token})
+		wantStatus(t, rr, http.StatusOK)
+		var got []struct {
+			Kind  string `json:"kind"`
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
+			t.Fatal(err)
+		}
+		out := []string{}
+		for _, g := range got {
+			out = append(out, g.Kind+":"+g.Title)
+		}
+		return out
+	}
+	if got := search("crash"); len(got) != 1 || got[0] != "issue:Fix login Crash" {
+		t.Errorf("title match = %v", got)
+	}
+	if got := search(fmt.Sprintf("%%23%d", issueNum)); len(got) == 0 {
+		t.Error("#number matched nothing")
+	}
+	if got := search("%25_"); len(got) != 1 || got[0] != "pull:Add 100%_done flag" {
+		t.Errorf("literal wildcard match = %v", got)
+	}
+	if got := search(""); len(got) != 3 {
+		t.Errorf("empty query = %v, want all 3", got)
+	}
+}
+
 func TestProjects_Pages(t *testing.T) {
 	e := newGitMetaEnv(t)
 	open := e.createProject(t, "Alpha board")

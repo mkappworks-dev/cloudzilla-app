@@ -372,6 +372,53 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handler) UpdateCardNote(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	projectID, ok := h.projectIDInRepo(w, r)
+	if !ok {
+		return
+	}
+	cardID, err := strconv.ParseInt(chi.URLParam(r, "cardID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid card id")
+		return
+	}
+	var req struct {
+		Note string `json:"note"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := h.Services.Project.UpdateCardNote(r.Context(), projectID, cardID, claims.UserID, req.Note); err != nil {
+		writeProjectError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) SearchCardTargets(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	projectID, ok := h.projectIDInRepo(w, r)
+	if !ok {
+		return
+	}
+	targets, err := h.Services.Project.SearchCardTargets(r.Context(), projectID, claims.UserID, r.URL.Query().Get("q"))
+	if err != nil {
+		writeProjectError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, targets)
+}
+
 func writeProjectError(w http.ResponseWriter, err error) {
 	if errors.Is(err, service.ErrProjectNotFound) || errors.Is(err, service.ErrCardTargetNotFound) {
 		writeError(w, http.StatusNotFound, err.Error())
@@ -381,7 +428,7 @@ func writeProjectError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 		return
 	}
-	if errors.Is(err, service.ErrInvalidPosition) {
+	if errors.Is(err, service.ErrInvalidPosition) || errors.Is(err, service.ErrEmptyNote) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}

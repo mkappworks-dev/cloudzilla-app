@@ -396,6 +396,58 @@ func (s *ProjectStore) DeleteCard(ctx context.Context, id, projectID int64) erro
 	return nil
 }
 
+// UpdateCardNote rewrites a note card. Linked cards have no note of their own,
+// so they report ErrCardNotInProject like a card from another project.
+func (s *ProjectStore) UpdateCardNote(ctx context.Context, id, projectID int64, note string) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE project_cards SET note = $3
+		 WHERE id = $1 AND issue_id IS NULL AND pull_id IS NULL
+		 AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
+		id, projectID, note,
+	)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("note card %d in project %d: %w", id, projectID, ErrCardNotInProject)
+	}
+	return nil
+}
+
+// SearchCardTargets lists the repo's issues and pull requests whose title
+// contains query or whose number equals number (0 for none), newest first.
+// position() rather than ILIKE so a typed % or _ matches literally.
+func (s *ProjectStore) SearchCardTargets(ctx context.Context, repoID int64, query string, number, limit int) ([]model.CardTarget, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, kind, number, title, state FROM (
+		     SELECT id, 'issue' AS kind, number, title, state, created_at FROM issues WHERE repo_id = $1
+		     UNION ALL
+		     SELECT id, 'pull' AS kind, number, title, state, created_at FROM pull_requests WHERE repo_id = $1
+		 ) t
+		 WHERE ($2 = '' OR position(lower($2) in lower(title)) > 0 OR number = $3)
+		 ORDER BY created_at DESC, id DESC
+		 LIMIT $4`,
+		repoID, query, number, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []model.CardTarget{}
+	for rows.Next() {
+		var t model.CardTarget
+		if err := rows.Scan(&t.ID, &t.Kind, &t.Number, &t.Title, &t.State); err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
 // TouchProject updates updated_at for a project (called after card mutations).
 func (s *ProjectStore) TouchProject(ctx context.Context, projectID int64) error {
 	_, err := s.db.ExecContext(ctx,

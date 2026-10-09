@@ -21,138 +21,279 @@ templ ProjectDetail(data view.ProjectDetailData) {
 			@dragstart="onDragStart($event)"
 			@dragover="onDragOver($event)"
 			@drop="onDrop($event)"
+			@click="onCardClick($event)"
+			@keydown.enter="onCardKey($event)"
 		>
-
-			<div x-data="{ showAddCol: false }">
-				<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="project-title">
-					<div class="min-w-0">
-						<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-							<span aria-hidden="true">·</span>
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects") } class="hover:underline">Projects</a>
-							<span aria-hidden="true">·</span>
-							{ data.Project.Name }
-						</p>
-						<div class="flex items-center gap-2">
-							<h1 id="project-title" class="text-2xl font-semibold tracking-tight">{ data.Project.Name }</h1>
-							if data.Project.ClosedAt != nil {
-								@components.Badge(components.BadgeDraft) {
-									Closed
-								}
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="project-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+						<span aria-hidden="true">·</span>
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects") } class="hover:underline">Projects</a>
+						<span aria-hidden="true">·</span>
+						{ data.Project.Name }
+					</p>
+					<div class="flex items-center gap-2">
+						<h1 id="project-title" class="text-2xl font-semibold tracking-tight">{ data.Project.Name }</h1>
+						if data.Project.ClosedAt != nil {
+							@components.Badge(components.BadgeDraft) {
+								Closed
 							}
-						</div>
-						if data.Project.Description != "" {
-							<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">{ data.Project.Description }</p>
 						}
 					</div>
-					if data.CanWrite {
-						<div class="flex items-center gap-2">
-							<button
-								type="button"
-								class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm"
-								onclick={ setProjectClosedJS(data.Owner, data.RepoName, data.Project.ID, data.Project.ClosedAt == nil) }
-							>
-								if data.Project.ClosedAt != nil {
-									Reopen
-								} else {
-									Close project
-								}
-							</button>
-							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"x-on:click": "showAddCol = !showAddCol", "aria-expanded": "false", "x-bind:aria-expanded": "showAddCol.toString()"}) {
-								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
-									<path d="M12 5v14M5 12h14"></path>
-								</svg>
-								Column
-							}
-						</div>
+					if data.Project.Description != "" {
+						<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">{ data.Project.Description }</p>
 					}
-				</section>
-
+				</div>
 				if data.CanWrite {
-					<div x-show="showAddCol" x-cloak class="mt-4 flex flex-wrap gap-2 items-center">
-						<label for="new-col-name" class="sr-only">Column name</label>
-						@components.Input(templ.Attributes{"id": "new-col-name", "type": "text", "placeholder": "Column name"})
-						<button
-							type="button"
-							class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-8 px-3 text-[13px] bg-primary text-primary-foreground hover:bg-primary/90"
-							onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }
-						>Add</button>
-						<button type="button" class="text-sm text-muted-foreground hover:text-foreground px-2" x-on:click="showAddCol = false">Cancel</button>
-					</div>
+					<button
+						type="button"
+						class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm"
+						onclick={ setProjectClosedJS(data.Owner, data.RepoName, data.Project.ID, data.Project.ClosedAt == nil) }
+					>
+						if data.Project.ClosedAt != nil {
+							Reopen
+						} else {
+							Close project
+						}
+					</button>
 				}
-			</div>
-
-			<div class="flex gap-4 overflow-x-auto pb-6">
+			</section>
+			<div class="flex items-start gap-4 overflow-x-auto pb-6">
 				for _, col := range data.Columns {
 					<section
-						class="flex-none w-72 rounded-md border border-border bg-card overflow-hidden"
+						class="flex-none w-72 rounded-md border border-border bg-muted/30"
 						data-column-id={ strconv.FormatInt(col.ID, 10) }
 						data-drop="kanban-column"
 						aria-labelledby={ "col-" + strconv.FormatInt(col.ID, 10) }
 					>
-						<header class="px-3 py-2.5 border-b border-border flex items-center justify-between">
-							<h2 id={ "col-" + strconv.FormatInt(col.ID, 10) } class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-								{ col.Name }
-								<span class="ml-1 text-muted-foreground/60">{ strconv.Itoa(len(col.Cards)) }</span>
+						<header class="px-3 py-2.5 flex items-center justify-between gap-2">
+							<h2 id={ "col-" + strconv.FormatInt(col.ID, 10) } class="flex items-center gap-2 min-w-0 text-[13px] font-semibold">
+								<span class="truncate">{ col.Name }</span>
+								<span class="shrink-0 rounded-full bg-muted px-1.5 font-mono text-[11px] font-normal text-muted-foreground">{ strconv.Itoa(len(col.Cards)) }</span>
 							</h2>
 							if data.CanWrite {
-								<button
-									type="button"
-									aria-label={ "Delete column " + col.Name }
-									onclick={ deleteColumnJS(data.Owner, data.RepoName, data.Project.ID, col.ID) }
-									class="text-muted-foreground hover:text-destructive text-xs px-1"
-								>✕</button>
+								<div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+									<button
+										type="button"
+										aria-label={ "Actions for column " + col.Name }
+										aria-haspopup="menu"
+										x-bind:aria-expanded="open.toString()"
+										@click="open = !open"
+										class="rounded px-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+									>⋯</button>
+									<div x-show="open" x-cloak role="menu" class="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-border bg-popover p-1 shadow-md">
+										<button
+											type="button"
+											role="menuitem"
+											onclick={ deleteColumnJS(data.Owner, data.RepoName, data.Project.ID, col.ID) }
+											class="w-full rounded px-2 py-1.5 text-left text-[13px] text-destructive hover:bg-muted"
+										>Delete column</button>
+									</div>
+								</div>
 							}
 						</header>
-						<ul class="p-2 space-y-2 min-h-12" data-cards>
+						<ul class="space-y-2 px-2 pb-2 min-h-2" data-cards>
 							for _, card := range col.Cards {
 								<li
-									class="rounded-md border border-border bg-muted/50 p-3 cursor-grab active:cursor-grabbing"
+									class="group relative rounded-md border border-border bg-card p-3 shadow-xs cursor-grab hover:border-ring/60 active:cursor-grabbing"
 									data-card-id={ strconv.FormatInt(card.ID, 10) }
+									data-card-kind={ card.Kind }
 									data-drag="kanban-card"
 									draggable="true"
+									if card.Kind == "note" {
+										data-note={ card.Note }
+										tabindex="0"
+										role="button"
+										aria-label={ "Open note: " + card.Title }
+									}
 								>
 									if card.Kind == "issue" {
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(card.Number)) } class="text-[13px] font-medium hover:underline block">{ card.Title }</a>
-										<div class="mt-1.5 flex items-center gap-2">
+										<div class="flex items-start gap-2">
+											<svg class="mt-0.5 shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+												<circle cx="12" cy="12" r="9"></circle>
+												<circle cx="12" cy="12" r="1" fill="currentColor"></circle>
+											</svg>
+											<a
+												href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(card.Number)) }
+												draggable="false"
+												class="min-w-0 text-[13px] font-medium after:absolute after:inset-0 after:rounded-md focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-ring"
+											>{ card.Title }</a>
+										</div>
+										<div class="mt-2 flex items-center gap-2 pl-[22px]">
 											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.Number) }</span>
 											@components.IssueStateBadge(card.State)
 										</div>
 									} else if card.Kind == "pull" {
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.Number)) } class="text-[13px] font-medium hover:underline block">{ card.Title }</a>
-										<div class="mt-1.5 flex items-center gap-2">
+										<div class="flex items-start gap-2">
+											<svg class="mt-0.5 shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+												<circle cx="6" cy="6" r="2.5"></circle>
+												<circle cx="6" cy="18" r="2.5"></circle>
+												<circle cx="18" cy="18" r="2.5"></circle>
+												<path d="M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-3"></path>
+											</svg>
+											<a
+												href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.Number)) }
+												draggable="false"
+												class="min-w-0 text-[13px] font-medium after:absolute after:inset-0 after:rounded-md focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-ring"
+											>{ card.Title }</a>
+										</div>
+										<div class="mt-2 flex items-center gap-2 pl-[22px]">
 											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.Number) }</span>
 											@components.PullStateBadge(model.PRState(card.State), false)
 										</div>
 									} else {
-										<p class="text-[13px]">{ card.Title }</p>
-										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">Note</p>
+										<p class="text-[13px] line-clamp-3 break-words">{ card.Title }</p>
 									}
-									if data.CanWrite {
-										<div class="mt-2 flex items-center gap-2">
-											<button
-												type="button"
-												onclick={ deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
-												class="text-[11px] text-destructive/80 hover:text-destructive ml-auto"
-											>Remove</button>
-										</div>
+									if data.CanWrite && card.Kind != "note" {
+										<button
+											type="button"
+											aria-label="Remove from board"
+											onclick={ deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
+											class="absolute right-1.5 top-1.5 z-10 rounded px-1 text-xs text-muted-foreground opacity-0 hover:bg-muted hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+										>✕</button>
 									}
 								</li>
 							}
 						</ul>
 						if data.CanWrite {
-							<button
-								type="button"
-								class="w-full text-left text-[12px] text-muted-foreground hover:text-foreground px-3 py-2 border-t border-border"
-								onclick={ addCardJS(data.Owner, data.RepoName, data.Project.ID, col.ID) }
-							>+ Add card</button>
+							<div
+								class="px-2 pb-2"
+								x-data={ "cardComposer(" + strconv.FormatInt(col.ID, 10) + ")" }
+							>
+								<button
+									type="button"
+									x-show="!open"
+									@click="show()"
+									class="w-full rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
+								>+ Add item</button>
+								<div x-show="open" x-cloak class="relative">
+									<label class="sr-only" for={ "composer-" + strconv.FormatInt(col.ID, 10) }>New item</label>
+									<textarea
+										id={ "composer-" + strconv.FormatInt(col.ID, 10) }
+										x-ref="input"
+										x-model="text"
+										rows="2"
+										placeholder="Enter a note, or type # to find an issue or pull request"
+										class="w-full resize-none rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+										@input="search()"
+										@keydown.enter="onEnter($event)"
+										@keydown.escape="close()"
+										@keydown.arrow-down.prevent="move(1)"
+										@keydown.arrow-up.prevent="move(-1)"
+									></textarea>
+									<ul
+										x-show="isQuery && results.length"
+										role="listbox"
+										class="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md"
+									>
+										<template x-for="(t, i) in results" x-bind:key="t.kind + t.id">
+											<li role="option" x-bind:aria-selected="(i === active).toString()">
+												<button
+													type="button"
+													@mousedown.prevent="pick(t)"
+													x-bind:class="i === active ? 'bg-muted' : ''"
+													class="flex w-full items-baseline gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-muted"
+												>
+													<span class="shrink-0 font-mono text-[11px] text-muted-foreground" x-text="(t.kind === 'pull' ? 'PR #' : '#') + t.number"></span>
+													<span class="min-w-0 flex-1 truncate" x-text="t.title"></span>
+													<span class="shrink-0 text-[11px] text-muted-foreground" x-text="t.state"></span>
+												</button>
+											</li>
+										</template>
+									</ul>
+									<p x-show="error" x-cloak x-text="error" class="mt-1 text-[12px] text-destructive" role="alert"></p>
+									<div class="mt-2 flex items-center gap-2">
+										<button
+											type="button"
+											@click="submit()"
+											x-bind:disabled="busy || !text.trim()"
+											class="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+										>Add</button>
+										<button type="button" @click="close()" class="px-1 text-[12px] text-muted-foreground hover:text-foreground">Cancel</button>
+									</div>
+								</div>
+							</div>
 						}
 					</section>
 				}
-				if data.CanWrite && len(data.Columns) == 0 {
-					<p class="text-muted-foreground text-sm">Add a column to get started.</p>
+				if data.CanWrite {
+					<div class="flex-none w-72" x-data="{ adding: false }">
+						<button
+							type="button"
+							x-show="!adding"
+							@click="adding = true; $nextTick(() => $refs.name.focus())"
+							class="flex h-11 w-full items-center justify-center rounded-md border border-dashed border-border text-[13px] text-muted-foreground hover:border-ring hover:text-foreground"
+						>+ Add column</button>
+						<div x-show="adding" x-cloak class="space-y-2 rounded-md border border-border bg-muted/30 p-2">
+							<label for="new-col-name" class="sr-only">Column name</label>
+							@components.Input(templ.Attributes{
+								"id":            "new-col-name",
+								"type":          "text",
+								"placeholder":   "Column name",
+								"x-ref":         "name",
+								"@keydown.enter.prevent": "$refs.add.click()",
+								"@keydown.escape":        "adding = false",
+							})
+							<div class="flex items-center gap-2">
+								<button
+									type="button"
+									x-ref="add"
+									class="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90"
+									onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }
+								>Add column</button>
+								<button type="button" class="px-1 text-[12px] text-muted-foreground hover:text-foreground" @click="adding = false">Cancel</button>
+							</div>
+						</div>
+					</div>
 				}
 			</div>
+			@components.Dialog("note-dialog") {
+				@components.DialogHeader() {
+					@components.DialogTitle("note-dialog") {
+						Note
+					}
+				}
+				@components.DialogBody() {
+					<label for="note-text" class="sr-only">Note text</label>
+					<textarea
+						id="note-text"
+						x-model="noteText"
+						rows="6"
+						readonly?={ !data.CanWrite }
+						class="w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring"
+					></textarea>
+					<p x-show="noteError" x-cloak x-text="noteError" class="mt-2 text-[12px] text-destructive" role="alert"></p>
+				}
+				@components.DialogFooter() {
+					if data.CanWrite {
+						<button
+							type="button"
+							@click="deleteNote()"
+							class="mr-auto inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium text-destructive hover:bg-muted"
+						>Delete</button>
+					}
+					<button
+						type="button"
+						onclick="this.closest('dialog').close()"
+						class="inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+					>
+						if data.CanWrite {
+							Cancel
+						} else {
+							Close
+						}
+					</button>
+					if data.CanWrite {
+						<button
+							type="button"
+							@click="saveNote()"
+							x-bind:disabled="noteBusy || !noteText.trim()"
+							class="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+						>Save</button>
+					}
+				}
+			}
 		</div>
 		<script src={ assets.URL("/static/kanban.js") } defer></script>
 	}
@@ -189,24 +330,4 @@ script deleteCardJS(owner, repoName string, projectID, cardID int64) {
 	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
 		.then(function(r){ if(r.ok) window.location.reload(); });
-}
-
-script addCardJS(owner, repoName string, projectID, columnID int64) {
-	var note = prompt('Note text (or leave blank to link an issue/PR by number):');
-	if (note === null) return;
-	var body = {column_id: columnID};
-	if (note.trim() !== '') {
-		body.note = note.trim();
-	} else {
-		var n = prompt('Issue number (prefix i) or PR number (prefix p), e.g. i5 or p3:');
-		if (!n) return;
-		if (n[0] === 'i') body.issue_id = parseInt(n.slice(1));
-		else body.pull_id = parseInt(n.slice(1));
-	}
-	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards', {
-		method: 'POST',
-		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
-		body: JSON.stringify(body)
-	}).then(function(r){ if(r.ok) window.location.reload(); });
 }
