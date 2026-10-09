@@ -12,6 +12,7 @@
 | Personal Access Token | `Authorization: Bearer <token>` header; HTTP Basic password for git             | Scoped API endpoints (below)  |
 | OAuth App Token       | `Authorization: Bearer <token>` header                                          | Scoped API endpoints (below)  |
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys`                              | Git SSH transport             |
+| Device login          | `cz auth login`: code typed at `/login/device`, approved with the confirmation factors, token minted at the first poll | `/login/device`, `/api/auth/device/*` |
 | TOTP 2FA              | 6-digit code after any web sign-in                                              | `POST /auth/2fa/verify`       |
 
 Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
@@ -64,6 +65,7 @@ A session is a bearer credential, so anything that adds a way in that outlives i
 - creating a personal access token (`POST /api/user/tokens`);
 - adding an SSH key (`POST /api/user/keys`, form or JSON);
 - approving an OAuth app on the consent page (`POST /oauth/authorize` with `action=approve`; denying needs nothing);
+- approving a device login on `/login/device/confirm` (`POST /login/device/approve` with `action=approve`; denying needs nothing);
 - connecting or disconnecting Google, which also refuse accounts without a password (`ConfirmWithPassword`);
 - adding a repository collaborator, deploy key or webhook (form fields, or `password` and `code` in the webhook JSON body);
 - transferring a repository or an organization (requesting it; the user who accepts a repository needs nothing more, since they gain it rather than give it away);
@@ -93,6 +95,47 @@ A token's targets (`access_tokens.targets`, migration 098) limit every request i
 What's left is the machine that holds the private key. Whoever controls it can sign, but only within the token's targets; a hardware key keeps the key from being copied off it, and its touch requirement keeps it from being used unattended. Keep a software key out of the repository, separate from the token, and revoke the token if that machine is compromised.
 
 A wrong password or code gets `403`, or the form's own error: a `profile_error=reauth_failed` redirect on settings, or the error slot of a modal dialog (`HX-Retarget`), where a toast would sit behind the backdrop. Five failures within 15 minutes, counted per user across all of these actions and the `/auth/2fa` code page, block further attempts for the rest of the window with `429` (`reauth_throttled`). This stops a stolen session from guessing the password. The counts live on the user row (`reauth_failures`, `reauth_window_start`, migration 094), so every instance shares them. Each attempt is claimed with one conditional `UPDATE` before the password is checked, so concurrent guesses can't get past the limit, and a success gives its attempt back. The window runs from its first failure and doesn't slide.
+
+### Device login
+
+`cz auth login` gets its token through the device-code flow (RFC 8628, modelled on GitHub's). The JSON endpoints are in [the API reference](./api-reference.md#device-login); this section is the browser half and its safety rules.
+
+**Flow**
+
+1. The CLI asks `POST /api/auth/device/code` for a code and prints it. The URL it shows is `<base URL>/login/device`; no response or link carries the code.
+2. The user opens `/login/device` and types the code from their own terminal. A signed-out visitor is redirected to `/login?next=/login/device` and returns to the empty entry page. A `user_code` query parameter is ignored.
+3. `POST /login/device` (session and CSRF; field `user_code`) looks the code up. A match answers `303` to `/login/device/confirm` and sets the `cz_device_code` cookie. An unknown, expired or already answered code gets `400` with one generic message, so the page doesn't say which. Entry is limited to 50 requests an hour per user (`429` beyond), counted in process, so each instance of a multi-instance deployment counts alone.
+4. `GET /login/device/confirm` (session) needs the cookie, otherwise it answers `303` back to `/login/device`. It shows the code, the device name labelled unverified, the requester IP and how long ago it asked, the requested scopes as pre-ticked boxes, and the confirmation fields for the account's factors.
+5. `POST /login/device/approve` (session and CSRF) takes `action=approve|deny`, `scope` repeated, and the confirmation (`password`, `code` or `email_code`, or the `cz_reauth` cookie). The decision is one conditional `UPDATE` on a grant that is still pending and unexpired.
+6. The CLI's next poll to `POST /api/auth/device/token` mints the personal access token, once. The raw token never sits in the database.
+
+The pages are session-only: `/login/device*` is not in the [scope allow-list](#token-scopes), so a PAT or OAuth token gets `403`. They are not in `middleware/setup.go`, since no user can approve before setup completes. Every page sends `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'` and `Cache-Control: no-store`. The device name is untrusted input: the service strips control characters and caps it at 40 characters, and Templ escapes it on the page and in the email.
+
+**The `cz_device_code` cookie** holds the user code between the entry and the confirm step, so a Google or SAML sign-in that interrupts the flow can return to the confirm page. It is HttpOnly, `SameSite=Lax`, `Secure` when `auth.cookie_secure` is on, `Path=/login/device`, and lives 15 minutes (the grant's lifetime). The code is never in a URL or a form field. The cookie is only a lookup key: every request looks the grant up again and requires it pending and unexpired, and the decision itself is atomic, so a replayed or stale cookie decides nothing. It is cleared on every outcome: a rejected code, a missing grant, approval, denial.
+
+**Approving and scopes**
+
+- Approving needs the same confirmation as `POST /oauth/authorize` ([Confirming sensitive actions](#confirming-sensitive-actions)) and shares its limit: `403` for a wrong confirmation, `429` after five failures in 15 minutes. Denying needs none.
+- Scopes can be narrowed, never widened. Submitted scopes outside the request are dropped, so a forged `repo:admin` is ignored; `repo:admin` is refused at code request too. At least one must remain, otherwise `400`. That check runs before the confirmation, so it doesn't spend an attempt.
+- A failed confirmation re-renders the page with only the submitted scopes ticked.
+- A grant answered between the lookup and the decision gets `410`. A grant already answered before the POST clears the cookie and redirects `303` to `/login/device`.
+
+**Audit and notice.** `user.device.approve` and `user.device.deny` are recorded with the approving user as actor and `device`, `ip` and `scopes` as details. `POST /api/auth/device/token` records `user.token.create` at the first successful poll, with `source` `device login` and the token name. Approval also mails the account a security notice with the device name, IP and scopes. The token appears in Settings, Tokens, with `last_used_at`, and can be revoked there.
+
+**Threat model**
+
+| Threat | Mitigation |
+| --- | --- |
+| Phishing: an attacker starts a flow and sends the victim the code | The confirm page shows the device name, IP and scopes; the password (and code) is asked again; the owner is mailed; the token is revocable and its `last_used_at` visible. **A residual risk remains, as with GitHub's flow:** a user who types a code an attacker gave them, and then confirms with their own password, authorizes the attacker's device. Nothing on our side can tell the two terminals apart; the mitigations only make it noticeable and reversible. |
+| Guessing a user code | Needs sign-in; 50 entries per hour per user; about 34 bits against a few live codes. |
+| Polling brute force or a leaked `device_code` | 256-bit value, hash-only storage, interval enforcement, token returned once. A leaked code is useless until a user approves, and an approved grant is consumed by the first poll. |
+| Replay or double redemption | Conditional `UPDATE`s; dead states are terminal. |
+| Scope escalation to `repo:admin` | Rejected at code request and dropped at approval. |
+| A link that carries the code (phishing, history, logs) | None exists; the user types the code after reading it from their own terminal. |
+| Spoofed device name | Shown as unverified, capped, stripped of control characters, escaped on the page and in the email. |
+| A cross-site `POST` to `/api/auth/device/code` uses up one IP's grant budget | The endpoint is CSRF-exempt, so a page can make a visitor's browser spend that IP's 5 live grants or 20 requests an hour, for up to an hour. Low value; accepted. |
+| The code cookie planted from a sibling subdomain | Approving still needs the password, and the page always shows the code and the device, so the user can see it isn't theirs. |
+| The IP caps use different keys | The live-grant cap counts the exact IP, while the request limiter groups IPv6 addresses by /64. |
 
 ### Changing the password
 
@@ -519,6 +562,8 @@ Nothing changes for other users: the profile, repositories, issues and comments 
 | GET/POST | `/verify-email`                | PageVerifyEmail / VerifyEmailSubmit (optAuthMW; the token authorizes) |
 | GET/POST | `/auth/password/forgot`        | PageForgotPassword / ForgotPasswordSubmit                             |
 | GET/POST | `/auth/password/reset/{token}` | PageResetPassword / ResetPasswordSubmit (the token authorizes)        |
+| POST     | `/api/auth/device/code`        | DeviceCode (no auth; 20 requests an hour and 5 live grants per IP)    |
+| POST     | `/api/auth/device/token`       | DeviceToken (no auth; the device code authorizes)                     |
 
 `/auth/google/callback` runs `optAuthMW`: its [link mode](#connecting-google-to-an-existing-account) needs the session.
 
@@ -527,6 +572,10 @@ Nothing changes for other users: the profile, repositories, issues and comments 
 | Method                | Path                                             | Auth   | AuthZ                                                                          | Handler                    |
 | --------------------- | ------------------------------------------------ | ------ | ------------------------------------------------------------------------------ | -------------------------- |
 | GET                   | `/settings`                                      | authMW | Own user                                                                       | PageSettings               |
+| GET                   | `/login/device`                                  | optAuthMW | Signed-out users are redirected to `/login?next=/login/device`; `user_code` in the query is ignored | PageDeviceEntry            |
+| POST                  | `/login/device`                                  | authMW | Own user; 50 requests an hour per user, `429` beyond                           | DeviceLookup               |
+| GET                   | `/login/device/confirm`                          | authMW | Own user; needs the `cz_device_code` cookie                                    | PageDeviceConfirm          |
+| POST                  | `/login/device/approve`                          | authMW | Own user; approving needs password / TOTP code / email code (`403`, `429`), denying needs nothing | DeviceApprove |
 | POST                  | `/settings/profile`                              | authMW | Own user; password + TOTP code to change the email                             | UpdateProfile              |
 | POST                  | `/settings/profile-readme`                       | authMW | Own user                                                                       | UpdateProfileReadme        |
 | POST                  | `/settings/notifications`                        | authMW | Own user                                                                       | UpdateNotificationSettings |

@@ -26,14 +26,14 @@ Part of [07](./07-device-code-login.md); read its Design section first. The brow
 
 ## Acceptance criteria
 
-- [ ] A signed-out visit to `/login/device` signs in and lands on the empty code-entry page.
-- [ ] `GET /login/device?user_code=…` ignores the parameter: the field stays empty and nothing is looked up.
-- [ ] Approve fails with a wrong password or code (`403`), is throttled after five failures (`429`), and the grant stays pending; deny works without confirmation and kills the grant.
+- [x] A signed-out visit to `/login/device` signs in and lands on the empty code-entry page.
+- [x] `GET /login/device?user_code=…` ignores the parameter: the field stays empty and nothing is looked up.
+- [x] Approve fails with a wrong password or code (`403`), is throttled after five failures (`429`), and the grant stays pending; deny works without confirmation and kills the grant.
 - [ ] A user with 2FA completes an approval end to end; a Google/SAML-only user and an LDAP user can confirm.
-- [ ] Unticking scopes narrows the issued token; a forged extra scope in the form is ignored; `repo:admin` cannot be added.
-- [ ] Entry beyond 50 per hour per user gets `429`.
+- [x] Unticking scopes narrows the issued token; a forged extra scope in the form is ignored; `repo:admin` cannot be added.
+- [x] Entry beyond 50 per hour per user gets `429`.
 - [ ] The approval writes the audit events and sends the notice; the device name is escaped on the page and in the email.
-- [ ] The confirm page cannot be framed.
+- [x] The confirm page cannot be framed.
 - [ ] Tests cover each case above; the docs are updated.
 
 ## Comments

@@ -74,6 +74,17 @@ When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` fini
 
 A failure on our side is `500 {"error":"server_error"}`; the cause is logged.
 
+#### Browser pages
+
+These routes are HTML pages for people to use in a browser, not API. They need a session (a PAT or OAuth token gets `403`) and, on `POST`, the CSRF token. The flow, the cookie and the threat model are in [access control](./access-control.md#device-login).
+
+| Method | Path                    | Auth                | Description                                                                                                                                                                  |
+| ------ | ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/login/device`         | Optional session    | Code entry; signed-out users are redirected to `/login?next=/login/device`; a `user_code` query parameter is ignored                                                         |
+| POST   | `/login/device`         | Session             | `user_code`; `303` to `/login/device/confirm` with the `cz_device_code` cookie, or `400` with one generic message; 50 requests per hour per user, `429` beyond               |
+| GET    | `/login/device/confirm` | Session             | Shows the code, device and scopes; needs the cookie, otherwise `303` to `/login/device`                                                                                      |
+| POST   | `/login/device/approve` | Session             | `action=approve\|deny`, `scope` repeated, and `password`, `code` or `email_code`; `403` and `429` as for `POST /oauth/authorize`; `400` when no valid scope remains; `410` if the grant was answered meanwhile |
+
 ## Confirmed actions
 
 Actions that give lasting access take the account's `password`, plus `code` (the TOTP code) when 2FA is on, as form fields or in the JSON body. An account with neither sends its directory password (LDAP), the code a fresh sign-in left in the `cz_reauth` cookie (`POST /settings/reauth/{provider}`), or `email_code` from `POST /settings/confirm-code`. A wrong confirmation gets 403, and five wrong ones in 15 minutes get 429. A personal access token created with `repo:admin` skips it for repository and organization administration, never for changes to the account. The full list is in [access control](./access-control.md#confirming-sensitive-actions).
