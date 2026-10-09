@@ -153,7 +153,10 @@ templ Base(base view.BasePage, title string) {
 									<button type="button" x-cloak x-show="q" x-on:click="q = ''; $refs.q.focus()" class="absolute right-1.5 top-1 h-5 w-5 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">
 										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg>
 									</button>
-									<kbd x-show="!q" class="absolute right-1.5 top-1 text-[10px] px-1.5 py-0.5 bg-background border border-border rounded-sm text-muted-foreground font-mono" aria-hidden="true">⌘K</kbd>
+									<span x-show="!q" class="absolute right-1.5 top-1 flex gap-0.5 text-muted-foreground" aria-hidden="true">
+										<kbd class="h-5 min-w-5 px-1 grid place-items-center text-[11px] font-sans leading-none border border-border rounded">⌘</kbd>
+										<kbd class="h-5 min-w-5 px-1 grid place-items-center text-[11px] font-sans leading-none border border-border rounded">K</kbd>
+									</span>
 								</div>
 							</form>
 						}
