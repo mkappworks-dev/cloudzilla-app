@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +25,8 @@ type app struct {
 	newStore   func(insecure bool) (*cli.Store, error)
 	readSecret func() (string, error)
 	http       *http.Client
+	runGit     func(ctx context.Context, env []string, args ...string) error
+	getwd      func() (string, error)
 
 	jsonFlag bool
 }
@@ -43,7 +46,7 @@ func newRootCmd(a *app) *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().BoolVar(&a.jsonFlag, "json", false, "print JSON (the default when stdout is not a terminal)")
-	root.AddCommand(authCmd(a), apiCmd(a))
+	root.AddCommand(authCmd(a), apiCmd(a), repoCmd(a))
 	return root
 }
 
