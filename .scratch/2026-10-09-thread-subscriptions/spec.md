@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 
 GitHub-style subscriptions for single issues, pull requests and discussions. A user can follow one thread in a repo they don't watch, and mute one thread in a repo they do. Approved mock: `mock.html` (sidebar control, inbox row, fan-out table).
 
