@@ -264,14 +264,15 @@ func (s *ProjectService) DeleteCard(ctx context.Context, projectID, cardID, user
 }
 
 // ListColumnsWithCards returns all columns for a project, each with its cards pre-loaded.
-func (s *ProjectService) ListColumnsWithCards(ctx context.Context, projectID int64) ([]ColumnWithCards, error) {
+// A nil viewer is anonymous.
+func (s *ProjectService) ListColumnsWithCards(ctx context.Context, projectID int64, viewerID *int64) ([]ColumnWithCards, error) {
 	cols, err := s.projects.ListColumns(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]ColumnWithCards, len(cols))
 	for i, col := range cols {
-		cards, err := s.projects.ListCardsByColumn(ctx, col.ID)
+		cards, err := s.projects.ListCardsByColumn(ctx, col.ID, viewerID)
 		if err != nil {
 			return nil, err
 		}
@@ -292,12 +293,13 @@ type ColumnWithCards struct {
 // KanbanCardView is the unified shape consumed by the project_detail kanban board.
 // Title resolves to issue title, PR title, or note (first line, ≤120 chars).
 // Number is the issue/PR number (0 for note-only cards).
+// Kind "hidden" is a private issue the viewer can't see: no title, number or state.
 type KanbanCardView struct {
 	ID           int64
 	Title        string
 	Number       int
 	State        string // "open" | "closed" | "merged" | "" (note)
-	Kind         string // "issue" | "pull" | "note"
+	Kind         string // "issue" | "pull" | "note" | "hidden"
 	RepoFullName string
 	Position     int
 	ColumnID     int64
@@ -312,14 +314,14 @@ type KanbanColumnView struct {
 
 // ListColumnsWithCardsExpanded resolves columns + cards joined with the owning
 // repo's full name (owner/name) for display in the kanban board.
-func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, projectID int64) ([]KanbanColumnView, error) {
+func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, projectID int64, viewerID *int64) ([]KanbanColumnView, error) {
 	repo, err := s.repoForProject(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
 	fullName := repo.OwnerName + "/" + repo.Name
 
-	cols, err := s.ListColumnsWithCards(ctx, projectID)
+	cols, err := s.ListColumnsWithCards(ctx, projectID, viewerID)
 	if err != nil {
 		return nil, err
 	}
@@ -334,6 +336,8 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 				RepoFullName: fullName,
 			}
 			switch {
+			case c.IssueHidden:
+				cv.Kind = "hidden"
 			case c.IssueID != nil:
 				cv.Kind = "issue"
 				cv.Title = c.IssueTitle

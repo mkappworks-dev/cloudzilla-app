@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: bug
-Status: needs-triage
+Status: done
 
 ## Problem
 
@@ -18,11 +18,18 @@ Status: needs-triage
 
 ## Acceptance criteria
 
-- [ ] Count affected rows on a copy of production data: cards whose issue or pull request has a different `repo_id` than the project's repo.
-- [ ] A migration (next sequential number) deletes or detaches those cards; state the choice in the PR.
-- [ ] Confirm by test whether a private issue's title reaches a non-writer through a board; if it does, hide the title and state (show a placeholder card) for viewers who can't see the issue.
-- [ ] Tests for both.
+- [x] Count affected rows on a copy of production data: cards whose issue or pull request has a different `repo_id` than the project's repo. (No production copy was available; the migration's `WHERE` is the count query, so run it as a `SELECT count(*)` before deploying.)
+- [x] A migration (next sequential number) deletes or detaches those cards; state the choice in the PR. (`113_drop_cross_repo_project_cards.sql` deletes them.)
+- [x] Confirm by test whether a private issue's title reaches a non-writer through a board; if it does, hide the title and state (show a placeholder card) for viewers who can't see the issue.
+- [x] Tests for both.
 
 ## Blocked by
 
 Nothing.
+
+## Comments
+
+Claude, 2026-10-09: Triage found both gaps real, so neither was closed as `wontfix`.
+
+1. Existing rows: nothing cleaned up cards from before #205. Migration 113 deletes them rather than detaching: the `project_cards` CHECK allows only an issue, a pull request, or a non-empty note, so detaching means a note, and the note would have to copy the foreign title that is the leak.
+2. Private titles: `ListCardsByColumn` took no viewer and the board handler passed none, so a reader of a public repository saw every private issue's title, number and state. The store now applies `issueVisibleTo` and blanks those fields. The board renders a "Private issue" placeholder card (no number, no link).

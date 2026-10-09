@@ -124,6 +124,9 @@ templ ProjectDetail(data view.ProjectDetailData) {
 											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.Number) }</span>
 											@components.PullStateBadge(model.PRState(card.State), false)
 										</div>
+									} else if card.Kind == "hidden" {
+										<p class="text-[13px] italic text-muted-foreground">Private issue</p>
+										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">Hidden</p>
 									} else {
 										<p class="text-[13px]">{ card.Title }</p>
 										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">Note</p>

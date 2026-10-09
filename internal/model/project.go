@@ -42,4 +42,8 @@ type ProjectCard struct {
 	PullTitle   string `db:"pull_title"   json:"pull_title,omitempty"`
 	PullNumber  int    `db:"pull_number"  json:"pull_number,omitempty"`
 	PullState   string `db:"pull_state"   json:"pull_state,omitempty"`
+
+	// IssueHidden marks a card whose private issue the viewer may not see; its
+	// IssueTitle, IssueNumber and IssueState are then left empty.
+	IssueHidden bool `db:"-" json:"issue_hidden,omitempty"`
 }
