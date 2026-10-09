@@ -35,6 +35,12 @@ const (
 	loginAttemptWindow = 15 * time.Minute
 )
 
+// Device login codes are unauthenticated, so the per-IP budget caps how many an address can mint.
+const (
+	deviceCodeLimit  = 20
+	deviceCodeWindow = time.Hour
+)
+
 // Markdown highlighting caps a page's bodies together, on top of each body's own cap.
 const (
 	requestHighlightBytes = 1 << 20
@@ -281,6 +287,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Use(apiBodyLimit)
 		r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.Login)
 		r.Post("/logout", h.Logout)
+		r.With(middleware.RateLimit(deviceCodeLimit, deviceCodeWindow)).Post("/device/code", h.DeviceCode)
+		r.Post("/device/token", h.DeviceToken)
 	})
 
 	r.With(authMW).Get("/api/user", h.GetCurrentUser)
