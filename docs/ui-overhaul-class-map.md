@@ -1,6 +1,6 @@
 # Mockup → shadcn class translation map
 
-Source of truth for the UI overhaul (spec: [2026-05-14-ui-overhaul-design.md](superpowers/specs/2026-05-14-ui-overhaul-design.md)). Every per-phase page port translates mockup classes mechanically using this map. If a mockup uses a class not in this map, **halt and update the map first** — do not invent ad-hoc replacements during a port.
+Source of truth for the UI overhaul. Every per-phase page port translates mockup classes mechanically using this map. If a mockup uses a class not in this map, **halt and update the map first** — do not invent ad-hoc replacements during a port.
 
 ## Token reference (CSS variables)
 

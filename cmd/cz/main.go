@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/cli"
 	"github.com/spf13/cobra"
@@ -16,17 +18,20 @@ import (
 var version = "dev"
 
 type app struct {
-	stdin      io.Reader
-	stdout     io.Writer
-	stderr     io.Writer
-	stdinTTY   bool
-	stdoutTTY  bool
-	getenv     func(string) string
-	newStore   func(insecure bool) (*cli.Store, error)
-	readSecret func() (string, error)
-	http       *http.Client
-	runGit     func(ctx context.Context, env []string, args ...string) error
-	getwd      func() (string, error)
+	stdin         io.Reader
+	stdout        io.Writer
+	stderr        io.Writer
+	stdinTTY      bool
+	stdoutTTY     bool
+	getenv        func(string) string
+	newStore      func(insecure bool) (*cli.Store, error)
+	clock         cli.Clock
+	hostname      func() (string, error)
+	openBrowser   func(url string) error
+	copyClipboard func(text string) error
+	http          *http.Client
+	runGit        func(ctx context.Context, env []string, args ...string) error
+	getwd         func() (string, error)
 
 	jsonFlag bool
 }
@@ -61,13 +66,15 @@ func main() {
 		newStore: func(insecure bool) (*cli.Store, error) {
 			return cli.NewStore(insecure)
 		},
-		readSecret: func() (string, error) {
-			b, err := term.ReadPassword(int(os.Stdin.Fd()))
-			fmt.Fprintln(os.Stderr)
-			return string(b), err
-		},
+		clock:         cli.SystemClock{},
+		hostname:      os.Hostname,
+		openBrowser:   openBrowser,
+		copyClipboard: copyToClipboard,
 	}
-	if err := newRootCmd(a).Execute(); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := newRootCmd(a).ExecuteContext(ctx); err != nil {
+		stop()
 		fmt.Fprintln(os.Stderr, "cz:", err)
 		os.Exit(1)
 	}

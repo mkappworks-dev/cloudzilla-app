@@ -11,11 +11,11 @@ Part of [spec](../spec.md). Frees the `cz` name for the remote client and separa
 
 Rename the operator binary `cloudzilla-cli` to `cz-admin` and move `cmd/cloudzilla/` to `cmd/cz-admin/`. Change the cobra root `Use:` from `cloudzilla` to `cz-admin`. No behaviour change.
 
-References to update: `Makefile`, `Dockerfile` (build, `COPY`, and the comment about `backup`/`restore`), `.github/workflows/ci.yml`, `.github/workflows/build-and-publish.yml` (build and the `tar` line), `README.md`, `internal/service/admin_user_service.go`, `internal/service/health_service.go`, `docs/**`, and the `.scratch/**` specs and tickets that name the binary. Historical plans under `docs/superpowers/plans/` keep the name they were written with unless they instruct a reader to run it.
+References to update: `Makefile`, `Dockerfile` (build, `COPY`, and the comment about `backup`/`restore`), `.github/workflows/ci.yml`, `.github/workflows/build-and-publish.yml` (build and the `tar` line), `README.md`, `internal/service/admin_user_service.go`, `internal/service/health_service.go`, `docs/**`, and the `.scratch/**` specs and tickets that name the binary.
 
 ## Acceptance criteria
 
-- [ ] `grep -rI cloudzilla-cli` finds nothing outside `docs/superpowers/plans/` history and git.
+- [ ] `grep -rI cloudzilla-cli` finds nothing outside git history.
 - [ ] `make build` produces `dist/cz-admin`; the Docker image has `/app/cz-admin` and no `/app/cloudzilla-cli`.
 - [ ] The release archive contains `cloudzilla` and `cz-admin`.
 - [ ] `make test` passes, including the command tests moved with the directory.

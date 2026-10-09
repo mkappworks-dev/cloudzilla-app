@@ -63,4 +63,4 @@ The checks live behind a service, so the handler only calls services.
 
 ## Comments
 
-**Claude, 2026-10-06:** Implemented per [the plan](../../../docs/superpowers/plans/2026-10-06-ops-health-endpoints.md). Unit and integration tests pass against Postgres 16, and the built server was probed by hand. The `docker build` / `HEALTHCHECK` criterion is unticked: the session had no Docker, so it needs a check on a machine that has it.
+**Claude, 2026-10-06:** Implemented. Unit and integration tests pass against Postgres 16, and the built server was probed by hand. The `docker build` / `HEALTHCHECK` criterion is unticked: the session had no Docker, so it needs a check on a machine that has it.

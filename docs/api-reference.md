@@ -60,7 +60,7 @@ When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` fini
 
 `/device/code` answers `{"device_code", "user_code", "verification_uri", "expires_in": 900, "interval": 5}`. `user_code` is `XXXX-XXXX`, and the user types it at `verification_uri` (`<base URL>/login/device`); no response or link carries it in a URL. An unknown scope or `repo:admin` is `400 {"error":"invalid_scope"}`. Over 20 requests an hour from one IP is `429 {"error":"rate limit exceeded"}`; a sixth unexpired grant from one IP is `429 {"error":"too_many_requests"}` with `Retry-After: 60`. `/device/token` has no limiter of its own beyond the global one and the per-code interval.
 
-`/device/token` answers `200 {"access_token", "token_type": "bearer", "scope"}` once the user has approved, exactly once. The token is a personal access token without an expiry, named `cz (<device_name>) · <date>` (`cz CLI · <date>` when no `device_name` was sent) in Settings → Tokens. Everything else is `400 {"error": …}`:
+`/device/token` answers `200 {"access_token", "token_type": "bearer", "scope"}` once the user has approved, exactly once. The token is a personal access token without an expiry, named `cz (<device_name>) · <date>` (`cz CLI · <date>` when no `device_name` was sent) in Settings → Access tokens. Everything else is `400 {"error": …}`:
 
 | `error`                  | When                                                                         |
 | ------------------------ | ---------------------------------------------------------------------------- |
@@ -73,6 +73,18 @@ When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` fini
 | `invalid_request`        | `grant_type` or `device_code` missing, or an unreadable body                 |
 
 A failure on our side is `500 {"error":"server_error"}`; the cause is logged.
+
+#### Browser pages
+
+These routes are HTML pages for people to use in a browser, not API. They need a session (a PAT or OAuth token gets `403`) and, on `POST`, the CSRF token. The flow, the cookie and the threat model are in [access control](./access-control.md#device-login).
+
+| Method | Path                    | Auth                | Description                                                                                                                                                                  |
+| ------ | ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/login/device`         | Optional session    | Code entry; signed-out users are redirected to `/login?next=/login/device`; a `user_code` query parameter is ignored                                                         |
+| POST   | `/login/device`         | Session             | `user_code`; `303` to `/login/device/confirm` with the `cz_device_code` cookie, or `400` with one generic message; 50 requests per hour per user, `429` beyond               |
+| GET    | `/login/device/confirm` | Session             | Shows the code, device, both IPs and scopes; needs the cookie, otherwise `303` to `/login/device`; `410` with the entry page when the cookie is valid but the request was answered or expired                                                                                      |
+| GET    | `/login/device/approve` | Session             | `303` to `/login/device/confirm`; where a Google/SAML sign-in returns after a failed approval                                                                                |
+| POST   | `/login/device/approve` | Session             | `action=approve\|deny`, `scope` repeated, and `password`, `code` or `email_code`; `403` and `429` as for `POST /oauth/authorize`; `400` when no valid scope remains; `410` (entry page, "expired or already answered") if the grant was answered or expired, including meanwhile |
 
 ## Confirmed actions
 
@@ -401,9 +413,9 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 
 | Method | Path                                      | Auth     | Description                                                                                                     |
 | ------ | ----------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`) |
+| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`, or for a name `git check-ref-format` rejects) |
 | DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push` or `require_pull_request`)              |
-| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields)                                                                         |
+| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields; 422 for a name `git check-ref-format` rejects)                          |
 | DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                                                      |
 
 All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.

@@ -33,6 +33,6 @@ A branch protection rule's `require_review_count` and `require_status_checks` ga
 
 Also to confirm: a flagged rule refuses branch deletion (as `block_force_push` does), and the PR merge itself and applied suggestions (commits to a PR's head branch) are not "direct updates" of the base branch.
 
-Once answered, this is `ready-for-agent`: three tickets (model + store + migration + rule form; receive-pack/SSH enforcement; web-commit enforcement) and a plan in `docs/superpowers/plans/`.
+Once answered, this is `ready-for-agent`: three tickets (model + store + migration + rule form; receive-pack/SSH enforcement; web-commit enforcement).
 
-**Malith Kuruppu, 2026-10-08:** Accepted the recommendations: a new `require_pull_request` flag (default off), no admin bypass, a flagged rule also refuses branch deletion, and merges and applied suggestions are not direct updates. Tickets are in `issues/`; the plan is `docs/superpowers/plans/2026-10-08-require-pull-request-rule.md`.
+**Malith Kuruppu, 2026-10-08:** Accepted the recommendations: a new `require_pull_request` flag (default off), no admin bypass, a flagged rule also refuses branch deletion, and merges and applied suggestions are not direct updates. Tickets are in `issues/`.
