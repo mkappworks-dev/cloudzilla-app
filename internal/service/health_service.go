@@ -74,7 +74,7 @@ func (s *HealthService) Readiness(ctx context.Context) Readiness {
 		case err != nil:
 			fail("migrations", err)
 		case len(pending) > 0:
-			fail("migrations", fmt.Errorf("%d pending, first %s; run cloudzilla-cli migrate", len(pending), pending[0]))
+			fail("migrations", fmt.Errorf("%d pending, first %s; run cz-admin migrate", len(pending), pending[0]))
 		default:
 			s.migrated.Store(true)
 		}

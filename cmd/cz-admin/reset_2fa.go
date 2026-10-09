@@ -55,7 +55,7 @@ func reset2FA(ctx context.Context, stores *store.Stores, cfg *config.Config, use
 		_, err := fmt.Fprintf(stdout, "@%s doesn't have two-factor authentication turned on; nothing to reset.\n", u.Username)
 		return err
 	}
-	auditErr := audit.RecordOffline(ctx, "cloudzilla-cli", model.AuditActionAdminUser2FAReset,
+	auditErr := audit.RecordOffline(ctx, "cz-admin", model.AuditActionAdminUser2FAReset,
 		model.AuditTargetUser, u.ID, u.Username, nil)
 	// 2FA is already off, so the owner hears about it even when the audit write failed.
 	if err := admin.SendTOTPResetNotice(ctx, u.ID); err != nil {

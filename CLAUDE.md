@@ -57,6 +57,7 @@ Read the matching doc before working in an area:
 
 - [git-transport](./docs/git-transport.md) — HTTP/SSH endpoints, SSH key auth, `CanRead`/`CanWrite`/`CanManage`/`IsOwner`
 - [access-control](./docs/access-control.md) — instance/org/repo roles, setup flow, invite tokens, login + Google OAuth
+- [cli](./docs/cli.md) — the `cz` remote client: install, token storage, scopes per command, what it can't do
 - [api-reference](./docs/api-reference.md) — JSON API endpoints
 - [configuration](./docs/configuration.md) — config keys and `CZ_*` env vars
 - [deployment](./docs/deployment.md) — Docker, bootstrap

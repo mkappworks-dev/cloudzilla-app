@@ -64,7 +64,7 @@ func issuePasswordResetLink(ctx context.Context, stores *store.Stores, cfg *conf
 		return "", err
 	}
 	// A link that isn't in the audit log is never shown.
-	if err := service.NewAuditService(stores.AuditLog).RecordOffline(ctx, "cloudzilla-cli", model.AuditActionPasswordResetLink,
+	if err := service.NewAuditService(stores.AuditLog).RecordOffline(ctx, "cz-admin", model.AuditActionPasswordResetLink,
 		model.AuditTargetUser, u.ID, u.Username, map[string]any{"issued_by": model.PasswordResetByCLI}); err != nil {
 		return "", err
 	}

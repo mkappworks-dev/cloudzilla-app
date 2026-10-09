@@ -99,6 +99,10 @@ func acceptedScopes(r *http.Request) []string {
 			case !read && len(seg) >= 4 && (seg[3] == "members" || seg[3] == "transfer" || seg[3] == "delete"):
 				return adminScopes
 			}
+		case "user": // only the exact /api/user; everything under it administers the account
+			if read && len(seg) == 2 {
+				return readScopes
+			}
 		case "users": // /api/users/{username}, /repos
 			if read && (len(seg) == 3 || len(seg) == 4 && seg[3] == "repos") {
 				return readScopes
