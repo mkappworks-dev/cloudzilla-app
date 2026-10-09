@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -55,7 +56,7 @@ func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, card
 	if err := s.linkConverted(ctx, projectID, card, issue.ID, assignees[cardID], labels[cardID]); err != nil {
 		// Detached so a cancelled request doesn't strand the orphan issue.
 		if delErr := s.issueStore.DeleteByID(context.WithoutCancel(ctx), issue.ID); delErr != nil {
-			log.Printf("convert card %d: delete issue %d: %v", cardID, issue.ID, delErr)
+			slog.Error("convert card: issue orphaned, delete failed", "card_id", cardID, "issue_id", issue.ID, "error", delErr)
 		}
 		return nil, err
 	}
@@ -76,9 +77,9 @@ func (s *ProjectService) linkConverted(ctx context.Context, projectID int64, car
 			return err
 		}
 	}
-	err := s.projects.SetCardDetails(ctx, card.ID, projectID, model.CardDetails{DueDate: card.DueDate, IssueID: &issueID})
-	if errors.Is(err, store.ErrCardNotInProject) {
-		return ErrProjectNotFound
+	err := s.projects.LinkNoteCardToIssue(ctx, card.ID, projectID, issueID)
+	if errors.Is(err, store.ErrCardNotLinkable) {
+		return ErrNotConvertible
 	}
 	return err
 }

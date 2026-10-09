@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -33,6 +34,48 @@ func TestProjectService_ConvertCardToIssue_RollsBackWhenLinkFails(t *testing.T) 
 	var n int
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM issues WHERE repo_id = $1`, e.repoID).Scan(&n); err != nil || n != 0 {
 		t.Errorf("issues after failed convert = %d (%v), want 0", n, err)
+	}
+}
+
+func TestProjectService_ConvertCardToIssue_ConcurrentConvertsCreateOneIssue(t *testing.T) {
+	e := newProjBoardEnv(t)
+	ctx := context.Background()
+	db := testutil.OpenTestDB(t)
+	p := e.project(t, "board")
+	col := e.column(t, p.ID, "todo")
+	card := e.note(t, p.ID, col.ID, "race me\nbody")
+
+	errs := make([]error, 2)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := range errs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			_, errs[i] = e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID)
+		}()
+	}
+	close(start)
+	wg.Wait()
+
+	wins, losses := 0, 0
+	for _, err := range errs {
+		switch {
+		case err == nil:
+			wins++
+		case errors.Is(err, service.ErrNotConvertible):
+			losses++
+		default:
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+	if wins != 1 || losses != 1 {
+		t.Fatalf("wins = %d, losses = %d, want 1 and 1", wins, losses)
+	}
+	var n int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM issues WHERE repo_id = $1`, e.repoID).Scan(&n); err != nil || n != 1 {
+		t.Errorf("issues = %d (%v), want 1", n, err)
 	}
 }
 
