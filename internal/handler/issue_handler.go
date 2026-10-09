@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,6 +13,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -95,7 +98,17 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 		vis = "public"
 	}
 	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, vis)
-	if err != nil {
+	switch {
+	case errors.Is(err, service.ErrTitleRequired):
+		writeError(w, http.StatusUnprocessableEntity, "title is required")
+		return
+	case errors.Is(err, service.ErrTitleTooLong):
+		writeError(w, http.StatusUnprocessableEntity, titleTooLongMessage())
+		return
+	case errors.Is(err, service.ErrPrivateIssueForbidden):
+		writeError(w, http.StatusForbidden, "only collaborators with write access can create private issues")
+		return
+	case err != nil:
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
@@ -150,6 +163,10 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 
 	issue, err := h.Services.Issue.SetState(r.Context(), owner, repoName, number, model.IssueState(state), claims.UserID, claims.Username)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "issue not found")
+			return
+		}
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
@@ -220,6 +237,10 @@ func (h *Handler) PinIssue(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "forbidden")
 			return
 		}
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "issue not found")
+			return
+		}
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
@@ -285,6 +306,10 @@ func (h *Handler) LockIssue(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err.Error() == "forbidden" {
 			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "issue not found")
 			return
 		}
 		slog.Error("operation failed", "error", err)

@@ -8,7 +8,6 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 - The spec is `.scratch/<YYYY-MM-DD>-<feature-slug>/spec.md`
 - Implementation issues are one file per ticket at `.scratch/<YYYY-MM-DD>-<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`, never a single combined tickets file
 - Tickets may name files and functions, unlike the `to-tickets` skill's advice. Update a path when you move the code it names
-- Plans stay in `docs/superpowers/plans/`. `docs/superpowers/specs/` holds older design specs and takes no new ones
 - Near the top of each spec and ticket: `Created:` (`YYYY-MM-DD`), `Category:` (`bug` or `enhancement`, set by triage) and `Status:` (a role string from `triage-labels.md`, or `done`)
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading, each starting with its author and date
 - Commit these files with the branch that writes them: every branch has its own worktree, so an uncommitted ticket is invisible to the others

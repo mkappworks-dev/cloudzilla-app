@@ -465,7 +465,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid form")
 		return
 	}
-	title := r.FormValue("title")
+	title := strings.TrimSpace(r.FormValue("title"))
 	body := r.FormValue("body")
 
 	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)

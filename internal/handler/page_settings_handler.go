@@ -271,15 +271,11 @@ func (h *Handler) PageNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notifs, _ := h.Services.Notification.List(r.Context(), claims.UserID)
-	if notifs == nil {
-		notifs = []model.Notification{}
+	data, r, err := h.notificationsData(r, claims.UserID)
+	if err != nil {
+		slog.Error("notifications page: list failed", "user_id", claims.UserID, "error", err)
+		http.Error(w, "failed to load notifications", http.StatusInternalServerError)
+		return
 	}
-	unread, _ := h.Services.Notification.CountUnread(r.Context(), claims.UserID)
-
-	h.render(w, r, pages.Notifications(view.NotificationsData{
-		BasePage:      basePage(r, h.Services),
-		Notifications: notifs,
-		UnreadCount:   unread,
-	}))
+	h.render(w, r, pages.Notifications(data))
 }

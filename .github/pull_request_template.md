@@ -9,14 +9,6 @@ Closes #<!-- issue number -->
 -
 -
 
-## Type of change
-
-- [ ] Bug fix (`fix/...` or `bug/...`)
-- [ ] New feature (`feat/...`)
-- [ ] Technical / infrastructure (`tech/...`)
-- [ ] Documentation
-- [ ] Refactor / internal improvement
-
 ## Checklist
 
 - [ ] `make lint` passes with no issues

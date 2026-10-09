@@ -49,6 +49,43 @@ Git over HTTP answers `413` with `storage quota reached (X of Y)` for a push tha
 
 When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` finishes [connecting Google](#connected-accounts) to the signed-in account instead: it never signs in, and redirects to `/settings#connected-accounts`.
 
+### Device login
+
+`cz auth login` uses the device-code flow (RFC 8628). Neither endpoint needs a cookie, CSRF token or client secret, and every response carries `Cache-Control: no-store`. Both accept a URL-encoded form or JSON body, never the query string.
+
+| Method | Path                     | Auth | Description                                                                                                   |
+| ------ | ------------------------ | ---- | ------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/auth/device/code`  | --   | Start a login: `scope` (space-separated, default `repo:write`) and `device_name`; 20 requests per hour per IP |
+| POST   | `/api/auth/device/token` | --   | Poll: `grant_type=urn:ietf:params:oauth:grant-type:device_code` and `device_code`                             |
+
+`/device/code` answers `{"device_code", "user_code", "verification_uri", "expires_in": 900, "interval": 5}`. `user_code` is `XXXX-XXXX`, and the user types it at `verification_uri` (`<base URL>/login/device`); no response or link carries it in a URL. An unknown scope or `repo:admin` is `400 {"error":"invalid_scope"}`. Over 20 requests an hour from one IP is `429 {"error":"rate limit exceeded"}`; a sixth unexpired grant from one IP is `429 {"error":"too_many_requests"}` with `Retry-After: 60`. `/device/token` has no limiter of its own beyond the global one and the per-code interval.
+
+`/device/token` answers `200 {"access_token", "token_type": "bearer", "scope"}` once the user has approved, exactly once. The token is a personal access token without an expiry, named `cz (<device_name>) · <date>` (`cz CLI · <date>` when no `device_name` was sent) in Settings → Access tokens. Everything else is `400 {"error": …}`:
+
+| `error`                  | When                                                                         |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| `authorization_pending`  | The user hasn't decided yet; keep polling                                    |
+| `slow_down`              | Polled before `interval` elapsed; the interval grows by 5 s for this code    |
+| `expired_token`          | 900 s passed                                                                 |
+| `access_denied`          | The user denied the login                                                    |
+| `invalid_grant`          | Unknown or already redeemed `device_code`                                    |
+| `unsupported_grant_type` | `grant_type` is anything but the device-code URN                             |
+| `invalid_request`        | `grant_type` or `device_code` missing, or an unreadable body                 |
+
+A failure on our side is `500 {"error":"server_error"}`; the cause is logged.
+
+#### Browser pages
+
+These routes are HTML pages for people to use in a browser, not API. They need a session (a PAT or OAuth token gets `403`) and, on `POST`, the CSRF token. The flow, the cookie and the threat model are in [access control](./access-control.md#device-login).
+
+| Method | Path                    | Auth                | Description                                                                                                                                                                  |
+| ------ | ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/login/device`         | Optional session    | Code entry; signed-out users are redirected to `/login?next=/login/device`; a `user_code` query parameter is ignored                                                         |
+| POST   | `/login/device`         | Session             | `user_code`; `303` to `/login/device/confirm` with the `cz_device_code` cookie, or `400` with one generic message; 50 requests per hour per user, `429` beyond               |
+| GET    | `/login/device/confirm` | Session             | Shows the code, device, both IPs and scopes; needs the cookie, otherwise `303` to `/login/device`; `410` with the entry page when the cookie is valid but the request was answered or expired                                                                                      |
+| GET    | `/login/device/approve` | Session             | `303` to `/login/device/confirm`; where a Google/SAML sign-in returns after a failed approval                                                                                |
+| POST   | `/login/device/approve` | Session             | `action=approve\|deny`, `scope` repeated, and `password`, `code` or `email_code`; `403` and `429` as for `POST /oauth/authorize`; `400` when no valid scope remains; `410` (entry page, "expired or already answered") if the grant was answered or expired, including meanwhile |
+
 ## Confirmed actions
 
 Actions that give lasting access take the account's `password`, plus `code` (the TOTP code) when 2FA is on, as form fields or in the JSON body. An account with neither sends its directory password (LDAP), the code a fresh sign-in left in the `cz_reauth` cookie (`POST /settings/reauth/{provider}`), or `email_code` from `POST /settings/confirm-code`. A wrong confirmation gets 403, and five wrong ones in 15 minutes get 429. A personal access token created with `repo:admin` skips it for repository and organization administration, never for changes to the account. The full list is in [access control](./access-control.md#confirming-sensitive-actions).

@@ -192,7 +192,13 @@ func (s *ProjectService) DeleteColumn(ctx context.Context, projectID, columnID, 
 	if !s.repos.CanWrite(ctx, repo, userID) {
 		return ErrForbidden
 	}
-	return s.projects.DeleteColumn(ctx, columnID, projectID)
+	if err := s.projects.DeleteColumn(ctx, columnID, projectID); err != nil {
+		if errors.Is(err, store.ErrColumnNotInProject) {
+			return ErrProjectNotFound
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, userID int64, d model.CardDetails) (*model.ProjectCard, error) {
@@ -309,7 +315,13 @@ func (s *ProjectService) DeleteCard(ctx context.Context, projectID, cardID, user
 	if !s.repos.CanWrite(ctx, repo, userID) {
 		return ErrForbidden
 	}
-	return s.projects.DeleteCard(ctx, cardID, projectID)
+	if err := s.projects.DeleteCard(ctx, cardID, projectID); err != nil {
+		if errors.Is(err, store.ErrCardNotInProject) {
+			return ErrProjectNotFound
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *ProjectService) UpdateCardDetails(ctx context.Context, projectID, cardID, userID int64, d model.CardDetails) error {

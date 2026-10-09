@@ -6,7 +6,7 @@ Status: done
 
 ## Problem
 
-Every repository has an Actions tab. `internal/view/fragments/repo_subnav.templ` renders it unconditionally, and no repo setting hides it. It leads to `GET /{owner}/{repo}/actions` (`internal/router/router.go`, `PageActions` in `internal/handler/page_actions_handler.go`). The page is the placeholder that UI overhaul phase 4 added (`docs/superpowers/plans/2026-05-14-ui-overhaul-phase-4-tracker.md`). It shows an "Actions are coming soon." empty state, followed by two run rows carried over from the mockup (`internal/view/pages/actions.templ`):
+Every repository has an Actions tab. `internal/view/fragments/repo_subnav.templ` renders it unconditionally, and no repo setting hides it. It leads to `GET /{owner}/{repo}/actions` (`internal/router/router.go`, `PageActions` in `internal/handler/page_actions_handler.go`). The page is the placeholder that UI overhaul phase 4 added. It shows an "Actions are coming soon." empty state, followed by two run rows carried over from the mockup (`internal/view/pages/actions.templ`):
 
 - `CI · Go test` / `build · main · 2m 14s` / `just now`
 - `CI · Go test` / `build · main · 1m 58s` / `2 days ago`

@@ -22,6 +22,8 @@ var ErrCardNotInProject = errors.New("card not in project")
 // ErrCardNotLinkable: the card is missing, already linked, or has no title.
 var ErrCardNotLinkable = errors.New("card cannot be linked to an issue")
 
+var ErrColumnNotInProject = errors.New("column not in project")
+
 // ProjectStore provides database operations for Kanban project boards, columns, and cards.
 type ProjectStore struct{ db *sql.DB }
 
@@ -187,7 +189,7 @@ func (s *ProjectStore) DeleteColumn(ctx context.Context, id, projectID int64) er
 		return err
 	}
 	if n == 0 {
-		return fmt.Errorf("column %d not found in project %d", id, projectID)
+		return fmt.Errorf("column %d in project %d: %w", id, projectID, ErrColumnNotInProject)
 	}
 	return nil
 }
@@ -653,7 +655,7 @@ func (s *ProjectStore) DeleteCard(ctx context.Context, id, projectID int64) erro
 		return err
 	}
 	if n == 0 {
-		return fmt.Errorf("card %d not found in project %d", id, projectID)
+		return fmt.Errorf("card %d in project %d: %w", id, projectID, ErrCardNotInProject)
 	}
 	return nil
 }

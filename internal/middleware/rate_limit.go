@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/netip"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -29,11 +30,48 @@ func (l *rateLimiter) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, reset, ok := l.counter.take(rateLimitKey(r), l.limit); !ok {
 			setRetryAfter(w, reset.Sub(l.counter.now()))
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusTooManyRequests)
+				_, _ = w.Write([]byte(`{"error":"rate limit exceeded"}` + "\n"))
+				return
+			}
 			http.Error(w, "Too many attempts. Try again later.", http.StatusTooManyRequests)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// UserLimiter allows each signed-in user limit events per window. Counts live in
+// this process, so each instance of a multi-instance deployment counts alone.
+type UserLimiter struct {
+	limit   int
+	counter *fixedWindow
+}
+
+func NewUserLimiter(limit int, window time.Duration) *UserLimiter {
+	return newUserLimiter(limit, window, time.Now)
+}
+
+func newUserLimiter(limit int, window time.Duration, now func() time.Time) *UserLimiter {
+	return &UserLimiter{limit: limit, counter: newFixedWindow(window, now)}
+}
+
+// Middleware must run after the auth middleware; a request without claims passes.
+func (l *UserLimiter) Middleware(onLimited http.HandlerFunc) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if claims, ok := ClaimsFromContext(r.Context()); ok {
+				if _, reset, allowed := l.counter.take("user:"+strconv.FormatInt(claims.UserID, 10), l.limit); !allowed {
+					setRetryAfter(w, reset.Sub(l.counter.now()))
+					onLimited(w, r)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func setRetryAfter(w http.ResponseWriter, wait time.Duration) {
@@ -98,4 +136,12 @@ func (c *fixedWindow) take(key string, limit int) (remaining int, reset time.Tim
 	}
 	w.count++
 	return limit - w.count, reset, true
+}
+
+// NoStore keeps tokens and device codes out of shared and browser caches.
+func NoStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
 }

@@ -153,7 +153,8 @@ func (h *Handler) CreateFromTemplate(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrTemplateNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
 		return
-	case errors.Is(err, service.ErrNotTemplate), errors.Is(err, service.ErrTemplateArchived):
+	case errors.Is(err, service.ErrNotTemplate), errors.Is(err, service.ErrTemplateArchived),
+		errors.Is(err, service.ErrRepoNameTaken), errors.Is(err, service.ErrRepoNameReserved):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	case errors.Is(err, service.ErrInvalidRepoName):

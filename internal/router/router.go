@@ -35,6 +35,18 @@ const (
 	loginAttemptWindow = 15 * time.Minute
 )
 
+// Device login codes are unauthenticated, so the per-IP budget caps how many an address can mint.
+const (
+	deviceCodeLimit  = 20
+	deviceCodeWindow = time.Hour
+)
+
+// Typing codes is the only way to find a pending device login, so each user gets a small budget of tries.
+const (
+	deviceEntryLimit  = 50
+	deviceEntryWindow = time.Hour
+)
+
 // Markdown highlighting caps a page's bodies together, on top of each body's own cap.
 const (
 	requestHighlightBytes = 1 << 20
@@ -165,6 +177,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/oauth/authorize", h.ConfirmAuthorize)
 	r.Post("/oauth/token", h.TokenEndpoint)
 
+	deviceEntryLimiter := middleware.NewUserLimiter(deviceEntryLimit, deviceEntryWindow)
+	r.With(optAuthMW).Get("/login/device", h.PageDeviceEntry)
+	r.With(authMW, deviceEntryLimiter.Middleware(h.RateLimited)).Post("/login/device", h.DeviceLookup)
+	r.With(authMW).Get("/login/device/confirm", h.PageDeviceConfirm)
+	r.With(authMW).Get("/login/device/approve", h.PageDeviceApproveRedirect)
+	r.With(authMW).Post("/login/device/approve", h.DeviceApprove)
+
 	// Gist page routes
 	r.With(optAuthMW).Get("/gists", h.PageGists)
 	r.With(authMW).Get("/gists/new", h.PageGistNew)
@@ -281,6 +300,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Use(apiBodyLimit)
 		r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.Login)
 		r.Post("/logout", h.Logout)
+		r.With(middleware.NoStore, middleware.RateLimit(deviceCodeLimit, deviceCodeWindow)).Post("/device/code", h.DeviceCode)
+		r.With(middleware.NoStore).Post("/device/token", h.DeviceToken)
 	})
 
 	r.With(authMW).Get("/api/user", h.GetCurrentUser)
@@ -573,6 +594,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Route("/api/notifications", func(r chi.Router) {
 		r.Use(authMW, apiBodyLimit)
 		r.Post("/read-all", h.MarkAllNotificationsRead)
+		r.Post("/done", h.MarkNotificationsDone)
+		r.Post("/unsubscribe", h.UnsubscribeNotifications)
 		r.Patch("/{id}", h.MarkNotificationRead)
 		r.Get("/unread-count", h.GetUnreadCount)
 	})

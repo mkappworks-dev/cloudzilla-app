@@ -298,12 +298,14 @@ templ pullDetailBody(data view.PullDetailData) {
 						type="button"
 						hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
 						hx-swap="none"
-						hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Unsubscribed from this pull request'}));location.reload();}"
+						hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Stopped watching '+this.dataset.repo}));location.reload();}"
+						data-repo={ data.Owner + "/" + data.RepoName }
+						title={ "You are watching " + data.Owner + "/" + data.RepoName + " and get every notification from the repository, not just this pull request. Click to stop watching." }
 						aria-pressed="true"
 						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70"
 					>
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
-						Subscribed
+						Watching
 					</button>
 				} else {
 					<button
@@ -311,12 +313,14 @@ templ pullDetailBody(data view.PullDetailData) {
 						hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
 						hx-vals={ `{"level":"watching"}` }
 						hx-swap="none"
-						hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Subscribed to this pull request'}));location.reload();}"
+						hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Watching '+this.dataset.repo}));location.reload();}"
+						data-repo={ data.Owner + "/" + data.RepoName }
+						title={ "Get every notification from " + data.Owner + "/" + data.RepoName + ", not just this pull request." }
 						aria-pressed="false"
 						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-muted-foreground text-[13px] hover:bg-accent hover:text-foreground"
 					>
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
-						Subscribe
+						Watch { data.Owner }/{ data.RepoName }
 					</button>
 				}
 			</section>

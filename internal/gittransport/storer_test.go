@@ -14,8 +14,7 @@ import (
 // TestWrapForReceive_HidesPackfileWriter is the load-bearing invariant
 // for this package. If the wrapped value ever satisfies PackfileWriter,
 // go-git's UpdateObjectStorage will take its broken fast path and thin
-// packs will fail again. See
-// docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md.
+// packs will fail again.
 func TestWrapForReceive_HidesPackfileWriter(t *testing.T) {
 	underlying := filesystem.NewStorage(memfs.New(), cache.NewObjectLRUDefault())
 
