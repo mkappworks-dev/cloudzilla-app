@@ -43,16 +43,23 @@ Immediate email goes only to the notification's direct recipient (the subject's 
 
 | Route / Endpoint                      | Auth     | Description                                   |
 | ------------------------------------- | -------- | --------------------------------------------- |
-| GET `/notifications`                  | Required | Notifications page (list all)                 |
+| GET `/notifications`                  | Required | Inbox, 25 per page: `?filter=inbox\|unread\|read` (unknown means inbox), `?page=N` (clamped to the last page) |
 | PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware) |
 | POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)   |
 | GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                   |
+| POST `/api/notifications/done`        | Required | Mark the notifications in repeated form field `ids` as read (at most 100; other users' ids are ignored) |
+| POST `/api/notifications/unsubscribe` | Required | Stop watching the repo behind each notification in `ids` |
 
-HTMX responses swap `fragment-notifications-list` into `#notifications-list`.
+The mark-read and bulk endpoints take the same `?filter` and `?page`, and their HTMX responses swap `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
+
+Each row has a checkbox, the actor's avatar and, on hover or focus, Done and Unsubscribe buttons; ticking rows swaps the list header for a bulk bar. Unsubscribe is per repo, not per thread: no thread-level subscriptions exist, so it deletes the user's watch on the repo. Every row has the button, but it is active only where that watch exists at a level other than `ignoring`; elsewhere, and on `repo_transfer` rows (whose repo says nothing about the user's watches), it is disabled with a tooltip saying why. Done is mark-read: the row stays in the inbox and moves to the Read filter.
+
+Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text beside it; mentions, repo transfers and rows created before migration 112 have no title and show only the action text.
 
 ## NotificationService (`internal/service/notification_service.go`)
 
-- `List(ctx, userID)` → `([]Notification, error)`
+- `ListPage(ctx, userID, filter, page)` → `(NotificationPage, error)` — one page plus the inbox/unread/read counts the sidebar shows
+- `List(ctx, userID)` → `([]Notification, error)` — newest 50
 - `ListUnreadForDigest(ctx, u, mode)` → `([]Notification, error)`
 - `CountUnread(ctx, userID)` → `(int, error)`
 - `MarkRead(ctx, id, userID)` → `error`

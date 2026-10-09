@@ -44,6 +44,8 @@ type Notification struct {
 	OwnerName  string           `db:"owner_name"  json:"owner_name"`
 	SubjectID  int64            `db:"subject_id"  json:"subject_id"`
 	SubjectURL string           `db:"subject_url" json:"subject_url"`
-	Read       bool             `db:"read"        json:"read"`
-	CreatedAt  time.Time        `db:"created_at"  json:"created_at"`
+	// SubjectTitle is empty for mentions, transfers and rows older than migration 112.
+	SubjectTitle string    `db:"subject_title" json:"subject_title"`
+	Read         bool      `db:"read"        json:"read"`
+	CreatedAt    time.Time `db:"created_at"  json:"created_at"`
 }
