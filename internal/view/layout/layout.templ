@@ -90,7 +90,7 @@ templ Base(base view.BasePage, title string) {
 									<span class="flex-1">{ base.CurrentUser.Username }</span>
 									<span class="text-[10px] text-muted-foreground">Personal</span>
 								}
-								for _, entry := range base.UserOrgs {
+								for _, entry := range capList(base.UserOrgs) {
 									@components.DropdownMenuLink("/"+entry.Org.Name, nil) {
 										@workspaceChip(entry.Org.Name, entry.Org.AvatarKey)
 										<span class="flex-1">{ entry.Org.Name }</span>
@@ -104,7 +104,11 @@ templ Base(base view.BasePage, title string) {
 								}
 								@components.DropdownMenuLink("/organizations", nil) {
 									<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 21h18M3 7h18M5 21V7l7-4 7 4v14"/></svg>
-									{ "Your organizations" }
+									if len(base.UserOrgs) > switcherLimit {
+										{ "View all " + strconv.Itoa(len(base.UserOrgs)) + " organizations" }
+									} else {
+										{ "Your organizations" }
+									}
 								}
 							}
 						}
@@ -122,14 +126,18 @@ templ Base(base view.BasePage, title string) {
 									@components.DropdownMenuLabel() {
 										{ base.RepoSubnav.OwnerName + " repositories" }
 									}
-									for _, ref := range base.RepoSwitcher {
+									for _, ref := range capList(base.RepoSwitcher) {
 										@components.DropdownMenuLink(ref.Path, nil) {
 											{ ref.Name }
 										}
 									}
 									@components.DropdownMenuSeparator()
-									@components.DropdownMenuLink("/repos", nil) {
-										{ "All repositories" }
+									@components.DropdownMenuLink("/"+base.RepoSubnav.OwnerName+"?tab=repositories", nil) {
+										if len(base.RepoSwitcher) > switcherLimit {
+											{ "View all " + strconv.Itoa(len(base.RepoSwitcher)) + " repositories" }
+										} else {
+											{ "All repositories" }
+										}
 									}
 								}
 							}
@@ -559,6 +567,17 @@ templ Base(base view.BasePage, title string) {
 			</script>
 		</body>
 	</html>
+}
+
+// switcherLimit caps the topbar dropdowns so they stay a quick-jump list; the
+// trailing link leads to the full listing.
+const switcherLimit = 8
+
+func capList[T any](items []T) []T {
+	if len(items) > switcherLimit {
+		return items[:switcherLimit]
+	}
+	return items
 }
 
 // workspaceContextName labels the topbar's workspace switcher trigger.
