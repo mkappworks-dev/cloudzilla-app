@@ -31,6 +31,7 @@ type Stores struct {
 	IssueEvent         *IssueEventStore
 	Search             *SearchStore
 	AccessToken        *AccessTokenStore
+	DeviceGrant        *DeviceGrantStore
 	DeployKey          *DeployKeyStore
 	BranchProtection   *BranchProtectionStore
 	Reaction           *ReactionStore
@@ -88,6 +89,7 @@ func New(database *sql.DB) *Stores {
 		IssueEvent:         NewIssueEventStore(database),
 		Search:             NewSearchStore(database),
 		AccessToken:        NewAccessTokenStore(database),
+		DeviceGrant:        NewDeviceGrantStore(database),
 		DeployKey:          NewDeployKeyStore(database),
 		BranchProtection:   NewBranchProtectionStore(database),
 		Reaction:           NewReactionStore(database),
