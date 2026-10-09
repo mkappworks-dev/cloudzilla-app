@@ -53,9 +53,9 @@ func repoListCmd(a *app) *cobra.Command {
 				return err
 			}
 			tw := tabwriter.NewWriter(a.stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(tw, "NAME\tVISIBILITY\tDESCRIPTION")
+			_, _ = fmt.Fprintln(tw, "NAME\tVISIBILITY\tDESCRIPTION")
 			for _, r := range repos {
-				fmt.Fprintf(tw, "%s\t%s\t%s\n", r.Repo(), visibility(r.Private), shorten(r.Description, 60))
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\n", r.Repo(), visibility(r.Private), shorten(r.Description, 60))
 			}
 			return tw.Flush()
 		},
@@ -95,13 +95,13 @@ func repoViewCmd(a *app) *cobra.Command {
 				return a.printJSON(info.Raw)
 			}
 			tw := tabwriter.NewWriter(a.stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintf(tw, "Name:\t%s\n", info.Repo())
-			fmt.Fprintf(tw, "Description:\t%s\n", info.Description)
-			fmt.Fprintf(tw, "Visibility:\t%s\n", visibility(info.Private))
-			fmt.Fprintf(tw, "Default branch:\t%s\n", info.DefaultBranch)
-			fmt.Fprintf(tw, "Forks:\t%d\n", info.ForkCount)
-			fmt.Fprintf(tw, "Updated:\t%s\n", info.UpdatedAt)
-			fmt.Fprintf(tw, "URL:\t%s\n", repoWebURL(creds.Host, info.Repo()))
+			_, _ = fmt.Fprintf(tw, "Name:\t%s\n", info.Repo())
+			_, _ = fmt.Fprintf(tw, "Description:\t%s\n", info.Description)
+			_, _ = fmt.Fprintf(tw, "Visibility:\t%s\n", visibility(info.Private))
+			_, _ = fmt.Fprintf(tw, "Default branch:\t%s\n", info.DefaultBranch)
+			_, _ = fmt.Fprintf(tw, "Forks:\t%d\n", info.ForkCount)
+			_, _ = fmt.Fprintf(tw, "Updated:\t%s\n", info.UpdatedAt)
+			_, _ = fmt.Fprintf(tw, "URL:\t%s\n", repoWebURL(creds.Host, info.Repo()))
 			return tw.Flush()
 		},
 	}

@@ -64,7 +64,7 @@ func (a *app) editBody(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer os.Remove(f.Name())
+	defer func() { _ = os.Remove(f.Name()) }()
 	if err := f.Close(); err != nil {
 		return "", err
 	}

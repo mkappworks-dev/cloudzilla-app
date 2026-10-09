@@ -70,9 +70,9 @@ func prListCmd(a *app) *cobra.Command {
 				return err
 			}
 			tw := tabwriter.NewWriter(a.stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(tw, "NUMBER\tTITLE\tBRANCH\tSTATE\tAUTHOR")
+			_, _ = fmt.Fprintln(tw, "NUMBER\tTITLE\tBRANCH\tSTATE\tAUTHOR")
 			for _, p := range pulls {
-				fmt.Fprintf(tw, "#%d\t%s\t%s\t%s\t%s\n", p.Number, shorten(p.Title, 60), p.HeadBranch+" → "+p.BaseBranch, prState(p), p.AuthorName)
+				_, _ = fmt.Fprintf(tw, "#%d\t%s\t%s\t%s\t%s\n", p.Number, shorten(p.Title, 60), p.HeadBranch+" → "+p.BaseBranch, prState(p), p.AuthorName)
 			}
 			return tw.Flush()
 		},
@@ -151,25 +151,25 @@ func rawComments(cs []cli.LineComment) []json.RawMessage {
 
 func (a *app) printPull(host string, repo cli.Repo, p cli.Pull, reviews []cli.Review, comments []cli.LineComment) error {
 	w := a.stdout
-	fmt.Fprintf(w, "#%d %s\n", p.Number, p.Title)
-	fmt.Fprintf(w, "%s · %s wants to merge %s into %s\n", prState(p), p.AuthorName, p.HeadBranch, p.BaseBranch)
-	fmt.Fprintln(w, prWebURL(host, repo, p.Number))
+	_, _ = fmt.Fprintf(w, "#%d %s\n", p.Number, p.Title)
+	_, _ = fmt.Fprintf(w, "%s · %s wants to merge %s into %s\n", prState(p), p.AuthorName, p.HeadBranch, p.BaseBranch)
+	_, _ = fmt.Fprintln(w, prWebURL(host, repo, p.Number))
 	if body := strings.TrimSpace(p.Body); body != "" {
-		fmt.Fprintf(w, "\n%s\n", body)
+		_, _ = fmt.Fprintf(w, "\n%s\n", body)
 	}
 	if len(reviews) > 0 {
-		fmt.Fprintln(w, "\nReviews")
+		_, _ = fmt.Fprintln(w, "\nReviews")
 		for _, r := range reviews {
-			fmt.Fprintf(w, "  %s: %s\n", r.AuthorName, strings.ReplaceAll(r.State, "_", " "))
+			_, _ = fmt.Fprintf(w, "  %s: %s\n", r.AuthorName, strings.ReplaceAll(r.State, "_", " "))
 			if body := strings.TrimSpace(r.Body); body != "" {
-				fmt.Fprintf(w, "    %s\n", indent(body, "    "))
+				_, _ = fmt.Fprintf(w, "    %s\n", indent(body, "    "))
 			}
 		}
 	}
 	if len(comments) > 0 {
-		fmt.Fprintln(w, "\nLine comments")
+		_, _ = fmt.Fprintln(w, "\nLine comments")
 		for _, c := range comments {
-			fmt.Fprintf(w, "  %s:%d  %s\n    %s\n", c.Path, c.Line, c.AuthorName, indent(strings.TrimSpace(c.Body), "    "))
+			_, _ = fmt.Fprintf(w, "  %s:%d  %s\n    %s\n", c.Path, c.Line, c.AuthorName, indent(strings.TrimSpace(c.Body), "    "))
 		}
 	}
 	return nil

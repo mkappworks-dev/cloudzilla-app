@@ -64,9 +64,9 @@ func issueListCmd(a *app) *cobra.Command {
 				return err
 			}
 			tw := tabwriter.NewWriter(a.stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(tw, "NUMBER\tSTATE\tTITLE\tAUTHOR")
+			_, _ = fmt.Fprintln(tw, "NUMBER\tSTATE\tTITLE\tAUTHOR")
 			for _, is := range issues {
-				fmt.Fprintf(tw, "#%d\t%s\t%s\t%s\n", is.Number, is.State, shorten(is.Title, 60), is.AuthorName)
+				_, _ = fmt.Fprintf(tw, "#%d\t%s\t%s\t%s\n", is.Number, is.State, shorten(is.Title, 60), is.AuthorName)
 			}
 			return tw.Flush()
 		},
@@ -118,19 +118,19 @@ func issueViewCmd(a *app) *cobra.Command {
 				return a.printJSON(obj)
 			}
 			tw := tabwriter.NewWriter(a.stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintf(tw, "Issue:\t#%d %s\n", is.Number, is.Title)
-			fmt.Fprintf(tw, "State:\t%s\n", is.State)
-			fmt.Fprintf(tw, "Author:\t%s\n", is.AuthorName)
-			fmt.Fprintf(tw, "Created:\t%s\n", is.CreatedAt.Format("2006-01-02"))
-			fmt.Fprintf(tw, "URL:\t%s\n", issueWebURL(creds.Host, target, is.Number))
+			_, _ = fmt.Fprintf(tw, "Issue:\t#%d %s\n", is.Number, is.Title)
+			_, _ = fmt.Fprintf(tw, "State:\t%s\n", is.State)
+			_, _ = fmt.Fprintf(tw, "Author:\t%s\n", is.AuthorName)
+			_, _ = fmt.Fprintf(tw, "Created:\t%s\n", is.CreatedAt.Format("2006-01-02"))
+			_, _ = fmt.Fprintf(tw, "URL:\t%s\n", issueWebURL(creds.Host, target, is.Number))
 			if err := tw.Flush(); err != nil {
 				return err
 			}
 			if strings.TrimSpace(is.Body) != "" {
-				fmt.Fprintf(a.stdout, "\n%s\n", strings.TrimSpace(is.Body))
+				_, _ = fmt.Fprintf(a.stdout, "\n%s\n", strings.TrimSpace(is.Body))
 			}
 			for _, cm := range comments {
-				fmt.Fprintf(a.stdout, "\n--- %s commented on %s ---\n%s\n", cm.AuthorName, cm.CreatedAt.Format("2006-01-02"), strings.TrimSpace(cm.Body))
+				_, _ = fmt.Fprintf(a.stdout, "\n--- %s commented on %s ---\n%s\n", cm.AuthorName, cm.CreatedAt.Format("2006-01-02"), strings.TrimSpace(cm.Body))
 			}
 			return nil
 		},

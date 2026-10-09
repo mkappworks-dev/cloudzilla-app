@@ -77,7 +77,7 @@ func (a *app) loginToken(withToken bool) (string, error) {
 		}
 		raw = string(b)
 	case a.stdinTTY:
-		fmt.Fprint(a.stderr, "Personal access token: ")
+		_, _ = fmt.Fprint(a.stderr, "Personal access token: ")
 		s, err := a.readSecret()
 		if err != nil {
 			return "", fmt.Errorf("reading token: %w", err)
