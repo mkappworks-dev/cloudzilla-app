@@ -247,3 +247,129 @@ func TestNotification_ListUnreadForDigest_SkipsReposNoLongerReadable(t *testing.
 		t.Errorf("digest = %+v, want only the public repo's notification", got)
 	}
 }
+
+func TestNotification_MuteThreads_MutesOwnThreadsAndReadsTheirNotifications(t *testing.T) {
+	env := newNotifAccessEnv(t)
+	ctx := context.Background()
+	ownerID := env.seedUser(t, "owner")
+	userID := env.seedUser(t, "muter")
+	otherID := env.seedUser(t, "other")
+	repo := env.privateRepo(t, ownerID)
+	env.grantReader(t, repo.ID, userID)
+	env.grantReader(t, repo.ID, otherID)
+	env.watch(t, repo.ID, userID, otherID)
+
+	// Both users watch the repo, so each gets two notifications on issue 1 and one each on issues 2 and 3.
+	env.svc.NotifyIssueComment(ctx, repo, model.Issue{Number: 1, AuthorID: ownerID}, env.actorID, "actor")
+	env.svc.NotifyIssueStateChange(ctx, repo, model.Issue{Number: 1, AuthorID: ownerID, State: model.IssueStateClosed}, env.actorID, "actor")
+	env.svc.NotifyIssueComment(ctx, repo, model.Issue{Number: 2, AuthorID: ownerID}, env.actorID, "actor")
+	env.svc.NotifyIssueComment(ctx, repo, model.Issue{Number: 3, AuthorID: ownerID}, env.actorID, "actor")
+
+	mine, err := env.svc.List(ctx, userID)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	var selected, theirs int64
+	for _, n := range mine {
+		if n.SubjectID == 1 && selected == 0 {
+			selected = n.ID
+		}
+	}
+	others, err := env.svc.List(ctx, otherID)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	for _, n := range others {
+		if n.SubjectID == 3 {
+			theirs = n.ID
+		}
+	}
+	if selected == 0 || theirs == 0 {
+		t.Fatalf("seeding failed: selected=%d theirs=%d", selected, theirs)
+	}
+
+	if err := env.svc.MuteThreads(ctx, userID, []int64{selected, theirs}); err != nil {
+		t.Fatalf("MuteThreads: %v", err)
+	}
+
+	status := func(user int64, number int64) string {
+		st, err := env.threads.Status(ctx, user, repo.ID, model.ThreadKindIssue, number)
+		if err != nil {
+			t.Fatalf("Status: %v", err)
+		}
+		return st.State
+	}
+	if got := status(userID, 1); got != model.ThreadStateMuted {
+		t.Errorf("selected thread state = %q, want muted", got)
+	}
+	if got := status(userID, 2); got == model.ThreadStateMuted {
+		t.Error("an unselected thread must not be muted")
+	}
+	if got := status(userID, 3); got == model.ThreadStateMuted {
+		t.Error("another user's notification id must not mute a thread for the caller")
+	}
+	if got := status(otherID, 3); got == model.ThreadStateMuted {
+		t.Error("the other user's own thread must not be muted by the caller")
+	}
+	if w, _ := env.watches.Get(ctx, userID, repo.ID); w == nil || w.Level != model.WatchLevelWatching {
+		t.Errorf("repo watch = %+v, want it untouched", w)
+	}
+
+	if got := env.count(t, userID); got != 2 {
+		t.Errorf("unread after mute = %d, want 2: both of issue 1's notifications read, issues 2 and 3 kept", got)
+	}
+	if got := env.count(t, otherID); got != 4 {
+		t.Errorf("other user's unread = %d, want 4 (untouched)", got)
+	}
+
+	prefs := model.NotificationPrefs{EmailNotifications: true, EmailDigest: model.EmailDigestDaily, NotifyPRReview: true, NotifyMention: true}
+	if err := env.userSvc.UpdateNotificationPrefs(ctx, userID, prefs); err != nil {
+		t.Fatalf("UpdateNotificationPrefs: %v", err)
+	}
+	u, err := env.userSvc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	digest, err := env.svc.ListUnreadForDigest(ctx, u, model.EmailDigestDaily)
+	if err != nil {
+		t.Fatalf("ListUnreadForDigest: %v", err)
+	}
+	for _, n := range digest {
+		if n.SubjectID == 1 {
+			t.Errorf("digest holds %+v, want nothing from the muted thread", n)
+		}
+	}
+	if len(digest) != 2 {
+		t.Errorf("digest has %d notifications, want issues 2 and 3's", len(digest))
+	}
+
+	env.svc.NotifyIssueComment(ctx, repo, model.Issue{Number: 1, AuthorID: ownerID}, env.actorID, "actor")
+	if got := env.count(t, userID); got != 2 {
+		t.Errorf("unread after a new comment on the muted thread = %d, want still 2", got)
+	}
+}
+
+func TestNotification_MuteThreads_IgnoresRowsWithoutAThread(t *testing.T) {
+	env := newNotifAccessEnv(t)
+	ctx := context.Background()
+	userID := env.seedUser(t, "muter")
+	repoID := testutil.SeedRepo(t, env.db, userID, "testuser_muter_"+env.suffix, env.suffix)
+
+	n := &model.Notification{
+		UserID: userID, ActorID: env.actorID, ActorName: "actor", Type: model.NotifRepoTransfer,
+		RepoID: repoID, RepoName: env.suffix, OwnerName: "o", SubjectID: 4,
+	}
+	if err := store.NewNotificationStore(env.db).Create(ctx, n); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if err := env.svc.MuteThreads(ctx, userID, []int64{n.ID}); err != nil {
+		t.Fatalf("MuteThreads: %v", err)
+	}
+	if got := env.count(t, userID); got != 1 {
+		t.Errorf("unread = %d, want 1: a row with no thread must stay unread", got)
+	}
+	var rows int
+	if err := env.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM thread_subscriptions WHERE user_id = $1`, userID).Scan(&rows); err != nil || rows != 0 {
+		t.Errorf("thread_subscriptions rows = %d, %v; want 0", rows, err)
+	}
+}

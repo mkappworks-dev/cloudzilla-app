@@ -4,6 +4,7 @@ package store_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -217,31 +218,93 @@ func TestNotificationStore_MarkReadMany_OnlyOwn(t *testing.T) {
 	}
 }
 
-func TestNotificationStore_RepoIDsOf_SkipsTransfersAndOthers(t *testing.T) {
+func TestNotificationStore_ThreadsOf_DistinctOwnAndClassified(t *testing.T) {
 	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
 	ctx := context.Background()
 
-	comment := makeNotif(userID, actorID, repoID, owner, repo)
-	transfer := makeNotif(userID, actorID, repoID, owner, repo)
-	transfer.Type = model.NotifRepoTransfer
-	theirs := makeNotif(actorID, userID, repoID, owner, repo)
-	for _, n := range []*model.Notification{comment, transfer, theirs} {
+	mk := func(user int64, typ model.NotificationType, kind string, number int64) *model.Notification {
+		n := makeNotif(user, actorID, repoID, owner, repo)
+		n.Type, n.SubjectKind, n.SubjectID = typ, kind, number
+		return n
+	}
+	first := mk(userID, model.NotifIssueComment, model.ThreadKindIssue, 7)
+	again := mk(userID, model.NotifIssueClosed, model.ThreadKindIssue, 7)
+	pull := mk(userID, model.NotifPRComment, model.ThreadKindPull, 7)
+	unclassified := mk(userID, model.NotifMention, "", 9)
+	transfer := mk(userID, model.NotifRepoTransfer, "", 3)
+	theirs := mk(actorID, model.NotifIssueComment, model.ThreadKindIssue, 8)
+	all := []*model.Notification{first, again, pull, unclassified, transfer, theirs}
+	for _, n := range all {
+		if err := ns.Create(ctx, n); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+	}
+	ids := make([]int64, len(all))
+	for i, n := range all {
+		ids[i] = n.ID
+	}
+
+	got, err := ns.ThreadsOf(ctx, userID, ids)
+	if err != nil {
+		t.Fatalf("ThreadsOf: %v", err)
+	}
+	want := []store.NotificationThread{
+		{RepoID: repoID, Kind: model.ThreadKindIssue, Number: 7},
+		{RepoID: repoID, Kind: model.ThreadKindPull, Number: 7},
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("ThreadsOf = %v, want %v: one per thread, none for other users, null-kind or transfer rows", got, want)
+	}
+
+	got, err = ns.ThreadsOf(ctx, userID, nil)
+	if err != nil || len(got) != 0 {
+		t.Errorf("ThreadsOf(no ids) = %v, %v; want none", got, err)
+	}
+}
+
+func TestNotificationStore_MarkThreadsRead_CoversUnselectedSiblingsOnly(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+
+	mk := func(user int64, kind string, number int64) *model.Notification {
+		n := makeNotif(user, actorID, repoID, owner, repo)
+		n.SubjectKind, n.SubjectID = kind, number
+		return n
+	}
+	selected := mk(userID, model.ThreadKindIssue, 1)
+	sibling := mk(userID, model.ThreadKindIssue, 1)
+	otherThread := mk(userID, model.ThreadKindIssue, 2)
+	otherKind := mk(userID, model.ThreadKindPull, 1)
+	unclassified := mk(userID, "", 1)
+	theirs := mk(actorID, model.ThreadKindIssue, 1)
+	for _, n := range []*model.Notification{selected, sibling, otherThread, otherKind, unclassified, theirs} {
 		if err := ns.Create(ctx, n); err != nil {
 			t.Fatalf("Create: %v", err)
 		}
 	}
 
-	got, err := ns.RepoIDsOf(ctx, userID, []int64{comment.ID, theirs.ID})
+	if err := ns.MarkThreadsRead(ctx, userID, []int64{selected.ID, theirs.ID, unclassified.ID}); err != nil {
+		t.Fatalf("MarkThreadsRead: %v", err)
+	}
+	unread, err := ns.ListUnreadReadable(ctx, userID)
 	if err != nil {
-		t.Fatalf("RepoIDsOf: %v", err)
+		t.Fatalf("ListUnreadReadable: %v", err)
 	}
-	if len(got) != 1 || got[0] != repoID {
-		t.Errorf("RepoIDsOf = %v, want [%d]: another user's row must not count", got, repoID)
+	var left []int64
+	for _, n := range unread {
+		left = append(left, n.ID)
 	}
-
-	got, err = ns.RepoIDsOf(ctx, userID, []int64{transfer.ID})
-	if err != nil || len(got) != 0 {
-		t.Errorf("RepoIDsOf(transfer only) = %v, %v; want none", got, err)
+	slices.Sort(left)
+	want := []int64{otherThread.ID, otherKind.ID, unclassified.ID}
+	slices.Sort(want)
+	if !slices.Equal(left, want) {
+		t.Errorf("unread after = %v, want %v: only the selected thread's notifications become read", left, want)
+	}
+	if n, _ := ns.CountUnread(ctx, actorID); n != 1 {
+		t.Errorf("other user's unread = %d, want 1 (untouched)", n)
+	}
+	if err := ns.MarkThreadsRead(ctx, userID, nil); err != nil {
+		t.Errorf("empty ids: %v", err)
 	}
 }
 

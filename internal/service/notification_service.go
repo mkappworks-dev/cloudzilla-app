@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -122,9 +123,6 @@ type NotificationPage struct {
 	InboxCount  int
 	UnreadCount int
 	ReadCount   int
-
-	// WatchedRepos holds the repos on this page that the user can still unsubscribe from.
-	WatchedRepos map[int64]bool
 }
 
 // ListPage returns the requested page of userID's notifications. An unknown
@@ -156,20 +154,6 @@ func (s *NotificationService) ListPage(ctx context.Context, userID int64, filter
 	if err != nil {
 		return NotificationPage{}, err
 	}
-	repoIDs := make([]int64, 0, len(p.Items))
-	for _, n := range p.Items {
-		if n.Type != model.NotifRepoTransfer {
-			repoIDs = append(repoIDs, n.RepoID)
-		}
-	}
-	watched, err := s.watches.ListWatchedAmong(ctx, userID, repoIDs)
-	if err != nil {
-		return NotificationPage{}, err
-	}
-	p.WatchedRepos = make(map[int64]bool, len(watched))
-	for _, id := range watched {
-		p.WatchedRepos[id] = true
-	}
 	return p, nil
 }
 
@@ -178,14 +162,23 @@ func (s *NotificationService) MarkReadMany(ctx context.Context, userID int64, id
 	return s.notifs.MarkReadMany(ctx, userID, ids)
 }
 
-// UnsubscribeFromRepos stops userID watching each repo behind the given notifications.
-// Unsubscribing is per repo, not per thread: no thread-level subscriptions exist.
-func (s *NotificationService) UnsubscribeFromRepos(ctx context.Context, userID int64, ids []int64) error {
-	repoIDs, err := s.notifs.RepoIDsOf(ctx, userID, ids)
+// MuteThreads mutes each thread behind userID's notifications among ids and marks all of those
+// threads' unread notifications read. Ids that aren't userID's, and rows with no thread, are ignored.
+// The repo watch is untouched.
+func (s *NotificationService) MuteThreads(ctx context.Context, userID int64, ids []int64) error {
+	if s.threads == nil {
+		return errors.New("mute threads: thread subscriptions not configured")
+	}
+	threads, err := s.notifs.ThreadsOf(ctx, userID, ids)
 	if err != nil {
 		return err
 	}
-	return s.watches.DeleteMany(ctx, userID, repoIDs)
+	for _, t := range threads {
+		if err := s.threads.Set(ctx, userID, t.RepoID, t.Kind, t.Number, model.ThreadStateMuted); err != nil {
+			return err
+		}
+	}
+	return s.notifs.MarkThreadsRead(ctx, userID, ids)
 }
 
 func (s *NotificationService) ListUnreadForDigest(ctx context.Context, u *model.User, mode string) ([]model.Notification, error) {

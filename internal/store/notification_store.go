@@ -184,29 +184,58 @@ func (s *NotificationStore) MarkReadMany(ctx context.Context, userID int64, ids 
 	return err
 }
 
-// RepoIDsOf returns the distinct repos of userID's notifications among ids, leaving out
-// repo_transfer rows: a transfer says nothing about whether the user watches that repo.
-func (s *NotificationStore) RepoIDsOf(ctx context.Context, userID int64, ids []int64) ([]int64, error) {
+// NotificationThread identifies the issue, pull request or discussion a notification is about.
+type NotificationThread struct {
+	RepoID int64
+	Kind   string
+	Number int64
+}
+
+// ThreadsOf returns the distinct threads of userID's notifications among ids. Rows without a
+// subject_kind (repo_transfer, unclassifiable mentions) name no thread and are left out.
+func (s *NotificationStore) ThreadsOf(ctx context.Context, userID int64, ids []int64) ([]NotificationThread, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	ph, args := inPlaceholders(2, ids)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT DISTINCT repo_id FROM notifications
-		 WHERE user_id = $1 AND type <> 'repo_transfer' AND id IN (`+ph+`)`,
+		`SELECT DISTINCT repo_id, subject_kind, subject_id FROM notifications
+		 WHERE user_id = $1 AND subject_kind IS NOT NULL AND id IN (`+ph+`)
+		 ORDER BY repo_id, subject_kind, subject_id`,
 		append([]any{userID}, args...)...,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("notification repo ids: %w", err)
+		return nil, fmt.Errorf("notification threads: %w", err)
 	}
 	defer rows.Close()
-	var repoIDs []int64
+	var threads []NotificationThread
 	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
+		var t NotificationThread
+		if err := rows.Scan(&t.RepoID, &t.Kind, &t.Number); err != nil {
+			return nil, fmt.Errorf("notification threads: scan: %w", err)
 		}
-		repoIDs = append(repoIDs, id)
+		threads = append(threads, t)
 	}
-	return repoIDs, rows.Err()
+	return threads, rows.Err()
+}
+
+// MarkThreadsRead marks read every unread notification of userID on the threads of the notifications
+// among ids, selected or not. Ids that aren't userID's or have no subject_kind select no thread.
+func (s *NotificationStore) MarkThreadsRead(ctx context.Context, userID int64, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	ph, args := inPlaceholders(2, ids)
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE notifications n SET read = TRUE
+		 WHERE n.user_id = $1 AND n.read = FALSE AND EXISTS (
+		   SELECT 1 FROM notifications sel
+		   WHERE sel.user_id = $1 AND sel.id IN (`+ph+`) AND sel.subject_kind IS NOT NULL
+		     AND sel.repo_id = n.repo_id AND sel.subject_kind = n.subject_kind AND sel.subject_id = n.subject_id)`,
+		append([]any{userID}, args...)...,
+	)
+	if err != nil {
+		return fmt.Errorf("notification mark threads read: %w", err)
+	}
+	return nil
 }

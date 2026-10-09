@@ -589,6 +589,8 @@ The profile, repo-defaults, and delete endpoints are browser form posts: they re
 | GET    | `/api/notifications/unread-count` | Required | Returns `{"count": N}`             |
 | PATCH  | `/api/notifications/:id`          | Required | Mark a single notification as read |
 | POST   | `/api/notifications/read-all`     | Required | Mark all notifications as read     |
+| POST   | `/api/notifications/done`         | Required | Mark the notifications in repeated form field `ids` as read |
+| POST   | `/api/notifications/unsubscribe`  | Required | Mute the thread behind each notification in `ids` and mark its unread notifications read; the repo watch is unchanged |
 
 ## Saved Replies
 
