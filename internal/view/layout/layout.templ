@@ -54,7 +54,7 @@ templ Base(base view.BasePage, title string) {
 				}, true);
 			</script>
 		</head>
-		<body class="min-h-screen flex flex-col antialiased font-sans">
+		<body class="min-h-screen flex flex-col antialiased font-sans" if url := attachmentsURL(base); url != "" { data-attachments-url={ url } }>
 			<a href="#main-content" class="skip-link">Skip to main content</a>
 
 			<header role="banner" class="border-b border-border">
@@ -421,6 +421,71 @@ templ Base(base view.BasePage, title string) {
 					});
 				})();
 			</script>
+			<script>
+				(function() {
+					// Pasting or dropping an image into a markdown editor uploads it and inserts its markdown.
+					var url = document.body.dataset.attachmentsUrl;
+					if (!url) return;
+					function csrf() { return (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || ''; }
+					function images(dt) {
+						return Array.prototype.filter.call((dt && dt.files) || [], function(f) { return /^image\//.test(f.type); });
+					}
+					function editorTextarea(e) {
+						var ed = e.target.closest && e.target.closest('[data-md-editor]');
+						return ed && e.target.tagName === 'TEXTAREA' ? e.target : null;
+					}
+					function setStatus(ta, msg) {
+						var ed = ta.closest('[data-md-editor]');
+						var el = ed.querySelector('[data-md-status]');
+						if (!el && msg) {
+							el = document.createElement('p');
+							el.setAttribute('data-md-status', '');
+							el.setAttribute('role', 'status');
+							el.className = 'px-3 pb-2 text-xs text-destructive';
+							ed.appendChild(el);
+						}
+						if (el) el.textContent = msg;
+					}
+					function replace(ta, from, to) {
+						ta.value = ta.value.replace(from, function() { return to; });
+						ta.dispatchEvent(new Event('input', { bubbles: true }));
+					}
+					function upload(ta, file) {
+						var label = (file.name || 'image').replace(/[\[\]()\n]/g, '');
+						var placeholder = '![Uploading ' + label + '\u2026]()';
+						ta.setRangeText(placeholder + '\n', ta.selectionStart, ta.selectionEnd, 'end');
+						var body = new FormData();
+						body.append('file', file, file.name || 'image');
+						setStatus(ta, '');
+						fetch(url, { method: 'POST', body: body, headers: { 'X-CSRF-Token': csrf() }, credentials: 'same-origin' })
+							.then(function(res) {
+								return res.json().catch(function() { return {}; }).then(function(j) {
+									if (!res.ok) throw new Error(j.error || 'Upload failed.');
+									replace(ta, placeholder, j.markdown);
+								});
+							})
+							.catch(function(err) {
+								replace(ta, placeholder + '\n', '');
+								setStatus(ta, err.message || 'Upload failed.');
+							});
+					}
+					document.addEventListener('paste', function(e) {
+						var ta = editorTextarea(e), files = images(e.clipboardData);
+						if (!ta || !files.length) return;
+						e.preventDefault();
+						files.forEach(function(f) { upload(ta, f); });
+					});
+					document.addEventListener('dragover', function(e) {
+						if (editorTextarea(e) && e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) e.preventDefault();
+					});
+					document.addEventListener('drop', function(e) {
+						var ta = editorTextarea(e), files = images(e.dataTransfer);
+						if (!ta || !files.length) return;
+						e.preventDefault();
+						files.forEach(function(f) { upload(ta, f); });
+					});
+				})();
+			</script>
 			<script src={ assets.URL("/htmx.min.js") } defer></script>
 			<!-- Before Alpine: it registers its component on alpine:init. -->
 			<script src={ assets.URL("/static/select-menu.js") } defer></script>
@@ -468,6 +533,16 @@ templ Base(base view.BasePage, title string) {
 }
 
 // workspaceContextName labels the topbar's workspace switcher trigger.
+// attachmentsURL is where the page's markdown editors upload pasted images, or
+// "" when they can't: signed out, outside a repo, or on the wiki, whose pages
+// live in git where the attachment sweep can't see what they reference.
+func attachmentsURL(base view.BasePage) string {
+	if base.CurrentUser == nil || base.RepoSubnav == nil || base.RepoSubnav.Active == "wiki" {
+		return ""
+	}
+	return "/" + base.RepoSubnav.OwnerName + "/" + base.RepoSubnav.RepoName + "/attachments"
+}
+
 func workspaceContextName(base view.BasePage) string {
 	if base.OwnerContext != "" {
 		return base.OwnerContext

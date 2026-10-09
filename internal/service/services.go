@@ -64,16 +64,18 @@ type Services struct {
 	IssueCloser      *IssueCloser
 	Health           *HealthService
 	Avatar           *AvatarService
+	Attachment       *AttachmentService
 	Mirror           *MirrorService
 	Push             *PushService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
 }
 
-// WithStorage gives the avatar service its object store. Until it is called,
-// avatar uploads fail with ErrStorageUnconfigured.
+// WithStorage gives the avatar and attachment services their object store.
+// Until it is called, uploads fail with ErrStorageUnconfigured.
 func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Avatar.WithBackend(b)
+	s.Attachment.WithBackend(b)
 	return s
 }
 
@@ -109,6 +111,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	avatarSvc := NewAvatarService(stores.User, stores.Org, stores.Avatar, orgSvc)
+	attachmentSvc := NewAttachmentService(stores.Attachment)
+	repoSvc.WithAttachments(attachmentSvc)
 	userSvc.WithAvatars(avatarSvc)
 	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
@@ -174,6 +178,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		IssueCloser:      issueCloser,
 		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:           avatarSvc,
+		Attachment:       attachmentSvc,
 		Mirror:           mirrorSvc,
 		Push:             NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
 		Secrets:          secrets,
