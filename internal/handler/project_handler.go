@@ -210,21 +210,26 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 // The project services authorize against the project's own repo, so a project
 // from another repo must 404 here or their 403 would confirm that it exists.
 func (h *Handler) projectIDInRepo(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	_, projectID, ok := h.projectInRepo(w, r)
+	return projectID, ok
+}
+
+func (h *Handler) projectInRepo(w http.ResponseWriter, r *http.Request) (*model.Repository, int64, bool) {
 	repo, ok := h.readableRepoJSON(w, r, chi.URLParam(r, "owner"), chi.URLParam(r, "repo"))
 	if !ok {
-		return 0, false
+		return nil, 0, false
 	}
 	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid project id")
-		return 0, false
+		return nil, 0, false
 	}
 	project, err := h.Services.Project.GetProject(r.Context(), projectID)
 	if err != nil || project.RepoID != repo.ID {
 		writeError(w, http.StatusNotFound, service.ErrProjectNotFound.Error())
-		return 0, false
+		return nil, 0, false
 	}
-	return project.ID, true
+	return repo, project.ID, true
 }
 
 func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
@@ -453,7 +458,7 @@ func (h *Handler) ConvertCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, ok := h.projectIDInRepo(w, r)
+	repo, projectID, ok := h.projectInRepo(w, r)
 	if !ok {
 		return
 	}
@@ -462,11 +467,12 @@ func (h *Handler) ConvertCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid card id")
 		return
 	}
-	card, err := h.Services.Project.ConvertCardToIssue(r.Context(), projectID, cardID, claims.UserID)
+	card, issue, err := h.Services.Project.ConvertCardToIssue(r.Context(), projectID, cardID, claims.UserID)
 	if err != nil {
 		writeProjectError(w, err)
 		return
 	}
+	h.announceIssueOpened(claims, repo, chi.URLParam(r, "owner"), chi.URLParam(r, "repo"), issue)
 	writeJSON(w, http.StatusOK, card)
 }
 

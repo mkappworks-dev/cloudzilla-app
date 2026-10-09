@@ -29,7 +29,7 @@ func TestProjectService_ConvertCardToIssue_RollsBackWhenLinkFails(t *testing.T) 
 		testutil.Exec(t, db, fmt.Sprintf(`DROP FUNCTION IF EXISTS %s()`, fn))
 	})
 
-	if _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); err == nil {
+	if _, _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); err == nil {
 		t.Fatal("ConvertCardToIssue succeeded, want the link failure")
 	}
 	var n int
@@ -54,7 +54,7 @@ func TestProjectService_ConvertCardToIssue_ConcurrentConvertsCreateOneIssue(t *t
 		go func() {
 			defer wg.Done()
 			<-start
-			_, errs[i] = e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID)
+			_, _, errs[i] = e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID)
 		}()
 	}
 	close(start)
@@ -103,7 +103,7 @@ func TestProjectService_ConvertCardToIssue_RetriesOnIssueNumberCollision(t *test
 	card := e.note(t, p.ID, col.ID, "collide me\nbody")
 	collideIssueNumbers(t, db, e.repoID, e.ownerID, 1)
 
-	got, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID)
+	got, _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID)
 	if err != nil {
 		t.Fatalf("ConvertCardToIssue: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestProjectService_ConvertCardToIssue_GivesUpAfterRepeatedCollisions(t *tes
 	card := e.note(t, p.ID, col.ID, "collide me\nbody")
 	collideIssueNumbers(t, db, e.repoID, e.ownerID, 1000)
 
-	if _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); err == nil {
+	if _, _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); err == nil {
 		t.Fatal("ConvertCardToIssue succeeded, want the unique violation")
 	}
 	var n int
@@ -146,7 +146,7 @@ func TestProjectService_ConvertCardToIssue_TitleTooLong(t *testing.T) {
 	col := e.column(t, p.ID, "todo")
 	card := e.note(t, p.ID, col.ID, strings.Repeat("é", 200))
 
-	if _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); !errors.Is(err, service.ErrTitleTooLong) {
+	if _, _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); !errors.Is(err, service.ErrTitleTooLong) {
 		t.Fatalf("err = %v, want ErrTitleTooLong", err)
 	}
 	var n int

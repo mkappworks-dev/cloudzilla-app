@@ -163,7 +163,7 @@ func TestListColumnsWithCardsExpanded_ConvertedCardKeepsLabelsAndAssignees(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); err != nil {
+	if _, _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); err != nil {
 		t.Fatal(err)
 	}
 

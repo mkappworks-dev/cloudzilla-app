@@ -23,48 +23,53 @@ func (s *ProjectService) WithConvertDeps(issues *IssueService, issueStore *store
 
 // ConvertCardToIssue creates a public issue from a note card and links the card to it. The
 // issue takes over the card's description, labels and assignees; the due date stays on the card.
-func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, cardID, userID int64) (*model.ProjectCard, error) {
+// The returned issue lets the caller announce it like any other newly opened issue.
+func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, cardID, userID int64) (*model.ProjectCard, *model.Issue, error) {
 	repo, err := s.repoForProject(ctx, projectID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !s.repos.CanWrite(ctx, repo, userID) {
-		return nil, ErrForbidden
+		return nil, nil, ErrForbidden
 	}
 	card, err := s.projects.GetCardInProject(ctx, cardID, projectID)
 	if errors.Is(err, store.ErrCardNotInProject) {
-		return nil, ErrProjectNotFound
+		return nil, nil, ErrProjectNotFound
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if strings.TrimSpace(card.Title) == "" || card.IssueID != nil || card.PullID != nil {
-		return nil, ErrNotConvertible
+		return nil, nil, ErrNotConvertible
 	}
 	assignees, err := s.projects.CardAssignees(ctx, []int64{cardID})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	labels, err := s.projects.CardLabels(ctx, []int64{cardID})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	issue, err := s.createIssue(ctx, repo, userID, card)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := s.linkConverted(ctx, projectID, card, issue.ID, assignees[cardID], labels[cardID]); err != nil {
 		// Detached so a cancelled request doesn't strand the orphan issue.
 		if delErr := s.issueStore.DeleteByID(context.WithoutCancel(ctx), issue.ID); delErr != nil {
 			slog.Error("convert card: issue orphaned, delete failed", "card_id", cardID, "issue_id", issue.ID, "error", delErr)
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	if err := s.projects.TouchProject(ctx, projectID); err != nil {
 		log.Printf("TouchProject(%d): %v", projectID, err)
 	}
-	return s.projects.GetCardInProject(ctx, cardID, projectID)
+	converted, err := s.projects.GetCardInProject(ctx, cardID, projectID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return converted, issue, nil
 }
 
 const issueCreateAttempts = 3

@@ -6,7 +6,36 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
+
+func TestProjects_ConvertCardAnnouncesTheNewIssue(t *testing.T) {
+	e := newGitMetaEnv(t)
+	hook := e.seedHook(t, "issues")
+	p := e.createProject(t, "Board")
+	col := e.createColumn(t, p, "To do")
+	card := e.createNote(t, p, col, "Announce me")
+
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards/%d/convert", p, card), token: e.writer.token}), http.StatusOK)
+
+	waitFor(t, "issue_opened event", func() bool {
+		return e.count(t, `SELECT COUNT(*) FROM events WHERE repo_id = $1 AND actor_id = $2 AND event_type = 'issue_opened' AND payload->>'title' = 'Announce me'`, e.repoID, e.writer.id) == 1
+	})
+	waitFor(t, "issues webhook delivery", func() bool {
+		return e.count(t, `SELECT COUNT(*) FROM webhook_deliveries WHERE webhook_id = $1 AND event = 'issues' AND payload LIKE '%"opened"%'`, hook) == 1
+	})
+}
+
+func waitFor(t *testing.T, what string, done func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !done() {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", what)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
 
 func TestProjects_ConvertCard(t *testing.T) {
 	e := newGitMetaEnv(t)

@@ -116,7 +116,7 @@ func (s *seeder) seedBoard(r *seedRepo, name string, closed bool) error {
 		return err
 	}
 	s.report.Cards++
-	if _, err := svc.ConvertCardToIssue(s.ctx, p.ID, note.ID, actor.ID); err != nil {
+	if _, _, err := svc.ConvertCardToIssue(s.ctx, p.ID, note.ID, actor.ID); err != nil {
 		return err
 	}
 	s.report.Issues++
