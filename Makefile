@@ -1,4 +1,4 @@
-.PHONY: dev build migrate seed lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
+.PHONY: dev build build-backend build-cli build-cz migrate seed lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 GO := /usr/local/go/bin/go
@@ -69,7 +69,7 @@ dev: download-mermaid download-htmx build-css generate-templ  ## Run backend + T
 		~/go/bin/templ generate --watch ./internal/view/... & \
 		wait)
 
-build: download-mermaid download-htmx build-css generate-templ build-backend build-cli  ## Full build (Go + CLI)
+build: download-mermaid download-htmx build-css generate-templ build-backend build-cli build-cz  ## Full build (server, cz-admin, cz)
 
 build-backend:
 	@mkdir -p dist
@@ -78,6 +78,10 @@ build-backend:
 build-cli:
 	@mkdir -p dist
 	$(GO) build -ldflags "$(GO_LDFLAGS)" -o dist/cz-admin ./cmd/cz-admin/.
+
+build-cz:                          ## Build the remote client (needs no CSS or templ step)
+	@mkdir -p dist
+	CGO_ENABLED=0 $(GO) build -ldflags "$(GO_LDFLAGS)" -o dist/cz ./cmd/cz/.
 
 migrate:
 	$(GO) run ./cmd/cz-admin/. migrate

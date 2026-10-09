@@ -8,6 +8,8 @@ make build   # produces dist/cloudzilla (single binary, embedded templates + CSS
 
 The binaries report `git describe --tags --always --dirty` (e.g. `v0.4.0-41-g8ab8c6e4`) as their version in the page footer and `cz-admin --version`. Override it with `make build VERSION=v0.4.0`.
 
+`make build` also produces `dist/cz`. `cz-admin` is the operator tool and runs on the server host; `cz` is the separate remote client that developers run on their own machines, so the server image and archive leave it out. See [cli](./cli.md).
+
 No Node.js, npm, or Bun needed at runtime. Set config via `config.yaml` or environment variables.
 
 ## Docker

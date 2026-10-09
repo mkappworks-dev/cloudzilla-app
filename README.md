@@ -154,6 +154,7 @@ For a populated instance to click around in, run `make seed` after `make migrate
 | -------------------------------------------------- | ----------------------------------------------------------- |
 | [CLAUDE.md](./CLAUDE.md)                           | Developer guide: conventions, architecture, adding features |
 | [docs/api-reference.md](./docs/api-reference.md)   | Full API endpoint tables with auth levels                   |
+| [docs/cli.md](./docs/cli.md)                       | `cz` remote client: install, login, scopes per command      |
 | [docs/configuration.md](./docs/configuration.md)   | Config reference, env vars, CLI, production deployment      |
 | [docs/ROADMAP.md](./docs/ROADMAP.md)               | Full feature roadmap with phase specs and migration details |
 | [docs/access-control.md](./docs/access-control.md) | Permission model: instance, org, and repo levels            |
@@ -204,7 +205,8 @@ cmd/
         mermaid.min.js   # served at /static/mermaid.min.js
       htmx.min.js        # served at /htmx.min.js
       alpine.min.js      # served at /alpine.min.js
-  cloudzilla/        # Admin CLI (cobra)
+  cz-admin/          # Operator CLI (cobra)
+  cz/                # Remote client for developers (cobra)
 internal/
   config/            # Config loading (viper + YAML)
   db/                # DB connection + migration runner

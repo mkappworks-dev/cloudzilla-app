@@ -225,7 +225,7 @@ Verification and password reset links point at `server.base_url`, so set it to t
 make build
 ```
 
-Produces `dist/cloudzilla` (HTTP server) and `dist/cz-admin` (admin CLI). No Node.js required -- the binary embeds all templates and compiled CSS.
+Produces `dist/cloudzilla` (HTTP server), `dist/cz-admin` (the operator tool, which reads this config and the database) and `dist/cz` (the separate remote client for developers; see [cli](./cli.md)). No Node.js required -- the binary embeds all templates and compiled CSS.
 
 ### 2. Copy to server
 

@@ -125,6 +125,9 @@ jobs:
       - name: Build CLI binary
         run: go build -o dist/cz-admin ./cmd/cz-admin/.
 
+      - name: Build cz client
+        run: go build -o dist/cz ./cmd/cz/.
+
       - name: Upload binaries
         uses: actions/upload-artifact@v7
         with:

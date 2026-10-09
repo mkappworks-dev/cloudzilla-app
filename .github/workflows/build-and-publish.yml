@@ -90,6 +90,8 @@ jobs:
             -o "dist/cloudzilla" ./cmd/server/.
           go build -ldflags="-s -w -X main.version=${TAG}" \
             -o "dist/cz-admin" ./cmd/cz-admin/.
+          go build -ldflags="-s -w -X main.version=${TAG}" \
+            -o "dist/cz" ./cmd/cz/.
 
       - name: Package archive
         env:
@@ -98,9 +100,13 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           ARCHIVE="cloudzilla_${TAG}_${GOOS}_${GOARCH}.tar.gz"
+          CZ_ARCHIVE="cz_${TAG}_${GOOS}_${GOARCH}.tar.gz"
           tar -C dist -czf "${ARCHIVE}" cloudzilla cz-admin
+          tar -C dist -czf "${CZ_ARCHIVE}" cz
           sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
+          sha256sum "${CZ_ARCHIVE}" > "${CZ_ARCHIVE}.sha256"
           echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+          echo "CZ_ARCHIVE=${CZ_ARCHIVE}" >> "$GITHUB_ENV"
 
       - name: Upload to release
         env:
@@ -109,6 +115,7 @@ jobs:
         run: |
           gh release upload "${TAG}" \
             "${ARCHIVE}" "${ARCHIVE}.sha256" \
+            "${CZ_ARCHIVE}" "${CZ_ARCHIVE}.sha256" \
             --clobber
 
   docker:
