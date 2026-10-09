@@ -1,4 +1,4 @@
-# Projects: GitHub-style list and board
+# Projects: GitHub-style list, board and rich cards
 
 Created: 2026-10-09
 Category: enhancement
@@ -7,26 +7,70 @@ Status: needs-triage
 ## Problem
 
 - `/{owner}/{repo}/projects`: only the title of a row is a link, and "New project" toggles an inline form.
-- `/{owner}/{repo}/projects/{id}`: cards are not clickable as a whole, notes cannot be edited, "+ Add card" uses `prompt()` and an `i5`/`p3` syntax, and "+ Column" is a header button.
+- `/{owner}/{repo}/projects/{id}`: cards are not clickable as a whole, "+ Add card" uses `prompt()` and an `i5`/`p3` syntax, "+ Column" is a header button.
+- A card is either a free-text note (one blob, first line shown as the title) or a bare link to an issue or PR. It can't hold a title and description, people, labels or a date, and a note can't reference an issue or PR.
 
 ## Design
 
-1. **List** (`internal/view/pages/projects.templ`): the whole row is a link (stretched-link overlay on the title; Delete stays independently clickable). "New project" opens a dialog (`components` dialog) with name and description, POSTs, then navigates to the new board.
-2. **Board** (`internal/view/pages/project_detail.templ`, `cmd/server/frontend/kanban.js`):
-   - Columns get a count and a `⋯` menu (delete column); "add column" becomes a dashed slot after the last column.
-   - Per-column inline composer replaces `prompt()`: Enter adds a note; typing `#` searches this repo's issues/PRs and links the pick.
-   - Issue/PR cards navigate to the issue/PR on click; note cards open a dialog to edit or delete. Drag-to-move is unchanged. Clicks that end a drag must not navigate.
-3. **Backend**: edit a note card (`PATCH .../cards/{cardID}` extension or a sibling route; store + service `UpdateCardNote`, write-access guard like `DeleteCard`), and a JSON search endpoint for repo issues/PRs by title or number (reuse existing search if present).
+Mocks approved in conversation: list, New project dialog, board with composer and `#` picker, and the side-panel editor.
 
-## Open choices (defaults taken)
+### 1. List page (`internal/view/pages/projects.templ`)
 
-- Note-card click: dialog, not side panel.
-- Linking: `#` picker in the composer, not a separate dialog.
+- The whole row is a link (stretched-link overlay on the title; Delete stays independently clickable).
+- "New project" opens a dialog (name, description); create navigates to the new board.
+
+### 2. Card model
+
+A card stays one row in `project_cards` and gains:
+
+| Field | Meaning |
+|---|---|
+| `title` | Short text shown on the card. Required for a note card. |
+| `note` | Reused as the markdown description (column kept, no rename). |
+| `due_date` | Optional date. |
+| `issue_id` / `pull_id` | Optional link. A note card may now carry one; a card with a link and no title is a plain linked card as today. |
+| `card_assignees(card_id, user_id)` | Repo owner or collaborators only. |
+| `card_labels(card_id, label_id)` | Labels of the card's own repo only. |
+
+- The `CHECK` in `036_create_projects.sql` ties `note <> ''` to "no link" and forbids a title alongside a link. A new migration replaces it with: at most one of `issue_id`/`pull_id`, and a card with neither has a non-empty `title`.
+- Backfill: for existing note cards, `title` is the first line (≤120 chars, as `FirstLine` does today) and `note` keeps the remainder.
+- Linked cards without a title show the linked item's own title, state, labels and assignees, read-only. A note card with a link shows its own title, labels and assignees plus the linked item's number and state. The linked item's labels and assignees are not copied.
+
+### 3. API (all under `/api/repos/{owner}/{repo}/projects/{id}`, write access like `CreateCard`)
+
+- `POST /cards`: accepts `title`, `description`, `due_date`, `assignee_ids`, `label_ids`, `issue_id` or `pull_id`. The composer sends only `title` (Enter) or only a link (`#` pick).
+- `PATCH /cards/{cardID}/details`: replaces the card's fields and assignee/label sets in one transaction. Rejects an empty title on a note card, assignees who are not collaborators, labels from another repo, and a link to another repo (`CardTargetsInRepo`).
+- `GET /card-targets?q=`: issues and PRs of the repo by title fragment or `#number`, newest first, limit 8, write access required. `position()` rather than `ILIKE` so `%` and `_` match literally.
+- `POST /cards/{cardID}/convert`: note card only. Creates an issue via `IssueService.Create` from title and description, copies the card's labels and assignees onto it, sets `issue_id`, clears `title` and `note`, and returns the card. One transaction; fails whole if issue creation fails. Needs the same write check as creating an issue (`Create` also takes a visibility, so use the repo default).
+- `ListColumnsWithCardsExpanded` / `KanbanCardView` expose title, description, due date, assignees, labels, link number and state.
+
+### 4. `#123` autolinks in descriptions
+
+No existing autolinker: `internal/markdown` has none (closing keywords are parsed separately in `service/closing_keywords.go`). Add a repo-scoped goldmark transformer used when rendering a card description: `#N` becomes a link to that repo's `/issues/N`, or `/pulls/N` if only a PR has that number, and is left as plain text when neither exists. Not applied inside code spans or blocks. Also usable by comments later, but out of scope here.
+
+### 5. Board UI (`project_detail.templ`, `kanban.js`)
+
+- Card face: title, one-line description preview, label chips, due date (danger colour once past), assignee avatars, linked issue/PR number and state. The whole card opens the editor.
+- Issue and PR cards without a title navigate to the issue or PR instead.
+- Editor: a side panel with title, markdown description (preview of rendered markdown), Assignees, Labels, Linked item, Due date, Save, Delete, Convert to issue (note cards without a link only). Read-only users see the panel without the controls.
+- Column header: count and a `⋯` menu (delete). "Add column" is a dashed slot after the last column.
+- Composer per column: Enter adds a card with a title; `#` opens the picker and links the pick. The picker dropdown must not be clipped by the board's horizontal scroll container; render it in the column's overflow-visible layer or position it with a portal.
+- Drag-to-move is unchanged; a drag never opens the panel.
+
+## Out of scope
+
+Custom fields, multiple views, card comments, milestones, `#123` links in comments, and moving cards between projects.
+
+## Risks
+
+- The migration rewrites existing notes; the backfill must be tested on a database with notes, including notes longer than 120 characters in the first line and notes with no newline.
+- Deleting a user or label must cascade to the join tables (`ON DELETE CASCADE`).
+- Convert creates an issue and edits a card; both must commit together.
 
 ## Testing
 
-Service tests for note edit and picker query; router test for permissions (read-only user gets 403/404); browser check on a throwaway server and scratch DB, not the shared dev DB.
+Service and store tests for each endpoint rule above, a migration backfill test, router tests for permissions (anonymous, outsider, writer), a markdown test for the autolinker (valid issue, valid PR, unknown number, code span), and a browser check on a throwaway server and scratch DB covering list, dialog, composer, picker, panel edit, link, convert and drag.
 
 ## Tickets
 
-`issues/01` list page, `issues/02` note edit backend, `issues/03` issue/PR picker endpoint, `issues/04` board UI.
+`issues/01` list page, `02` card model and migration, `03` card details API, `04` picker endpoint, `05` `#123` autolink, `06` convert to issue, `07` board UI.
