@@ -158,6 +158,24 @@ func TestDiscussions_Replies(t *testing.T) {
 	wantStatus(t, e.do(t, metaReq{method: "POST", target: target, token: e.outsider.token, json: `{"body":"x"}`}), http.StatusNotFound)
 }
 
+func TestDiscussions_RepliesOnLocked(t *testing.T) {
+	e := newGitMetaEnv(t)
+	n := e.startDiscussion(t, "locked talk", e.categories(t)[0])
+	testutil.Exec(t, e.db, `UPDATE discussions SET is_locked = TRUE WHERE repo_id = $1 AND number = $2`, e.repoID, n)
+	target := e.path("/discussions/%d/replies", n)
+	count := func() int {
+		return e.count(t, `SELECT COUNT(*) FROM discussion_replies r JOIN discussions d ON d.id = r.discussion_id WHERE d.repo_id = $1`, e.repoID)
+	}
+
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: target, token: e.outsider.token, json: `{"body":"x"}`}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: target, token: e.writer.token, json: `{"body":"x"}`}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: target, token: e.outsider.token, htmx: true, form: url.Values{"body": {"x"}}}), http.StatusForbidden)
+	if count() != 0 {
+		t.Fatalf("replies were added to a locked discussion: %d", count())
+	}
+	e.reply(t, n, e.owner.token, "maintainers may still reply")
+}
+
 func TestDiscussions_DeleteReply(t *testing.T) {
 	e := newGitMetaEnv(t)
 	cats := e.categories(t)

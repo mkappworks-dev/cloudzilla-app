@@ -24,7 +24,7 @@ const pullIntoMirrorMessage = "Pull mirrors are read-only; open the pull request
 func createFailedMessage(err error, what string, logAttrs ...any) string {
 	switch {
 	case errors.Is(err, service.ErrTitleTooLong):
-		return fmt.Sprintf("Title is too long (maximum %d characters)", service.MaxTitleLen)
+		return titleTooLongMessage()
 	case errors.Is(err, service.ErrPrivateIssueForbidden):
 		return "Only collaborators with write access can create private issues"
 	case errors.Is(err, service.ErrUnknownDiscussionCategory):
@@ -34,6 +34,10 @@ func createFailedMessage(err error, what string, logAttrs ...any) string {
 	}
 	slog.Error("new "+what+": create failed", append(logAttrs, "error", err)...)
 	return "Could not create the " + what + ". Please try again."
+}
+
+func titleTooLongMessage() string {
+	return fmt.Sprintf("Title is too long (maximum %d characters)", service.MaxTitleLen)
 }
 
 func passwordLengthMessage(password string) string {

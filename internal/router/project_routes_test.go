@@ -163,9 +163,9 @@ func TestProjects_Columns(t *testing.T) {
 	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del, token: e.outsider.token}), http.StatusForbidden)
 	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/columns/x", p), token: e.owner.token}), http.StatusBadRequest)
 	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/columns/%d", foreignProject, foreignCol), token: e.owner.token}), http.StatusNotFound)
-	if rr := e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/columns/%d", p, foreignCol), token: e.owner.token}); rr.Code == http.StatusNoContent {
-		t.Error("deleting a column that is not in the project must not report success")
-	}
+	rr := e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/columns/%d", p, foreignCol), token: e.owner.token})
+	wantStatus(t, rr, http.StatusNotFound)
+	bodyHas(t, rr, "project not found")
 	if n := other.count(t, `SELECT COUNT(*) FROM project_columns WHERE id = $1`, foreignCol); n != 1 {
 		t.Error("a column of another project was deleted through this project's URL")
 	}
@@ -250,6 +250,14 @@ func TestProjects_Cards(t *testing.T) {
 	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del}), http.StatusUnauthorized)
 	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del, token: e.outsider.token}), http.StatusForbidden)
 	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/cards/x", p), token: e.owner.token}), http.StatusBadRequest)
+	foreignCard := e.createNote(t, otherProject, otherCol, "theirs")
+	rr := e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/cards/%d", p, foreignCard), token: e.owner.token})
+	wantStatus(t, rr, http.StatusNotFound)
+	bodyHas(t, rr, "project not found")
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/cards/999999999", p), token: e.owner.token}), http.StatusNotFound)
+	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE id = $1`, foreignCard); n != 1 {
+		t.Error("a card of another project was deleted through this project's URL")
+	}
 	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE id = $1`, note); n != 1 {
 		t.Fatal("refusals deleted the card")
 	}

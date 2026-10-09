@@ -18,6 +18,9 @@ const MaxTitleLen = 256
 // ErrTitleTooLong is returned when a title exceeds MaxTitleLen.
 var ErrTitleTooLong = errors.New("title is too long")
 
+// ErrTitleRequired is returned when an issue title is empty after trimming.
+var ErrTitleRequired = errors.New("title is required")
+
 // ErrUnknownDiscussionCategory is returned when a discussion names a category
 // that doesn't exist.
 var ErrUnknownDiscussionCategory = store.ErrUnknownDiscussionCategory
