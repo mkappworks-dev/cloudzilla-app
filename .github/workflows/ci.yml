@@ -53,6 +53,24 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: cloudzilla
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: cloudzilla_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cloudzilla"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_DSN: postgres://cloudzilla:test@localhost:5432/cloudzilla_test?sslmode=disable
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -90,6 +108,23 @@ jobs:
       - name: Build Tailwind CSS
         run: |
           bin/tailwindcss -i tailwind/input.css -o cmd/server/frontend/static/main.css --minify
+
+      # The runner's own pg_dump is older than the server; the backup round-trip
+      # tests refuse a client whose major is below the server's.
+      - name: Install PostgreSQL 18 client
+        run: |
+          . /etc/os-release
+          sudo install -d /usr/share/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-18
+          echo /usr/lib/postgresql/18/bin >> "$GITHUB_PATH"
+
+      - name: Migrate test database
+        run: go run ./cmd/cz-admin migrate
+        env:
+          CZ_DATABASE_DSN: ${{ env.TEST_DATABASE_DSN }}
 
       - name: Run tests
         run: go test ./...
