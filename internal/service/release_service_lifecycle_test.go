@@ -227,7 +227,8 @@ func TestReleaseService_Update(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !again.PublishedAt.Equal(firstPublished) {
+	// Update returns the Go clock reading (nanoseconds on Linux); the re-read comes from Postgres (microseconds).
+	if !again.PublishedAt.Equal(firstPublished.Truncate(time.Microsecond)) {
 		t.Error("re-saving a published release must keep its original PublishedAt")
 	}
 

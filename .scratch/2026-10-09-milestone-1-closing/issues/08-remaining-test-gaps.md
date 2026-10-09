@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: needs-triage
+Status: done
 
 ## Problem
 
@@ -17,11 +17,23 @@ After the coverage rounds (#186, #188, #204) the weakest remaining areas are:
 
 ## Acceptance criteria
 
-- [ ] Check whether CI has `pg_dump`/`pg_restore`; if not, add them to the test job so the existing round-trip tests run.
-- [ ] Add an injectable TLS config (or root pool) to `bindLDAP` and test the TLS path with a self-signed CA.
-- [ ] Move the fake Google hook somewhere router tests can reach it.
-- [ ] Re-run `go test -coverprofile` with `-coverpkg=./...` and pick the next lowest non-generated files.
+- [x] Check whether CI has `pg_dump`/`pg_restore`; if not, add them to the test job so the existing round-trip tests run. _Decided not to run them in CI: see the 2026-10-10 comment._
+- [x] Add an injectable TLS config (or root pool) to `bindLDAP` and test the TLS path with a self-signed CA.
+- [x] Move the fake Google hook somewhere router tests can reach it.
+- [x] Re-run `go test -coverprofile` with `-coverpkg=./...` and pick the next lowest non-generated files.
 
 ## Blocked by
 
 Ticket 03 for the OAuth part.
+
+## Comments
+
+Claude, 2026-10-10: Triaged as an enhancement. Ticket 03 is done, and `handler.UseFakeGoogle` already lives in `fake_google.go`; `internal/router/google_oauth_routes_test.go` uses it, and `TestGoogleOAuthRoutes_CallbackWithMatchingStateSignsIn` already drives the callback past the state check, so no new router test was needed.
+
+CI had neither the tools nor a database: the test job ran `go test ./...` with no `TEST_DATABASE_DSN`, so every integration test, the backup round trips included, skipped on the runner. A new `Integration` job, parallel to `Test` so the fast job stays fast and `Build` waits for both, starts a `postgres:18-alpine` service, migrates the test database with `cz-admin migrate`, and sets `TEST_DATABASE_DSN`. Locally the full suite passed against a migrated scratch Postgres 18, and both `TestBackupRestore_*` round trips passed with the real Postgres 18 `pg_dump`/`pg_restore`.
+
+`bindLDAP` verifies LDAPS certificates against `ldapRootCAs` (nil means system roots). `TestBindLDAP_TLS` serves a fake LDAP server behind a self-signed CA and checks that an unknown CA is refused, a trusted one binds, and a plaintext bind fails. The diff touches only `bindLDAP` and its imports, so ticket 04's split of `sso_service.go` can carry it along.
+
+Coverage (`-coverpkg=./...`, merged, excluding generated templ, `internal/view` and `cmd/server/main.go`), lowest first: `cmd/cz/open.go` 0%, `handler/activity_handler.go` 0%, `service/commit_stats_backfill.go` 0%, `handler/notification_handler.go` 13%, `cmd/cz-admin/restore.go` 19%, `cmd/cz-admin/backup.go` 19%, `cmd/cz-admin/seed.go` 35%, `handler/render_helpers.go` 38%, `service/contributor_stats_service.go` 38%, `handler/page_handler.go` 43%, `service/event_service.go` 46%, `cmd/cz-admin/password_reset_link.go` 47%. The remaining items in the Problem list (`main.go`, the view layer, the handler success branches that need a real LDAP/IdP) are left to ticket 09.
+
+Claude, 2026-10-10: The first CI run of the database job took 5 minutes, `internal/backup` alone 207 s (profiled: ~50 s of work on a laptop, the rest contention on 2 vCPUs, migrating a database per test, and bcrypt in the seed). Decision: `internal/backup` and `internal/seed` stay out of CI and run locally with `make test-integration`; the PG 18 client install was dropped with them. The real `pg_dump`/`pg_restore` round trips therefore have no CI coverage; they passed locally against Postgres 18. Documented in `docs/testing.md`. Possible follow-up: run those two packages on a schedule or only on `main`.

@@ -210,6 +210,10 @@ func escapeLDAPDN(s string) string {
 	return b.String()
 }
 
+// ldapRootCAs verifies LDAPS server certificates; nil means the system roots.
+// Only tests set it.
+var ldapRootCAs *x509.CertPool
+
 // bindLDAP performs an LDAPv3 simple bind.
 // BER encoding for BindRequest (Application tag 0):
 //
@@ -225,7 +229,7 @@ func bindLDAP(addr, dn, password string, useTLS bool) error {
 
 	dialer := &net.Dialer{Timeout: 5 * time.Second}
 	if useTLS {
-		conn, err = tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{MinVersion: tls.VersionTLS12})
+		conn, err = tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: ldapRootCAs})
 	} else {
 		conn, err = dialer.Dial("tcp", addr)
 	}
