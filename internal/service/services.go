@@ -9,66 +9,67 @@ import (
 
 // Services bundles all application service instances used by HTTP handlers.
 type Services struct {
-	User             *UserService
-	AdminUser        *AdminUserService
-	Repo             *RepoService
-	Issue            *IssueService
-	Pull             *PullService
-	Comment          *CommentService
-	SSHKey           *SSHKeyService
-	Code             *CodeService
-	Org              *OrgService
-	Webhook          *WebhookService
-	Notification     *NotificationService
-	SiteSetting      *SiteSettingService
-	Invitation       *InvitationService
-	Signup           *SignupService
-	Label            *LabelService
-	Assignee         *AssigneeService
-	Star             *StarService
-	Release          *ReleaseService
-	CommitStatus     *CommitStatusService
-	Milestone        *MilestoneService
-	PullReview       *PullReviewService
-	PullLineComment  *PullLineCommentService
-	PullEvent        *PullEventService
-	Search           *SearchService
-	AccessToken      *AccessTokenService
-	DeviceGrant      *DeviceGrantService
-	DeployKey        *DeployKeyService
-	BranchProtection *BranchProtectionService
-	Reaction         *ReactionService
-	TOTP             *TOTPService
-	OAuthLink        *OAuthLinkService
-	Reauth           *ReauthService
-	AuditLog         *AuditService
-	Project          *ProjectService
-	SSO              *SSOService
-	SavedReply       *SavedReplyService
-	Email            *EmailService
-	EmailVerifier    *EmailVerificationService
-	PasswordReset    *PasswordResetService
-	OAuthApp         *OAuthAppService
-	Watch            *WatchService
-	Event            *EventService
-	Discussion       *DiscussionService
-	Gist             *GistService
-	Topic            *TopicService
-	Index            *IndexService
-	Explore          *ExploreService
-	Dependency       *DependencyService
-	CommitStats      *CommitStatsService
-	ContributorStats *ContributorStatsService
-	Attention        *AttentionService
-	Language         *LanguageService
-	Import           *ImportService
-	IssueCloser      *IssueCloser
-	Health           *HealthService
-	Avatar           *AvatarService
-	Attachment       *AttachmentService
-	Mirror           *MirrorService
-	Quota            *QuotaService
-	Push             *PushService
+	User               *UserService
+	AdminUser          *AdminUserService
+	Repo               *RepoService
+	Issue              *IssueService
+	Pull               *PullService
+	Comment            *CommentService
+	SSHKey             *SSHKeyService
+	Code               *CodeService
+	Org                *OrgService
+	Webhook            *WebhookService
+	Notification       *NotificationService
+	SiteSetting        *SiteSettingService
+	Invitation         *InvitationService
+	Signup             *SignupService
+	Label              *LabelService
+	Assignee           *AssigneeService
+	Star               *StarService
+	Release            *ReleaseService
+	CommitStatus       *CommitStatusService
+	Milestone          *MilestoneService
+	PullReview         *PullReviewService
+	PullLineComment    *PullLineCommentService
+	PullEvent          *PullEventService
+	Search             *SearchService
+	AccessToken        *AccessTokenService
+	DeviceGrant        *DeviceGrantService
+	DeployKey          *DeployKeyService
+	BranchProtection   *BranchProtectionService
+	Reaction           *ReactionService
+	TOTP               *TOTPService
+	OAuthLink          *OAuthLinkService
+	Reauth             *ReauthService
+	AuditLog           *AuditService
+	Project            *ProjectService
+	SSO                *SSOService
+	SavedReply         *SavedReplyService
+	Email              *EmailService
+	EmailVerifier      *EmailVerificationService
+	PasswordReset      *PasswordResetService
+	OAuthApp           *OAuthAppService
+	Watch              *WatchService
+	ThreadSubscription *ThreadSubscriptionService
+	Event              *EventService
+	Discussion         *DiscussionService
+	Gist               *GistService
+	Topic              *TopicService
+	Index              *IndexService
+	Explore            *ExploreService
+	Dependency         *DependencyService
+	CommitStats        *CommitStatsService
+	ContributorStats   *ContributorStatsService
+	Attention          *AttentionService
+	Language           *LanguageService
+	Import             *ImportService
+	IssueCloser        *IssueCloser
+	Health             *HealthService
+	Avatar             *AvatarService
+	Attachment         *AttachmentService
+	Mirror             *MirrorService
+	Quota              *QuotaService
+	Push               *PushService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
 }
@@ -126,66 +127,67 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
 	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
 	return &Services{
-		User:             userSvc,
-		AdminUser:        NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
-		Repo:             repoSvc,
-		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent),
-		Pull:             pullSvc,
-		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
-		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User, stores.DeployKey),
-		Code:             code,
-		Org:              orgSvc,
-		Webhook:          webhookSvc,
-		Notification:     notifSvc,
-		SiteSetting:      siteSettingSvc,
-		Invitation:       NewInvitationService(stores.Invitation),
-		Signup:           NewSignupService(stores.SignupToken, stores.User, emailSvc, cfg.Server.BaseURL),
-		Label:            NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull, stores.Discussion),
-		Assignee:         NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
-		Star:             NewStarService(stores.Star, stores.Repo, stores.User),
-		Release:          NewReleaseService(stores.Release, stores.Repo, code),
-		CommitStatus:     commitStatusSvc,
-		Milestone:        NewMilestoneService(stores.Milestone, stores.Repo),
-		PullReview:       NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection),
-		PullLineComment:  NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
-		PullEvent:        NewPullEventService(stores.PullEvent),
-		Search:           NewSearchService(stores.Search),
-		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
-		DeviceGrant:      NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken),
-		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
-		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
-		Reaction:         NewReactionService(stores.Reaction),
-		TOTP:             totpSvc,
-		OAuthLink:        NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
-		Reauth:           reauthSvc,
-		AuditLog:         auditSvc,
-		Project:          NewProjectService(stores.Project, repoSvc),
-		SSO:              ssoSvc,
-		SavedReply:       NewSavedReplyService(stores.SavedReply),
-		Email:            emailSvc,
-		EmailVerifier:    emailVerificationSvc,
-		PasswordReset:    passwordResetSvc,
-		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
-		Watch:            NewWatchService(stores.Watch, stores.Repo),
-		Event:            eventSvc,
-		Discussion:       NewDiscussionService(stores.Discussion, stores.Repo),
-		Gist:             NewGistService(stores.Gist),
-		Topic:            NewTopicService(stores.Topic),
-		Index:            index,
-		Explore:          NewExploreService(stores.Explore),
-		Dependency:       depSvc,
-		CommitStats:      commitStatsSvc,
-		ContributorStats: contributorStatsSvc,
-		Attention:        attentionSvc,
-		Language:         languageSvc,
-		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
-		IssueCloser:      issueCloser,
-		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
-		Avatar:           avatarSvc,
-		Attachment:       attachmentSvc,
-		Mirror:           mirrorSvc,
-		Quota:            quotaSvc,
-		Push:             NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
-		Secrets:          secrets,
+		User:               userSvc,
+		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
+		Repo:               repoSvc,
+		Issue:              NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent),
+		Pull:               pullSvc,
+		Comment:            NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
+		SSHKey:             NewSSHKeyService(stores.SSHKey, stores.User, stores.DeployKey),
+		Code:               code,
+		Org:                orgSvc,
+		Webhook:            webhookSvc,
+		Notification:       notifSvc,
+		SiteSetting:        siteSettingSvc,
+		Invitation:         NewInvitationService(stores.Invitation),
+		Signup:             NewSignupService(stores.SignupToken, stores.User, emailSvc, cfg.Server.BaseURL),
+		Label:              NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull, stores.Discussion),
+		Assignee:           NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
+		Star:               NewStarService(stores.Star, stores.Repo, stores.User),
+		Release:            NewReleaseService(stores.Release, stores.Repo, code),
+		CommitStatus:       commitStatusSvc,
+		Milestone:          NewMilestoneService(stores.Milestone, stores.Repo),
+		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection),
+		PullLineComment:    NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
+		PullEvent:          NewPullEventService(stores.PullEvent),
+		Search:             NewSearchService(stores.Search),
+		AccessToken:        NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
+		DeviceGrant:        NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken),
+		DeployKey:          NewDeployKeyService(stores.DeployKey, stores.SSHKey),
+		BranchProtection:   NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
+		Reaction:           NewReactionService(stores.Reaction),
+		TOTP:               totpSvc,
+		OAuthLink:          NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
+		Reauth:             reauthSvc,
+		AuditLog:           auditSvc,
+		Project:            NewProjectService(stores.Project, repoSvc),
+		SSO:                ssoSvc,
+		SavedReply:         NewSavedReplyService(stores.SavedReply),
+		Email:              emailSvc,
+		EmailVerifier:      emailVerificationSvc,
+		PasswordReset:      passwordResetSvc,
+		OAuthApp:           NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
+		Watch:              NewWatchService(stores.Watch, stores.Repo),
+		ThreadSubscription: NewThreadSubscriptionService(stores.ThreadSubscription, stores.Watch),
+		Event:              eventSvc,
+		Discussion:         NewDiscussionService(stores.Discussion, stores.Repo),
+		Gist:               NewGistService(stores.Gist),
+		Topic:              NewTopicService(stores.Topic),
+		Index:              index,
+		Explore:            NewExploreService(stores.Explore),
+		Dependency:         depSvc,
+		CommitStats:        commitStatsSvc,
+		ContributorStats:   contributorStatsSvc,
+		Attention:          attentionSvc,
+		Language:           languageSvc,
+		Import:             NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
+		IssueCloser:        issueCloser,
+		Health:             NewHealthService(stores.Health, cfg.Git.ReposRoot),
+		Avatar:             avatarSvc,
+		Attachment:         attachmentSvc,
+		Mirror:             mirrorSvc,
+		Quota:              quotaSvc,
+		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
+		Secrets:            secrets,
 	}
 }
