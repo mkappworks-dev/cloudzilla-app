@@ -70,7 +70,7 @@ Read the matching doc before working in an area:
 - [webhooks](./docs/webhooks.md) — events, HMAC signing, fire-and-forget `Dispatch`
 - [notifications](./docs/notifications.md) — types; skipped when `actorID == authorID`
 - [ui-overhaul-class-map](./docs/ui-overhaul-class-map.md) — mockup → shadcn class map and Tailwind v3 → v4 names; the source of truth when porting UI
-- [ROADMAP](./docs/ROADMAP.md) and [plans](./docs/superpowers/plans/) — phase status and per-phase plans
+- [ROADMAP](./docs/ROADMAP.md) — phase status
 
 ## Branches
 
@@ -90,6 +90,8 @@ Worktrees go in `<main checkout>/.worktrees/<type>+<slug>` (gitignored), mirrori
 Before creating, reading, triaging or finishing a spec or ticket (markdown under `.scratch/`), read `docs/agents/issue-tracker.md`.
 
 ### Triage labels
+
+New work enters through the tracker: write the spec and tickets under `.scratch/`, then triage them (`/triage`) before any code.
 
 When setting a triage role, write it on the ticket's `Status:` line as `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human` or `wontfix`. See `docs/agents/triage-labels.md`.
 
