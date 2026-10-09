@@ -38,7 +38,7 @@ A card stays one row in `project_cards` and gains:
 
 ### 3. API (all under `/api/repos/{owner}/{repo}/projects/{id}`, write access like `CreateCard`)
 
-- `POST /cards`: accepts `title`, `description`, `due_date`, `assignee_ids`, `label_ids`, `issue_id` or `pull_id`. The composer sends only `title` (Enter) or only a link (`#` pick).
+- `POST /cards`: accepts `title`, `description`, `due_date`, `assignee_ids`, `label_ids`, `issue_id` or `pull_id`. The card modal sends every field for a titled card, or only the link for a title-less linked card.
 - `PATCH /cards/{cardID}/details`: replaces the card's fields and assignee/label sets in one transaction. Rejects an empty title on a note card, assignees who are not collaborators, labels from another repo, and a link to another repo (`CardTargetsInRepo`).
 - `GET /card-targets?q=`: issues and PRs of the repo by title fragment or `#number`, newest first, limit 8, write access required. `position()` rather than `ILIKE` so `%` and `_` match literally.
 - `POST /cards/{cardID}/convert`: note card only. Creates an issue via `IssueService.Create` from title and description, copies the card's labels and assignees onto it, sets `issue_id`, clears `title` and `note`, and returns the card. `IssueService.Create` commits on its own, so this is create-then-link: if linking fails the new issue is deleted and the card is unchanged. Needs the same write check as creating an issue; visibility is `public`.
@@ -50,12 +50,16 @@ No existing autolinker: `internal/markdown` has none (closing keywords are parse
 
 ### 5. Board UI (`project_detail.templ`, `kanban.js`)
 
-- Card face: title, one-line description preview, label chips, due date (danger colour once past), assignee avatars, linked issue/PR number and state. The whole card opens the editor.
-- Issue and PR cards without a title navigate to the issue or PR instead.
-- Editor: a side panel with title, markdown description (preview of rendered markdown), Assignees, Labels, Linked item, Due date, Save, Delete, Convert to issue (note cards without a link only). Read-only users see the panel without the controls.
+- Card face: title, one-line description preview, label chips, due date (danger colour once past), assignee avatars, linked issue/PR number and state. The whole card opens the card modal.
+- Issue and PR cards without a title navigate to the issue or PR instead; hidden private-issue placeholders open nothing.
+- Card modal: one centered `<dialog>` (640px, body scrolls, footer always visible) for creating and editing. Fields: Title, markdown Description (Write/Preview; in edit mode Preview shows the saved description's rendered HTML), Linked item (`#` search picker; the chosen item is a chip that links to the issue or PR, with a separate unlink button), Assignees, Labels, Due date (calendar picker, `components.DatePicker`).
+  - Create: each column's "+ Add item" opens it empty as "New card in {column}". Title is required unless an item is linked; a title-less linked card sends only the link. Enter in Title submits.
+  - Edit: a note card opens it pre-filled as "Edit card in {column}" with Save (full-replace details), Cancel, Delete and Convert to issue (titled cards without a link). Delete and Convert confirm inline in the footer, not with `window.confirm`; Escape cancels the confirmation before it closes the modal.
+  - Read-only users get the same modal with disabled fields and only Close.
+  - Escape closes the picker or calendar first, then the modal. Focus goes to Title on open and back to the opener on close. Server errors show inline and the modal stays open.
+- Due date calendar: Monday-first month grid, previous/next month, Today and Clear, keyboard navigation (arrows, PageUp/PageDown, Home/End), `YYYY-MM-DD` value built from local date parts. The picker and calendar popovers are `position: fixed` so the modal body's scroll container does not clip them; the calendar flips above the field when there is no room below.
 - Column header: count and a `⋯` menu (delete). "Add column" is a dashed slot after the last column.
-- Composer per column: Enter adds a card with a title; `#` opens the picker and links the pick. The picker dropdown must not be clipped by the board's horizontal scroll container; render it in the column's overflow-visible layer or position it with a portal.
-- Drag-to-move is unchanged; a drag never opens the panel.
+- Drag-to-move is unchanged; a drag never opens the modal.
 
 ## Out of scope
 
@@ -69,7 +73,7 @@ Custom fields, multiple views, card comments, milestones, `#123` links in commen
 
 ## Testing
 
-Service and store tests for each endpoint rule above, a migration backfill test, router tests for permissions (anonymous, outsider, writer), a markdown test for the autolinker (valid issue, valid PR, unknown number, code span), and a browser check on a throwaway server and scratch DB covering list, dialog, composer, picker, panel edit, link, convert and drag.
+Service and store tests for each endpoint rule above, a migration backfill test, router tests for permissions (anonymous, outsider, writer), a markdown test for the autolinker (valid issue, valid PR, unknown number, code span), and a browser check on a throwaway server and scratch DB covering list, dialog, card modal create and edit, picker, calendar, link, convert and drag.
 
 ## Tickets
 
