@@ -82,3 +82,22 @@ func TestSearchSuggest_ResponseShape(t *testing.T) {
 		}
 	})
 }
+
+// Two suggestion lists live on the results page (topnav and the page's own field), so option ids
+// are prefixed by the list they belong to.
+func TestSearchSuggest_OptionIDsFollowTheList(t *testing.T) {
+	h, _, _ := newVerificationRouter(t, config.SMTPConfig{})
+	get := func(list string) string {
+		return serve(h, browserRequest(http.MethodGet, "/search/suggest?q=ab&list="+url.QueryEscape(list), "", nil)).Body.String()
+	}
+
+	if body := get("search-suggest"); !strings.Contains(body, `id="search-suggest-0"`) {
+		t.Errorf("want ids prefixed by the list:\n%s", body)
+	}
+	for _, bad := range []string{"", `x" onfocus="alert(1)`, "Has Space", "-lead"} {
+		body := get(bad)
+		if !strings.Contains(body, `id="topnav-suggest-0"`) || strings.Contains(body, "onfocus") {
+			t.Errorf("list %q should fall back to topnav-suggest:\n%s", bad, body)
+		}
+	}
+}
