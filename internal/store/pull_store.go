@@ -46,8 +46,8 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 	var autoMergeStrategy sql.NullString
 	var headSHAOut sql.NullString
 	err = s.db.QueryRowContext(ctx,
-		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft, head_sha)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft, draft_at, head_sha)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CASE WHEN $9 THEN NOW() END, $10)
 		 RETURNING id, created_at, updated_at, merged_at, closed_at, is_draft, draft_at, auto_merge_enabled, auto_merge_strategy, head_sha`,
 		pr.RepoID, pr.Number, pr.AuthorID, pr.Title, pr.Body,
 		string(pr.State), pr.HeadBranch, pr.BaseBranch, pr.IsDraft, sql.NullString{String: pr.HeadSHA, Valid: pr.HeadSHA != ""},
