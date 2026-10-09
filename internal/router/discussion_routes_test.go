@@ -26,6 +26,9 @@ func (e metaEnv) categories(t *testing.T) []int64 {
 		}
 		ids = append(ids, id)
 	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
 	if len(ids) < 2 {
 		t.Fatalf("need two seeded discussion categories, have %d", len(ids))
 	}

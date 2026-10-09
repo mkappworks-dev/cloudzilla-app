@@ -15,19 +15,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-func (e transferEnv) addKey(t *testing.T, a transferAccount, title string) int64 {
-	t.Helper()
-	rr := serve(e.h, browserRequest(http.MethodPost, "/api/user/keys", a.session, url.Values{"title": {title}, "public_key": {sshPublicKey(t)}, "password": {"password1"}}))
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("add key: got %d %s, want 201", rr.Code, rr.Body)
-	}
-	var k struct{ ID int64 }
-	if err := json.Unmarshal(rr.Body.Bytes(), &k); err != nil || k.ID == 0 {
-		t.Fatalf("add key body = %s (%v)", rr.Body, err)
-	}
-	return k.ID
-}
-
 func TestSSHKeys_RequireSignIn(t *testing.T) {
 	e := newTransferEnv(t)
 	for _, tc := range []struct{ method, path string }{
