@@ -429,17 +429,19 @@ The repository's Checks tab (`/{owner}/{repo}/checks`) lists the commits with re
 
 ## Projects (Kanban)
 
-| Method | Path                                                  | Auth     | Description                 |
-| ------ | ----------------------------------------------------- | -------- | --------------------------- |
-| POST   | `/api/repos/:owner/:repo/projects`                    | Required | Create a project board      |
-| DELETE | `/api/repos/:owner/:repo/projects/:id`                | Required | Delete a project board      |
-| POST   | `/api/repos/:owner/:repo/projects/:id/columns`        | Required | Create a column             |
-| DELETE | `/api/repos/:owner/:repo/projects/:id/columns/:colID` | Required | Delete a column             |
-| POST   | `/api/repos/:owner/:repo/projects/:id/cards`          | Required | Create a card               |
-| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/details` | Required | Replace a card's title, description, due date, assignees, labels and link |
-| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`  | Required | Move a card between columns |
+| Method | Path                                                        | Auth     | Description                                                                                                                                                   |
+| ------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/projects`                           | Required | Create a project board                                                                                                                                        |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id`                       | Required | Close or reopen a project board (`closed` in body)                                                                                                            |
+| DELETE | `/api/repos/:owner/:repo/projects/:id`                       | Required | Delete a project board                                                                                                                                        |
+| POST   | `/api/repos/:owner/:repo/projects/:id/columns`               | Required | Create a column                                                                                                                                               |
+| DELETE | `/api/repos/:owner/:repo/projects/:id/columns/:colID`        | Required | Delete a column                                                                                                                                               |
+| GET    | `/api/repos/:owner/:repo/projects/:id/card-targets`          | Required | Search the repo's issues and PRs by title or number (`q`) for the card link picker; up to 8 results                                                           |
+| POST   | `/api/repos/:owner/:repo/projects/:id/cards`                 | Required | Create a card                                                                                                                                                 |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`         | Required | Move a card between columns                                                                                                                                   |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/details` | Required | Replace a card's title, description, due date, assignees, labels and link                                                                                     |
 | POST   | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/convert` | Required | Turn an unlinked note card into a public issue; the card links to it and hands over its description, labels and assignees (400 if the card is already linked) |
-| DELETE | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`  | Required | Delete a card               |
+| DELETE | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`         | Required | Delete a card                                                                                                                                                 |
 
 `POST .../cards` takes `column_id` plus the card fields; `PATCH .../cards/:cardID/details` takes the same fields without `column_id` and replaces all of them:
 `title`, `description`, `due_date` (`YYYY-MM-DD` or empty), `assignee_ids`, `label_ids`, and at most one of `issue_id`/`pull_id`.
