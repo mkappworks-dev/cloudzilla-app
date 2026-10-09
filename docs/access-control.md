@@ -683,6 +683,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | POST   | `.../projects/{id}/cards`           | authMW | CanWrite (service)  | CreateCard        |
 | PATCH  | `.../projects/{id}/cards/{cardID}`  | authMW | CanWrite (service)  | MoveCard          |
 | PATCH  | `.../projects/{id}/cards/{cardID}/details` | authMW | CanWrite (service) | UpdateCardDetails |
+| POST   | `.../projects/{id}/cards/{cardID}/convert` | authMW | CanWrite (service) | ConvertCard |
 | DELETE | `.../projects/{id}/cards/{cardID}`  | authMW | CanWrite (service)  | DeleteCard        |
 
 ### Git Transport

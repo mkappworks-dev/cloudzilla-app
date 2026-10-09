@@ -405,6 +405,29 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handler) ConvertCard(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	projectID, ok := h.projectIDInRepo(w, r)
+	if !ok {
+		return
+	}
+	cardID, err := strconv.ParseInt(chi.URLParam(r, "cardID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid card id")
+		return
+	}
+	card, err := h.Services.Project.ConvertCardToIssue(r.Context(), projectID, cardID, claims.UserID)
+	if err != nil {
+		writeProjectError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, card)
+}
+
 type cardDetailsBody struct {
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
@@ -461,7 +484,8 @@ func writeProjectError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 		return
 	}
-	if errors.Is(err, service.ErrInvalidPosition) || errors.Is(err, service.ErrInvalidCard) ||
+	if errors.Is(err, service.ErrNotConvertible) || errors.Is(err, service.ErrTitleTooLong) ||
+		errors.Is(err, service.ErrInvalidPosition) || errors.Is(err, service.ErrInvalidCard) ||
 		errors.Is(err, service.ErrInvalidAssignee) || errors.Is(err, service.ErrInvalidLabel) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

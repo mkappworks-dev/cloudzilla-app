@@ -124,11 +124,12 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	auditSvc := NewAuditService(stores.AuditLog)
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
 	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
+	issueSvc := NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent)
 	return &Services{
 		User:             userSvc,
 		AdminUser:        NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
 		Repo:             repoSvc,
-		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent),
+		Issue:            issueSvc,
 		Pull:             pullSvc,
 		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User, stores.DeployKey),
@@ -157,7 +158,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		OAuthLink:        NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
 		Reauth:           reauthSvc,
 		AuditLog:         auditSvc,
-		Project:          NewProjectService(stores.Project, repoSvc),
+		Project:          NewProjectService(stores.Project, repoSvc).WithConvertDeps(issueSvc, stores.Issue, stores.Label, stores.Assignee),
 		SSO:              ssoSvc,
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,

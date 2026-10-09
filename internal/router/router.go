@@ -523,6 +523,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 			r.With(authMW).Post("/{id}/cards", h.CreateCard)
 			r.With(authMW).Patch("/{id}/cards/{cardID}", h.MoveCard)
 			r.With(authMW).Patch("/{id}/cards/{cardID}/details", h.UpdateCardDetails)
+			r.With(authMW).Post("/{id}/cards/{cardID}/convert", h.ConvertCard)
 			r.With(authMW).Delete("/{id}/cards/{cardID}", h.DeleteCard)
 			r.With(authMW).Get("/{id}/card-targets", h.SearchCardTargets)
 		})

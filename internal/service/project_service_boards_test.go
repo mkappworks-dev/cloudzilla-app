@@ -40,8 +40,11 @@ func newProjBoardEnv(t *testing.T) *projBoardEnv {
 	testutil.Exec(t, db, `INSERT INTO permissions (repo_id, user_id, role) VALUES ($1, $2, 'admin')`, repoID, adminID)
 
 	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
+	issueStore := store.NewIssueStore(db)
+	issueSvc := service.NewIssueService(issueStore, store.NewRepoStore(db), store.NewPullStore(db), repoSvc)
 	return &projBoardEnv{
-		svc:      service.NewProjectService(store.NewProjectStore(db), repoSvc),
+		svc: service.NewProjectService(store.NewProjectStore(db), repoSvc).
+			WithConvertDeps(issueSvc, issueStore, store.NewLabelStore(db), store.NewAssigneeStore(db)),
 		owner:    ownerName,
 		repoName: "testrepo_" + suffix,
 		repoID:   repoID,

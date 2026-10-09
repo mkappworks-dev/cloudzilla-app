@@ -36,6 +36,11 @@ var ErrInvalidPosition = store.ErrInvalidPosition
 type ProjectService struct {
 	projects *store.ProjectStore
 	repos    *RepoService
+
+	issues        *IssueService
+	issueStore    *store.IssueStore
+	labelStore    *store.LabelStore
+	assigneeStore *store.AssigneeStore
 }
 
 // NewProjectService creates a ProjectService backed by the given store and repo service.
