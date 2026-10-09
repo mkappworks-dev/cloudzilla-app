@@ -49,7 +49,7 @@ func newTipTestRepo(t *testing.T) *tipTestRepo {
 
 func (r *tipTestRepo) commit(t *testing.T, branch, path, content string) plumbing.Hash {
 	t.Helper()
-	if err := r.svc.CommitFile(r.owner, r.name, branch, path, []byte(content), tipTestAuthor, "Add "+path); err != nil {
+	if _, err := r.svc.CommitFile(r.owner, r.name, branch, path, []byte(content), tipTestAuthor, "Add "+path); err != nil {
 		t.Fatalf("commit %s on %s: %v", path, branch, err)
 	}
 	return branchTip(t, r.repo, branch)
@@ -89,10 +89,12 @@ func TestWebCommits_PushLandsMidCommit(t *testing.T) {
 		commit func(r *tipTestRepo) error
 	}{
 		{"apply suggestion", "feature", func(r *tipTestRepo) error {
-			return r.svc.ApplySuggestion(r.owner, r.name, "feature", "f.txt", 1, "uno", tipTestAuthor)
+			_, err := r.svc.ApplySuggestion(r.owner, r.name, "feature", "f.txt", 1, "uno", tipTestAuthor)
+			return err
 		}},
 		{"commit file", "main", func(r *tipTestRepo) error {
-			return r.svc.CommitFile(r.owner, r.name, "main", "web.txt", []byte("web\n"), tipTestAuthor, "Add web.txt")
+			_, err := r.svc.CommitFile(r.owner, r.name, "main", "web.txt", []byte("web\n"), tipTestAuthor, "Add web.txt")
+			return err
 		}},
 		{"three-way merge", "main", func(r *tipTestRepo) error {
 			return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", r.featureTip, tipTestAuthor)

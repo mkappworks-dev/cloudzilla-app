@@ -1044,7 +1044,7 @@ CREATE TABLE branch_protections (
 
 - `internal/model/branch_protection.go` — `BranchProtection{ID, RepoID, Pattern, RequireReviewCount, RequireStatusChecks, BlockForcePush}`
 - `internal/store/branch_protection_store.go` — `Create`, `ListByRepo`, `GetByRepoAndPattern`, `Update`, `Delete`, `MatchForBranch(ctx, repoID, branchName)` (returns first matching rule or nil)
-- `internal/service/branch_protection_service.go` — `Create`, `List`, `Update`, `Delete`; `CheckPush(ctx, repo, branchName, pusherID)` → `error` (returns sentinel `ErrForcePushBlocked`, `ErrPushRequiresPR`); `CheckMerge(ctx, repo, pr, actorID)` → `error` (returns `ErrInsufficientReviews`, `ErrStatusCheckFailed`)
+- `internal/service/branch_protection_service.go` — `Create`, `List`, `Update`, `Delete`; `CheckPush(ctx, repo, branchName, pusherID)` → `error` (returns sentinel `ErrForcePushBlocked`, and `ErrPushRequiresPR` for a rule with `require_pull_request`); `CheckMerge(ctx, repo, pr, actorID)` → `error` (returns `ErrInsufficientReviews`, `ErrStatusCheckFailed`)
 - `internal/handler/branch_protection_handler.go` — CRUD handlers; HTMX-aware; renders `fragment-branch-protections`
 
 **Pattern matching:** Simple glob — `*` matches any single path segment, `**` is not needed. `fnmatch`-style: `main` matches exactly, `release/*` matches `release/v1.0`. Implement as `strings.HasPrefix` / `filepath.Match` (stdlib, no new deps).
@@ -2360,7 +2360,7 @@ type Backend interface {
 }
 ```
 
-**First consumer (2026-10-06): avatars.** `internal/storage` ships with `LocalBackend` and `S3Backend` (aws-sdk-go-v2, so AWS, R2, B2, Garage and versitygw all work), and user and org avatars are stored through it (migration 104 adds `avatar_key`). The "no new Go dependencies" rule is waived for this phase: it adds aws-sdk-go-v2 and `golang.org/x/image`. Layout and backup notes are in [storage](./storage.md). Still to come: GCS, git repos and the other consumers below, and `migrate-storage`.
+**First consumer (2026-10-06): avatars.** `internal/storage` ships with `LocalBackend` and `S3Backend` (aws-sdk-go-v2, so AWS, R2, B2, Garage and versitygw all work), and user and org avatars are stored through it (migration 104 adds `avatar_key`). The "no new Go dependencies" rule is waived for this phase: it adds aws-sdk-go-v2 and `golang.org/x/image`. Layout and backup notes are in [storage](./storage.md). **Second consumer (2026-10-08): markdown image attachments**, served through the repo's read check (migration 109). Still to come: GCS, git repos and the other consumers below, and `migrate-storage`.
 
 Implementations: `LocalBackend` (current disk storage, default), `S3Backend` (AWS SDK v2 — new dependency when enabled), `GCSBackend` (Google Cloud Storage client — new dependency when enabled). All git repos, LFS objects, release assets, registry blobs, and package files are routed through the backend interface. Config: `storage.backend: local|s3|gcs`; backend-specific keys under `storage.s3.*` / `storage.gcs.*`. Migration from local to S3 is a one-time `cloudzilla-cli migrate-storage` command.
 

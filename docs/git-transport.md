@@ -134,6 +134,12 @@ Branch protection is enforced at the same point, before the write. Both transpor
  ! [remote rejected] main -> main (force push blocked by branch protection)
 ```
 
+A rule with `require_pull_request` refuses every update of its branches (create, fast-forward, force push and delete alike) before anything else is checked, so it reads no history. The status names the rule; changes reach the branch only by merging a pull request, which doesn't go through receive-pack:
+
+```
+ ! [remote rejected] main -> main (pull request required by branch protection: rule "main")
+```
+
 The status is sent to the pusher, so an error from the server itself goes only to the server log: a failed rule lookup refuses the ref with `internal error checking branch protection`, and a failed ref write (a storer error, which names paths on the server) with `failed to update ref`. A pack that can't be stored fails the whole push (HTTP 500, SSH error) with `failed to store pushed objects`, unless the fault is in the pack itself: a malformed or truncated pack, or a thin pack whose base the repo lacks, keeps go-git's reason. A corrupt zlib stream gets the generic reason, because go-git words it like a failed read of the repo's own packs.
 
 The response is still HTTP 200 / SSH exit 0; the per-ref status is what tells the client. Webhooks, activity events, and post-receive run only for the refs that applied (`gittransport.AppliedCommands`).
@@ -168,6 +174,14 @@ A branch must point at a commit, as in git:
 ```
 
 Tags and other refs may point at any object.
+
+---
+
+## After a push
+
+Both transports hand the refs that applied to `PushService.AfterPush(repo, gitRepo, actor, commands)`, which starts each of these in the background: the `push` webhook per updated branch, a push activity event, closing keywords in commits that fast-forward the default branch, `OnPostReceive` (contributor stats, open PRs' head SHA, primary language), the code-search re-index and the dependency parse. An actor with no `Username` (a deploy key) records no activity and closes no issues.
+
+A commit made in the browser reaches the same method through `AfterWebCommit`, with one create or update command built from the `RefUpdate` the commit returned, so it fires everything a push of that commit would. Pull mirrors and the seeder keep their own variants (no actor, so no events). PR merges and wiki commits don't call it yet.
 
 ---
 

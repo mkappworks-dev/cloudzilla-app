@@ -223,6 +223,9 @@ templ AdminUser(data view.AdminUserData) {
 				<p class="text-sm text-muted-foreground">This is your account. Change it under <a href="/settings" class="underline">Account settings</a>.</p>
 			} else {
 				@adminUserActions(data)
+				if len(data.Detail.SoleOwnedOrgs) > 0 {
+					@adminUserOrgOwners(data)
+				}
 				@adminUserDelete(data)
 			}
 		</div>
@@ -298,6 +301,40 @@ templ adminUserActions(data view.AdminUserData) {
 					@adminActionForm(u.Username, "revoke-credentials", "Tokens and keys revoked") {
 						@adminActionButton(components.ButtonDestructive, "Revoke", "Revoke @"+u.Username+"'s tokens and keys?", "Every personal access token, SSH key and app authorization of @"+u.Username+" is deleted. This cannot be undone.", true)
 					}
+				}
+			</div>
+		}
+	}
+}
+
+templ adminUserOrgOwners(data view.AdminUserData) {
+	{{ u := data.Detail.User }}
+	@components.Card(nil) {
+		@components.CardHeader() {
+			<h2 class="text-base font-semibold tracking-tight">Add an organization owner</h2>
+			@components.CardDescription() {
+				{ "@" + u.Username } is the only owner of these organizations. Make another account an owner so they can be managed. You don't join the organization. Uses the confirmation above.
+			}
+		}
+		@components.CardContent() {
+			<div class="flex flex-col gap-4">
+				for i, org := range data.Detail.SoleOwnedOrgs {
+					<form hx-post={ adminOrgOwners(org) } hx-include="#admin-user-confirm" hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast("Owner added")}... } class="flex flex-wrap items-end justify-between gap-3">
+						<input type="hidden" name="from" value={ u.Username }/>
+						<div class="min-w-0">
+							<label for={ "org-owner-" + strconv.Itoa(i) } class="block text-[12px] font-medium text-muted-foreground mb-1.5">New owner of <span class="font-mono">{ org }</span></label>
+							@components.Input(templ.Attributes{
+								"id":           "org-owner-" + strconv.Itoa(i),
+								"type":         "text",
+								"name":         "username",
+								"required":     "required",
+								"autocomplete": "off",
+								"placeholder":  "Username",
+								"class":        "w-56",
+							})
+						</div>
+						@adminActionButton(components.ButtonOutline, "Add owner", "Add an owner to "+org+"?", "The account you name becomes a full owner of "+org+": members, settings, repositories and deletion.", true)
+					</form>
 				}
 			</div>
 		}

@@ -46,7 +46,7 @@ func TestCommitFile_RefusesPathCollisions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newCollisionTestRepo(t)
 			tip := branchTip(t, r.repo, "main")
-			err := r.svc.CommitFile(r.owner, r.name, "main", tt.path, []byte(tt.content), tipTestAuthor, "Add "+tt.path)
+			_, err := r.svc.CommitFile(r.owner, r.name, "main", tt.path, []byte(tt.content), tipTestAuthor, "Add "+tt.path)
 			if !errors.Is(err, ErrPathCollision) || err.Error() != tt.want {
 				t.Errorf("err = %v, want %q", err, tt.want)
 			}
@@ -69,7 +69,7 @@ func TestCommitFile_UpdatesFiles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newCollisionTestRepo(t)
-			if err := r.svc.CommitFile(r.owner, r.name, "main", tt.path, []byte(tt.content), tipTestAuthor, "Edit "+tt.path); err != nil {
+			if _, err := r.svc.CommitFile(r.owner, r.name, "main", tt.path, []byte(tt.content), tipTestAuthor, "Edit "+tt.path); err != nil {
 				t.Fatalf("CommitFile: %v", err)
 			}
 			r.expectEntries(t, "main", map[string]mergeFile{
@@ -89,7 +89,7 @@ func TestCommitFile_RefusesUnchangedFiles(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newCollisionTestRepo(t)
 			tip := branchTip(t, r.repo, "main")
-			err := r.svc.CommitFile(r.owner, r.name, "main", tt.path, []byte(tt.content), tipTestAuthor, "Edit "+tt.path)
+			_, err := r.svc.CommitFile(r.owner, r.name, "main", tt.path, []byte(tt.content), tipTestAuthor, "Edit "+tt.path)
 			if !errors.Is(err, ErrFileUnchanged) {
 				t.Errorf("err = %v, want file is unchanged", err)
 			}
@@ -121,7 +121,8 @@ func TestCommitFile_RefusesPathsOverTheCapUpFront(t *testing.T) {
 			content := []byte("refused\n")
 			done := make(chan error, 1)
 			go func() {
-				done <- r.svc.CommitFile(r.owner, r.name, "main", deepPath(n), content, tipTestAuthor, "Add a deep file")
+				_, err := r.svc.CommitFile(r.owner, r.name, "main", deepPath(n), content, tipTestAuthor, "Add a deep file")
+				done <- err
 			}()
 			select {
 			case err := <-done:
@@ -160,7 +161,7 @@ func TestCommitFile_RefusesInvalidPaths(t *testing.T) {
 	for _, p := range paths {
 		t.Run(p, func(t *testing.T) {
 			r := newTipTestRepo(t)
-			err := r.svc.CommitFile(r.owner, r.name, "main", p, []byte("hook\n"), tipTestAuthor, "Add "+p)
+			_, err := r.svc.CommitFile(r.owner, r.name, "main", p, []byte("hook\n"), tipTestAuthor, "Add "+p)
 			if !errors.Is(err, ErrInvalidFilePath) {
 				t.Errorf("err = %v, want ErrInvalidFilePath", err)
 			}
@@ -194,7 +195,7 @@ func TestEditFile_EditsInPlace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newCollisionTestRepo(t)
 			base := r.entryHash(t, "main", tt.path)
-			if err := r.svc.EditFile(r.owner, r.name, "main", tt.path, tt.path, base.String(), []byte(tt.content), tipTestAuthor, "Update "+tt.path); err != nil {
+			if _, err := r.svc.EditFile(r.owner, r.name, "main", tt.path, tt.path, base.String(), []byte(tt.content), tipTestAuthor, "Update "+tt.path); err != nil {
 				t.Fatalf("EditFile: %v", err)
 			}
 			r.expectEntries(t, "main", map[string]mergeFile{
@@ -221,7 +222,7 @@ func TestEditFile_Renames(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newCollisionTestRepo(t)
 			base := r.entryHash(t, "main", tt.from)
-			if err := r.svc.EditFile(r.owner, r.name, "main", tt.from, tt.to, base.String(), []byte(tt.content), tipTestAuthor, "Rename"); err != nil {
+			if _, err := r.svc.EditFile(r.owner, r.name, "main", tt.from, tt.to, base.String(), []byte(tt.content), tipTestAuthor, "Rename"); err != nil {
 				t.Fatalf("EditFile: %v", err)
 			}
 			r.expectEntries(t, "main", map[string]mergeFile{
@@ -244,7 +245,7 @@ func TestEditFile_RefusesARenameOntoAnExistingEntry(t *testing.T) {
 			r := newCollisionTestRepo(t)
 			tip := branchTip(t, r.repo, "main")
 			base := r.entryHash(t, "main", "src/main.go")
-			err := r.svc.EditFile(r.owner, r.name, "main", "src/main.go", to, base.String(), []byte("main\n"), tipTestAuthor, "Rename")
+			_, err := r.svc.EditFile(r.owner, r.name, "main", "src/main.go", to, base.String(), []byte("main\n"), tipTestAuthor, "Rename")
 			if !errors.Is(err, ErrPathCollision) {
 				t.Errorf("err = %v, want ErrPathCollision", err)
 			}
@@ -274,7 +275,7 @@ func TestEditFile_RefusesAStaleBase(t *testing.T) {
 				base := r.entryHash(t, "main", "a.txt")
 				tt.change(t, r)
 				tip := branchTip(t, r.repo, "main")
-				err := r.svc.EditFile(r.owner, r.name, "main", "a.txt", to, base.String(), []byte("mine\n"), tipTestAuthor, "Update")
+				_, err := r.svc.EditFile(r.owner, r.name, "main", "a.txt", to, base.String(), []byte("mine\n"), tipTestAuthor, "Update")
 				if !errors.Is(err, ErrFileChanged) {
 					t.Errorf("to %s: err = %v, want ErrFileChanged", to, err)
 				}
@@ -290,7 +291,7 @@ func TestEditFile_LandsOnATipThatChangedOtherFiles(t *testing.T) {
 	r := newCollisionTestRepo(t)
 	base := r.entryHash(t, "main", "a.txt")
 	r.commit(t, "main", "m.txt", "theirs\n")
-	if err := r.svc.EditFile(r.owner, r.name, "main", "a.txt", "a.txt", base.String(), []byte("mine\n"), tipTestAuthor, "Update"); err != nil {
+	if _, err := r.svc.EditFile(r.owner, r.name, "main", "a.txt", "a.txt", base.String(), []byte("mine\n"), tipTestAuthor, "Update"); err != nil {
 		t.Fatalf("EditFile: %v", err)
 	}
 	r.expectEntries(t, "main", map[string]mergeFile{
@@ -303,7 +304,7 @@ func TestEditFile_RefusesAnUnchangedFile(t *testing.T) {
 	r := newCollisionTestRepo(t)
 	tip := branchTip(t, r.repo, "main")
 	base := r.entryHash(t, "main", "run.sh")
-	err := r.svc.EditFile(r.owner, r.name, "main", "run.sh", "/run.sh", base.String(), []byte("echo\n"), tipTestAuthor, "Update")
+	_, err := r.svc.EditFile(r.owner, r.name, "main", "run.sh", "/run.sh", base.String(), []byte("echo\n"), tipTestAuthor, "Update")
 	if !errors.Is(err, ErrFileUnchanged) {
 		t.Errorf("err = %v, want ErrFileUnchanged", err)
 	}
@@ -316,7 +317,7 @@ func TestEditFile_LeavesAnUncleanPathItKeeps(t *testing.T) {
 	r := newCollisionTestRepo(t)
 	r.commitEntry(t, "main", `win\name.txt`, filemode.Regular, r.blob(t, "w\n"))
 	base := r.entryHash(t, "main", `win\name.txt`)
-	if err := r.svc.EditFile(r.owner, r.name, "main", `win\name.txt`, `win\name.txt`, base.String(), []byte("w2\n"), tipTestAuthor, "Update"); err != nil {
+	if _, err := r.svc.EditFile(r.owner, r.name, "main", `win\name.txt`, `win\name.txt`, base.String(), []byte("w2\n"), tipTestAuthor, "Update"); err != nil {
 		t.Fatalf("EditFile: %v", err)
 	}
 	r.expectEntries(t, "main", map[string]mergeFile{`win\name.txt`: {hash: r.blob(t, "w2\n"), mode: filemode.Regular}})
@@ -343,7 +344,7 @@ func TestEditFile_RefusesInvalidTargets(t *testing.T) {
 		t.Run(to, func(t *testing.T) {
 			r := newCollisionTestRepo(t)
 			base := r.entryHash(t, "main", "a.txt")
-			err := r.svc.EditFile(r.owner, r.name, "main", "a.txt", to, base.String(), []byte("a\n"), tipTestAuthor, "Rename")
+			_, err := r.svc.EditFile(r.owner, r.name, "main", "a.txt", to, base.String(), []byte("a\n"), tipTestAuthor, "Rename")
 			if !errors.Is(err, ErrInvalidFilePath) {
 				t.Errorf("err = %v, want ErrInvalidFilePath", err)
 			}
@@ -354,7 +355,7 @@ func TestEditFile_RefusesInvalidTargets(t *testing.T) {
 func TestEditFile_NeverCreatesABranch(t *testing.T) {
 	r := newCollisionTestRepo(t)
 	base := r.entryHash(t, "main", "a.txt")
-	err := r.svc.EditFile(r.owner, r.name, "gone", "a.txt", "a.txt", base.String(), []byte("new\n"), tipTestAuthor, "Update")
+	_, err := r.svc.EditFile(r.owner, r.name, "gone", "a.txt", "a.txt", base.String(), []byte("new\n"), tipTestAuthor, "Update")
 	if !errors.Is(err, ErrRefNotFound) {
 		t.Errorf("err = %v, want ErrRefNotFound", err)
 	}
@@ -375,7 +376,7 @@ func TestDeleteFile_RemovesEntriesAndPrunesFolders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newCollisionTestRepo(t)
 			base := r.entryHash(t, "main", tt.path)
-			dir, err := r.svc.DeleteFile(r.owner, r.name, "main", tt.path, base.String(), tipTestAuthor, "Delete "+tt.path)
+			dir, _, err := r.svc.DeleteFile(r.owner, r.name, "main", tt.path, base.String(), tipTestAuthor, "Delete "+tt.path)
 			if err != nil {
 				t.Fatalf("DeleteFile: %v", err)
 			}
@@ -402,7 +403,7 @@ func TestDeleteFile_DeletesTheLastFile(t *testing.T) {
 	r := newTipTestRepo(t)
 	for _, p := range []string{"a.txt", "m.txt"} {
 		base := r.entryHash(t, "main", p)
-		if _, err := r.svc.DeleteFile(r.owner, r.name, "main", p, base.String(), tipTestAuthor, "Delete "+p); err != nil {
+		if _, _, err := r.svc.DeleteFile(r.owner, r.name, "main", p, base.String(), tipTestAuthor, "Delete "+p); err != nil {
 			t.Fatalf("delete %s: %v", p, err)
 		}
 	}
@@ -428,7 +429,7 @@ func TestDeleteFile_Refuses(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newCollisionTestRepo(t)
 			tip := branchTip(t, r.repo, "main")
-			_, err := r.svc.DeleteFile(r.owner, r.name, tt.branch, tt.path, tt.base(r), tipTestAuthor, "Delete")
+			_, _, err := r.svc.DeleteFile(r.owner, r.name, tt.branch, tt.path, tt.base(r), tipTestAuthor, "Delete")
 			if !errors.Is(err, tt.want) {
 				t.Errorf("err = %v, want %v", err, tt.want)
 			}

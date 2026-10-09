@@ -46,7 +46,7 @@ func seedEditRepo(t *testing.T) editRepo {
 		"big.txt":       strings.Repeat("a", editCap+1),
 		"crlf.txt":      "one\r\ntwo\r\n",
 	} {
-		if err := code.CommitFile(r.owner.name, r.name, "main", path, []byte(content), raceAuthor, "Add "+path); err != nil {
+		if _, err := code.CommitFile(r.owner.name, r.name, "main", path, []byte(content), raceAuthor, "Add "+path); err != nil {
 			t.Fatalf("commit %s: %v", path, err)
 		}
 	}
@@ -200,7 +200,7 @@ func TestEditFile_PageShowsTheFile(t *testing.T) {
 
 func (r editRepo) commitMain(t *testing.T, path, content string) {
 	t.Helper()
-	if err := r.code.CommitFile(r.owner.name, r.name, "main", path, []byte(content), raceAuthor, "Add "+path); err != nil {
+	if _, err := r.code.CommitFile(r.owner.name, r.name, "main", path, []byte(content), raceAuthor, "Add "+path); err != nil {
 		t.Fatalf("commit %s: %v", path, err)
 	}
 }
@@ -649,5 +649,69 @@ func TestDeleteFile_RefusesFoldersAndStaleSHAs(t *testing.T) {
 	}
 	if got := branchHash(t, r.git, "main"); got != tip {
 		t.Errorf("main = %s, want it left at %s", got, tip)
+	}
+}
+
+func (r editRepo) pushEvents(t *testing.T) int {
+	t.Helper()
+	var n int
+	if err := r.db.QueryRow(`SELECT count(*) FROM events WHERE repo_name = $1 AND event_type = 'push'`, r.name).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+func (r editRepo) waitForPushEvents(t *testing.T, want int) {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); r.pushEvents(t) != want; {
+		if time.Now().After(deadline) {
+			t.Fatalf("push events = %d, want %d", r.pushEvents(t), want)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestWebCommits_RunPushSideEffects(t *testing.T) {
+	tests := []struct {
+		name string
+		do   func(t *testing.T, r editRepo) *httptest.ResponseRecorder
+	}{
+		{"new file", func(t *testing.T, r editRepo) *httptest.ResponseRecorder {
+			return send(t, r.api, http.MethodPost, r.owner.token, r.path+"/new/main", url.Values{"path": {"fresh.txt"}, "content": {"x\n"}}, false)
+		}},
+		{"edit", func(t *testing.T, r editRepo) *httptest.ResponseRecorder {
+			return send(t, r.api, http.MethodPost, r.owner.token, r.path+"/edit/main/a.txt",
+				url.Values{"blob_sha": {r.blobSHA(t, "a.txt")}, "path": {"a.txt"}, "content": {"changed\n"}}, false)
+		}},
+		{"delete", func(t *testing.T, r editRepo) *httptest.ResponseRecorder {
+			return send(t, r.api, http.MethodPost, r.owner.token, r.path+"/delete/main/a.txt",
+				url.Values{"blob_sha": {r.blobSHA(t, "a.txt")}}, true)
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := seedEditRepo(t)
+			r.commitMain(t, "a.txt", "a\n")
+			if rr := tt.do(t, r); rr.Code >= 400 {
+				t.Fatalf("want success, got %d: %.300s", rr.Code, rr.Body.String())
+			}
+			r.waitForPushEvents(t, 1)
+		})
+	}
+}
+
+func TestWebCommits_RefusedEditRunsNoSideEffects(t *testing.T) {
+	r := seedEditRepo(t)
+	r.commitMain(t, "a.txt", "a\n")
+	stale := r.blobSHA(t, "a.txt")
+	r.commitMain(t, "a.txt", "moved on\n")
+	rr := send(t, r.api, http.MethodPost, r.owner.token, r.path+"/edit/main/a.txt",
+		url.Values{"blob_sha": {stale}, "path": {"a.txt"}, "content": {"mine\n"}}, false)
+	if rr.Code != http.StatusConflict {
+		t.Fatalf("want 409, got %d", rr.Code)
+	}
+	time.Sleep(200 * time.Millisecond)
+	if n := r.pushEvents(t); n != 0 {
+		t.Errorf("a refused edit recorded %d push events, want 0", n)
 	}
 }

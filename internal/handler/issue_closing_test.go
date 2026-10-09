@@ -35,7 +35,7 @@ func seedClosingRepo(t *testing.T, db *sql.DB, reposRoot, commitMsg string) clos
 	if commitMsg == "" {
 		commitMsg = "Add c.txt"
 	}
-	if err := code.CommitFile(r.owner.name, r.name, "topic", "c.txt", []byte("c\n"), raceAuthor, commitMsg); err != nil {
+	if _, err := code.CommitFile(r.owner.name, r.name, "topic", "c.txt", []byte("c\n"), raceAuthor, commitMsg); err != nil {
 		t.Fatalf("commit on topic: %v", err)
 	}
 	r.topicTip = branchHash(t, r.git, "topic")

@@ -459,6 +459,13 @@ templ RepoSettings(data view.RepoSettingsData) {
 										<input type="checkbox" name="block_force_push" value="true" checked class="rounded-sm border-input accent-foreground"/>
 										Block force pushes
 									</label>
+									<label class="flex items-start gap-2 text-sm text-foreground cursor-pointer">
+										<input type="checkbox" name="require_pull_request" value="true" class="mt-0.5 rounded-sm border-input accent-foreground"/>
+										<span>
+											Require a pull request
+											<span class="block text-xs text-muted-foreground">Refuses pushes, branch deletes and edits made in the browser; changes land only by merging a pull request.</span>
+										</span>
+									</label>
 								</form>
 							}
 							@components.DialogFooter() {

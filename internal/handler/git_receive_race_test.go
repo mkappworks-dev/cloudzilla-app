@@ -38,7 +38,7 @@ var (
 func webCommit(t *testing.T, reposRoot string, r raceRepo, branch string) plumbing.Hash {
 	t.Helper()
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
-	if err := code.CommitFile(r.owner.name, r.name, branch, "web.txt", []byte("web\n"), raceAuthor, "Edit on the web"); err != nil {
+	if _, err := code.CommitFile(r.owner.name, r.name, branch, "web.txt", []byte("web\n"), raceAuthor, "Edit on the web"); err != nil {
 		t.Fatalf("web commit on %s: %v", branch, err)
 	}
 	return branchHash(t, r.git, branch)

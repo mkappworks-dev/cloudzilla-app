@@ -51,6 +51,7 @@ type BranchProtection struct {
 	RequireReviewCount  int         `db:"require_review_count"  json:"require_review_count"`
 	RequireStatusChecks StringSlice `db:"require_status_checks" json:"require_status_checks"`
 	BlockForcePush      bool        `db:"block_force_push"      json:"block_force_push"`
+	RequirePullRequest  bool        `db:"require_pull_request"  json:"require_pull_request"`
 	CreatedAt           time.Time   `db:"created_at"            json:"created_at"`
 	UpdatedAt           time.Time   `db:"updated_at"            json:"updated_at"`
 }

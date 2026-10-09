@@ -53,13 +53,13 @@ func TestLineComment_EachSideOfALineGetsItsOwnRow(t *testing.T) {
 		t.Fatalf("Repo.Create: %v", err)
 	}
 	author := service.GitAuthor{Name: owner, Email: owner + "@test.invalid"}
-	if err := svc.Code.CommitFile(owner, repoName, "main", "f.txt", []byte("a\nold\nc\n"), author, "base"); err != nil {
+	if _, err := svc.Code.CommitFile(owner, repoName, "main", "f.txt", []byte("a\nold\nc\n"), author, "base"); err != nil {
 		t.Fatalf("CommitFile main: %v", err)
 	}
 	if err := svc.Code.CreateBranch(owner, repoName, "feature", "main"); err != nil {
 		t.Fatalf("CreateBranch: %v", err)
 	}
-	if err := svc.Code.CommitFile(owner, repoName, "feature", "f.txt", []byte("a\nnew\nc\n"), author, "head"); err != nil {
+	if _, err := svc.Code.CommitFile(owner, repoName, "feature", "f.txt", []byte("a\nnew\nc\n"), author, "head"); err != nil {
 		t.Fatalf("CommitFile feature: %v", err)
 	}
 	seedOpenPull(t, db, repo.ID, ownerID, 1)

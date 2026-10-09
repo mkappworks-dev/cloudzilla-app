@@ -25,7 +25,7 @@ A live org repo's name is unique within the org (`idx_repos_org_name_live`). A s
 
 ## Account deletion
 
-Deleting an account never deletes or detaches org repos, live or soft-deleted; the org keeps them and their directories, their `created_by` becomes `NULL`, and a `deleted_by` naming the user passes to the ghost user, as everything the user wrote in them does. The account's personal repos are deleted as described in [access-control](./access-control.md#account-deletion). Deletion is refused with `ErrSoleOrgOwner` (settings error `sole_org_owner`) while the user is the only owner of an organization; they add another owner or delete the org first. Being a plain member never blocks it.
+Deleting an account never deletes or detaches org repos, live or soft-deleted; the org keeps them and their directories, their `created_by` becomes `NULL`, and a `deleted_by` naming the user passes to the ghost user, as everything the user wrote in them does. The account's personal repos are deleted as described in [access-control](./access-control.md#account-deletion). Deletion is refused with `ErrSoleOrgOwner` (settings error `sole_org_owner`) while the user is the only owner of an organization; they add another owner or delete the org first, or a superadmin [adds an owner](./access-control.md#adding-an-organization-owner). Being a plain member never blocks it.
 
 ## Pages
 
@@ -89,6 +89,7 @@ Profile edits, repository-default changes, and deletes write audit entries (`org
 | POST   | `/api/orgs/{org}/transfer`                | Required | Transfer org ownership (`new_owner`, optional `confirm_name` form fields); owner only; demotes self to member |
 | POST   | `/api/orgs/{org}/profile`                 | Required | Update profile fields (form post); owner only                                                                 |
 | POST   | `/api/orgs/{org}/repo-defaults`           | Required | Update repository defaults (form post); owner only                                                            |
+| POST   | `/api/admin/orgs/{org}/owners`            | Superadmin | Make a user an owner without being one (`username`); needs the admin's confirmation; see [access-control](./access-control.md#adding-an-organization-owner) |
 | POST   | `/api/orgs/{org}/delete`                  | Required | Delete the org (`confirm_name` form field); owner only; refused while the org owns repositories               |
 
 HTMX requests to add, remove, or change the role of a member respond with the `OrgMembers` fragment, which the settings page swaps into `#org-members-list`. See [api-reference.md](api-reference.md#organizations) for redirects and field validation.
@@ -108,6 +109,7 @@ HTMX requests to add, remove, or change the role of a member respond with the `O
 - `IsMember(ctx, orgID, userID)` → `bool`
 - `AddMember(ctx, orgID, requestingUserID, targetUserID, role)` → `error` — owner-only
 - `UpdateMemberRole(ctx, orgID, requestingUserID, targetUserID, role)` → `error` — owner-only; blocks demoting the last owner, checked under the org row lock
+- `AdminAddOwner(ctx, orgName, username)` → `(*Organization, *User, error)` — no owner check; the caller is a confirmed superadmin. Promotes or adds the user as owner; `ErrUserSuspended` for a suspended user, `sql.ErrNoRows` for an unknown org or user
 - `RemoveMember(ctx, orgID, requestingUserID, targetUserID)` → `error` — owner-only unless removing self; blocks removing last owner, checked under the org row lock
 - `CreateRepo(ctx, orgID, requestingUserID, name, description, private, init)` → `(*Repository, error)` — owner-only; sets `owner_name` to org name, `org_id` to org ID, `created_by` to the requester (`owner_id` stays `NULL`), and the default branch to the org's `default_branch_name`; `init` seeds README/.gitignore/LICENSE; returns `ErrRepoNameTaken` when the org already has a live repo with that name or a directory for it is left on disk, and `ErrRepoNameReserved` for a name ending in `.wiki`
 - `ListRepos(ctx, orgID)` → `([]Repository, error)`

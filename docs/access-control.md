@@ -70,7 +70,7 @@ A session is a bearer credential, so anything that adds a way in that outlives i
 - making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting an owner need nothing, since members get no repository until they're added to it. The owner check runs first, so a non-owner's request doesn't spend an attempt;
 - making a private repository public (making one private needs nothing);
 - deleting a repository, an organization or the account;
-- superadmin changes: site settings, invitations, manual email verification, the LDAP and SAML configuration, including turning a provider on or off, and every [account action](#managing-accounts).
+- superadmin changes: site settings, invitations, manual email verification, the LDAP and SAML configuration, including turning a provider on or off, every [account action](#managing-accounts) and [adding an organization owner](#adding-an-organization-owner).
 
 Editing a webhook's events needs nothing: it can't point the webhook somewhere new.
 
@@ -451,9 +451,15 @@ Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin'
 | `reset-2fa` | Clears the TOTP secret, flag and backup codes; mails a security notice. Sessions stay signed in. `cloudzilla-cli reset-2fa` does the same for any account, including the operator's own (see [Two-factor authentication](#two-factor-authentication)) | — | `admin.user.2fa_reset` |
 | `revoke-credentials` | Deletes the account's PATs, SSH keys and OAuth app authorizations and bumps `session_version`; mails a security notice. Deploy keys and OAuth apps it owns stay | — | `admin.user.credentials_revoke` (counts) |
 | `password-reset-link` | `PasswordResetService.IssueLink` with `issued_by = admin`: a 24-hour [reset link](#resetting-a-forgotten-password) that replaces any outstanding one. The response is the link, shown once (htmx swaps it into the page; otherwise JSON `{link, expires_at}`), with `Cache-Control: no-store`. Mails a security notice without the link. The audit entry is written before the response, and a failed write shows no link | The account is suspended (`ErrUserSuspended`) or has no password (`ErrPasswordResetNoPassword`), both 409 | `user.password.reset_link` (`issued_by`), the same action the CLI writes |
-| `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion) | The account solely owns an organization; it would leave no active superadmin | `admin.user.delete` (email) |
+| `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion) | The account solely owns an organization (an admin can [add another owner](#adding-an-organization-owner)); it would leave no active superadmin | `admin.user.delete` (email) |
 
 An **active superadmin** is `is_superadmin AND suspended_at IS NULL`, excluding the ghost. Refusing the admin's own account keeps one admin alone from removing the last one; for concurrent actions, suspend, demote and account deletion each lock every active superadmin row (`SELECT … FOR NO KEY UPDATE`, ordered by id, before any other row lock) and re-count in the same transaction (`keepActiveSuperadmin`), so of two admins removing each other, the second fails with `ErrLastSuperadmin`.
+
+### Adding an organization owner
+
+Org permission checks look only at `org_members`, so a superadmin has no override over an organization. When an org's only owner is suspended, nobody can manage it, and an admin can't delete that owner (`ErrSoleOrgOwner`). The admin user page lists such orgs under "Sole owner of", each with a field for a new owner's username (`POST /api/admin/orgs/{org}/owners`: `username`, optional `from`, the user page to return to). It needs the admin's [confirmation](#confirming-sensitive-actions) and writes `admin.org.owner_add` (target the org, `username` in the metadata).
+
+`OrgService.AdminAddOwner` promotes a member or adds a non-member as owner; for an existing owner it changes nothing. The ghost is a 404 and a suspended account `ErrUserSuspended` (409), since a suspended owner couldn't manage anything. The superadmin doesn't become a member unless they name themselves. It can't remove or demote an owner: the new owner does that, or the admin deletes the account once the org has another owner.
 
 ## Suspended accounts
 
@@ -493,6 +499,7 @@ Nothing changes for other users: the profile, repositories, issues and comments 
 | POST     | `/api/admin/users/verify-email`     | authMW + superadminMW | Superadmin only | AdminVerifyEmail                |
 | POST     | `/api/admin/users/{username}/suspend`, `/unsuspend`, `/promote`, `/demote`, `/reset-2fa`, `/revoke-credentials`, `/password-reset-link` | authMW + superadminMW | Superadmin only, not on their own account | AdminSuspendUser, AdminUnsuspendUser, AdminPromoteUser, AdminDemoteUser, AdminResetUserTOTP, AdminRevokeUserCredentials, AdminIssuePasswordResetLink |
 | POST     | `/api/admin/users/{username}/delete` | authMW + superadminMW | Superadmin only, not on their own account | AdminDeleteUser |
+| POST     | `/api/admin/orgs/{org}/owners` | authMW + superadminMW | Superadmin only, with confirmation | AdminAddOrgOwner |
 | POST     | `/api/admin/sso/{provider}/enabled` | authMW + superadminMW | Superadmin only | SetSSOEnabled                   |
 
 ### Authentication Endpoints (No Auth Required)
@@ -708,7 +715,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
 | Web commit paths   | No `.git` component (any case, NTFS or HFS+ alias); at most 4096 bytes           |
 | SSRF protection    | Webhooks and imports dial only vetted public addresses; webhooks follow no redirects |
-| Branch protection  | A push that violates a rule is refused per ref, before the ref is written        |
+| Branch protection  | A push that violates a rule is refused per ref, before the ref is written; `require_pull_request` also refuses browser commits and branch deletes, admins included |
 | Password storage   | bcrypt hashed                                                                    |
 | TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                        |
 | PAT                | `crypto/rand` generated, SHA-256-hashed for storage, limited to its scopes       |

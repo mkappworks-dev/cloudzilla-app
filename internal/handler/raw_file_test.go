@@ -18,7 +18,7 @@ import (
 func commitOnMain(t *testing.T, reposRoot string, r raceRepo, path string, content []byte) {
 	t.Helper()
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
-	if err := code.CommitFile(r.owner.name, r.name, "main", path, content, raceAuthor, "Add "+path); err != nil {
+	if _, err := code.CommitFile(r.owner.name, r.name, "main", path, content, raceAuthor, "Add "+path); err != nil {
 		t.Fatalf("commit %s: %v", path, err)
 	}
 }

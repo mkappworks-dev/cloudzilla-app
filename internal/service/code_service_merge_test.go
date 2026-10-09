@@ -111,7 +111,7 @@ func newPullRepo(t *testing.T) *pullRepo {
 
 func (r *pullRepo) commit(t *testing.T, branch, path, content string) {
 	t.Helper()
-	if err := r.svc.CommitFile("alice", "pulls", branch, path, []byte(content), tipTestAuthor, "Add "+path); err != nil {
+	if _, err := r.svc.CommitFile("alice", "pulls", branch, path, []byte(content), tipTestAuthor, "Add "+path); err != nil {
 		t.Fatalf("commit %s on %s: %v", path, branch, err)
 	}
 }

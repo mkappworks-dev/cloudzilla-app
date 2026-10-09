@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -18,7 +19,14 @@ var (
 	ErrProtectionCheckFailed = errors.New("internal error checking branch protection")
 	ErrInsufficientReviews   = errors.New("insufficient reviews for merge")
 	ErrStatusCheckFailed     = errors.New("required status checks have not passed")
+	ErrPushRequiresPR        = errors.New("pull request required by branch protection")
 )
+
+// errPullRequestRequired names the rule so the pusher can tell which one
+// refused them.
+func errPullRequestRequired(rule *model.BranchProtection) error {
+	return fmt.Errorf("%w: rule %q", ErrPushRequiresPR, rule.Pattern)
+}
 
 // BranchProtectionService manages branch protection rules and enforces them on push.
 type BranchProtectionService struct {
@@ -48,7 +56,7 @@ func (s *BranchProtectionService) List(ctx context.Context, repoID int64) ([]*mo
 	return s.protections.ListByRepo(ctx, repoID)
 }
 
-func (s *BranchProtectionService) Update(ctx context.Context, id, repoID int64, requireReviewCount int, requireStatusChecks model.StringSlice, blockForcePush bool) error {
+func (s *BranchProtectionService) Update(ctx context.Context, id, repoID int64, requireReviewCount int, requireStatusChecks model.StringSlice, blockForcePush, requirePullRequest bool) error {
 	// Verify the rule belongs to this repo before updating.
 	bp, err := s.protections.GetByID(ctx, id)
 	if err != nil {
@@ -57,7 +65,7 @@ func (s *BranchProtectionService) Update(ctx context.Context, id, repoID int64, 
 	if bp.RepoID != repoID {
 		return errors.New("branch protection rule not found")
 	}
-	return s.protections.Update(ctx, id, requireReviewCount, requireStatusChecks, blockForcePush)
+	return s.protections.Update(ctx, id, requireReviewCount, requireStatusChecks, blockForcePush, requirePullRequest)
 }
 
 func (s *BranchProtectionService) Delete(ctx context.Context, id, repoID int64) error {
@@ -77,8 +85,25 @@ func (s *BranchProtectionService) checkPush(ctx context.Context, repoID int64, b
 	if err != nil || rule == nil {
 		return err
 	}
+	if rule.RequirePullRequest {
+		return errPullRequestRequired(rule)
+	}
 	if rule.BlockForcePush && isForcePush() {
 		return ErrForcePushBlocked
+	}
+	return nil
+}
+
+// CheckWebCommit refuses a commit made from the browser to a branch whose
+// rule requires a pull request. Such a commit is always a fast-forward, so
+// block_force_push has nothing to say about it.
+func (s *BranchProtectionService) CheckWebCommit(ctx context.Context, repoID int64, branchName string) error {
+	rule, err := s.protections.MatchForBranch(ctx, repoID, branchName)
+	if err != nil || rule == nil {
+		return err
+	}
+	if rule.RequirePullRequest {
+		return errPullRequestRequired(rule)
 	}
 	return nil
 }
@@ -91,15 +116,15 @@ func (s *BranchProtectionService) CheckDelete(ctx context.Context, repoID int64,
 
 // CheckPushCommand is CheckPush for one receive-pack command. gitRepo must
 // already hold the pushed commits. go-git reports the error's text to the
-// pusher, so any error but ErrForcePushBlocked is logged and returned as
-// ErrProtectionCheckFailed.
+// pusher, so any error but ErrForcePushBlocked and ErrPushRequiresPR is logged
+// and returned as ErrProtectionCheckFailed.
 func (s *BranchProtectionService) CheckPushCommand(ctx context.Context, repoID int64, gitRepo *gogit.Repository, cmd *packp.Command) error {
 	branch, ok := strings.CutPrefix(cmd.Name.String(), "refs/heads/")
 	if !ok {
 		return nil
 	}
 	err := s.checkPush(ctx, repoID, branch, func() bool { return !isFastForward(gitRepo, cmd) })
-	if err != nil && !errors.Is(err, ErrForcePushBlocked) {
+	if err != nil && !errors.Is(err, ErrForcePushBlocked) && !errors.Is(err, ErrPushRequiresPR) {
 		slog.Error("BranchProtectionService.CheckPushCommand: rule lookup failed", "repo_id", repoID, "ref", cmd.Name.String(), "error", err)
 		return ErrProtectionCheckFailed
 	}
