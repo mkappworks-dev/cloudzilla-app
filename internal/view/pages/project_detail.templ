@@ -422,7 +422,7 @@ templ cardDialog(data view.ProjectDetailData) {
 	<dialog
 		id="card-dialog"
 		x-ref="cardDialog"
-		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs"
+		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 m-auto w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs"
 		aria-labelledby="card-dialog-title"
 		@close="onDialogClosed()"
 		if data.CanWrite {

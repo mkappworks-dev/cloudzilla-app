@@ -115,7 +115,6 @@ func TestProjectDetail_CardDialogWriteControls(t *testing.T) {
 	dlg := cardDialog(t, out)
 	for _, want := range []string{
 		`aria-labelledby="card-dialog-title"`, `id="card-dialog-title"`, `x-text="heading"`,
-		`w-[640px]`, `overflow-y-auto`,
 		`@submit.prevent="submit()"`,
 		`<label for="card-title-input"`, `id="card-title-input"`,
 		`id="card-desc-label"`, `x-model="editor.description"`, `Write</button>`, `Preview</button>`,
@@ -139,9 +138,24 @@ func TestProjectDetail_CardDialogWriteControls(t *testing.T) {
 			t.Errorf("writer board missing %q", want)
 		}
 	}
-	for _, gone := range []string{"<aside", "data-card-panel", "cardComposer", `id="composer-`, "card-panel-", "savePanel", "closePanel"} {
-		if strings.Contains(out, gone) {
-			t.Errorf("writer board still renders the side panel or composer (%q)", gone)
+	if strings.Contains(out, "data-card-panel") {
+		t.Error("writer board still renders the side panel")
+	}
+
+	// The fields scroll in the body and the submit button sits in the footer after them.
+	title, due, submit := strings.Index(dlg, `id="card-title-input"`), strings.Index(dlg, `id="card-due-input"`), strings.Index(dlg, `type="submit"`)
+	if title < 0 || title >= due || due >= submit {
+		t.Errorf("card dialog order = title %d, due date %d, submit %d; want fields before the footer submit", title, due, submit)
+	}
+}
+
+// The dialog is a child of the board's space-y-6 container, whose margin-block-end would
+// otherwise override the browser's auto margins and pin the dialog to the top of the viewport.
+func TestProjectDetail_CardDialogIsCentred(t *testing.T) {
+	for _, canWrite := range []bool{true, false} {
+		open := regexp.MustCompile(`<dialog id="card-dialog"[^>]*>`).FindString(renderBoard(t, boardData(canWrite)))
+		if !regexp.MustCompile(`class="[^"]*\bm-auto\b`).MatchString(open) {
+			t.Errorf("canWrite=%v: card dialog has no m-auto to beat the space-y margins: %s", canWrite, open)
 		}
 	}
 }
@@ -178,7 +192,7 @@ func TestProjectDetail_AddColumnDialog(t *testing.T) {
 func TestProjectDetail_ReadOnlyCardDialog(t *testing.T) {
 	out := renderBoard(t, boardData(false))
 	for _, gone := range []string{
-		"convertCard", "deleteCard", "linkPicker", "cardComposer", "data-add-card", "+ Add item",
+		"convertCard", "deleteCard", "linkPicker", "data-add-card", "+ Add item",
 		"data-card-people", "data-card-labels", "Remove from board", `draggable="true"`,
 	} {
 		if strings.Contains(out, gone) {
@@ -189,7 +203,7 @@ func TestProjectDetail_ReadOnlyCardDialog(t *testing.T) {
 	for _, gone := range []string{
 		`type="submit"`, "Create card", `x-model="editor.description"`, "Write</button>",
 		"data-card-confirm", "Create an issue from this card?", "Delete this card?", "cancelConfirm",
-		"Remove link", "Choose due date", "Today</button>", "Clear</button>", `type="date"`,
+		"Remove link", "Choose due date", "Today</button>", "Clear</button>",
 	} {
 		if strings.Contains(dlg, gone) {
 			t.Errorf("read-only card dialog renders %q", gone)
