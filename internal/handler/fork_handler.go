@@ -58,6 +58,9 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		DefaultBranchOnly: req.DefaultBranchOnly,
 	})
 	switch {
+	case errors.Is(err, service.ErrQuotaReached):
+		writeError(w, http.StatusForbidden, err.Error())
+		return
 	case errors.Is(err, service.ErrForbidden):
 		writeError(w, http.StatusForbidden, "you can fork only into your account or an organization you own")
 		return

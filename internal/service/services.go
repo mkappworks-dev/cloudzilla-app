@@ -64,15 +64,19 @@ type Services struct {
 	IssueCloser      *IssueCloser
 	Health           *HealthService
 	Avatar           *AvatarService
+	Attachment       *AttachmentService
 	Mirror           *MirrorService
+	Quota            *QuotaService
+	Push             *PushService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
 }
 
-// WithStorage gives the avatar service its object store. Until it is called,
-// avatar uploads fail with ErrStorageUnconfigured.
+// WithStorage gives the avatar and attachment services their object store.
+// Until it is called, uploads fail with ErrStorageUnconfigured.
 func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Avatar.WithBackend(b)
+	s.Attachment.WithBackend(b)
 	return s
 }
 
@@ -89,10 +93,11 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
+	quotaSvc := NewQuotaService(stores.Repo, stores.User, cfg.Quota, cfg.Git.ReposRoot)
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).
-		WithTransferStore(stores.RepoTransfer).WithNoreplyHostFrom(cfg.Server.BaseURL)
+		WithTransferStore(stores.RepoTransfer).WithNoreplyHostFrom(cfg.Server.BaseURL).WithQuota(quotaSvc)
 	mirrorSvc := NewMirrorService(stores.Mirror, stores.Repo, repoSvc, webhookSvc, index, depSvc, secrets, cfg.Git, cfg.Mirror)
-	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc)
+	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc).WithQuota(quotaSvc)
 	languageSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(languageSvc)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
@@ -108,6 +113,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	avatarSvc := NewAvatarService(stores.User, stores.Org, stores.Avatar, orgSvc)
+	attachmentSvc := NewAttachmentService(stores.Attachment)
+	repoSvc.WithAttachments(attachmentSvc)
 	userSvc.WithAvatars(avatarSvc)
 	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
@@ -115,6 +122,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
+	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
 	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
 	return &Services{
 		User:             userSvc,
@@ -169,10 +177,13 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
-		IssueCloser:      NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc),
+		IssueCloser:      issueCloser,
 		Health:           NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:           avatarSvc,
+		Attachment:       attachmentSvc,
 		Mirror:           mirrorSvc,
+		Quota:            quotaSvc,
+		Push:             NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
 		Secrets:          secrets,
 	}
 }

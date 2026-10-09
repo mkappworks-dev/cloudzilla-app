@@ -47,6 +47,10 @@ func adminUserAction(username, action string) string {
 	return "/api/admin/users/" + url.PathEscape(username) + "/" + action
 }
 
+func adminOrgOwners(org string) string {
+	return "/api/admin/orgs/" + url.PathEscape(org) + "/owners"
+}
+
 // adminSuspendMessage warns about the orgs the user is the only owner of,
 // which nobody can administer while the account is suspended.
 func adminSuspendMessage(username string, soleOwnedOrgs []string) string {

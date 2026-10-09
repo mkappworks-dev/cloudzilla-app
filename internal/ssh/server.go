@@ -252,7 +252,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	vet := func(cmd *packp.Command) error {
 		return s.services.BranchProtection.CheckPushCommand(ctx, repo.ID, gitRepo, cmd)
 	}
-	commands, err := s.execGitService(session, gitCmd, gitRepo, vet, owner, repoName, pusherName)
+	commands, err := s.execGitService(session, gitCmd, repo, gitRepo, vet, owner, repoName, pusherName)
 	if err != nil {
 		exitWithError(session, "error: %v\n", err)
 		return
@@ -260,50 +260,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 	// Dispatch push webhooks for each updated branch.
 	if gitCmd == "git-receive-pack" {
-		for _, cmd := range commands {
-			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
-				continue
-			}
-			if cmd.Action() == packp.Delete {
-				continue
-			}
-			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
-			payload := s.services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
-			repoID := repo.ID
-			concurrency.Go("webhook.dispatch.push", func() {
-				s.services.Webhook.Dispatch(repoID, "push", payload)
-			})
-		}
-
-		// Record push activity-feed events (one per updated branch).
-		// Deploy-key pushes have no human actor, so they are skipped.
-		if dkVal == nil {
-			repoID := repo.ID
-			repoName, ownerName := repo.Name, repo.OwnerName
-			concurrency.Go("event.record.push", func() {
-				for _, ps := range s.services.Repo.PushSummaries(gitRepo, commands) {
-					s.services.Event.RecordPush(context.Background(), pusherID, pusherName, &repoID, repoName, ownerName, ps)
-				}
-			})
-		}
-
-		if dkVal == nil {
-			actor := service.CloseActor{UserID: pusherID, Username: pusherName}
-			concurrency.Go("issue_closer.close_for_push", func() {
-				bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-				defer cancel()
-				s.services.IssueCloser.CloseForPush(bg, actor, repo, gitRepo, commands)
-			})
-		}
-
-		concurrency.Go("repo.on_post_receive", func() {
-			bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-			defer cancel()
-			if err := s.services.Repo.OnPostReceive(bg, repo, gitRepo, commands); err != nil {
-				slog.Error("post-receive: commit stats ingest failed",
-					"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name, "error", err)
-			}
-		})
+		s.services.Push.AfterPush(repo, gitRepo, service.CloseActor{UserID: pusherID, Username: pusherName}, commands)
 	}
 
 	_ = session.Exit(0)
@@ -338,7 +295,7 @@ func isFlushOnly(r *bufio.Reader) bool {
 
 // execGitService runs the git pack protocol over the SSH session and returns
 // the commands go-git applied (non-nil only for git-receive-pack).
-func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, vet func(*packp.Command) error, ownerName, repoName, pusherName string) (applied []*packp.Command, err error) {
+func (s *Server) execGitService(session ssh.Session, svc string, repo *model.Repository, gitRepo *gogit.Repository, vet func(*packp.Command) error, ownerName, repoName, pusherName string) (applied []*packp.Command, err error) {
 	var transferred func() int64
 	defer func() {
 		var n int64
@@ -418,22 +375,33 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 		// Nothing reading the request may close the session: go-git closes
 		// the packfile reader after ingestion, and sessionHandler still
 		// writes the status and the exit code.
-		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(session), s.cfg.MaxPackBytes)
+		// The limiter sits over the buffer, not under it: a buffer that read
+		// ahead would count pack bytes before the quota cap is set.
+		in := bufio.NewReader(session)
+		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(in), s.cfg.MaxPackBytes)
 		counter := gittransport.NewByteCounter(limiter)
 		transferred = counter.Bytes
-		in := bufio.NewReader(counter)
 		if isFlushOnly(in) {
 			return nil, nil
 		}
 
 		req := packp.NewReferenceUpdateRequest()
-		if err := req.Decode(in); err != nil {
+		if err := req.Decode(counter); err != nil {
 			return nil, fmt.Errorf("decode receive-pack request: %w", err)
+		}
+
+		quotaRefusal, err := s.services.Quota.CapPush(session.Context(), repo, req.Commands, limiter)
+		if err != nil {
+			return nil, fmt.Errorf("check storage quota: %w", err)
 		}
 
 		start := time.Now()
 		status, err := sess.ReceivePack(session.Context(), req)
 		if err != nil {
+			if limiter.Exceeded() && quotaRefusal != nil {
+				slog.Warn("ssh: receive-pack rejected: storage quota", "owner", ownerName, "repo", repoName, "quota", quotaRefusal.Limit)
+				return nil, quotaRefusal
+			}
 			if limiter.Exceeded() {
 				return nil, fmt.Errorf("pack exceeds maximum allowed size (%d bytes)", s.cfg.MaxPackBytes)
 			}

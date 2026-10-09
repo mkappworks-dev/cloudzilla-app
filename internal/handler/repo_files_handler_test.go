@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -401,5 +402,38 @@ func TestSubmitNewFile_AsksForAFileNameAfterATrailingSlash(t *testing.T) {
 				t.Errorf("main = %s, want it left at %s", got, tip)
 			}
 		})
+	}
+}
+
+func TestUpdateProfileReadme_RunsPushSideEffects(t *testing.T) {
+	router, db, reposRoot := newEmailPrivacyRouter(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	owner := "testuser_" + suffix
+	if _, err := db.Exec(
+		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch)
+		 VALUES ($1, $2, $2, '', false, 'main')`, userID, owner); err != nil {
+		t.Fatalf("seed profile repo: %v", err)
+	}
+	if _, err := gogit.PlainInit(filepath.Join(reposRoot, owner, owner+".git"), true); err != nil {
+		t.Fatalf("init bare repo: %v", err)
+	}
+
+	rr := postForm(t, router, makeIssueJWT(t, userID, owner), "/settings/profile-readme", url.Values{"content": {"# hi\n"}})
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("save README: want 303, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+		var n int
+		if err := db.QueryRow(`SELECT count(*) FROM events WHERE repo_name = $1 AND event_type = 'push'`, owner).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n == 1 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("push events = %d, want 1", n)
+		}
 	}
 }

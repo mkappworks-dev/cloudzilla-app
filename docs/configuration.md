@@ -46,6 +46,10 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `rate_limit.archive.anonymous` | `20`                                       | `CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS` | Archive downloads per client IP               |
 | `rate_limit.search.authenticated` | `600`                                   | `CZ_RATE_LIMIT_SEARCH_AUTHENTICATED` | Searches per signed-in bucket              |
 | `rate_limit.search.anonymous` | `60`                                        | `CZ_RATE_LIMIT_SEARCH_ANONYMOUS` | Searches per client IP                         |
+| `quota.user.repos`           | `0`                                          | `CZ_QUOTA_USER_REPOS`           | Live repositories each user may own. `0` is unlimited; see [Quotas](#quotas) |
+| `quota.user.storage_bytes`   | `0`                                          | `CZ_QUOTA_USER_STORAGE_BYTES`   | Disk, in bytes, each user's repositories and wikis may use together |
+| `quota.org.repos`            | `0`                                          | `CZ_QUOTA_ORG_REPOS`            | Live repositories each organization may own    |
+| `quota.org.storage_bytes`    | `0`                                          | `CZ_QUOTA_ORG_STORAGE_BYTES`    | Disk, in bytes, each organization's repositories and wikis may use together |
 | `storage.backend`            | `local`                                      | `CZ_STORAGE_BACKEND`            | Where uploaded files such as avatars go: `local` or `s3`. See [storage](./storage.md) |
 | `storage.local.root`         | `./storage`                                  | `CZ_STORAGE_LOCAL_ROOT`         | Directory for the `local` backend               |
 | `storage.s3.endpoint`        | `""` (AWS)                                   | `CZ_STORAGE_S3_ENDPOINT`        | Endpoint URL of an S3-compatible server (R2, B2, Garage, versitygw) |
@@ -91,6 +95,26 @@ rate_limit:
     anonymous: 500
   archive:
     anonymous: 0   # unlimited
+```
+
+### Quotas
+
+Four limits, all off (`0`) by default, so upgrading changes nothing until you set one. Every user gets the same quota and so does every organization; there are no per-owner overrides. A superadmin's personal account is exempt, but organizations are always subject to theirs. A negative value stops the server at startup.
+
+- **Repositories.** An owner's live repositories, those not in the trash, so deleting one frees its slot at once. At the limit, an owner can't create, fork, import, generate from a template, restore, or be handed a repository by a transfer (checked when the transfer is offered and again when it is accepted). The refusal is `403` with `{"error":"repository quota reached (50 of 50)"}`.
+- **Storage.** The on-disk size of each live repository's git directory plus its wiki, summed. Gists don't count. A push is capped at the space left, and is refused like an oversized pack (`413` over HTTP, a message on stderr over SSH) naming the usage and the quota. A push that only deletes refs still goes through, so an owner at the limit can free space. Web file commits and wiki edits are refused at or over the quota; deleting a file or a wiki page is not.
+- **How size is kept.** `repositories.size_bytes` is measured at startup for any repository without one, and again in the background after a push, a web commit, a wiki change, an import, a mirror sync, a fork, a template creation, a restore, and `cloudzilla gc`. Usage can lag a write by one measurement. Unpacked loose objects count at full size until `cloudzilla gc` prunes them.
+- **Not exact.** A check and the create that follows aren't atomic, so creates racing each other can overshoot the repository limit by a few. A pack is capped at the space left when the push starts, so two simultaneous pushes can both fit and together pass the quota.
+
+User Settings and an organization's settings show one line, such as `Repositories 12 of 50 · Storage 1.2 GiB of 10 GiB`, naming only the limits that are set.
+
+```yaml
+quota:
+  user:
+    repos: 50
+    storage_bytes: 10737418240   # 10 GiB
+  org:
+    repos: 200
 ```
 
 ---
@@ -186,7 +210,7 @@ Verification and password reset links point at `server.base_url`, so set it to t
 
 | What             | Volume               | Container Path                                             |
 | ---------------- | -------------------- | ---------------------------------------------------------- |
-| PostgreSQL data  | `cloudzilla_pg_data` | (managed by PostgreSQL container)                          |
+| PostgreSQL data  | `postgres_data`      | (managed by PostgreSQL container)                          |
 | Git repositories | `cloudzilla_data`    | `/data/git-repos/`                                         |
 | Uploaded files   | `cloudzilla_data`    | `/data/storage/` (avatars; see [storage](./storage.md))    |
 | SSH host key     | `cloudzilla_data`    | `/data/cloudzilla_host_key` (auto-generated on first boot) |
@@ -353,6 +377,39 @@ cloudzilla-cli reset-2fa alice --config /etc/cloudzilla/config.yaml
 ```
 
 It clears the TOTP secret, flag and backup codes through the same code as the admin `reset-2fa` action, records `admin.user.2fa_reset` in the audit log with no actor ID and the actor name `cloudzilla-cli`, and mails the user the same security notice when SMTP is configured. A failed notice prints a warning but doesn't undo the reset. It doesn't sign the user out or touch their password, and doesn't revoke a password reset link already issued. For a user without 2FA, it says so and changes nothing. A suspended account is reset but stays suspended. See [Two-factor authentication](./access-control.md#two-factor-authentication).
+
+### `cloudzilla-cli backup`
+
+Write the database, repositories, local storage root and SSH host key to one tar archive (mode 0600).
+
+```bash
+cloudzilla-cli backup --output /backups/cloudzilla.tar
+cloudzilla-cli backup --output - | zstd > cloudzilla.tar.zst
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--output` | (required) | Archive path, or `-` for stdout. The archive is built beside the path and renamed, so a failure leaves no partial file |
+| `--pg-dump` | `pg_dump` | `pg_dump` binary. Its major version must be at least the server's |
+
+It fails before writing anything when `pg_dump` is missing or older than the server. The archive holds secrets: store it encrypted. See [Backup and restore](./deployment.md#backup-and-restore).
+
+### `cloudzilla-cli restore`
+
+Rebuild an empty instance from a backup archive.
+
+```bash
+cloudzilla-cli restore --input /backups/cloudzilla.tar
+zstd -dc cloudzilla.tar.zst | cloudzilla-cli restore --input -
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--input` | (required) | Archive path, or `-` for stdin |
+| `--pg-restore` | `pg_restore` | `pg_restore` binary |
+| `--replace-host-key` | off | Overwrite a different SSH host key already in place |
+
+It refuses a database that already has tables, a non-empty `git.repos_root`, an unknown format version, an unsafe tar entry and a backup with a migration the binary lacks. Then it restores the database, extracts the repositories, writes the host key (mode 0600), applies newer migrations and prints repository rows without a directory and directories without a row. Sign-ins survive only with the same `auth.jwt_secret`. See [Backup and restore](./deployment.md#backup-and-restore).
 
 ### Instance management
 

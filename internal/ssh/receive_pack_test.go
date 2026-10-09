@@ -47,9 +47,14 @@ type pushRepo struct {
 
 func seedPushRepo(t *testing.T) pushRepo {
 	t.Helper()
+	return seedPushRepoWithQuota(t, config.QuotaConfig{})
+}
+
+func seedPushRepoWithQuota(t *testing.T, quota config.QuotaConfig) pushRepo {
+	t.Helper()
 	db := testutil.OpenTestDB(t)
 	r := pushRepo{db: db, reposRoot: t.TempDir(), key: newKey(t)}
-	cfg := &config.Config{Git: config.GitConfig{ReposRoot: r.reposRoot, SSHHostKey: filepath.Join(t.TempDir(), "host_key")}}
+	cfg := &config.Config{Git: config.GitConfig{ReposRoot: r.reposRoot, SSHHostKey: filepath.Join(t.TempDir(), "host_key")}, Quota: quota}
 	svcs := service.New(store.New(db), cfg)
 	r.addr = serve(t, New(cfg.Git, svcs))
 

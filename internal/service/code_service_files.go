@@ -62,23 +62,30 @@ func CleanFilePath(p string) (string, error) {
 	return p, nil
 }
 
+// RefUpdate is a branch a web commit moved; Old is zero when the commit
+// created the branch.
+type RefUpdate struct {
+	Branch   string
+	Old, New plumbing.Hash
+}
+
 // CommitFile commits content to filePath on branch, creating the branch if it
 // does not yet exist (e.g. the first commit in an empty repo). It refuses a
 // path git couldn't check out with ErrInvalidFilePath.
-func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, content []byte, author GitAuthor, message string) error {
+func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, content []byte, author GitAuthor, message string) (RefUpdate, error) {
 	filePath, err := CleanFilePath(filePath)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
-		return fmt.Errorf("open repo: %w", err)
+		return RefUpdate{}, fmt.Errorf("open repo: %w", err)
 	}
 
 	blobHash, err := writeBlob(repo, content)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	// Parent commit + root tree from the branch tip, if the branch exists.
@@ -88,28 +95,29 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 	if ref, refErr := repo.Reference(branchRef, true); refErr == nil {
 		var cErr error
 		if parent, cErr = repo.CommitObject(ref.Hash()); cErr != nil {
-			return fmt.Errorf("resolve branch tip: %w", cErr)
+			return RefUpdate{}, fmt.Errorf("resolve branch tip: %w", cErr)
 		}
 		if baseTree, cErr = parent.Tree(); cErr != nil {
-			return fmt.Errorf("read tree: %w", cErr)
+			return RefUpdate{}, fmt.Errorf("read tree: %w", cErr)
 		}
 	}
 
 	rootTreeHash, err := insertEntry(repo, baseTree, "", strings.Split(filePath, "/"), object.TreeEntry{Mode: filemode.Regular, Hash: blobHash}, true)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
-	if err := commitOnto(repo, branchRef, parent, rootTreeHash, author, message); err != nil {
-		return err
+	upd, err := commitOnto(repo, branchRef, parent, rootTreeHash, author, message)
+	if err != nil {
+		return RefUpdate{}, err
 	}
 	// Point HEAD at the branch only when it is missing or detached — i.e. the
 	// repo had no commits before this one.
 	if headRef, hErr := repo.Storer.Reference(plumbing.HEAD); hErr != nil || headRef.Type() == plumbing.HashReference {
 		if err := repo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)); err != nil {
-			return fmt.Errorf("set symbolic HEAD: %w", err)
+			return RefUpdate{}, fmt.Errorf("set symbolic HEAD: %w", err)
 		}
 	}
-	return nil
+	return upd, nil
 }
 
 // IsEditableText reports whether a textarea can round-trip s: it must be
@@ -167,44 +175,44 @@ func (s *CodeService) GetBranchFile(owner, repoName, branch, filePath string, ma
 // oldPath, which must still hold baseSHA (else ErrFileChanged). A different
 // newPath renames the file, keeping its mode; one that holds any entry is
 // ErrPathCollision. Unlike CommitFile, it never creates the branch.
-func (s *CodeService) EditFile(owner, repoName, branch, oldPath, newPath, baseSHA string, content []byte, author GitAuthor, message string) error {
+func (s *CodeService) EditFile(owner, repoName, branch, oldPath, newPath, baseSHA string, content []byte, author GitAuthor, message string) (RefUpdate, error) {
 	// A pushed path CleanFilePath would rewrite, such as one with a backslash,
 	// must not be renamed by an edit that leaves the path field alone.
 	if newPath != oldPath {
 		var err error
 		if newPath, err = CleanFilePath(newPath); err != nil {
-			return err
+			return RefUpdate{}, err
 		}
 	}
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
-		return fmt.Errorf("open repo: %w", err)
+		return RefUpdate{}, fmt.Errorf("open repo: %w", err)
 	}
 	tip, tree, old, err := baseEntry(repo, branch, oldPath, baseSHA, false)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	blobHash, err := writeBlob(repo, content)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	if newPath == oldPath && blobHash == old.Hash {
-		return ErrFileUnchanged
+		return RefUpdate{}, ErrFileUnchanged
 	}
 
 	root := tree
 	if newPath != oldPath {
 		rootHash, err := removeEntry(repo, tree, "", strings.Split(oldPath, "/"))
 		if err != nil {
-			return err
+			return RefUpdate{}, err
 		}
 		if root, err = repo.TreeObject(rootHash); err != nil {
-			return fmt.Errorf("read tree: %w", err)
+			return RefUpdate{}, fmt.Errorf("read tree: %w", err)
 		}
 	}
 	rootHash, err := insertEntry(repo, root, "", strings.Split(newPath, "/"), object.TreeEntry{Mode: old.Mode, Hash: blobHash}, newPath == oldPath)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	return commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message)
 }
@@ -213,34 +221,35 @@ func (s *CodeService) EditFile(owner, repoName, branch, oldPath, newPath, baseSH
 // still hold baseSHA (else ErrFileChanged), along with the folders that leaves
 // empty. Naming a folder or submodule by its own hash is object.ErrFileNotFound. It returns the nearest folder of filePath that remains, "" for the
 // root.
-func (s *CodeService) DeleteFile(owner, repoName, branch, filePath, baseSHA string, author GitAuthor, message string) (string, error) {
+func (s *CodeService) DeleteFile(owner, repoName, branch, filePath, baseSHA string, author GitAuthor, message string) (string, RefUpdate, error) {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
-		return "", fmt.Errorf("open repo: %w", err)
+		return "", RefUpdate{}, fmt.Errorf("open repo: %w", err)
 	}
 	tip, tree, _, err := baseEntry(repo, branch, filePath, baseSHA, true)
 	if err != nil {
-		return "", err
+		return "", RefUpdate{}, err
 	}
 	rootHash, err := removeEntry(repo, tree, "", strings.Split(filePath, "/"))
 	if err != nil {
-		return "", err
+		return "", RefUpdate{}, err
 	}
-	if err := commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message); err != nil {
-		return "", err
+	upd, err := commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message)
+	if err != nil {
+		return "", RefUpdate{}, err
 	}
 	root, err := repo.TreeObject(rootHash)
 	if err != nil {
-		return "", fmt.Errorf("read tree: %w", err)
+		return "", RefUpdate{}, fmt.Errorf("read tree: %w", err)
 	}
 	dir := path.Dir(filePath)
 	for dir != "." {
 		if _, err := root.Tree(dir); err == nil {
-			return dir, nil
+			return dir, upd, nil
 		}
 		dir = path.Dir(dir)
 	}
-	return "", nil
+	return "", upd, nil
 }
 
 // branchTipCommit resolves branch, and only a branch, to its tip commit.
@@ -283,7 +292,7 @@ func baseEntry(repo *gogit.Repository, branch, filePath, baseSHA string, symlink
 
 // commitOnto commits tree onto branch with parent (nil for a branch's first
 // commit), moving the branch only if it still points at parent.
-func commitOnto(repo *gogit.Repository, branchRef plumbing.ReferenceName, parent *object.Commit, tree plumbing.Hash, author GitAuthor, message string) error {
+func commitOnto(repo *gogit.Repository, branchRef plumbing.ReferenceName, parent *object.Commit, tree plumbing.Hash, author GitAuthor, message string) (RefUpdate, error) {
 	var oldTip plumbing.Hash
 	var parentHashes []plumbing.Hash
 	if parent != nil {
@@ -300,16 +309,16 @@ func commitOnto(repo *gogit.Repository, branchRef plumbing.ReferenceName, parent
 	}
 	commitObj := repo.Storer.NewEncodedObject()
 	if err := commit.Encode(commitObj); err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	commitHash, err := repo.Storer.SetEncodedObject(commitObj)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	if err := gitref.Move(repo.Storer, branchRef, oldTip, commitHash); err != nil {
-		return fmt.Errorf("advance branch: %w", err)
+		return RefUpdate{}, fmt.Errorf("advance branch: %w", err)
 	}
-	return nil
+	return RefUpdate{Branch: branchRef.Short(), Old: oldTip, New: commitHash}, nil
 }
 
 func writeBlob(repo *gogit.Repository, content []byte) (plumbing.Hash, error) {

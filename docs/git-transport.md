@@ -108,7 +108,7 @@ To work around this without giving up the "no git binary required" invariant, bo
 
 **Observability:** each receive-pack that completes emits an `INFO` log line — `git-http: receive-pack complete` over HTTP, `ssh: receive-pack complete` over SSH — with `pack_bytes`, `duration_ms`, and `refs_ok`/`refs_failed` counts. "Complete" means the pack was ingested without a transport error; `refs_failed > 0` flags a push where some ref updates were rejected.
 
-**Size limit:** the post-decompression pack size is capped by `git.max_pack_bytes` (default 2 GiB; `0` disables). Enforcing it after gzip inflation bounds both an oversized pack and a decompression bomb. An over-limit push is rejected — HTTP `413`, SSH error — rather than parsed in full.
+**Size limit:** the post-decompression pack size is capped by `git.max_pack_bytes` (default 2 GiB; `0` disables). Enforcing it after gzip inflation bounds both an oversized pack and a decompression bomb. An over-limit push is rejected — HTTP `413`, SSH error — rather than parsed in full. With a [storage quota](./configuration.md#quotas) set, the cap for one push is also lowered to the space the owner has left, once the ref commands are read; a push that only deletes refs is never capped.
 
 **Fetches** (pull mirrors) don't need the wrapper. go-git's client strips `thin-pack` from what it asks for, so the packs it fetches are self-contained and keep the fast path. `TestMirrorSync_GoGitNeverRequestsThinPacks` fails if that changes.
 
@@ -132,6 +132,12 @@ Branch protection is enforced at the same point, before the write. Both transpor
 
 ```
  ! [remote rejected] main -> main (force push blocked by branch protection)
+```
+
+A rule with `require_pull_request` refuses every update of its branches (create, fast-forward, force push and delete alike) before anything else is checked, so it reads no history. The status names the rule; changes reach the branch only by merging a pull request, which doesn't go through receive-pack:
+
+```
+ ! [remote rejected] main -> main (pull request required by branch protection: rule "main")
 ```
 
 The status is sent to the pusher, so an error from the server itself goes only to the server log: a failed rule lookup refuses the ref with `internal error checking branch protection`, and a failed ref write (a storer error, which names paths on the server) with `failed to update ref`. A pack that can't be stored fails the whole push (HTTP 500, SSH error) with `failed to store pushed objects`, unless the fault is in the pack itself: a malformed or truncated pack, or a thin pack whose base the repo lacks, keeps go-git's reason. A corrupt zlib stream gets the generic reason, because go-git words it like a failed read of the repo's own packs.
@@ -171,6 +177,14 @@ Tags and other refs may point at any object.
 
 ---
 
+## After a push
+
+Both transports hand the refs that applied to `PushService.AfterPush(repo, gitRepo, actor, commands)`, which starts each of these in the background: the `push` webhook per updated branch, a push activity event, closing keywords in commits that fast-forward the default branch, `OnPostReceive` (contributor stats, open PRs' head SHA, primary language), the code-search re-index and the dependency parse. An actor with no `Username` (a deploy key) records no activity and closes no issues.
+
+A commit made in the browser reaches the same method through `AfterWebCommit`, with one create or update command built from the `RefUpdate` the commit returned, so it fires everything a push of that commit would. Pull mirrors and the seeder keep their own variants (no actor, so no events). PR merges and wiki commits don't call it yet.
+
+---
+
 ## Delete-only pushes
 
 git sends no pack when every command is a delete (`git push origin :branch`). go-git's receive-pack parses a pack whenever the request carries one, and decoding a request always attaches the rest of the stream, so `NewServer` drops it for a delete-only push. Otherwise the HTTP body fails as `empty packfile` (HTTP 500), and an SSH push hangs, since the client holds the stream open until it reads the status. Branch protection still vets each delete.
@@ -191,6 +205,8 @@ cloudzilla gc --grace 336h       # change the age threshold (default 14 days)
 ```
 
 A loose object is removed only when it is unreachable from every ref **and** older than `--grace`. The grace period avoids racing a push that has written objects but not yet updated its ref. Packed objects are never touched. Safe to run on a schedule (e.g. cron).
+
+When the database is reachable, a real (non `--dry-run`) run also re-measures each repository it pruned, so [storage quotas](./configuration.md#quotas) see the space it freed. If it can't connect, it says so and the sizes stay as they were.
 
 ---
 

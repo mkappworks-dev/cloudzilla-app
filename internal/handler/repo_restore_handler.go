@@ -31,6 +31,8 @@ func (h *Handler) RestoreRepo(w http.ResponseWriter, r *http.Request) {
 		// A deleted repo is visible only to those who may restore it.
 		case strings.HasPrefix(err.Error(), "forbidden"):
 			writeError(w, http.StatusNotFound, "repo not found")
+		case errors.Is(err, service.ErrQuotaReached):
+			writeError(w, http.StatusForbidden, err.Error())
 		case errors.Is(err, service.ErrRepoNameTaken):
 			writeError(w, http.StatusUnprocessableEntity, service.ErrRepoNameTaken.Error())
 		default:

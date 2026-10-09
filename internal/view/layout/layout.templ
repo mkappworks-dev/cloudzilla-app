@@ -54,7 +54,7 @@ templ Base(base view.BasePage, title string) {
 				}, true);
 			</script>
 		</head>
-		<body class="min-h-screen flex flex-col antialiased font-sans">
+		<body class="min-h-screen flex flex-col antialiased font-sans" if url := attachmentsURL(base); url != "" { data-attachments-url={ url } }>
 			<a href="#main-content" class="skip-link">Skip to main content</a>
 
 			<header role="banner" class="border-b border-border">
@@ -147,11 +147,13 @@ templ Base(base view.BasePage, title string) {
 						if !base.SetupPending {
 							<form action="/search" method="GET" class="hidden md:block" x-data="topnavSearch" x-on:click.outside="close()">
 								<label for="topnav-search" class="sr-only">Search Cloudzilla</label>
-								<div class="relative">
+								<div class="relative" x-data="{ q: '' }">
 									<input
 										id="topnav-search"
 										name="q"
 										type="search"
+										x-ref="q"
+										x-model="q"
 										placeholder="Search…"
 										autocomplete="off"
 										role="combobox"
@@ -169,11 +171,14 @@ templ Base(base view.BasePage, title string) {
 										x-on:keydown.enter="follow($event)"
 										x-on:keydown.escape="escape($event)"
 										x-on:focus="reopen()"
-										class="w-56 h-7 pl-7 pr-10 text-[13px] bg-muted border border-transparent hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground"
+										class="w-72 focus:w-96 transition-[width] duration-150 h-7 pl-7 pr-14 text-[13px] bg-muted border border-transparent hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground"
 									/>
 									<svg class="absolute left-2 top-1.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-									<kbd class="absolute right-1.5 top-1 text-[10px] px-1.5 py-0.5 bg-background border border-border rounded-sm text-muted-foreground font-mono" aria-hidden="true">/</kbd>
-									<div id="topnav-suggest" x-ref="list" x-show="open" x-cloak class="absolute right-0 top-full mt-1 z-50 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"></div>
+									<button type="button" x-cloak x-show="q" x-on:click="q = ''; clear(); $refs.q.focus()" class="absolute right-1.5 top-1 h-5 w-5 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">
+										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg>
+									</button>
+									<kbd x-show="!q" class="absolute right-1.5 top-1 h-5 min-w-5 px-1 grid place-items-center text-[11px] font-sans leading-none text-muted-foreground border border-border rounded" aria-hidden="true">/</kbd>
+									<div id="topnav-suggest" x-show="open" x-cloak class="absolute inset-x-0 top-full mt-1 z-50 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"></div>
 								</div>
 							</form>
 						}
@@ -444,6 +449,71 @@ templ Base(base view.BasePage, title string) {
 					});
 				})();
 			</script>
+			<script>
+				(function() {
+					// Pasting or dropping an image into a markdown editor uploads it and inserts its markdown.
+					var url = document.body.dataset.attachmentsUrl;
+					if (!url) return;
+					function csrf() { return (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || ''; }
+					function images(dt) {
+						return Array.prototype.filter.call((dt && dt.files) || [], function(f) { return /^image\//.test(f.type); });
+					}
+					function editorTextarea(e) {
+						var ed = e.target.closest && e.target.closest('[data-md-editor]');
+						return ed && e.target.tagName === 'TEXTAREA' ? e.target : null;
+					}
+					function setStatus(ta, msg) {
+						var ed = ta.closest('[data-md-editor]');
+						var el = ed.querySelector('[data-md-status]');
+						if (!el && msg) {
+							el = document.createElement('p');
+							el.setAttribute('data-md-status', '');
+							el.setAttribute('role', 'status');
+							el.className = 'px-3 pb-2 text-xs text-destructive';
+							ed.appendChild(el);
+						}
+						if (el) el.textContent = msg;
+					}
+					function replace(ta, from, to) {
+						ta.value = ta.value.replace(from, function() { return to; });
+						ta.dispatchEvent(new Event('input', { bubbles: true }));
+					}
+					function upload(ta, file) {
+						var label = (file.name || 'image').replace(/[\[\]()\n]/g, '');
+						var placeholder = '![Uploading ' + label + '\u2026]()';
+						ta.setRangeText(placeholder + '\n', ta.selectionStart, ta.selectionEnd, 'end');
+						var body = new FormData();
+						body.append('file', file, file.name || 'image');
+						setStatus(ta, '');
+						fetch(url, { method: 'POST', body: body, headers: { 'X-CSRF-Token': csrf() }, credentials: 'same-origin' })
+							.then(function(res) {
+								return res.json().catch(function() { return {}; }).then(function(j) {
+									if (!res.ok) throw new Error(j.error || 'Upload failed.');
+									replace(ta, placeholder, j.markdown);
+								});
+							})
+							.catch(function(err) {
+								replace(ta, placeholder + '\n', '');
+								setStatus(ta, err.message || 'Upload failed.');
+							});
+					}
+					document.addEventListener('paste', function(e) {
+						var ta = editorTextarea(e), files = images(e.clipboardData);
+						if (!ta || !files.length) return;
+						e.preventDefault();
+						files.forEach(function(f) { upload(ta, f); });
+					});
+					document.addEventListener('dragover', function(e) {
+						if (editorTextarea(e) && e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) e.preventDefault();
+					});
+					document.addEventListener('drop', function(e) {
+						var ta = editorTextarea(e), files = images(e.dataTransfer);
+						if (!ta || !files.length) return;
+						e.preventDefault();
+						files.forEach(function(f) { upload(ta, f); });
+					});
+				})();
+			</script>
 			<script src={ assets.URL("/htmx.min.js") } defer></script>
 			<!-- Before Alpine: it registers its component on alpine:init. -->
 			<script src={ assets.URL("/static/select-menu.js") } defer></script>
@@ -492,6 +562,16 @@ templ Base(base view.BasePage, title string) {
 }
 
 // workspaceContextName labels the topbar's workspace switcher trigger.
+// attachmentsURL is where the page's markdown editors upload pasted images, or
+// "" when they can't: signed out, outside a repo, or on the wiki, whose pages
+// live in git where the attachment sweep can't see what they reference.
+func attachmentsURL(base view.BasePage) string {
+	if base.CurrentUser == nil || base.RepoSubnav == nil || base.RepoSubnav.Active == "wiki" {
+		return ""
+	}
+	return "/" + base.RepoSubnav.OwnerName + "/" + base.RepoSubnav.RepoName + "/attachments"
+}
+
 func workspaceContextName(base view.BasePage) string {
 	if base.OwnerContext != "" {
 		return base.OwnerContext

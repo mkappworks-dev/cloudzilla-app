@@ -147,6 +147,9 @@ func (h *Handler) CreateFromTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 	repo, err := h.Services.Repo.CreateFromTemplate(r.Context(), templateRepoID, claims.UserID, claims.Username, newName, description)
 	switch {
+	case errors.Is(err, service.ErrQuotaReached):
+		writeError(w, http.StatusForbidden, err.Error())
+		return
 	case errors.Is(err, service.ErrTemplateNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
 		return

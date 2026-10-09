@@ -66,5 +66,6 @@ const (
 	AuditActionAdminUserDemote            = "admin.user.demote"
 	AuditActionAdminUser2FAReset          = "admin.user.2fa_reset"
 	AuditActionAdminUserCredentialsRevoke = "admin.user.credentials_revoke"
+	AuditActionAdminOrgOwnerAdd           = "admin.org.owner_add"
 	AuditActionAdminUserDelete            = "admin.user.delete"
 )

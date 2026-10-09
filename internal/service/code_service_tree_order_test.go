@@ -42,7 +42,7 @@ func TestCommitFile_SortsEntriesLikeGit(t *testing.T) {
 func TestApplySuggestion_SortsEntriesLikeGit(t *testing.T) {
 	r := newTipTestRepo(t)
 	want := r.commitDocs(t, "feature")
-	if err := r.svc.ApplySuggestion(r.owner, r.name, "feature", "f.txt", 1, "uno", tipTestAuthor); err != nil {
+	if _, err := r.svc.ApplySuggestion(r.owner, r.name, "feature", "f.txt", 1, "uno", tipTestAuthor); err != nil {
 		t.Fatalf("ApplySuggestion: %v", err)
 	}
 	want["f.txt"] = mergeFile{hash: r.blob(t, "uno\ntwo\n"), mode: filemode.Regular}
@@ -52,7 +52,7 @@ func TestApplySuggestion_SortsEntriesLikeGit(t *testing.T) {
 func TestSaveProfileReadme_SortsEntriesLikeGit(t *testing.T) {
 	r := newTipTestRepo(t)
 	want := r.commitDocs(t, "main")
-	if err := r.svc.SaveProfileReadme(r.owner, r.name, "main", "# Alice\n", tipTestAuthor, ""); err != nil {
+	if _, err := r.svc.SaveProfileReadme(r.owner, r.name, "main", "# Alice\n", tipTestAuthor, ""); err != nil {
 		t.Fatalf("SaveProfileReadme: %v", err)
 	}
 	want["README.md"] = mergeFile{hash: r.blob(t, "# Alice\n"), mode: filemode.Regular}

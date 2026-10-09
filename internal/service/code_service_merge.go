@@ -499,24 +499,24 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 
 // ApplySuggestion replaces targetLine (1-based) in filePath on branch with the replacement
 // text and creates a new commit on that branch.
-func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement string, author GitAuthor) error {
+func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement string, author GitAuthor) (RefUpdate, error) {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	headCommit, _, err := resolveRef(repo, branch)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	// Read current file content.
 	raw, err := s.GetRawBlob(owner, repoName, branch, filePath)
 	if err != nil {
-		return fmt.Errorf("read file: %w", err)
+		return RefUpdate{}, fmt.Errorf("read file: %w", err)
 	}
 	lines := strings.Split(string(raw), "\n")
 	if targetLine < 1 || targetLine > len(lines) {
-		return fmt.Errorf("line %d out of range (file has %d lines)", targetLine, len(lines))
+		return RefUpdate{}, fmt.Errorf("line %d out of range (file has %d lines)", targetLine, len(lines))
 	}
 	// Replace the target line with the suggestion content.
 	replacementLines := strings.Split(replacement, "\n")
@@ -531,25 +531,25 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 	blobObj.SetType(plumbing.BlobObject)
 	w, err := blobObj.Writer()
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	if _, err := w.Write([]byte(newContent)); err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	_ = w.Close()
 	blobHash, err := repo.Storer.SetEncodedObject(blobObj)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	// Rebuild the tree with the updated file.
 	tree, err := headCommit.Tree()
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	files, err := flattenTree(tree)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	existing, ok := files[filePath]
 	if !ok {
@@ -558,7 +558,7 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 	files[filePath] = mergeFile{hash: blobHash, mode: existing.mode}
 	newTreeHash, err := buildTree(repo, files)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
 	// Create new commit.
@@ -573,12 +573,16 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 	}
 	obj := repo.Storer.NewEncodedObject()
 	if err := commit.Encode(obj); err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 	newHash, err := repo.Storer.SetEncodedObject(obj)
 	if err != nil {
-		return err
+		return RefUpdate{}, err
 	}
 
-	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(branch), headCommit.Hash, newHash)
+	branchRef := plumbing.NewBranchReferenceName(branch)
+	if err := gitref.Move(repo.Storer, branchRef, headCommit.Hash, newHash); err != nil {
+		return RefUpdate{}, err
+	}
+	return RefUpdate{Branch: branch, Old: headCommit.Hash, New: newHash}, nil
 }

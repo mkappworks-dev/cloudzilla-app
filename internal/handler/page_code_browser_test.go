@@ -44,7 +44,7 @@ func seedCodeRepoWith(t *testing.T, extra ...string) (http.Handler, seededRepo, 
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
 	paths := append([]string{"README.md", "lib/README.md", "lib/config.js", "lib/util/helper.js"}, extra...)
 	for _, path := range paths {
-		if err := code.CommitFile(r.owner.name, r.name, "main", path, []byte("x\n"), raceAuthor, "Add "+path); err != nil {
+		if _, err := code.CommitFile(r.owner.name, r.name, "main", path, []byte("x\n"), raceAuthor, "Add "+path); err != nil {
 			t.Fatalf("commit %s: %v", path, err)
 		}
 	}

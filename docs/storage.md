@@ -1,6 +1,6 @@
 # Object storage
 
-Files that live outside git and PostgreSQL go through `internal/storage`. Today that means avatars. Git repos, wikis and gists still live under `git.repos_root`.
+Files that live outside git and PostgreSQL go through `internal/storage`. Today that means avatars and markdown image attachments. Git repos, wikis and gists still live under `git.repos_root`.
 
 ## Backends
 
@@ -78,6 +78,7 @@ TEST_S3_ACCESS_KEY_ID=cloudzilla-dev TEST_S3_SECRET_ACCESS_KEY=cloudzilla-dev-se
 ```
 avatars/user/<user id>/<sha256 of the stored bytes>.<png|jpg>
 avatars/org/<org id>/<sha256 of the stored bytes>.<png|jpg>
+attachments/repo/<repo id>/<token>.<png|jpg|gif|webp>
 ```
 
 - `users.avatar_key` and `organizations.avatar_key` hold the full key, or `''` for none.
@@ -89,13 +90,13 @@ avatars/org/<org id>/<sha256 of the stored bytes>.<png|jpg>
 
 ## Backup and restore
 
-Back up the storage root (or the bucket and prefix) together with the database.
+`cloudzilla-cli backup` includes the local storage root in its archive, next to the database; an S3 bucket is not copied (see [Backup and restore](./deployment.md#backup-and-restore)). Back up the bucket and prefix with your provider's versioning or replication.
 
 | Restored | Result |
 | --- | --- |
 | Both | Everything works. |
-| Database only | Avatars whose objects are missing return 404. Each `<img data-avatar>` sits over its initials, and a capture-phase `error` listener in the layout hides a failed image, so pages show initials in their place. |
-| Objects only | Objects no row points at are orphans: harmless, and safe to delete. |
+| Database only | Avatars and attachments whose objects are missing return 404. Each `<img data-avatar>` sits over its initials, and a capture-phase `error` listener in the layout hides a failed image, so pages show initials in their place. |
+| Objects only | Objects no row points at are orphans: harmless, and safe to delete. For attachments, the `attachments` table holds the only link to the repo, so restore it with the database. |
 
 ## Avatars
 
@@ -113,3 +114,21 @@ Uploads go to `POST /settings/avatar` and `POST /orgs/{org}/settings/avatar` (or
 - A missing object is a 404 with `no-store`.
 
 `components.Avatar(name, …)` renders the image for a user or org name. It finds the key in a map that the page handler puts on the request context with `withAvatars` (one batched query) or `withKnownAvatars`. With no key, it falls back to initials. Git commit authors use `components.Initials`, because an author name can match an unrelated username.
+
+## Markdown image attachments
+
+Pasting or dropping an image into a markdown editor on a repo page uploads it to `POST /{owner}/{repo}/attachments` (multipart field `file`) and inserts `![name](/attachments/<token>.<ext>)`. The editors are wired by a script in `layout.templ`; `<body data-attachments-url>` turns it on, and `attachmentsURL` leaves it off when signed out, outside a repo, and on the wiki. Wiki pages live in git, where the sweep below can't see what they reference. The handler is in `internal/handler/attachment_handler.go`, the service in `internal/service/attachment_service.go`.
+
+- **Who may upload:** anyone signed in who can read the repo, which is also who may comment. An unreadable or unknown repo is a 404.
+- **Limits:** one image of at most 10 MB, PNG, JPEG, GIF or WebP, typed from its bytes (`attachment.Validate`). Declared dimensions over 16384 px a side are rejected from the header. The file is stored as uploaded, so animated GIFs survive and so does metadata such as EXIF GPS. Anyone who can read the repo can download the original.
+- **Token:** 128 random bits. The URL carries no repo name, so renaming or transferring a repo doesn't break links in old comments.
+- **Rows:** `attachments` holds the token, repo, uploader and storage key. `repo_id` has no foreign key, so the sweep can still find the rows of a repo removed by any path.
+
+`GET` and `HEAD /attachments/<token>.<ext>` look the token up, then run `RepoService.CanRead` for the viewer on every request. A repo made private, or soft-deleted, stops serving at once, and restoring it serves its images again. An unknown token, a wrong extension and an unreadable repo are the same 404, so a private repo's images can't be told from missing ones. Responses carry `Cache-Control: private, no-cache` with an `ETag` (the 304 comes after the permission check), `Vary: Authorization, Cookie`, `nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`. Unlike avatars they can't be cached `public` or served by a CDN. `attachments` is a reserved owner name.
+
+### Cleanup
+
+- **Repo purge:** `RepoService.PurgeExpired` deletes a purged repo's objects and rows. A soft delete keeps them, so Restore loses nothing.
+- **Sweep:** `AttachmentService.Run` runs hourly (`attachment.sweep` in `main.go`). It deletes attachments whose repo no longer exists, which also covers org and user deletion, and uploads older than 24 hours (`AttachmentGrace`) that no stored markdown contains. It looks in issue, PR and discussion bodies, comments, reviews, line comments, replies, releases, milestones and saved replies. Removing an image from a comment, or deleting the comment, frees it at the next sweep after the grace period.
+- **Cost accepted:** the reference check is a substring scan of those tables for each candidate, once an hour. A draft left unsaved for over 24 hours loses its uploads.
+- A failed object delete leaves the row, so the next sweep retries it.

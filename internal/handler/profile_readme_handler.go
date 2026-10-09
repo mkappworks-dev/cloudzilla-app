@@ -64,7 +64,8 @@ func (h *Handler) UpdateProfileReadme(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Services.Code.SaveProfileReadme(user.Username, user.Username, repo.DefaultBranch, content, author, message); err != nil {
+	upd, err := h.Services.Code.SaveProfileReadme(user.Username, user.Username, repo.DefaultBranch, content, author, message)
+	if err != nil {
 		if errors.Is(err, service.ErrProfileRepoMissing) {
 			http.Redirect(w, r, "/repos/new?name="+url.QueryEscape(user.Username)+"&visibility=public&init_readme=1", http.StatusSeeOther)
 			return
@@ -77,6 +78,7 @@ func (h *Handler) UpdateProfileReadme(w http.ResponseWriter, r *http.Request) {
 		redirectReadmeError(w, r, user.Username, "save_failed")
 		return
 	}
+	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
 
 	http.Redirect(w, r, "/"+user.Username, http.StatusSeeOther)
 }

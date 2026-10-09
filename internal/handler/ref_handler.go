@@ -36,6 +36,10 @@ func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
 	if from == "" {
 		from = repo.DefaultBranch
 	}
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, name); status != 0 {
+		writeError(w, status, msg)
+		return
+	}
 
 	if err := h.Services.Code.CreateBranch(owner, repoName, name, from); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -88,6 +92,10 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 	if err := h.Services.BranchProtection.CheckDelete(r.Context(), repo.ID, name); err != nil {
 		if errors.Is(err, service.ErrForcePushBlocked) {
 			writeError(w, http.StatusUnprocessableEntity, "cannot delete a branch whose protection rule blocks force pushes")
+			return
+		}
+		if errors.Is(err, service.ErrPushRequiresPR) {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		slog.Error("check branch protection", "error", err)

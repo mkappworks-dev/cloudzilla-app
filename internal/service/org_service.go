@@ -28,6 +28,12 @@ type OrgService struct {
 	repo    *RepoService
 	cfg     config.GitConfig
 	avatars *AvatarService
+	quota   *QuotaService
+}
+
+func (s *OrgService) WithQuota(q *QuotaService) *OrgService {
+	s.quota = q
+	return s
 }
 
 // WithAvatars removes a deleted org's avatar object.
@@ -210,6 +216,27 @@ func (s *OrgService) AddMember(ctx context.Context, orgID, requestingUserID, tar
 	return s.orgs.AddMember(ctx, orgID, targetUserID, role)
 }
 
+// AdminAddOwner makes a user an owner of any org, for a superadmin the caller
+// has already checked and confirmed. A suspended owner couldn't manage the
+// org, so ErrUserSuspended; unknown names return sql.ErrNoRows.
+func (s *OrgService) AdminAddOwner(ctx context.Context, orgName, username string) (*model.Organization, *model.User, error) {
+	org, err := s.orgs.GetByName(ctx, orgName)
+	if err != nil {
+		return nil, nil, err
+	}
+	u, err := s.users.GetByUsername(ctx, username)
+	if err != nil {
+		return nil, nil, err
+	}
+	if u.Suspended() {
+		return nil, nil, ErrUserSuspended
+	}
+	if err := s.orgs.SetOwner(ctx, org.ID, u.ID); err != nil {
+		return nil, nil, err
+	}
+	return org, u, nil
+}
+
 // Refuses to demote the last owner: an org with no owner cannot be managed or deleted.
 func (s *OrgService) UpdateMemberRole(ctx context.Context, orgID, requestingUserID, targetUserID int64, role model.OrgRole) error {
 	if !s.IsOwner(ctx, orgID, requestingUserID) {
@@ -270,6 +297,9 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 	if defaultBranch == "" {
 		defaultBranch = "main"
 	}
+	if err := s.quota.CheckNewRepo(ctx, QuotaOwner{OrgID: orgID}); err != nil {
+		return nil, err
+	}
 	repoPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, org.Name, name)
 	if err != nil {
 		return nil, err
@@ -307,6 +337,7 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		}
 	}
 
+	s.quota.Recompute(r)
 	return r, nil
 }
 
