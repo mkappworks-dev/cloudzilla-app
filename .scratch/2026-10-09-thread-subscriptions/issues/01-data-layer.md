@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## What
 
@@ -12,10 +12,10 @@ Store methods: `Upsert` (sets state and reason), `InsertIfAbsent`, `Get`, `ListB
 
 ## Acceptance criteria
 
-- [ ] Migration 113 applies cleanly; deleting a user or repo removes their rows.
-- [ ] `AutoSubscribe` never changes an existing row; `Set` and `SubscribeOnMention` do.
-- [ ] `Status` reports "subscribed (watching)" for a `watching` repo watch with no row, and "muted" wins over a repo watch.
-- [ ] Store integration tests and service tests cover each method.
+- [x] Migration 113 applies cleanly; deleting a user or repo removes their rows.
+- [x] `AutoSubscribe` never changes an existing row; `Set` and `SubscribeOnMention` do.
+- [x] `Status` reports "subscribed (watching)" for a `watching` repo watch with no row, and "muted" wins over a repo watch.
+- [x] Store integration tests and service tests cover each method.
 
 ## Comments
 
@@ -39,11 +39,11 @@ A `thread_subscriptions` table holds one row per `(user, repo, kind, number)` wi
 - Service operations: status for one user and thread, set state, auto-subscribe, subscribe-on-mention, list subscribed users of a thread, list muted users of a thread.
 
 **Acceptance criteria:**
-- [ ] The migration applies cleanly and enforces the allowed `kind`, `state` and `reason` values.
-- [ ] Deleting a user or repo removes their rows.
-- [ ] Auto-subscribe leaves an existing row unchanged; set and subscribe-on-mention overwrite it.
-- [ ] Effective-state rules above hold, including muted over a repo watch.
-- [ ] Store integration tests and service tests cover every operation.
+- [x] The migration applies cleanly and enforces the allowed `kind`, `state` and `reason` values.
+- [x] Deleting a user or repo removes their rows.
+- [x] Auto-subscribe leaves an existing row unchanged; set and subscribe-on-mention overwrite it.
+- [x] Effective-state rules above hold, including muted over a repo watch.
+- [x] Store integration tests and service tests cover every operation.
 
 **Out of scope:**
 - Notification fan-out, UI and API routes (later tickets).
