@@ -154,25 +154,15 @@ jobs:
         run: |
           bin/tailwindcss -i tailwind/input.css -o cmd/server/frontend/static/main.css --minify
 
-      # The runner's own pg_dump is older than the server; the backup round-trip
-      # tests refuse a client whose major is below the server's.
-      - name: Install PostgreSQL 18 client
-        run: |
-          . /etc/os-release
-          sudo install -d /usr/share/keyrings
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
-          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-18
-          echo /usr/lib/postgresql/18/bin >> "$GITHUB_PATH"
-
       - name: Migrate test database
         run: go run ./cmd/cz-admin migrate
         env:
           CZ_DATABASE_DSN: ${{ env.TEST_DATABASE_DSN }}
 
+      # backup and seed are too slow for every push and need pg_dump 18; run them
+      # locally with `make test-integration` (see docs/testing.md).
       - name: Run tests with database
-        run: go test ./...
+        run: go test $(go list ./... | grep -v -e /internal/backup -e /internal/seed)
 
   build:
     name: Build

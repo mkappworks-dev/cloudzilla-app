@@ -72,6 +72,7 @@ Read the matching doc before working in an area:
 - [webhooks](./docs/webhooks.md) — events, HMAC signing, fire-and-forget `Dispatch`
 - [notifications](./docs/notifications.md) — types; skipped when `actorID == authorID`
 - [ui-overhaul-class-map](./docs/ui-overhaul-class-map.md) — mockup → shadcn class map and Tailwind v3 → v4 names; the source of truth when porting UI
+- [testing](./docs/testing.md) — what CI runs, why `backup` and `seed` are local-only, `make test-integration`
 - [ROADMAP](./docs/ROADMAP.md) — phase status
 
 ## Branches
