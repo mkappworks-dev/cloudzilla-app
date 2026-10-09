@@ -84,9 +84,11 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 
 	canWrite := false
 	canManage := false
+	var viewerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		viewerID = &claims.UserID
 	}
 
 	project, err := h.Services.Project.GetProject(r.Context(), projectID)
@@ -99,7 +101,7 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	columns, err := h.Services.Project.ListColumnsWithCardsExpanded(r.Context(), project.ID)
+	columns, err := h.Services.Project.ListColumnsWithCardsExpanded(r.Context(), project.ID, viewerID)
 	if err != nil {
 		http.Error(w, "failed to load board", http.StatusInternalServerError)
 		return
