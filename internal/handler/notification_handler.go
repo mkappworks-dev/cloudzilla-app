@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -13,11 +14,11 @@ import (
 
 // notificationsData builds the inbox view for the ?filter and ?page in r.
 // The mark-read endpoints reuse it so the re-rendered view stays on the caller's page.
-func (h *Handler) notificationsData(r *http.Request, userID int64) view.NotificationsData {
+func (h *Handler) notificationsData(r *http.Request, userID int64) (view.NotificationsData, error) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	np, err := h.Services.Notification.ListPage(r.Context(), userID, r.URL.Query().Get("filter"), page)
 	if err != nil {
-		return view.NotificationsData{Filter: "inbox", Page: 1, TotalPages: 1, PerPage: service.NotificationsPerPage}
+		return view.NotificationsData{}, err
 	}
 	return view.NotificationsData{
 		BasePage:      basePage(r, h.Services),
@@ -30,7 +31,18 @@ func (h *Handler) notificationsData(r *http.Request, userID int64) view.Notifica
 		InboxCount:    np.InboxCount,
 		UnreadCount:   np.UnreadCount,
 		ReadCount:     np.ReadCount,
+	}, nil
+}
+
+// renderNotificationsInbox renders the HTMX swap target, or a 500 when the list can't load.
+func (h *Handler) renderNotificationsInbox(w http.ResponseWriter, r *http.Request, userID int64) {
+	data, err := h.notificationsData(r, userID)
+	if err != nil {
+		slog.Error("notifications: list failed", "user_id", userID, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to load notifications")
+		return
 	}
+	h.render(w, r, pages.NotificationsInbox(data))
 }
 
 func (h *Handler) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +63,7 @@ func (h *Handler) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.render(w, r, pages.NotificationsInbox(h.notificationsData(r, claims.UserID)))
+		h.renderNotificationsInbox(w, r, claims.UserID)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -70,7 +82,7 @@ func (h *Handler) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Reques
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.render(w, r, pages.NotificationsInbox(h.notificationsData(r, claims.UserID)))
+		h.renderNotificationsInbox(w, r, claims.UserID)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
