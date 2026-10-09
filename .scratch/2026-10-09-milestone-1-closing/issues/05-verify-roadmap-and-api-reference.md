@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: needs-triage
+Status: done
 
 ## Problem
 
@@ -18,10 +18,10 @@ Not checked whether #203 covered all of this.
 
 ## Acceptance criteria
 
-- [ ] Read the ROADMAP status table and the Milestone 1 closing note against `git log` and the migrations; fix what is still wrong.
-- [ ] Mechanically diff the `/api/*` routes against the API reference: write a throwaway test in `internal/router` that walks the chi router with `chi.Walk` and prints method and path, then compare with the documented paths (treat `:param` and `{param}` as equal). List undocumented routes in the PR; document them or note why they are internal.
-- [ ] Add short subsystem docs for SSO and the wiki if missing, and link them from CLAUDE.md's docs list.
-- [ ] Mark Milestone 1 closed in the ROADMAP once tickets 01–03 and 06 are done.
+- [x] Read the ROADMAP status table and the Milestone 1 closing note against `git log` and the migrations; fix what is still wrong.
+- [x] Mechanically diff the `/api/*` routes against the API reference: write a throwaway test in `internal/router` that walks the chi router with `chi.Walk` and prints method and path, then compare with the documented paths (treat `:param` and `{param}` as equal). List undocumented routes in the PR; document them or note why they are internal.
+- [x] Add short subsystem docs for SSO and the wiki if missing, and link them from CLAUDE.md's docs list.
+- [x] Mark Milestone 1 closed in the ROADMAP once tickets 01–03 and 06 are done.
 
 ## Blocked by
 
