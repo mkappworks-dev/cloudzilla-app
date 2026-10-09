@@ -323,6 +323,41 @@ func (s *ProjectStore) CardAssignees(ctx context.Context, cardIDs []int64) (map[
 	return out, rows.Err()
 }
 
+// RefKinds maps each number in nums to "issues" or "pulls"; numbers matching
+// neither are absent. A number that is both resolves to "issues".
+func (s *ProjectStore) RefKinds(ctx context.Context, repoID int64, nums []int) (map[int]string, error) {
+	out := map[int]string{}
+	if len(nums) == 0 {
+		return out, nil
+	}
+	args := []any{repoID}
+	ph := make([]string, len(nums))
+	for i, n := range nums {
+		args = append(args, n)
+		ph[i] = fmt.Sprintf("$%d", i+2)
+	}
+	in := strings.Join(ph, ",")
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT number, 'pulls' FROM pull_requests WHERE repo_id = $1 AND number IN (`+in+`)
+		 UNION ALL
+		 SELECT number, 'issues' FROM issues WHERE repo_id = $1 AND number IN (`+in+`)`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var n int
+		var kind string
+		if err := rows.Scan(&n, &kind); err != nil {
+			return nil, err
+		}
+		if kind == "issues" || out[n] == "" {
+			out[n] = kind
+		}
+	}
+	return out, rows.Err()
+}
+
 // CardLabels returns each card's labels ordered by name; cards without any are absent.
 func (s *ProjectStore) CardLabels(ctx context.Context, cardIDs []int64) (map[int64][]model.Label, error) {
 	out := map[int64][]model.Label{}

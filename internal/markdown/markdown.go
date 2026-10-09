@@ -124,14 +124,18 @@ func Render(src string) string {
 
 // RenderCtx is Render with highlighting also charged to ctx's highlight budget, if any.
 func RenderCtx(ctx context.Context, src string) string {
+	return render(ctx, src)
+}
+
+func render(ctx context.Context, src string, extra ...parser.Option) string {
 	source := []byte(src)
-	p := parser.New(
+	p := parser.New(append([]parser.Option{
 		parser.WithExtensions(extension.GFMParser),
 		parser.WithAutoHeadingID(),
 		parser.WithASTTransformers(
 			util.Prioritized[parser.ASTTransformer](&linkSanitizer{}, 999),
 		),
-	)
+	}, extra...)...)
 	r := ghtml.New(
 		ghtml.WithHardWraps(),
 		ghtml.WithExtensions(extension.GFMHTMLRenderer),

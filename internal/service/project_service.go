@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -389,22 +390,24 @@ type ColumnWithCards struct {
 // Number and State describe the linked item for issue and pull cards (0 and "" otherwise);
 // LinkKind, LinkNumber and LinkState describe the link even when a custom title makes Kind "note".
 type KanbanCardView struct {
-	ID           int64
-	Title        string
-	Number       int
-	State        string // "open" | "closed" | "merged" | "" (note)
-	Kind         string // "issue" | "pull" | "note"
-	Description  string
-	DueDate      string // 2006-01-02, empty when unset
-	Overdue      bool
-	Assignees    []model.CardUser
-	Labels       []model.Label
-	LinkKind     string // "issue" | "pull" | "" (unlinked)
-	LinkNumber   int
-	LinkState    string
-	RepoFullName string
-	Position     int
-	ColumnID     int64
+	ID          int64
+	Title       string
+	Number      int
+	State       string // "open" | "closed" | "merged" | "" (note)
+	Kind        string // "issue" | "pull" | "note"
+	Description string
+	// DescriptionHTML is Description rendered with #N linked to the repo's issues and PRs.
+	DescriptionHTML string
+	DueDate         string // 2006-01-02, empty when unset
+	Overdue         bool
+	Assignees       []model.CardUser
+	Labels          []model.Label
+	LinkKind        string // "issue" | "pull" | "" (unlinked)
+	LinkNumber      int
+	LinkState       string
+	RepoFullName    string
+	Position        int
+	ColumnID        int64
 }
 
 // cardOverdue: a card whose linked item is already resolved is never overdue.
@@ -449,6 +452,23 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 	if err != nil {
 		return nil, err
 	}
+	var refNums []int
+	seenRef := map[int]bool{}
+	for _, col := range cols {
+		for _, c := range col.Cards {
+			for _, n := range markdown.RefNumbers(c.Note) {
+				if !seenRef[n] {
+					seenRef[n] = true
+					refNums = append(refNums, n)
+				}
+			}
+		}
+	}
+	kinds, err := s.projects.RefKinds(ctx, repo.ID, refNums)
+	if err != nil {
+		return nil, err
+	}
+	repoBase := "/" + fullName
 	today := time.Now().UTC()
 
 	out := make([]KanbanColumnView, len(cols))
@@ -463,6 +483,9 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 				Description:  c.Note,
 				Assignees:    assignees[c.ID],
 				Labels:       labels[c.ID],
+			}
+			if c.Note != "" {
+				cv.DescriptionHTML = markdown.RenderWithRefs(ctx, c.Note, repoBase, kinds)
 			}
 			if c.DueDate != nil {
 				cv.DueDate = c.DueDate.Format("2006-01-02")
