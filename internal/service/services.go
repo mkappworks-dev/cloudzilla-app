@@ -34,6 +34,7 @@ type Services struct {
 	PullEvent        *PullEventService
 	Search           *SearchService
 	AccessToken      *AccessTokenService
+	DeviceGrant      *DeviceGrantService
 	DeployKey        *DeployKeyService
 	BranchProtection *BranchProtectionService
 	Reaction         *ReactionService
@@ -150,6 +151,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PullEvent:        NewPullEventService(stores.PullEvent),
 		Search:           NewSearchService(stores.Search),
 		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
+		DeviceGrant:      NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken),
 		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
 		Reaction:         NewReactionService(stores.Reaction),
