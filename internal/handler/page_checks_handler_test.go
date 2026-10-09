@@ -30,7 +30,7 @@ func seedChecksFixture(t *testing.T, private bool) checksFixture {
 		t.Fatalf("init bare repo: %v", err)
 	}
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
-	if err := code.CommitFile(repo.owner.name, repo.name, "main", "a.txt", []byte("x\n"), raceAuthor, "Add a.txt"); err != nil {
+	if _, err := code.CommitFile(repo.owner.name, repo.name, "main", "a.txt", []byte("x\n"), raceAuthor, "Add a.txt"); err != nil {
 		t.Fatalf("commit a.txt: %v", err)
 	}
 	head, _, err := code.ResolveRef(repo.owner.name, repo.name, "main")

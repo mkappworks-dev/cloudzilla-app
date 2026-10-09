@@ -200,6 +200,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/orgs/{org}/settings/avatar/delete", h.RemoveOrgAvatar)
 	r.Get("/avatars/*", h.ServeAvatar)
 	r.Head("/avatars/*", h.ServeAvatar)
+	r.With(optAuthMW).Get("/attachments/{name}", h.ServeAttachment)
+	r.With(optAuthMW).Head("/attachments/{name}", h.ServeAttachment)
+	r.With(authMW, middleware.MaxBodySize(handler.AttachmentBodyBytes)).Post("/{owner}/{repo}/attachments", h.UploadAttachment)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(authMW).Get("/{owner}/{repo}/fork", h.PageForkRepo)
@@ -556,6 +559,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Post("/users/{username}/revoke-credentials", h.AdminRevokeUserCredentials)
 		r.Post("/users/{username}/password-reset-link", h.AdminIssuePasswordResetLink)
 		r.Post("/users/{username}/delete", h.AdminDeleteUser)
+		r.Post("/orgs/{org}/owners", h.AdminAddOrgOwner)
 		r.Post("/sso/{provider}/enabled", h.SetSSOEnabled)
 	})
 

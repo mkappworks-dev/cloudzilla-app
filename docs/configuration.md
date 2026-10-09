@@ -210,7 +210,7 @@ Verification and password reset links point at `server.base_url`, so set it to t
 
 | What             | Volume               | Container Path                                             |
 | ---------------- | -------------------- | ---------------------------------------------------------- |
-| PostgreSQL data  | `cloudzilla_pg_data` | (managed by PostgreSQL container)                          |
+| PostgreSQL data  | `postgres_data`      | (managed by PostgreSQL container)                          |
 | Git repositories | `cloudzilla_data`    | `/data/git-repos/`                                         |
 | Uploaded files   | `cloudzilla_data`    | `/data/storage/` (avatars; see [storage](./storage.md))    |
 | SSH host key     | `cloudzilla_data`    | `/data/cloudzilla_host_key` (auto-generated on first boot) |
@@ -377,6 +377,39 @@ cloudzilla-cli reset-2fa alice --config /etc/cloudzilla/config.yaml
 ```
 
 It clears the TOTP secret, flag and backup codes through the same code as the admin `reset-2fa` action, records `admin.user.2fa_reset` in the audit log with no actor ID and the actor name `cloudzilla-cli`, and mails the user the same security notice when SMTP is configured. A failed notice prints a warning but doesn't undo the reset. It doesn't sign the user out or touch their password, and doesn't revoke a password reset link already issued. For a user without 2FA, it says so and changes nothing. A suspended account is reset but stays suspended. See [Two-factor authentication](./access-control.md#two-factor-authentication).
+
+### `cloudzilla-cli backup`
+
+Write the database, repositories, local storage root and SSH host key to one tar archive (mode 0600).
+
+```bash
+cloudzilla-cli backup --output /backups/cloudzilla.tar
+cloudzilla-cli backup --output - | zstd > cloudzilla.tar.zst
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--output` | (required) | Archive path, or `-` for stdout. The archive is built beside the path and renamed, so a failure leaves no partial file |
+| `--pg-dump` | `pg_dump` | `pg_dump` binary. Its major version must be at least the server's |
+
+It fails before writing anything when `pg_dump` is missing or older than the server. The archive holds secrets: store it encrypted. See [Backup and restore](./deployment.md#backup-and-restore).
+
+### `cloudzilla-cli restore`
+
+Rebuild an empty instance from a backup archive.
+
+```bash
+cloudzilla-cli restore --input /backups/cloudzilla.tar
+zstd -dc cloudzilla.tar.zst | cloudzilla-cli restore --input -
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--input` | (required) | Archive path, or `-` for stdin |
+| `--pg-restore` | `pg_restore` | `pg_restore` binary |
+| `--replace-host-key` | off | Overwrite a different SSH host key already in place |
+
+It refuses a database that already has tables, a non-empty `git.repos_root`, an unknown format version, an unsafe tar entry and a backup with a migration the binary lacks. Then it restores the database, extracts the repositories, writes the host key (mode 0600), applies newer migrations and prints repository rows without a directory and directories without a row. Sign-ins survive only with the same `auth.jwt_secret`. See [Backup and restore](./deployment.md#backup-and-restore).
 
 ### Instance management
 

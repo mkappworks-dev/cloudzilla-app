@@ -47,7 +47,7 @@ func seedRaceRepo(t *testing.T, db *sql.DB, reposRoot string) raceRepo {
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
 	commit := func(branch, path string) {
 		t.Helper()
-		if err := code.CommitFile(r.owner.name, r.name, branch, path, []byte("one\ntwo\n"), raceAuthor, "Add "+path); err != nil {
+		if _, err := code.CommitFile(r.owner.name, r.name, branch, path, []byte("one\ntwo\n"), raceAuthor, "Add "+path); err != nil {
 			t.Fatalf("commit %s on %s: %v", path, branch, err)
 		}
 	}

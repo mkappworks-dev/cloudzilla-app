@@ -135,3 +135,44 @@ func migrationFiles(migFS fs.FS) ([]string, error) {
 	sort.Strings(files)
 	return files, nil
 }
+
+// MigrationKnown reports whether version is one of the embedded migrations.
+func MigrationKnown(version string) (bool, error) {
+	files, err := migrationFiles(migrationsFS)
+	if err != nil {
+		return false, err
+	}
+	for _, f := range files {
+		if strings.TrimSuffix(f, ".sql") == version {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// NewestApplied is the highest version in schema_migrations, "" when the table
+// is missing or empty. The comparison is Go's, like the file sort in
+// migrationFiles; Postgres would apply the database's collation.
+func NewestApplied(ctx context.Context, db *sql.DB) (string, error) {
+	var exists bool
+	if err := db.QueryRowContext(ctx, `SELECT to_regclass('schema_migrations') IS NOT NULL`).Scan(&exists); err != nil {
+		return "", fmt.Errorf("look up migrations table: %w", err)
+	}
+	if !exists {
+		return "", nil
+	}
+	rows, err := db.QueryContext(ctx, "SELECT version FROM schema_migrations")
+	if err != nil {
+		return "", fmt.Errorf("query applied migrations: %w", err)
+	}
+	defer rows.Close()
+	var newest string
+	for rows.Next() {
+		var v string
+		if err := rows.Scan(&v); err != nil {
+			return "", fmt.Errorf("scan migration version: %w", err)
+		}
+		newest = max(newest, v)
+	}
+	return newest, rows.Err()
+}

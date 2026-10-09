@@ -322,7 +322,7 @@ func (s *MilestoneStore) ListPullsPaged(ctx context.Context, milestoneID int64, 
 		SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
 		       pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
 		       pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
-		       pr.auto_merge_enabled, pr.auto_merge_strategy
+		       pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
 		FROM pull_requests pr
 		LEFT JOIN users u ON u.id = pr.author_id
 		WHERE pr.milestone_id = $1 AND %s

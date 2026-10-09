@@ -19,7 +19,7 @@ Cloudzilla ships a multi-stage `Dockerfile` and `docker-compose.yml`.
 | Stage     | Base                 | Purpose                                                                                                                     |
 | --------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `builder` | `golang:1.27-alpine` | Downloads Tailwind CLI (arch-aware musl build), compiles CSS, builds both Go binaries with `CGO_ENABLED=0 -ldflags="-s -w"` |
-| runtime   | `alpine:3.24`        | Copies binaries; installs `ca-certificates tzdata`; exposes 8080/2222; `HEALTHCHECK` on `/healthz`                          |
+| runtime   | `alpine:3.24`        | Copies binaries; installs `ca-certificates tzdata postgresql18-client`; exposes 8080/2222; `HEALTHCHECK` on `/healthz`                          |
 
 ### Persistent volume (`/data`)
 
@@ -157,6 +157,65 @@ scrape_configs:
 | `cloudzilla_webhook_retries_due` | gauge | | Deliveries due for retry at the last 60-second retry tick |
 | `go_sql_*` | various | `db_name="cloudzilla"` | Connection pool: open, in-use and idle connections, wait count and wait time |
 | `go_*`, `process_*` | various | | Go runtime and process stats (`process_*` on Linux only) |
+
+### Backup and restore
+
+`cloudzilla-cli backup` writes one uncompressed tar holding the database (`pg_dump --format=custom`), every repository under `git.repos_root`, the local storage root (avatars, when `storage.backend` is `local`) and the SSH host key. `cloudzilla-cli restore` rebuilds an empty instance from it. Both run `pg_dump` / `pg_restore` from `PATH`; the Docker image includes `postgresql18-client`. On a binary install, add your OS's client package. Its major version must be at least the server's: `backup` fails, naming the version needed, when the client is missing or older. `--pg-dump` and `--pg-restore` point at a specific binary.
+
+**The archive holds password hashes, webhook and TOTP secrets, every private repository and the SSH host key's private half.** Store it encrypted and mode 0600 (the file is created that way).
+
+What a backup doesn't cover:
+
+- **Configuration.** Keep `config.yaml` and your `CZ_*` variables yourself. Restore with the same `auth.jwt_secret`, or everyone is signed out. Restore with the same `security.secret_key`, or stored credentials such as mirror tokens become unreadable.
+- **An S3 bucket.** With `storage.backend: s3` the bucket isn't copied; the manifest records its name, and `restore` prints a warning. Use bucket versioning or replication.
+
+#### Hot backup
+
+The server can keep running. `pg_dump` takes one consistent snapshot first. Then each repository is copied refs first (`HEAD`, `config`, `packed-refs`, `refs/`) and objects second. Git writes objects before it moves a ref, so every ref in the copy resolves, and so does every commit the database names, even when a push lands mid-copy. **Don't run `cloudzilla-cli gc` while a backup runs:** it could prune an object the copy still needs.
+
+A repository created, renamed, transferred or deleted during the copy can disagree with its database row. `restore` lists those as warnings. For a copy that is consistent by construction, stop the server first:
+
+```bash
+docker compose stop cloudzilla
+docker compose run --rm -T --no-deps --entrypoint /app/cloudzilla-cli cloudzilla backup --output - \
+  | zstd -q -o "/backups/cloudzilla-$(date +%F).tar.zst"
+docker compose start cloudzilla
+```
+
+#### Nightly backup
+
+`--output -` writes the archive to stdout, so it can leave the container compressed and encrypted without touching a volume. This crontab line keeps one archive per day:
+
+```cron
+0 3 * * * umask 077; cd /srv/cloudzilla && docker compose exec -T cloudzilla /app/cloudzilla-cli backup --output - | zstd -q | age -r age1yourpublickey... -o /backups/cloudzilla-$(date +\%F).tar.zst.age
+```
+
+The summary prints to stderr. Test a restore from your newest archive now and then; an untested backup is a hope.
+
+#### Restore runbook
+
+Restore only runs into a new, empty database and an empty (or missing) `git.repos_root`. It checks the whole archive first and refuses, writing nothing, when:
+
+- the database already has a `schema_migrations` table or any other table;
+- `git.repos_root` is not empty;
+- the archive's format version is unknown, an entry is a symlink, device or hard link, or an entry path is absolute or contains `..`;
+- the backup holds a migration this binary doesn't have (restore with the release that took it, or a newer one);
+- a different SSH host key is already in place (the server generates one on first boot). Remove it, or pass `--replace-host-key`.
+
+1. Start a fresh Postgres 18 with an empty volume, and leave the Cloudzilla volume empty too. Don't start the `cloudzilla` service yet: its first boot would create a host key.
+2. Set the same `auth.jwt_secret` and `security.secret_key` as the old instance.
+3. Restore:
+
+   ```bash
+   docker compose up -d --wait postgres
+   age -d -i key.txt /backups/cloudzilla-2026-10-08.tar.zst.age | zstd -dc \
+     | docker compose run --rm -T --no-deps --entrypoint /app/cloudzilla-cli cloudzilla restore --input -
+   ```
+
+4. Read the report. Warnings name repository rows without a directory, and directories without a row. Migrations newer than the backup are applied, so a backup from an older release restores into a newer one.
+5. `docker compose up -d`.
+
+If extraction or migration fails after the database was restored, the error says so. Drop the database, empty the volumes and start again from step 1.
 
 ### Behind a reverse proxy
 

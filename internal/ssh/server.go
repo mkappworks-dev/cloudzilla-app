@@ -260,50 +260,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 	// Dispatch push webhooks for each updated branch.
 	if gitCmd == "git-receive-pack" {
-		for _, cmd := range commands {
-			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
-				continue
-			}
-			if cmd.Action() == packp.Delete {
-				continue
-			}
-			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
-			payload := s.services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
-			repoID := repo.ID
-			concurrency.Go("webhook.dispatch.push", func() {
-				s.services.Webhook.Dispatch(repoID, "push", payload)
-			})
-		}
-
-		// Record push activity-feed events (one per updated branch).
-		// Deploy-key pushes have no human actor, so they are skipped.
-		if dkVal == nil {
-			repoID := repo.ID
-			repoName, ownerName := repo.Name, repo.OwnerName
-			concurrency.Go("event.record.push", func() {
-				for _, ps := range s.services.Repo.PushSummaries(gitRepo, commands) {
-					s.services.Event.RecordPush(context.Background(), pusherID, pusherName, &repoID, repoName, ownerName, ps)
-				}
-			})
-		}
-
-		if dkVal == nil {
-			actor := service.CloseActor{UserID: pusherID, Username: pusherName}
-			concurrency.Go("issue_closer.close_for_push", func() {
-				bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-				defer cancel()
-				s.services.IssueCloser.CloseForPush(bg, actor, repo, gitRepo, commands)
-			})
-		}
-
-		concurrency.Go("repo.on_post_receive", func() {
-			bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-			defer cancel()
-			if err := s.services.Repo.OnPostReceive(bg, repo, gitRepo, commands); err != nil {
-				slog.Error("post-receive: commit stats ingest failed",
-					"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name, "error", err)
-			}
-		})
+		s.services.Push.AfterPush(repo, gitRepo, service.CloseActor{UserID: pusherID, Username: pusherName}, commands)
 	}
 
 	_ = session.Exit(0)

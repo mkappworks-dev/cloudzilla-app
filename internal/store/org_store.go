@@ -166,6 +166,19 @@ func (s *OrgStore) AddMember(ctx context.Context, orgID, userID int64, role mode
 	return nil
 }
 
+// SetOwner makes userID an owner, adding them if they aren't a member. It
+// can't drop an owner, so it needs no last-owner check.
+func (s *OrgStore) SetOwner(ctx context.Context, orgID, userID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO org_members (org_id, user_id, role) VALUES ($1, $2, 'owner')
+		 ON CONFLICT (org_id, user_id) DO UPDATE SET role = 'owner'`,
+		orgID, userID)
+	if err != nil {
+		return fmt.Errorf("org set owner: %w", err)
+	}
+	return nil
+}
+
 func (s *OrgStore) RemoveMember(ctx context.Context, orgID, userID int64) error {
 	return s.changeMember(ctx, orgID, userID, true,
 		`DELETE FROM org_members WHERE org_id = $1 AND user_id = $2`)

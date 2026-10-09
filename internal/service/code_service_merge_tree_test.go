@@ -184,7 +184,7 @@ func TestPullMerges_RefuseConflictingEdits(t *testing.T) {
 func TestApplySuggestion_KeepsSubmodules(t *testing.T) {
 	r := newTipTestRepo(t)
 	r.commitEntry(t, "feature", "deps/feature-lib", filemode.Submodule, featureLib)
-	if err := r.svc.ApplySuggestion(r.owner, r.name, "feature", "f.txt", 1, "uno", tipTestAuthor); err != nil {
+	if _, err := r.svc.ApplySuggestion(r.owner, r.name, "feature", "f.txt", 1, "uno", tipTestAuthor); err != nil {
 		t.Fatalf("ApplySuggestion: %v", err)
 	}
 	r.expectEntries(t, "feature", map[string]mergeFile{

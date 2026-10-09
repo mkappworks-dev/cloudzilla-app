@@ -13,7 +13,7 @@ import (
 // after themselves; callers map this to a redirect to the create-repo flow.
 var ErrProfileRepoMissing = errors.New("profile repo does not exist")
 
-func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content string, author GitAuthor, message string) error {
+func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content string, author GitAuthor, message string) (RefUpdate, error) {
 	if strings.TrimSpace(defaultBranch) == "" {
 		defaultBranch = "main"
 	}
@@ -24,14 +24,15 @@ func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content 
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		if errors.Is(err, gogit.ErrRepositoryNotExists) {
-			return ErrProfileRepoMissing
+			return RefUpdate{}, ErrProfileRepoMissing
 		}
-		return fmt.Errorf("profile readme open: %w", err)
+		return RefUpdate{}, fmt.Errorf("profile readme open: %w", err)
 	}
 
 	branchRef := plumbing.NewBranchReferenceName(defaultBranch)
-	if err := commitSingleFile(repo, branchRef, author, message, "README.md", []byte(content)); err != nil {
-		return fmt.Errorf("profile readme commit: %w", err)
+	upd, err := commitSingleFile(repo, branchRef, author, message, "README.md", []byte(content))
+	if err != nil {
+		return RefUpdate{}, fmt.Errorf("profile readme commit: %w", err)
 	}
-	return nil
+	return upd, nil
 }

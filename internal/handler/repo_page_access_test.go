@@ -120,7 +120,7 @@ func seedPrivateRepoFixture(t *testing.T, db *sql.DB) privateRepoFixture {
 		t.Fatalf("init bare repo: %v", err)
 	}
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
-	if err := code.CommitFile(repo.owner.name, repo.name, "main", "a.txt", []byte("x\n"), raceAuthor, "Add a.txt"); err != nil {
+	if _, err := code.CommitFile(repo.owner.name, repo.name, "main", "a.txt", []byte("x\n"), raceAuthor, "Add a.txt"); err != nil {
 		t.Fatalf("commit a.txt: %v", err)
 	}
 

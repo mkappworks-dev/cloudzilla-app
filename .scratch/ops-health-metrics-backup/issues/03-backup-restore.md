@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Spec: [../spec.md](../spec.md) (Backup and restore)
 
 Shaped by the spec's decisions 3 (form), 4 (hot or cold) and 7 (testing the restore):
@@ -60,14 +60,14 @@ Then it:
 
 ## Acceptance criteria
 
-- [ ] Backup from a seeded instance, then restore into a fresh database and an empty repos root. Every table has the same row count, and every repository has the same refs pointing at the same SHAs.
-- [ ] Every restored repository opens with go-git and walks its HEAD history without missing objects.
-- [ ] The host key file is restored byte-for-byte with mode 0600.
-- [ ] `restore` refuses a non-empty database, a non-empty repos root, an unknown format version, and a backup with a migration this binary doesn't have. Each refusal message names the reason, and nothing is written.
-- [ ] A tar entry with `..`, an absolute path or a symlink is rejected before anything is extracted.
-- [ ] A backup taken while a push is in flight restores to a state where every ref resolves.
-- [ ] `backup` with no `pg_dump` on `PATH`, or one older than the server, fails with a message naming the needed version, and leaves no partial output file.
-- [ ] The Docker image has `pg_dump --version` reporting 18.x.
+- [x] Backup from a seeded instance, then restore into a fresh database and an empty repos root. Every table has the same row count, and every repository has the same refs pointing at the same SHAs.
+- [x] Every restored repository opens with go-git and walks its HEAD history without missing objects.
+- [x] The host key file is restored byte-for-byte with mode 0600.
+- [x] `restore` refuses a non-empty database, a non-empty repos root, an unknown format version, and a backup with a migration this binary doesn't have. Each refusal message names the reason, and nothing is written.
+- [x] A tar entry with `..`, an absolute path or a symlink is rejected before anything is extracted.
+- [x] A backup taken while a push is in flight restores to a state where every ref resolves.
+- [x] `backup` with no `pg_dump` on `PATH`, or one older than the server, fails with a message naming the needed version, and leaves no partial output file.
+- [x] The Docker image has `pg_dump --version` reporting 18.x.
 
 ## Tests
 
@@ -87,3 +87,12 @@ Then it:
 - `Dockerfile`
 - `docs/deployment.md`
 - `docs/configuration.md`
+
+## Comments
+
+**Claude, 2026-10-08:** Done. Two deviations from the text above:
+
+- The S3 avatar work has landed, and the Docker image defaults to a local storage root, so the archive gains a `storage/` section (the local root, when `storage.backend` is `local`). Restoring without it would 404 every avatar. An S3 backend is still only recorded in the manifest, and `restore` warns.
+- `restore` also refuses a target database that has tables but no `schema_migrations`, since `pg_restore` would fail midway on them.
+
+The "image reports `pg_dump` 18.x" criterion was checked with the Dockerfile's own `apk add` line on `alpine:3.24` (18.6), not a full image build.

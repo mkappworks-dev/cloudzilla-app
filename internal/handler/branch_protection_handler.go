@@ -81,6 +81,7 @@ func (h *Handler) CreateBranchProtection(w http.ResponseWriter, r *http.Request)
 		RequireReviewCount:  requireReviewCount,
 		RequireStatusChecks: statusChecks,
 		BlockForcePush:      blockForcePush,
+		RequirePullRequest:  r.FormValue("require_pull_request") == "true",
 	}
 	if err := h.Services.BranchProtection.Create(r.Context(), bp); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "failed to create branch protection")
@@ -142,7 +143,7 @@ func (h *Handler) UpdateBranchProtection(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	if err := h.Services.BranchProtection.Update(r.Context(), id, repo.ID, requireReviewCount, statusChecks, blockForcePush); err != nil {
+	if err := h.Services.BranchProtection.Update(r.Context(), id, repo.ID, requireReviewCount, statusChecks, blockForcePush, r.FormValue("require_pull_request") == "true"); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "failed to update branch protection")
 		return
 	}

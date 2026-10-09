@@ -362,21 +362,23 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 
 ## Branch Protections
 
-| Method | Path                                               | Auth      | Description                                                                                      |
-| ------ | -------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
-| GET    | `/api/repos/:owner/:repo/branches/protections`     | CanManage | List all branch protection rules for the repository                                              |
-| POST   | `/api/repos/:owner/:repo/branches/protections`     | CanManage | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`) |
-| PATCH  | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Update an existing rule (same fields as POST; only provided fields are changed)                  |
-| DELETE | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Delete a protection rule                                                                         |
+| Method | Path                                               | Auth      | Description                                                                                                                  |
+| ------ | -------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/branches/protections`     | CanManage | List all branch protection rules for the repository                                                                          |
+| POST   | `/api/repos/:owner/:repo/branches/protections`     | CanManage | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`, `require_pull_request`)     |
+| PATCH  | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Update an existing rule (same fields as POST except `pattern`; a field left out is reset, so `require_pull_request` turns off) |
+| DELETE | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Delete a protection rule                                                                                                     |
+
+`require_pull_request` (default `false`) refuses every direct update of a matching branch, with no bypass for admins: a push (create, update or delete), a branch create or delete through the API, and a file created, edited, renamed or deleted from the browser. Changes reach the branch only by merging a pull request. The refusal is `422 pull request required by branch protection: rule "<pattern>"`; over git it is the per-ref status of the push ([git-transport](./git-transport.md#concurrent-ref-updates)).
 
 ## Branches & Tags
 
-| Method | Path                                      | Auth     | Description                                                                   |
-| ------ | ----------------------------------------- | -------- | ----------------------------------------------------------------------------- |
-| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch) |
-| DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push`)      |
-| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields)                                       |
-| DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                    |
+| Method | Path                                      | Auth     | Description                                                                                                     |
+| ------ | ----------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`) |
+| DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push` or `require_pull_request`)              |
+| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields)                                                                         |
+| DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                                                      |
 
 All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.
 
@@ -491,6 +493,15 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | CanManage | Remove collaborator by user ID (403 when a non-owner removes an admin) |
 
 See [access-control.md](access-control.md) for the full permission model. `CanManage` requires owner, org owner, or `admin` collaborator role.
+
+## Markdown image attachments
+
+| Method | Path                           | Auth     | Description |
+| ------ | ------------------------------ | -------- | ----------- |
+| POST   | `/:owner/:repo/attachments`    | Required | Upload an image as multipart field `file`: PNG, JPEG, GIF or WebP, at most 10 MB. Returns `{"url": "/attachments/<token>.<ext>", "markdown": "![name](/attachments/<token>.<ext>)"}`. 404 when the repo is unknown or the caller can't read it; 413 over 10 MB; 422 for anything else that isn't such an image |
+| GET    | `/attachments/:name`           | Optional | Serve the image if the caller can read its repo, with `Cache-Control: private, no-cache` and an `ETag` (304 on `If-None-Match`); 404 otherwise, including for an unknown or malformed name |
+
+See [storage](./storage.md#markdown-image-attachments).
 
 ## Avatars
 

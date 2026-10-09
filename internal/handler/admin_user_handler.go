@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -214,6 +215,42 @@ func (h *Handler) AdminIssuePasswordResetLink(w http.ResponseWriter, r *http.Req
 		ExpiresAt: expiresAt,
 		Notified:  h.Services.Email.Enabled(),
 	}))
+}
+
+// AdminAddOrgOwner makes the named user an owner of any org. The optional
+// "from" username is the admin user page to return to.
+func (h *Handler) AdminAddOrgOwner(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok || !claims.IsSuperadmin {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
+	orgName := chi.URLParam(r, "org")
+	username := strings.TrimSpace(r.FormValue("username"))
+	org, u, err := h.Services.Org.AdminAddOwner(r.Context(), orgName, username)
+	if err != nil {
+		status, msg := adminUserActionError(err)
+		if status == http.StatusInternalServerError {
+			slog.Error("admin add org owner", "org", orgName, "username", username, "error", err)
+		}
+		writeError(w, status, msg)
+		return
+	}
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionAdminOrgOwnerAdd, model.AuditTargetOrg, org.ID, org.Name,
+		map[string]any{"username": u.Username})
+	back := "/admin/users/" + url.PathEscape(u.Username)
+	if from := strings.TrimSpace(r.FormValue("from")); from != "" {
+		back = "/admin/users/" + url.PathEscape(from)
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Refresh", "true")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
 // AdminDeleteUser answers with a redirect to the list, since the user page is gone.

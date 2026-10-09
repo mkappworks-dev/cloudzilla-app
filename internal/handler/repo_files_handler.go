@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -216,6 +217,10 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
+		http.Error(w, msg, status)
+		return
+	}
 
 	if err := parseNewFileForm(r); err != nil {
 		var tooLarge *http.MaxBytesError
@@ -272,7 +277,8 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message); err != nil {
+	upd, err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message)
+	if err != nil {
 		if errors.Is(err, service.ErrRefMoved) {
 			http.Error(w, branchMovedMsg, http.StatusConflict)
 			return
@@ -289,7 +295,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
-	h.Services.Quota.Recompute(repo)
+	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
 	http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, path), http.StatusSeeOther)
 }
 
@@ -340,6 +346,20 @@ func (h *Handler) storageRefusal(r *http.Request, repo *model.Repository) (int, 
 		slog.Error("check storage quota", "repo_id", repo.ID, "error", err)
 		return http.StatusInternalServerError, "failed to check the storage quota"
 	}
+}
+
+// webCommitRefusal returns the status and message that refuse a browser commit
+// to ref under branch protection, or 0 when it may go ahead.
+func (h *Handler) webCommitRefusal(ctx context.Context, repoID int64, ref string) (int, string) {
+	err := h.Services.BranchProtection.CheckWebCommit(ctx, repoID, ref)
+	switch {
+	case err == nil:
+		return 0, ""
+	case errors.Is(err, service.ErrPushRequiresPR):
+		return http.StatusUnprocessableEntity, err.Error()
+	}
+	slog.Error("check branch protection", "repo_id", repoID, "ref", ref, "error", err)
+	return http.StatusInternalServerError, "internal server error"
 }
 
 // editRefusal says why the browser editor can't open f, or "" when it can.
@@ -484,6 +504,10 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		refuse(http.StatusConflict, "This file changed on "+ref+" after you opened it, so your changes weren't committed.")
 	}
 
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
+		refuse(status, msg)
+		return
+	}
 	if file == nil || file.SHA != data.BlobSHA {
 		conflict()
 		return
@@ -522,10 +546,10 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Services.Code.EditFile(owner, repoName, ref, path, newPath, data.BlobSHA, []byte(content), author, message)
+	upd, err := h.Services.Code.EditFile(owner, repoName, ref, path, newPath, data.BlobSHA, []byte(content), author, message)
 	switch {
 	case err == nil:
-		h.Services.Quota.Recompute(repo)
+		h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
 		http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, newPath), http.StatusSeeOther)
 	case errors.Is(err, service.ErrRefNotFound):
 		h.NotFound(w, r)
@@ -565,6 +589,10 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "file not found")
 		return
 	}
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
+		writeError(w, status, msg)
+		return
+	}
 	if err := parseNewFileForm(r); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form")
 		return
@@ -579,10 +607,10 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dir, err := h.Services.Code.DeleteFile(owner, repoName, ref, path, r.FormValue("blob_sha"), author, message)
+	dir, upd, err := h.Services.Code.DeleteFile(owner, repoName, ref, path, r.FormValue("blob_sha"), author, message)
 	switch {
 	case err == nil:
-		h.Services.Quota.Recompute(repo)
+		h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
 		redirectAfterSave(w, r, codeurl.Path(owner, repoName, "tree", ref, dir))
 	case errors.Is(err, service.ErrRefNotFound) || errors.Is(err, service.ErrEmptyRepo):
 		writeError(w, http.StatusNotFound, "branch not found")

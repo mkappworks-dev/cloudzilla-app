@@ -38,7 +38,7 @@ func TestLineComment_MustBelongToURLPull(t *testing.T) {
 		t.Fatalf("Repo.Create: %v", err)
 	}
 	author := service.GitAuthor{Name: attacker, Email: attacker + "@test.invalid"}
-	if err := svc.Code.CommitFile(attacker, repoAName, "feature", "secret.txt", []byte("original\n"), author, "init"); err != nil {
+	if _, err := svc.Code.CommitFile(attacker, repoAName, "feature", "secret.txt", []byte("original\n"), author, "init"); err != nil {
 		t.Fatalf("CommitFile: %v", err)
 	}
 	seedOpenPull(t, db, repoA.ID, attackerID, 1)
