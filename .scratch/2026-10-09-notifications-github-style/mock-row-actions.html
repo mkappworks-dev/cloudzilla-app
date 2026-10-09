@@ -1,0 +1,113 @@
+<!doctype html>
+<html data-theme="dark"><head><meta charset="utf-8"><title>Notifications mock v2: row actions</title>
+<style>
+:root{--bg:#0d1117;--head:#161b22;--border:#30363d;--fg:#e6edf3;--mut:#8b949e;--blue:#4493f8;--accent:#1f6feb22;--hover:#161b22;--green:#3fb950;--purple:#ab7df8;--red:#f85149;--amber:#d29922}
+[data-theme=light]{--bg:#fff;--head:#f6f8fa;--border:#d0d7de;--fg:#1f2328;--mut:#656d76;--blue:#0969da;--accent:#ddf4ff;--hover:#f6f8fa;--green:#1a7f37;--purple:#8250df;--red:#cf222e;--amber:#9a6700}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,system-ui,sans-serif}
+.nav{height:48px;background:var(--head);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;color:var(--mut)}
+.wrap{max-width:1100px;margin:24px auto;padding:0 24px}
+h1{font-size:20px;font-weight:600;margin:0 0 16px}
+.layout{display:grid;grid-template-columns:210px 1fr;gap:24px}
+.side a{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 10px;border-radius:6px;color:var(--fg);text-decoration:none;font-size:13px}
+.side a.on{background:var(--accent);font-weight:600}.side a:hover:not(.on){background:var(--hover)}
+.side a.set{justify-content:flex-start;margin-top:12px}
+.cnt{color:var(--mut);font-size:12px;font-family:ui-monospace,monospace}
+.box{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.bar{display:flex;align-items:center;gap:12px;padding:8px 16px;background:var(--head);border-bottom:1px solid var(--border);font-size:13px;min-height:45px}
+.btn{border:1px solid var(--border);background:var(--head);color:var(--fg);border-radius:6px;padding:3px 12px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--accent)}
+.grp{padding:8px 16px;background:var(--head);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;font-family:ui-monospace,monospace;display:flex;align-items:center;gap:12px}
+.row{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--border);position:relative;min-height:46px}
+.row:last-child{border-bottom:0}.row:hover{background:var(--hover)}
+.row.unread{background:var(--accent)}.row.sel{background:var(--accent);outline:1px solid var(--blue);outline-offset:-1px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--blue);flex:none}.dot.r{background:none;border:1px solid var(--border)}
+input[type=checkbox]{width:15px;height:15px;margin:0;flex:none;accent-color:var(--blue);cursor:pointer}
+.ico{width:18px;flex:none;display:grid;place-items:center}
+.t{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.row.unread .ttl{font-weight:600}.row:not(.unread) .ttl{color:var(--mut)}
+.act{font-size:12px;color:var(--mut);margin-left:8px}
+.right{display:flex;align-items:center;gap:12px;flex:none;width:150px;justify-content:flex-end;position:relative;height:28px}
+.av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:600;color:#fff;flex:none}
+.time{font-size:12px;color:var(--mut);width:64px;text-align:right}
+.acts{display:none;gap:4px;position:absolute;right:0;top:0;height:28px;align-items:center;background:inherit}
+.row:hover .acts,.row:focus-within .acts{display:flex}
+.row:hover .time,.row:focus-within .time{visibility:hidden}
+.ib{width:28px;height:28px;border:1px solid var(--border);background:var(--head);color:var(--mut);border-radius:6px;display:grid;place-items:center;cursor:pointer}
+.ib:hover{color:var(--fg);background:var(--accent)}
+.tip{position:relative}.tip:hover::after{content:attr(data-tip);position:absolute;bottom:34px;right:0;background:#000;color:#fff;font-size:11px;padding:3px 7px;border-radius:4px;white-space:nowrap;z-index:5}
+.pg{display:flex;justify-content:center;gap:4px;margin:20px 0 8px;font-size:14px}
+.pg a{min-width:32px;height:32px;display:grid;place-items:center;border-radius:6px;color:var(--fg);padding:0 8px}
+.pg a.on{background:var(--blue);color:#fff}.pg a.dis{color:var(--mut)}
+.note{margin:20px 0;padding:12px 16px;border:1px dashed var(--amber);border-radius:6px;color:var(--mut);font-size:12.5px;line-height:1.6}
+.note b{color:var(--fg)}
+.tg{position:fixed;right:16px;bottom:16px}
+.hide{display:none!important}
+</style></head><body>
+<div class="nav"><b style="color:var(--fg)">Cloudzilla</b><span>Repositories</span><span>Issues</span><span>Pull requests</span></div>
+<div class="wrap">
+<h1>Notifications</h1>
+<div class="layout">
+ <aside class="side">
+  <a class="on">Inbox <span class="cnt">5</span></a>
+  <a>Unread <span class="cnt">4</span></a>
+  <a>Read <span class="cnt">1</span></a>
+  <a class="set"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="color:var(--mut)"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Notification settings</a>
+ </aside>
+ <main>
+  <div class="box" id="box">
+   <div class="bar" id="bar-default"><input type="checkbox" id="all" aria-label="Select all"><span style="color:var(--mut)"><span class="cnt">4</span> unread</span><span style="flex:1"></span><span class="btn">✓ Mark all as read</span></div>
+   <div class="bar hide" id="bar-sel"><input type="checkbox" id="all2" checked aria-label="Select all"><b><span id="n">0</span> selected</b><span style="flex:1"></span>
+     <span class="btn">✓ Done</span><span class="btn">🔕 Unsubscribe</span></div>
+
+   <div class="grp">acme/api</div>
+   <div class="row unread"><span class="dot"></span><input type="checkbox" class="c"><span class="ico" style="color:var(--purple)">⑂</span>
+     <span class="t"><span class="ttl">Add retry backoff to webhook dispatcher</span><span class="act">@lena merged PR #48</span></span>
+     <span class="right"><span class="av" style="background:#8250df">L</span><span class="time">2h ago</span>
+       <span class="acts"><span class="ib tip" data-tip="Done">✓</span><span class="ib tip" data-tip="Unsubscribe from acme/api">🔕</span></span></span></div>
+   <div class="row unread"><span class="dot"></span><input type="checkbox" class="c"><span class="ico" style="color:var(--green)">◉</span>
+     <span class="t"><span class="ttl">Add retry backoff to webhook dispatcher</span><span class="act">@omar reviewed PR #48</span></span>
+     <span class="right"><span class="av" style="background:#1a7f37">O</span><span class="time">5h ago</span>
+       <span class="acts"><span class="ib tip" data-tip="Done">✓</span><span class="ib tip" data-tip="Unsubscribe from acme/api">🔕</span></span></span></div>
+   <div class="grp">acme/web</div>
+   <div class="row unread"><span class="dot"></span><input type="checkbox" class="c"><span class="ico" style="color:var(--amber)">@</span>
+     <span class="t"><span class="ttl">Navbar collapses on tablet widths</span><span class="act">@priya mentioned you</span></span>
+     <span class="right"><span class="av" style="background:#bf8700">P</span><span class="time">yesterday</span>
+       <span class="acts"><span class="ib tip" data-tip="Done">✓</span><span class="ib tip" data-tip="Unsubscribe from acme/web">🔕</span></span></span></div>
+   <div class="row"><span class="dot r"></span><input type="checkbox" class="c"><span class="ico" style="color:var(--red)">⊗</span>
+     <span class="t"><span class="ttl">Dark mode flashes on first paint</span><span class="act">@sam closed issue #112</span></span>
+     <span class="right"><span class="av" style="background:#cf222e">S</span><span class="time">Oct 6</span>
+       <span class="acts"><span class="ib tip" data-tip="Unsubscribe from acme/web">🔕</span></span></span></div>
+   <div class="grp">mk/dotfiles</div>
+   <div class="row unread"><span class="dot"></span><input type="checkbox" class="c"><span class="ico" style="color:var(--blue)">⇄</span>
+     <span class="t"><span class="ttl">@lena wants to transfer a repository to you</span></span>
+     <span class="right"><span class="av" style="background:#8250df">L</span><span class="time">Oct 5</span>
+       <span class="acts"><span class="ib tip" data-tip="Done">✓</span></span></span></div>
+  </div>
+  <div class="pg"><a class="dis">‹ Previous</a><a class="on">1</a><a>2</a><a>3</a><a class="dis">…</a><a>12</a><a>Next ›</a></div>
+  <div class="cnt" style="text-align:center">1–25 of 287</div>
+ </main>
+</div>
+<div class="note">
+<b>What changed from v1</b><br>
+Row: <b>dot · checkbox · type icon · title + muted action · avatar of who triggered it · date</b>.<br>
+Hover (or keyboard focus) swaps the date for <b>✓ Done</b> and <b>🔕 Unsubscribe</b>, as on GitHub. Try it: hover a row, tick checkboxes.<br>
+Ticking any checkbox turns the header into <b>"N selected · Done · Unsubscribe"</b>.<br><br>
+<b>Open points to decide</b><br>
+1. <b>Unsubscribe</b> means <i>stop watching that repository</i> (removes your watch). We have no per-thread subscriptions, so it affects every future notification from that repo. The tooltip says so. Hidden on the transfer row (no watch involved) and on rows for a repo you don't watch.<br>
+2. <b>Done</b> = today's "mark as read" (rows stay in the inbox, shown greyed, and move to the Read filter). No separate archive state.<br>
+3. Avatar is the actor's profile picture, falling back to initials (existing <code>components.Avatar</code>).
+</div>
+</div>
+<button class="btn tg" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Toggle theme</button>
+<script>
+const cs=[...document.querySelectorAll('.c')],all=document.getElementById('all'),all2=document.getElementById('all2');
+function sync(){const k=cs.filter(c=>c.checked).length;
+ cs.forEach(c=>c.closest('.row').classList.toggle('sel',c.checked));
+ document.getElementById('n').textContent=k;
+ document.getElementById('bar-default').classList.toggle('hide',k>0);
+ document.getElementById('bar-sel').classList.toggle('hide',k===0);
+ all.checked=false;all2.checked=k===cs.length;}
+cs.forEach(c=>c.addEventListener('change',sync));
+[all,all2].forEach(a=>a.addEventListener('change',()=>{cs.forEach(c=>c.checked=a.checked);sync();}));
+</script>
+</body></html>

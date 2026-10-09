@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -157,4 +158,55 @@ func (s *NotificationStore) CountByFilter(ctx context.Context, userID int64, fil
 		return 0, fmt.Errorf("notification count by filter: %w", err)
 	}
 	return count, nil
+}
+
+// inPlaceholders returns "$start,$start+1,..." for ids and the ids as query args.
+func inPlaceholders(start int, ids []int64) (string, []any) {
+	ph := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		ph[i] = fmt.Sprintf("$%d", start+i)
+		args[i] = id
+	}
+	return strings.Join(ph, ","), args
+}
+
+// MarkReadMany marks the given notifications read; ids that belong to another user are ignored.
+func (s *NotificationStore) MarkReadMany(ctx context.Context, userID int64, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	ph, args := inPlaceholders(2, ids)
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE notifications SET read = TRUE WHERE user_id = $1 AND id IN (`+ph+`)`,
+		append([]any{userID}, args...)...,
+	)
+	return err
+}
+
+// RepoIDsOf returns the distinct repos of userID's notifications among ids, leaving out
+// repo_transfer rows: a transfer says nothing about whether the user watches that repo.
+func (s *NotificationStore) RepoIDsOf(ctx context.Context, userID int64, ids []int64) ([]int64, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	ph, args := inPlaceholders(2, ids)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT DISTINCT repo_id FROM notifications
+		 WHERE user_id = $1 AND type <> 'repo_transfer' AND id IN (`+ph+`)`,
+		append([]any{userID}, args...)...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("notification repo ids: %w", err)
+	}
+	defer rows.Close()
+	var repoIDs []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		repoIDs = append(repoIDs, id)
+	}
+	return repoIDs, rows.Err()
 }

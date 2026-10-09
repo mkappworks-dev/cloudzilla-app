@@ -271,7 +271,7 @@ func (h *Handler) PageNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := h.notificationsData(r, claims.UserID)
+	data, r, err := h.notificationsData(r, claims.UserID)
 	if err != nil {
 		slog.Error("notifications page: list failed", "user_id", claims.UserID, "error", err)
 		http.Error(w, "failed to load notifications", http.StatusInternalServerError)

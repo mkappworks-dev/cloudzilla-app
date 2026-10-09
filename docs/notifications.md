@@ -47,8 +47,12 @@ Immediate email goes only to the notification's direct recipient (the subject's 
 | PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware) |
 | POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)   |
 | GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                   |
+| POST `/api/notifications/done`        | Required | Mark the notifications in repeated form field `ids` as read (at most 100; other users' ids are ignored) |
+| POST `/api/notifications/unsubscribe` | Required | Stop watching the repo behind each notification in `ids` |
 
-The mark-read endpoints take the same `?filter` and `?page`, and their HTMX responses swap `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
+The mark-read and bulk endpoints take the same `?filter` and `?page`, and their HTMX responses swap `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
+
+Each row has a checkbox, the actor's avatar and, on hover or focus, Done and Unsubscribe buttons; ticking rows swaps the list header for a bulk bar. Unsubscribe is per repo, not per thread: no thread-level subscriptions exist, so it deletes the user's watch on the repo. It is offered only where that watch exists at a level other than `ignoring`, and never on `repo_transfer` rows, whose repo says nothing about the user's watches. Done is mark-read: the row stays in the inbox and moves to the Read filter.
 
 Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text beside it; mentions, repo transfers and rows created before migration 112 have no title and show only the action text.
 

@@ -269,6 +269,71 @@ func TestNotification_ListPage_ClampsAndCounts(t *testing.T) {
 	}
 }
 
+func TestNotification_UnsubscribeFromRepos_DropsOnlyOwnWatchOnThoseRepos(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	otherID := testutil.SeedUser(t, db, "other_"+suffix)
+	actorID := testutil.SeedUser(t, db, "actor_"+suffix)
+	owner := "testuser_" + suffix
+	repoA := testutil.SeedRepo(t, db, userID, owner, suffix)
+	repoB := testutil.SeedRepo(t, db, userID, owner, "b_"+suffix)
+
+	notifStore := store.NewNotificationStore(db)
+	watches := store.NewWatchStore(db)
+	svc := service.NewNotificationService(notifStore, watches, service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
+		service.NewEmailService(config.SMTPConfig{}),
+		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
+	)
+	ctx := context.Background()
+
+	for _, w := range []struct {
+		user, repo int64
+		level      string
+	}{
+		{userID, repoA, model.WatchLevelWatching},
+		{userID, repoB, model.WatchLevelWatching},
+		{otherID, repoA, model.WatchLevelWatching},
+	} {
+		if err := watches.Set(ctx, w.user, w.repo, w.level); err != nil {
+			t.Fatalf("watch: %v", err)
+		}
+	}
+	n := &model.Notification{
+		UserID: userID, ActorID: actorID, ActorName: "a", Type: model.NotifIssueComment,
+		RepoID: repoA, RepoName: suffix, OwnerName: owner, SubjectID: 1,
+	}
+	if err := notifStore.Create(ctx, n); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	page, err := svc.ListPage(ctx, userID, "inbox", 1)
+	if err != nil || !page.WatchedRepos[repoA] {
+		t.Fatalf("WatchedRepos = %v, %v; want repo A watched", page.WatchedRepos, err)
+	}
+
+	if err := svc.UnsubscribeFromRepos(ctx, userID, []int64{n.ID}); err != nil {
+		t.Fatalf("UnsubscribeFromRepos: %v", err)
+	}
+	if w, _ := watches.Get(ctx, userID, repoA); w != nil {
+		t.Error("watch on the notification's repo must be gone")
+	}
+	if w, _ := watches.Get(ctx, userID, repoB); w == nil {
+		t.Error("watch on an unrelated repo must stay")
+	}
+	if w, _ := watches.Get(ctx, otherID, repoA); w == nil {
+		t.Error("another user's watch on the same repo must stay")
+	}
+
+	// A notification owned by someone else must not let the caller drop watches.
+	if err := svc.UnsubscribeFromRepos(ctx, otherID, []int64{n.ID}); err != nil {
+		t.Fatalf("UnsubscribeFromRepos (foreign id): %v", err)
+	}
+	if w, _ := watches.Get(ctx, otherID, repoA); w == nil {
+		t.Error("a foreign notification id must not remove the caller's watch")
+	}
+}
+
 func TestNotification_ListUnreadForDigest_SkipsTypesToggledOff(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)

@@ -192,6 +192,59 @@ func TestNotificationStore_SubjectTitle_RoundTrips(t *testing.T) {
 	}
 }
 
+func TestNotificationStore_MarkReadMany_OnlyOwn(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+
+	mine := makeNotif(userID, actorID, repoID, owner, repo)
+	theirs := makeNotif(actorID, userID, repoID, owner, repo)
+	for _, n := range []*model.Notification{mine, theirs} {
+		if err := ns.Create(ctx, n); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+	}
+	if err := ns.MarkReadMany(ctx, userID, []int64{mine.ID, theirs.ID}); err != nil {
+		t.Fatalf("MarkReadMany: %v", err)
+	}
+	if n, _ := ns.CountUnread(ctx, userID); n != 0 {
+		t.Errorf("own unread = %d, want 0", n)
+	}
+	if n, _ := ns.CountUnread(ctx, actorID); n != 1 {
+		t.Errorf("other user's unread = %d, want 1 (untouched)", n)
+	}
+	if err := ns.MarkReadMany(ctx, userID, nil); err != nil {
+		t.Errorf("empty ids: %v", err)
+	}
+}
+
+func TestNotificationStore_RepoIDsOf_SkipsTransfersAndOthers(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+
+	comment := makeNotif(userID, actorID, repoID, owner, repo)
+	transfer := makeNotif(userID, actorID, repoID, owner, repo)
+	transfer.Type = model.NotifRepoTransfer
+	theirs := makeNotif(actorID, userID, repoID, owner, repo)
+	for _, n := range []*model.Notification{comment, transfer, theirs} {
+		if err := ns.Create(ctx, n); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+	}
+
+	got, err := ns.RepoIDsOf(ctx, userID, []int64{comment.ID, theirs.ID})
+	if err != nil {
+		t.Fatalf("RepoIDsOf: %v", err)
+	}
+	if len(got) != 1 || got[0] != repoID {
+		t.Errorf("RepoIDsOf = %v, want [%d]: another user's row must not count", got, repoID)
+	}
+
+	got, err = ns.RepoIDsOf(ctx, userID, []int64{transfer.ID})
+	if err != nil || len(got) != 0 {
+		t.Errorf("RepoIDsOf(transfer only) = %v, %v; want none", got, err)
+	}
+}
+
 func TestNotificationStore_ListPage_FilterAndOffset(t *testing.T) {
 	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
 	ctx := context.Background()

@@ -39,6 +39,41 @@ func TestNotifications_SubjectTitleAndPager(t *testing.T) {
 	}
 }
 
+func TestNotifications_RowActions(t *testing.T) {
+	var sb strings.Builder
+	data := view.NotificationsData{
+		Notifications: []model.Notification{
+			{ID: 1, ActorName: "bob", Type: model.NotifIssueComment, RepoID: 10, OwnerName: "alice", RepoName: "watched", SubjectID: 1, SubjectURL: "/alice/watched/issues/1", CreatedAt: time.Now()},
+			{ID: 2, ActorName: "bob", Type: model.NotifIssueComment, RepoID: 11, OwnerName: "alice", RepoName: "plain", SubjectID: 2, SubjectURL: "/alice/plain/issues/2", Read: true, CreatedAt: time.Now()},
+			{ID: 3, ActorName: "bob", Type: model.NotifRepoTransfer, RepoID: 10, OwnerName: "alice", RepoName: "watched", SubjectID: 3, SubjectURL: "/repos/transfers", CreatedAt: time.Now()},
+		},
+		Filter: "inbox", Page: 1, TotalPages: 1, PerPage: 25, Total: 3, UnreadCount: 2,
+		WatchedRepos: map[int64]bool{10: true},
+	}
+	if err := pages.Notifications(data).Render(context.Background(), &sb); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	out := sb.String()
+
+	if got := strings.Count(out, `name="ids"`); got != 3 {
+		t.Errorf("row checkboxes = %d, want 3", got)
+	}
+	if got := strings.Count(out, "Unsubscribe from alice/watched"); got != 1 {
+		t.Errorf("per-row unsubscribe buttons for the watched repo = %d, want 1 (none on the transfer row)", got)
+	}
+	if strings.Contains(out, "Unsubscribe from alice/plain") {
+		t.Error("unwatched repo must not offer unsubscribe")
+	}
+	if got := strings.Count(out, `hx-patch="/api/notifications/`); got != 2 {
+		t.Errorf("Done buttons = %d, want 2 (read rows have none)", got)
+	}
+	for _, want := range []string{`hx-post="/api/notifications/done"`, `hx-post="/api/notifications/unsubscribe"`, `hx-include="#notifications-form"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("bulk bar missing %q", want)
+		}
+	}
+}
+
 func TestNotifications_TitlesForDeliveredTypes(t *testing.T) {
 	for _, tc := range []struct {
 		typ  model.NotificationType
