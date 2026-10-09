@@ -1,0 +1,116 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ DeviceEntry(data view.DeviceEntryData) {
+	@layout.Base(data.BasePage, "Connect a device") {
+		<div class="max-w-md mx-auto py-12">
+			<div class="rounded-md border border-border bg-card p-6 space-y-5">
+				<div>
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Device login</p>
+					<h1 class="text-xl font-semibold tracking-tight">Connect a device</h1>
+					<p class="mt-2 text-[13px] text-muted-foreground">Enter the code shown in your terminal.</p>
+				</div>
+				if data.Error != "" {
+					<div role="alert" class="border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]">{ data.Error }</div>
+				}
+				<form method="POST" action="/login/device" class="space-y-4">
+					<input name="user_code" type="text" required autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="XXXX-XXXX" aria-label="Device code" class="h-11 w-full font-mono text-center text-xl tracking-widest uppercase bg-background border border-border rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring"/>
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Continue
+					}
+				</form>
+			</div>
+		</div>
+	}
+}
+
+templ DeviceConfirm(data view.DeviceConfirmData) {
+	@layout.Base(data.BasePage, "Authorize cz") {
+		<div class="max-w-md mx-auto py-12">
+			<div class="rounded-md border border-border bg-card p-6 space-y-5">
+				<div>
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Device login</p>
+					<h1 class="text-xl font-semibold tracking-tight">Authorize cz</h1>
+					if data.Username != "" {
+						<p class="mt-1 text-[13px] text-muted-foreground">Signed in as { data.Username }</p>
+					}
+				</div>
+				<div role="note" class="border border-warning/40 bg-warning/10 text-warning rounded-md px-3 py-2 text-[12.5px]">
+					Only continue if you just ran <span class="font-mono">cz auth login</span> and this code matches your terminal.
+				</div>
+				<dl class="rounded-md border border-border divide-y divide-border text-[13px]">
+					<div class="flex items-center justify-between gap-3 px-3 py-2"><dt class="text-muted-foreground">Code</dt><dd class="font-mono tracking-widest">{ data.UserCode }</dd></div>
+					<div class="flex items-center justify-between gap-3 px-3 py-2">
+						<dt class="text-muted-foreground">Device</dt>
+						<dd>
+							if data.DeviceName != "" {
+								{ data.DeviceName }
+							} else {
+								Unknown
+							}
+							<span class="ml-1.5 text-[11px] text-muted-foreground border border-border rounded px-1.5 py-0.5">unverified</span>
+						</dd>
+					</div>
+					<div class="flex items-center justify-between gap-3 px-3 py-2"><dt class="text-muted-foreground">Requested from</dt><dd>{ data.RequesterIP }, { data.RequestedAt }</dd></div>
+				</dl>
+				if data.Error != "" {
+					<div role="alert" class="border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]">{ data.Error }</div>
+				}
+				<form method="POST" action="/login/device/approve" class="space-y-4">
+					<fieldset class="space-y-2">
+						<legend class="text-[12px] font-medium text-muted-foreground mb-2">Access this token will have</legend>
+						for _, s := range data.Scopes {
+							<label class="flex items-start gap-3 rounded-md border border-border px-3 py-2.5 text-[13px] cursor-pointer">
+								<input type="checkbox" name="scope" value={ s } checked class="mt-1"/>
+								<span>
+									<span class="block font-mono">{ s }</span>
+									<span class="block text-[12px] text-muted-foreground">{ model.ScopeDescription(s) }</span>
+								</span>
+							</label>
+						}
+						<p class="text-[11.5px] text-muted-foreground">Untick to give less. You can't add access here.</p>
+					</fieldset>
+					if data.Confirm.Any() {
+						<div class="space-y-2">
+							<p class="text-[12px] font-medium text-muted-foreground">Confirm it's you</p>
+							<div class="flex flex-wrap items-end gap-3">
+								@components.ConfirmFields("device", data.Confirm, true)
+							</div>
+						</div>
+					}
+					<div class="flex items-center gap-2">
+						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "approve", "type": "submit"}) {
+							Authorize cz
+						}
+						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "deny", "type": "submit", "formnovalidate": true}) {
+							Deny
+						}
+					</div>
+				</form>
+				<p class="text-[11px] text-muted-foreground">You can revoke this token any time under Settings, Tokens.</p>
+			</div>
+		</div>
+	}
+}
+
+templ DeviceDone(data view.DeviceDoneData) {
+	@layout.Base(data.BasePage, "Device login") {
+		<div class="max-w-md mx-auto py-12">
+			<div class="rounded-md border border-border bg-card p-6 space-y-2">
+				if data.Approved {
+					<h1 class="text-xl font-semibold tracking-tight">Device authorized</h1>
+					<p class="text-[13px] text-muted-foreground">You can close this tab and return to your terminal.</p>
+				} else {
+					<h1 class="text-xl font-semibold tracking-tight">Request denied</h1>
+					<p class="text-[13px] text-muted-foreground">The login was denied. Nothing was authorized.</p>
+				}
+			</div>
+		</div>
+	}
+}
