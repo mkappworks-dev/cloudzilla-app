@@ -46,7 +46,7 @@ func newRootCmd(a *app) *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().BoolVar(&a.jsonFlag, "json", false, "print JSON (the default when stdout is not a terminal)")
-	root.AddCommand(authCmd(a), apiCmd(a), repoCmd(a), issueCmd(a))
+	root.AddCommand(authCmd(a), apiCmd(a), repoCmd(a), issueCmd(a), prCmd(a))
 	return root
 }
 
