@@ -13,7 +13,7 @@ Missing:
 - **A user list.** No page lists accounts, and no store query lists them for an admin: `SearchStore.SearchUsers` is a username-prefix lookup for global search, capped by `limit`, with no email, role or status.
 - **Suspension.** Nothing cuts an account off while keeping its content. When someone leaves, or an account is compromised, the admin's only lever is the database.
 - **Admin delete.** Only the account itself can delete it (`POST /settings/delete-account` → `UserService.DeleteUser`).
-- **Promote and demote.** `users.is_superadmin` (migration 013) is set only by `/setup` (`UserStore.CreateSuperadmin`). No code path changes it, and there's no CLI for it (`cmd/cloudzilla` has `gc`, `seed` and `stats`).
+- **Promote and demote.** `users.is_superadmin` (migration 013) is set only by `/setup` (`UserStore.CreateSuperadmin`). No code path changes it, and there's no CLI for it (`cmd/cz-admin` has `gc`, `seed` and `stats`).
 - **2FA reset.** `TOTPService.Disable` needs the user's own current code, so a user who lost their authenticator and backup codes is locked out for good.
 
 Three gaps in what exists today bear on the design:

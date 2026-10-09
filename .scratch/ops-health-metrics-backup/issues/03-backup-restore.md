@@ -1,4 +1,4 @@
-# `cloudzilla-cli backup` and `restore`
+# `cz-admin backup` and `restore`
 
 Created: 2026-10-06
 Category: enhancement
@@ -13,7 +13,7 @@ Shaped by the spec's decisions 3 (form), 4 (hot or cold) and 7 (testing the rest
 
 ## What to build
 
-**`cloudzilla-cli backup --output <path|->`**
+**`cz-admin backup --output <path|->`**
 
 - **Archive:** one uncompressed tar, file mode 0600. Entries, in order:
   1. `cloudzilla-backup.json`, the manifest: format version, Cloudzilla version, created-at, newest applied migration, `pg_dump` version, and per-section counts and bytes;
@@ -24,7 +24,7 @@ Shaped by the spec's decisions 3 (form), 4 (hot or cold) and 7 (testing the rest
 - **Skipped:** `.import-tmp/` and `.readyz-*`. `.deleted.*` copies are kept.
 - **Client check:** fails before writing anything when `pg_dump` is missing, or older than the server's major version (from `SHOW server_version_num`).
 
-**`cloudzilla-cli restore --input <path|->`**
+**`cz-admin restore --input <path|->`**
 
 It refuses to start unless:
 
@@ -81,7 +81,7 @@ Then it:
 
 ## Files
 
-- `cmd/cloudzilla/` (new `backup.go`, `restore.go`, registered in `main.go`)
+- `cmd/cz-admin/` (new `backup.go`, `restore.go`, registered in `main.go`)
 - a new `internal/backup/` package for the archive and capture order
 - `internal/db/migrate.go` (shares `db.Pending` from issue 01, or adds it if 03 lands first)
 - `Dockerfile`

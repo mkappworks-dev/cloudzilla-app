@@ -2329,7 +2329,7 @@ _Done in two PRs; the design is in [`.scratch/phase-19.3-api-rate-limiting/spec.
 
 **Rate limits** (no migration): `middleware.APIRateLimit` counts every request that isn't a static asset against a per-subject budget for one of four resources (`core`, `git`, `archive`, `search`). Signed-in users get a `web` and a `token` bucket; everything else counts per client IP. Counted responses carry `X-RateLimit-*` headers and a refusal is `429` with `Retry-After`. See [configuration](./configuration.md#rate-limits) and the [API reference](./api-reference.md#rate-limits).
 
-**Quotas** (`110_repo_size_bytes.sql`): `quota.user.*` and `quota.org.*` cap an owner's live repositories and the disk their git and wiki directories use. Both are off (`0`) by default and the same for every owner, and a superadmin's personal account is exempt. `QuotaService` refuses a new repository at the count, caps each push at the space left (a delete-only push still goes through), and refuses web commits and wiki edits at or over the storage quota. `repositories.size_bytes` is backfilled at startup and re-measured after writes and `cloudzilla gc`. Settings and org settings show the usage. See [configuration](./configuration.md#quotas).
+**Quotas** (`110_repo_size_bytes.sql`): `quota.user.*` and `quota.org.*` cap an owner's live repositories and the disk their git and wiki directories use. Both are off (`0`) by default and the same for every owner, and a superadmin's personal account is exempt. `QuotaService` refuses a new repository at the count, caps each push at the space left (a delete-only push still goes through), and refuses web commits and wiki edits at or over the storage quota. `repositories.size_bytes` is backfilled at startup and re-measured after writes and `cz-admin gc`. Settings and org settings show the usage. See [configuration](./configuration.md#quotas).
 
 ---
 
@@ -2354,7 +2354,7 @@ type Backend interface {
 
 **First consumer (2026-10-06): avatars.** `internal/storage` ships with `LocalBackend` and `S3Backend` (aws-sdk-go-v2, so AWS, R2, B2, Garage and versitygw all work), and user and org avatars are stored through it (migration 104 adds `avatar_key`). The "no new Go dependencies" rule is waived for this phase: it adds aws-sdk-go-v2 and `golang.org/x/image`. Layout and backup notes are in [storage](./storage.md). **Second consumer (2026-10-08): markdown image attachments**, served through the repo's read check (migration 109). Still to come: GCS, git repos and the other consumers below, and `migrate-storage`.
 
-Implementations: `LocalBackend` (current disk storage, default), `S3Backend` (AWS SDK v2 — new dependency when enabled), `GCSBackend` (Google Cloud Storage client — new dependency when enabled). All git repos, LFS objects, release assets, registry blobs, and package files are routed through the backend interface. Config: `storage.backend: local|s3|gcs`; backend-specific keys under `storage.s3.*` / `storage.gcs.*`. Migration from local to S3 is a one-time `cloudzilla-cli migrate-storage` command.
+Implementations: `LocalBackend` (current disk storage, default), `S3Backend` (AWS SDK v2 — new dependency when enabled), `GCSBackend` (Google Cloud Storage client — new dependency when enabled). All git repos, LFS objects, release assets, registry blobs, and package files are routed through the backend interface. Config: `storage.backend: local|s3|gcs`; backend-specific keys under `storage.s3.*` / `storage.gcs.*`. Migration from local to S3 is a one-time `cz-admin migrate-storage` command.
 
 ---
 

@@ -21,7 +21,7 @@ So before setup, a probe of `/` gets a 303 and costs a DB query. After setup, it
 None of the failures that matter shows up in a probe:
 
 - **Database down.** No route reports it.
-- **Unmigrated schema.** The server never migrates; `cloudzilla-cli migrate` does. A new binary can start against an old schema.
+- **Unmigrated schema.** The server never migrates; `cz-admin migrate` does. A new binary can start against an old schema.
 - **Repo volume unusable.** Nothing notices when the volume is missing or has gone read-only.
 
 The Dockerfile has no `HEALTHCHECK`; only the compose `postgres` service has one.
@@ -38,7 +38,7 @@ There is no `/metrics` route and `go.mod` has no Prometheus client. The roadmap'
 
 ### Backup
 
-The admin CLI (`cmd/cloudzilla`, cobra) has `migrate`, `gc`, `stats` and `seed`, but no backup or restore.
+The admin CLI (`cmd/cz-admin`, cobra) has `migrate`, `gc`, `stats` and `seed`, but no backup or restore.
 
 `docs/deployment.md` does dump and restore the database (`pg_dump -Fc` / `pg_restore`), but only as a step of the Postgres 17 → 18 upgrade. Nothing covers:
 
@@ -84,7 +84,7 @@ An owner who already has one of those names keeps `/{owner}/{repo}` and everythi
 
 **Docker.** The `HEALTHCHECK` probes liveness with busybox `wget`, which ships in `alpine` (no extra package): `HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD wget -q -O /dev/null "http://127.0.0.1:${CZ_SERVER_PORT:-8080}/healthz" || exit 1`.
 
-It probes liveness rather than readiness for two reasons. Orchestrators restart unhealthy containers, and a restart fixes neither a database outage nor a pending migration. And on first boot, readiness fails by design until `cloudzilla-cli migrate` runs. Load balancers and Kubernetes `readinessProbe`s use `/readyz`.
+It probes liveness rather than readiness for two reasons. Orchestrators restart unhealthy containers, and a restart fixes neither a database outage nor a pending migration. And on first boot, readiness fails by design until `cz-admin migrate` runs. Load balancers and Kubernetes `readinessProbe`s use `/readyz`.
 
 ### Metrics (issue 02)
 
@@ -119,18 +119,18 @@ On HTTP, one fetch can take more than one `git-upload-pack` POST, because statel
 
 ### Backup and restore (issue 03)
 
-**`cloudzilla-cli backup --output <path|->`** writes one uncompressed tar with mode 0600. It's uncompressed because packs are already zlib-compressed; operators can pipe it through `zstd` or `gzip`. The archive holds the database, every repository, password hashes and the host key's private half, and the docs say so. Entries, in order:
+**`cz-admin backup --output <path|->`** writes one uncompressed tar with mode 0600. It's uncompressed because packs are already zlib-compressed; operators can pipe it through `zstd` or `gzip`. The archive holds the database, every repository, password hashes and the host key's private half, and the docs say so. Entries, in order:
 
 1. `cloudzilla-backup.json`, the manifest: format version, Cloudzilla version, creation time, newest applied migration, `pg_dump` version, and per-section file counts and bytes.
 2. `database.pgdump`, from `pg_dump --format=custom --no-owner --no-privileges` against `database.dsn`.
 3. `git-repos/…`, the tree under `git.repos_root`. It skips `.import-tmp/` and `.readyz-*`, and keeps `.deleted.*` copies so the 30-day undo window survives a restore.
 4. `ssh_host_key`, when the file exists.
 
-**Capture order (hot backup).** `pg_dump` runs first and reads one consistent snapshot. Then each repository is copied refs first (`HEAD`, `config`, `packed-refs`, `refs/`), objects second. Git writes objects before it moves a ref, and `cloudzilla-cli gc` prunes only unreachable loose objects older than its grace period (14 days by default). So every ref in the copy, and every SHA the database snapshot names, resolves in the copy, as long as `gc` doesn't run during the backup.
+**Capture order (hot backup).** `pg_dump` runs first and reads one consistent snapshot. Then each repository is copied refs first (`HEAD`, `config`, `packed-refs`, `refs/`), objects second. Git writes objects before it moves a ref, and `cz-admin gc` prunes only unreachable loose objects older than its grace period (14 days by default). So every ref in the copy, and every SHA the database snapshot names, resolves in the copy, as long as `gc` doesn't run during the backup.
 
 A repository created, renamed, transferred or deleted while the copy runs can disagree with its row; restore reports these. For a fully consistent backup, stop the server first. The docs show both.
 
-**`cloudzilla-cli restore --input <path|->`** refuses to start unless:
+**`cz-admin restore --input <path|->`** refuses to start unless:
 
 - the target database has no `schema_migrations` table (a fresh, empty database);
 - `git.repos_root` is empty or missing, the same guard `seed` uses;
@@ -168,7 +168,7 @@ The issues carry the full lists. In summary:
 - [ ] Neither endpoint sets a cookie, logs a request line, redirects to `/setup`, needs auth or counts against any rate limit.
 - [ ] The Docker image reports `healthy` on its own `HEALTHCHECK`.
 - [ ] With `metrics.listen_addr` set, `/metrics` on that address serves the starting set. The main port doesn't serve metrics: there, `/metrics` is an ordinary `/{owner}` path.
-- [ ] `cloudzilla-cli backup` then `cloudzilla-cli restore` into an empty database and repos root gives the same rows in every table and the same refs in every repository. An integration test proves it.
+- [ ] `cz-admin backup` then `cz-admin restore` into an empty database and repos root gives the same rows in every table and the same refs in every repository. An integration test proves it.
 
 ## Relevant files
 
@@ -183,8 +183,8 @@ The issues carry the full lists. In summary:
 - `internal/service/webhook_service.go`, `internal/store/webhook_store.go`: deliveries, `ListPendingRetry`
 - `internal/config/config.go`: new `metrics` section
 - `go.mod`: adds `github.com/prometheus/client_golang`
-- `cmd/cloudzilla/main.go`: cobra root; new `backup` and `restore` commands
-- `internal/service/repo_dirs.go`, `cmd/cloudzilla/gc.go`: repo directory layout and the gc grace period
+- `cmd/cz-admin/main.go`: cobra root; new `backup` and `restore` commands
+- `internal/service/repo_dirs.go`, `cmd/cz-admin/gc.go`: repo directory layout and the gc grace period
 - `internal/seed`: test data for the restore round trip
 - `Dockerfile`, `docker-compose.yml`, `docs/deployment.md`, `docs/configuration.md`
 
@@ -194,7 +194,7 @@ Settled with the user on 2026-10-06:
 
 1. **Metrics exposition:** `prometheus/client_golang`. The roadmap's no-new-dependencies rule is waived for this work.
 2. **Protecting `/metrics`:** a separate listen address (`metrics.listen_addr`, off by default). There's no token, and the main port never serves metrics.
-3. **Backup form:** `cloudzilla-cli backup` and `restore`, wrapping `pg_dump`/`pg_restore`. The image gains `postgresql18-client`.
+3. **Backup form:** `cz-admin backup` and `restore`, wrapping `pg_dump`/`pg_restore`. The image gains `postgresql18-client`.
 4. **Hot or cold:** hot capture in the order above, with a reconciliation report on restore. The stop-the-server variant is documented for a fully consistent copy.
 5. **`HEALTHCHECK` target:** liveness (`/healthz`).
 6. **Paths:** `/healthz` and `/readyz`, with `healthz` and `readyz` reserved as owner names.

@@ -43,8 +43,8 @@ func TestPasswordResetLink(t *testing.T) {
 		t.Fatalf("audit row: %v", err)
 	}
 	testutil.Exec(t, db, `DELETE FROM audit_log WHERE action = $1 AND target_id = $2`, model.AuditActionPasswordResetLink, userID)
-	if actorID != nil || actorName != "cloudzilla-cli" || !strings.Contains(metadata, `"issued_by": "cli"`) && !strings.Contains(metadata, `"issued_by":"cli"`) {
-		t.Errorf("audit row = actor %v %q, metadata %s; want no actor id, cloudzilla-cli, issued_by cli", actorID, actorName, metadata)
+	if actorID != nil || actorName != "cz-admin" || !strings.Contains(metadata, `"issued_by": "cli"`) && !strings.Contains(metadata, `"issued_by":"cli"`) {
+		t.Errorf("audit row = actor %v %q, metadata %s; want no actor id, cz-admin, issued_by cli", actorID, actorName, metadata)
 	}
 }
 

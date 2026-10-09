@@ -28,7 +28,7 @@
   - "That username is already taken" (from the existing `createAccountErrorMessage`)
 - Accounts created by signup have `is_invited = FALSE`.
 - Test DB: export `TEST_DATABASE_DSN` pointing at your test database. Integration tests skip without it, so every `go test` command below assumes it is set.
-  - After adding a migration, apply it with `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cloudzilla migrate`.
+  - After adding a migration, apply it with `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cz-admin migrate`.
 - Bash in this worktree: literal paths only; no `$(...)`, loops or heredocs. Write files with the Write/Edit tools.
 - Commits: Conventional Commits. `git add` explicit paths, never `.claude/`. End every message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - After editing a `.templ` file, run `make generate-templ` and commit the regenerated `_templ.go`.
@@ -307,7 +307,7 @@ func (s *SignupTokenStore) GetUsableByHash(ctx context.Context, tokenHash string
 
 - [ ] **Step 8: Apply the migration and run the tests**
 
-Run: `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cloudzilla migrate`
+Run: `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cz-admin migrate`
 Expected: `applied migration file=077_signup_tokens.sql`
 
 Run: `go test ./internal/store ./internal/db -count=1`

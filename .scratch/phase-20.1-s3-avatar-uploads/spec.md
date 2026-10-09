@@ -238,7 +238,7 @@ The help text becomes "PNG, JPEG, GIF or WebP, max 2 MB." Layout (mockup picked 
 
 1. Should Google sign-up import the provider picture into storage once, through the import SSRF guard, rather than ignoring it?
 2. Add an optional `storage.public_url` (CDN or public bucket) so pages link to it directly, taking avatar bandwidth off the app?
-3. Add a `cloudzilla-cli storage sweep` that deletes objects no `avatar_key` references, to clean up orphans left by failed deletes?
+3. Add a `cz-admin storage sweep` that deletes objects no `avatar_key` references, to clean up orphans left by failed deletes?
 4. Should the operator health endpoint report storage reachability (a `HeadBucket` or a local stat)?
 
 ## Comments
