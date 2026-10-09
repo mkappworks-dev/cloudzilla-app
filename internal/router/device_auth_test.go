@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
@@ -83,6 +84,8 @@ func TestDeviceLogin_EndToEnd(t *testing.T) {
 	if rec := serve(h, req); rec.Code != 200 {
 		t.Errorf("GET /api/user with the issued token = %d; want 200", rec.Code)
 	}
+
+	takeAudit(t, db, model.AuditActionTokenCreate, uid)
 
 	if rec := postDevice(h, "/api/auth/device/token", poll, ip); rec.Code != 400 || decode(t, rec)["error"] != "invalid_grant" {
 		t.Errorf("second redemption = %d %s; want invalid_grant", rec.Code, rec.Body)
