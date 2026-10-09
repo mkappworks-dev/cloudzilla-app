@@ -540,7 +540,7 @@ func releaseCreateErrorMessage(err error, tagName string) string {
 	case errors.Is(err, service.ErrReleaseTagInUse):
 		return "A release for tag " + tagName + " already exists."
 	case errors.Is(err, service.ErrInvalidTagName):
-		return "Tag name must use letters, digits, '.', '_', '/', or '-' (max 255 chars)."
+		return "Tag name must use letters, digits, '.', '_', '/', or '-' (max 255 chars), and can't end in '.' or '.lock' or start a part with '.'."
 	}
 	return ""
 }
