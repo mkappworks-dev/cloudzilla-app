@@ -11,7 +11,7 @@ Rework recipient selection in `internal/service/notification_service.go` so `Not
 
 - `NotifyMention` ignores a mute and calls `SubscribeOnMention`.
 - Immediate email goes to the author and to `subscribed` rows; watchers without a row get none.
-- Migration 114 adds nullable `notifications.subject_kind`, backfilled from `type` (and `subject_url` for mentions). Every `Notify*` call sets it. `repo_transfer` stays null.
+- Migration 115 adds nullable `notifications.subject_kind`, backfilled from `type` (and `subject_url` for mentions). Every `Notify*` call sets it. `repo_transfer` stays null.
 
 ## Acceptance criteria
 

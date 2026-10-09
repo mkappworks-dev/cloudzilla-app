@@ -7,7 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-const subjectKindMigration = "migrations/114_notification_subject_kind.sql"
+const subjectKindMigration = "migrations/115_notification_subject_kind.sql"
 
 func TestSubjectKindMigration_BackfillsFromTypeAndMentionURL(t *testing.T) {
 	db := testutil.OpenFreshTestDB(t)

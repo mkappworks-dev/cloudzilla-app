@@ -49,7 +49,7 @@ The issue, PR and discussion sidebars show a Notifications section to logged-in 
 
 ## Thread kind
 
-`notifications.subject_kind` is `issue`, `pull` or `discussion`: the kind of thread `subject_id` numbers, since the number alone doesn't say. Every `Notify*` call sets it except `NotifyRepoTransfer`, which leaves it NULL. Migration 114 backfilled older rows from `type`, and mentions from the section of `subject_url`; a mention whose URL names no section stays NULL. `model.Notification.SubjectKind` is empty for NULL.
+`notifications.subject_kind` is `issue`, `pull` or `discussion`: the kind of thread `subject_id` numbers, since the number alone doesn't say. Every `Notify*` call sets it except `NotifyRepoTransfer`, which leaves it NULL. Migration 115 backfilled older rows from `type`, and mentions from the section of `subject_url`; a mention whose URL names no section stays NULL. `model.Notification.SubjectKind` is empty for NULL.
 
 ## Email
 
