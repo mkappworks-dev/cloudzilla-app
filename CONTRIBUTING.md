@@ -69,6 +69,30 @@ Refer to the [README](README.md) for full setup instructions.
 make dev
 ```
 
+## Planning Workflow (Claude Code)
+
+Planned work is tracked as markdown under `.scratch/` and driven by skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Using Claude Code is optional; the files are plain markdown and can be written by hand.
+
+Install the plugin once:
+
+```bash
+claude plugin install mattpocock-skills@claude-plugins-official
+```
+
+Then work through the chain:
+
+| Step | Command       | What it does                                                                         | Output                                         |
+| ---- | ------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| 1    | `/to-spec`    | Turns the conversation into a spec                                                   | `.scratch/<date>-<slug>/spec.md`               |
+| 2    | `/to-tickets` | Splits the spec into tickets, each listing the tickets that block it                 | `.scratch/<date>-<slug>/issues/<NN>-<slug>.md` |
+| 3    | `/triage`     | Moves a ticket through the triage roles; use it on anything not already triaged     | `Status:` line updated                         |
+| 4    | `/implement`  | Builds from a ticket, test-first via `/tdd` where it can; does not ask for a plan    | Code and tests                                 |
+
+- `/to-spec` and `/to-tickets` output is already `ready-for-agent`. Run `/triage` on anything else: a bug, a rough idea, or a ticket with no `Status:`.
+- `/implement` takes only `ready-for-agent` tickets whose `Blocked by` tickets are all `done`.
+- Commit spec and ticket files with the branch that writes them, and set `Status: done` in the same commit that finishes a ticket.
+- Roles and file conventions: [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md) and [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+
 ## Commit Conventions
 
 Use conventional commit prefixes for all commit messages:

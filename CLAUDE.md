@@ -89,6 +89,10 @@ Worktrees go in `<main checkout>/.worktrees/<type>+<slug>` (gitignored), mirrori
 
 Before creating, reading, triaging or finishing a spec or ticket (markdown under `.scratch/`), read `docs/agents/issue-tracker.md`.
 
+### Workflow
+
+`/to-spec` → `/to-tickets` → `/triage` → `/implement`, from the `mattpocock-skills` plugin. Step table and install command: [CONTRIBUTING.md](./CONTRIBUTING.md#planning-workflow-claude-code).
+
 ### Triage labels
 
 New work enters through the tracker as a spec and tickets under `.scratch/`. `/to-spec` and `/to-tickets` output is already `ready-for-agent`; run `/triage` on anything else (a bug, a rough idea, a ticket with no `Status:`) before any code.
