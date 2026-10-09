@@ -20,6 +20,7 @@ type SearchResults struct {
 	Issues []model.Issue
 	Pulls  []model.PullRequest
 	Users  []model.User
+	Orgs   []model.Organization
 	Query  string
 	Type   string // "all","repos","issues","pulls","users"
 }
@@ -79,6 +80,17 @@ func (s *SearchService) Search(ctx context.Context, query, searchType string, re
 				return nil
 			}
 			results.Users = users
+			return nil
+		})
+	}
+
+	if searchType == "all" || searchType == "orgs" || searchType == "" {
+		g.Go(func() error {
+			orgs, err := s.search.SearchOrgs(ctx, query, searchLimit)
+			if err != nil {
+				return nil
+			}
+			results.Orgs = orgs
 			return nil
 		})
 	}

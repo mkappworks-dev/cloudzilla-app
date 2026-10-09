@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: none
 
 ## What
@@ -11,9 +11,9 @@ Issue and PR results can't link to their item: the page links issues to `/issues
 
 ## Acceptance criteria
 
-- [ ] Results carry `RepoOwner` and `RepoName`.
-- [ ] Issue results link to `/{owner}/{repo}/issues/{n}`; PR titles link to `/{owner}/{repo}/pulls/{n}`.
-- [ ] Store test asserts the owner and repo names for an issue and a PR in different repos.
+- [x] Results carry `RepoOwner` and `RepoName`.
+- [x] Issue results link to `/{owner}/{repo}/issues/{n}`; PR titles link to `/{owner}/{repo}/pulls/{n}`.
+- [x] Store test asserts the owner and repo names for an issue and a PR in different repos.
 
 ## Relevant files
 

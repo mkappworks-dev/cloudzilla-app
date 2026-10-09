@@ -102,7 +102,7 @@ templ Search(data view.SearchData) {
 										@components.IssueStateBadge(string(issue.State))
 									</span>
 									<div class="min-w-0">
-										<a href={ templ.SafeURL("/issues/" + strconv.Itoa(issue.Number)) } class="text-foreground font-medium hover:underline">{ issue.Title }</a>
+										<a href={ templ.SafeURL("/" + issue.RepoOwner + "/" + issue.RepoName + "/issues/" + strconv.Itoa(issue.Number)) } class="text-foreground font-medium hover:underline">{ issue.Title }</a>
 										<p class="text-xs text-muted-foreground mt-0.5">#{ strconv.Itoa(issue.Number) } by { issue.AuthorName }</p>
 									</div>
 								</div>
@@ -120,7 +120,7 @@ templ Search(data view.SearchData) {
 										@components.PullStateBadge(pr.State, false)
 									</span>
 									<div class="min-w-0">
-										<span class="text-foreground font-medium">{ pr.Title }</span>
+										<a href={ templ.SafeURL("/" + pr.RepoOwner + "/" + pr.RepoName + "/pulls/" + strconv.Itoa(pr.Number)) } class="text-foreground font-medium hover:underline">{ pr.Title }</a>
 										<p class="text-xs text-muted-foreground mt-0.5">#{ strconv.Itoa(pr.Number) } by { pr.AuthorName } · { pr.HeadBranch } → { pr.BaseBranch }</p>
 									</div>
 								</div>
