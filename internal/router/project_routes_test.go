@@ -522,19 +522,19 @@ func TestProjects_BoardPanelData(t *testing.T) {
 
 	rr := e.page(t, e.pagePath("/projects/%d", board), e.writer.token, false)
 	wantStatus(t, rr, http.StatusOK)
-	bodyHas(t, rr, "data-panel-people")
-	bodyHas(t, rr, fmt.Sprintf(`x-model="panel.assignees" value="%d"`, e.owner.id))
-	bodyHas(t, rr, fmt.Sprintf(`x-model="panel.assignees" value="%d"`, e.writer.id))
-	bodyHas(t, rr, "data-panel-labels")
+	bodyHas(t, rr, "data-card-people")
+	bodyHas(t, rr, fmt.Sprintf(`x-model="editor.assignees" value="%d"`, e.owner.id))
+	bodyHas(t, rr, fmt.Sprintf(`x-model="editor.assignees" value="%d"`, e.writer.id))
+	bodyHas(t, rr, "data-card-labels")
 	bodyHas(t, rr, "triage-me")
-	bodyHas(t, rr, `@click="savePanel()"`)
-	bodyHas(t, rr, "cardComposer(")
+	bodyHas(t, rr, `@click="deleteCard()"`)
+	bodyHas(t, rr, fmt.Sprintf(`data-add-card="%d"`, col))
 
 	rr = e.page(t, e.pagePath("/projects/%d", board), "", false)
 	wantStatus(t, rr, http.StatusOK)
 	bodyHas(t, rr, "panel card")
-	bodyHas(t, rr, `id="card-panel-title-input"`)
-	for _, gone := range []string{"data-panel-people", "data-panel-labels", "triage-me", "savePanel", "cardComposer(", "linkPicker"} {
+	bodyHas(t, rr, `id="card-title-input"`)
+	for _, gone := range []string{"data-card-people", "data-card-labels", "triage-me", "deleteCard", "data-add-card", "linkPicker"} {
 		if strings.Contains(rr.Body.String(), gone) {
 			t.Errorf("anonymous board renders %q", gone)
 		}

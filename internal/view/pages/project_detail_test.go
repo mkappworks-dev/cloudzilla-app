@@ -62,6 +62,7 @@ func TestProjectDetail_CardFace(t *testing.T) {
 		`<time datetime="2020-01-02">Jan 2, 2020</time>`,
 		`src="/avatars/user/7/abc.png"`,
 		`data-card-json=`,
+		`data-card-open`,
 		`role="button"`,
 		`href="/acme/widgets/issues/9"`,
 		`<template id="desc-41"><p>Blocked on <a href="/acme/widgets/issues/1">#1</a></p></template>`,
@@ -82,31 +83,65 @@ func TestProjectDetail_CardFace(t *testing.T) {
 }
 
 // The service hands over a hidden card with nothing but its ID, column and position.
-func TestProjectDetail_HiddenCardIsAPlaceholderWithoutPanelOrLink(t *testing.T) {
-	data := boardData(false)
-	data.Columns[0].Cards = []service.KanbanCardView{{ID: 43, Kind: "hidden", RepoFullName: "acme/widgets", ColumnID: 2}}
-	out := renderBoard(t, data)
+func TestProjectDetail_HiddenCardIsAPlaceholderWithoutEditorOrLink(t *testing.T) {
+	for _, canWrite := range []bool{false, true} {
+		data := boardData(canWrite)
+		data.Columns[0].Cards = []service.KanbanCardView{{ID: 43, Kind: "hidden", RepoFullName: "acme/widgets", ColumnID: 2}}
+		out := renderBoard(t, data)
 
-	li := regexp.MustCompile(`(?s)<li[^>]*data-card-id="43".*?</li>`).FindString(out)
-	if !strings.Contains(li, "Private issue") {
-		t.Fatalf("hidden card = %q, want the Private issue placeholder", li)
-	}
-	for _, gone := range []string{"data-card-json", "data-card-panel", `role="button"`, "href=", "data-card-link", "#0"} {
-		if strings.Contains(li, gone) {
-			t.Errorf("hidden card renders %q: %s", gone, li)
+		li := regexp.MustCompile(`(?s)<li[^>]*data-card-id="43".*?</li>`).FindString(out)
+		if !strings.Contains(li, "Private issue") {
+			t.Fatalf("hidden card = %q, want the Private issue placeholder", li)
+		}
+		for _, gone := range []string{"data-card-json", "data-card-open", "data-card-panel", `role="button"`, "href=", "data-card-link", "#0", "<template"} {
+			if strings.Contains(li, gone) {
+				t.Errorf("canWrite=%v: hidden card renders %q: %s", canWrite, gone, li)
+			}
 		}
 	}
 }
 
-func TestProjectDetail_PanelWriteControls(t *testing.T) {
+func cardDialog(t *testing.T, out string) string {
+	t.Helper()
+	d := regexp.MustCompile(`(?s)<dialog id="card-dialog".*?</dialog>`).FindString(out)
+	if d == "" {
+		t.Fatal("board renders no card dialog")
+	}
+	return d
+}
+
+func TestProjectDetail_CardDialogWriteControls(t *testing.T) {
 	out := renderBoard(t, boardData(true))
+	dlg := cardDialog(t, out)
 	for _, want := range []string{
-		`@click="savePanel()"`, `@click="convertPanel()"`, `@click="deletePanel()"`,
-		`x-data="linkPicker"`, `x-data="cardComposer(2)"`, `data-panel-people`, `data-panel-labels`,
-		`value="7"`, "docs",
+		`aria-labelledby="card-dialog-title"`, `id="card-dialog-title"`, `x-text="heading"`,
+		`w-[640px]`, `overflow-y-auto`,
+		`@submit.prevent="submit()"`,
+		`<label for="card-title-input"`, `id="card-title-input"`,
+		`id="card-desc-label"`, `x-model="editor.description"`, `Write</button>`, `Preview</button>`,
+		`x-data="linkPicker"`, `<label for="card-link-input"`, `data-picker-list`,
+		`data-card-people`, `x-model="editor.assignees" value="7"`, "daisy",
+		`data-card-labels`, `x-model="editor.labels" value="4"`, "docs", `style="background-color: #fef2c0; color: #1f2328;"`,
+		`<label for="card-due-input"`, `id="card-due-input"`, `x-data="datePicker"`, `x-model="editor.dueDate"`,
+		`aria-label="Choose due date"`, `name="due_date"`,
+		`type="submit"`, "Create card", `@click="close()"`, `role="alert"`,
+		`@click="ask(&#39;convert&#39;)"`, `@click="ask(&#39;delete&#39;)"`, `data-card-confirm`,
+		"Create an issue from this card? The card will link to the new issue.", "Delete this card?",
+		`@click="convertCard()"`, "Create issue", `@click="deleteCard()"`, "Delete card", `@click="cancelConfirm()"`,
+		"Today</button>", "Clear</button>",
 	} {
+		if !strings.Contains(dlg, want) {
+			t.Errorf("writer card dialog missing %q", want)
+		}
+	}
+	for _, want := range []string{`data-add-card="2"`, `data-column-name="Todo"`, "+ Add item"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("writer board missing %q", want)
+		}
+	}
+	for _, gone := range []string{"<aside", "data-card-panel", "cardComposer", `id="composer-`, "card-panel-", "savePanel", "closePanel"} {
+		if strings.Contains(out, gone) {
+			t.Errorf("writer board still renders the side panel or composer (%q)", gone)
 		}
 	}
 }
@@ -140,22 +175,67 @@ func TestProjectDetail_AddColumnDialog(t *testing.T) {
 	}
 }
 
-func TestProjectDetail_ReadOnlyPanel(t *testing.T) {
+func TestProjectDetail_ReadOnlyCardDialog(t *testing.T) {
 	out := renderBoard(t, boardData(false))
 	for _, gone := range []string{
-		"savePanel", "convertPanel", "deletePanel", "linkPicker", "cardComposer",
-		"data-panel-people", "data-panel-labels", "Remove from board", `draggable="true"`,
+		"convertCard", "deleteCard", "linkPicker", "cardComposer", "data-add-card", "+ Add item",
+		"data-card-people", "data-card-labels", "Remove from board", `draggable="true"`,
 	} {
 		if strings.Contains(out, gone) {
 			t.Errorf("read-only board renders write control %q", gone)
 		}
 	}
-	for _, want := range []string{`id="card-panel-title-input"`, `@click="closePanel()"`, `<template id="desc-41">`} {
-		if !strings.Contains(out, want) {
-			t.Errorf("read-only board missing %q", want)
+	dlg := cardDialog(t, out)
+	for _, gone := range []string{
+		`type="submit"`, "Create card", `x-model="editor.description"`, "Write</button>",
+		"data-card-confirm", "Create an issue from this card?", "Delete this card?", "cancelConfirm",
+		"Remove link", "Choose due date", "Today</button>", "Clear</button>", `type="date"`,
+	} {
+		if strings.Contains(dlg, gone) {
+			t.Errorf("read-only card dialog renders %q", gone)
 		}
 	}
-	if !regexp.MustCompile(`id="card-panel-title-input"[^>]*disabled`).MatchString(out) {
-		t.Error("read-only panel title input is not disabled")
+	for _, want := range []string{`id="card-title-input"`, `@click="close()"`, "Close", `data-card-preview`} {
+		if !strings.Contains(dlg, want) {
+			t.Errorf("read-only card dialog missing %q", want)
+		}
+	}
+	if !strings.Contains(out, `<template id="desc-41">`) {
+		t.Error("read-only board is missing the rendered description template")
+	}
+	for _, id := range []string{"card-title-input", "card-due-input"} {
+		if !regexp.MustCompile(`id="` + id + `"[^>]*\sdisabled[\s>]`).MatchString(dlg) {
+			t.Errorf("read-only %s is not disabled", id)
+		}
+	}
+}
+
+// The linked item chip is an anchor whose href kanban.js builds from the board's owner and
+// repo plus the link kind and number in the card JSON; the unlink button sits outside it.
+func TestProjectDetail_LinkedItemChipIsALink(t *testing.T) {
+	for _, canWrite := range []bool{true, false} {
+		out := renderBoard(t, boardData(canWrite))
+		chip := regexp.MustCompile(`(?s)<div[^>]*data-card-link-chip[^>]*>.*?</a>`).FindString(cardDialog(t, out))
+		if !regexp.MustCompile(`<a[^>]*x-bind:href="linkURL"`).MatchString(chip) {
+			t.Errorf("canWrite=%v: linked item chip has no anchor bound to linkURL: %q", canWrite, chip)
+		}
+		if strings.Contains(chip, "Remove link") {
+			t.Errorf("canWrite=%v: the unlink button sits inside the link", canWrite)
+		}
+		for _, want := range []string{`data-owner="acme"`, `data-repo-name="widgets"`, `&#34;link_kind&#34;:&#34;pull&#34;`, `&#34;link_number&#34;:5`, `&#34;link_state&#34;:&#34;open&#34;`} {
+			if !strings.Contains(out, want) {
+				t.Errorf("canWrite=%v: board missing %q for the chip href", canWrite, want)
+			}
+		}
+	}
+}
+
+// The edit JSON passes a label colour to the browser only when it is a valid hex colour.
+func TestProjectDetail_CardJSONDropsInvalidLabelColour(t *testing.T) {
+	data := boardData(false)
+	data.Columns[0].Cards[0].Labels = []model.Label{{ID: 5, Name: "x", Color: "red;background:url(x)"}}
+	out := renderBoard(t, data)
+	if strings.Contains(out, "url(x)") {
+		t.Error("an invalid label colour reaches the card JSON")
 	}
 }

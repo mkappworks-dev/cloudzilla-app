@@ -244,7 +244,7 @@ func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, us
 
 // validateDetails checks title, link, assignees and labels against the repo. A card without a
 // title is only valid as a bare link, and only where linkOnlyOK says so. An assignee in
-// current may stay even after losing repo access, so the panel can save around a stale one.
+// current may stay even after losing repo access, so the card modal can save around a stale one.
 func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Repository, d model.CardDetails, linkOnlyOK bool, current []model.CardUser) error {
 	if d.IssueID != nil && d.PullID != nil {
 		return ErrInvalidCard

@@ -123,7 +123,7 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 		CanManage: canManage,
 	}
 	if canWrite {
-		h.loadCardPanelOptions(r, &data, repo)
+		h.loadCardOptions(r, &data, repo)
 	}
 	var names []string
 	for _, p := range data.People {
@@ -139,9 +139,9 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 	h.render(w, h.withAvatars(r, names...), pages.ProjectDetail(data))
 }
 
-// loadCardPanelOptions fills the card panel's label and people pickers. Best-effort: a failed
+// loadCardOptions fills the card modal's label and people lists. Best-effort: a failed
 // query leaves that picker empty rather than failing the board.
-func (h *Handler) loadCardPanelOptions(r *http.Request, data *view.ProjectDetailData, repo *model.Repository) {
+func (h *Handler) loadCardOptions(r *http.Request, data *view.ProjectDetailData, repo *model.Repository) {
 	ctx := r.Context()
 	if labels, err := h.Services.Label.ListByRepo(ctx, data.Owner, data.RepoName); err == nil {
 		data.Labels = labels

@@ -3,8 +3,9 @@
 // The board root declares x-data="kanbanBoard" with data-owner, data-repo-name,
 // data-project-id and data-can-write. Cards carry data-drag="kanban-card" and
 // data-card-id; columns carry data-drop="kanban-column", data-column-id and a
-// [data-cards] list. Cards that open the side panel carry data-card-panel and
+// [data-cards] list. Cards that open the card dialog carry data-card-open and
 // data-card-json; their rendered description sits in <template id="desc-{id}">.
+// Each column's "+ Add item" button carries data-add-card and data-column-name.
 document.addEventListener('alpine:init', () => {
   const projectURL = (el, path) => {
     const root = el.closest('[data-project-id]');
@@ -25,9 +26,292 @@ document.addEventListener('alpine:init', () => {
     return r;
   };
 
-  // targetPicker searches the repo's issues and PRs for the text that query()
-  // extracts (null when the text is not a search); the component supplies onPick.
-  const targetPicker = (query) => ({
+  // x-show reveals an element on a later animation frame than $nextTick, so focus retries
+  // until the element is displayed.
+  const focusWhenShown = (el, tries = 5) => {
+    if (!el) return;
+    el.focus();
+    if (document.activeElement !== el && tries > 0) requestAnimationFrame(() => focusWhenShown(el, tries - 1));
+  };
+
+  const blankEditor = () => ({
+    mode: 'create',
+    id: null,
+    columnID: null,
+    column: '',
+    title: '',
+    description: '',
+    dueDate: '',
+    assignees: [],
+    labels: [],
+    link: null,
+    tab: 'write',
+    descDirty: false,
+    previewHTML: '',
+    error: '',
+    busy: false,
+    confirm: '',
+    card: { assignees: [], labels: [] },
+  });
+
+  Alpine.data('kanbanBoard', () => ({
+    dragged: null,
+    opener: null,
+    editor: blankEditor(),
+
+    get canWrite() {
+      return this.$root.dataset.canWrite === 'true';
+    },
+
+    get heading() {
+      if (this.editor.mode === 'create') return 'New card in ' + this.editor.column;
+      return (this.canWrite ? 'Edit card in ' : 'Card in ') + this.editor.column;
+    },
+
+    get titleHint() {
+      if (!this.editor.link) return 'Required, unless you link an issue or pull request.';
+      if (!this.editor.title.trim()) {
+        return 'Without a title the card shows the linked item, and the other details are not saved.';
+      }
+      return '';
+    },
+
+    get linkURL() {
+      const link = this.editor.link;
+      if (!link) return null;
+      const { owner, repoName } = this.$root.dataset;
+      const kind = link.kind === 'pull' ? 'pulls' : 'issues';
+      return `/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/${kind}/${Number(link.number)}`;
+    },
+
+    // A titled card is required everywhere except a new card that only links an issue or PR.
+    get canSubmit() {
+      const e = this.editor;
+      return !e.busy && !e.confirm && (e.title.trim() !== '' || (e.mode === 'create' && e.link !== null));
+    },
+
+    // A card keeps an assignee who left the repo; the checkbox list no longer has them, so the
+    // dialog shows them separately and they stay untickable.
+    get staleAssignees() {
+      const listed = new Set(Array.from(this.$root.querySelectorAll('[data-person]'), (i) => i.value));
+      return this.editor.card.assignees.filter((a) => !listed.has(String(a.id)));
+    },
+
+    onCardClick(e) {
+      const card = e.target.closest('[data-card-open]');
+      if (card) this.openEdit(card);
+    },
+
+    onCardKey(e) {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-card-open]')) {
+        e.preventDefault();
+        this.openEdit(e.target);
+      }
+    },
+
+    openCreate(button) {
+      if (!this.canWrite) return;
+      this.show(button, {
+        ...blankEditor(),
+        columnID: Number(button.dataset.addCard),
+        column: button.dataset.columnName,
+      });
+    },
+
+    openEdit(li) {
+      const c = JSON.parse(li.dataset.cardJson);
+      const tpl = document.getElementById('desc-' + c.id);
+      this.show(li, {
+        ...blankEditor(),
+        mode: 'edit',
+        id: c.id,
+        column: c.column,
+        title: c.title,
+        description: c.description,
+        dueDate: c.due_date,
+        assignees: c.assignees.map((a) => String(a.id)),
+        labels: c.labels.map((l) => String(l.id)),
+        link: c.link_kind
+          ? { kind: c.link_kind, id: c.link_id, number: c.link_number, title: c.link_title, state: c.link_state }
+          : null,
+        tab: this.canWrite ? 'write' : 'preview',
+        previewHTML: tpl ? tpl.innerHTML.trim() : '',
+        card: c,
+      });
+    },
+
+    show(opener, state) {
+      this.editor = state;
+      this.opener = opener;
+      const dialog = this.$refs.cardDialog;
+      if (!dialog.open) dialog.showModal();
+      this.$nextTick(() => {
+        const title = this.$refs.cardTitle;
+        (title && !title.disabled ? title : this.$refs.cardClose).focus();
+      });
+    },
+
+    close() {
+      this.$refs.cardDialog.close();
+    },
+
+    onDialogClosed() {
+      this.editor.busy = false;
+      if (this.opener && this.opener.isConnected) this.opener.focus();
+      this.opener = null;
+    },
+
+    pickLink(link) {
+      this.editor.link = link;
+      this.$nextTick(() => focusWhenShown(this.$refs.linkClear));
+    },
+
+    clearLink() {
+      this.editor.link = null;
+      this.$nextTick(() => focusWhenShown(document.getElementById('card-link-input')));
+    },
+
+    body() {
+      const e = this.editor;
+      const body = {
+        title: e.title.trim(),
+        description: e.description,
+        due_date: e.dueDate || '',
+        assignee_ids: e.assignees.map(Number),
+        label_ids: e.labels.map(Number),
+      };
+      if (e.link) body[e.link.kind === 'pull' ? 'pull_id' : 'issue_id'] = e.link.id;
+      return body;
+    },
+
+    async run(steps) {
+      if (this.editor.busy) return;
+      this.editor.busy = true;
+      this.editor.error = '';
+      try {
+        for (const step of steps) await step();
+        window.location.reload();
+      } catch (err) {
+        this.editor.error = err.message;
+        this.editor.busy = false;
+      }
+    },
+
+    submit() {
+      if (!this.canWrite || !this.canSubmit) return;
+      const e = this.editor;
+      if (e.mode === 'edit') {
+        const url = projectURL(this.$root, `/cards/${e.id}/details`);
+        return this.run([() => send('PATCH', url, this.body())]);
+      }
+      // A title-less card is a plain linked card, whose face shows only the linked item.
+      const payload = e.title.trim()
+        ? this.body()
+        : { [e.link.kind === 'pull' ? 'pull_id' : 'issue_id']: e.link.id };
+      return this.run([() => send('POST', projectURL(this.$root, '/cards'), { column_id: e.columnID, ...payload })]);
+    },
+
+    // ask swaps the footer for an inline confirmation of a convert or delete.
+    ask(action) {
+      this.editor.error = '';
+      this.editor.confirm = action;
+      this.$nextTick(() => focusWhenShown(action === 'convert' ? this.$refs.confirmConvert : this.$refs.confirmDelete));
+    },
+
+    cancelConfirm() {
+      const action = this.editor.confirm;
+      this.editor.confirm = '';
+      this.$nextTick(() => focusWhenShown(action === 'convert' ? this.$refs.convertButton : this.$refs.deleteButton));
+    },
+
+    // Convert saves the dialog first so the new issue gets what the user sees.
+    convertCard() {
+      if (this.editor.confirm !== 'convert') return;
+      const base = projectURL(this.$root, `/cards/${this.editor.id}`);
+      return this.run([
+        () => send('PATCH', base + '/details', this.body()),
+        () => send('POST', base + '/convert'),
+      ]);
+    },
+
+    deleteCard() {
+      if (this.editor.confirm !== 'delete') return;
+      return this.run([() => send('DELETE', projectURL(this.$root, `/cards/${this.editor.id}`))]);
+    },
+
+    onDragStart(e) {
+      const t = e.target.closest('[data-drag="kanban-card"]');
+      if (!t) return;
+      this.dragged = t;
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    },
+
+    onDragOver(e) {
+      if (!this.dragged) return;
+      const col = e.target.closest('[data-drop="kanban-column"]');
+      if (col) e.preventDefault();
+    },
+
+    async onDrop(e) {
+      const col = e.target.closest('[data-drop="kanban-column"]');
+      if (!col || !this.dragged) return;
+      e.preventDefault();
+
+      // Capture the dragged element locally so a concurrent drag started
+      // during the awaited fetch doesn't get its state clobbered by finally.
+      const dragged = this.dragged;
+      const cardID = dragged.dataset.cardId;
+      const columnID = col.dataset.columnId;
+      const list = col.querySelector('[data-cards]') || col;
+      list.appendChild(dragged);
+      const position = Array.from(list.querySelectorAll('[data-drag="kanban-card"]')).indexOf(dragged);
+
+      try {
+        await send('PATCH', projectURL(this.$root, `/cards/${cardID}`), { column_id: Number(columnID), position });
+      } catch (err) {
+        console.error('kanban move failed:', err);
+        window.alert('Could not move card (' + err.message + '). Reloading.');
+        window.location.reload();
+      } finally {
+        if (this.dragged === dragged) this.dragged = null;
+      }
+    },
+  }));
+
+  Alpine.data('columnDialog', () => ({
+    name: '',
+    error: '',
+    busy: false,
+
+    get blank() {
+      return this.name.trim() === '';
+    },
+
+    init() {
+      this.$el.closest('dialog').addEventListener('close', () => {
+        this.name = '';
+        this.error = '';
+        this.busy = false;
+      });
+    },
+
+    async submit() {
+      if (this.busy || this.blank) return;
+      this.busy = true;
+      this.error = '';
+      try {
+        await send('POST', projectURL(this.$el, '/columns'), { name: this.name.trim() });
+        window.location.reload();
+      } catch (err) {
+        this.error = err.message;
+        this.busy = false;
+      }
+    },
+  }));
+
+  // linkPicker searches the repo's issues and PRs by title fragment or #number and
+  // dispatches card-link-picked with the pick.
+  Alpine.data('linkPicker', () => ({
     text: '',
     results: [],
     active: 0,
@@ -38,7 +322,8 @@ document.addEventListener('alpine:init', () => {
     seq: 0,
 
     get query() {
-      return query(this.text);
+      const q = this.text.trim().replace(/^#/, '');
+      return q ? q : null;
     },
 
     get showList() {
@@ -51,6 +336,8 @@ document.addEventListener('alpine:init', () => {
       };
       window.addEventListener('scroll', follow, true);
       window.addEventListener('resize', follow);
+      const dialog = this.$el.closest('dialog');
+      if (dialog) dialog.addEventListener('close', () => this.reset());
     },
 
     place() {
@@ -101,264 +388,20 @@ document.addEventListener('alpine:init', () => {
       this.active = (this.active + step + this.results.length) % this.results.length;
     },
 
-    // Enter never falls through to plain text while a search is pending or empty.
+    // Enter never submits the dialog while a search is pending or empty.
     enterPick() {
       if (!this.pending && this.results.length) this.pick(this.results[this.active]);
     },
 
     pick(target) {
-      return this.onPick(target);
-    },
-  });
-
-  const withPicker = (query, extra) =>
-    Object.defineProperties(targetPicker(query), Object.getOwnPropertyDescriptors(extra));
-
-  Alpine.data('kanbanBoard', () => ({
-    dragged: null,
-    opener: null,
-    panel: {
-      open: false,
-      id: null,
-      column: '',
-      title: '',
-      description: '',
-      dueDate: '',
-      assignees: [],
-      labels: [],
-      link: null,
-      tab: 'write',
-      descDirty: false,
-      previewHTML: '',
-      error: '',
-      busy: false,
-      card: { assignees: [], labels: [] },
-    },
-
-    get canWrite() {
-      return this.$root.dataset.canWrite === 'true';
-    },
-
-    // A card keeps an assignee who left the repo; the picker no longer lists them, so the
-    // panel shows them separately and they stay untickable.
-    get staleAssignees() {
-      const listed = new Set(Array.from(this.$root.querySelectorAll('[data-person]'), (i) => i.value));
-      return this.panel.card.assignees.filter((a) => !listed.has(String(a.id)));
-    },
-
-    onCardClick(e) {
-      const card = e.target.closest('[data-card-panel]');
-      if (card) this.openPanel(card);
-    },
-
-    onCardKey(e) {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-card-panel]')) {
-        e.preventDefault();
-        this.openPanel(e.target);
-      }
-    },
-
-    openPanel(li) {
-      const c = JSON.parse(li.dataset.cardJson);
-      const tpl = document.getElementById('desc-' + c.id);
-      Object.assign(this.panel, {
-        open: true,
-        id: c.id,
-        column: c.column,
-        title: c.title,
-        description: c.description,
-        dueDate: c.due_date,
-        assignees: c.assignees.map((a) => String(a.id)),
-        labels: c.labels.map((l) => String(l.id)),
-        link: c.link_kind ? { kind: c.link_kind, id: c.link_id, number: c.link_number, title: c.link_title } : null,
-        tab: this.canWrite ? 'write' : 'preview',
-        descDirty: false,
-        previewHTML: tpl ? tpl.innerHTML.trim() : '',
-        error: '',
-        busy: false,
-        card: c,
+      this.$dispatch('card-link-picked', {
+        kind: target.kind,
+        id: target.id,
+        number: target.number,
+        title: target.title,
+        state: target.state,
       });
-      this.opener = li;
-      this.$nextTick(() => {
-        const title = this.$refs.panelTitle;
-        (title && !title.disabled ? title : this.$refs.panelClose).focus();
-      });
-    },
-
-    closePanel() {
-      if (!this.panel.open) return;
-      this.panel.open = false;
-      if (this.opener) this.opener.focus();
-    },
-
-    panelBody() {
-      const p = this.panel;
-      const body = {
-        title: p.title.trim(),
-        description: p.description,
-        due_date: p.dueDate || '',
-        assignee_ids: p.assignees.map(Number),
-        label_ids: p.labels.map(Number),
-      };
-      if (p.link) body[p.link.kind === 'pull' ? 'pull_id' : 'issue_id'] = p.link.id;
-      return body;
-    },
-
-    async panelRequest(steps) {
-      this.panel.busy = true;
-      this.panel.error = '';
-      try {
-        for (const step of steps) await step();
-        window.location.reload();
-      } catch (err) {
-        this.panel.error = err.message;
-        this.panel.busy = false;
-      }
-    },
-
-    savePanel() {
-      const url = projectURL(this.$root, `/cards/${this.panel.id}/details`);
-      return this.panelRequest([() => send('PATCH', url, this.panelBody())]);
-    },
-
-    // Convert saves the panel first so the new issue gets what the user sees.
-    convertPanel() {
-      if (!window.confirm('Convert this card into an issue? The card will link to the new issue.')) return;
-      const base = projectURL(this.$root, `/cards/${this.panel.id}`);
-      return this.panelRequest([
-        () => send('PATCH', base + '/details', this.panelBody()),
-        () => send('POST', base + '/convert'),
-      ]);
-    },
-
-    deletePanel() {
-      if (!window.confirm('Delete this card?')) return;
-      const url = projectURL(this.$root, `/cards/${this.panel.id}`);
-      return this.panelRequest([() => send('DELETE', url)]);
-    },
-
-    onDragStart(e) {
-      const t = e.target.closest('[data-drag="kanban-card"]');
-      if (!t) return;
-      this.dragged = t;
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-    },
-
-    onDragOver(e) {
-      if (!this.dragged) return;
-      const col = e.target.closest('[data-drop="kanban-column"]');
-      if (col) e.preventDefault();
-    },
-
-    async onDrop(e) {
-      const col = e.target.closest('[data-drop="kanban-column"]');
-      if (!col || !this.dragged) return;
-      e.preventDefault();
-
-      // Capture the dragged element locally so a concurrent drag started
-      // during the awaited fetch doesn't get its state clobbered by finally.
-      const dragged = this.dragged;
-      const cardID = dragged.dataset.cardId;
-      const columnID = col.dataset.columnId;
-      const list = col.querySelector('[data-cards]') || col;
-      list.appendChild(dragged);
-      const position = Array.from(list.querySelectorAll('[data-drag="kanban-card"]')).indexOf(dragged);
-
-      try {
-        await send('PATCH', projectURL(this.$root, `/cards/${cardID}`), { column_id: Number(columnID), position });
-      } catch (err) {
-        console.error('kanban move failed:', err);
-        window.alert('Could not move card (' + err.message + '). Reloading.');
-        window.location.reload();
-      } finally {
-        if (this.dragged === dragged) this.dragged = null;
-      }
+      this.reset();
     },
   }));
-
-  Alpine.data('cardComposer', (columnID) =>
-    withPicker((text) => (text.startsWith('#') && !text.includes('\n') ? text.slice(1) : null), {
-      open: false,
-      busy: false,
-      createError: '',
-
-      show() {
-        this.open = true;
-        this.$nextTick(() => this.$refs.input.focus());
-      },
-
-      close() {
-        this.open = false;
-        this.createError = '';
-        this.reset();
-      },
-
-      onEnter(e) {
-        e.preventDefault();
-        if (this.query !== null) this.enterPick();
-        else this.submit();
-      },
-
-      onPick(target) {
-        return this.create(target.kind === 'pull' ? { pull_id: target.id } : { issue_id: target.id });
-      },
-
-      submit() {
-        const title = this.text.replace(/\s+/g, ' ').trim();
-        if (title && this.query === null) return this.create({ title });
-      },
-
-      async create(payload) {
-        this.busy = true;
-        this.createError = '';
-        try {
-          await send('POST', projectURL(this.$el, '/cards'), { column_id: columnID, ...payload });
-          window.location.reload();
-        } catch (err) {
-          this.createError = err.message;
-          this.busy = false;
-        }
-      },
-    }),
-  );
-
-  Alpine.data('columnDialog', () => ({
-    name: '',
-    error: '',
-    busy: false,
-
-    get blank() {
-      return this.name.trim() === '';
-    },
-
-    init() {
-      this.$el.closest('dialog').addEventListener('close', () => {
-        this.name = '';
-        this.error = '';
-        this.busy = false;
-      });
-    },
-
-    async submit() {
-      if (this.busy || this.blank) return;
-      this.busy = true;
-      this.error = '';
-      try {
-        await send('POST', projectURL(this.$el, '/columns'), { name: this.name.trim() });
-        window.location.reload();
-      } catch (err) {
-        this.error = err.message;
-        this.busy = false;
-      }
-    },
-  }));
-
-  Alpine.data('linkPicker', () =>
-    withPicker((text) => (text.trim() ? text.trim().replace(/^#/, '') : null), {
-      onPick(target) {
-        this.$dispatch('card-link-picked', { kind: target.kind, id: target.id, number: target.number, title: target.title });
-        this.reset();
-      },
-    }),
-  );
 });
