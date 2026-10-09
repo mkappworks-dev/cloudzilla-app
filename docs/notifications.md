@@ -79,11 +79,11 @@ Immediate email goes to the notification's direct recipient (the subject's autho
 | POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)   |
 | GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                   |
 | POST `/api/notifications/done`        | Required | Mark the notifications in repeated form field `ids` as read (at most 100; other users' ids are ignored) |
-| POST `/api/notifications/unsubscribe` | Required | Stop watching the repo behind each notification in `ids` |
+| POST `/api/notifications/unsubscribe` | Required | Mute the thread behind each notification in `ids` and mark that thread's unread notifications read (other users' ids are ignored) |
 
 The mark-read and bulk endpoints take the same `?filter` and `?page`, and their HTMX responses swap `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
 
-Each row has a checkbox, the actor's avatar and, on hover or focus, Done and Unsubscribe buttons; ticking rows swaps the list header for a bulk bar. Unsubscribe is per repo, not per thread: no thread-level subscriptions exist, so it deletes the user's watch on the repo. Every row has the button, but it is active only where that watch exists at a level other than `ignoring`; elsewhere, and on `repo_transfer` rows (whose repo says nothing about the user's watches), it is disabled with a tooltip saying why. Done is mark-read: the row stays in the inbox and moves to the Read filter.
+Each row has a checkbox, the actor's avatar and, on hover or focus, Done and Unsubscribe buttons; ticking rows swaps the list header for a bulk bar. Unsubscribe mutes the notification's thread (`NotificationService.MuteThreads`) and never touches the repo watch, which only the repo page's Watch control changes. It writes one `muted` row per distinct thread among the caller's own selected notifications, using `subject_kind` and `subject_id`, then marks every unread notification on those threads read, selected or not, so they leave the unread filter and the email digest; a muted thread creates no new ones. Done marks only the selected rows read. Every row has the button (tooltip "Unsubscribe: mute this thread. Repo watch unchanged."), but it is disabled on `repo_transfer` rows and on rows with no `subject_kind`, which name no thread. Unmuting is the thread sidebar's Subscribe button. Done is mark-read: the row stays in the inbox and moves to the Read filter.
 
 Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text beside it; mentions, repo transfers and rows created before migration 112 have no title and show only the action text.
 
@@ -92,6 +92,8 @@ Rows are grouped under their repo within a page. A row shows `subject_title` whe
 - `ListPage(ctx, userID, filter, page)` → `(NotificationPage, error)` — one page plus the inbox/unread/read counts the sidebar shows
 - `List(ctx, userID)` → `([]Notification, error)` — newest 50
 - `ListUnreadForDigest(ctx, u, mode)` → `([]Notification, error)`
+- `MarkReadMany(ctx, userID, ids)` → `error` — ids that aren't the user's are ignored
+- `MuteThreads(ctx, userID, ids)` → `error` — see [Pages & API](#pages--api); needs `WithThreadSubscriptions`
 - `CountUnread(ctx, userID)` → `(int, error)`
 - `MarkRead(ctx, id, userID)` → `error`
 - `MarkAllRead(ctx, userID)` → `error`

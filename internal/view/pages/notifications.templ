@@ -248,17 +248,22 @@ func notifSelectData(total int) string {
 		"all(on) { $root.querySelectorAll('input[name=ids]').forEach(c => c.checked = on); this.count() } }"
 }
 
+// notifMutable reports whether the row names a thread the Unsubscribe button can mute.
+func notifMutable(n model.Notification) bool {
+	return n.Type != model.NotifRepoTransfer && n.SubjectKind != ""
+}
+
 // notifUnsubscribeBlocked is the tooltip on a disabled Unsubscribe button.
 func notifUnsubscribeBlocked(n model.Notification) string {
 	if n.Type == model.NotifRepoTransfer {
-		return "A repository transfer has no watch to unsubscribe from"
+		return "A repository transfer has no thread to unsubscribe from"
 	}
-	return "You're not watching " + n.OwnerName + "/" + n.RepoName
+	return "This notification has no thread to unsubscribe from"
 }
 
 const notifIconBtnClass = "size-7 grid place-items-center border border-border rounded-md bg-card text-muted-foreground hover:text-foreground hover:bg-accent"
 
-templ notifRow(n model.Notification, filter string, page int, watched bool) {
+templ notifRow(n model.Notification, filter string, page int) {
 	<li class="group border-b border-border last:border-b-0">
 		<div class={ "flex items-center gap-3 px-4 py-2 min-h-[46px] hover:bg-accent transition-colors has-[:checked]:bg-primary/10", templ.KV("bg-primary/[0.03]", !n.Read) }>
 			if !n.Read {
@@ -300,12 +305,12 @@ templ notifRow(n model.Notification, filter string, page int, watched bool) {
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
 						</button>
 					}
-					if watched {
+					if notifMutable(n) {
 						<button
 							type="button"
 							class={ notifIconBtnClass }
-							aria-label={ "Unsubscribe from " + n.OwnerName + "/" + n.RepoName }
-							title={ "Unsubscribe: stop watching " + n.OwnerName + "/" + n.RepoName }
+							aria-label="Unsubscribe: mute this thread"
+							title="Unsubscribe: mute this thread. Repo watch unchanged."
 							hx-post={ "/api/notifications/unsubscribe" + notifAPIQuery(filter, page) }
 							hx-vals={ `{"ids":"` + strconv.FormatInt(n.ID, 10) + `"}` }
 							hx-target="#notifications-view"
@@ -317,7 +322,7 @@ templ notifRow(n model.Notification, filter string, page int, watched bool) {
 						<button
 							type="button"
 							class={ notifIconBtnClass, "opacity-40 cursor-not-allowed hover:bg-card hover:text-muted-foreground" }
-							aria-label={ "Unsubscribe from " + n.OwnerName + "/" + n.RepoName }
+							aria-label="Unsubscribe: mute this thread"
 							title={ notifUnsubscribeBlocked(n) }
 							disabled
 						>
@@ -382,7 +387,7 @@ templ NotificationsInbox(data view.NotificationsData) {
 						<button
 							type="button"
 							class="h-7 px-2.5 text-[12px] border border-border rounded-md bg-card hover:bg-accent inline-flex items-center gap-1.5"
-							title="Stop watching the repositories behind the selected notifications"
+							title="Mute the selected threads"
 							hx-post={ "/api/notifications/unsubscribe" + notifAPIQuery(data.Filter, data.Page) }
 							hx-include="#notifications-form"
 							hx-target="#notifications-view"
@@ -396,7 +401,7 @@ templ NotificationsInbox(data view.NotificationsData) {
 						<h2 class="px-4 py-2 text-[13px] font-semibold font-mono bg-muted/40 border-b border-border">{ g.Repo }</h2>
 						<ol>
 							for _, n := range g.Items {
-								@notifRow(n, data.Filter, data.Page, data.WatchedRepos[n.RepoID] && n.Type != model.NotifRepoTransfer)
+								@notifRow(n, data.Filter, data.Page)
 							}
 						</ol>
 					}

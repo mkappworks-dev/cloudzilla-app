@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 02
 
 ## What
@@ -11,12 +11,12 @@ Per `mock.html` tab 2: `POST /api/notifications/unsubscribe` (row button and bul
 
 ## Acceptance criteria
 
-- [ ] Muting writes `muted` for each distinct thread among the caller's own selected notifications and ignores other users' ids.
-- [ ] Muting leaves the repo watch untouched.
-- [ ] The thread's unread notifications (including ones not selected) become read and drop out of `ListUnreadForDigest`.
-- [ ] The inbox re-renders on the caller's filter and page.
-- [ ] `repo_transfer` and null-kind rows keep a disabled button with a tooltip.
-- [ ] Service, store and render tests; `docs/notifications.md` documents the new meaning.
+- [x] Muting writes `muted` for each distinct thread among the caller's own selected notifications and ignores other users' ids.
+- [x] Muting leaves the repo watch untouched.
+- [x] The thread's unread notifications (including ones not selected) become read and drop out of `ListUnreadForDigest`.
+- [x] The inbox re-renders on the caller's filter and page.
+- [x] `repo_transfer` and null-kind rows keep a disabled button with a tooltip.
+- [x] Service, store and render tests; `docs/notifications.md` documents the new meaning.
 
 ## Comments
 
@@ -40,11 +40,11 @@ Unsubscribe deletes the user's watch on the notification's repo, and is disabled
 - The inbox view-model no longer carries watched-repo data.
 
 **Acceptance criteria:**
-- [ ] One muted row per distinct thread among the caller's own selected notifications; other users' ids ignored.
-- [ ] Repo watches unchanged.
-- [ ] All unread notifications of a muted thread become read and drop out of the digest query, including ones not selected.
-- [ ] Disabled states and tooltips as described.
-- [ ] Service, store and render tests; `docs/notifications.md` documents the new meaning.
+- [x] One muted row per distinct thread among the caller's own selected notifications; other users' ids ignored.
+- [x] Repo watches unchanged.
+- [x] All unread notifications of a muted thread become read and drop out of the digest query, including ones not selected.
+- [x] Disabled states and tooltips as described.
+- [x] Service, store and render tests; `docs/notifications.md` documents the new meaning.
 
 **Out of scope:**
 - Any way to stop a repo watch from the inbox.
