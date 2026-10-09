@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: bug
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -17,10 +17,10 @@ Confirmed by running it against the router.
 
 ## Acceptance criteria
 
-- [ ] A shared validator rejects names git rejects: `..`, a leading or trailing `/`, `//`, a component starting with `.` or ending in `.lock`, a trailing `.`, `@{`, a lone `@`, spaces, control characters, and any of `~ ^ : ? * [ \`.
-- [ ] `CreateBranch` and `CreateTag` answer 422 with a clear message for those names; valid names such as `feature/x`, `v1.2.3` and `fix_bug-2` still work.
-- [ ] Table test of the validator, plus a router test for each endpoint showing no ref was written on refusal.
-- [ ] Rename and any web "create branch" path use the same validator (grep for other callers of the create-ref code).
+- [x] A shared validator rejects names git rejects: `..`, a leading or trailing `/`, `//`, a component starting with `.` or ending in `.lock`, a trailing `.`, `@{`, a lone `@`, spaces, control characters, and any of `~ ^ : ? * [ \`.
+- [x] `CreateBranch` and `CreateTag` answer 422 with a clear message for those names; valid names such as `feature/x`, `v1.2.3` and `fix_bug-2` still work.
+- [x] Table test of the validator, plus a router test for each endpoint showing no ref was written on refusal.
+- [x] Rename and any web "create branch" path use the same validator (grep for other callers of the create-ref code).
 
 ## Blocked by
 
