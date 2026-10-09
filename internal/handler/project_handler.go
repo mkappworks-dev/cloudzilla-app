@@ -373,7 +373,7 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeProjectError(w http.ResponseWriter, err error) {
-	if errors.Is(err, service.ErrProjectNotFound) {
+	if errors.Is(err, service.ErrProjectNotFound) || errors.Is(err, service.ErrCardTargetNotFound) {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
 	}

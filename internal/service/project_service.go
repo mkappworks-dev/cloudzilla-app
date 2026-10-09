@@ -14,6 +14,10 @@ import (
 var ErrProjectNotFound = errors.New("project not found")
 var ErrForbidden = errors.New("forbidden")
 
+// ErrCardTargetNotFound covers an issue or pull request that is missing or lives
+// in another repository; the two read alike so ids elsewhere can't be probed.
+var ErrCardTargetNotFound = errors.New("issue or pull request not found in this repository")
+
 // ErrInvalidPosition re-exports the store sentinel so handlers map it to 400.
 var ErrInvalidPosition = store.ErrInvalidPosition
 
@@ -186,6 +190,13 @@ func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, us
 	colProject, err := s.projects.GetProjectByColumnID(ctx, columnID)
 	if err != nil || colProject.ID != projectID {
 		return nil, ErrProjectNotFound
+	}
+	inRepo, err := s.projects.CardTargetsInRepo(ctx, repo.ID, issueID, pullID)
+	if err != nil {
+		return nil, err
+	}
+	if !inRepo {
+		return nil, ErrCardTargetNotFound
 	}
 	card := &model.ProjectCard{
 		ColumnID: columnID,

@@ -6,7 +6,7 @@
 
 **Architecture:** `db.Pending` → `store.HealthStore` (ping, pending migrations) → `service.HealthService` (three checks under one deadline, cached migrations pass) → `handler.Healthz`/`Readyz` → `probeMux`, which embeds `*chi.Mux` and intercepts the two exact paths before the router's middleware.
 
-**Spec:** [`.scratch/ops-health-metrics-backup/issues/01-health.md`](../../../.scratch/ops-health-metrics-backup/issues/01-health.md)
+**Spec:** [`.scratch/2026-10-06-ops-health-metrics-backup/issues/01-health.md`](../../../.scratch/2026-10-06-ops-health-metrics-backup/issues/01-health.md)
 
 ## Global Constraints
 

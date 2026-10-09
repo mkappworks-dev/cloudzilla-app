@@ -87,6 +87,9 @@ func (h *Handler) ListSSHKeys(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to list keys")
 		return
 	}
+	if keys == nil {
+		keys = []model.SSHKey{}
+	}
 
 	writeJSON(w, http.StatusOK, keys)
 }

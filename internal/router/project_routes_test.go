@@ -1,0 +1,310 @@
+package router_test
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
+)
+
+func (e metaEnv) createProject(t *testing.T, name string) int64 {
+	t.Helper()
+	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects"), token: e.writer.token, json: `{"name":"` + name + `","description":"about ` + name + `"}`})
+	wantStatus(t, rr, http.StatusCreated)
+	var p struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &p); err != nil || p.ID == 0 {
+		t.Fatalf("create project = %s (%v)", rr.Body.String(), err)
+	}
+	return p.ID
+}
+
+func (e metaEnv) createColumn(t *testing.T, project int64, name string) int64 {
+	t.Helper()
+	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/columns", project), token: e.writer.token, json: `{"name":"` + name + `"}`})
+	wantStatus(t, rr, http.StatusCreated)
+	var c struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &c); err != nil || c.ID == 0 {
+		t.Fatalf("create column = %s (%v)", rr.Body.String(), err)
+	}
+	return c.ID
+}
+
+func (e metaEnv) createNote(t *testing.T, project, column int64, note string) int64 {
+	t.Helper()
+	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards", project), token: e.writer.token,
+		json: fmt.Sprintf(`{"column_id":%d,"note":%q}`, column, note)})
+	wantStatus(t, rr, http.StatusCreated)
+	var c struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &c); err != nil || c.ID == 0 {
+		t.Fatalf("create card = %s (%v)", rr.Body.String(), err)
+	}
+	return c.ID
+}
+
+func TestProjects_Create(t *testing.T) {
+	e := newGitMetaEnv(t)
+	id := e.createProject(t, "Roadmap")
+	if n := e.count(t, `SELECT COUNT(*) FROM projects WHERE id = $1 AND repo_id = $2 AND name = 'Roadmap' AND description = 'about Roadmap'`, id, e.repoID); n != 1 {
+		t.Fatal("project not stored")
+	}
+
+	cases := []struct {
+		name string
+		req  metaReq
+		want int
+	}{
+		{"anonymous", metaReq{method: "POST", target: e.path("/projects"), json: `{"name":"x"}`}, http.StatusUnauthorized},
+		{"outsider", metaReq{method: "POST", target: e.path("/projects"), token: e.outsider.token, json: `{"name":"x"}`}, http.StatusForbidden},
+		{"bad json", metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{`}, http.StatusBadRequest},
+		{"no name", metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{"description":"x"}`}, http.StatusBadRequest},
+		{"unknown repo", metaReq{method: "POST", target: "/api/repos/" + e.owner.name + "/nope/projects", token: e.owner.token, json: `{"name":"x"}`}, http.StatusNotFound},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM projects WHERE repo_id = $1`, e.repoID); n != 1 {
+		t.Errorf("projects = %d, want 1", n)
+	}
+
+	testutil.Exec(t, e.db, `UPDATE repositories SET allow_projects = FALSE WHERE id = $1`, e.repoID)
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{"name":"y"}`}), http.StatusNotFound)
+	if n := e.count(t, `SELECT COUNT(*) FROM projects WHERE repo_id = $1`, e.repoID); n != 1 {
+		t.Error("a project was created while projects are disabled")
+	}
+}
+
+func TestProjects_CloseAndDelete(t *testing.T) {
+	e := newGitMetaEnv(t)
+	id := e.createProject(t, "Board")
+	target := e.path("/projects/%d", id)
+	closed := func() bool {
+		return e.count(t, `SELECT COUNT(*) FROM projects WHERE id = $1 AND closed_at IS NOT NULL`, id) == 1
+	}
+
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, json: `{"closed":true}`}), http.StatusUnauthorized)
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.outsider.token, json: `{"closed":true}`}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: e.path("/projects/x"), token: e.owner.token, json: `{"closed":true}`}), http.StatusBadRequest)
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: e.path("/projects/999999999"), token: e.owner.token, json: `{"closed":true}`}), http.StatusNotFound)
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{`}), http.StatusBadRequest)
+	if closed() {
+		t.Fatal("refusals closed the project")
+	}
+
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.writer.token, json: `{"closed":true}`}), http.StatusOK)
+	if !closed() {
+		t.Error("project not closed")
+	}
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{"closed":false}`}), http.StatusOK)
+	if closed() {
+		t.Error("project not reopened")
+	}
+
+	other := newGitMetaEnv(t)
+	foreign := other.createProject(t, "Theirs")
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: e.path("/projects/%d", foreign), token: e.owner.token, json: `{"closed":true}`}), http.StatusNotFound)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d", foreign), token: e.owner.token}), http.StatusNotFound)
+
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: target}), http.StatusUnauthorized)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: target, token: e.writer.token}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: target, token: e.outsider.token}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/x"), token: e.owner.token}), http.StatusBadRequest)
+	if n := e.count(t, `SELECT COUNT(*) FROM projects WHERE id IN ($1, $2)`, id, foreign); n != 2 {
+		t.Fatalf("refusals deleted projects: %d left", n)
+	}
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: target, token: e.owner.token}), http.StatusNoContent)
+	if n := e.count(t, `SELECT COUNT(*) FROM projects WHERE id = $1`, id); n != 0 {
+		t.Error("project not deleted")
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM projects WHERE id = $1`, foreign); n != 1 {
+		t.Error("another repo's project was deleted")
+	}
+}
+
+func TestProjects_Columns(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	other := newGitMetaEnv(t)
+	foreignProject := other.createProject(t, "Theirs")
+	foreignCol := other.createColumn(t, foreignProject, "Their col")
+	cols := e.path("/projects/%d/columns", p)
+
+	cases := []struct {
+		name string
+		req  metaReq
+		want int
+	}{
+		{"anonymous", metaReq{method: "POST", target: cols, json: `{"name":"x"}`}, http.StatusUnauthorized},
+		{"outsider", metaReq{method: "POST", target: cols, token: e.outsider.token, json: `{"name":"x"}`}, http.StatusForbidden},
+		{"bad project id", metaReq{method: "POST", target: e.path("/projects/x/columns"), token: e.owner.token, json: `{"name":"x"}`}, http.StatusBadRequest},
+		{"unknown project", metaReq{method: "POST", target: e.path("/projects/999999999/columns"), token: e.owner.token, json: `{"name":"x"}`}, http.StatusNotFound},
+		{"foreign project", metaReq{method: "POST", target: e.path("/projects/%d/columns", foreignProject), token: e.owner.token, json: `{"name":"x"}`}, http.StatusNotFound},
+		{"bad json", metaReq{method: "POST", target: cols, token: e.owner.token, json: `{`}, http.StatusBadRequest},
+		{"no name", metaReq{method: "POST", target: cols, token: e.owner.token, json: `{"name":""}`}, http.StatusBadRequest},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM project_columns WHERE project_id = $1`, p); n != 0 {
+		t.Fatalf("refusals created %d columns", n)
+	}
+
+	col := e.createColumn(t, p, "To do")
+	del := e.path("/projects/%d/columns/%d", p, col)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del}), http.StatusUnauthorized)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del, token: e.outsider.token}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/columns/x", p), token: e.owner.token}), http.StatusBadRequest)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/columns/%d", foreignProject, foreignCol), token: e.owner.token}), http.StatusNotFound)
+	if rr := e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/columns/%d", p, foreignCol), token: e.owner.token}); rr.Code == http.StatusNoContent {
+		t.Error("deleting a column that is not in the project must not report success")
+	}
+	if n := other.count(t, `SELECT COUNT(*) FROM project_columns WHERE id = $1`, foreignCol); n != 1 {
+		t.Error("a column of another project was deleted through this project's URL")
+	}
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del, token: e.writer.token}), http.StatusNoContent)
+	if n := e.count(t, `SELECT COUNT(*) FROM project_columns WHERE id = $1`, col); n != 0 {
+		t.Error("column not deleted")
+	}
+}
+
+func TestProjects_Cards(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	todo, done := e.createColumn(t, p, "To do"), e.createColumn(t, p, "Done")
+	otherProject := e.createProject(t, "Other board")
+	otherCol := e.createColumn(t, otherProject, "Elsewhere")
+	issueID, _ := e.seedIssue(t, "carded issue", "open")
+	pullID, _ := e.seedPull(t, "carded pull", "open")
+	cards := e.path("/projects/%d/cards", p)
+
+	bad := []struct {
+		name string
+		req  metaReq
+		want int
+	}{
+		{"anonymous", metaReq{method: "POST", target: cards, json: fmt.Sprintf(`{"column_id":%d,"note":"x"}`, todo)}, http.StatusUnauthorized},
+		{"outsider", metaReq{method: "POST", target: cards, token: e.outsider.token, json: fmt.Sprintf(`{"column_id":%d,"note":"x"}`, todo)}, http.StatusForbidden},
+		{"bad json", metaReq{method: "POST", target: cards, token: e.owner.token, json: `{`}, http.StatusBadRequest},
+		{"no column", metaReq{method: "POST", target: cards, token: e.owner.token, json: `{"note":"x"}`}, http.StatusBadRequest},
+		{"empty card", metaReq{method: "POST", target: cards, token: e.owner.token, json: fmt.Sprintf(`{"column_id":%d,"note":"  "}`, todo)}, http.StatusBadRequest},
+		{"column of another project", metaReq{method: "POST", target: cards, token: e.owner.token, json: fmt.Sprintf(`{"column_id":%d,"note":"x"}`, otherCol)}, http.StatusNotFound},
+		{"unknown column", metaReq{method: "POST", target: cards, token: e.owner.token, json: `{"column_id":999999999,"note":"x"}`}, http.StatusNotFound},
+	}
+	for _, c := range bad {
+		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE column_id IN ($1, $2, $3)`, todo, done, otherCol); n != 0 {
+		t.Fatalf("refusals created %d cards", n)
+	}
+
+	note := e.createNote(t, p, todo, "remember the milk")
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: cards, token: e.writer.token, json: fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, todo, issueID)}), http.StatusCreated)
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: cards, token: e.owner.token, json: fmt.Sprintf(`{"column_id":%d,"pull_id":%d}`, done, pullID)}), http.StatusCreated)
+	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE column_id IN ($1, $2)`, todo, done); n != 3 {
+		t.Fatalf("cards = %d, want 3", n)
+	}
+
+	move := e.path("/projects/%d/cards/%d", p, note)
+	moveBody := func(col int64, pos int) string { return fmt.Sprintf(`{"column_id":%d,"position":%d}`, col, pos) }
+	moveBad := []struct {
+		name string
+		req  metaReq
+		want int
+	}{
+		{"anonymous", metaReq{method: "PATCH", target: move, json: moveBody(done, 0)}, http.StatusUnauthorized},
+		{"outsider", metaReq{method: "PATCH", target: move, token: e.outsider.token, json: moveBody(done, 0)}, http.StatusForbidden},
+		{"bad card id", metaReq{method: "PATCH", target: e.path("/projects/%d/cards/x", p), token: e.owner.token, json: moveBody(done, 0)}, http.StatusBadRequest},
+		{"bad json", metaReq{method: "PATCH", target: move, token: e.owner.token, json: `{`}, http.StatusBadRequest},
+		{"no column", metaReq{method: "PATCH", target: move, token: e.owner.token, json: `{"position":1}`}, http.StatusBadRequest},
+		{"negative position", metaReq{method: "PATCH", target: move, token: e.owner.token, json: moveBody(done, -1)}, http.StatusBadRequest},
+		{"column of another project", metaReq{method: "PATCH", target: move, token: e.owner.token, json: moveBody(otherCol, 0)}, http.StatusNotFound},
+		{"unknown card", metaReq{method: "PATCH", target: e.path("/projects/%d/cards/999999999", p), token: e.owner.token, json: moveBody(done, 0)}, http.StatusNotFound},
+	}
+	for _, c := range moveBad {
+		t.Run("move "+c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
+	}
+	colOf := func(card int64) int64 {
+		var c int64
+		if err := e.db.QueryRow(`SELECT column_id FROM project_cards WHERE id = $1`, card).Scan(&c); err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+	if colOf(note) != todo {
+		t.Fatal("refused moves relocated the card")
+	}
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: move, token: e.writer.token, json: moveBody(done, 0)}), http.StatusNoContent)
+	if colOf(note) != done {
+		t.Error("card not moved")
+	}
+
+	del := move
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del}), http.StatusUnauthorized)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del, token: e.outsider.token}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: e.path("/projects/%d/cards/x", p), token: e.owner.token}), http.StatusBadRequest)
+	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE id = $1`, note); n != 1 {
+		t.Fatal("refusals deleted the card")
+	}
+	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del, token: e.writer.token}), http.StatusNoContent)
+	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE id = $1`, note); n != 0 {
+		t.Error("card not deleted")
+	}
+}
+
+func TestProjects_Pages(t *testing.T) {
+	e := newGitMetaEnv(t)
+	open := e.createProject(t, "Alpha board")
+	closedID := e.createProject(t, "Beta board")
+	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: e.path("/projects/%d", closedID), token: e.owner.token, json: `{"closed":true}`}), http.StatusOK)
+	col := e.createColumn(t, open, "Backlog")
+	e.createNote(t, open, col, "write the docs")
+	issueID, _ := e.seedIssue(t, "board issue", "open")
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards", open), token: e.owner.token, json: fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID)}), http.StatusCreated)
+
+	rr := e.page(t, e.pagePath("/projects"), "", false)
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "Alpha board")
+	if got := rr.Body.String(); strings.Contains(got, "Beta board") {
+		t.Error("the open tab lists a closed board")
+	}
+	rr = e.page(t, e.pagePath("/projects?state=closed"), e.owner.token, false)
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "Beta board")
+	rr = e.page(t, e.pagePath("/projects?q=alph"), "", false)
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "Alpha board")
+	rr = e.page(t, e.pagePath("/projects?state=bogus&q=zzz-no-match"), "", false)
+	wantStatus(t, rr, http.StatusOK)
+	if strings.Contains(rr.Body.String(), "Alpha board") {
+		t.Error("a non-matching query still lists boards")
+	}
+
+	rr = e.page(t, e.pagePath("/projects/%d", open), "", false)
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "Backlog")
+	bodyHas(t, rr, "write the docs")
+	bodyHas(t, rr, "board issue")
+	wantStatus(t, e.page(t, e.pagePath("/projects/%d", open), e.writer.token, false), http.StatusOK)
+	wantStatus(t, e.page(t, e.pagePath("/projects/x"), "", false), http.StatusBadRequest)
+	wantStatus(t, e.page(t, e.pagePath("/projects/999999999"), "", false), http.StatusNotFound)
+	wantStatus(t, e.page(t, "/"+e.owner.name+"/nope/projects", "", false), http.StatusNotFound)
+
+	other := newGitMetaEnv(t)
+	foreign := other.createProject(t, "Theirs")
+	wantStatus(t, e.page(t, e.pagePath("/projects/%d", foreign), "", false), http.StatusNotFound)
+
+	testutil.Exec(t, e.db, `UPDATE repositories SET allow_projects = FALSE WHERE id = $1`, e.repoID)
+	wantStatus(t, e.page(t, e.pagePath("/projects"), "", false), http.StatusNotFound)
+	wantStatus(t, e.page(t, e.pagePath("/projects/%d", open), "", false), http.StatusNotFound)
+	testutil.Exec(t, e.db, `UPDATE repositories SET allow_projects = TRUE, private = TRUE WHERE id = $1`, e.repoID)
+	wantStatus(t, e.page(t, e.pagePath("/projects"), e.outsider.token, false), http.StatusNotFound)
+	wantStatus(t, e.page(t, e.pagePath("/projects/%d", open), e.outsider.token, false), http.StatusNotFound)
+}

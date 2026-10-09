@@ -14,8 +14,8 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 
 | Milestone                                       | Scope                                                                                                                            | Status       |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **M1 — Core Platform** (Phases 0–15.3)          | Identity, git hosting, issues, PRs, code review, orgs, wikis, discussions, gists, search, and 50+ features across 60+ migrations | **Complete** |
-| **M2 — Advanced Infrastructure** (Phases 16–20) | Container registry, Git LFS, CI/CD pipelines, clustering, GraphQL API                                                            | Planned      |
+| **M1 — Core Platform** (Phases 0–15.3)          | Identity, git hosting, issues, PRs, code review, orgs, wikis, discussions, gists, search, and 50+ features across 100+ migrations | **Complete** |
+| **M2 — Advanced Infrastructure** (Phases 16–20) | Container registry, Git LFS, CI/CD pipelines, clustering, GraphQL API                                                            | In progress  |
 
 ---
 
@@ -88,10 +88,14 @@ graph TB
 - **Collaboration**: wikis, discussions, gists, profile READMEs, repository topics, stars, forks, reactions, @mentions, saved replies
 - **Notifications**: in-app notifications with unread badge, email notifications (SMTP), watching/subscriptions
 - **Webhooks**: push/issues/PR events, HMAC-SHA256 signing, retry with backoff, event filtering, delivery logs
-- **Search**: full-text search across repos, issues, PRs, and users (PostgreSQL tsvector + GIN); advanced code search
+- **Search**: full-text search across repos, issues, PRs, and users (PostgreSQL tsvector + GIN) with word-prefix matching and live topnav suggestions; advanced code search
 - **Project management**: Kanban boards, milestones with progress tracking, activity feed
 - **Infrastructure**: releases with tags, commit status API, audit log, OAuth apps, repository archive/templates, soft-delete/recovery, explore/trending, dependency graph
-- **Admin**: first-run setup wizard, site settings, invitation management, superadmin controls
+- **Repositories**: import from another Git host, pull mirrors with scheduled sync, edit, rename and delete files from the browser
+- **Storage**: avatars and markdown image attachments on local disk or S3-compatible storage
+- **Admin**: first-run setup wizard, site settings, invitation management, user suspension, password-reset links, superadmin controls
+- **Operations**: health and readiness probes, Prometheus metrics, backup and restore, per-user API rate limits and per-owner quotas
+- **CLI**: `cz` remote client for repos, issues and PRs, and `cz-admin` for server-side operator commands
 
 ---
 
@@ -165,6 +169,9 @@ For a populated instance to click around in, run `make seed` after `make migrate
 | [docs/notifications.md](./docs/notifications.md)   | Notification types, service API, extension pattern          |
 | [docs/organizations.md](./docs/organizations.md)   | OrgService API, endpoints, role model                       |
 | [docs/pr-merge.md](./docs/pr-merge.md)             | Merge strategies, conflict detection, PRDiffResult          |
+| [docs/repo-import.md](./docs/repo-import.md)       | Background clone jobs, SSRF guard, `import.*` config        |
+| [docs/repo-mirrors.md](./docs/repo-mirrors.md)     | Pull mirrors: sync, scheduler, read-only guard, credentials |
+| [docs/storage.md](./docs/storage.md)               | Local and S3 backends, object layout, avatars, attachments  |
 | [docs/webhooks.md](./docs/webhooks.md)             | Webhook events, HMAC signing, dispatch pattern              |
 
 ---
