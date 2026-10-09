@@ -6,11 +6,19 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
+
+func createRefStatus(err error) int {
+	if errors.Is(err, gitref.ErrInvalidName) {
+		return http.StatusUnprocessableEntity
+	}
+	return http.StatusBadRequest
+}
 
 func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
@@ -42,7 +50,7 @@ func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Code.CreateBranch(owner, repoName, name, from); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, createRefStatus(err), err.Error())
 		return
 	}
 
@@ -154,7 +162,7 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Code.CreateTag(owner, repoName, name, from); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, createRefStatus(err), err.Error())
 		return
 	}
 

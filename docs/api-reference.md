@@ -413,9 +413,9 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 
 | Method | Path                                      | Auth     | Description                                                                                                     |
 | ------ | ----------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`) |
+| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`, or for a name `git check-ref-format` rejects) |
 | DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push` or `require_pull_request`)              |
-| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields)                                                                         |
+| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields; 422 for a name `git check-ref-format` rejects)                          |
 | DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                                                      |
 
 All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.
