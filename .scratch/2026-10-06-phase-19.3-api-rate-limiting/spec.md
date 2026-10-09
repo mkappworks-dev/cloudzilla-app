@@ -279,7 +279,7 @@ When a quota is set, user Settings and org settings show one line, for example `
 - `internal/handler/error_handler.go`: `isAPIRequest`, and the home for `onLimited`
 - `internal/router/router.go`: the global middleware order and the existing per-route limits
 - `internal/config/config.go`: the new `RateLimitConfig` and `QuotaConfig`
-- `internal/service/repo_dirs.go` (`claimRepo`), `repo_service.go` (`Create`, `Fork`, `CreateFromTemplate`, `Restore`, `OnPostReceive`), `repo_import.go`, `import_service.go`, `repo_transfer.go`, `org_service.go`
+- `internal/service/repo_dirs.go` (`claimRepo`), `repo_service_create.go` (`Create`, `CreateFromTemplate`), `repo_service_fork.go` (`Fork`), `repo_service_lifecycle.go` (`Restore`), `repo_service_push.go` (`OnPostReceive`), `repo_import.go`, `import_service.go`, `repo_transfer.go`, `org_service.go`
 - `internal/service/code_service_files.go` (`CommitFile`), `code_service_wiki.go`
 - `internal/store/repo_store.go` (`CountForUser`)
 - `cmd/cz-admin/gc.go`, `internal/gitgc/gitgc.go`

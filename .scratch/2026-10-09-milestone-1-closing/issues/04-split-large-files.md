@@ -30,3 +30,11 @@ Pure moves: cut whole functions into new files in the same package, named for th
 ## Blocked by
 
 Sequence after open PRs that touch the same files have merged (several `feat/*` worktrees are active); check `git worktree list` and open PRs first.
+
+## Comments
+
+Claude, 2026-10-10: progress, one PR per file.
+
+- Done: `internal/service/repo_service.go` (1271 lines), split into `repo_service.go` (types, constructor, `With*`, read queries) and `repo_service_{access,create,fork,settings,lifecycle,push}.go`.
+- Remaining: `user_store.go`, `page_pull_handler.go`. `sso_service.go` and `milestone_handler.go` are in flight on `tech/split-sso-service` and `tech/split-milestone-handler`.
+- The ticket stays open until every file in the table is split.
