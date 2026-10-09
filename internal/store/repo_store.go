@@ -813,6 +813,53 @@ func (s *RepoStore) CountForUser(ctx context.Context, userID int64) (int, error)
 	return n, err
 }
 
+// OwnerUsage totals the live repos of the org orgID, or of the user userID when
+// orgID is 0. A repo not yet measured counts 0 bytes.
+func (s *RepoStore) OwnerUsage(ctx context.Context, userID, orgID int64) (repos int, bytes int64, err error) {
+	col, id := "owner_id", userID
+	if orgID != 0 {
+		col, id = "org_id", orgID
+	}
+	err = s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*), COALESCE(SUM(size_bytes), 0) FROM repositories
+		 WHERE `+col+` = $1 AND deleted_at IS NULL`,
+		id,
+	).Scan(&repos, &bytes)
+	return repos, bytes, err
+}
+
+func (s *RepoStore) SetSize(ctx context.Context, repoID, bytes int64) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE repositories SET size_bytes = $2 WHERE id = $1`, repoID, bytes)
+	return err
+}
+
+// SetSizeByName is for callers with no repo ID, such as the gc command.
+func (s *RepoStore) SetSizeByName(ctx context.Context, ownerName, name string, bytes int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET size_bytes = $3 WHERE owner_name = $1 AND name = $2 AND deleted_at IS NULL`,
+		ownerName, name, bytes)
+	return err
+}
+
+// ListUnmeasured returns only each repo's ID, owner and name.
+func (s *RepoStore) ListUnmeasured(ctx context.Context) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_name, name FROM repositories WHERE size_bytes IS NULL AND deleted_at IS NULL ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var repos []model.Repository
+	for rows.Next() {
+		var r model.Repository
+		if err := rows.Scan(&r.ID, &r.OwnerName, &r.Name); err != nil {
+			return nil, err
+		}
+		repos = append(repos, r)
+	}
+	return repos, rows.Err()
+}
+
 // scope is "owned", "collaborator", or "all" (default for any unknown value).
 func (s *RepoStore) ListForUser(ctx context.Context, userID int64, scope string) ([]model.Repository, error) {
 	const cols = `r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count, r.is_archived, r.archived_at, r.is_template, r.primary_language, EXISTS (SELECT 1 FROM repo_mirrors rm WHERE rm.repo_id = r.id)`

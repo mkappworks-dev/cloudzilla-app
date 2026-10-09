@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,8 +9,10 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitgc"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +39,16 @@ func gcCmd() *cobra.Command {
 			}
 
 			opts := gitgc.Options{Grace: grace, DryRun: dryRun}
+			var sizes *store.RepoStore
+			if !dryRun {
+				database, err := db.Connect(cfg.Database)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "gc: repository sizes (storage quotas) won't be updated, database unreachable: %v\n", err)
+				} else {
+					defer func() { _ = database.Close() }()
+					sizes = store.NewRepoStore(database)
+				}
+			}
 			var totalPruned, skipped, failures int
 			var totalReclaimed int64
 			for _, p := range repoPaths {
@@ -54,6 +67,11 @@ func gcCmd() *cobra.Command {
 					res.Repo, res.Scanned, res.Pruned, res.Kept, formatBytes(res.Reclaimed))
 				totalPruned += res.Pruned
 				totalReclaimed += res.Reclaimed
+				if sizes != nil && res.Pruned > 0 {
+					if err := refreshRepoSize(cmd.Context(), sizes, p); err != nil {
+						fmt.Fprintf(os.Stderr, "gc %s: update size: %v\n", p, err)
+					}
+				}
 			}
 
 			verb := "pruned"
@@ -74,6 +92,17 @@ func gcCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what would be pruned without deleting")
 	cmd.Flags().StringVar(&repoArg, "repo", "", "prune a single repository (owner/name); default: all")
 	return cmd
+}
+
+// refreshRepoSize stores the size of the repo whose git dir is gitDir, wiki included.
+func refreshRepoSize(ctx context.Context, repos *store.RepoStore, gitDir string) error {
+	ownerDir, base := filepath.Split(strings.TrimSuffix(gitDir, string(filepath.Separator)))
+	name := strings.TrimSuffix(base, ".git")
+	size, err := service.DirSize(gitDir, filepath.Join(ownerDir, name+".wiki.git"))
+	if err != nil {
+		return err
+	}
+	return repos.SetSizeByName(ctx, filepath.Base(ownerDir), name, size)
 }
 
 // resolveRepos returns the bare-repo paths to prune: a single owner/name

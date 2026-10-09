@@ -28,6 +28,12 @@ type OrgService struct {
 	repo    *RepoService
 	cfg     config.GitConfig
 	avatars *AvatarService
+	quota   *QuotaService
+}
+
+func (s *OrgService) WithQuota(q *QuotaService) *OrgService {
+	s.quota = q
+	return s
 }
 
 // WithAvatars removes a deleted org's avatar object.
@@ -291,6 +297,9 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 	if defaultBranch == "" {
 		defaultBranch = "main"
 	}
+	if err := s.quota.CheckNewRepo(ctx, QuotaOwner{OrgID: orgID}); err != nil {
+		return nil, err
+	}
 	repoPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, org.Name, name)
 	if err != nil {
 		return nil, err
@@ -328,6 +337,7 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		}
 	}
 
+	s.quota.Recompute(r)
 	return r, nil
 }
 

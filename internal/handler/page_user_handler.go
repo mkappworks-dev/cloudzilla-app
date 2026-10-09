@@ -611,6 +611,7 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		Members:      members,
 		MemberCount:  len(members),
 		RepoCount:    len(repos),
+		QuotaSummary: h.quotaSummary(r.Context(), service.QuotaOwner{OrgID: org.ID}),
 		AuditEntries: auditEntries,
 		Confirm:      h.confirmFactors(r, claims.UserID),
 	}))
