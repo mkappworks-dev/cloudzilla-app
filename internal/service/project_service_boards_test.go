@@ -356,7 +356,7 @@ func TestProjectService_MoveCard(t *testing.T) {
 	notes := func(cards []model.ProjectCard) string {
 		var out []string
 		for _, c := range cards {
-			out = append(out, c.Note)
+			out = append(out, c.Title)
 		}
 		return strings.Join(out, ",")
 	}

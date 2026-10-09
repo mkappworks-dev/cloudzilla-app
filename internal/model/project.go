@@ -23,17 +23,20 @@ type ProjectColumn struct {
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
 
-// ProjectCard is a card in a column. IssueID / PullID / Note are mutually
-// exclusive per the DB CHECK constraint. IssueTitle, IssueState, PullTitle,
-// and PullState are populated via JOIN when listing cards.
+// ProjectCard is a card in a column. IssueID and PullID are mutually exclusive,
+// and a card with neither needs a Title (DB CHECK). Note holds the description.
+// IssueTitle, IssueState, PullTitle, and PullState are populated via JOIN when
+// listing cards.
 type ProjectCard struct {
-	ID        int64     `db:"id"          json:"id"`
-	ColumnID  int64     `db:"column_id"   json:"column_id"`
-	IssueID   *int64    `db:"issue_id"    json:"issue_id,omitempty"`
-	PullID    *int64    `db:"pull_id"     json:"pull_id,omitempty"`
-	Note      string    `db:"note"        json:"note"`
-	Position  int       `db:"position"    json:"position"`
-	CreatedAt time.Time `db:"created_at"  json:"created_at"`
+	ID        int64      `db:"id"          json:"id"`
+	ColumnID  int64      `db:"column_id"   json:"column_id"`
+	IssueID   *int64     `db:"issue_id"    json:"issue_id,omitempty"`
+	PullID    *int64     `db:"pull_id"     json:"pull_id,omitempty"`
+	Title     string     `db:"title"       json:"title"`
+	Note      string     `db:"note"        json:"note"`
+	DueDate   *time.Time `db:"due_date"    json:"due_date,omitempty"`
+	Position  int        `db:"position"    json:"position"`
+	CreatedAt time.Time  `db:"created_at"  json:"created_at"`
 
 	// Populated via JOIN — not stored columns
 	IssueTitle  string `db:"issue_title"  json:"issue_title,omitempty"`
@@ -42,6 +45,20 @@ type ProjectCard struct {
 	PullTitle   string `db:"pull_title"   json:"pull_title,omitempty"`
 	PullNumber  int    `db:"pull_number"  json:"pull_number,omitempty"`
 	PullState   string `db:"pull_state"   json:"pull_state,omitempty"`
+}
+
+type CardUser struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+}
+
+// CardDetails is the full editable state of a card; SetCardDetails replaces all of it.
+type CardDetails struct {
+	Title, Description string
+	DueDate            *time.Time
+	IssueID, PullID    *int64
+	AssigneeIDs        []int64
+	LabelIDs           []int64
 }
 
 // CardTarget is an issue or pull request a board card can link to.

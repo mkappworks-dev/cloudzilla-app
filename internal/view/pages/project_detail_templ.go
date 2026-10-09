@@ -395,9 +395,9 @@ func ProjectDetail(data view.ProjectDetailData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var23 string
-						templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.ResolveAttributeValue(card.Note)
+						templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.ResolveAttributeValue(card.Description)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 105, Col: 31}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 105, Col: 38}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
 						if templ_7745c5c3_Err != nil {

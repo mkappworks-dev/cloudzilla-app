@@ -102,7 +102,7 @@ templ ProjectDetail(data view.ProjectDetailData) {
 									data-drag="kanban-card"
 									draggable="true"
 									if card.Kind == "note" {
-										data-note={ card.Note }
+										data-note={ card.Description }
 										tabindex="0"
 										role="button"
 										aria-label={ "Open note: " + card.Title }

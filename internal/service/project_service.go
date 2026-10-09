@@ -8,6 +8,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -322,18 +323,34 @@ type ColumnWithCards struct {
 }
 
 // KanbanCardView is the unified shape consumed by the project_detail kanban board.
-// Title resolves to issue title, PR title, or note (first line, ≤120 chars).
-// Number is the issue/PR number (0 for note-only cards).
+// Title is the card's own title when it has one, else the linked issue or PR title.
+// Number and State describe the linked item for issue and pull cards (0 and "" otherwise);
+// LinkKind, LinkNumber and LinkState describe the link even when a custom title makes Kind "note".
 type KanbanCardView struct {
 	ID           int64
 	Title        string
 	Number       int
 	State        string // "open" | "closed" | "merged" | "" (note)
 	Kind         string // "issue" | "pull" | "note"
-	Note         string // full text of a note card; Title holds only its first line
+	Description  string
+	DueDate      string // 2006-01-02, empty when unset
+	Overdue      bool
+	Assignees    []model.CardUser
+	Labels       []model.Label
+	LinkKind     string // "issue" | "pull" | "" (unlinked)
+	LinkNumber   int
+	LinkState    string
 	RepoFullName string
 	Position     int
 	ColumnID     int64
+}
+
+// cardOverdue: a card whose linked item is already resolved is never overdue.
+func cardOverdue(due *time.Time, linkState string, today time.Time) bool {
+	if due == nil || linkState == "closed" || linkState == "merged" {
+		return false
+	}
+	return due.Format("2006-01-02") < today.Format("2006-01-02")
 }
 
 // KanbanColumnView groups KanbanCardView entries under their owning column.
@@ -356,6 +373,22 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 	if err != nil {
 		return nil, err
 	}
+	var cardIDs []int64
+	for _, col := range cols {
+		for _, c := range col.Cards {
+			cardIDs = append(cardIDs, c.ID)
+		}
+	}
+	assignees, err := s.projects.CardAssignees(ctx, cardIDs)
+	if err != nil {
+		return nil, err
+	}
+	labels, err := s.projects.CardLabels(ctx, cardIDs)
+	if err != nil {
+		return nil, err
+	}
+	today := time.Now().UTC()
+
 	out := make([]KanbanColumnView, len(cols))
 	for i, col := range cols {
 		cards := make([]KanbanCardView, len(col.Cards))
@@ -365,27 +398,27 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 				ColumnID:     c.ColumnID,
 				Position:     c.Position,
 				RepoFullName: fullName,
+				Description:  c.Note,
+				Assignees:    assignees[c.ID],
+				Labels:       labels[c.ID],
+			}
+			if c.DueDate != nil {
+				cv.DueDate = c.DueDate.Format("2006-01-02")
 			}
 			switch {
 			case c.IssueID != nil:
-				cv.Kind = "issue"
-				cv.Title = c.IssueTitle
-				cv.Number = c.IssueNumber
-				cv.State = c.IssueState
+				cv.LinkKind, cv.LinkNumber, cv.LinkState = "issue", c.IssueNumber, c.IssueState
+				cv.Kind, cv.Title, cv.Number, cv.State = "issue", c.IssueTitle, c.IssueNumber, c.IssueState
 			case c.PullID != nil:
-				cv.Kind = "pull"
-				cv.Title = c.PullTitle
-				cv.Number = c.PullNumber
-				cv.State = c.PullState
+				cv.LinkKind, cv.LinkNumber, cv.LinkState = "pull", c.PullNumber, c.PullState
+				cv.Kind, cv.Title, cv.Number, cv.State = "pull", c.PullTitle, c.PullNumber, c.PullState
 			default:
 				cv.Kind = "note"
-				cv.Note = c.Note
-				t := FirstLine(c.Note)
-				if r := []rune(t); len(r) > 120 {
-					t = string(r[:120])
-				}
-				cv.Title = t
 			}
+			if c.Title != "" {
+				cv.Kind, cv.Title, cv.Number, cv.State = "note", c.Title, 0, ""
+			}
+			cv.Overdue = cardOverdue(c.DueDate, cv.LinkState, today)
 			cards[j] = cv
 		}
 		out[i] = KanbanColumnView{ID: col.Column.ID, Name: col.Column.Name, Cards: cards}

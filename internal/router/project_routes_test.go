@@ -264,7 +264,7 @@ func TestProjects_EditNote(t *testing.T) {
 	p := e.createProject(t, "Board")
 	col := e.createColumn(t, p, "To do")
 	other := e.createProject(t, "Other board")
-	note := e.createNote(t, p, col, "before")
+	note := e.createNote(t, p, col, "head\nbefore")
 	issueID, _ := e.seedIssue(t, "linked", "open")
 	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards", p), token: e.writer.token,
 		json: fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID)})
