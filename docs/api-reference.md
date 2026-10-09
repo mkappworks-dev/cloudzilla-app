@@ -340,6 +340,16 @@ Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` an
 | DELETE | `/api/repos/:owner/:repo/watch` | Required | Unwatch a repository (HTMX-aware) |
 | GET    | `/api/repos/:owner/:repo/watch` | Optional | Get watch button state            |
 
+### Thread subscriptions
+
+| Method | Path                                                              | Auth     | Description                                      |
+| ------ | ----------------------------------------------------------------- | -------- | ------------------------------------------------ |
+| PUT    | `/api/repos/:owner/:repo/issues/:number/subscription`             | Required | Subscribe to or mute an issue (HTMX-aware)       |
+| PUT    | `/api/repos/:owner/:repo/pulls/:number/subscription`              | Required | Subscribe to or mute a pull request (HTMX-aware) |
+| PUT    | `/api/repos/:owner/:repo/discussions/:number/subscription`        | Required | Subscribe to or mute a discussion (HTMX-aware)   |
+
+Body: `{"state": "subscribed" | "muted"}`, or the same `state` as a form field. `subscribed` writes a `manual` row, which replaces any mute; `muted` writes a mute even when the user only watches the repo. The repo watch is never changed. HTMX requests get the re-rendered sidebar Notifications section; others get `{"state", "reason"}`. Errors: 401 anonymous, 404 repo the caller can't read or missing thread, 422 any other `state`.
+
 ## Forks
 
 | Method | Path                           | Auth     | Description                     |
@@ -611,6 +621,8 @@ The profile, repo-defaults, and delete endpoints are browser form posts: they re
 | GET    | `/api/notifications/unread-count` | Required | Returns `{"count": N}`             |
 | PATCH  | `/api/notifications/:id`          | Required | Mark a single notification as read |
 | POST   | `/api/notifications/read-all`     | Required | Mark all notifications as read     |
+| POST   | `/api/notifications/done`         | Required | Mark the notifications in repeated form field `ids` as read |
+| POST   | `/api/notifications/unsubscribe`  | Required | Mute the thread behind each notification in `ids` and mark its unread notifications read; the repo watch is unchanged |
 
 ## Saved Replies
 

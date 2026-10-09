@@ -480,9 +480,9 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
 	}
 
-	subscribed := false
-	if callerID != nil {
-		subscribed = h.Services.Watch.GetLevel(r.Context(), *callerID, repo.ID) != ""
+	threadSub, err := h.threadSubscriptionData(r, repo, model.ThreadKindPull, "pulls", pull.Number)
+	if err != nil {
+		slog.Warn("pull detail: subscription lookup failed; rendering as not subscribed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
 	}
 
 	pullEvents, err := h.Services.PullEvent.ListByPull(r.Context(), pull.ID)
@@ -502,34 +502,34 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 
 	r = h.withAvatars(r, slices.Concat(participants, collaboratorUsernames(collaborators), usernames(pullAssignees))...)
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
-		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage2),
-		Repo:              *repo,
-		Pull:              *pull,
-		Owner:             owner,
-		RepoName:          repoName,
-		AuthorUsername:    authorUsername,
-		BodyHTML:          bodyHTML,
-		Labels:            pullLabels2,
-		Assignees:         pullAssignees,
-		AllLabels:         allLabels2,
-		Milestone:         pullMilestone,
-		AllMilestones:     allPullDetailMilestones,
-		CanWrite:          canWrite2,
-		Collaborators:     collaboratorUsernames(collaborators),
-		HeadStatuses:      headStatuses,
-		Reviews:           reviews,
-		Comments:          comments,
-		Participants:      participants,
-		LinkedIssues:      linkedIssuesToView(owner, repoName, linkedIssueModels),
-		LinkableIssues:    linkedIssuesToView(owner, repoName, repoIssueModels),
-		Subscribed:        subscribed,
-		Events:            pullEvents,
-		PullChromeCounts:  chromeCounts,
-		CanMerge:          canMerge,
-		MergeBlockReason:  mergeBlockReason,
-		AutoMergeEnabled:  pull.AutoMergeEnabled,
-		AutoMergeStrategy: pull.AutoMergeStrategy,
-		Mergeability:      mergeabilityBox,
+		BasePage:           h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage2),
+		Repo:               *repo,
+		Pull:               *pull,
+		Owner:              owner,
+		RepoName:           repoName,
+		AuthorUsername:     authorUsername,
+		BodyHTML:           bodyHTML,
+		Labels:             pullLabels2,
+		Assignees:          pullAssignees,
+		AllLabels:          allLabels2,
+		Milestone:          pullMilestone,
+		AllMilestones:      allPullDetailMilestones,
+		CanWrite:           canWrite2,
+		Collaborators:      collaboratorUsernames(collaborators),
+		HeadStatuses:       headStatuses,
+		Reviews:            reviews,
+		Comments:           comments,
+		Participants:       participants,
+		LinkedIssues:       linkedIssuesToView(owner, repoName, linkedIssueModels),
+		LinkableIssues:     linkedIssuesToView(owner, repoName, repoIssueModels),
+		ThreadSubscription: threadSub,
+		Events:             pullEvents,
+		PullChromeCounts:   chromeCounts,
+		CanMerge:           canMerge,
+		MergeBlockReason:   mergeBlockReason,
+		AutoMergeEnabled:   pull.AutoMergeEnabled,
+		AutoMergeStrategy:  pull.AutoMergeStrategy,
+		Mergeability:       mergeabilityBox,
 	}))
 }
 

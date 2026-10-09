@@ -15,6 +15,7 @@ type CommentService struct {
 	users    *UserService
 	notifs   *NotificationService
 	repos    *RepoService
+	threads  threadAutoSubscriber
 }
 
 // NewCommentService creates a CommentService backed by the given stores.
@@ -34,6 +35,12 @@ func NewCommentService(
 	}
 }
 
+// WithThreadSubscriptions makes participation subscribe the user to the thread.
+func (s *CommentService) WithThreadSubscriptions(t threadAutoSubscriber) *CommentService {
+	s.threads = t
+	return s
+}
+
 func (s *CommentService) CreateForIssue(ctx context.Context, repo model.Repository, issueID int64, issueNumber int, authorID int64, authorName, body string) (*model.Comment, error) {
 	c := &model.Comment{
 		RepoID:     repo.ID,
@@ -45,6 +52,7 @@ func (s *CommentService) CreateForIssue(ctx context.Context, repo model.Reposito
 	if err := s.comments.Create(ctx, c); err != nil {
 		return nil, err
 	}
+	autoSubscribe(ctx, s.threads, authorID, repo.ID, model.ThreadKindIssue, issueNumber, model.ThreadReasonComment)
 	s.processMentions(ctx, repo, c, issueNumber, authorID, authorName)
 	return c, nil
 }
@@ -60,6 +68,7 @@ func (s *CommentService) CreateForPull(ctx context.Context, repo model.Repositor
 	if err := s.comments.Create(ctx, c); err != nil {
 		return nil, err
 	}
+	autoSubscribe(ctx, s.threads, authorID, repo.ID, model.ThreadKindPull, pullNumber, model.ThreadReasonComment)
 	s.processMentions(ctx, repo, c, pullNumber, authorID, authorName)
 	return c, nil
 }
@@ -120,13 +129,15 @@ func (s *CommentService) processMentions(ctx context.Context, repo model.Reposit
 		if !s.repos.CanRead(ctx, &repo, &u.ID) {
 			continue
 		}
-		var subjectURL string
+		var kind, subjectURL string
 		if c.IssueID != nil {
+			kind = model.ThreadKindIssue
 			subjectURL = fmt.Sprintf("/%s/%s/issues/%d", repo.OwnerName, repo.Name, subjectNumber)
 		} else if c.PullID != nil {
+			kind = model.ThreadKindPull
 			subjectURL = fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, subjectNumber)
 		}
-		s.notifs.NotifyMention(ctx, repo, actorID, actorName, u.ID, subjectNumber, subjectURL)
+		s.notifs.NotifyMention(ctx, repo, actorID, actorName, u.ID, kind, subjectNumber, subjectURL)
 		userIDs = append(userIDs, u.ID)
 	}
 	_ = s.mentions.CreateBatch(ctx, c.ID, userIDs)

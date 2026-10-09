@@ -222,6 +222,11 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 						<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-medium border border-border bg-muted text-foreground">{ data.Category.Name }</span>
 					</section>
 					@components.LabelSidebar(data.Owner, data.RepoName, data.Discussion.Number, "discussions", data.Labels, data.AllLabels, data.CanWrite)
+					if data.CurrentUser != nil {
+						<section>
+							@fragments.ThreadSubscription(data.ThreadSubscription)
+						</section>
+					}
 					<section aria-labelledby="dd-participants-heading">
 						<h2 id="dd-participants-heading" class="text-[12px] font-medium text-muted-foreground mb-2">
 							if len(data.Participants) == 1 {

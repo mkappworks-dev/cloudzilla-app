@@ -67,9 +67,6 @@ type NotificationsData struct {
 	InboxCount  int
 	UnreadCount int
 	ReadCount   int
-
-	// WatchedRepos is the set of repo IDs on this page the user can unsubscribe from.
-	WatchedRepos map[int64]bool
 }
 
 // AdminSettingsData holds template data for the admin settings page.
