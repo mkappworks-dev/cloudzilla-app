@@ -349,7 +349,7 @@ func TestProjectService_MoveCard(t *testing.T) {
 		t.Fatalf("intra-column move: %v", err)
 	}
 
-	cols, err := e.svc.ListColumnsWithCards(ctx, p.ID)
+	cols, err := e.svc.ListColumnsWithCards(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +398,7 @@ func TestProjectService_ListColumnsWithCards_EmptyColumnHasNonNilCards(t *testin
 	p := e.project(t, "Empty")
 	e.column(t, p.ID, "Todo")
 
-	cols, err := e.svc.ListColumnsWithCards(context.Background(), p.ID)
+	cols, err := e.svc.ListColumnsWithCards(context.Background(), p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,7 +430,7 @@ func TestProjectService_ListColumnsWithCardsExpanded(t *testing.T) {
 	e.note(t, p.ID, col.ID, "first line\nsecond line")
 	e.note(t, p.ID, col.ID, strings.Repeat("é", 130))
 
-	views, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID)
+	views, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func TestProjectService_ListColumnsWithCardsExpanded(t *testing.T) {
 		t.Errorf("long note title = %d runes, want 120 (truncated on rune boundary)", len(got))
 	}
 
-	if _, err := e.svc.ListColumnsWithCardsExpanded(ctx, -1); !errors.Is(err, service.ErrProjectNotFound) {
+	if _, err := e.svc.ListColumnsWithCardsExpanded(ctx, -1, nil); !errors.Is(err, service.ErrProjectNotFound) {
 		t.Errorf("missing project: err = %v", err)
 	}
 }

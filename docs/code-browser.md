@@ -112,6 +112,8 @@ The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticate
 | POST   | `/api/repos/{owner}/{repo}/tags`            | Create tag (`name`, `from` form fields)    |
 | DELETE | `/api/repos/{owner}/{repo}/tags?name=…`     | Delete tag                                 |
 
+`CreateBranch`, `CreateTag` and `CommitFile` (when it creates a branch) refuse a name `git check-ref-format` rejects (`..`, spaces, `~^:?*[\`, `@{`, a part starting with `.` or ending in `.lock`, a trailing `.`, and for branches a leading `-` or `HEAD`) with `gitref.ErrInvalidName`; the create endpoints answer 422. go-git alone would store them, and a git client could then fail to clone or fetch. Releases create their tag through `CreateTag`, so the same check backs them.
+
 HTMX responses swap `fragment-branches-list` into `#branches-list` and `fragment-tags-list` into `#tags-list`.
 
 The repo home, tree, blob and blame pages share a branch/tag picker (`components.RefPicker`) that lists every ref from `ListRefs`. On tree, blob and blame, each item opens the same path on that ref, so a path missing there 404s; on the repo home, the default branch opens the home page and other refs open their tree. The commits page's ref badge links to `/{owner}/{repo}/refs` (via `RefsURL` on `CommitsData`).

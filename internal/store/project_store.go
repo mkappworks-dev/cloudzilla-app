@@ -230,7 +230,9 @@ func (s *ProjectStore) CardTargetsInRepo(ctx context.Context, repoID int64, issu
 	return true, nil
 }
 
-func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([]model.ProjectCard, error) {
+// ListCardsByColumn blanks the issue fields of a card whose private issue the
+// viewer cannot see (issueVisibleTo), so the title never leaves the store.
+func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64, visibleToUserID *int64) ([]model.ProjectCard, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT
 		     c.id, c.column_id, c.issue_id, c.pull_id, c.note, c.position, c.created_at,
@@ -239,13 +241,14 @@ func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([
 		     COALESCE(i.state, '')       AS issue_state,
 		     COALESCE(pr.title, '')      AS pull_title,
 		     COALESCE(pr.number, 0)      AS pull_number,
-		     COALESCE(pr.state, '')      AS pull_state
+		     COALESCE(pr.state, '')      AS pull_state,
+		     (i.id IS NOT NULL AND NOT `+issueVisibleTo("i", "$2")+`) AS issue_hidden
 		 FROM project_cards c
 		 LEFT JOIN issues       i  ON i.id  = c.issue_id
 		 LEFT JOIN pull_requests pr ON pr.id = c.pull_id
 		 WHERE c.column_id = $1
 		 ORDER BY c.position ASC, c.id ASC`,
-		columnID,
+		columnID, viewerID(visibleToUserID),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("card list: %w", err)
@@ -260,8 +263,12 @@ func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([
 			&card.Note, &card.Position, &card.CreatedAt,
 			&card.IssueTitle, &card.IssueNumber, &card.IssueState,
 			&card.PullTitle, &card.PullNumber, &card.PullState,
+			&card.IssueHidden,
 		); err != nil {
 			return nil, err
+		}
+		if card.IssueHidden {
+			card.IssueTitle, card.IssueNumber, card.IssueState = "", 0, ""
 		}
 		if issueID.Valid {
 			card.IssueID = &issueID.Int64

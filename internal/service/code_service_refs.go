@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
@@ -216,6 +217,9 @@ func (s *CodeService) GetPRTemplate(owner, repoName, defaultBranch string) (stri
 
 // CreateBranch creates a new branch pointing to the resolved fromRef commit.
 func (s *CodeService) CreateBranch(owner, repoName, name, fromRef string) error {
+	if err := gitref.ValidateBranchName(name); err != nil {
+		return err
+	}
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
@@ -242,6 +246,9 @@ func (s *CodeService) DeleteBranch(owner, repoName, name string) error {
 
 // CreateTag creates a new lightweight tag pointing to the resolved fromRef commit.
 func (s *CodeService) CreateTag(owner, repoName, name, fromRef string) error {
+	if err := gitref.ValidateName(name); err != nil {
+		return err
+	}
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err

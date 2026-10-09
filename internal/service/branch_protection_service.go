@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"strings"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -20,6 +21,7 @@ var (
 	ErrInsufficientReviews   = errors.New("insufficient reviews for merge")
 	ErrStatusCheckFailed     = errors.New("required status checks have not passed")
 	ErrPushRequiresPR        = errors.New("pull request required by branch protection")
+	ErrInvalidPattern        = errors.New("invalid branch pattern")
 )
 
 // errPullRequestRequired names the rule so the pusher can tell which one
@@ -48,7 +50,11 @@ func NewBranchProtectionService(
 	}
 }
 
+// Create rejects with ErrInvalidPattern a glob that MatchForBranch would skip, since the rule would never apply.
 func (s *BranchProtectionService) Create(ctx context.Context, bp *model.BranchProtection) error {
+	if _, err := filepath.Match(bp.Pattern, ""); err != nil {
+		return fmt.Errorf("%w: %q is not a valid glob", ErrInvalidPattern, bp.Pattern)
+	}
 	return s.protections.Create(ctx, bp)
 }
 

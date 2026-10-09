@@ -59,6 +59,9 @@ const (
 	AuditActionPasswordChange      = "user.password.change"
 	AuditActionPasswordReset       = "user.password.reset"
 	AuditActionPasswordResetLink   = "user.password.reset_link"
+	AuditActionDeviceApprove       = "user.device.approve"
+	AuditActionDeviceDeny          = "user.device.deny"
+	AuditActionTokenCreate         = "user.token.create"
 
 	AuditActionAdminUserSuspend           = "admin.user.suspend"
 	AuditActionAdminUserUnsuspend         = "admin.user.unsuspend"

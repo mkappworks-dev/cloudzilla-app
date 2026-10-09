@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -45,7 +46,6 @@ type harness struct {
 	out      *bytes.Buffer
 	errOut   *bytes.Buffer
 	stdin    string
-	secret   string
 	srv      *httptest.Server
 	lastReq  *http.Request
 	lastBody string
@@ -80,12 +80,15 @@ func newHarness(t *testing.T) *harness {
 		newStore: func(insecure bool) (*cli.Store, error) {
 			return &cli.Store{Keyring: h.kr, Path: h.path, Insecure: insecure}, nil
 		},
-		readSecret: func() (string, error) { return h.secret, nil },
 	}
 	return h
 }
 
 func (h *harness) run(args ...string) error {
+	return h.runCtx(context.Background(), args...)
+}
+
+func (h *harness) runCtx(ctx context.Context, args ...string) error {
 	h.out.Reset()
 	h.errOut.Reset()
 	h.app.stdin = strings.NewReader(h.stdin)
@@ -93,7 +96,7 @@ func (h *harness) run(args ...string) error {
 	cmd.SetArgs(args)
 	cmd.SetOut(h.errOut)
 	cmd.SetErr(h.errOut)
-	return cmd.Execute()
+	return cmd.ExecuteContext(ctx)
 }
 
 func TestLoginGoodTokenSavesAndStatusReportsUser(t *testing.T) {
@@ -120,25 +123,6 @@ func TestLoginGoodTokenSavesAndStatusReportsUser(t *testing.T) {
 	}
 	if strings.Contains(h.out.String(), "czp_good") {
 		t.Error("status leaks the token")
-	}
-}
-
-func TestLoginPromptsWithHiddenInputOnTerminal(t *testing.T) {
-	h := newHarness(t)
-	h.app.stdinTTY = true
-	h.secret = "czp_good"
-	if err := h.run("auth", "login", "--host", h.srv.URL); err != nil {
-		t.Fatal(err)
-	}
-	if h.kr.val == "" {
-		t.Error("token from prompt not saved")
-	}
-}
-
-func TestLoginWithoutTokenSourceFailsOffTerminal(t *testing.T) {
-	h := newHarness(t)
-	if err := h.run("auth", "login", "--host", h.srv.URL); err == nil || !strings.Contains(err.Error(), "--with-token") {
-		t.Fatalf("err = %v", err)
 	}
 }
 

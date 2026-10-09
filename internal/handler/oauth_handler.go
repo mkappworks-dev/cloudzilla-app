@@ -91,8 +91,9 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		h.googleReauthCallback(w, r, state)
 		return
 	}
+	// A present-but-empty cookie equals an empty state, so it must be refused as well.
 	stateCookie, err := r.Cookie(oauthStateCookie)
-	if err != nil || stateCookie.Value != state {
+	if err != nil || stateCookie.Value == "" || stateCookie.Value != state {
 		http.Error(w, "invalid OAuth state", http.StatusBadRequest)
 		return
 	}

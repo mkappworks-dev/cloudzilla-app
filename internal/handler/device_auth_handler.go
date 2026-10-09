@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
@@ -85,6 +86,12 @@ func (h *Handler) DeviceToken(w http.ResponseWriter, r *http.Request) {
 		slog.Error("device token: poll", "error", err)
 		writeError(w, http.StatusInternalServerError, "server_error")
 	default:
+		if u, err := h.Services.User.GetByID(r.Context(), tok.UserID); err != nil {
+			slog.Error("device token: load user for audit", "user_id", tok.UserID, "error", err)
+		} else {
+			h.Services.AuditLog.Record(r.Context(), r, u.ID, u.Username, model.AuditActionTokenCreate, model.AuditTargetUser, u.ID, u.Username,
+				map[string]any{"source": "device login", "token": tok.TokenName})
+		}
 		writeJSON(w, http.StatusOK, map[string]string{
 			"access_token": tok.AccessToken,
 			"token_type":   "bearer",
