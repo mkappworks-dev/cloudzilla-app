@@ -15,14 +15,20 @@ templ Search(data view.SearchData) {
 					<h1 class="text-2xl font-bold mb-4">Search</h1>
 					<form action="/search" method="GET" class="flex gap-2">
 						<label for="search-query" class="sr-only">Search query</label>
-						@components.Input(templ.Attributes{
-							"id":          "search-query",
-							"type":        "text",
-							"name":        "q",
-							"value":       data.Query,
-							"placeholder": "Search repos, issues, PRs, users...",
-							"class":       "flex-1",
-						})
+						<div class="relative flex-1" x-data={ "{ q: " + strconv.Quote(data.Query) + " }" }>
+							@components.Input(templ.Attributes{
+								"id":          "search-query",
+								"type":        "search",
+								"name":        "q",
+								"x-ref":       "q",
+								"x-model":     "q",
+								"placeholder": "Search repos, issues, PRs, users...",
+								"class":       "pr-9",
+							})
+							<button type="button" x-cloak x-show="q" x-on:click="q = ''; $refs.q.focus()" class="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg>
+							</button>
+						</div>
 						if data.Type != "" {
 							<input type="hidden" name="type" value={ data.Type }/>
 						}
