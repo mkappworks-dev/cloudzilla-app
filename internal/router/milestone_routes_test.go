@@ -171,13 +171,19 @@ func TestMilestones_Update(t *testing.T) {
 		{"bad number", metaReq{method: "PATCH", target: e.path("/milestones/x"), token: e.owner.token, json: `{"title":"x"}`}, http.StatusBadRequest},
 		{"bad json", metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{`}, http.StatusBadRequest},
 		{"bad date", metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{"title":"x","due_date":"soon"}`}, http.StatusBadRequest},
-		{"missing milestone", metaReq{method: "PATCH", target: e.path("/milestones/99"), token: e.owner.token, json: `{"title":"x"}`}, http.StatusInternalServerError},
+		{"missing milestone", metaReq{method: "PATCH", target: e.path("/milestones/99"), token: e.owner.token, json: `{"title":"x"}`}, http.StatusNotFound},
 		{"missing milestone keeps title lookup", metaReq{method: "PATCH", target: e.path("/milestones/99"), token: e.owner.token, json: `{"description":"x"}`}, http.StatusNotFound},
-		{"close missing", metaReq{method: "PATCH", target: e.path("/milestones/99"), token: e.owner.token, json: `{"state":"closed"}`}, http.StatusInternalServerError},
-		{"reopen missing", metaReq{method: "PATCH", target: e.path("/milestones/99"), token: e.owner.token, json: `{"state":"open"}`}, http.StatusInternalServerError},
+		{"close missing", metaReq{method: "PATCH", target: e.path("/milestones/99"), token: e.owner.token, json: `{"state":"closed"}`}, http.StatusNotFound},
+		{"reopen missing", metaReq{method: "PATCH", target: e.path("/milestones/99"), token: e.owner.token, json: `{"state":"open"}`}, http.StatusNotFound},
 	}
 	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
+		t.Run(c.name, func(t *testing.T) {
+			rr := e.do(t, c.req)
+			wantStatus(t, rr, c.want)
+			if strings.HasPrefix(c.name, "missing") || strings.HasSuffix(c.name, "missing") {
+				bodyHas(t, rr, "milestone not found")
+			}
+		})
 	}
 	if e.milestoneCol(t, id, "title") != "via form" {
 		t.Error("refused updates changed the title")
@@ -446,11 +452,11 @@ func TestMilestones_DetailActions(t *testing.T) {
 	if e.milestoneCount(t) != 0 {
 		t.Error("milestone not deleted")
 	}
-	if r := act(e.owner.token, "close"); r.code != http.StatusInternalServerError {
-		t.Errorf("close of a missing milestone = %d, want 500", r.code)
+	if r := act(e.owner.token, "close"); r.code != http.StatusNotFound || !strings.Contains(r.body, "milestone not found") {
+		t.Errorf("close of a missing milestone = %d %s, want 404", r.code, r.body)
 	}
-	if r := act(e.owner.token, "reopen"); r.code != http.StatusInternalServerError {
-		t.Errorf("reopen of a missing milestone = %d, want 500", r.code)
+	if r := act(e.owner.token, "reopen"); r.code != http.StatusNotFound || !strings.Contains(r.body, "milestone not found") {
+		t.Errorf("reopen of a missing milestone = %d %s, want 404", r.code, r.body)
 	}
 }
 

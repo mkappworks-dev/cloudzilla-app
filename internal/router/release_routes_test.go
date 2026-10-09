@@ -215,6 +215,9 @@ func TestReleases_Update(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
 	}
+	rr = e.do(t, metaReq{method: "PATCH", target: e.path("/releases/999999999"), token: e.owner.token, json: `{"tag_name":"v9"}`})
+	wantStatus(t, rr, http.StatusNotFound)
+	bodyHas(t, rr, "release not found")
 	if e.releaseCol(t, id, "tag_name") != "v1.2" || e.releaseCol(t, other, "tag_name") != "v2" {
 		t.Error("refused updates changed a tag")
 	}

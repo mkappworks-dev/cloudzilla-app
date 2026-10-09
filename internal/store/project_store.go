@@ -17,6 +17,8 @@ var ErrInvalidPosition = errors.New("invalid card position")
 // Distinct sentinel so the service doesn't have to overload errors.Is(sql.ErrNoRows).
 var ErrCardNotInProject = errors.New("card not in project")
 
+var ErrColumnNotInProject = errors.New("column not in project")
+
 // ProjectStore provides database operations for Kanban project boards, columns, and cards.
 type ProjectStore struct{ db *sql.DB }
 
@@ -182,7 +184,7 @@ func (s *ProjectStore) DeleteColumn(ctx context.Context, id, projectID int64) er
 		return err
 	}
 	if n == 0 {
-		return fmt.Errorf("column %d not found in project %d", id, projectID)
+		return fmt.Errorf("column %d in project %d: %w", id, projectID, ErrColumnNotInProject)
 	}
 	return nil
 }
@@ -391,7 +393,7 @@ func (s *ProjectStore) DeleteCard(ctx context.Context, id, projectID int64) erro
 		return err
 	}
 	if n == 0 {
-		return fmt.Errorf("card %d not found in project %d", id, projectID)
+		return fmt.Errorf("card %d in project %d: %w", id, projectID, ErrCardNotInProject)
 	}
 	return nil
 }

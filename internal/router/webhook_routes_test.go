@@ -256,11 +256,13 @@ func TestWebhooks_Deliveries(t *testing.T) {
 	wantStatus(t, e.do(t, metaReq{method: "GET", target: target}), http.StatusUnauthorized)
 	wantStatus(t, e.do(t, metaReq{method: "GET", target: target, token: e.writer.token}), http.StatusForbidden)
 	wantStatus(t, e.do(t, metaReq{method: "GET", target: e.path("/hooks/x/deliveries"), token: e.owner.token}), http.StatusBadRequest)
-	wantStatus(t, e.do(t, metaReq{method: "GET", target: e.path("/hooks/999999999/deliveries"), token: e.owner.token}), http.StatusInternalServerError)
+	rr = e.do(t, metaReq{method: "GET", target: e.path("/hooks/999999999/deliveries"), token: e.owner.token})
+	wantStatus(t, rr, http.StatusNotFound)
+	bodyHas(t, rr, "webhook not found")
 
 	other := newGitMetaEnv(t)
 	foreign := other.seedHook(t, "push")
-	wantStatus(t, e.do(t, metaReq{method: "GET", target: e.path("/hooks/%d/deliveries", foreign), token: e.owner.token}), http.StatusInternalServerError)
+	wantStatus(t, e.do(t, metaReq{method: "GET", target: e.path("/hooks/%d/deliveries", foreign), token: e.owner.token}), http.StatusForbidden)
 }
 
 func TestWebhooks_Redeliver(t *testing.T) {
@@ -273,7 +275,9 @@ func TestWebhooks_Redeliver(t *testing.T) {
 	wantStatus(t, e.do(t, metaReq{method: "POST", target: target, token: e.writer.token}), http.StatusForbidden)
 	wantStatus(t, e.do(t, metaReq{method: "POST", target: e.path("/hooks/%d/redeliver", id), token: e.owner.token}), http.StatusBadRequest)
 	wantStatus(t, e.do(t, metaReq{method: "POST", target: e.path("/hooks/%d/redeliver?delivery_id=x", id), token: e.owner.token}), http.StatusBadRequest)
-	wantStatus(t, e.do(t, metaReq{method: "POST", target: e.path("/hooks/%d/redeliver?delivery_id=999999999", id), token: e.owner.token}), http.StatusInternalServerError)
+	rr := e.do(t, metaReq{method: "POST", target: e.path("/hooks/%d/redeliver?delivery_id=999999999", id), token: e.owner.token})
+	wantStatus(t, rr, http.StatusNotFound)
+	bodyHas(t, rr, "delivery not found")
 
 	other := newGitMetaEnv(t)
 	foreign := other.seedDelivery(t, other.seedHook(t, "push"))
