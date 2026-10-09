@@ -50,7 +50,7 @@ Immediate email goes only to the notification's direct recipient (the subject's 
 
 The mark-read endpoints take the same `?filter` and `?page`, and their HTMX responses swap `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
 
-Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text beside it; mentions, repo transfers and rows created before migration 111 have no title and show only the action text.
+Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text beside it; mentions, repo transfers and rows created before migration 112 have no title and show only the action text.
 
 ## NotificationService (`internal/service/notification_service.go`)
 
