@@ -140,6 +140,25 @@ func TestPullStore_UpdateState(t *testing.T) {
 	}
 }
 
+func TestPullStore_Create_DraftRecordsDraftAt(t *testing.T) {
+	f := newPullFixture(t)
+	ctx := context.Background()
+
+	draft := &model.PullRequest{RepoID: f.repoID, AuthorID: f.ownerID, Title: "wip", HeadBranch: "wip", BaseBranch: "main", State: model.PRStateOpen, IsDraft: true}
+	if err := f.ps.Create(ctx, draft); err != nil {
+		t.Fatal(err)
+	}
+	if draft.DraftAt == nil {
+		t.Error("draft created without DraftAt")
+	}
+	if stored, _ := f.ps.GetByID(ctx, draft.ID); stored.DraftAt == nil {
+		t.Error("stored draft has no draft_at")
+	}
+	if ready := f.create(t, "ready", "r", model.PRStateOpen); ready.DraftAt != nil {
+		t.Errorf("non-draft got DraftAt %v", ready.DraftAt)
+	}
+}
+
 func TestPullStore_SetDraft_KeepsDraftAtWhenMarkedReady(t *testing.T) {
 	f := newPullFixture(t)
 	ctx := context.Background()
