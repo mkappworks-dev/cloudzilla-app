@@ -81,7 +81,7 @@ Worktrees go in `<main checkout>/.worktrees/<type>+<slug>` (gitignored), mirrori
 ## Pull requests
 
 - Title: Conventional Commits, enforced by `.github/workflows/pr-title-lint.yml` — e.g. `feat(ui): UI overhaul phase 8 — dashboard`.
-- Body: fill in [`.github/pull_request_template.md`](./.github/pull_request_template.md), ticking only the checklist items that apply.
+- Body: fill in [`.github/pull_request_template.md`](./.github/pull_request_template.md), ticking only the checklist items that apply and striking through the rest (`- [ ] ~~item~~`) so a reviewer can tell "not applicable" from "forgot".
 
 ## Agent skills
 

@@ -6,7 +6,7 @@ Status: done
 
 ## Problem
 
-A push over HTTP or SSH fires push webhooks, records activity-feed events, ingests contributor stats, re-indexes code search and re-parses dependency manifests (`internal/handler/git_http.go` after receive-pack; `internal/ssh/server.go` repeats the same block). A commit made in the browser fires none of them. That covers New file, the profile README editor, and edit, rename and delete (`.scratch/web-file-edit/spec.md`).
+A push over HTTP or SSH fires push webhooks, records activity-feed events, ingests contributor stats, re-indexes code search and re-parses dependency manifests (`internal/handler/git_http.go` after receive-pack; `internal/ssh/server.go` repeats the same block). A commit made in the browser fires none of them. That covers New file, the profile README editor, and edit, rename and delete (`.scratch/2026-10-06-web-file-edit/spec.md`).
 
 So after a web commit, no external CI is triggered by the push webhook, the activity feed doesn't show the commit, code search keeps the old content, and contributor stats and the dependency graph go stale until the next real push.
 
