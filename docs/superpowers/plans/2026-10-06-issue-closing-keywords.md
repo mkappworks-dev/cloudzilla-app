@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, chi v5, go-git v5, PostgreSQL, Templ.
 
-**Spec:** `.scratch/issue-closing-keywords/spec.md`
+**Spec:** `.scratch/2026-10-06-issue-closing-keywords/spec.md`
 
 ## Global Constraints
 

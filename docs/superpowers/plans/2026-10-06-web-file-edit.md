@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, chi v5, go-git v5, Templ, htmx 4.
 
-**Spec:** [`.scratch/web-file-edit/spec.md`](../../../.scratch/web-file-edit/spec.md)
+**Spec:** [`.scratch/2026-10-06-web-file-edit/spec.md`](../../../.scratch/2026-10-06-web-file-edit/spec.md)
 
 ## Global Constraints
 
