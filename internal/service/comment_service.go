@@ -120,13 +120,15 @@ func (s *CommentService) processMentions(ctx context.Context, repo model.Reposit
 		if !s.repos.CanRead(ctx, &repo, &u.ID) {
 			continue
 		}
-		var subjectURL string
+		var kind, subjectURL string
 		if c.IssueID != nil {
+			kind = model.ThreadKindIssue
 			subjectURL = fmt.Sprintf("/%s/%s/issues/%d", repo.OwnerName, repo.Name, subjectNumber)
 		} else if c.PullID != nil {
+			kind = model.ThreadKindPull
 			subjectURL = fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, subjectNumber)
 		}
-		s.notifs.NotifyMention(ctx, repo, actorID, actorName, u.ID, subjectNumber, subjectURL)
+		s.notifs.NotifyMention(ctx, repo, actorID, actorName, u.ID, kind, subjectNumber, subjectURL)
 		userIDs = append(userIDs, u.ID)
 	}
 	_ = s.mentions.CreateBatch(ctx, c.ID, userIDs)
