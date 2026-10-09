@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"path/filepath"
+	"sync"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -89,6 +91,9 @@ func (s *BranchProtectionStore) Delete(ctx context.Context, id, repoID int64) er
 	return err
 }
 
+// warnedPatterns dedupes the malformed-pattern warning: MatchForBranch runs on every push.
+var warnedPatterns sync.Map
+
 // MatchForBranch returns the first protection rule whose pattern matches branchName, or nil.
 func (s *BranchProtectionStore) MatchForBranch(ctx context.Context, repoID int64, branchName string) (*model.BranchProtection, error) {
 	rules, err := s.ListByRepo(ctx, repoID)
@@ -98,7 +103,11 @@ func (s *BranchProtectionStore) MatchForBranch(ctx context.Context, repoID int64
 	for _, rule := range rules {
 		matched, err := filepath.Match(rule.Pattern, branchName)
 		if err != nil {
-			continue // malformed pattern — skip
+			// Rows stored before create validated patterns; a migration to fix them is deferred.
+			if _, seen := warnedPatterns.LoadOrStore(rule.Pattern, struct{}{}); !seen {
+				slog.Warn("branch protection rule skipped: malformed pattern", "rule_id", rule.ID, "repo_id", repoID, "pattern", rule.Pattern)
+			}
+			continue
 		}
 		if matched {
 			return rule, nil

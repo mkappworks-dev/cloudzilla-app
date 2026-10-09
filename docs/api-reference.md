@@ -403,7 +403,7 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 | Method | Path                                               | Auth      | Description                                                                                                                  |
 | ------ | -------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/branches/protections`     | CanManage | List all branch protection rules for the repository                                                                          |
-| POST   | `/api/repos/:owner/:repo/branches/protections`     | CanManage | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`, `require_pull_request`)     |
+| POST   | `/api/repos/:owner/:repo/branches/protections`     | CanManage | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`, `require_pull_request`); a malformed glob such as `[` returns 422 |
 | PATCH  | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Update an existing rule (same fields as POST except `pattern`; a field left out is reset, so `require_pull_request` turns off) |
 | DELETE | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Delete a protection rule                                                                                                     |
 

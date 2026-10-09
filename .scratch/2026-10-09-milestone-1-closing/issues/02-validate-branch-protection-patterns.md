@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: bug
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -17,10 +17,10 @@ Found by reading the code during the coverage pass; reproduce first.
 
 ## Acceptance criteria
 
-- [ ] Create and update reject a pattern for which `filepath.Match(pattern, "")` returns `filepath.ErrBadPattern`, with 422 and a message naming the problem.
-- [ ] Router tests for `[`, `a[`, `\` (trailing escape) and a valid glob such as `release/*`; refused requests store nothing.
-- [ ] Decide what to do with rows already stored with a bad pattern (a migration to delete or flag them, or a startup log). Note the choice in the PR.
-- [ ] `MatchForBranch` keeps skipping bad patterns defensively but logs once.
+- [x] Create and update reject a pattern for which `filepath.Match(pattern, "")` returns `filepath.ErrBadPattern`, with 422 and a message naming the problem. (Update takes no `pattern` field, so only create can receive one.)
+- [x] Router tests for `[`, `a[`, `\` (trailing escape) and a valid glob such as `release/*`; refused requests store nothing.
+- [x] Decide what to do with rows already stored with a bad pattern (a migration to delete or flag them, or a startup log). Note the choice in the PR. (No migration, since ticket 06 takes 112; `MatchForBranch` logs each bad pattern once.)
+- [x] `MatchForBranch` keeps skipping bad patterns defensively but logs once.
 
 ## Blocked by
 

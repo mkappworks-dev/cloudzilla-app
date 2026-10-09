@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -85,6 +86,22 @@ func TestBranchProtectionRoutes_ValidationAndDuplicates(t *testing.T) {
 	wantStatus(t, e.form(t, http.MethodPatch, e.api("/branches/protections/abc"), tok, url.Values{}, false), http.StatusBadRequest)
 	wantStatus(t, e.form(t, http.MethodDelete, e.api("/branches/protections/abc"), tok, nil, false), http.StatusBadRequest)
 	wantStatus(t, e.form(t, http.MethodPatch, e.api("/branches/protections/999999999"), tok, url.Values{}, false), http.StatusUnprocessableEntity)
+}
+
+func TestBranchProtectionRoutes_CreateRejectsMalformedGlob(t *testing.T) {
+	e := newR2Env(t)
+	for _, pattern := range []string{"[", "a[", `\`} {
+		rr := e.form(t, http.MethodPost, e.api("/branches/protections/"), e.owner.token, url.Values{"pattern": {pattern}}, false)
+		wantStatus(t, rr, http.StatusUnprocessableEntity)
+		if msg := r2ErrorMessage(t, rr); !strings.Contains(msg, "pattern") {
+			t.Errorf("pattern %q: error = %q, want it to name the pattern", pattern, msg)
+		}
+	}
+	if rules, _ := e.svc.BranchProtection.List(t.Context(), e.repo.ID); len(rules) != 0 {
+		t.Errorf("refused requests stored rules: %+v", rules)
+	}
+
+	wantStatus(t, e.form(t, http.MethodPost, e.api("/branches/protections/"), e.owner.token, url.Values{"pattern": {"release/*"}}, false), http.StatusCreated)
 }
 
 func TestBranchProtectionRoutes_RulesOfOtherReposAreUntouchable(t *testing.T) {
