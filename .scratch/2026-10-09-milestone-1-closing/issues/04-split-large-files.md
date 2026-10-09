@@ -30,3 +30,10 @@ Pure moves: cut whole functions into new files in the same package, named for th
 ## Blocked by
 
 Sequence after open PRs that touch the same files have merged (several `feat/*` worktrees are active); check `git worktree list` and open PRs first.
+
+## Comments
+
+Claude, 2026-10-10: one PR per file, so this ticket stays open until all five are split.
+
+- Done: `internal/service/sso_service.go` is split into `sso_service.go` (type, constructor, config), `sso_ldap.go`, `sso_saml.go` and `sso_provision.go`.
+- Remaining: `internal/service/repo_service.go`, `internal/store/user_store.go`, `internal/handler/page_pull_handler.go`, `internal/handler/milestone_handler.go`.

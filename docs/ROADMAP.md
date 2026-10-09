@@ -1395,7 +1395,9 @@ ALTER TABLE users
 
 **Files:**
 
-- `internal/service/sso_service.go` — `AuthenticateLDAP(ctx, username, password)`, `HandleSAMLCallback(ctx, samlResponse)`, `GetConfig(ctx, provider)`, `SetConfig(ctx, provider, config, enabled)`
+- `internal/service/sso_service.go` — `GetConfig(ctx, provider)`, `SetConfig(ctx, provider, config, enabled)`
+- `internal/service/sso_ldap.go` — `AuthenticateLDAP(ctx, username, password)`
+- `internal/service/sso_saml.go` — `HandleSAMLCallback(ctx, samlResponse)`
 - `internal/handler/sso_handler.go` — `PageSSOSettings` (superadmin), `SaveSSOConfig`, `InitiateSAML`, `SAMLCallback`, `SAMLMetadata`
 
 **Routes:**
