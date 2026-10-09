@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
-	"strings"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -26,14 +26,9 @@ var ErrInvalidTagName = errors.New(`tag name must match ^[A-Za-z0-9._/-]{1,255}$
 // tagNamePattern excludes '@' to keep clear of reflog syntax.
 var tagNamePattern = regexp.MustCompile(`^[A-Za-z0-9._/-]{1,255}$`)
 
-// Beyond the charset, git ref rules forbid "..", "//", leading/trailing "/" and a leading "."; ".." in particular would let "../etc/passwd" escape refs/tags/.
+// The charset alone lets through names CodeService.CreateTag refuses (x.lock, v1., a/.b), which would surface as a 500 after the release lookups.
 func validTagName(tagName string) bool {
-	return tagNamePattern.MatchString(tagName) &&
-		!strings.Contains(tagName, "..") &&
-		!strings.Contains(tagName, "//") &&
-		!strings.HasPrefix(tagName, "/") &&
-		!strings.HasSuffix(tagName, "/") &&
-		!strings.HasPrefix(tagName, ".")
+	return tagNamePattern.MatchString(tagName) && gitref.ValidateName(tagName) == nil
 }
 
 type ReleaseService struct {
