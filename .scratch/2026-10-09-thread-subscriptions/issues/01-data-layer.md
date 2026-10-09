@@ -6,13 +6,13 @@ Status: done
 
 ## What
 
-Migration 113 creates `thread_subscriptions` as in the spec, with a CHECK on `kind`, `state` and `reason`. Add `model.ThreadSubscription`, `store.ThreadSubscriptionStore` (wired into `Stores`) and `service.ThreadSubscriptionService` (wired into `Services`).
+Migration 114 creates `thread_subscriptions` as in the spec, with a CHECK on `kind`, `state` and `reason`. Add `model.ThreadSubscription`, `store.ThreadSubscriptionStore` (wired into `Stores`) and `service.ThreadSubscriptionService` (wired into `Services`).
 
 Store methods: `Upsert` (sets state and reason), `InsertIfAbsent`, `Get`, `ListByThread(state)`. Service methods: `Status(ctx, userID, repo, kind, number)` returning state and reason with the repo-watch fallback, `Set`, `AutoSubscribe` (insert-if-absent), `SubscribeOnMention` (upsert), `SubscribedUsers`, `MutedUsers`.
 
 ## Acceptance criteria
 
-- [x] Migration 113 applies cleanly; deleting a user or repo removes their rows.
+- [x] Migration 114 applies cleanly; deleting a user or repo removes their rows.
 - [x] `AutoSubscribe` never changes an existing row; `Set` and `SubscribeOnMention` do.
 - [x] `Status` reports "subscribed (watching)" for a `watching` repo watch with no row, and "muted" wins over a repo watch.
 - [x] Store integration tests and service tests cover each method.
