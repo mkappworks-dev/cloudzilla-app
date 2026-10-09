@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 
 ## Problem
 
@@ -33,7 +33,7 @@ A card stays one row in `project_cards` and gains:
 | `card_labels(card_id, label_id)` | Labels of the card's own repo only. |
 
 - The `CHECK` in `036_create_projects.sql` ties `note <> ''` to "no link" and forbids a title alongside a link. A new migration replaces it with: at most one of `issue_id`/`pull_id`, and a card with neither has a non-empty `title`.
-- Backfill: for existing note cards, `title` is the first line (≤120 chars, as `FirstLine` does today) and `note` keeps the remainder.
+- Backfill: for existing note cards, `title` is the first line (≤120 chars, as `FirstLine` does today) and `note` keeps the remainder; when the first line is longer than 120 chars, `note` keeps the whole original text so nothing is lost.
 - Linked cards without a title show the linked item's own title, state, labels and assignees, read-only. A note card with a link shows its own title, labels and assignees plus the linked item's number and state. The linked item's labels and assignees are not copied.
 
 ### 3. API (all under `/api/repos/{owner}/{repo}/projects/{id}`, write access like `CreateCard`)
@@ -41,7 +41,7 @@ A card stays one row in `project_cards` and gains:
 - `POST /cards`: accepts `title`, `description`, `due_date`, `assignee_ids`, `label_ids`, `issue_id` or `pull_id`. The composer sends only `title` (Enter) or only a link (`#` pick).
 - `PATCH /cards/{cardID}/details`: replaces the card's fields and assignee/label sets in one transaction. Rejects an empty title on a note card, assignees who are not collaborators, labels from another repo, and a link to another repo (`CardTargetsInRepo`).
 - `GET /card-targets?q=`: issues and PRs of the repo by title fragment or `#number`, newest first, limit 8, write access required. `position()` rather than `ILIKE` so `%` and `_` match literally.
-- `POST /cards/{cardID}/convert`: note card only. Creates an issue via `IssueService.Create` from title and description, copies the card's labels and assignees onto it, sets `issue_id`, clears `title` and `note`, and returns the card. One transaction; fails whole if issue creation fails. Needs the same write check as creating an issue (`Create` also takes a visibility, so use the repo default).
+- `POST /cards/{cardID}/convert`: note card only. Creates an issue via `IssueService.Create` from title and description, copies the card's labels and assignees onto it, sets `issue_id`, clears `title` and `note`, and returns the card. `IssueService.Create` commits on its own, so this is create-then-link: if linking fails the new issue is deleted and the card is unchanged. Needs the same write check as creating an issue; visibility is `public`.
 - `ListColumnsWithCardsExpanded` / `KanbanCardView` expose title, description, due date, assignees, labels, link number and state.
 
 ### 4. `#123` autolinks in descriptions
