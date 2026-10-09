@@ -291,35 +291,11 @@ templ pullDetailBody(data view.PullDetailData) {
 					</ul>
 				</section>
 			}
-			<section class="border-t border-border pt-5">
-				<h3 class="text-[12px] font-medium text-muted-foreground mb-2">Notifications</h3>
-				if data.Subscribed {
-					<button
-						type="button"
-						hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
-						hx-swap="none"
-						hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Unsubscribed from this pull request'}));location.reload();}"
-						aria-pressed="true"
-						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70"
-					>
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
-						Subscribed
-					</button>
-				} else {
-					<button
-						type="button"
-						hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
-						hx-vals={ `{"level":"watching"}` }
-						hx-swap="none"
-						hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Subscribed to this pull request'}));location.reload();}"
-						aria-pressed="false"
-						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-muted-foreground text-[13px] hover:bg-accent hover:text-foreground"
-					>
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
-						Subscribe
-					</button>
-				}
-			</section>
+			if data.CurrentUser != nil {
+				<section class="border-t border-border pt-5">
+					@fragments.ThreadSubscription(data.ThreadSubscription)
+				</section>
+			}
 		</aside>
 	</div>
 	@components.Dialog("close-pull-dialog") {

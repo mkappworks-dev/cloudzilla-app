@@ -366,6 +366,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/labels/{labelID}", h.AddPullLabel)
 		r.With(authMW).Delete("/{owner}/{repo}/pulls/{number}/labels/{labelID}", h.RemovePullLabel)
 
+		// Thread subscriptions
+		r.With(authMW).Put("/{owner}/{repo}/issues/{number}/subscription", h.SetIssueSubscription)
+		r.With(authMW).Put("/{owner}/{repo}/pulls/{number}/subscription", h.SetPullSubscription)
+		r.With(authMW).Put("/{owner}/{repo}/discussions/{number}/subscription", h.SetDiscussionSubscription)
+
 		// Pull request ↔ issue links
 		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/linked-issues/{issueNumber}", h.LinkPullIssue)
 		r.With(authMW).Delete("/{owner}/{repo}/pulls/{number}/linked-issues/{issueNumber}", h.UnlinkPullIssue)

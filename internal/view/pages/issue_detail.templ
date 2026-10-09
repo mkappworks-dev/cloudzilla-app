@@ -165,6 +165,12 @@ templ IssueDetail(data view.IssueDetailData) {
 						})
 					</section>
 
+					if data.CurrentUser != nil {
+						<section class="border-t border-border pt-6">
+							@fragments.ThreadSubscription(data.ThreadSubscription)
+						</section>
+					}
+
 					if data.CanManage {
 						@MaintainerSection(data.Owner, data.RepoName, data.Issue.Number, data.Issue.IsPinned, data.Issue.IsLocked)
 					}
