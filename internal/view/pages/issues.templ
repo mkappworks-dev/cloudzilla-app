@@ -4,10 +4,19 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
+
+func issueLabelChips(labels []model.Label) []components.LabelChip {
+	chips := make([]components.LabelChip, len(labels))
+	for i, l := range labels {
+		chips[i] = components.LabelChip{Name: l.Name, Color: l.Color}
+	}
+	return chips
+}
 
 func labelsPlaceholder(n int) string {
 	if n > 0 {
@@ -132,46 +141,17 @@ templ Issues(data view.IssuesData) {
 					<h2 id="issue-list" class="sr-only">{ data.StateFilter } issues</h2>
 					<ol class="divide-y divide-border">
 						for _, issue := range data.Issues {
-							<li>
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(issue.Number)) } class="flex items-start gap-3 px-4 py-3 hover:bg-muted/50">
-									if string(issue.State) == "open" {
-										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-success" aria-hidden="true" focusable="false">
-											<circle cx="12" cy="12" r="9"></circle>
-											<circle cx="12" cy="12" r="3"></circle>
-										</svg>
-									} else {
-										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-destructive" aria-hidden="true" focusable="false">
-											<circle cx="12" cy="12" r="9"></circle>
-											<path d="M9 9l6 6M15 9l-6 6"></path>
-										</svg>
-									}
-									<div class="min-w-0 flex-1">
-										<div class="text-[13px] font-medium">
-											if issue.Visibility == "private" {
-												<span class="inline-flex items-center mr-1 text-warning" title="Private" aria-label="Private">🔒</span>
-											}
-											<span class="hover:underline">{ issue.Title }</span>
-										</div>
-										<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
-											<span class="font-mono">#{ strconv.Itoa(issue.Number) }</span>
-											<span aria-hidden="true">·</span>
-											<span>opened by { issue.AuthorName }</span>
-											<span aria-hidden="true">·</span>
-											<time datetime={ issue.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(issue.CreatedAt) }</time>
-											if labels, ok := data.IssueLabels[issue.ID]; ok && len(labels) > 0 {
-												<span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
-													for _, l := range labels {
-														<span class="px-2 py-0.5 rounded-full text-[11px] border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
-													}
-												</span>
-											}
-										</div>
-									</div>
-									<div class="shrink-0">
-										@components.IssueStateBadge(string(issue.State))
-									</div>
-								</a>
-							</li>
+							@components.IssueListRow(components.IssueListRowData{
+								Href:      "/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(issue.Number),
+								Number:    issue.Number,
+								Title:     issue.Title,
+								Author:    issue.AuthorName,
+								State:     string(issue.State),
+								Private:   issue.Visibility == "private",
+								OpenedAt:  formatRelative(issue.CreatedAt),
+								OpenedISO: issue.CreatedAt.UTC().Format(time.RFC3339),
+								Labels:    issueLabelChips(data.IssueLabels[issue.ID]),
+							})
 						}
 					</ol>
 				</section>

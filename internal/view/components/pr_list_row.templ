@@ -9,6 +9,7 @@ import (
 
 type PRListRowData struct {
 	OwnerName, RepoName string
+	ShowRepo            bool // prefix #N with owner/repo, for lists that span repos
 	Number              int
 	Title               string
 	Author              string
@@ -40,6 +41,9 @@ templ PRListRow(d PRListRowData) {
 			</div>
 			<div class="flex items-center justify-between gap-3 pl-[27px]">
 				<div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+					if d.ShowRepo {
+						<span>{ d.OwnerName }/{ d.RepoName }</span>
+					}
 					<span class="font-mono">{ fmt.Sprintf("#%d", d.Number) }</span>
 					<span class="opacity-50" aria-hidden="true">·</span>
 					<span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">{ initials(d.Author) }</span>

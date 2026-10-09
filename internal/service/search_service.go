@@ -25,6 +25,11 @@ type SearchResults struct {
 	Type   string // "all","repos","issues","pulls","users"
 }
 
+// Empty reports whether nothing matched in any group.
+func (r *SearchResults) Empty() bool {
+	return len(r.Repos)+len(r.Issues)+len(r.Pulls)+len(r.Users)+len(r.Orgs) == 0
+}
+
 // SearchService provides full-text search across repositories, issues, PRs, and users.
 type SearchService struct {
 	search *store.SearchStore

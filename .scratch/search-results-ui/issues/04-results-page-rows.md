@@ -12,10 +12,10 @@ Rebuild the groups in `pages/search.templ` from the row components: Repositories
 ## Acceptance criteria
 
 - [ ] `/search?q=brave` shows all five groups on a seeded DB, each row links to its item.
-- [ ] `type=orgs` shows only organizations; the tab count matches.
-- [ ] Private repos show the Private badge; there is no Public badge.
-- [ ] No-results state still renders when all five lists are empty.
-- [ ] Page-render test via the router harness asserts a link per type.
+- [x] `type=orgs` shows only organizations; the tab count matches.
+- [x] Private repos show the Private badge; there is no Public badge.
+- [x] No-results state still renders when all five lists are empty.
+- [x] Page-render test via the router harness asserts a link per type.
 
 ## Relevant files
 

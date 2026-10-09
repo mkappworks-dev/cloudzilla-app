@@ -1,9 +1,6 @@
 package pages
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -45,27 +42,20 @@ templ Explore(data view.ExploreData) {
 				</div>
 			}
 			if len(data.Repos) > 0 {
-				<div class="rounded-md border border-border bg-card divide-y divide-border">
+				<ul class="rounded-md border border-border bg-card divide-y divide-border">
 					for _, repo := range data.Repos {
-						<div class="px-6 py-4">
-							<div class="flex items-start justify-between gap-4">
-								<div class="min-w-0">
-									<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-foreground font-semibold hover:underline">{ repo.OwnerName }/{ repo.Name }</a>
-									if repo.Description != "" {
-										<p class="text-sm text-muted-foreground mt-0.5 truncate">{ repo.Description }</p>
-									}
-									<p class="text-xs text-muted-foreground mt-1">
-										Created <time datetime={ repo.CreatedAt.UTC().Format(time.RFC3339) }>{ repo.CreatedAt.Format("Jan 2, 2006") }</time>
-									</p>
-								</div>
-								<div class="shrink-0 flex items-center gap-3 text-xs text-muted-foreground">
-									<span title="Stars"><span aria-hidden="true">&#9733;</span> { fmt.Sprintf("%d", repo.StarCount) }</span>
-									<span title="Forks"><span aria-hidden="true">&#8921;</span> { fmt.Sprintf("%d", repo.ForkCount) }</span>
-								</div>
-							</div>
-						</div>
+						@components.RepoListRow(components.RepoListRowData{
+							Owner:       repo.OwnerName,
+							Name:        repo.Name,
+							Description: repo.Description,
+							Private:     repo.Private,
+							CreatedAt:   repo.CreatedAt,
+							ShowStats:   true,
+							Stars:       repo.StarCount,
+							Forks:       repo.ForkCount,
+						})
 					}
-				</div>
+				</ul>
 			} else {
 				@components.EmptyState("No public repositories to show yet.")
 			}

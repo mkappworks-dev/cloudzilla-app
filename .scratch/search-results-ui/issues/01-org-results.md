@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none
 
 ## What
@@ -11,10 +11,10 @@ Search finds organizations. Add `SearchStore.SearchOrgs` (prefix of `name` or `d
 
 ## Acceptance criteria
 
-- [ ] `SearchOrgs("bra")` returns `brave-software` and an org whose display name starts with a `bra…` word; an unrelated org is excluded.
-- [ ] `type=all` and `type=orgs` populate `Results.Orgs`; other types leave it empty.
-- [ ] LIKE wildcards in the query (`%`, `_`) are escaped, as `SuggestOrgs` does through `likePrefix`.
-- [ ] Store test against `TEST_DATABASE_DSN`.
+- [x] `SearchOrgs("bra")` returns `brave-software` and an org whose display name starts with a `bra…` word; an unrelated org is excluded.
+- [x] `type=all` and `type=orgs` populate `Results.Orgs`; other types leave it empty.
+- [x] LIKE wildcards in the query (`%`, `_`) are escaped, as `SuggestOrgs` does through `likePrefix`.
+- [x] Store test against `TEST_DATABASE_DSN`.
 
 ## Relevant files
 

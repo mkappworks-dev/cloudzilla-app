@@ -1,0 +1,64 @@
+package components
+
+import "strconv"
+
+type IssueListRowData struct {
+	Href      string
+	Repo      string // "owner/name"; set where the list spans repos
+	Number    int
+	Title     string
+	Author    string
+	State     string // "open" or "closed"
+	Private   bool
+	OpenedAt  string // pre-formatted relative
+	OpenedISO string
+	Labels    []LabelChip
+}
+
+templ IssueListRow(d IssueListRowData) {
+	<li>
+		<a href={ templ.SafeURL(d.Href) } class="flex items-start gap-3 px-4 py-3 hover:bg-muted/50">
+			if d.State == "open" {
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-success" aria-hidden="true" focusable="false">
+					<circle cx="12" cy="12" r="9"></circle>
+					<circle cx="12" cy="12" r="3"></circle>
+				</svg>
+			} else {
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-destructive" aria-hidden="true" focusable="false">
+					<circle cx="12" cy="12" r="9"></circle>
+					<path d="M9 9l6 6M15 9l-6 6"></path>
+				</svg>
+			}
+			<div class="min-w-0 flex-1">
+				<div class="text-[13px] font-medium">
+					if d.Private {
+						<span class="inline-flex items-center mr-1 text-warning" title="Private" aria-label="Private">🔒</span>
+					}
+					<span class="hover:underline">{ d.Title }</span>
+				</div>
+				<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+					if d.Repo != "" {
+						<span>{ d.Repo }</span>
+					}
+					<span class="font-mono">#{ strconv.Itoa(d.Number) }</span>
+					<span aria-hidden="true">·</span>
+					<span>opened by { d.Author }</span>
+					if d.OpenedAt != "" {
+						<span aria-hidden="true">·</span>
+						<time datetime={ d.OpenedISO }>{ d.OpenedAt }</time>
+					}
+					if len(d.Labels) > 0 {
+						<span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
+							for _, l := range d.Labels {
+								<span class="px-2 py-0.5 rounded-full text-[11px] border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
+							}
+						</span>
+					}
+				</div>
+			</div>
+			<div class="shrink-0">
+				@IssueStateBadge(d.State)
+			</div>
+		</a>
+	</li>
+}

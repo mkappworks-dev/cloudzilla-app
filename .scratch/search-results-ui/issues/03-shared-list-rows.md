@@ -13,13 +13,13 @@ Extract the row markup that lives inline in two pages into components, with no v
 - `components.RepoListRow` from `pages/explore.templ` (`owner/name`, description, optional Private badge, optional stats slot, optional created date).
 - `components.PersonListRow` (avatar, linked name, one muted line) for users and orgs.
 
-Row data structs follow `PRListRowData`: pre-formatted strings, so the components don't depend on models. `PRListRow` is reused unchanged.
+Row data structs follow `PRListRowData`: pre-formatted strings, so the components don't depend on models. `PRListRow` gains an optional `ShowRepo` prefix for lists that span repos.
 
 ## Acceptance criteria
 
 - [ ] The repo issues page and Explore render the same HTML as before (compare output on a seeded DB; a diff in whitespace only is fine).
-- [ ] Each component has a render test like `pr_list_row_test.go`.
-- [ ] No search code changes in this ticket.
+- [x] Each component has a render test like `pr_list_row_test.go`.
+- [x] No search code changes in this ticket.
 
 ## Relevant files
 

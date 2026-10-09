@@ -1,0 +1,14 @@
+package components
+
+// PersonListRow is a user or an organization: both live at /{name}.
+templ PersonListRow(name, subtitle string) {
+	<li class="flex items-center gap-3 px-6 py-4">
+		@Avatar(name, AvatarSizeDefault, name)
+		<div class="min-w-0">
+			<a href={ templ.SafeURL("/" + name) } class="text-foreground font-semibold hover:underline">{ name }</a>
+			if subtitle != "" {
+				<p class="text-xs text-muted-foreground truncate">{ subtitle }</p>
+			}
+		</div>
+	</li>
+}
