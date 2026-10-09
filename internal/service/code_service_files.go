@@ -100,6 +100,8 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		if baseTree, cErr = parent.Tree(); cErr != nil {
 			return RefUpdate{}, fmt.Errorf("read tree: %w", cErr)
 		}
+	} else if nameErr := gitref.ValidateBranchName(branch); nameErr != nil {
+		return RefUpdate{}, nameErr
 	}
 
 	rootTreeHash, err := insertEntry(repo, baseTree, "", strings.Split(filePath, "/"), object.TreeEntry{Mode: filemode.Regular, Hash: blobHash}, true)
