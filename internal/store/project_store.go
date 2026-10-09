@@ -428,6 +428,73 @@ func (s *ProjectStore) CardLabels(ctx context.Context, cardIDs []int64) (map[int
 	return out, rows.Err()
 }
 
+// linkedTables names the join tables and id column of a card link kind; they are
+// interpolated into SQL, so only these constants may reach it.
+var linkedTables = map[string]struct{ labels, assignees, idCol string }{
+	"issue": {"issue_labels", "issue_assignees", "issue_id"},
+	"pull":  {"pull_labels", "pull_assignees", "pull_id"},
+}
+
+// LinkedLabels returns the labels of the given issues ("issue") or pull requests ("pull"), keyed by their id.
+func (s *ProjectStore) LinkedLabels(ctx context.Context, kind string, ids []int64) (map[int64][]model.Label, error) {
+	t, ok := linkedTables[kind]
+	if !ok {
+		return nil, fmt.Errorf("linked labels: unknown kind %q", kind)
+	}
+	out := map[int64][]model.Label{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT j.`+t.idCol+`, l.id, l.repo_id, l.name, l.color, l.description, l.created_at
+		 FROM `+t.labels+` j JOIN labels l ON l.id = j.label_id
+		 WHERE j.`+t.idCol+` = ANY($1)
+		 ORDER BY l.name, l.id`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("linked labels: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var l model.Label
+		if err := rows.Scan(&id, &l.ID, &l.RepoID, &l.Name, &l.Color, &l.Description, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		out[id] = append(out[id], l)
+	}
+	return out, rows.Err()
+}
+
+// LinkedAssignees returns the assignees of the given issues ("issue") or pull requests ("pull"), keyed by their id.
+func (s *ProjectStore) LinkedAssignees(ctx context.Context, kind string, ids []int64) (map[int64][]model.CardUser, error) {
+	t, ok := linkedTables[kind]
+	if !ok {
+		return nil, fmt.Errorf("linked assignees: unknown kind %q", kind)
+	}
+	out := map[int64][]model.CardUser{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT j.`+t.idCol+`, u.id, u.username
+		 FROM `+t.assignees+` j JOIN users u ON u.id = j.user_id
+		 WHERE j.`+t.idCol+` = ANY($1)
+		 ORDER BY u.username, u.id`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("linked assignees: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var u model.CardUser
+		if err := rows.Scan(&id, &u.ID, &u.Username); err != nil {
+			return nil, err
+		}
+		out[id] = append(out[id], u)
+	}
+	return out, rows.Err()
+}
+
 // LabelsInRepo reports whether every given label belongs to repoID.
 func (s *ProjectStore) LabelsInRepo(ctx context.Context, repoID int64, labelIDs []int64) (bool, error) {
 	unique := map[int64]struct{}{}

@@ -456,6 +456,25 @@ type KanbanColumnView struct {
 	Cards []KanbanCardView
 }
 
+// linkedPeople holds the labels and assignees of linked issues or pull requests, keyed by their id.
+type linkedPeople struct {
+	labels    map[int64][]model.Label
+	assignees map[int64][]model.CardUser
+}
+
+// loadLinkedPeople costs one query per table however many cards share the board.
+func (s *ProjectService) loadLinkedPeople(ctx context.Context, kind string, ids []int64) (linkedPeople, error) {
+	labels, err := s.projects.LinkedLabels(ctx, kind, ids)
+	if err != nil {
+		return linkedPeople{}, err
+	}
+	assignees, err := s.projects.LinkedAssignees(ctx, kind, ids)
+	if err != nil {
+		return linkedPeople{}, err
+	}
+	return linkedPeople{labels: labels, assignees: assignees}, nil
+}
+
 // ListColumnsWithCardsExpanded resolves columns + cards joined with the owning
 // repo's full name (owner/name) for display in the kanban board.
 func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, projectID int64) ([]KanbanColumnView, error) {
@@ -469,11 +488,27 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 	if err != nil {
 		return nil, err
 	}
-	var cardIDs []int64
+	var cardIDs, plainIssueIDs, plainPullIDs []int64
 	for _, col := range cols {
 		for _, c := range col.Cards {
 			cardIDs = append(cardIDs, c.ID)
+			if c.Title != "" {
+				continue
+			}
+			if c.IssueID != nil {
+				plainIssueIDs = append(plainIssueIDs, *c.IssueID)
+			} else if c.PullID != nil {
+				plainPullIDs = append(plainPullIDs, *c.PullID)
+			}
 		}
+	}
+	issuePeople, err := s.loadLinkedPeople(ctx, "issue", plainIssueIDs)
+	if err != nil {
+		return nil, err
+	}
+	pullPeople, err := s.loadLinkedPeople(ctx, "pull", plainPullIDs)
+	if err != nil {
+		return nil, err
 	}
 	assignees, err := s.projects.CardAssignees(ctx, cardIDs)
 	if err != nil {
@@ -540,6 +575,14 @@ collect:
 			}
 			if c.Title != "" {
 				cv.Kind, cv.Title, cv.Number, cv.State = "note", c.Title, 0, ""
+			}
+			if c.Title == "" {
+				switch {
+				case c.IssueID != nil:
+					cv.Labels, cv.Assignees = issuePeople.labels[*c.IssueID], issuePeople.assignees[*c.IssueID]
+				case c.PullID != nil:
+					cv.Labels, cv.Assignees = pullPeople.labels[*c.PullID], pullPeople.assignees[*c.PullID]
+				}
 			}
 			cv.Overdue = cardOverdue(c.DueDate, cv.LinkState, today)
 			cards[j] = cv

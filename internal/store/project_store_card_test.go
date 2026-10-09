@@ -225,6 +225,60 @@ func TestProjectStore_DeletingLabelRemovesCardLabel(t *testing.T) {
 	}
 }
 
+func TestProjectStore_LinkedLabelsAndAssignees(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	label := seedLabelRow(t, db, repoID, "bug")
+	var issueID, bareIssueID, pullID int64
+	for _, row := range []struct {
+		dst  *int64
+		q    string
+		args []any
+	}{
+		{&issueID, `INSERT INTO issues (repo_id, number, author_id, title) VALUES ($1, 1, $2, 'i') RETURNING id`, []any{repoID, ownerID}},
+		{&bareIssueID, `INSERT INTO issues (repo_id, number, author_id, title) VALUES ($1, 2, $2, 'bare') RETURNING id`, []any{repoID, ownerID}},
+		{&pullID, `INSERT INTO pull_requests (repo_id, number, author_id, title, state, head_branch, base_branch) VALUES ($1, 3, $2, 'p', 'open', 'f', 'main') RETURNING id`, []any{repoID, ownerID}},
+	} {
+		if err := db.QueryRow(row.q, row.args...).Scan(row.dst); err != nil {
+			t.Fatal(err)
+		}
+	}
+	testutil.Exec(t, db, `INSERT INTO issue_labels (issue_id, label_id) VALUES ($1, $2)`, issueID, label)
+	testutil.Exec(t, db, `INSERT INTO issue_assignees (issue_id, user_id) VALUES ($1, $2)`, issueID, ownerID)
+	testutil.Exec(t, db, `INSERT INTO pull_labels (pull_id, label_id) VALUES ($1, $2)`, pullID, label)
+	testutil.Exec(t, db, `INSERT INTO pull_assignees (pull_id, user_id) VALUES ($1, $2)`, pullID, ownerID)
+	s := store.NewProjectStore(db)
+	ctx := context.Background()
+
+	labels, err := s.LinkedLabels(ctx, "issue", []int64{issueID, bareIssueID})
+	if err != nil || len(labels) != 1 || len(labels[issueID]) != 1 || labels[issueID][0].ID != label {
+		t.Errorf("LinkedLabels(issue) = %v, %v", labels, err)
+	}
+	assignees, err := s.LinkedAssignees(ctx, "issue", []int64{issueID, bareIssueID})
+	if err != nil || len(assignees) != 1 || len(assignees[issueID]) != 1 || assignees[issueID][0].ID != ownerID {
+		t.Errorf("LinkedAssignees(issue) = %v, %v", assignees, err)
+	}
+	labels, err = s.LinkedLabels(ctx, "pull", []int64{pullID})
+	if err != nil || len(labels[pullID]) != 1 {
+		t.Errorf("LinkedLabels(pull) = %v, %v", labels, err)
+	}
+	assignees, err = s.LinkedAssignees(ctx, "pull", []int64{pullID})
+	if err != nil || len(assignees[pullID]) != 1 {
+		t.Errorf("LinkedAssignees(pull) = %v, %v", assignees, err)
+	}
+	if got, err := s.LinkedLabels(ctx, "issue", nil); err != nil || len(got) != 0 {
+		t.Errorf("LinkedLabels(nil) = %v, %v, want empty", got, err)
+	}
+	if _, err := s.LinkedLabels(ctx, "gist", []int64{1}); err == nil {
+		t.Error("LinkedLabels with an unknown kind succeeded")
+	}
+	if _, err := s.LinkedAssignees(ctx, "gist", []int64{1}); err == nil {
+		t.Error("LinkedAssignees with an unknown kind succeeded")
+	}
+}
+
 func TestProjectStore_LabelsInRepo(t *testing.T) {
 	db := openStoreDB(t)
 	suffix := testutil.UniqueSuffix(t)
