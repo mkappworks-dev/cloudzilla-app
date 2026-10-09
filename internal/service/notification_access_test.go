@@ -20,10 +20,16 @@ type notifAccessEnv struct {
 	repoStore *store.RepoStore
 	orgStore  *store.OrgStore
 	watches   *store.WatchStore
+	threads   *service.ThreadSubscriptionService
 	actorID   int64
 }
 
 func newNotifAccessEnv(t *testing.T) *notifAccessEnv {
+	t.Helper()
+	return newNotifAccessEnvWithSMTP(t, config.SMTPConfig{})
+}
+
+func newNotifAccessEnvWithSMTP(t *testing.T, smtp config.SMTPConfig) *notifAccessEnv {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
 	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
@@ -31,10 +37,12 @@ func newNotifAccessEnv(t *testing.T) *notifAccessEnv {
 	repoSvc := service.NewRepoService(repoStore, store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
 	watches := store.NewWatchStore(db)
 	suffix := testutil.UniqueSuffix(t)
+	threads := service.NewThreadSubscriptionService(store.NewThreadSubscriptionStore(db), watches)
 	return &notifAccessEnv{
 		db:        db,
 		suffix:    suffix,
-		svc:       service.NewNotificationService(store.NewNotificationStore(db), watches, repoSvc, service.NewEmailService(config.SMTPConfig{}), userSvc),
+		svc:       service.NewNotificationService(store.NewNotificationStore(db), watches, repoSvc, service.NewEmailService(smtp), userSvc).WithThreadSubscriptions(threads),
+		threads:   threads,
 		userSvc:   userSvc,
 		repoStore: repoStore,
 		orgStore:  store.NewOrgStore(db),
@@ -192,7 +200,9 @@ func TestNotification_DirectRecipientWithoutReadAccess_NotNotified(t *testing.T)
 		{"discussion reply", formerID, func() {
 			env.svc.NotifyDiscussionReply(ctx, repo, model.Discussion{Number: 5, AuthorID: formerID}, env.actorID, "actor")
 		}},
-		{"mention", outsiderID, func() { env.svc.NotifyMention(ctx, repo, env.actorID, "actor", outsiderID, 1, "/x") }},
+		{"mention", outsiderID, func() {
+			env.svc.NotifyMention(ctx, repo, env.actorID, "actor", outsiderID, model.ThreadKindIssue, 1, "/x")
+		}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

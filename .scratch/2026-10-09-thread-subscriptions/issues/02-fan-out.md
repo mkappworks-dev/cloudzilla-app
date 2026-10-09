@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 ## What
@@ -15,13 +15,13 @@ Rework recipient selection in `internal/service/notification_service.go` so `Not
 
 ## Acceptance criteria
 
-- [ ] A muted user who also watches the repo gets nothing from a comment, review or state change.
-- [ ] A subscribed user in a repo they don't watch (or `ignoring`) gets the in-app notification and the immediate email.
-- [ ] A muted author is not notified; an unmuted author on a pre-feature thread still is.
-- [ ] A mention reaches a muted user and flips the row to `subscribed`.
-- [ ] `CanRead` and actor-silence rules still hold.
-- [ ] Backfill migration test covers each type and a mention URL of each kind.
-- [ ] `docs/notifications.md` updated: fan-out rules, email, `subject_kind`.
+- [x] A muted user who also watches the repo gets nothing from a comment, review or state change.
+- [x] A subscribed user in a repo they don't watch (or `ignoring`) gets the in-app notification and the immediate email.
+- [x] A muted author is not notified; an unmuted author on a pre-feature thread still is.
+- [x] A mention reaches a muted user and flips the row to `subscribed`.
+- [x] `CanRead` and actor-silence rules still hold.
+- [x] Backfill migration test covers each type and a mention URL of each kind.
+- [x] `docs/notifications.md` updated: fan-out rules, email, `subject_kind`.
 
 ## Comments
 
@@ -46,13 +46,13 @@ For a comment, review or state change, recipients are the thread's subscribed us
 - The mention path calls the thread-subscription service's subscribe-on-mention.
 
 **Acceptance criteria:**
-- [ ] A muted user who watches the repo receives nothing from a comment, review or state change.
-- [ ] A subscribed user in a repo they don't watch (or ignore) gets the in-app notification and the immediate email.
-- [ ] A muted author isn't notified; an unmuted author on a thread with no row still is.
-- [ ] A mention reaches a muted user and sets their row to subscribed.
-- [ ] Read-access checks and actor silence still apply.
-- [ ] The backfill is tested for every notification type and each mention URL kind.
-- [ ] `docs/notifications.md` describes the new rules, email behaviour and thread kind.
+- [x] A muted user who watches the repo receives nothing from a comment, review or state change.
+- [x] A subscribed user in a repo they don't watch (or ignore) gets the in-app notification and the immediate email.
+- [x] A muted author isn't notified; an unmuted author on a thread with no row still is.
+- [x] A mention reaches a muted user and sets their row to subscribed.
+- [x] Read-access checks and actor silence still apply.
+- [x] The backfill is tested for every notification type and each mention URL kind.
+- [x] `docs/notifications.md` describes the new rules, email behaviour and thread kind.
 
 **Out of scope:**
 - Adding watcher fan-out to discussion replies beyond what subscribers imply.

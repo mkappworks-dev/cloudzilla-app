@@ -9,7 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-const notificationCols = `id, user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title, read, created_at`
+const notificationCols = `id, user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title, COALESCE(subject_kind, ''), read, created_at`
 
 // Inbox filters for ListPage and CountByFilter.
 const (
@@ -37,9 +37,9 @@ func NewNotificationStore(db *sql.DB) *NotificationStore { return &NotificationS
 
 func (s *NotificationStore) Create(ctx context.Context, n *model.Notification) error {
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO notifications (user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-		n.UserID, n.ActorID, n.ActorName, string(n.Type), n.RepoID, n.RepoName, n.OwnerName, n.SubjectID, n.SubjectURL, n.SubjectTitle,
+		`INSERT INTO notifications (user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title, subject_kind)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULLIF($11, '')) RETURNING id`,
+		n.UserID, n.ActorID, n.ActorName, string(n.Type), n.RepoID, n.RepoName, n.OwnerName, n.SubjectID, n.SubjectURL, n.SubjectTitle, n.SubjectKind,
 	).Scan(&n.ID)
 	if err != nil {
 		return fmt.Errorf("notification create: %w", err)
@@ -60,7 +60,7 @@ func (s *NotificationStore) ListByUser(ctx context.Context, userID int64) ([]mod
 	var notifs []model.Notification
 	for rows.Next() {
 		var n model.Notification
-		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.Read, &n.CreatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.SubjectKind, &n.Read, &n.CreatedAt); err != nil {
 			return nil, err
 		}
 		notifs = append(notifs, n)
@@ -94,7 +94,7 @@ func (s *NotificationStore) MarkRead(ctx context.Context, id, userID int64) erro
 // its repo isn't until they accept.
 func (s *NotificationStore) ListUnreadReadable(ctx context.Context, userID int64) ([]model.Notification, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT n.id, n.user_id, n.actor_id, n.actor_name, n.type, n.repo_id, n.repo_name, n.owner_name, n.subject_id, n.subject_url, n.subject_title, n.read, n.created_at
+		`SELECT n.id, n.user_id, n.actor_id, n.actor_name, n.type, n.repo_id, n.repo_name, n.owner_name, n.subject_id, n.subject_url, n.subject_title, COALESCE(n.subject_kind, ''), n.read, n.created_at
 		 FROM notifications n JOIN repositories r ON r.id = n.repo_id
 		 WHERE n.user_id = $1 AND n.read = FALSE AND (`+readableBy("r", "$1")+`
 		    OR n.type = 'repo_transfer' AND EXISTS (SELECT 1 FROM repo_transfers t
@@ -109,7 +109,7 @@ func (s *NotificationStore) ListUnreadReadable(ctx context.Context, userID int64
 	var notifs []model.Notification
 	for rows.Next() {
 		var n model.Notification
-		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.Read, &n.CreatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.SubjectKind, &n.Read, &n.CreatedAt); err != nil {
 			return nil, err
 		}
 		notifs = append(notifs, n)
@@ -140,7 +140,7 @@ func (s *NotificationStore) ListPage(ctx context.Context, userID int64, filter s
 	var notifs []model.Notification
 	for rows.Next() {
 		var n model.Notification
-		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.Read, &n.CreatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.SubjectKind, &n.Read, &n.CreatedAt); err != nil {
 			return nil, err
 		}
 		notifs = append(notifs, n)

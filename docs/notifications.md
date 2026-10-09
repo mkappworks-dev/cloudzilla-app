@@ -20,6 +20,20 @@ In-app notifications for activity on issues, PRs and discussions you opened, @-m
 
 Notifications are never created when `actorID == authorID` (self-actions are silent). Every notification, watchers' copies included, is created only if its recipient can read the repo at that moment (`RepoService.CanRead`), so watching a repo or having opened the issue, PR or discussion stops counting once the user is removed as a collaborator, removed from the org or demoted from org owner. `CommentService` likewise records an @-mention only for users who can read the repo. The exception is `repo_transfer`: its recipient can't read a private repo until they accept it.
 
+## Who is notified
+
+Comments, reviews, state changes and discussion replies go through `NotificationService.notifyThread`. The recipients are the thread's author, its `subscribed` rows (see `ThreadSubscriptionService`) and, except for discussion replies, the repo's non-ignoring watchers. It drops the actor, users with a `muted` row on the thread, and anyone who can't read the repo. A subscriber needn't watch the repo, and an `ignoring` watcher who subscribed to the thread is still notified. An author with no row, such as one on a thread that predates subscriptions, is still notified; a muted author is not.
+
+Discussion replies never reached watchers, so they still don't: author and subscribers only.
+
+`NotifyMention` ignores a mute. After creating the notification it calls `SubscribeOnMention`, which flips the row to `subscribed`. A mention for a user who can't read the repo creates neither.
+
+A failure to list muted users or subscribers is logged and the fan-out is skipped, rather than notifying someone who muted the thread.
+
+## Thread kind
+
+`notifications.subject_kind` is `issue`, `pull` or `discussion`: the kind of thread `subject_id` numbers, since the number alone doesn't say. Every `Notify*` call sets it except `NotifyRepoTransfer`, which leaves it NULL. Migration 114 backfilled older rows from `type`, and mentions from the section of `subject_url`; a mention whose URL names no section stays NULL. `model.Notification.SubjectKind` is empty for NULL.
+
 ## Email
 
 Sent only when SMTP is configured. Users set these on `/settings#notifications` (saved by POST `/settings/notifications`); they never affect in-app notifications.
@@ -33,7 +47,7 @@ Sent only when SMTP is configured. Users set these on `/settings#notifications` 
 
 `wantsEmail(user, type, digestMode)` in `internal/service/email_service.go` decides per notification, and says no for a [suspended account](./access-control.md#suspended-accounts): `EmailService.SendNotification` calls it with `immediate`, and `NotificationService.ListUnreadForDigest` calls it with the digest mode. The digest job (`runEmailDigest` in `cmd/server/main.go`) first narrows users with `UserService.ListUsersForDigest`, whose SQL repeats the master-switch and digest-mode check.
 
-Immediate email goes only to the notification's direct recipient (the subject's author, or the mentioned user). Watchers also receive in-app copies of issue/PR notifications (`fanOutToWatchers`); those are never emailed immediately, but digests draw from all unread notifications, so daily/weekly users also get watched-repo activity, and `notify_pr_review` filters watched-repo reviews there too. The digest re-checks read access (`NotificationStore.ListUnreadReadable`, with `readableBy`) and leaves out notifications on repos the user can no longer read, keeping a `repo_transfer` notification while its transfer is still offered to the user.
+Immediate email goes to the notification's direct recipient (the subject's author, or the mentioned user) and to users with a `subscribed` row on the thread. Watchers without a row get in-app copies of issue/PR notifications; those are never emailed immediately, but digests draw from all unread notifications, so daily/weekly users also get watched-repo activity, and `notify_pr_review` filters watched-repo reviews there too. The digest re-checks read access (`NotificationStore.ListUnreadReadable`, with `readableBy`) and leaves out notifications on repos the user can no longer read, keeping a `repo_transfer` notification while its transfer is still offered to the user.
 
 ## Unread Count in Navbar
 
@@ -69,8 +83,9 @@ Rows are grouped under their repo within a page. A row shows `subject_title` whe
 - `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler; `IssueCloser` calls it for each issue a closing keyword closes, with the merger or pusher as actor
 - `NotifyPRStateChange(ctx, repo, pr, actorID, actorName)` — call from `UpdatePull` handler
 - `NotifyPRReview(ctx, repo, pr, actorID, actorName)` — call from `SubmitReview` handler
-- `NotifyDiscussionReply(ctx, repo, discussion, actorID, actorName)` — call from `CreateReply` handler
-- `NotifyMention(ctx, repo, actorID, actorName, mentionedUserID, subjectNumber, subjectURL)` — called by `CommentService` for each readable @-mention in a new issue/PR comment
+- `NotifyDiscussionReply(ctx, repo, discussion, actorID, actorName)` — call from `CreateReply` handler; author and subscribers only
+- `WithThreadSubscriptions(svc)` — builder; without it no thread rows are consulted
+- `NotifyMention(ctx, repo, actorID, actorName, mentionedUserID, kind, subjectNumber, subjectURL)` — called by `CommentService` for each readable @-mention in a new issue/PR comment; `kind` is `model.ThreadKindIssue` or `ThreadKindPull`
 - `NotifyRepoTransfer(ctx, transfer)` — call from `TransferRepo` handler when the transfer awaits its recipient; `SubjectID` is the transfer ID. It skips the `CanRead` check, since the recipient can't read a private repo until they accept
 
 Handlers run the `Notify*` calls in a goroutine with `context.WithoutCancel(r.Context())`: net/http cancels the request context as soon as the handler returns, which would abort the inserts and the email.
