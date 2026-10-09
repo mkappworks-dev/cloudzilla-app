@@ -139,6 +139,13 @@ document.addEventListener('alpine:init', () => {
       return this.$root.dataset.canWrite === 'true';
     },
 
+    // A card keeps an assignee who left the repo; the picker no longer lists them, so the
+    // panel shows them separately and they stay untickable.
+    get staleAssignees() {
+      const listed = new Set(Array.from(this.$root.querySelectorAll('[data-person]'), (i) => i.value));
+      return this.panel.card.assignees.filter((a) => !listed.has(String(a.id)));
+    },
+
     onCardClick(e) {
       const card = e.target.closest('[data-card-panel]');
       if (card) this.openPanel(card);

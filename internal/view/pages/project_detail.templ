@@ -530,13 +530,22 @@ templ cardPanel(data view.ProjectDetailData) {
 						<div role="group" aria-labelledby="card-panel-assignees" class="flex flex-col gap-1" data-panel-people>
 							for _, p := range data.People {
 								<label class="flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted">
-									<input type="checkbox" x-model="panel.assignees" value={ strconv.FormatInt(p.ID, 10) } class="accent-primary"/>
+									<input type="checkbox" data-person x-model="panel.assignees" value={ strconv.FormatInt(p.ID, 10) } class="accent-primary"/>
 									@components.Avatar(p.Username, components.AvatarSizeXS, "")
 									<span class="truncate">{ p.Username }</span>
 								</label>
 							}
 						</div>
 					}
+					<div class="mt-1 flex flex-col gap-1">
+						<template x-for="a in staleAssignees" x-bind:key="a.id">
+							<label class="flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted">
+								<input type="checkbox" x-model="panel.assignees" x-bind:value="String(a.id)" class="accent-primary"/>
+								<span class="truncate" x-text="a.username"></span>
+								<span class="shrink-0 text-[12px] text-muted-foreground">no longer a collaborator</span>
+							</label>
+						</template>
+					</div>
 				} else {
 					<p x-show="!panel.card.assignees.length" class="text-[12px] text-muted-foreground">None</p>
 					<ul class="flex flex-col gap-1 text-[13px]">

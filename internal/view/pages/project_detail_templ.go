@@ -1218,14 +1218,14 @@ func cardPanel(data view.ProjectDetailData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, p := range data.People {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "<label class=\"flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted\"><input type=\"checkbox\" x-model=\"panel.assignees\" value=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "<label class=\"flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted\"><input type=\"checkbox\" data-person x-model=\"panel.assignees\" value=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var50 string
 					templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatInt(p.ID, 10))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 533, Col: 93}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 533, Col: 105}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var50)
 					if templ_7745c5c3_Err != nil {
@@ -1262,109 +1262,113 @@ func cardPanel(data view.ProjectDetailData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, " <div class=\"mt-1 flex flex-col gap-1\"><template x-for=\"a in staleAssignees\" x-bind:key=\"a.id\"><label class=\"flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted\"><input type=\"checkbox\" x-model=\"panel.assignees\" x-bind:value=\"String(a.id)\" class=\"accent-primary\"> <span class=\"truncate\" x-text=\"a.username\"></span> <span class=\"shrink-0 text-[12px] text-muted-foreground\">no longer a collaborator</span></label></template></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "<p x-show=\"!panel.card.assignees.length\" class=\"text-[12px] text-muted-foreground\">None</p><ul class=\"flex flex-col gap-1 text-[13px]\"><template x-for=\"a in panel.card.assignees\" x-bind:key=\"a.id\"><li x-text=\"a.username\"></li></template></ul>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "<p x-show=\"!panel.card.assignees.length\" class=\"text-[12px] text-muted-foreground\">None</p><ul class=\"flex flex-col gap-1 text-[13px]\"><template x-for=\"a in panel.card.assignees\" x-bind:key=\"a.id\"><li x-text=\"a.username\"></li></template></ul>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "</div><div><span id=\"card-panel-labels\" class=\"mb-1 block text-[12px] font-medium text-muted-foreground\">Labels</span> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "</div><div><span id=\"card-panel-labels\" class=\"mb-1 block text-[12px] font-medium text-muted-foreground\">Labels</span> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
 			if len(data.Labels) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<p class=\"text-[12px] text-muted-foreground\">No labels in this repository</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<p class=\"text-[12px] text-muted-foreground\">No labels in this repository</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<div role=\"group\" aria-labelledby=\"card-panel-labels\" class=\"flex flex-col gap-1\" data-panel-labels>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "<div role=\"group\" aria-labelledby=\"card-panel-labels\" class=\"flex flex-col gap-1\" data-panel-labels>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, l := range data.Labels {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "<label class=\"flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted\"><input type=\"checkbox\" x-model=\"panel.labels\" value=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, "<label class=\"flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted\"><input type=\"checkbox\" x-model=\"panel.labels\" value=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var52 string
 					templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatInt(l.ID, 10))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 558, Col: 90}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 567, Col: 90}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var52)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, "\" class=\"accent-primary\"> <span class=\"inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted\" style=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "\" class=\"accent-primary\"> <span class=\"inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted\" style=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var53 string
 					templ_7745c5c3_Var53, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(labelChipStyle(l.Color))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 559, Col: 110}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 568, Col: 110}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "\"></span> <span class=\"truncate\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, "\"></span> <span class=\"truncate\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var54 string
 					templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(l.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 560, Col: 40}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 569, Col: 40}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, "</span></label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "</span></label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 124, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 124, "<p x-show=\"!panel.card.labels.length\" class=\"text-[12px] text-muted-foreground\">None</p><ul class=\"flex flex-col gap-1 text-[13px]\"><template x-for=\"l in panel.card.labels\" x-bind:key=\"l.id\"><li class=\"flex items-center gap-2\"><span class=\"inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted\" x-bind:style=\"{ backgroundColor: l.color }\"></span> <span x-text=\"l.name\"></span></li></template></ul>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "<p x-show=\"!panel.card.labels.length\" class=\"text-[12px] text-muted-foreground\">None</p><ul class=\"flex flex-col gap-1 text-[13px]\"><template x-for=\"l in panel.card.labels\" x-bind:key=\"l.id\"><li class=\"flex items-center gap-2\"><span class=\"inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted\" x-bind:style=\"{ backgroundColor: l.color }\"></span> <span x-text=\"l.name\"></span></li></template></ul>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "</div><div><label for=\"card-panel-due\" class=\"mb-1 block text-[12px] font-medium text-muted-foreground\">Due date</label> <input id=\"card-panel-due\" type=\"date\" x-model=\"panel.dueDate\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 126, "</div><div><label for=\"card-panel-due\" class=\"mb-1 block text-[12px] font-medium text-muted-foreground\">Due date</label> <input id=\"card-panel-due\" type=\"date\" x-model=\"panel.dueDate\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if !data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 126, " disabled")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 127, " disabled")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 127, " class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70\"></div><p x-show=\"panel.error\" x-text=\"panel.error\" class=\"text-[12px] text-destructive\" role=\"alert\"></p></div><footer class=\"flex flex-wrap items-center gap-2 border-t border-border px-4 py-3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 128, " class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70\"></div><p x-show=\"panel.error\" x-text=\"panel.error\" class=\"text-[12px] text-destructive\" role=\"alert\"></p></div><footer class=\"flex flex-wrap items-center gap-2 border-t border-border px-4 py-3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 128, "<button type=\"button\" @click=\"savePanel()\" x-bind:disabled=\"panel.busy || !panel.title.trim()\" class=\"inline-flex h-8 items-center rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50\">Save</button> <button type=\"button\" @click=\"closePanel()\" class=\"inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground\">Cancel</button> <button type=\"button\" x-show=\"!panel.link && panel.title.trim()\" @click=\"convertPanel()\" x-bind:disabled=\"panel.busy\" class=\"ml-auto inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50\">Convert to issue</button> <button type=\"button\" @click=\"deletePanel()\" x-bind:disabled=\"panel.busy\" class=\"inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium text-destructive hover:bg-muted disabled:opacity-50\" x-bind:class=\"!panel.link && panel.title.trim() ? '' : 'ml-auto'\">Delete</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 129, "<button type=\"button\" @click=\"savePanel()\" x-bind:disabled=\"panel.busy || !panel.title.trim()\" class=\"inline-flex h-8 items-center rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50\">Save</button> <button type=\"button\" @click=\"closePanel()\" class=\"inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground\">Cancel</button> <button type=\"button\" x-show=\"!panel.link && panel.title.trim()\" @click=\"convertPanel()\" x-bind:disabled=\"panel.busy\" class=\"ml-auto inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50\">Convert to issue</button> <button type=\"button\" @click=\"deletePanel()\" x-bind:disabled=\"panel.busy\" class=\"inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium text-destructive hover:bg-muted disabled:opacity-50\" x-bind:class=\"!panel.link && panel.title.trim() ? '' : 'ml-auto'\">Delete</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 129, "<button type=\"button\" @click=\"closePanel()\" class=\"ml-auto inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground\">Close</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "<button type=\"button\" @click=\"closePanel()\" class=\"ml-auto inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] font-medium hover:bg-accent hover:text-accent-foreground\">Close</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "</footer></aside>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "</footer></aside>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

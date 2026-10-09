@@ -213,7 +213,7 @@ func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, us
 	if err != nil || colProject.ID != projectID {
 		return nil, ErrProjectNotFound
 	}
-	if err := s.validateDetails(ctx, repo, d, true); err != nil {
+	if err := s.validateDetails(ctx, repo, d, true, nil); err != nil {
 		return nil, err
 	}
 	card := &model.ProjectCard{
@@ -234,8 +234,9 @@ func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, us
 }
 
 // validateDetails checks title, link, assignees and labels against the repo. A card without a
-// title is only valid as a bare link, and only where linkOnlyOK says so.
-func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Repository, d model.CardDetails, linkOnlyOK bool) error {
+// title is only valid as a bare link, and only where linkOnlyOK says so. An assignee in
+// current may stay even after losing repo access, so the panel can save around a stale one.
+func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Repository, d model.CardDetails, linkOnlyOK bool, current []model.CardUser) error {
 	if d.IssueID != nil && d.PullID != nil {
 		return ErrInvalidCard
 	}
@@ -261,6 +262,9 @@ func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Reposi
 		}
 		for _, p := range perms {
 			allowed[p.UserID] = true
+		}
+		for _, u := range current {
+			allowed[u.ID] = true
 		}
 		for _, id := range d.AssigneeIDs {
 			if !allowed[id] {
@@ -340,7 +344,11 @@ func (s *ProjectService) UpdateCardDetails(ctx context.Context, projectID, cardI
 		return err
 	}
 	// A plain linked card (no stored title) may stay title-less; a titled card may not lose its title.
-	if err := s.validateDetails(ctx, repo, d, card.Title == ""); err != nil {
+	assigned, err := s.projects.CardAssignees(ctx, []int64{cardID})
+	if err != nil {
+		return err
+	}
+	if err := s.validateDetails(ctx, repo, d, card.Title == "", assigned[cardID]); err != nil {
 		return err
 	}
 	if err := s.projects.SetCardDetails(ctx, cardID, projectID, d); err != nil {

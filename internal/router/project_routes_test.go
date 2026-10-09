@@ -386,6 +386,30 @@ func TestProjects_CardDetails(t *testing.T) {
 	wantStatus(t, e.do(t, patch(e.writer.token, linkedTarget, fmt.Sprintf(`{"title":" ","issue_id":%d}`, issueID))), http.StatusBadRequest)
 }
 
+func TestProjects_CardDetailsKeepsAssigneeRemovedFromRepo(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	col := e.createColumn(t, p, "To do")
+	card := e.createNote(t, p, col, "assigned")
+	target := e.path("/projects/%d/cards/%d/details", p, card)
+	patch := func(assignees string) *httptest.ResponseRecorder {
+		return e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{"title":"assigned","assignee_ids":` + assignees + `}`})
+	}
+
+	wantStatus(t, patch(fmt.Sprintf(`[%d]`, e.writer.id)), http.StatusNoContent)
+	testutil.Exec(t, e.db, `DELETE FROM permissions WHERE repo_id = $1 AND user_id = $2`, e.repoID, e.writer.id)
+
+	wantStatus(t, patch(fmt.Sprintf(`[%d]`, e.writer.id)), http.StatusNoContent)
+	wantStatus(t, patch(fmt.Sprintf(`[%d,%d]`, e.writer.id, e.outsider.id)), http.StatusBadRequest)
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1 AND user_id = $2`, card, e.writer.id); n != 1 {
+		t.Fatalf("refused save changed the assignee rows: %d, want 1", n)
+	}
+	wantStatus(t, patch(`[]`), http.StatusNoContent)
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1`, card); n != 0 {
+		t.Errorf("assignee rows after removal = %d, want 0", n)
+	}
+}
+
 func TestProjects_CardTargets(t *testing.T) {
 	e := newGitMetaEnv(t)
 	p := e.createProject(t, "Board")
