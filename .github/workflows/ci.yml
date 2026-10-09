@@ -31,6 +31,24 @@ jobs:
         with:
           version: v2.14.0
 
+  vulncheck:
+    name: Vulnerabilities
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # go.mod's toolchain line decides which standard library is scanned.
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+
   test:
     name: Test
     runs-on: ubuntu-latest
