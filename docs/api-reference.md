@@ -470,7 +470,7 @@ Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that
 
 | Method | Path      | Auth     | Description                                                                                                                                        |
 | ------ | --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/search` | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `issues`, `pulls`, `users`). Each word in `q` matches as a prefix, so `bra` finds `brave`. Returns only repos, issues and PRs the viewer can read, never from soft-deleted repos. |
+| GET    | `/search` | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `orgs`, `issues`, `pulls`, `users`). Each word in `q` matches as a prefix, so `bra` finds `brave`. Returns only repos, issues and PRs the viewer can read, never from soft-deleted repos. |
 | GET    | `/search/suggest` | Optional | HTML fragment for the topnav dropdown, not JSON: up to 4 repos, 3 users and 3 orgs whose names start with `q`. `q` shorter than 2 characters returns an empty fragment. Repos follow the same visibility rules as `/search`. Sent with `Cache-Control: private, no-store`. |
 
 ## Webhooks

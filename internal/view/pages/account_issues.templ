@@ -56,49 +56,22 @@ templ AccountIssues(data view.AccountIssuesData) {
 					<h2 id="myissue-list" class="sr-only">Your issues</h2>
 					<ol class="divide-y divide-border">
 						for _, is := range data.Issues {
-							<li data-name={ is.RepoFullName + " " + is.Title } x-show="!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
-								<a
-									href={ templ.SafeURL(fmt.Sprintf("/%s/issues/%d", is.RepoFullName, is.Number)) }
-									class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100"
-								>
-									<div class="flex items-start gap-3 mb-1.5">
-										@issueStateIcon(is.State)
-										<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-											<span class="font-mono text-[12px] text-muted-foreground">{ is.RepoFullName }</span>
-											<span class="opacity-50" aria-hidden="true">·</span>
-											<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ is.Title }</p>
-											@issueStateBadge(is.State)
-										</div>
-									</div>
-									<div class="flex items-center justify-between gap-3 pl-[27px]">
-										<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
-											<span class="font-mono">{ fmt.Sprintf("#%d", is.Number) }</span>
-											<span class="opacity-50" aria-hidden="true">·</span>
-											<span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">{ pullInitials(is.AuthorName) }</span>
-											<span>{ is.AuthorName }</span>
-											<span class="opacity-50" aria-hidden="true">·</span>
-											<time>{ relativeTime(is.UpdatedAt) }</time>
-											if len(data.IssueLabels[is.ID]) > 0 {
-												<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
-												for _, lbl := range data.IssueLabels[is.ID] {
-													@pullLabelPill(lbl)
-												}
-											}
-										</div>
-										<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">
-											if is.Priority != nil {
-												@issuePriorityPill(*is.Priority)
-											}
-											if data.IssueComments[is.ID] > 0 {
-												<span class="inline-flex items-center gap-1">
-													<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
-													{ fmt.Sprintf("%d", data.IssueComments[is.ID]) }
-												</span>
-											}
-										</div>
-									</div>
-								</a>
-							</li>
+							@components.IssueListRow(components.IssueListRowData{
+								Href:     fmt.Sprintf("/%s/issues/%d", is.RepoFullName, is.Number),
+								Repo:     is.RepoFullName,
+								Number:   is.Number,
+								Title:    is.Title,
+								Author:   is.AuthorName,
+								State:    is.State,
+								Time:     relativeTime(is.UpdatedAt),
+								Labels:   issueLabelChips(data.IssueLabels[is.ID]),
+								Priority: issuePriority(is.Priority),
+								Comments: data.IssueComments[is.ID],
+								LiAttrs: templ.Attributes{
+									"data-name": is.RepoFullName + " " + is.Title,
+									"x-show":    "!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())",
+								},
+							})
 						}
 					</ol>
 				</section>
@@ -147,32 +120,6 @@ func issuesSortMenu(data view.AccountIssuesData) []repoMenuItem {
 	return items
 }
 
-templ issueStateIcon(state string) {
-	if state == "closed" {
-		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true">
-			<circle cx="12" cy="12" r="9"></circle>
-			<path d="M9 9l6 6M15 9l-6 6"></path>
-		</svg>
-	} else {
-		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true">
-			<circle cx="12" cy="12" r="9"></circle>
-			<circle cx="12" cy="12" r="3"></circle>
-		</svg>
-	}
-}
-
-templ issueStateBadge(state string) {
-	if state == "closed" {
-		@components.Badge(components.BadgeDestructive) {
-			Closed
-		}
-	} else {
-		@components.Badge(components.BadgeSuccess) {
-			Open
-		}
-	}
-}
-
 // A nil counts map means the count query failed; render no badge rather than 0.
 templ tabCountBadge(counts map[string]int, key string) {
 	if counts != nil {
@@ -180,13 +127,9 @@ templ tabCountBadge(counts map[string]int, key string) {
 	}
 }
 
-templ issuePriorityPill(p string) {
-	switch p {
-		case "P0":
-			<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-destructive/10 text-destructive border-destructive/30 whitespace-nowrap">P0</span>
-		case "P1":
-			<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 text-blue-500 border-blue-500/30 whitespace-nowrap">P1</span>
-		default:
-			<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground whitespace-nowrap">{ p }</span>
+func issuePriority(p *string) string {
+	if p == nil {
+		return ""
 	}
+	return *p
 }
