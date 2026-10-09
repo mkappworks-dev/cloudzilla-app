@@ -693,7 +693,7 @@ ALTER TABLE pull_requests ADD COLUMN IF NOT EXISTS milestone_id BIGINT REFERENCE
 - `internal/model/milestone.go` — `Milestone{ID, RepoID, Number, Title, Description, State, DueDate, ClosedAt, OpenCount, ClosedCount}` (`OpenCount`/`ClosedCount` populated via JOIN)
 - `internal/store/milestone_store.go` — `Create`, `ListByRepo`, `GetByNumber`, `Update`, `Delete`, `IncrementOpenCount`, `IncrementClosedCount`
 - `internal/service/milestone_service.go`
-- `internal/handler/milestone_handler.go`
+- `internal/handler/milestone_api_handler.go` (JSON API), `internal/handler/page_milestone_handler.go` (pages and fragments)
 
 **Model changes:**
 
