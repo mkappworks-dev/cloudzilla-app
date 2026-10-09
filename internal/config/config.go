@@ -24,6 +24,7 @@ type Config struct {
 	SMTP      SMTPConfig      `mapstructure:"smtp"`
 	Import    ImportConfig    `mapstructure:"import"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	Quota     QuotaConfig     `mapstructure:"quota"`
 	Webhook   WebhookConfig   `mapstructure:"webhook"`
 	Storage   StorageConfig   `mapstructure:"storage"`
 	Security  SecurityConfig  `mapstructure:"security"`
@@ -115,6 +116,30 @@ func (c RateLimitConfig) validate() error {
 	for _, r := range budgets {
 		if r.b.Authenticated < 0 || r.b.Anonymous < 0 {
 			return fmt.Errorf("rate_limit.%s: budgets can't be negative (0 is unlimited)", r.name)
+		}
+	}
+	return nil
+}
+
+// QuotaConfig holds the limits every user and every org gets. Zero is unlimited.
+type QuotaConfig struct {
+	User QuotaLimits `mapstructure:"user"`
+	Org  QuotaLimits `mapstructure:"org"`
+}
+
+// QuotaLimits caps an owner's live repositories and the disk their git and wiki dirs use.
+type QuotaLimits struct {
+	Repos        int   `mapstructure:"repos"`
+	StorageBytes int64 `mapstructure:"storage_bytes"`
+}
+
+func (c QuotaConfig) validate() error {
+	for _, o := range []struct {
+		name string
+		l    QuotaLimits
+	}{{"user", c.User}, {"org", c.Org}} {
+		if o.l.Repos < 0 || o.l.StorageBytes < 0 {
+			return fmt.Errorf("quota.%s: limits can't be negative (0 is unlimited)", o.name)
 		}
 	}
 	return nil
@@ -260,6 +285,10 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("mirror.max_concurrent", 3)
 	v.SetDefault("mirror.timeout", "30m")
 	v.SetDefault("metrics.listen_addr", "")
+	v.SetDefault("quota.user.repos", 0)
+	v.SetDefault("quota.user.storage_bytes", int64(0))
+	v.SetDefault("quota.org.repos", 0)
+	v.SetDefault("quota.org.storage_bytes", int64(0))
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.window", "1h")
 	v.SetDefault("rate_limit.core.authenticated", 5000)
@@ -295,6 +324,9 @@ func Load(cfgFile string) (*Config, error) {
 		return nil, err
 	}
 	if err := cfg.RateLimit.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.Quota.validate(); err != nil {
 		return nil, err
 	}
 	if err := cfg.Security.validate(); err != nil {

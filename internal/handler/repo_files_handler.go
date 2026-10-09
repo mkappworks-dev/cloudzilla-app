@@ -210,6 +210,10 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
+	if status, msg := h.storageRefusal(r, repo); status != 0 {
+		http.Error(w, msg, status)
+		return
+	}
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
@@ -327,6 +331,21 @@ func (h *Handler) editableRepo(w http.ResponseWriter, r *http.Request, owner, re
 		return nil, false
 	}
 	return repo, true
+}
+
+// storageRefusal is the status and message for a web write to repo that its
+// owner's storage quota refuses, or 0 when it may go ahead.
+func (h *Handler) storageRefusal(r *http.Request, repo *model.Repository) (int, string) {
+	err := h.Services.Quota.CheckStorage(r.Context(), repo)
+	switch {
+	case err == nil:
+		return 0, ""
+	case errors.Is(err, service.ErrQuotaReached):
+		return http.StatusForbidden, err.Error()
+	default:
+		slog.Error("check storage quota", "repo_id", repo.ID, "error", err)
+		return http.StatusInternalServerError, "failed to check the storage quota"
+	}
 }
 
 // webCommitRefusal returns the status and message that refuse a browser commit
@@ -472,6 +491,10 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		if err := pages.EditFile(data).Render(r.Context(), w); err != nil {
 			slog.Error("render failed", "error", err)
 		}
+	}
+	if status, msg := h.storageRefusal(r, repo); status != 0 {
+		refuse(status, msg)
+		return
 	}
 	conflict := func() {
 		data.ConflictURL = codeurl.Path(owner, repoName, "blob", ref, path)

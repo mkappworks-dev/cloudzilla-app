@@ -131,6 +131,61 @@ func TestLoad_RateLimitDisabledSkipsValidation(t *testing.T) {
 	}
 }
 
+func TestLoad_QuotaDefaultsToUnlimited(t *testing.T) {
+	cfg, err := config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Quota != (config.QuotaConfig{}) {
+		t.Errorf("want every quota at 0, got %+v", cfg.Quota)
+	}
+}
+
+func TestLoad_QuotaFromEnv(t *testing.T) {
+	t.Setenv("CZ_QUOTA_USER_REPOS", "50")
+	t.Setenv("CZ_QUOTA_USER_STORAGE_BYTES", "10737418240")
+	t.Setenv("CZ_QUOTA_ORG_REPOS", "200")
+	t.Setenv("CZ_QUOTA_ORG_STORAGE_BYTES", "107374182400")
+	cfg, err := config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	want := config.QuotaConfig{
+		User: config.QuotaLimits{Repos: 50, StorageBytes: 10 << 30},
+		Org:  config.QuotaLimits{Repos: 200, StorageBytes: 100 << 30},
+	}
+	if cfg.Quota != want {
+		t.Errorf("want %+v, got %+v", want, cfg.Quota)
+	}
+}
+
+func TestLoad_QuotaFromYAML(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte("quota:\n  org:\n    repos: 7\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Quota.Org.Repos != 7 || cfg.Quota.User.Repos != 0 {
+		t.Errorf("want org repos 7 and user repos 0, got %+v", cfg.Quota)
+	}
+}
+
+func TestLoad_QuotaRejectsNegativeValues(t *testing.T) {
+	for _, env := range []string{
+		"CZ_QUOTA_USER_REPOS", "CZ_QUOTA_USER_STORAGE_BYTES", "CZ_QUOTA_ORG_REPOS", "CZ_QUOTA_ORG_STORAGE_BYTES",
+	} {
+		t.Run(env, func(t *testing.T) {
+			t.Setenv(env, "-1")
+			if _, err := config.Load(""); err == nil {
+				t.Errorf("%s=-1: want a startup error", env)
+			}
+		})
+	}
+}
+
 func TestLoad_WebhookDefaultsAndEnv(t *testing.T) {
 	t.Setenv("CZ_IMPORT_ALLOW_LOCAL_NETWORKS", "true")
 	cfg, err := config.Load("")

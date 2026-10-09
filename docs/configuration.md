@@ -46,6 +46,10 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `rate_limit.archive.anonymous` | `20`                                       | `CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS` | Archive downloads per client IP               |
 | `rate_limit.search.authenticated` | `600`                                   | `CZ_RATE_LIMIT_SEARCH_AUTHENTICATED` | Searches per signed-in bucket              |
 | `rate_limit.search.anonymous` | `60`                                        | `CZ_RATE_LIMIT_SEARCH_ANONYMOUS` | Searches per client IP                         |
+| `quota.user.repos`           | `0`                                          | `CZ_QUOTA_USER_REPOS`           | Live repositories each user may own. `0` is unlimited; see [Quotas](#quotas) |
+| `quota.user.storage_bytes`   | `0`                                          | `CZ_QUOTA_USER_STORAGE_BYTES`   | Disk, in bytes, each user's repositories and wikis may use together |
+| `quota.org.repos`            | `0`                                          | `CZ_QUOTA_ORG_REPOS`            | Live repositories each organization may own    |
+| `quota.org.storage_bytes`    | `0`                                          | `CZ_QUOTA_ORG_STORAGE_BYTES`    | Disk, in bytes, each organization's repositories and wikis may use together |
 | `storage.backend`            | `local`                                      | `CZ_STORAGE_BACKEND`            | Where uploaded files such as avatars go: `local` or `s3`. See [storage](./storage.md) |
 | `storage.local.root`         | `./storage`                                  | `CZ_STORAGE_LOCAL_ROOT`         | Directory for the `local` backend               |
 | `storage.s3.endpoint`        | `""` (AWS)                                   | `CZ_STORAGE_S3_ENDPOINT`        | Endpoint URL of an S3-compatible server (R2, B2, Garage, versitygw) |
@@ -91,6 +95,26 @@ rate_limit:
     anonymous: 500
   archive:
     anonymous: 0   # unlimited
+```
+
+### Quotas
+
+Four limits, all off (`0`) by default, so upgrading changes nothing until you set one. Every user gets the same quota and so does every organization; there are no per-owner overrides. A superadmin's personal account is exempt, but organizations are always subject to theirs. A negative value stops the server at startup.
+
+- **Repositories.** An owner's live repositories, those not in the trash, so deleting one frees its slot at once. At the limit, an owner can't create, fork, import, generate from a template, restore, or be handed a repository by a transfer (checked when the transfer is offered and again when it is accepted). The refusal is `403` with `{"error":"repository quota reached (50 of 50)"}`.
+- **Storage.** The on-disk size of each live repository's git directory plus its wiki, summed. Gists don't count. A push is capped at the space left, and is refused like an oversized pack (`413` over HTTP, a message on stderr over SSH) naming the usage and the quota. A push that only deletes refs still goes through, so an owner at the limit can free space. Web file commits and wiki edits are refused at or over the quota; deleting a file or a wiki page is not.
+- **How size is kept.** `repositories.size_bytes` is measured at startup for any repository without one, and again in the background after a push, a web commit, a wiki change, an import, a mirror sync, a fork, a template creation, a restore, and `cloudzilla gc`. Usage can lag a write by one measurement. Unpacked loose objects count at full size until `cloudzilla gc` prunes them.
+- **Not exact.** A check and the create that follows aren't atomic, so creates racing each other can overshoot the repository limit by a few. A pack is capped at the space left when the push starts, so two simultaneous pushes can both fit and together pass the quota.
+
+User Settings and an organization's settings show one line, such as `Repositories 12 of 50 · Storage 1.2 GiB of 10 GiB`, naming only the limits that are set.
+
+```yaml
+quota:
+  user:
+    repos: 50
+    storage_bytes: 10737418240   # 10 GiB
+  org:
+    repos: 200
 ```
 
 ---

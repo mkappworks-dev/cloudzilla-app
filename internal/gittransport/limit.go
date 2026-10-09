@@ -17,6 +17,8 @@ type LimitedReadCloser struct {
 	r   io.ReadCloser
 	max int64
 	n   int64
+	// capped makes a max of 0 mean "nothing more" rather than "no cap".
+	capped bool
 }
 
 func NewLimitedReadCloser(r io.ReadCloser, max int64) *LimitedReadCloser {
@@ -40,7 +42,19 @@ func (l *LimitedReadCloser) Read(p []byte) (int, error) {
 
 func (l *LimitedReadCloser) Close() error { return l.r.Close() }
 
+// LimitTo caps the bytes still to come at extra, unless the cap is already
+// tighter, and reports whether it lowered the cap. Zero is a real cap here,
+// not "no cap": it refuses every further byte.
+func (l *LimitedReadCloser) LimitTo(extra int64) bool {
+	m := l.n + max(extra, 0)
+	if (l.capped || l.max > 0) && l.max <= m {
+		return false
+	}
+	l.max, l.capped = m, true
+	return true
+}
+
 // Exceeded reports whether the cap has been crossed.
 func (l *LimitedReadCloser) Exceeded() bool {
-	return l.max > 0 && l.n > l.max
+	return (l.max > 0 || l.capped) && l.n > l.max
 }

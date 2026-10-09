@@ -42,6 +42,9 @@ func (h *Handler) AcceptRepoTransfer(w http.ResponseWriter, r *http.Request) {
 	offered := r.FormValue("repo")
 	repo, err := h.Services.Repo.AcceptTransfer(r.Context(), id, claims.UserID, offered)
 	switch {
+	case errors.Is(err, service.ErrQuotaReached):
+		writeError(w, http.StatusForbidden, err.Error())
+		return
 	case errors.Is(err, service.ErrTransferNotFound):
 		writeError(w, http.StatusNotFound, service.ErrTransferNotFound.Error())
 		return

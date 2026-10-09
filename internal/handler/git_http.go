@@ -367,9 +367,22 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	quotaRefusal, err := h.Services.Quota.CapPush(r.Context(), repo, req.Commands, limiter)
+	if err != nil {
+		slog.Error("git-http: check storage quota", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	start := time.Now()
 	status, err := sess.ReceivePack(r.Context(), req)
 	if err != nil {
+		if limiter.Exceeded() && quotaRefusal != nil {
+			slog.Warn("git-http: receive-pack rejected: storage quota",
+				"owner", owner, "repo", repoName, "quota_bytes", quotaRefusal.Limit)
+			http.Error(w, quotaRefusal.Error(), http.StatusRequestEntityTooLarge)
+			return
+		}
 		if limiter.Exceeded() {
 			slog.Warn("git-http: receive-pack rejected: pack too large",
 				"owner", owner, "repo", repoName, "limit_bytes", h.Cfg.Git.MaxPackBytes)

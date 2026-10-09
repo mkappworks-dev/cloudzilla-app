@@ -140,6 +140,9 @@ func (s *ImportService) Start(ctx context.Context, actorID int64, actorUsername 
 	if err := s.repo.CheckImportName(ctx, target.OwnerName, req.Name); err != nil {
 		return ImportJob{}, err
 	}
+	if err := s.repo.CheckNewRepoQuota(ctx, target); err != nil {
+		return ImportJob{}, err
+	}
 	id, err := newImportID()
 	if err != nil {
 		return ImportJob{}, err

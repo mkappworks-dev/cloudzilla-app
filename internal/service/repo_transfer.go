@@ -43,6 +43,9 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 	if newOwnerID == repo.OwnerID && newOrgID == repo.OrgID {
 		return nil, fmt.Errorf("the repository already belongs to %s", newOwnerName)
 	}
+	if err := s.quota.CheckNewRepo(ctx, QuotaOwner{UserID: newOwnerID, OrgID: newOrgID}); err != nil {
+		return nil, err
+	}
 	if newOwnerID != 0 && newOwnerID != requestingUserID {
 		return s.offerTransfer(ctx, repo, requestingUserID, newOwnerID)
 	}
@@ -98,6 +101,10 @@ func (s *RepoService) AcceptTransfer(ctx context.Context, id, userID int64, offe
 	}
 	recipient, err := s.users.GetByID(ctx, userID)
 	if err != nil {
+		return nil, err
+	}
+	// The offer was checked against the quota of its day; the recipient may have filled it since.
+	if err := s.quota.CheckNewRepo(ctx, QuotaOwner{UserID: userID}); err != nil {
 		return nil, err
 	}
 	err = s.moveRepo(ctx, repo, recipient.Username, func() error {

@@ -128,6 +128,9 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		License:   req.License,
 	})
 	switch {
+	case errors.Is(err, service.ErrQuotaReached):
+		writeError(w, http.StatusForbidden, err.Error())
+		return
 	case errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
@@ -263,6 +266,10 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	transfer, err := h.Services.Repo.TransferRepo(r.Context(), repo, claims.UserID, newOwner)
+	if errors.Is(err, service.ErrQuotaReached) {
+		writeError(w, http.StatusForbidden, err.Error())
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "transfer failed")
 		return

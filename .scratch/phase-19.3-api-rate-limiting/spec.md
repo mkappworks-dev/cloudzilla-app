@@ -2,7 +2,7 @@
 
 Created: 2026-10-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Roadmap: Phase 19.3 (API Rate Limiting & Quotas). Facts below were checked against `origin/main` at `4d1e48d7` on 2026-10-06.
 
@@ -257,16 +257,16 @@ When a quota is set, user Settings and org settings show one line, for example `
 
 ### 02: quotas
 
-- [ ] With every quota at `0`, behaviour is unchanged.
-- [ ] An owner at `quota.*.repos` can't create, fork, import, generate from a template, accept a transfer of, or restore a repository. Each of those is refused with a message stating the count.
-- [ ] `size_bytes` is backfilled at startup and recomputed after pushes, web commits, wiki writes, imports, forks, template creations and `cloudzilla gc`.
-- [ ] A push that would take the owner past `quota.*.storage_bytes` is refused over HTTP (413) and SSH, and a delete-only push still succeeds.
-- [ ] Web commits and wiki writes are refused when the owner is at or over the storage quota.
-- [ ] Soft-deleted repositories don't count toward either quota.
-- [ ] A superadmin's personal account is exempt. Orgs are not.
-- [ ] Settings and org settings show usage against each quota that is set.
-- [ ] Every `quota.*` key loads from YAML and from its `CZ_*` variable, and a negative value fails startup.
-- [ ] `docs/configuration.md`, `docs/api-reference.md` and the ROADMAP 19.3 entry describe the behaviour.
+- [x] With every quota at `0`, behaviour is unchanged.
+- [x] An owner at `quota.*.repos` can't create, fork, import, generate from a template, accept a transfer of, or restore a repository. Each of those is refused with a message stating the count.
+- [x] `size_bytes` is backfilled at startup and recomputed after pushes, web commits, wiki writes, imports, forks, template creations and `cloudzilla gc`.
+- [x] A push that would take the owner past `quota.*.storage_bytes` is refused over HTTP (413) and SSH, and a delete-only push still succeeds.
+- [x] Web commits and wiki writes are refused when the owner is at or over the storage quota.
+- [x] Soft-deleted repositories don't count toward either quota.
+- [x] A superadmin's personal account is exempt. Orgs are not.
+- [x] Settings and org settings show usage against each quota that is set.
+- [x] Every `quota.*` key loads from YAML and from its `CZ_*` variable, and a negative value fails startup.
+- [x] `docs/configuration.md`, `docs/api-reference.md` and the ROADMAP 19.3 entry describe the behaviour.
 
 ## Relevant files
 

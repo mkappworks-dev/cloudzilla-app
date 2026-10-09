@@ -223,6 +223,10 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
+	if status, msg := h.storageRefusal(r, repo); status != 0 {
+		writeError(w, status, msg)
+		return
+	}
 
 	if err := r.ParseForm(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form data")
@@ -282,6 +286,7 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusInternalServerError, "failed to save wiki page")
 		return
 	}
+	h.Services.Quota.Recompute(repo)
 
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/wiki/"+slug, http.StatusSeeOther)
 }
@@ -306,6 +311,10 @@ func (h *Handler) WikiSetPageOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
 		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if status, msg := h.storageRefusal(r, repo); status != 0 {
+		writeError(w, status, msg)
 		return
 	}
 
@@ -344,6 +353,7 @@ func (h *Handler) WikiSetPageOrder(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to set wiki page order")
 		return
 	}
+	h.Services.Quota.Recompute(repo)
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -393,6 +403,7 @@ func (h *Handler) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to delete wiki page")
 		return
 	}
+	h.Services.Quota.Recompute(repo)
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.WriteHeader(http.StatusOK)
