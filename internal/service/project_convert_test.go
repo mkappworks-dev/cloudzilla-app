@@ -8,33 +8,102 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
+
+type cardSnapshot struct {
+	title, note, due, assignees, labels string
+	issueID                             sql.NullInt64
+}
+
+func snapshotCard(t *testing.T, db *sql.DB, cardID int64) cardSnapshot {
+	t.Helper()
+	var s cardSnapshot
+	err := db.QueryRow(`SELECT c.title, c.note, COALESCE(c.due_date::text, ''), c.issue_id,
+		COALESCE((SELECT string_agg(user_id::text, ',' ORDER BY user_id) FROM card_assignees WHERE card_id = c.id), ''),
+		COALESCE((SELECT string_agg(label_id::text, ',' ORDER BY label_id) FROM card_labels WHERE card_id = c.id), '')
+		FROM project_cards c WHERE c.id = $1`, cardID).Scan(&s.title, &s.note, &s.due, &s.issueID, &s.assignees, &s.labels)
+	if err != nil {
+		t.Fatalf("snapshot card %d: %v", cardID, err)
+	}
+	return s
+}
+
+// convertableCard is a titled card with a description, due date, assignee and label.
+func (e *projBoardEnv) convertableCard(t *testing.T, db *sql.DB) (projectID, cardID int64) {
+	t.Helper()
+	p := e.project(t, "board")
+	col := e.column(t, p.ID, "todo")
+	var labelID int64
+	if err := db.QueryRow(`INSERT INTO labels (repo_id, name) VALUES ($1, 'bug') RETURNING id`, e.repoID).Scan(&labelID); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM labels WHERE id = $1`, labelID) })
+	due := time.Date(2030, 1, 2, 0, 0, 0, 0, time.UTC)
+	card, err := e.svc.CreateCard(context.Background(), p.ID, col.ID, e.ownerID, model.CardDetails{
+		Title: "convert me", Description: "body", DueDate: &due, AssigneeIDs: []int64{e.writerID}, LabelIDs: []int64{labelID},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p.ID, card.ID
+}
 
 func TestProjectService_ConvertCardToIssue_RollsBackWhenLinkFails(t *testing.T) {
 	e := newProjBoardEnv(t)
 	ctx := context.Background()
 	db := testutil.OpenTestDB(t)
-	p := e.project(t, "board")
-	col := e.column(t, p.ID, "todo")
-	card := e.note(t, p.ID, col.ID, "convert me\nbody")
+	projectID, cardID := e.convertableCard(t, db)
+	before := snapshotCard(t, db, cardID)
+	if before.title != "convert me" || before.note != "body" || before.due != "2030-01-02" || before.assignees == "" || before.labels == "" || before.issueID.Valid {
+		t.Fatalf("setup card = %+v", before)
+	}
 
-	fn := fmt.Sprintf("reject_card_%d", card.ID)
+	fn := fmt.Sprintf("reject_card_%d", cardID)
 	testutil.Exec(t, db, fmt.Sprintf(`CREATE FUNCTION %s() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'link rejected'; END $$ LANGUAGE plpgsql`, fn))
-	testutil.Exec(t, db, fmt.Sprintf(`CREATE TRIGGER %s BEFORE UPDATE ON project_cards FOR EACH ROW WHEN (NEW.id = %d) EXECUTE FUNCTION %s()`, fn, card.ID, fn))
+	testutil.Exec(t, db, fmt.Sprintf(`CREATE TRIGGER %s BEFORE UPDATE ON project_cards FOR EACH ROW WHEN (NEW.id = %d) EXECUTE FUNCTION %s()`, fn, cardID, fn))
 	t.Cleanup(func() {
 		testutil.Exec(t, db, fmt.Sprintf(`DROP TRIGGER IF EXISTS %s ON project_cards`, fn))
 		testutil.Exec(t, db, fmt.Sprintf(`DROP FUNCTION IF EXISTS %s()`, fn))
 	})
 
-	if _, _, err := e.svc.ConvertCardToIssue(ctx, p.ID, card.ID, e.ownerID); err == nil {
+	if _, _, err := e.svc.ConvertCardToIssue(ctx, projectID, cardID, e.ownerID); err == nil {
 		t.Fatal("ConvertCardToIssue succeeded, want the link failure")
 	}
 	var n int
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM issues WHERE repo_id = $1`, e.repoID).Scan(&n); err != nil || n != 0 {
 		t.Errorf("issues after failed convert = %d (%v), want 0", n, err)
+	}
+	if after := snapshotCard(t, db, cardID); after != before {
+		t.Errorf("card after rollback = %+v, want %+v", after, before)
+	}
+}
+
+func TestProjectService_ConvertCardToIssue_KeepsIssueWhenCommitFails(t *testing.T) {
+	e := newProjBoardEnv(t)
+	ctx := context.Background()
+	db := testutil.OpenTestDB(t)
+	projectID, cardID := e.convertableCard(t, db)
+
+	// A deferred constraint trigger fails at COMMIT, the one step whose outcome a caller can't know.
+	fn := fmt.Sprintf("reject_commit_%d", cardID)
+	testutil.Exec(t, db, fmt.Sprintf(`CREATE FUNCTION %s() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'commit rejected'; END $$ LANGUAGE plpgsql`, fn))
+	testutil.Exec(t, db, fmt.Sprintf(`CREATE CONSTRAINT TRIGGER %s AFTER UPDATE ON project_cards DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (NEW.id = %d) EXECUTE FUNCTION %s()`, fn, cardID, fn))
+	t.Cleanup(func() {
+		testutil.Exec(t, db, fmt.Sprintf(`DROP TRIGGER IF EXISTS %s ON project_cards`, fn))
+		testutil.Exec(t, db, fmt.Sprintf(`DROP FUNCTION IF EXISTS %s()`, fn))
+	})
+
+	if _, _, err := e.svc.ConvertCardToIssue(ctx, projectID, cardID, e.ownerID); err == nil {
+		t.Fatal("ConvertCardToIssue succeeded, want the commit failure")
+	}
+	var n int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM issues WHERE repo_id = $1`, e.repoID).Scan(&n); err != nil || n != 1 {
+		t.Errorf("issues after a failed commit = %d (%v), want the issue kept", n, err)
 	}
 }
 

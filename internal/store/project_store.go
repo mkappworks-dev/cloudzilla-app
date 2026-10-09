@@ -22,6 +22,9 @@ var ErrCardNotInProject = errors.New("card not in project")
 // ErrCardNotLinkable: the card is missing, already linked, or has no title.
 var ErrCardNotLinkable = errors.New("card cannot be linked to an issue")
 
+// ErrLinkCommit: COMMIT of the link transaction failed, so it may still have been applied.
+var ErrLinkCommit = errors.New("link commit failed")
+
 var ErrColumnNotInProject = errors.New("column not in project")
 
 // ProjectStore provides database operations for Kanban project boards, columns, and cards.
@@ -332,7 +335,10 @@ func (s *ProjectStore) LinkNoteCardToIssue(ctx context.Context, cardID, projectI
 	if _, err := tx.ExecContext(ctx, `DELETE FROM card_labels WHERE card_id = $1`, cardID); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("%w: %w", ErrLinkCommit, err)
+	}
+	return nil
 }
 
 // CardAssignees returns each card's assignees ordered by username; cards without any are absent.

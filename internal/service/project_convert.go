@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"log"
 	"log/slog"
 	"strings"
 
@@ -56,6 +55,11 @@ func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, card
 		return nil, nil, err
 	}
 	if err := s.linkConverted(ctx, projectID, card, issue.ID, assignees[cardID], labels[cardID]); err != nil {
+		if errors.Is(err, store.ErrLinkCommit) {
+			// The commit may have succeeded; deleting the issue would then cascade-delete the linked card.
+			slog.Error("convert card: link commit failed, issue kept", "card_id", cardID, "issue_id", issue.ID, "error", err)
+			return nil, nil, err
+		}
 		// Detached so a cancelled request doesn't strand the orphan issue.
 		if delErr := s.issueStore.DeleteByID(context.WithoutCancel(ctx), issue.ID); delErr != nil {
 			slog.Error("convert card: issue orphaned, delete failed", "card_id", cardID, "issue_id", issue.ID, "error", delErr)
@@ -63,7 +67,7 @@ func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, card
 		return nil, nil, err
 	}
 	if err := s.projects.TouchProject(ctx, projectID); err != nil {
-		log.Printf("TouchProject(%d): %v", projectID, err)
+		slog.Warn("convert card: touch project failed", "project_id", projectID, "error", err)
 	}
 	converted, err := s.projects.GetCardInProject(ctx, cardID, projectID)
 	if err != nil {
