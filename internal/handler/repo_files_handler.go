@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -212,6 +213,10 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
+		http.Error(w, msg, status)
+		return
+	}
 
 	if err := parseNewFileForm(r); err != nil {
 		var tooLarge *http.MaxBytesError
@@ -322,6 +327,20 @@ func (h *Handler) editableRepo(w http.ResponseWriter, r *http.Request, owner, re
 		return nil, false
 	}
 	return repo, true
+}
+
+// webCommitRefusal returns the status and message that refuse a browser commit
+// to ref under branch protection, or 0 when it may go ahead.
+func (h *Handler) webCommitRefusal(ctx context.Context, repoID int64, ref string) (int, string) {
+	err := h.Services.BranchProtection.CheckWebCommit(ctx, repoID, ref)
+	switch {
+	case err == nil:
+		return 0, ""
+	case errors.Is(err, service.ErrPushRequiresPR):
+		return http.StatusUnprocessableEntity, err.Error()
+	}
+	slog.Error("check branch protection", "repo_id", repoID, "ref", ref, "error", err)
+	return http.StatusInternalServerError, "internal server error"
 }
 
 // editRefusal says why the browser editor can't open f, or "" when it can.
@@ -462,6 +481,10 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		refuse(http.StatusConflict, "This file changed on "+ref+" after you opened it, so your changes weren't committed.")
 	}
 
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
+		refuse(status, msg)
+		return
+	}
 	if file == nil || file.SHA != data.BlobSHA {
 		conflict()
 		return
@@ -541,6 +564,10 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	if path == "" {
 		writeError(w, http.StatusNotFound, "file not found")
+		return
+	}
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
+		writeError(w, status, msg)
 		return
 	}
 	if err := parseNewFileForm(r); err != nil {
