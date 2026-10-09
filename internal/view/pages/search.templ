@@ -18,21 +18,38 @@ templ Search(data view.SearchData) {
 			@components.Card(nil) {
 				@components.CardContent() {
 					<h1 class="text-2xl font-bold mb-4">Search</h1>
-					<form action="/search" method="GET" class="flex gap-2">
+					<form action="/search" method="GET" class="flex gap-2" x-data="topnavSearch('search-suggest')" x-on:click.outside="close()">
 						<label for="search-query" class="sr-only">Search query</label>
 						<div class="relative flex-1" x-data={ "{ q: " + strconv.Quote(data.Query) + " }" }>
 							@components.Input(templ.Attributes{
-								"id":          "search-query",
-								"type":        "search",
-								"name":        "q",
-								"x-ref":       "q",
-								"x-model":     "q",
-								"placeholder": "Search repos, issues, PRs, users...",
-								"class":       "pr-9",
+								"id":                      "search-query",
+								"type":                    "search",
+								"name":                    "q",
+								"x-ref":                   "q",
+								"x-model":                 "q",
+								"placeholder":             "Search repos, issues, PRs, users...",
+								"class":                   "pr-9",
+								"autocomplete":            "off",
+								"role":                    "combobox",
+								"aria-autocomplete":       "list",
+								"aria-haspopup":           "listbox",
+								"aria-controls":           "search-suggest",
+								"x-bind:aria-expanded":    "open",
+								"x-bind:aria-activedescendant": "active >= 0 ? optionId(active) : null",
+								"hx-get":                  "/search/suggest?list=search-suggest",
+								"hx-trigger":              "input changed delay:200ms",
+								"hx-target":               "#search-suggest",
+								"hx-sync":                 "this:replace",
+								"x-on:keydown.arrow-down.prevent": "move(1)",
+								"x-on:keydown.arrow-up.prevent":   "move(-1)",
+								"x-on:keydown.enter":      "follow($event)",
+								"x-on:keydown.escape":     "escape($event)",
+								"x-on:focus":              "reopen()",
 							})
-							<button type="button" x-cloak x-show="q" x-on:click="q = ''; $refs.q.focus()" class="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">
+							<button type="button" x-cloak x-show="q" x-on:click="q = ''; clear(); $refs.q.focus()" class="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg>
 							</button>
+							<div id="search-suggest" x-show="open" x-cloak class="absolute inset-x-0 top-full mt-1 z-50 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"></div>
 						</div>
 						if data.Type != "" {
 							<input type="hidden" name="type" value={ data.Type }/>

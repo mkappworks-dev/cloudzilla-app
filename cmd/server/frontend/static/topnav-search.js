@@ -1,5 +1,5 @@
 document.addEventListener('alpine:init', () => {
-  Alpine.data('topnavSearch', () => {
+  Alpine.data('topnavSearch', (listId = 'topnav-suggest') => {
     // Found once in init(): inside a handler $el is the input or button that fired it, and a
     // $ref would register with the field's own nested x-data scope instead of this one.
     let list;
@@ -9,12 +9,20 @@ document.addEventListener('alpine:init', () => {
       active: -1,
 
       init() {
-        list = this.$el.querySelector('#topnav-suggest');
+        list = this.$el.querySelector('#' + listId);
         // htmx swaps the dropdown's contents; follow them instead of its events.
         new MutationObserver(() => {
           this.active = -1;
           this.open = this.options().length > 0;
+          if (this.open) window.dispatchEvent(new CustomEvent('suggest-opened', { detail: listId }));
         }).observe(list, { childList: true });
+        // The topnav and the results page each have a field; only one list shows at a time.
+        window.addEventListener('suggest-opened', (e) => {
+          if (e.detail !== listId) this.close();
+        });
+      },
+      optionId(i) {
+        return listId + '-' + i;
       },
       options() {
         return [...list.querySelectorAll('[data-suggest-item]')];

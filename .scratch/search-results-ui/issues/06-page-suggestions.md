@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none
 
 ## What
@@ -11,11 +11,11 @@ Typing in the results page's own input opens the same dropdown as the topnav. `t
 
 ## Acceptance criteria
 
-- [ ] Typing 2+ characters on `/search` opens suggestions under the page input; arrows, Enter, Escape and click-outside behave as in the topnav.
-- [ ] The topnav dropdown still works on every page, including `/search`.
-- [ ] Option ids are unique in the document (checked in the browser).
-- [ ] The clear button clears the query and the dropdown.
-- [ ] Browser check: Alpine state asserted, since a hidden pane stalls transitions.
+- [x] Typing 2+ characters on `/search` opens suggestions under the page input; arrows, Enter, Escape and click-outside behave as in the topnav.
+- [x] The topnav dropdown still works on every page, including `/search`.
+- [x] Option ids are unique in the document (checked in the browser).
+- [x] The clear button clears the query and the dropdown.
+- [x] Browser check: Alpine state asserted, since a hidden pane stalls transitions.
 
 ## Relevant files
 
