@@ -37,3 +37,13 @@ Part of [07](./07-device-code-login.md); read its Design section first. The brow
 - [ ] Tests cover each case above; the docs are updated.
 
 ## Comments
+
+2026-10-09, hand-off from the first 07b session. Built and reviewed on `feat/cz-device-approval-page`: the three pages, the four routes plus `GET /login/device/approve` (a 303 to the confirm page, so a provider sign-in can return), the server-signed and user-bound `cz_device_code` cookie, the 50-per-hour per-user entry limiter, audit events, the approval notice, and the docs. Left for the next session:
+
+- Test the two still-uncovered confirmation paths through the device page: an LDAP account (directory password) and a real Google or SAML round trip (`cz_reauth`). Emailed-code and 2FA confirmation are covered. These are the unticked boxes above; set `Status: done` when both are ticked.
+- Provider-only accounts: **Authorize** stays enabled until they confirm, so the first click spends one of the five shared reauth attempts. Consider disabling it until `ProviderReady` or an email code is entered.
+- Clear `cz_device_code` at sign-out. It is now user-bound and signed, so this is tidiness only.
+- Tell the user when the cookie's grant has expired or was already answered (today it is a silent 303 to `/login/device`); show the viewer's own IP beside the requester's; label the device name "unverified" in the email.
+- Test debt: the 410 in-window race branch; `SameSite` and `MaxAge` on the cookie; the token-refusal test covers 2 of the 4 routes; `NotifyApproved` and the limiter's no-claims case; replace `time.Sleep(200ms)` before zero-count audit assertions with a bounded wait; assert the grant stays `denied` after an approve-after-deny.
+- Docs: the threat-model row "code cookie planted from a sibling subdomain" predates the signing and understates it (a planted cookie cannot be forged and is bound to the attacker's own user id); the 410 behaviour is not in `api-reference.md`; "Settings, Tokens" and "Access tokens" name the same page.
+- The token handler does an extra `GetByID` just for the audit actor name; `Poll` could return the username.
