@@ -153,7 +153,7 @@ func classifyRequest(r *http.Request) (string, bool) {
 	if exemptPaths[path] || strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/avatars/") {
 		return "", false
 	}
-	if path == "/search" || path == "/search/code" {
+	if path == "/search" || path == "/search/code" || path == "/search/suggest" {
 		return ResourceSearch, true
 	}
 	seg := pathSegments(r)
