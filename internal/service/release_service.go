@@ -194,6 +194,9 @@ func (s *ReleaseService) Update(ctx context.Context, owner, repoName string, id 
 	}
 
 	if err := s.releases.Update(ctx, r); err != nil {
+		if errors.Is(err, store.ErrReleaseTagInUseStore) {
+			return nil, ErrReleaseTagInUse
+		}
 		return nil, err
 	}
 	return r, nil
