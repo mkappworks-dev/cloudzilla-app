@@ -61,32 +61,32 @@ type PullChromeCounts struct {
 type PullDetailData struct {
 	BasePage
 	PullChromeCounts
-	Repo              model.Repository
-	Pull              model.PullRequest
-	Owner             string
-	RepoName          string
-	AuthorUsername    string // resolved by handler; empty -> chrome falls back to Pull.AuthorName
-	BodyHTML          string
-	Labels            []model.Label
-	Assignees         []model.User
-	AllLabels         []model.Label
-	Milestone         *model.Milestone
-	AllMilestones     []model.Milestone
-	CanWrite          bool
-	Collaborators     []string
-	HeadStatuses      []model.CommitStatus
-	Reviews           []model.PullReview
-	Comments          []RenderedComment
-	Participants      []string
-	LinkedIssues      []LinkedIssue
-	LinkableIssues    []LinkedIssue
-	Subscribed        bool
-	Events            []model.PullEvent
-	CanMerge          bool
-	MergeBlockReason  string
-	AutoMergeEnabled  bool
-	AutoMergeStrategy string
-	Mergeability      components.MergeabilityBoxData
+	Repo               model.Repository
+	Pull               model.PullRequest
+	Owner              string
+	RepoName           string
+	AuthorUsername     string // resolved by handler; empty -> chrome falls back to Pull.AuthorName
+	BodyHTML           string
+	Labels             []model.Label
+	Assignees          []model.User
+	AllLabels          []model.Label
+	Milestone          *model.Milestone
+	AllMilestones      []model.Milestone
+	CanWrite           bool
+	Collaborators      []string
+	HeadStatuses       []model.CommitStatus
+	Reviews            []model.PullReview
+	Comments           []RenderedComment
+	Participants       []string
+	LinkedIssues       []LinkedIssue
+	LinkableIssues     []LinkedIssue
+	ThreadSubscription ThreadSubscriptionData
+	Events             []model.PullEvent
+	CanMerge           bool
+	MergeBlockReason   string
+	AutoMergeEnabled   bool
+	AutoMergeStrategy  string
+	Mergeability       components.MergeabilityBoxData
 }
 
 type PullCommitsData struct {

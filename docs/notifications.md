@@ -43,6 +43,10 @@ Taking part in a thread subscribes you to it through `ThreadSubscriptionService.
 
 Each service gets the subscriber through `WithThreadSubscriptions`; without it nothing is recorded. A failed write is logged and the request still succeeds. Mentions subscribe through `NotifyMention` instead. Threads that existed before the feature get no rows.
 
+## Sidebar control
+
+The issue, PR and discussion sidebars show a Notifications section to logged-in viewers (`fragments.ThreadSubscription`, built from `view.ThreadSubscriptionData`). It shows `ThreadSubscriptionService.Status`: a Subscribe or Unsubscribe button, a "Muted" pill and a reason line. The button calls `PUT .../{issues|pulls|discussions}/{number}/subscription` (`setThreadSubscription`), which calls `Set` and swaps the section in place. Subscribe writes `subscribed/manual`; Unsubscribe writes `muted`, even for a user who only watches the repo. The control never touches the repo watch, which is only changed from the repo page's Watch control.
+
 ## Thread kind
 
 `notifications.subject_kind` is `issue`, `pull` or `discussion`: the kind of thread `subject_id` numbers, since the number alone doesn't say. Every `Notify*` call sets it except `NotifyRepoTransfer`, which leaves it NULL. Migration 114 backfilled older rows from `type`, and mentions from the section of `subject_url`; a mention whose URL names no section stays NULL. `model.Notification.SubjectKind` is empty for NULL.

@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 ## What
@@ -13,11 +13,11 @@ Hidden for anonymous viewers. The reason line texts are the ones in the mock; mu
 
 ## Acceptance criteria
 
-- [ ] All three pages show the control in each of the mock's states; the button toggles without a reload.
-- [ ] Subscribe on a muted or unsubscribed thread writes `subscribed/manual`; Unsubscribe writes `muted`, including when the user only watches the repo.
-- [ ] The control never changes the repo watch.
-- [ ] 401 for anonymous, 404 for a repo the caller can't read, 422 for a bad `state`.
-- [ ] Render tests per page; `docs/api-reference.md` documents the endpoint.
+- [x] All three pages show the control in each of the mock's states; the button toggles without a reload.
+- [x] Subscribe on a muted or unsubscribed thread writes `subscribed/manual`; Unsubscribe writes `muted`, including when the user only watches the repo.
+- [x] The control never changes the repo watch.
+- [x] 401 for anonymous, 404 for a repo the caller can't read, 422 for a bad `state`.
+- [x] Render tests per page; `docs/api-reference.md` documents the endpoint.
 
 ## Comments
 
@@ -41,11 +41,11 @@ Each of the three pages shows a Notifications section (logged-in viewers only) w
 - One shared fragment and view-model used by all three pages.
 
 **Acceptance criteria:**
-- [ ] All three pages render every state in the mock and toggle without a reload.
-- [ ] Subscribe and Unsubscribe write the states above; the repo watch is untouched.
-- [ ] Error statuses as listed.
-- [ ] Render tests per page and handler tests.
-- [ ] `docs/api-reference.md` documents the endpoint.
+- [x] All three pages render every state in the mock and toggle without a reload.
+- [x] Subscribe and Unsubscribe write the states above; the repo watch is untouched.
+- [x] Error statuses as listed.
+- [x] Render tests per page and handler tests.
+- [x] `docs/api-reference.md` documents the endpoint.
 
 **Out of scope:**
 - Rewording or changing the repo Watch control.
