@@ -207,6 +207,27 @@ func (s *ProjectStore) CreateCard(ctx context.Context, card *model.ProjectCard) 
 	).Scan(&card.ID, &card.Position, &card.CreatedAt)
 }
 
+// CardTargetsInRepo reports whether every given issue or pull request belongs to repoID.
+func (s *ProjectStore) CardTargetsInRepo(ctx context.Context, repoID int64, issueID, pullID *int64) (bool, error) {
+	if issueID != nil {
+		var ok bool
+		err := s.db.QueryRowContext(ctx,
+			`SELECT EXISTS (SELECT 1 FROM issues WHERE id = $1 AND repo_id = $2)`, *issueID, repoID).Scan(&ok)
+		if err != nil || !ok {
+			return false, err
+		}
+	}
+	if pullID != nil {
+		var ok bool
+		err := s.db.QueryRowContext(ctx,
+			`SELECT EXISTS (SELECT 1 FROM pull_requests WHERE id = $1 AND repo_id = $2)`, *pullID, repoID).Scan(&ok)
+		if err != nil || !ok {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
 func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([]model.ProjectCard, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT
