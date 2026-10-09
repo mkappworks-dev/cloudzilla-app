@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 07a
 
 Part of [07](./07-device-code-login.md); read its Design section first. Needs 07b only for a manual end-to-end run; tests use a fake server.
@@ -19,14 +19,16 @@ Part of [07](./07-device-code-login.md); read its Design section first. Needs 07
 
 ## Acceptance criteria
 
-- [ ] Against a fake server, login completes through `authorization_pending`, then success, and stores the token.
-- [ ] `slow_down` lengthens the poll interval by 5 s; the interval never drops below what the server set.
-- [ ] `access_denied`, `expired_token` and Ctrl-C each exit non-zero with a one-line message and store nothing.
-- [ ] With no TTY on stdin or stdout the flow still runs and prints the URL and code; `--no-browser` suppresses opening.
-- [ ] The URL cz prints or opens never contains the code.
-- [ ] A server without the endpoint (`404`) gets the `--with-token` hint.
-- [ ] `--scope repo:read` is sent as requested; `repo:admin` is refused client-side with a clear message.
-- [ ] The import test still shows `cz` off the store and service layers.
-- [ ] `docs/cli.md` is updated.
+- [x] Against a fake server, login completes through `authorization_pending`, then success, and stores the token.
+- [x] `slow_down` lengthens the poll interval by 5 s; the interval never drops below what the server set.
+- [x] `access_denied`, `expired_token` and Ctrl-C each exit non-zero with a one-line message and store nothing.
+- [x] With no TTY on stdin or stdout the flow still runs and prints the URL and code; `--no-browser` suppresses opening.
+- [x] The URL cz prints or opens never contains the code.
+- [x] A server without the endpoint (`404`) gets the `--with-token` hint.
+- [x] `--scope repo:read` is sent as requested; `repo:admin` is refused client-side with a clear message.
+- [x] The import test still shows `cz` off the store and service layers.
+- [x] `docs/cli.md` is updated.
 
 ## Comments
+
+2026-10-09: built against a fake server (`cmd/cz/auth_device_test.go`, `internal/cli/device_test.go`); no end-to-end run against a real server yet, which needs 07b. The old interactive token prompt is gone, since the device flow replaced it as the default; `--with-token` is the only way to paste a token.
