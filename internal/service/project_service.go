@@ -240,7 +240,7 @@ func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Reposi
 		return ErrInvalidCard
 	}
 	linked := d.IssueID != nil || d.PullID != nil
-	if strings.TrimSpace(d.Title) == "" && !(linked && linkOnlyOK) {
+	if strings.TrimSpace(d.Title) == "" && (!linked || !linkOnlyOK) {
 		return ErrInvalidCard
 	}
 	if len([]rune(d.Title)) > MaxTitleLen {
