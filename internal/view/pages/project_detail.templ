@@ -102,6 +102,7 @@ templ ProjectDetail(data view.ProjectDetailData) {
 									data-drag="kanban-card"
 									draggable="true"
 									if card.Kind == "note" {
+										data-title={ card.Title }
 										data-note={ card.Description }
 										tabindex="0"
 										role="button"

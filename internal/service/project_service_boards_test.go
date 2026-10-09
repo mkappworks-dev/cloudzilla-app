@@ -74,7 +74,8 @@ func (e *projBoardEnv) column(t *testing.T, projectID int64, name string) *model
 
 func (e *projBoardEnv) note(t *testing.T, projectID, columnID int64, note string) *model.ProjectCard {
 	t.Helper()
-	c, err := e.svc.CreateCard(context.Background(), projectID, columnID, e.ownerID, nil, nil, note)
+	title, description, _ := strings.Cut(note, "\n")
+	c, err := e.svc.CreateCard(context.Background(), projectID, columnID, e.ownerID, model.CardDetails{Title: title, Description: description})
 	if err != nil {
 		t.Fatalf("CreateCard: %v", err)
 	}
@@ -195,7 +196,7 @@ func TestProjectService_ListByRepoWithStats(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range []*int64{&closedIssue.ID, &openIssue.ID} {
-		if _, err := e.svc.CreateCard(ctx, alpha.ID, col.ID, e.ownerID, id, nil, ""); err != nil {
+		if _, err := e.svc.CreateCard(ctx, alpha.ID, col.ID, e.ownerID, model.CardDetails{IssueID: id}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -285,16 +286,16 @@ func TestProjectService_CreateCard_Guards(t *testing.T) {
 	col := e.column(t, p.ID, "Todo")
 	otherCol := e.column(t, other.ID, "Todo")
 
-	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.otherID, nil, nil, "n"); !errors.Is(err, service.ErrForbidden) {
+	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.otherID, model.CardDetails{Title: "n"}); !errors.Is(err, service.ErrForbidden) {
 		t.Errorf("stranger: err = %v", err)
 	}
-	if _, err := e.svc.CreateCard(ctx, -1, col.ID, e.ownerID, nil, nil, "n"); !errors.Is(err, service.ErrProjectNotFound) {
+	if _, err := e.svc.CreateCard(ctx, -1, col.ID, e.ownerID, model.CardDetails{Title: "n"}); !errors.Is(err, service.ErrProjectNotFound) {
 		t.Errorf("missing project: err = %v", err)
 	}
-	if _, err := e.svc.CreateCard(ctx, p.ID, otherCol.ID, e.ownerID, nil, nil, "n"); !errors.Is(err, service.ErrProjectNotFound) {
+	if _, err := e.svc.CreateCard(ctx, p.ID, otherCol.ID, e.ownerID, model.CardDetails{Title: "n"}); !errors.Is(err, service.ErrProjectNotFound) {
 		t.Errorf("column of another project: err = %v", err)
 	}
-	if _, err := e.svc.CreateCard(ctx, p.ID, -1, e.ownerID, nil, nil, "n"); !errors.Is(err, service.ErrProjectNotFound) {
+	if _, err := e.svc.CreateCard(ctx, p.ID, -1, e.ownerID, model.CardDetails{Title: "n"}); !errors.Is(err, service.ErrProjectNotFound) {
 		t.Errorf("missing column: err = %v", err)
 	}
 
@@ -421,10 +422,10 @@ func TestProjectService_ListColumnsWithCardsExpanded(t *testing.T) {
 	if err := e.pulls.Create(ctx, pr); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.ownerID, &issue.ID, nil, ""); err != nil {
+	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.ownerID, model.CardDetails{IssueID: &issue.ID}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.ownerID, nil, &pr.ID, ""); err != nil {
+	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.ownerID, model.CardDetails{PullID: &pr.ID}); err != nil {
 		t.Fatal(err)
 	}
 	e.note(t, p.ID, col.ID, "first line\nsecond line")
@@ -448,8 +449,8 @@ func TestProjectService_ListColumnsWithCardsExpanded(t *testing.T) {
 	if cards[2].Kind != "note" || cards[2].Title != "first line" || cards[2].Number != 0 {
 		t.Errorf("note card = %+v", cards[2])
 	}
-	if got := []rune(cards[3].Title); len(got) != 120 {
-		t.Errorf("long note title = %d runes, want 120 (truncated on rune boundary)", len(got))
+	if got := []rune(cards[3].Title); len(got) != 130 {
+		t.Errorf("explicit title = %d runes, want 130 (only derived titles are truncated)", len(got))
 	}
 
 	if _, err := e.svc.ListColumnsWithCardsExpanded(ctx, -1); !errors.Is(err, service.ErrProjectNotFound) {

@@ -74,7 +74,7 @@ func TestListColumnsWithCardsExpanded_LinkedCardWithTitle(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM issues WHERE id = $1`, issueID) })
-	plainLinked, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.ownerID, &issueID, nil, "")
+	plainLinked, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.ownerID, model.CardDetails{IssueID: &issueID})
 	if err != nil {
 		t.Fatal(err)
 	}

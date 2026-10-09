@@ -436,8 +436,13 @@ The repository's Checks tab (`/{owner}/{repo}/checks`) lists the commits with re
 | POST   | `/api/repos/:owner/:repo/projects/:id/columns`        | Required | Create a column             |
 | DELETE | `/api/repos/:owner/:repo/projects/:id/columns/:colID` | Required | Delete a column             |
 | POST   | `/api/repos/:owner/:repo/projects/:id/cards`          | Required | Create a card               |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/details` | Required | Replace a card's title, description, due date, assignees, labels and link |
 | PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`  | Required | Move a card between columns |
 | DELETE | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`  | Required | Delete a card               |
+
+`POST .../cards` takes `column_id` plus the card fields; `PATCH .../cards/:cardID/details` takes the same fields without `column_id` and replaces all of them:
+`title`, `description`, `due_date` (`YYYY-MM-DD` or empty), `assignee_ids`, `label_ids`, and at most one of `issue_id`/`pull_id`.
+A card needs a non-empty `title` unless it is a bare issue/PR link. Assignees must be the repo owner or a collaborator and labels must belong to the repo, else 400; an issue or PR from another repo is 404.
 
 ## Wiki
 

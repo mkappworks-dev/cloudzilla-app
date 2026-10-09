@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
@@ -40,7 +41,7 @@ func (e metaEnv) createColumn(t *testing.T, project int64, name string) int64 {
 func (e metaEnv) createNote(t *testing.T, project, column int64, note string) int64 {
 	t.Helper()
 	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards", project), token: e.writer.token,
-		json: fmt.Sprintf(`{"column_id":%d,"note":%q}`, column, note)})
+		json: fmt.Sprintf(`{"column_id":%d,"title":%q}`, column, note)})
 	wantStatus(t, rr, http.StatusCreated)
 	var c struct {
 		ID int64 `json:"id"`
@@ -260,55 +261,89 @@ func TestProjects_Cards(t *testing.T) {
 	}
 }
 
-func TestProjects_EditNote(t *testing.T) {
+func TestProjects_CardDetails(t *testing.T) {
 	e := newGitMetaEnv(t)
 	p := e.createProject(t, "Board")
 	col := e.createColumn(t, p, "To do")
 	other := e.createProject(t, "Other board")
-	note := e.createNote(t, p, col, "head\nbefore")
+	note := e.createNote(t, p, col, "before")
 	issueID, _ := e.seedIssue(t, "linked", "open")
-	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards", p), token: e.writer.token,
-		json: fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID)})
-	wantStatus(t, rr, http.StatusCreated)
-	var linked struct {
-		ID int64 `json:"id"`
+	label := e.seedLabel(t, "bug")
+
+	sfx := testutil.UniqueSuffix(t)
+	foreignRepo := testutil.SeedRepo(t, e.db, e.owner.id, e.owner.name, sfx)
+	var foreignLabel, foreignIssue int64
+	if err := e.db.QueryRow(`INSERT INTO labels (repo_id, name) VALUES ($1, 'x') RETURNING id`, foreignRepo).Scan(&foreignLabel); err != nil {
+		t.Fatal(err)
 	}
-	if err := json.Unmarshal(rr.Body.Bytes(), &linked); err != nil {
+	if err := e.db.QueryRow(`INSERT INTO issues (repo_id, number, author_id, title) VALUES ($1, 1, $2, 'f') RETURNING id`, foreignRepo, e.owner.id).Scan(&foreignIssue); err != nil {
 		t.Fatal(err)
 	}
 
-	target := e.path("/projects/%d/cards/%d/note", p, note)
-	body := `{"note":"after"}`
+	target := e.path("/projects/%d/cards/%d/details", p, note)
+	body := `{"title":"after","description":"more"}`
+	patch := func(token, path, json string) metaReq {
+		return metaReq{method: "PATCH", target: path, token: token, json: json}
+	}
 	cases := []struct {
 		name string
 		req  metaReq
 		want int
 	}{
-		{"anonymous", metaReq{method: "PATCH", target: target, json: body}, http.StatusUnauthorized},
-		{"outsider", metaReq{method: "PATCH", target: target, token: e.outsider.token, json: body}, http.StatusForbidden},
-		{"bad json", metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{`}, http.StatusBadRequest},
-		{"blank note", metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{"note":"  "}`}, http.StatusBadRequest},
-		{"bad card id", metaReq{method: "PATCH", target: e.path("/projects/%d/cards/x/note", p), token: e.owner.token, json: body}, http.StatusBadRequest},
-		{"linked card", metaReq{method: "PATCH", target: e.path("/projects/%d/cards/%d/note", p, linked.ID), token: e.owner.token, json: body}, http.StatusNotFound},
-		{"card of another project", metaReq{method: "PATCH", target: e.path("/projects/%d/cards/%d/note", other, note), token: e.owner.token, json: body}, http.StatusNotFound},
+		{"anonymous", patch("", target, body), http.StatusUnauthorized},
+		{"outsider", patch(e.outsider.token, target, body), http.StatusForbidden},
+		{"bad json", patch(e.writer.token, target, `{`), http.StatusBadRequest},
+		{"blank title on a note card", patch(e.writer.token, target, `{"title":"  "}`), http.StatusBadRequest},
+		{"assignee outside the repo", patch(e.writer.token, target, fmt.Sprintf(`{"title":"t","assignee_ids":[%d]}`, e.outsider.id)), http.StatusBadRequest},
+		{"label of another repo", patch(e.writer.token, target, fmt.Sprintf(`{"title":"t","label_ids":[%d]}`, foreignLabel)), http.StatusBadRequest},
+		{"issue of another repo", patch(e.writer.token, target, fmt.Sprintf(`{"title":"t","issue_id":%d}`, foreignIssue)), http.StatusNotFound},
+		{"card of another project", patch(e.writer.token, e.path("/projects/%d/cards/%d/details", other, note), body), http.StatusNotFound},
+		{"bad due date", patch(e.writer.token, target, `{"title":"t","due_date":"31/12"}`), http.StatusBadRequest},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
 	}
-	noteOf := func(id int64) string {
+	cardTitle := func() string {
 		var s string
-		if err := e.db.QueryRow(`SELECT note FROM project_cards WHERE id = $1`, id).Scan(&s); err != nil {
+		if err := e.db.QueryRow(`SELECT title FROM project_cards WHERE id = $1`, note).Scan(&s); err != nil {
 			t.Fatal(err)
 		}
 		return s
 	}
-	if got := noteOf(note); got != "before" {
-		t.Fatalf("refusals changed the note to %q", got)
+	if got := cardTitle(); got != "before" {
+		t.Fatalf("refusals changed the title to %q", got)
 	}
-	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.writer.token, json: body}), http.StatusNoContent)
-	if got := noteOf(note); got != "after" {
-		t.Errorf("note = %q, want after", got)
+
+	full := fmt.Sprintf(`{"title":"after","description":"more","due_date":"2030-01-02","assignee_ids":[%d],"label_ids":[%d],"issue_id":%d}`,
+		e.writer.id, label, issueID)
+	wantStatus(t, e.do(t, patch(e.writer.token, target, full)), http.StatusNoContent)
+	var title, desc, due string
+	var linked int64
+	if err := e.db.QueryRow(`SELECT title, note, due_date::text, issue_id FROM project_cards WHERE id = $1`, note).Scan(&title, &desc, &due, &linked); err != nil {
+		t.Fatal(err)
 	}
+	if title != "after" || desc != "more" || due != "2030-01-02" || linked != issueID {
+		t.Errorf("card = %q %q %q %d", title, desc, due, linked)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1 AND user_id = $2`, note, e.writer.id); n != 1 {
+		t.Errorf("assignee rows = %d, want 1", n)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_labels WHERE card_id = $1 AND label_id = $2`, note, label); n != 1 {
+		t.Errorf("label rows = %d, want 1", n)
+	}
+
+	wantStatus(t, e.do(t, patch(e.writer.token, target, `{"title":"after","assignee_ids":[],"label_ids":[]}`)), http.StatusNoContent)
+	if n := e.count(t, `SELECT (SELECT COUNT(*) FROM card_assignees WHERE card_id = $1) + (SELECT COUNT(*) FROM card_labels WHERE card_id = $1)`, note); n != 0 {
+		t.Errorf("join rows = %d, want 0", n)
+	}
+
+	cards := e.path("/projects/%d/cards", p)
+	post := func(json string) *httptest.ResponseRecorder {
+		return e.do(t, metaReq{method: "POST", target: cards, token: e.writer.token, json: json})
+	}
+	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d,"title":"x"}`, col)), http.StatusCreated)
+	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID)), http.StatusCreated)
+	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d}`, col)), http.StatusBadRequest)
 }
 
 func TestProjects_CardTargets(t *testing.T) {

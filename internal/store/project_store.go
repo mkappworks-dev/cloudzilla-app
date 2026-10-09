@@ -557,28 +557,6 @@ func (s *ProjectStore) DeleteCard(ctx context.Context, id, projectID int64) erro
 	return nil
 }
 
-// UpdateCardNote rewrites a note card. Linked cards have no note of their own,
-// so they report ErrCardNotInProject like a card from another project.
-func (s *ProjectStore) UpdateCardNote(ctx context.Context, id, projectID int64, note string) error {
-	res, err := s.db.ExecContext(ctx,
-		`UPDATE project_cards SET note = $3
-		 WHERE id = $1 AND issue_id IS NULL AND pull_id IS NULL
-		 AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
-		id, projectID, note,
-	)
-	if err != nil {
-		return err
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		return fmt.Errorf("note card %d in project %d: %w", id, projectID, ErrCardNotInProject)
-	}
-	return nil
-}
-
 // SearchCardTargets lists the repo's issues and pull requests whose title
 // contains query or whose number equals number (0 for none), newest first.
 // position() rather than ILIKE so a typed % or _ matches literally.

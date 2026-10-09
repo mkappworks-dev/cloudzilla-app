@@ -34,6 +34,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('kanbanBoard', () => ({
     dragged: null,
     noteCard: null,
+    noteTitle: '',
     noteText: '',
     noteError: '',
     noteBusy: false,
@@ -49,6 +50,7 @@ document.addEventListener('alpine:init', () => {
 
     openNote(card) {
       this.noteCard = card.dataset.cardId;
+      this.noteTitle = card.dataset.title;
       this.noteText = card.dataset.note;
       this.noteError = '';
       document.getElementById('note-dialog').showModal();
@@ -57,7 +59,10 @@ document.addEventListener('alpine:init', () => {
     async saveNote() {
       this.noteBusy = true;
       try {
-        await send('PATCH', projectURL(this.$el, `/cards/${this.noteCard}/note`), { note: this.noteText });
+        await send('PATCH', projectURL(this.$el, `/cards/${this.noteCard}/details`), {
+          title: this.noteTitle,
+          description: this.noteText,
+        });
         window.location.reload();
       } catch (err) {
         this.noteError = err.message;

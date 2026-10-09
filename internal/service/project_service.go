@@ -22,7 +22,11 @@ var ErrForbidden = errors.New("forbidden")
 // in another repository; the two read alike so ids elsewhere can't be probed.
 var ErrCardTargetNotFound = errors.New("issue or pull request not found in this repository")
 
-var ErrEmptyNote = errors.New("note is required")
+var (
+	ErrInvalidCard     = errors.New("invalid card")
+	ErrInvalidAssignee = errors.New("assignee must be the owner or a collaborator")
+	ErrInvalidLabel    = errors.New("label does not belong to this repository")
+)
 
 // ErrInvalidPosition re-exports the store sentinel so handlers map it to 400.
 var ErrInvalidPosition = store.ErrInvalidPosition
@@ -185,7 +189,7 @@ func (s *ProjectService) DeleteColumn(ctx context.Context, projectID, columnID, 
 	return s.projects.DeleteColumn(ctx, columnID, projectID)
 }
 
-func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, userID int64, issueID, pullID *int64, note string) (*model.ProjectCard, error) {
+func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, userID int64, d model.CardDetails) (*model.ProjectCard, error) {
 	repo, err := s.repoForProject(ctx, projectID)
 	if err != nil {
 		return nil, err
@@ -197,26 +201,76 @@ func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, us
 	if err != nil || colProject.ID != projectID {
 		return nil, ErrProjectNotFound
 	}
-	inRepo, err := s.projects.CardTargetsInRepo(ctx, repo.ID, issueID, pullID)
-	if err != nil {
+	if err := s.validateDetails(ctx, repo, d, true); err != nil {
 		return nil, err
-	}
-	if !inRepo {
-		return nil, ErrCardTargetNotFound
 	}
 	card := &model.ProjectCard{
 		ColumnID: columnID,
-		IssueID:  issueID,
-		PullID:   pullID,
-		Note:     note,
+		IssueID:  d.IssueID,
+		PullID:   d.PullID,
+		Title:    d.Title,
+		Note:     d.Description,
+		DueDate:  d.DueDate,
 	}
 	if err := s.projects.CreateCard(ctx, card); err != nil {
 		return nil, err
+	}
+	if len(d.AssigneeIDs) > 0 || len(d.LabelIDs) > 0 {
+		if err := s.projects.SetCardDetails(ctx, card.ID, projectID, d); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.projects.TouchProject(ctx, projectID); err != nil {
 		log.Printf("TouchProject(%d): %v", projectID, err)
 	}
 	return card, nil
+}
+
+// validateDetails checks title, link, assignees and labels against the repo. A card without a
+// title is only valid as a bare link, and only where linkOnlyOK says so.
+func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Repository, d model.CardDetails, linkOnlyOK bool) error {
+	if d.IssueID != nil && d.PullID != nil {
+		return ErrInvalidCard
+	}
+	linked := d.IssueID != nil || d.PullID != nil
+	if strings.TrimSpace(d.Title) == "" && !(linked && linkOnlyOK) {
+		return ErrInvalidCard
+	}
+	if len([]rune(d.Title)) > MaxTitleLen {
+		return ErrInvalidCard
+	}
+	inRepo, err := s.projects.CardTargetsInRepo(ctx, repo.ID, d.IssueID, d.PullID)
+	if err != nil {
+		return err
+	}
+	if !inRepo {
+		return ErrCardTargetNotFound
+	}
+	if len(d.AssigneeIDs) > 0 {
+		allowed := map[int64]bool{repo.OwnerID: true}
+		perms, err := s.repos.ListCollaborators(ctx, repo.ID)
+		if err != nil {
+			return err
+		}
+		for _, p := range perms {
+			allowed[p.UserID] = true
+		}
+		for _, id := range d.AssigneeIDs {
+			if !allowed[id] {
+				return ErrInvalidAssignee
+			}
+		}
+	}
+	if len(d.LabelIDs) > 0 {
+		ok, err := s.projects.LabelsInRepo(ctx, repo.ID, d.LabelIDs)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return ErrInvalidLabel
+		}
+	}
+	return nil
 }
 
 func (s *ProjectService) MoveCard(ctx context.Context, projectID, cardID, newColumnID int64, newPosition int, userID int64) error {
@@ -257,7 +311,7 @@ func (s *ProjectService) DeleteCard(ctx context.Context, projectID, cardID, user
 	return s.projects.DeleteCard(ctx, cardID, projectID)
 }
 
-func (s *ProjectService) UpdateCardNote(ctx context.Context, projectID, cardID, userID int64, note string) error {
+func (s *ProjectService) UpdateCardDetails(ctx context.Context, projectID, cardID, userID int64, d model.CardDetails) error {
 	repo, err := s.repoForProject(ctx, projectID)
 	if err != nil {
 		return err
@@ -265,10 +319,18 @@ func (s *ProjectService) UpdateCardNote(ctx context.Context, projectID, cardID, 
 	if !s.repos.CanWrite(ctx, repo, userID) {
 		return ErrForbidden
 	}
-	if strings.TrimSpace(note) == "" {
-		return ErrEmptyNote
+	card, err := s.projects.GetCardInProject(ctx, cardID, projectID)
+	if errors.Is(err, store.ErrCardNotInProject) {
+		return ErrProjectNotFound
 	}
-	if err := s.projects.UpdateCardNote(ctx, cardID, projectID, note); err != nil {
+	if err != nil {
+		return err
+	}
+	// A plain linked card (no stored title) may stay title-less; a titled card may not lose its title.
+	if err := s.validateDetails(ctx, repo, d, card.Title == ""); err != nil {
+		return err
+	}
+	if err := s.projects.SetCardDetails(ctx, cardID, projectID, d); err != nil {
 		if errors.Is(err, store.ErrCardNotInProject) {
 			return ErrProjectNotFound
 		}

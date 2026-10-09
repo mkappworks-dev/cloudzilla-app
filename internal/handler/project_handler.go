@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -291,10 +293,8 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		ColumnID int64  `json:"column_id"`
-		IssueID  *int64 `json:"issue_id,omitempty"`
-		PullID   *int64 `json:"pull_id,omitempty"`
-		Note     string `json:"note,omitempty"`
+		ColumnID int64 `json:"column_id"`
+		cardDetailsBody
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -304,11 +304,12 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "column_id is required")
 		return
 	}
-	if req.IssueID == nil && req.PullID == nil && strings.TrimSpace(req.Note) == "" {
-		writeError(w, http.StatusBadRequest, "one of issue_id, pull_id, or note is required")
+	d, err := req.details()
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	card, err := h.Services.Project.CreateCard(r.Context(), projectID, req.ColumnID, claims.UserID, req.IssueID, req.PullID, req.Note)
+	card, err := h.Services.Project.CreateCard(r.Context(), projectID, req.ColumnID, claims.UserID, d)
 	if err != nil {
 		writeProjectError(w, err)
 		return
@@ -372,7 +373,7 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) UpdateCardNote(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
@@ -387,18 +388,50 @@ func (h *Handler) UpdateCardNote(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid card id")
 		return
 	}
-	var req struct {
-		Note string `json:"note"`
-	}
+	var req cardDetailsBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if err := h.Services.Project.UpdateCardNote(r.Context(), projectID, cardID, claims.UserID, req.Note); err != nil {
+	d, err := req.details()
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := h.Services.Project.UpdateCardDetails(r.Context(), projectID, cardID, claims.UserID, d); err != nil {
 		writeProjectError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type cardDetailsBody struct {
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	DueDate     string  `json:"due_date"`
+	AssigneeIDs []int64 `json:"assignee_ids"`
+	LabelIDs    []int64 `json:"label_ids"`
+	IssueID     *int64  `json:"issue_id"`
+	PullID      *int64  `json:"pull_id"`
+}
+
+func (b cardDetailsBody) details() (model.CardDetails, error) {
+	d := model.CardDetails{
+		Title:       strings.TrimSpace(b.Title),
+		Description: b.Description,
+		IssueID:     b.IssueID,
+		PullID:      b.PullID,
+		AssigneeIDs: b.AssigneeIDs,
+		LabelIDs:    b.LabelIDs,
+	}
+	if b.DueDate != "" {
+		t, err := time.Parse("2006-01-02", b.DueDate)
+		if err != nil {
+			return d, errors.New("due_date must be YYYY-MM-DD")
+		}
+		d.DueDate = &t
+	}
+	return d, nil
 }
 
 func (h *Handler) SearchCardTargets(w http.ResponseWriter, r *http.Request) {
@@ -428,7 +461,8 @@ func writeProjectError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 		return
 	}
-	if errors.Is(err, service.ErrInvalidPosition) || errors.Is(err, service.ErrEmptyNote) {
+	if errors.Is(err, service.ErrInvalidPosition) || errors.Is(err, service.ErrInvalidCard) ||
+		errors.Is(err, service.ErrInvalidAssignee) || errors.Is(err, service.ErrInvalidLabel) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
