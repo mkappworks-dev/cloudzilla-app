@@ -64,7 +64,44 @@ A token acts as its user but only on the routes its scopes admit ([Token Scopes]
 | `cz pr merge`                                                        | `repo:write`. `pulls:write` can't merge or enable auto-merge       |
 | `cz api <METHOD> <path>`                                             | whatever the request needs                                         |
 
-The `repo`, `issue` and `pr` commands arrive with tickets 03 to 05 of the `cz` spec; the rows above are their planned scopes, not yet in `cz --help`. Remove this paragraph once they land.
+## Repositories, issues and pull requests
+
+Commands that take a repository read it from `-R owner/repo`, or from the `origin` remote of the current checkout. A remote on another host is refused with a message saying so. HTTPS, `ssh://` and `git@host:owner/repo` remotes work.
+
+Body text comes from `--body`, `--body-file` (`-` reads stdin), or `$VISUAL`/`$EDITOR` when run on a terminal with neither.
+
+```bash
+cz repo list [--owner alice]
+cz repo view alice/site
+cz repo create site [--org acme] [--private] [-d text] [--readme] [--gitignore Go] [--license mit]
+cz repo fork alice/site
+cz repo clone alice/site [directory] [-- git-clone-flags]
+
+cz issue list [-R alice/site] [--state open|closed]
+cz issue view 12
+cz issue create -t "Broken link" [-b text] [-l bug] [-a bob]
+cz issue comment 12 -b text
+cz issue close 12
+
+cz pr list [--state open|closed|merged|all]
+cz pr view 7
+cz pr create -t "Fix links" [-H branch] [-B main] [-b text] [--draft]
+cz pr merge 7 [--ff | --merge | --squash]
+cz pr close 7
+cz pr review 7 --approve | --request-changes -b text | --comment -b text
+```
+
+- `repo list --owner` filters on the client, because the API has no owner filter.
+- `issue list --state` and `pr list --state` filter on the client. The server returns every state, and at most 500 issues, with no paging.
+- `issue create` looks up each `--label` by name before creating anything, so an unknown label fails with no issue created. If a label or assignee step fails after the issue exists, the error gives its number and URL.
+- `pr create` defaults `--head` to the current branch and `--base` to the repository's default branch. It checks that the head branch is on the remote and refuses if it isn't; the server would accept any head name.
+- `pr merge` needs `repo:write`. A `pulls:write` token is told so. Conflicts, requested changes, branch protection and required checks come back as the server's reason with a non-zero exit.
+- `pr close` refuses a pull request that is no longer open.
+- `pr review --request-changes` and `--comment` need a body.
+
+### How `repo clone` and `pr create` use the token
+
+Both run the system `git`. The token is handed to a URL-scoped credential helper through the `CZ_GIT_TOKEN` environment variable of the git child process, and `GIT_TERMINAL_PROMPT=0` is set. It never appears in the URL, the arguments, `.git/config` or shell history. Other processes of the same user can still read a running process's environment (for example with `ps eww` on some systems), so don't run `cz` on a machine where you don't trust those users.
 
 ## cz api
 

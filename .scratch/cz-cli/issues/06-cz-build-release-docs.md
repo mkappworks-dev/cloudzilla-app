@@ -21,6 +21,6 @@ Part of [spec](../spec.md). Can land with 02 or after the command tickets.
 - [ ] `make build` produces `dist/cz`; CI builds it.
 - [ ] A release produces a standalone `cz` archive for each platform the server release covers.
 - [x] `docs/cli.md` exists and is linked from `CLAUDE.md` and `README.md`.
-- [ ] The docs state every command's required scope.
+- [x] The docs state every command's required scope.
 
 ## Comments
