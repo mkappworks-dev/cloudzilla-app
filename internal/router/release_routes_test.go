@@ -106,6 +106,10 @@ func TestReleases_CreateRefusals(t *testing.T) {
 		{"tag escaping refs", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":"../evil"}`}, http.StatusUnprocessableEntity},
 		{"leading dot", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":".hidden"}`}, http.StatusUnprocessableEntity},
 		{"trailing slash", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":"v1/"}`}, http.StatusUnprocessableEntity},
+		{"lock suffix", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":"x.lock"}`}, http.StatusUnprocessableEntity},
+		{"lock suffix in a part", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":"a.lock/b"}`}, http.StatusUnprocessableEntity},
+		{"trailing dot", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":"v1."}`}, http.StatusUnprocessableEntity},
+		{"dot-led part", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":"a/.b"}`}, http.StatusUnprocessableEntity},
 		{"too long", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":"` + strings.Repeat("a", 256) + `"}`}, http.StatusUnprocessableEntity},
 		{"unknown target", metaReq{method: "POST", target: e.path("/releases"), token: e.owner.token, json: `{"tag_name":"v8","target":"nope"}`}, http.StatusInternalServerError},
 	}
@@ -210,6 +214,7 @@ func TestReleases_Update(t *testing.T) {
 		{"bad id", metaReq{method: "PATCH", target: e.path("/releases/x"), token: e.owner.token, json: `{"tag_name":"x"}`}, http.StatusBadRequest},
 		{"bad json", metaReq{method: "PATCH", target: e.path("/releases/%d", id), token: e.owner.token, json: `{`}, http.StatusBadRequest},
 		{"invalid tag", metaReq{method: "PATCH", target: e.path("/releases/%d", id), token: e.owner.token, json: `{"tag_name":"a b"}`}, http.StatusUnprocessableEntity},
+		{"tag git refuses", metaReq{method: "PATCH", target: e.path("/releases/%d", id), token: e.owner.token, json: `{"tag_name":"x.lock"}`}, http.StatusUnprocessableEntity},
 		{"tag already used", metaReq{method: "PATCH", target: e.path("/releases/%d", id), token: e.owner.token, json: `{"tag_name":"v2"}`}, http.StatusUnprocessableEntity},
 	}
 	for _, c := range cases {

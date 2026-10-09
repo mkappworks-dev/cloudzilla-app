@@ -434,7 +434,7 @@ Deleting a branch whose protection rule has `block_force_push` returns 422 `cann
 | Method | Path                                      | Auth     | Description                                                                |
 | ------ | ----------------------------------------- | -------- | -------------------------------------------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/releases`        | --       | List releases                                                              |
-| POST   | `/api/repos/:owner/:repo/releases`        | CanWrite | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`) |
+| POST   | `/api/repos/:owner/:repo/releases`        | CanWrite | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`); 422 for a tag name git rejects or one already released |
 | GET    | `/api/repos/:owner/:repo/releases/latest` | --       | Get the latest non-draft release                                           |
 | GET    | `/api/repos/:owner/:repo/releases/:id`    | --       | Get release by ID                                                          |
 | PATCH  | `/api/repos/:owner/:repo/releases/:id`    | CanWrite | Update a release                                                           |
