@@ -34,7 +34,7 @@ func suggestRows(s *service.Suggestions) []suggestRow {
 	return rows
 }
 
-func suggestOptionID(i int) string { return "suggest-" + strconv.Itoa(i) }
+func suggestOptionID(listID string, i int) string { return listID + "-" + strconv.Itoa(i) }
 
 // The options live inside the topnavSearch Alpine scope, which owns `active`.
 func suggestActive(i int) string { return "active === " + strconv.Itoa(i) }
@@ -66,7 +66,7 @@ templ SearchSuggestions(data view.SearchSuggestionsData) {
 				if i == 0 || rows[i-1].Kind != row.Kind {
 					<div role="presentation" class="px-3 pt-1.5 pb-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">{ suggestKindLabel(row.Kind) }</div>
 				}
-				<a id={ suggestOptionID(i) } role="option" aria-selected="false" :aria-selected={ suggestActive(i) } x-on:mouseenter={ suggestHover(i) } data-suggest-item href={ templ.SafeURL(row.Href) } class="flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-accent aria-selected:bg-accent">
+				<a id={ suggestOptionID(data.ListID, i) } role="option" aria-selected="false" :aria-selected={ suggestActive(i) } x-on:mouseenter={ suggestHover(i) } data-suggest-item href={ templ.SafeURL(row.Href) } class="flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-accent aria-selected:bg-accent">
 					if row.Kind == "repo" {
 						<svg class="shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
 					} else {
@@ -81,7 +81,7 @@ templ SearchSuggestions(data view.SearchSuggestionsData) {
 					}
 				</a>
 			}
-			<a id={ suggestOptionID(len(rows)) } role="option" aria-selected="false" :aria-selected={ suggestActive(len(rows)) } x-on:mouseenter={ suggestHover(len(rows)) } data-suggest-item href={ suggestSearchHref(data.Suggestions.Query) } class="flex items-center gap-2 px-3 py-1.5 text-[13px] border-t border-border text-muted-foreground hover:bg-accent aria-selected:bg-accent">
+			<a id={ suggestOptionID(data.ListID, len(rows)) } role="option" aria-selected="false" :aria-selected={ suggestActive(len(rows)) } x-on:mouseenter={ suggestHover(len(rows)) } data-suggest-item href={ suggestSearchHref(data.Suggestions.Query) } class="flex items-center gap-2 px-3 py-1.5 text-[13px] border-t border-border text-muted-foreground hover:bg-accent aria-selected:bg-accent">
 				<svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
 				<span class="truncate">Search for “{ data.Suggestions.Query }”</span>
 			</a>

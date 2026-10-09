@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -59,71 +60,28 @@ templ AccountRepos(data view.AccountReposData) {
 					<h2 id="repo-list" class="sr-only">Repositories</h2>
 					<ol class="divide-y divide-border">
 						for _, repo := range data.Repos {
-							<li data-name={ strings.ToLower(repo.OwnerName + "/" + repo.Name) } x-show="!q || $el.dataset.name.includes(q.toLowerCase())">
-								<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="group relative block py-3 pr-4 pl-4 hover:pl-[18px] transition-[padding] duration-[120ms] hover:bg-muted before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 before:transition-opacity before:duration-[120ms] hover:before:opacity-100">
-									<div class="flex items-start gap-3 mb-1.5">
-										<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" focusable="false">
-											<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path>
-											<path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"></path>
-										</svg>
-										<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-											<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ repo.OwnerName }/{ repo.Name }</p>
-											@repoVisibilityBadge(repo.Private)
-											if repo.IsTemplate {
-												@repoLabel("template", "Template")
-											}
-											if repo.IsArchived {
-												@repoLabel("plain", "Archived")
-											}
-										</div>
-									</div>
-									<div class="flex items-center justify-between gap-3 pl-[27px]">
-										<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
-											<span class={ repoRoleColorClass(repo.OwnerID, data.UserID) }>{ repoRoleLabel(repo.OwnerID, data.UserID) }</span>
-											<span class="opacity-50" aria-hidden="true">·</span>
-											if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
-												<span class="inline-flex items-center gap-1">
-													<span class={ "w-2 h-2 rounded-full", languageColorClass(*repo.PrimaryLanguage) } aria-hidden="true"></span>
-													{ *repo.PrimaryLanguage }
-												</span>
-												<span class="opacity-50" aria-hidden="true">·</span>
-											}
-											<span>{ "Updated " }<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ compactRelative(repo.UpdatedAt) }</time></span>
-											if len(data.Topics[repo.ID]) > 0 {
-												<span class="opacity-50" aria-hidden="true">·</span>
-												for _, t := range data.Topics[repo.ID] {
-													@repoLabel("plain", t.Name)
-												}
-											}
-										</div>
-										<div class="flex items-center gap-3 text-[12px] shrink-0 text-muted-foreground">
-											<span class="inline-flex items-center gap-1" title={ statTitle(data.StarCounts[repo.ID], "star") }>
-												<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
-													<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-												</svg>
-												{ strconv.Itoa(data.StarCounts[repo.ID]) }
-											</span>
-											<span class="inline-flex items-center gap-1" title={ statTitle(repo.ForkCount, "fork") }>
-												<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
-													<circle cx="6" cy="3" r="3"></circle>
-													<circle cx="18" cy="6" r="3"></circle>
-													<circle cx="6" cy="21" r="3"></circle>
-													<path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"></path>
-												</svg>
-												{ strconv.Itoa(repo.ForkCount) }
-											</span>
-											<span class="inline-flex items-center gap-1" title={ statTitle(data.CommitCounts[repo.ID], "commit") }>
-												<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
-													<circle cx="12" cy="12" r="3"></circle>
-													<line x1="3" y1="12" x2="9" y2="12"></line>
-													<line x1="15" y1="12" x2="21" y2="12"></line>
-												</svg>
-												{ strconv.Itoa(data.CommitCounts[repo.ID]) }
-											</span>
-										</div>
-									</div>
-								</a>
-							</li>
+							@components.RepoListRow(components.RepoListRowData{
+								Owner:     repo.OwnerName,
+								Name:      repo.Name,
+								Private:   repo.Private,
+								Template:  repo.IsTemplate,
+								Archived:  repo.IsArchived,
+								Role:      repoRoleLabel(repo.OwnerID, data.UserID),
+								RoleClass: repoRoleColorClass(repo.OwnerID, data.UserID),
+								Language:  repoLanguage(repo),
+								LangClass: languageColorClass(repoLanguage(repo)),
+								Time:      "Updated " + compactRelative(repo.UpdatedAt),
+								TimeISO:   repo.UpdatedAt.UTC().Format(time.RFC3339),
+								Topics:    repoTopicNames(data.Topics[repo.ID]),
+								ShowStats: true,
+								Stars:     data.StarCounts[repo.ID],
+								Forks:     repo.ForkCount,
+								Commits:   data.CommitCounts[repo.ID],
+								LiAttrs: templ.Attributes{
+									"data-name": strings.ToLower(repo.OwnerName + "/" + repo.Name),
+									"x-show":    "!q || $el.dataset.name.includes(q.toLowerCase())",
+								},
+							})
 						}
 					</ol>
 				</section>
@@ -200,18 +158,19 @@ templ repoFilterMenu(key, triggerLabel, ariaLabel, header string, items []repoMe
 	</div>
 }
 
-templ repoVisibilityBadge(private bool) {
-	if private {
-		<span class="inline-flex items-center shrink-0 h-[20px] px-2 rounded-full border text-[10px] font-medium bg-warning/15 text-warning border-warning/30">Private</span>
-	} else {
-		<span class="inline-flex items-center shrink-0 h-[20px] px-2 rounded-full border text-[10px] font-medium bg-success/15 text-success border-success/30">Public</span>
+func repoLanguage(repo model.Repository) string {
+	if repo.PrimaryLanguage == nil {
+		return ""
 	}
+	return *repo.PrimaryLanguage
 }
 
-templ repoLabel(variant, text string) {
-	<span class={ "inline-flex items-center text-[10px] leading-[1.4] px-[7px] py-px rounded-full border whitespace-nowrap", repoLabelClass(variant) }>
-		{ text }
-	</span>
+func repoTopicNames(topics []model.Topic) []string {
+	names := make([]string, len(topics))
+	for i, t := range topics {
+		names[i] = t.Name
+	}
+	return names
 }
 
 func repoRoleLabel(ownerID, userID int64) string {
@@ -269,15 +228,6 @@ func compactRelative(t time.Time) string {
 		return strconv.Itoa(int(d/(30*24*time.Hour))) + "mo ago"
 	default:
 		return strconv.Itoa(int(d/(365*24*time.Hour))) + "y ago"
-	}
-}
-
-func repoLabelClass(variant string) string {
-	switch variant {
-	case "template":
-		return "bg-warning/15 text-warning border-warning/30"
-	default:
-		return "bg-muted text-muted-foreground border-border"
 	}
 }
 

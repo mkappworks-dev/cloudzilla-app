@@ -1,6 +1,6 @@
 # Require-pull-request rule
 
-Spec: `.scratch/require-pull-request-rule/spec.md`. Tickets: `.scratch/require-pull-request-rule/issues/01`–`03`.
+Spec: `.scratch/2026-10-06-require-pull-request-rule/spec.md`. Tickets: `.scratch/2026-10-06-require-pull-request-rule/issues/01`–`03`.
 
 A branch protection rule with `require_pull_request` refuses every direct update of a matching branch: a push (create, fast-forward, force, delete), a branch delete through the API, and a web file commit. Changes reach it only by merging a pull request. No admin bypass.
 

@@ -1,0 +1,13 @@
+package components
+
+// Highlight renders text with the words that start with a query token marked. An empty query
+// renders the text as is.
+templ Highlight(text, query string) {
+	for _, seg := range highlightSegments(text, query) {
+		if seg.Match {
+			<mark class="bg-warning/25 text-inherit rounded-sm">{ seg.Text }</mark>
+		} else {
+			{ seg.Text }
+		}
+	}
+}
