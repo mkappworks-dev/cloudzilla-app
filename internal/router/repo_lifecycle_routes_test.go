@@ -105,6 +105,9 @@ func TestRepoLifecycleRoutes_CreateFromTemplate(t *testing.T) {
 	if got := post(e.outsider.token, url.Values{"template_repo_id": {idStr}, "name": {"bad name!"}}); got != http.StatusUnprocessableEntity {
 		t.Errorf("invalid name = %d, want 422", got)
 	}
+	if got := post(e.outsider.token, url.Values{"template_repo_id": {idStr}, "name": {"copy.wiki"}}); got != http.StatusUnprocessableEntity {
+		t.Errorf("reserved name = %d, want 422", got)
+	}
 	if got := post(e.outsider.token, url.Values{"template_repo_id": {"999999999"}, "name": {"copy"}}); got != http.StatusNotFound {
 		t.Errorf("unknown template = %d, want 404", got)
 	}
@@ -126,8 +129,8 @@ func TestRepoLifecycleRoutes_CreateFromTemplate(t *testing.T) {
 		t.Errorf("copy has no content: %v", err)
 	}
 
-	if got := post(e.outsider.token, url.Values{"template_repo_id": {idStr}, "name": {"copy"}}); got == http.StatusSeeOther {
-		t.Error("a second copy under the same name succeeded")
+	if got := post(e.outsider.token, url.Values{"template_repo_id": {idStr}, "name": {"copy"}}); got != http.StatusUnprocessableEntity {
+		t.Errorf("a second copy under the same name = %d, want 422", got)
 	}
 
 	wantStatus(t, e.form(t, http.MethodPost, e.api("/archive"), e.owner.token, nil, true), http.StatusNoContent)

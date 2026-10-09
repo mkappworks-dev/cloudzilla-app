@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -597,6 +598,10 @@ func (h *Handler) UpdateRelease(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if msg := releaseCreateErrorMessage(err, tagName); msg != "" {
 			writeError(w, http.StatusUnprocessableEntity, msg)
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "release not found")
 			return
 		}
 		slog.Error("update release failed", "owner", owner, "repo", repoName, "id", id, "error", err)

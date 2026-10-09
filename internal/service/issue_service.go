@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -55,6 +56,10 @@ func (s *IssueService) WithMentionStore(m *store.MentionStore) *IssueService {
 var ErrPrivateIssueForbidden = errors.New("forbidden: only collaborators with write access may create private issues")
 
 func (s *IssueService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, visibility string) (*model.Issue, error) {
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return nil, ErrTitleRequired
+	}
 	if len(title) > MaxTitleLen {
 		return nil, ErrTitleTooLong
 	}

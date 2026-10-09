@@ -11,6 +11,8 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
+var ErrDeployKeyExists = errors.New("this key is already registered as a deploy key")
+
 // DeployKeyService manages repository deploy keys used for SSH authentication.
 type DeployKeyService struct {
 	keys    *store.DeployKeyStore
@@ -35,7 +37,7 @@ func (s *DeployKeyService) Add(ctx context.Context, repoID int64, title, rawPubl
 	// SSH auth binds a key to one repo at handshake, before the command names the repo.
 	_, err = s.keys.GetByFingerprint(ctx, fingerprint)
 	if err == nil {
-		return nil, errors.New("this key is already registered as a deploy key")
+		return nil, ErrDeployKeyExists
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return nil, err

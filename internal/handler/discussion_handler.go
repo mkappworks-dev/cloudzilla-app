@@ -482,6 +482,11 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if discussion.IsLocked && !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "discussion is locked")
+		return
+	}
+
 	hxRequest := r.Header.Get("HX-Request") == "true"
 
 	var replyBody string

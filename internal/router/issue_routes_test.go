@@ -133,6 +133,37 @@ func TestIssues_CreateRefusals(t *testing.T) {
 	wantStatus(t, e2.do(t, metaReq{method: "POST", target: e2.path("/issues"), token: e2.outsider.token, json: `{"title":"x"}`}), http.StatusNotFound)
 }
 
+func TestIssues_CreateValidation(t *testing.T) {
+	e := newGitMetaEnv(t)
+	cases := []struct {
+		name string
+		req  metaReq
+		want int
+		body string
+	}{
+		{"empty title", metaReq{method: "POST", target: e.path("/issues"), token: e.outsider.token, json: `{"title":""}`}, http.StatusUnprocessableEntity, "title is required"},
+		{"whitespace title", metaReq{method: "POST", target: e.path("/issues"), token: e.outsider.token, json: `{"title":"  \t "}`}, http.StatusUnprocessableEntity, "title is required"},
+		{"long title", metaReq{method: "POST", target: e.path("/issues"), token: e.outsider.token, json: fmt.Sprintf(`{"title":%q}`, strings.Repeat("t", 1000))}, http.StatusUnprocessableEntity, "Title is too long"},
+		{"private by a reader", metaReq{method: "POST", target: e.path("/issues"), token: e.outsider.token, json: `{"title":"x","visibility":"private"}`}, http.StatusForbidden, "private issues"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rr := e.do(t, c.req)
+			wantStatus(t, rr, c.want)
+			bodyHas(t, rr, c.body)
+		})
+	}
+	if e.issueCount(t) != 0 {
+		t.Fatalf("refused requests created %d issues", e.issueCount(t))
+	}
+
+	rr := e.do(t, metaReq{method: "POST", target: e.path("/issues"), token: e.outsider.token, json: `{"title":"  padded  "}`})
+	wantStatus(t, rr, http.StatusCreated)
+	if got := e.count(t, `SELECT COUNT(*) FROM issues WHERE repo_id = $1 AND title = 'padded'`, e.repoID); got != 1 {
+		t.Error("title was not stored trimmed")
+	}
+}
+
 func TestIssues_Update(t *testing.T) {
 	e := newGitMetaEnv(t)
 	id, n := e.seedIssue(t, "to close", "open")
@@ -144,12 +175,14 @@ func TestIssues_Update(t *testing.T) {
 	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{`}), http.StatusBadRequest)
 	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{"state":"merged"}`}), http.StatusBadRequest)
 	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{}`}), http.StatusBadRequest)
-	wantStatus(t, e.do(t, metaReq{method: "PATCH", target: e.path("/issues/99"), token: e.owner.token, json: `{"state":"closed"}`}), http.StatusInternalServerError)
+	rr := e.do(t, metaReq{method: "PATCH", target: e.path("/issues/99"), token: e.owner.token, json: `{"state":"closed"}`})
+	wantStatus(t, rr, http.StatusNotFound)
+	bodyHas(t, rr, "issue not found")
 	if e.issueCol(t, id, "state") != "open" {
 		t.Fatal("refusals closed the issue")
 	}
 
-	rr := e.do(t, metaReq{method: "PATCH", target: target, token: e.writer.token, json: `{"state":"closed"}`})
+	rr = e.do(t, metaReq{method: "PATCH", target: target, token: e.writer.token, json: `{"state":"closed"}`})
 	wantStatus(t, rr, http.StatusOK)
 	if e.issueCol(t, id, "state") != "closed" || e.issueCol(t, id, "closed_at") == "" {
 		t.Error("issue not closed")
@@ -178,7 +211,9 @@ func TestIssues_PinAndLock(t *testing.T) {
 			wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.outsider.token, json: `{"action":"` + c.on + `"}`}), http.StatusForbidden)
 			wantStatus(t, e.do(t, metaReq{method: "PATCH", target: e.path("/issues/x/%s", c.route), token: e.owner.token, json: `{}`}), http.StatusBadRequest)
 			wantStatus(t, e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{`}), http.StatusBadRequest)
-			wantStatus(t, e.do(t, metaReq{method: "PATCH", target: e.path("/issues/99/%s", c.route), token: e.owner.token, json: `{"action":"` + c.on + `"}`}), http.StatusInternalServerError)
+			rr := e.do(t, metaReq{method: "PATCH", target: e.path("/issues/99/%s", c.route), token: e.owner.token, json: `{"action":"` + c.on + `"}`})
+			wantStatus(t, rr, http.StatusNotFound)
+			bodyHas(t, rr, "issue not found")
 			if e.issueCol(t, id, c.col) != "false" {
 				t.Fatalf("refusals set %s", c.col)
 			}
@@ -192,7 +227,7 @@ func TestIssues_PinAndLock(t *testing.T) {
 				t.Errorf("%s not cleared", c.col)
 			}
 
-			rr := e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, htmx: true, form: url.Values{"action": {c.on}}})
+			rr = e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, htmx: true, form: url.Values{"action": {c.on}}})
 			wantStatus(t, rr, http.StatusOK)
 			if rr.Header().Get("HX-Trigger") == "" || e.issueCol(t, id, c.col) != "true" {
 				t.Errorf("HTMX %s: trigger %q, %s=%s", c.on, rr.Header().Get("HX-Trigger"), c.col, e.issueCol(t, id, c.col))
@@ -277,6 +312,9 @@ func TestIssues_NewPageAndSubmit(t *testing.T) {
 	}
 	if r := submit(e.owner.token, url.Values{"title": {""}}); r.code != http.StatusOK || !strings.Contains(r.body, "required") {
 		t.Errorf("blank title = %d %.200s", r.code, r.body)
+	}
+	if r := submit(e.owner.token, url.Values{"title": {"   "}}); r.code != http.StatusOK || !strings.Contains(r.body, "required") {
+		t.Errorf("whitespace title = %d %.200s", r.code, r.body)
 	}
 	if r := submit(e.owner.token, url.Values{"title": {strings.Repeat("t", 1000)}}); !strings.Contains(r.body, "too long") {
 		t.Errorf("long title = %d %.200s", r.code, r.body)
