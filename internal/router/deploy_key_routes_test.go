@@ -113,6 +113,8 @@ func TestDeployKeys_AddRefusals(t *testing.T) {
 
 	rr := e.do(t, metaReq{method: "POST", target: e.path("/keys"), token: e.owner.token, form: with("public_key", "not a key")})
 	bodyHas(t, rr, "Invalid public key")
+	rr = e.do(t, metaReq{method: "POST", target: e.path("/keys"), token: e.owner.token, form: with("public_key", takenKey)})
+	bodyHas(t, rr, "already a deploy key on this repository")
 }
 
 func TestDeployKeys_AddRejectsUserKey(t *testing.T) {

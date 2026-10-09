@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -27,7 +29,7 @@ func deployKeyErrorMessage(err error) string {
 		return "Invalid public key. Paste the full contents of a .pub file (e.g. starts with ssh-ed25519 or ssh-rsa)."
 	case strings.Contains(msg, "already registered as a user SSH key"):
 		return "This key is already registered to your account. Deploy keys must be distinct from user SSH keys."
-	case strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique constraint"):
+	case errors.Is(err, service.ErrDeployKeyExists) || strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique constraint"):
 		return "This key is already a deploy key on this repository."
 	}
 	slog.Error("deploy key: unexpected error", "error", err)

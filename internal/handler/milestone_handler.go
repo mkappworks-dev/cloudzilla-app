@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,6 +32,15 @@ func milestoneSetFailureMessage(err error) string {
 		return "That milestone no longer exists."
 	}
 	return ""
+}
+
+func writeMilestoneUpdateError(w http.ResponseWriter, err error) {
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "milestone not found")
+		return
+	}
+	slog.Error("operation failed", "error", err)
+	writeError(w, http.StatusInternalServerError, "internal server error")
 }
 
 func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
@@ -316,8 +326,7 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	if req.State == "closed" {
 		m, err := h.Services.Milestone.Close(r.Context(), owner, repoName, number, &claims.UserID)
 		if err != nil {
-			slog.Error("operation failed", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal server error")
+			writeMilestoneUpdateError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, m)
@@ -326,8 +335,7 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	if req.State == "open" {
 		m, err := h.Services.Milestone.Reopen(r.Context(), owner, repoName, number, &claims.UserID)
 		if err != nil {
-			slog.Error("operation failed", "error", err)
-			writeError(w, http.StatusInternalServerError, "internal server error")
+			writeMilestoneUpdateError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, m)
@@ -354,8 +362,7 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	m, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, title, req.Description, dueDate, &claims.UserID)
 	if err != nil {
-		slog.Error("operation failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeMilestoneUpdateError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, m)
@@ -681,6 +688,10 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 	switch r.FormValue("action") {
 	case "close":
 		if _, err := h.Services.Milestone.Close(r.Context(), owner, repoName, number, &claims.UserID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				writeError(w, http.StatusNotFound, "milestone not found")
+				return
+			}
 			slog.Error("milestone detail: close failed", "owner", owner, "repo", repoName, "number", number, "error", err)
 			http.Error(w, "failed to close milestone", http.StatusInternalServerError)
 			return
@@ -689,6 +700,10 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 
 	case "reopen":
 		if _, err := h.Services.Milestone.Reopen(r.Context(), owner, repoName, number, &claims.UserID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				writeError(w, http.StatusNotFound, "milestone not found")
+				return
+			}
 			slog.Error("milestone detail: reopen failed", "owner", owner, "repo", repoName, "number", number, "error", err)
 			http.Error(w, "failed to reopen milestone", http.StatusInternalServerError)
 			return

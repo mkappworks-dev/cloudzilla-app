@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -201,6 +202,14 @@ func (h *Handler) ListWebhookDeliveries(w http.ResponseWriter, r *http.Request) 
 
 	deliveries, err := h.Services.Webhook.ListDeliveries(r.Context(), id, repo.ID)
 	if err != nil {
+		if err.Error() == "forbidden" {
+			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "webhook not found")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to list deliveries")
 		return
 	}
@@ -321,6 +330,10 @@ func (h *Handler) RedeliverWebhook(w http.ResponseWriter, r *http.Request) {
 	if err := h.Services.Webhook.RedeliverByID(r.Context(), deliveryID, repo.ID); err != nil {
 		if err.Error() == "forbidden" {
 			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "delivery not found")
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "internal error")
