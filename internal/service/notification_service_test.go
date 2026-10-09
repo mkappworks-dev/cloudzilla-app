@@ -220,6 +220,55 @@ func TestNotification_List_ReturnsCreatedNotifications(t *testing.T) {
 	}
 }
 
+func TestNotification_ListPage_ClampsAndCounts(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	actorID := testutil.SeedUser(t, db, "actor_"+suffix)
+	repoID := testutil.SeedRepo(t, db, userID, "testuser_"+suffix, suffix)
+
+	notifStore := store.NewNotificationStore(db)
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
+		service.NewEmailService(config.SMTPConfig{}),
+		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
+	)
+
+	ctx := context.Background()
+	total := service.NotificationsPerPage + 3
+	var firstID int64
+	for i := 1; i <= total; i++ {
+		n := &model.Notification{
+			UserID: userID, ActorID: actorID, ActorName: "a", Type: model.NotifIssueComment,
+			RepoID: repoID, RepoName: suffix, OwnerName: "testuser_" + suffix, SubjectID: int64(i),
+		}
+		if err := notifStore.Create(ctx, n); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+		if i == 1 {
+			firstID = n.ID
+		}
+	}
+	if err := svc.MarkRead(ctx, firstID, userID); err != nil {
+		t.Fatalf("MarkRead: %v", err)
+	}
+
+	p, err := svc.ListPage(ctx, userID, "inbox", 99)
+	if err != nil {
+		t.Fatalf("ListPage: %v", err)
+	}
+	if p.TotalPages != 2 || p.Page != 2 || len(p.Items) != 3 {
+		t.Errorf("clamped page = %d/%d with %d items; want 2/2 with 3", p.Page, p.TotalPages, len(p.Items))
+	}
+	if p.InboxCount != total || p.UnreadCount != total-1 || p.ReadCount != 1 {
+		t.Errorf("counts = %d/%d/%d", p.InboxCount, p.UnreadCount, p.ReadCount)
+	}
+
+	read, err := svc.ListPage(ctx, userID, "read", 0)
+	if err != nil || read.Page != 1 || read.TotalPages != 1 || len(read.Items) != 1 {
+		t.Errorf("read page = %+v, %v", read, err)
+	}
+}
+
 func TestNotification_ListUnreadForDigest_SkipsTypesToggledOff(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)

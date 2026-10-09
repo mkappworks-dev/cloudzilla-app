@@ -57,17 +57,16 @@ type OAuthAuthorizationsFragData struct {
 type NotificationsData struct {
 	BasePage
 	Notifications []model.Notification
-	UnreadCount   int
-}
 
-// NotificationsFragData holds template data for the notifications list HTMX fragment.
-type NotificationsFragData struct {
-	Notifications []model.Notification
-}
+	Filter     string // "inbox", "unread" or "read"
+	Page       int
+	TotalPages int
+	PerPage    int
+	Total      int // matching Filter
 
-// NotificationItemFragData holds template data for a single notification item fragment.
-type NotificationItemFragData struct {
-	Notification model.Notification
+	InboxCount  int
+	UnreadCount int
+	ReadCount   int
 }
 
 // AdminSettingsData holds template data for the admin settings page.

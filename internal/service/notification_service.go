@@ -75,6 +75,52 @@ func (s *NotificationService) List(ctx context.Context, userID int64) ([]model.N
 	return s.notifs.ListByUser(ctx, userID)
 }
 
+const NotificationsPerPage = 25
+
+// NotificationPage is one page of the inbox plus the counts the filter sidebar shows.
+type NotificationPage struct {
+	Items       []model.Notification
+	Filter      string
+	Page        int
+	TotalPages  int
+	Total       int // matching the filter
+	InboxCount  int
+	UnreadCount int
+	ReadCount   int
+}
+
+// ListPage returns the requested page of userID's notifications. An unknown
+// filter means the inbox, and a page past the end clamps to the last page.
+func (s *NotificationService) ListPage(ctx context.Context, userID int64, filter string, page int) (NotificationPage, error) {
+	if filter != store.NotifFilterUnread && filter != store.NotifFilterRead {
+		filter = store.NotifFilterInbox
+	}
+	inbox, err := s.notifs.CountByFilter(ctx, userID, store.NotifFilterInbox)
+	if err != nil {
+		return NotificationPage{}, err
+	}
+	unread, err := s.notifs.CountUnread(ctx, userID)
+	if err != nil {
+		return NotificationPage{}, err
+	}
+	p := NotificationPage{Filter: filter, InboxCount: inbox, UnreadCount: unread, ReadCount: inbox - unread}
+	switch filter {
+	case store.NotifFilterUnread:
+		p.Total = unread
+	case store.NotifFilterRead:
+		p.Total = p.ReadCount
+	default:
+		p.Total = inbox
+	}
+	p.TotalPages = max(1, (p.Total+NotificationsPerPage-1)/NotificationsPerPage)
+	p.Page = min(max(page, 1), p.TotalPages)
+	p.Items, err = s.notifs.ListPage(ctx, userID, filter, NotificationsPerPage, (p.Page-1)*NotificationsPerPage)
+	if err != nil {
+		return NotificationPage{}, err
+	}
+	return p, nil
+}
+
 func (s *NotificationService) ListUnreadForDigest(ctx context.Context, u *model.User, mode string) ([]model.Notification, error) {
 	notifs, err := s.notifs.ListUnreadReadable(ctx, u.ID)
 	if err != nil {
@@ -97,14 +143,15 @@ func (s *NotificationService) MarkAllRead(ctx context.Context, userID int64) err
 
 func (s *NotificationService) NotifyIssueComment(ctx context.Context, repo model.Repository, issue model.Issue, actorID int64, actorName string) {
 	n := &model.Notification{
-		ActorID:    actorID,
-		ActorName:  actorName,
-		Type:       model.NotifIssueComment,
-		RepoID:     repo.ID,
-		RepoName:   repo.Name,
-		OwnerName:  repo.OwnerName,
-		SubjectID:  int64(issue.Number),
-		SubjectURL: fmt.Sprintf("/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Number),
+		ActorID:      actorID,
+		ActorName:    actorName,
+		Type:         model.NotifIssueComment,
+		RepoID:       repo.ID,
+		RepoName:     repo.Name,
+		OwnerName:    repo.OwnerName,
+		SubjectID:    int64(issue.Number),
+		SubjectURL:   fmt.Sprintf("/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Number),
+		SubjectTitle: issue.Title,
 	}
 	if actorID != issue.AuthorID {
 		n.UserID = issue.AuthorID
@@ -117,14 +164,15 @@ func (s *NotificationService) NotifyIssueComment(ctx context.Context, repo model
 
 func (s *NotificationService) NotifyPRComment(ctx context.Context, repo model.Repository, pr model.PullRequest, actorID int64, actorName string) {
 	n := &model.Notification{
-		ActorID:    actorID,
-		ActorName:  actorName,
-		Type:       model.NotifPRComment,
-		RepoID:     repo.ID,
-		RepoName:   repo.Name,
-		OwnerName:  repo.OwnerName,
-		SubjectID:  int64(pr.Number),
-		SubjectURL: fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pr.Number),
+		ActorID:      actorID,
+		ActorName:    actorName,
+		Type:         model.NotifPRComment,
+		RepoID:       repo.ID,
+		RepoName:     repo.Name,
+		OwnerName:    repo.OwnerName,
+		SubjectID:    int64(pr.Number),
+		SubjectURL:   fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pr.Number),
+		SubjectTitle: pr.Title,
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
@@ -141,14 +189,15 @@ func (s *NotificationService) NotifyIssueStateChange(ctx context.Context, repo m
 		notifType = model.NotifIssueReopened
 	}
 	n := &model.Notification{
-		ActorID:    actorID,
-		ActorName:  actorName,
-		Type:       notifType,
-		RepoID:     repo.ID,
-		RepoName:   repo.Name,
-		OwnerName:  repo.OwnerName,
-		SubjectID:  int64(issue.Number),
-		SubjectURL: fmt.Sprintf("/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Number),
+		ActorID:      actorID,
+		ActorName:    actorName,
+		Type:         notifType,
+		RepoID:       repo.ID,
+		RepoName:     repo.Name,
+		OwnerName:    repo.OwnerName,
+		SubjectID:    int64(issue.Number),
+		SubjectURL:   fmt.Sprintf("/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Number),
+		SubjectTitle: issue.Title,
 	}
 	if actorID != issue.AuthorID {
 		n.UserID = issue.AuthorID
@@ -161,14 +210,15 @@ func (s *NotificationService) NotifyIssueStateChange(ctx context.Context, repo m
 
 func (s *NotificationService) NotifyPRReview(ctx context.Context, repo model.Repository, pr model.PullRequest, actorID int64, actorName string) {
 	n := &model.Notification{
-		ActorID:    actorID,
-		ActorName:  actorName,
-		Type:       model.NotifPRReview,
-		RepoID:     repo.ID,
-		RepoName:   repo.Name,
-		OwnerName:  repo.OwnerName,
-		SubjectID:  int64(pr.Number),
-		SubjectURL: fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pr.Number),
+		ActorID:      actorID,
+		ActorName:    actorName,
+		Type:         model.NotifPRReview,
+		RepoID:       repo.ID,
+		RepoName:     repo.Name,
+		OwnerName:    repo.OwnerName,
+		SubjectID:    int64(pr.Number),
+		SubjectURL:   fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pr.Number),
+		SubjectTitle: pr.Title,
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
@@ -207,14 +257,15 @@ func (s *NotificationService) NotifyPRStateChange(ctx context.Context, repo mode
 		notifType = model.NotifPRMerged
 	}
 	n := &model.Notification{
-		ActorID:    actorID,
-		ActorName:  actorName,
-		Type:       notifType,
-		RepoID:     repo.ID,
-		RepoName:   repo.Name,
-		OwnerName:  repo.OwnerName,
-		SubjectID:  int64(pr.Number),
-		SubjectURL: fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pr.Number),
+		ActorID:      actorID,
+		ActorName:    actorName,
+		Type:         notifType,
+		RepoID:       repo.ID,
+		RepoName:     repo.Name,
+		OwnerName:    repo.OwnerName,
+		SubjectID:    int64(pr.Number),
+		SubjectURL:   fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pr.Number),
+		SubjectTitle: pr.Title,
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
@@ -252,15 +303,16 @@ func (s *NotificationService) NotifyDiscussionReply(ctx context.Context, repo mo
 		return
 	}
 	n := &model.Notification{
-		UserID:     discussion.AuthorID,
-		ActorID:    actorID,
-		ActorName:  actorName,
-		Type:       model.NotifDiscussionReply,
-		RepoID:     repo.ID,
-		RepoName:   repo.Name,
-		OwnerName:  repo.OwnerName,
-		SubjectID:  int64(discussion.Number),
-		SubjectURL: fmt.Sprintf("/%s/%s/discussions/%d", repo.OwnerName, repo.Name, discussion.Number),
+		UserID:       discussion.AuthorID,
+		ActorID:      actorID,
+		ActorName:    actorName,
+		Type:         model.NotifDiscussionReply,
+		RepoID:       repo.ID,
+		RepoName:     repo.Name,
+		OwnerName:    repo.OwnerName,
+		SubjectID:    int64(discussion.Number),
+		SubjectURL:   fmt.Sprintf("/%s/%s/discussions/%d", repo.OwnerName, repo.Name, discussion.Number),
+		SubjectTitle: discussion.Title,
 	}
 	if s.create(ctx, &repo, n) {
 		s.sendEmailAsync(*n)

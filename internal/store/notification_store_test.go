@@ -173,3 +173,63 @@ func TestNotificationStore_Create_AcceptsEveryType(t *testing.T) {
 		}
 	}
 }
+
+func TestNotificationStore_SubjectTitle_RoundTrips(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+
+	n := makeNotif(userID, actorID, repoID, owner, repo)
+	n.SubjectTitle = "Fix the flaky test"
+	if err := ns.Create(ctx, n); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	got, err := ns.ListPage(ctx, userID, store.NotifFilterInbox, 10, 0)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("ListPage: %v, %d rows", err, len(got))
+	}
+	if got[0].SubjectTitle != "Fix the flaky test" {
+		t.Errorf("SubjectTitle = %q", got[0].SubjectTitle)
+	}
+}
+
+func TestNotificationStore_ListPage_FilterAndOffset(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+
+	var ids []int64
+	for i := 1; i <= 5; i++ {
+		n := makeNotif(userID, actorID, repoID, owner, repo)
+		n.SubjectID = int64(i)
+		if err := ns.Create(ctx, n); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		ids = append(ids, n.ID)
+	}
+	if err := ns.MarkRead(ctx, ids[0], userID); err != nil {
+		t.Fatalf("MarkRead: %v", err)
+	}
+
+	for _, tc := range []struct {
+		filter string
+		want   int
+	}{
+		{store.NotifFilterInbox, 5},
+		{store.NotifFilterUnread, 4},
+		{store.NotifFilterRead, 1},
+		{"bogus", 5},
+	} {
+		got, err := ns.CountByFilter(ctx, userID, tc.filter)
+		if err != nil || got != tc.want {
+			t.Errorf("CountByFilter(%q) = %d, %v; want %d", tc.filter, got, err, tc.want)
+		}
+	}
+
+	page2, err := ns.ListPage(ctx, userID, store.NotifFilterInbox, 2, 2)
+	if err != nil {
+		t.Fatalf("ListPage: %v", err)
+	}
+	// Newest first: ids[4], ids[3] | ids[2], ids[1] | ids[0].
+	if len(page2) != 2 || page2[0].ID != ids[2] || page2[1].ID != ids[1] {
+		t.Errorf("page 2 = %+v; want ids %d, %d", page2, ids[2], ids[1])
+	}
+}

@@ -43,16 +43,19 @@ Immediate email goes only to the notification's direct recipient (the subject's 
 
 | Route / Endpoint                      | Auth     | Description                                   |
 | ------------------------------------- | -------- | --------------------------------------------- |
-| GET `/notifications`                  | Required | Notifications page (list all)                 |
+| GET `/notifications`                  | Required | Inbox, 25 per page: `?filter=inbox\|unread\|read` (unknown means inbox), `?page=N` (clamped to the last page) |
 | PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware) |
 | POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)   |
 | GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                   |
 
-HTMX responses swap `fragment-notifications-list` into `#notifications-list`.
+The mark-read endpoints take the same `?filter` and `?page`, and their HTMX responses swap `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
+
+Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text beside it; mentions, repo transfers and rows created before migration 111 have no title and show only the action text.
 
 ## NotificationService (`internal/service/notification_service.go`)
 
-- `List(ctx, userID)` → `([]Notification, error)`
+- `ListPage(ctx, userID, filter, page)` → `(NotificationPage, error)` — one page plus the inbox/unread/read counts the sidebar shows
+- `List(ctx, userID)` → `([]Notification, error)` — newest 50
 - `ListUnreadForDigest(ctx, u, mode)` → `([]Notification, error)`
 - `CountUnread(ctx, userID)` → `(int, error)`
 - `MarkRead(ctx, id, userID)` → `error`
