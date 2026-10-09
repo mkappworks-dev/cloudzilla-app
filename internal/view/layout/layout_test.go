@@ -2,12 +2,14 @@ package layout_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"testing/fstest"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
@@ -101,5 +103,36 @@ func TestBase_FooterShowsBuildVersion(t *testing.T) {
 	}
 	if !strings.Contains(page.String(), "cloudzilla / v9.9.9 <span") {
 		t.Errorf("footer lacks the build version v9.9.9")
+	}
+}
+
+func TestBase_SwitchersCapEntriesAndLinkToFullList(t *testing.T) {
+	base := view.BasePage{
+		CurrentUser: &middleware.Claims{Username: "alice"},
+		RepoSubnav:  &view.RepoSubnavInfo{OwnerName: "alice", RepoName: "r0"},
+	}
+	for i := 0; i < 12; i++ {
+		name := fmt.Sprintf("org%02d", i)
+		base.UserOrgs = append(base.UserOrgs, view.OrgEntry{Org: model.Organization{Name: name}, Role: model.OrgRoleMember})
+		repo := fmt.Sprintf("r%02d", i)
+		base.RepoSwitcher = append(base.RepoSwitcher, view.RepoRef{Name: repo, Path: "/alice/" + repo})
+	}
+	var page strings.Builder
+	if err := layout.Base(base, "Home").Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	html := page.String()
+	for _, tc := range []struct{ present, absent string }{
+		{`href="/org07"`, `href="/org08"`},
+		{`href="/alice/r07"`, `href="/alice/r08"`},
+	} {
+		if !strings.Contains(html, tc.present) || strings.Contains(html, tc.absent) {
+			t.Errorf("want %s listed and %s capped", tc.present, tc.absent)
+		}
+	}
+	for _, want := range []string{"View all 12 organizations", "View all 12 repositories", `href="/alice?tab=repositories"`} {
+		if !strings.Contains(html, want) {
+			t.Errorf("layout lacks %q", want)
+		}
 	}
 }

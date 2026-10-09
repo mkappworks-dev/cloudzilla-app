@@ -84,4 +84,4 @@ Tickets in `issues/`, in order:
 5. `04-cz-issue` — issue commands.
 6. `05-cz-pr` — PR commands.
 7. `06-cz-build-release-docs` — Makefile, Dockerfile, CI, release archive, `docs/cli.md`.
-8. `07-device-code-login` — stage 2; `needs-triage`.
+8. `07-device-code-login` — stage 2 design (approved 2026-10-09), built by `07a-device-grant-api` (server), `07b-device-approval-page` (browser) and `07c-cz-device-login` (`cz`).

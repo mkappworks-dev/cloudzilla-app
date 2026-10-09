@@ -116,6 +116,18 @@ func TestCSRF(t *testing.T) {
 		}
 	})
 
+	t.Run("device login endpoints bypass CSRF", func(t *testing.T) {
+		for _, path := range []string{"/api/auth/device/code", "/api/auth/device/token"} {
+			req := httptest.NewRequest("POST", path, strings.NewReader("scope=repo:read"))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			rec := httptest.NewRecorder()
+			csrf.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Errorf("%s returned %d, want 200", path, rec.Code)
+			}
+		}
+	})
+
 	t.Run("Bearer token bypasses CSRF", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/api/foo", nil)
 		req.Header.Set("Authorization", "Bearer valid-token-here")
