@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 Blocked by: 02
 
 Part of [spec](../spec.md). Can land with 02 or after the command tickets.

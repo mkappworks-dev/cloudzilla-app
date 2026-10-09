@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 Blocked by: none
 
 Part of [spec](../spec.md). Frees the `cz` name for the remote client and separates operator tooling from developer tooling.

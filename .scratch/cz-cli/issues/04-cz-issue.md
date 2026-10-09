@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 Blocked by: 02, 03
 
 Part of [spec](../spec.md). Blocked by 03 for the `origin`-remote default.
