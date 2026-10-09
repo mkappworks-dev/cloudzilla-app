@@ -77,13 +77,13 @@ build-backend:
 
 build-cli:
 	@mkdir -p dist
-	$(GO) build -ldflags "$(GO_LDFLAGS)" -o dist/cloudzilla-cli ./cmd/cloudzilla/.
+	$(GO) build -ldflags "$(GO_LDFLAGS)" -o dist/cz-admin ./cmd/cz-admin/.
 
 migrate:
-	$(GO) run ./cmd/cloudzilla/. migrate
+	$(GO) run ./cmd/cz-admin/. migrate
 
 seed:                              ## Fill a fresh, migrated database with test data
-	$(GO) run ./cmd/cloudzilla/. seed
+	$(GO) run ./cmd/cz-admin/. seed
 
 lint:
 	golangci-lint run ./...

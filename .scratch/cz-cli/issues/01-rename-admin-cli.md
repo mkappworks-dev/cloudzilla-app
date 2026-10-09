@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none
 
 Part of [spec](../spec.md). Frees the `cz` name for the remote client and separates operator tooling from developer tooling.
@@ -19,7 +19,7 @@ References to update: `Makefile`, `Dockerfile` (build, `COPY`, and the comment a
 - [ ] `make build` produces `dist/cz-admin`; the Docker image has `/app/cz-admin` and no `/app/cloudzilla-cli`.
 - [ ] The release archive contains `cloudzilla` and `cz-admin`.
 - [ ] `make test` passes, including the command tests moved with the directory.
-- [ ] Docs that tell an operator to run a command use `cz-admin`.
+- [x] Docs that tell an operator to run a command use `cz-admin`.
 - [ ] The PR description tells operators to update scripts and `docker compose exec` calls that use the old name.
 
 ## Comments

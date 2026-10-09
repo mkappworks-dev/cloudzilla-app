@@ -104,7 +104,7 @@ make docker-build
 make docker-run
 
 # Run migrations
-docker exec -it cloudzilla-app-cloudzilla-1 /app/cloudzilla-cli migrate
+docker exec -it cloudzilla-app-cloudzilla-1 /app/cz-admin migrate
 
 # Open http://localhost:8080 — redirects to /setup to create superadmin
 ```
@@ -144,7 +144,7 @@ make dev                # Backend + Tailwind watch on http://localhost:8080
 
 First visit redirects to `/setup` to create your superadmin account.
 
-For a populated instance to click around in, run `make seed` after `make migrate` on a fresh database instead of visiting `/setup`. It writes the repositories to `./git-repos`, where `make dev` reads them. See [`cloudzilla-cli seed`](./docs/configuration.md#cloudzilla-cli-seed).
+For a populated instance to click around in, run `make seed` after `make migrate` on a fresh database instead of visiting `/setup`. It writes the repositories to `./git-repos`, where `make dev` reads them. See [`cz-admin seed`](./docs/configuration.md#cz-admin-seed).
 
 ---
 

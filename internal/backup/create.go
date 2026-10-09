@@ -67,7 +67,7 @@ func Create(ctx context.Context, output string, stdout io.Writer, opts CreateOpt
 		return nil, err
 	}
 	if migration == "" {
-		return nil, errors.New("the database has no applied migrations: run `cloudzilla-cli migrate` first, or there is nothing to back up")
+		return nil, errors.New("the database has no applied migrations: run `cz-admin migrate` first, or there is nothing to back up")
 	}
 	connEnv, _, err := ConnEnv(opts.DSN)
 	if err != nil {

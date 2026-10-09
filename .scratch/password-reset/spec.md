@@ -94,7 +94,7 @@ Google-, LDAP- and SAML-created accounts store `password_hash = ''`. LDAP accoun
 
 - `/login` shows no **Forgot password?** link.
 - `GET`/`POST /auth/password/forgot` render "This instance can't send email. Ask an administrator for a reset link." and send nothing.
-- The admin fallback is `cloudzilla-cli password-reset-link <username>` (question 4).
+- The admin fallback is `cz-admin password-reset-link <username>` (question 4).
 
 ### Notices
 
@@ -140,7 +140,7 @@ Items marked (Qn) follow the answer to that open question (see Comments).
 - [x] A 2FA account still needs its TOTP code at the next sign-in. (Q2) The reset form also requires a TOTP or backup code; a wrong one counts against the per-user reauth limit and doesn't spend the link.
 - [x] (Q1) Personal access tokens, OAuth app grants and SSH keys keep working. The notice says so and links to settings.
 - [x] (Q3) An account without a password gets the "signs in with …" note, never a link. `IssueLink` refuses it.
-- [x] (Q4) `cloudzilla-cli password-reset-link <username>` prints a 24-hour link, works without SMTP, refuses an account without a password, and writes `user.password.reset_link` to the audit log.
+- [x] (Q4) `cz-admin password-reset-link <username>` prints a 24-hour link, works without SMTP, refuses an account without a password, and writes `user.password.reset_link` to the audit log.
 - [x] (Q5) Unverified addresses can reset, and a completed reset from an emailed link sets `email_verified_at`.
 - [x] A completed reset mails the "password was reset" notice and writes `user.password.reset` to the audit log.
 - [x] `POST /auth/password/forgot` and `POST /auth/password/reset/{token}` answer `429` past 10 requests per IP per 15 minutes.
@@ -161,7 +161,7 @@ Items marked (Qn) follow the answer to that open question (see Comments).
 - `internal/view/pages/login.templ`, `internal/view/viewmodels_auth.go` — link and `LoginData` flag; new forgot/reset pages
 - `internal/model/audit_log.go` — new action constants
 - `internal/router/router.go` — routes and rate limits
-- `cmd/cloudzilla/` — if the admin fallback includes a CLI command
+- `cmd/cz-admin/` — if the admin fallback includes a CLI command
 - `docs/access-control.md`, `docs/configuration.md`
 
 ## Open questions
@@ -170,7 +170,7 @@ Items marked (Qn) follow the answer to that open question (see Comments).
 2. **Ask for the TOTP code on the reset form too?** Recommendation: yes, for 2FA accounts (a TOTP or backup code). Without it, someone who controls only the mailbox can change the password and sign the owner out everywhere, even though they still can't sign in. The owner then has to reset back. A 2FA user who forgot only the password still has the code. One who lost both needs the admin fallback either way.
 3. **Accounts without a password (Google, LDAP, SAML)?** Recommendation: never reset or add a password. Mail a note naming the sign-in method instead. A local password on an SSO account would survive deprovisioning at the IdP, and settings already refuses to add one for the same reason.
 4. **Admin fallback when SMTP is off?** Options:
-   - (a) A CLI command (`cloudzilla-cli` subcommand) that prints a 24-hour link for a username.
+   - (a) A CLI command (`cz-admin` subcommand) that prints a 24-hour link for a username.
    - (b) A "Generate reset link" action for superadmins in the admin UI, copied and passed on like an invite.
    - (c) Both.
 
@@ -184,7 +184,7 @@ Claude, 2026-10-06: The user chose the recommended option for questions 1–4:
 1. A reset ends sessions only. The notice says personal access tokens, SSH keys and authorized apps still work, and links to their settings.
 2. 2FA accounts must also enter a TOTP or backup code on the reset form.
 3. Accounts without a password get a "signs in with …" note and never a link. `IssueLink` refuses them.
-4. The admin fallback is a CLI subcommand, `cloudzilla-cli password-reset-link <username>`, which prints a 24-hour link. The admin UI button is left to the admin-user-management work, which can call `IssueLink`. A user who lost their authenticator is out of scope.
+4. The admin fallback is a CLI subcommand, `cz-admin password-reset-link <username>`, which prints a 24-hour link. The admin UI button is left to the admin-user-management work, which can call `IssueLink`. A user who lost their authenticator is out of scope.
 
 Claude, 2026-10-06: The user chose the recommended option for question 5: unverified addresses get the link, and a completed reset sets `email_verified_at`. An address that is already verified keeps its original timestamp.
 

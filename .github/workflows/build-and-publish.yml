@@ -89,7 +89,7 @@ jobs:
           go build -ldflags="-s -w -X main.version=${TAG}" \
             -o "dist/cloudzilla" ./cmd/server/.
           go build -ldflags="-s -w -X main.version=${TAG}" \
-            -o "dist/cloudzilla-cli" ./cmd/cloudzilla/.
+            -o "dist/cz-admin" ./cmd/cz-admin/.
 
       - name: Package archive
         env:
@@ -98,7 +98,7 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           ARCHIVE="cloudzilla_${TAG}_${GOOS}_${GOARCH}.tar.gz"
-          tar -C dist -czf "${ARCHIVE}" cloudzilla cloudzilla-cli
+          tar -C dist -czf "${ARCHIVE}" cloudzilla cz-admin
           sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
           echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
 

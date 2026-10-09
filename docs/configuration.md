@@ -180,7 +180,7 @@ environment:
   CZ_SMTP_TLS: "true"
 ```
 
-Verification and password reset links point at `server.base_url`, so set it to the public URL. Without SMTP, nobody can reset a forgotten password from `/login`; a superadmin issues a link from `/admin/users/{username}` or prints one with [`cloudzilla-cli password-reset-link`](#cloudzilla-cli-password-reset-link). Without SMTP, addresses stay unverified, which keeps Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from `/admin/settings`. See [Email Verification](./access-control.md#email-verification).
+Verification and password reset links point at `server.base_url`, so set it to the public URL. Without SMTP, nobody can reset a forgotten password from `/login`; a superadmin issues a link from `/admin/users/{username}` or prints one with [`cz-admin password-reset-link`](#cz-admin-password-reset-link). Without SMTP, addresses stay unverified, which keeps Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from `/admin/settings`. See [Email Verification](./access-control.md#email-verification).
 
 ### Persistent Data (Docker volumes)
 
@@ -201,12 +201,12 @@ Verification and password reset links point at `server.base_url`, so set it to t
 make build
 ```
 
-Produces `dist/cloudzilla` (HTTP server) and `dist/cloudzilla-cli` (admin CLI). No Node.js required -- the binary embeds all templates and compiled CSS.
+Produces `dist/cloudzilla` (HTTP server) and `dist/cz-admin` (admin CLI). No Node.js required -- the binary embeds all templates and compiled CSS.
 
 ### 2. Copy to server
 
 ```bash
-scp dist/cloudzilla dist/cloudzilla-cli user@yourserver:/usr/local/bin/
+scp dist/cloudzilla dist/cz-admin user@yourserver:/usr/local/bin/
 ```
 
 ### 3. Create directories and config
@@ -229,7 +229,7 @@ This key is stable -- clients store its fingerprint in `~/.ssh/known_hosts`. Rep
 ### 5. Run migrations
 
 ```bash
-cloudzilla-cli migrate --config /etc/cloudzilla/config.yaml
+cz-admin migrate --config /etc/cloudzilla/config.yaml
 ```
 
 ### 6. Create the superadmin account
@@ -280,18 +280,18 @@ SSH git traffic (port 2222) bypasses the reverse proxy -- open that port directl
 
 All commands accept `--config <path>` to override the default config file location.
 
-### `cloudzilla-cli migrate`
+### `cz-admin migrate`
 
 Run pending database migrations.
 
 ```bash
-cloudzilla-cli migrate
-cloudzilla-cli migrate --config /etc/cloudzilla/config.yaml
+cz-admin migrate
+cz-admin migrate --config /etc/cloudzilla/config.yaml
 ```
 
 Migrations are embedded in the binary and run in order. Safe to run repeatedly -- already-applied migrations are skipped.
 
-### `cloudzilla-cli seed`
+### `cz-admin seed`
 
 Fill a fresh instance with test data for manual testing: a superadmin (`siteadmin`, `admin@example.test`), 100 users, 10 organizations and 150 repositories with a year of backdated git history, plus issues, pull requests, reviews, discussions, releases, stars and gists. The default size takes under a minute.
 
@@ -322,7 +322,7 @@ make migrate && make seed
 make dev
 ```
 
-`make seed` uses the default size; for another, run `cloudzilla-cli seed` (or `go run ./cmd/cloudzilla/. seed`) with the flags below. Run the server with the seed's `server.base_url`: commit authors use noreply addresses built from it.
+`make seed` uses the default size; for another, run `cz-admin seed` (or `go run ./cmd/cz-admin/. seed`) with the flags below. Run the server with the seed's `server.base_url`: commit authors use noreply addresses built from it.
 
 | Flag         | Default           | Meaning                                         |
 | ------------ | ----------------- | ----------------------------------------------- |
@@ -334,33 +334,33 @@ make dev
 
 SMTP is switched off for the run, so the notifications it creates send no email.
 
-### `cloudzilla-cli password-reset-link`
+### `cz-admin password-reset-link`
 
 Print a single-use link that lets a user choose a new password, for when the instance can't send email or the user can't receive it. It works for 24 hours and replaces any link the user already has.
 
 ```bash
-cloudzilla-cli password-reset-link alice --config /etc/cloudzilla/config.yaml
+cz-admin password-reset-link alice --config /etc/cloudzilla/config.yaml
 ```
 
-The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. It also refuses a suspended account: unsuspend it first. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link; if those are lost too, run [`reset-2fa`](#cloudzilla-cli-reset-2fa) first. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
+The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. It also refuses a suspended account: unsuspend it first. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link; if those are lost too, run [`reset-2fa`](#cz-admin-reset-2fa) first. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
 
-### `cloudzilla-cli reset-2fa`
+### `cz-admin reset-2fa`
 
 Turn off two-factor authentication for a user who has lost their authenticator and backup codes, such as a sole superadmin with no other admin to reset it from `/admin/users`.
 
 ```bash
-cloudzilla-cli reset-2fa alice --config /etc/cloudzilla/config.yaml
+cz-admin reset-2fa alice --config /etc/cloudzilla/config.yaml
 ```
 
 It clears the TOTP secret, flag and backup codes through the same code as the admin `reset-2fa` action, records `admin.user.2fa_reset` in the audit log with no actor ID and the actor name `cloudzilla-cli`, and mails the user the same security notice when SMTP is configured. A failed notice prints a warning but doesn't undo the reset. It doesn't sign the user out or touch their password, and doesn't revoke a password reset link already issued. For a user without 2FA, it says so and changes nothing. A suspended account is reset but stays suspended. See [Two-factor authentication](./access-control.md#two-factor-authentication).
 
-### `cloudzilla-cli backup`
+### `cz-admin backup`
 
 Write the database, repositories, local storage root and SSH host key to one tar archive (mode 0600).
 
 ```bash
-cloudzilla-cli backup --output /backups/cloudzilla.tar
-cloudzilla-cli backup --output - | zstd > cloudzilla.tar.zst
+cz-admin backup --output /backups/cloudzilla.tar
+cz-admin backup --output - | zstd > cloudzilla.tar.zst
 ```
 
 | Flag | Default | Meaning |
@@ -370,13 +370,13 @@ cloudzilla-cli backup --output - | zstd > cloudzilla.tar.zst
 
 It fails before writing anything when `pg_dump` is missing or older than the server. The archive holds secrets: store it encrypted. See [Backup and restore](./deployment.md#backup-and-restore).
 
-### `cloudzilla-cli restore`
+### `cz-admin restore`
 
 Rebuild an empty instance from a backup archive.
 
 ```bash
-cloudzilla-cli restore --input /backups/cloudzilla.tar
-zstd -dc cloudzilla.tar.zst | cloudzilla-cli restore --input -
+cz-admin restore --input /backups/cloudzilla.tar
+zstd -dc cloudzilla.tar.zst | cz-admin restore --input -
 ```
 
 | Flag | Default | Meaning |

@@ -119,7 +119,7 @@ jobs:
         run: go build -o dist/cloudzilla ./cmd/server/.
 
       - name: Build CLI binary
-        run: go build -o dist/cloudzilla-cli ./cmd/cloudzilla/.
+        run: go build -o dist/cz-admin ./cmd/cz-admin/.
 
       - name: Upload binaries
         uses: actions/upload-artifact@v7
