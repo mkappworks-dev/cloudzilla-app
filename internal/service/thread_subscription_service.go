@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -80,6 +81,23 @@ func (s *ThreadSubscriptionService) SubscribedUsers(ctx context.Context, repoID 
 // MutedUsers returns the users with a muted row on the thread.
 func (s *ThreadSubscriptionService) MutedUsers(ctx context.Context, repoID int64, kind string, number int64) ([]int64, error) {
 	return s.threads.ListByThread(ctx, repoID, kind, number, model.ThreadStateMuted)
+}
+
+// threadAutoSubscriber is the part of ThreadSubscriptionService that the services
+// where users participate in a thread depend on.
+type threadAutoSubscriber interface {
+	AutoSubscribe(ctx context.Context, userID, repoID int64, kind string, number int64, reason string) error
+}
+
+// autoSubscribe records userID's participation in a thread. A failed write is
+// logged, not returned: participating must not fail over a subscription.
+func autoSubscribe(ctx context.Context, sub threadAutoSubscriber, userID, repoID int64, kind string, number int, reason string) {
+	if sub == nil {
+		return
+	}
+	if err := sub.AutoSubscribe(ctx, userID, repoID, kind, int64(number), reason); err != nil {
+		slog.Error("failed to auto-subscribe", "user_id", userID, "repo_id", repoID, "kind", kind, "number", number, "reason", reason, "error", err)
+	}
 }
 
 func checkThreadKind(kind string) error {

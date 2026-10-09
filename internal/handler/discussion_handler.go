@@ -514,7 +514,7 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		replyBody, parentID = body.Body, body.ParentID
 	}
 
-	reply, err := h.Services.Discussion.CreateReply(r.Context(), discussion.ID, claims.UserID, claims.Username, replyBody, parentID)
+	reply, err := h.Services.Discussion.CreateReply(r.Context(), *discussion, claims.UserID, claims.Username, replyBody, parentID)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

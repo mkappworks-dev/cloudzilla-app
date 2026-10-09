@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 ## What
@@ -13,10 +13,10 @@ Failures are logged and never fail the request.
 
 ## Acceptance criteria
 
-- [ ] Each action above creates a `subscribed` row with the right reason for the right user.
-- [ ] A second action on the same thread keeps the first reason.
-- [ ] Acting on a thread the user has muted leaves it muted.
-- [ ] A failing subscription write doesn't fail the request (test with a stubbed error).
+- [x] Each action above creates a `subscribed` row with the right reason for the right user.
+- [x] A second action on the same thread keeps the first reason.
+- [x] Acting on a thread the user has muted leaves it muted.
+- [x] A failing subscription write doesn't fail the request (test with a stubbed error).
 
 ## Comments
 
@@ -39,10 +39,10 @@ Creating an issue, pull request or discussion subscribes the author (reason `aut
 - The thread-subscription service's auto-subscribe operation, called from the issue, PR, discussion, comment, review and assignee services.
 
 **Acceptance criteria:**
-- [ ] Each action creates a subscribed row with the right reason for the right user.
-- [ ] A later action by the same user on the same thread keeps the original reason.
-- [ ] Acting on a muted thread leaves it muted.
-- [ ] A forced subscription error doesn't change the request's result (tested).
+- [x] Each action creates a subscribed row with the right reason for the right user.
+- [x] A later action by the same user on the same thread keeps the original reason.
+- [x] Acting on a muted thread leaves it muted.
+- [x] A forced subscription error doesn't change the request's result (tested).
 
 **Out of scope:**
 - Mentions.

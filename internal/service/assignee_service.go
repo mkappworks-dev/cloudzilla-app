@@ -15,11 +15,18 @@ type AssigneeService struct {
 	issues    *store.IssueStore
 	pulls     *store.PullStore
 	users     *store.UserStore
+	threads   threadAutoSubscriber
 }
 
 // NewAssigneeService creates an AssigneeService backed by the given stores.
 func NewAssigneeService(assignees *store.AssigneeStore, repos *store.RepoStore, issues *store.IssueStore, pulls *store.PullStore, users *store.UserStore) *AssigneeService {
 	return &AssigneeService{assignees: assignees, repos: repos, issues: issues, pulls: pulls, users: users}
+}
+
+// WithThreadSubscriptions makes participation subscribe the user to the thread.
+func (s *AssigneeService) WithThreadSubscriptions(t threadAutoSubscriber) *AssigneeService {
+	s.threads = t
+	return s
 }
 
 func (s *AssigneeService) AddToIssue(ctx context.Context, owner, repoName string, issueNumber int, username string) error {
@@ -35,7 +42,11 @@ func (s *AssigneeService) AddToIssue(ctx context.Context, owner, repoName string
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)
 	}
-	return s.assignees.AddToIssue(ctx, issue.ID, user.ID)
+	if err := s.assignees.AddToIssue(ctx, issue.ID, user.ID); err != nil {
+		return err
+	}
+	autoSubscribe(ctx, s.threads, user.ID, repo.ID, model.ThreadKindIssue, issue.Number, model.ThreadReasonAssign)
+	return nil
 }
 
 func (s *AssigneeService) RemoveFromIssue(ctx context.Context, owner, repoName string, issueNumber int, username string) error {
@@ -71,7 +82,11 @@ func (s *AssigneeService) AddToPull(ctx context.Context, owner, repoName string,
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)
 	}
-	return s.assignees.AddToPull(ctx, pull.ID, user.ID)
+	if err := s.assignees.AddToPull(ctx, pull.ID, user.ID); err != nil {
+		return err
+	}
+	autoSubscribe(ctx, s.threads, user.ID, repo.ID, model.ThreadKindPull, pull.Number, model.ThreadReasonAssign)
+	return nil
 }
 
 func (s *AssigneeService) RemoveFromPull(ctx context.Context, owner, repoName string, pullNumber int, username string) error {

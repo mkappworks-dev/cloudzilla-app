@@ -27,11 +27,18 @@ type PullService struct {
 	userStore     *store.UserStore
 	mentions      *store.MentionStore
 	issues        *store.IssueStore
+	threads       threadAutoSubscriber
 }
 
 // NewPullService creates a PullService backed by the given stores.
 func NewPullService(pulls *store.PullStore, repos *store.RepoStore, repoSvc *RepoService) *PullService {
 	return &PullService{pulls: pulls, repos: repos, repoSvc: repoSvc}
+}
+
+// WithThreadSubscriptions makes participation subscribe the user to the thread.
+func (s *PullService) WithThreadSubscriptions(t threadAutoSubscriber) *PullService {
+	s.threads = t
+	return s
 }
 
 // WithIssueStore lets the service keep links to the issues a PR's closing
@@ -185,6 +192,7 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 	if err := s.pulls.Create(ctx, pr); err != nil {
 		return nil, err
 	}
+	autoSubscribe(ctx, s.threads, authorID, repo.ID, model.ThreadKindPull, pr.Number, model.ThreadReasonAuthor)
 	s.syncKeywordLinks(ctx, repo, pr, authorID, targets)
 	if s.code != nil {
 		if headCommit, _, resolveErr := s.code.ResolveRef(owner, repoName, head); resolveErr == nil && headCommit != nil {
