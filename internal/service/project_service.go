@@ -212,13 +212,8 @@ func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, us
 		Note:     d.Description,
 		DueDate:  d.DueDate,
 	}
-	if err := s.projects.CreateCard(ctx, card); err != nil {
+	if err := s.projects.CreateCardWithPeople(ctx, card, d.AssigneeIDs, d.LabelIDs); err != nil {
 		return nil, err
-	}
-	if len(d.AssigneeIDs) > 0 || len(d.LabelIDs) > 0 {
-		if err := s.projects.SetCardDetails(ctx, card.ID, projectID, d); err != nil {
-			return nil, err
-		}
 	}
 	if err := s.projects.TouchProject(ctx, projectID); err != nil {
 		log.Printf("TouchProject(%d): %v", projectID, err)

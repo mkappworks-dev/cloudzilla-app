@@ -344,6 +344,37 @@ func TestProjects_CardDetails(t *testing.T) {
 	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d,"title":"x"}`, col)), http.StatusCreated)
 	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID)), http.StatusCreated)
 	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d}`, col)), http.StatusBadRequest)
+
+	rr := post(fmt.Sprintf(`{"column_id":%d,"title":"full","description":"desc","assignee_ids":[%d],"label_ids":[%d]}`, col, e.writer.id, label))
+	wantStatus(t, rr, http.StatusCreated)
+	var created struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE id = $1 AND title = 'full' AND note = 'desc'`, created.ID); n != 1 {
+		t.Errorf("created card rows = %d, want 1", n)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1 AND user_id = $2`, created.ID, e.writer.id); n != 1 {
+		t.Errorf("assignee rows = %d, want 1", n)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_labels WHERE card_id = $1 AND label_id = $2`, created.ID, label); n != 1 {
+		t.Errorf("label rows = %d, want 1", n)
+	}
+
+	rr = post(fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID))
+	wantStatus(t, rr, http.StatusCreated)
+	var linkedCard struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &linkedCard); err != nil {
+		t.Fatal(err)
+	}
+	linkedTarget := e.path("/projects/%d/cards/%d/details", p, linkedCard.ID)
+	wantStatus(t, e.do(t, patch(e.writer.token, linkedTarget, fmt.Sprintf(`{"title":"","issue_id":%d}`, issueID))), http.StatusNoContent)
+	wantStatus(t, e.do(t, patch(e.writer.token, linkedTarget, fmt.Sprintf(`{"title":"named","issue_id":%d}`, issueID))), http.StatusNoContent)
+	wantStatus(t, e.do(t, patch(e.writer.token, linkedTarget, fmt.Sprintf(`{"title":" ","issue_id":%d}`, issueID))), http.StatusBadRequest)
 }
 
 func TestProjects_CardTargets(t *testing.T) {

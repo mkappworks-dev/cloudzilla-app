@@ -45,6 +45,38 @@ func TestProjectStore_CreateCard_TitleRoundTrips(t *testing.T) {
 	}
 }
 
+func TestProjectStore_CreateCardWithPeople(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	_, cols := seedProjectWithColumns(t, db, repoID, []string{"todo"})
+	s := store.NewProjectStore(db)
+	ctx := context.Background()
+	var labelID int64
+	if err := db.QueryRow(`INSERT INTO labels (repo_id, name) VALUES ($1, 'bug') RETURNING id`, repoID).Scan(&labelID); err != nil {
+		t.Fatal(err)
+	}
+
+	card := &model.ProjectCard{ColumnID: cols[0], Title: "ok"}
+	if err := s.CreateCardWithPeople(ctx, card, []int64{ownerID}, []int64{labelID}); err != nil {
+		t.Fatalf("CreateCardWithPeople: %v", err)
+	}
+	var people int
+	if err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM card_assignees WHERE card_id = $1) + (SELECT COUNT(*) FROM card_labels WHERE card_id = $1)`, card.ID).Scan(&people); err != nil || people != 2 {
+		t.Fatalf("join rows = %d, %v; want 2", people, err)
+	}
+
+	bad := &model.ProjectCard{ColumnID: cols[0], Title: "rolled back"}
+	if err := s.CreateCardWithPeople(ctx, bad, []int64{-1}, nil); err == nil {
+		t.Fatal("want FK error for unknown assignee")
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM project_cards WHERE column_id = $1 AND title = 'rolled back'`, cols[0]).Scan(&n); err != nil || n != 0 {
+		t.Errorf("card rows after failure = %d, %v; want 0", n, err)
+	}
+}
+
 func TestProjectStore_CreateCard_LinkedWithTitleAccepted(t *testing.T) {
 	db := openStoreDB(t)
 	suffix := testutil.UniqueSuffix(t)

@@ -191,16 +191,49 @@ func (s *ProjectStore) DeleteColumn(ctx context.Context, id, projectID int64) er
 // --- Cards ---
 
 func (s *ProjectStore) CreateCard(ctx context.Context, card *model.ProjectCard) error {
+	return s.CreateCardWithPeople(ctx, card, nil, nil)
+}
+
+// CreateCardWithPeople inserts the card and its assignee and label rows in one transaction.
+func (s *ProjectStore) CreateCardWithPeople(ctx context.Context, card *model.ProjectCard, assigneeIDs, labelIDs []int64) error {
 	if card.Title == "" && card.IssueID == nil && card.PullID == nil {
 		card.Title, card.Note = splitNote(card.Note)
 	}
-	return s.db.QueryRowContext(ctx,
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO project_cards (column_id, issue_id, pull_id, title, note, due_date, position)
 		 VALUES ($1, $2, $3, $4, $5, $6,
 		         COALESCE((SELECT MAX(position)+1 FROM project_cards WHERE column_id = $1), 0))
 		 RETURNING id, position, created_at`,
 		card.ColumnID, nullInt64(card.IssueID), nullInt64(card.PullID), card.Title, card.Note, nullDate(card.DueDate),
 	).Scan(&card.ID, &card.Position, &card.CreatedAt)
+	if err != nil {
+		return err
+	}
+	if err := insertCardPeople(ctx, tx, card.ID, assigneeIDs, labelIDs); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func insertCardPeople(ctx context.Context, tx *sql.Tx, cardID int64, assigneeIDs, labelIDs []int64) error {
+	for _, id := range assigneeIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO card_assignees (card_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, cardID, id); err != nil {
+			return err
+		}
+	}
+	for _, id := range labelIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO card_labels (card_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, cardID, id); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 const cardTitleMax = 120
@@ -255,20 +288,11 @@ func (s *ProjectStore) SetCardDetails(ctx context.Context, cardID, projectID int
 	if _, err := tx.ExecContext(ctx, `DELETE FROM card_assignees WHERE card_id = $1`, cardID); err != nil {
 		return err
 	}
-	for _, id := range d.AssigneeIDs {
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO card_assignees (card_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, cardID, id); err != nil {
-			return err
-		}
-	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM card_labels WHERE card_id = $1`, cardID); err != nil {
 		return err
 	}
-	for _, id := range d.LabelIDs {
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO card_labels (card_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, cardID, id); err != nil {
-			return err
-		}
+	if err := insertCardPeople(ctx, tx, cardID, d.AssigneeIDs, d.LabelIDs); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
