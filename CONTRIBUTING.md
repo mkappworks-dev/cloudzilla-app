@@ -81,12 +81,12 @@ claude plugin install mattpocock-skills@claude-plugins-official
 
 Then work through the chain:
 
-| Step | Command       | What it does                                                                         | Output                                         |
-| ---- | ------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------- |
-| 1    | `/to-spec`    | Turns the conversation into a spec                                                   | `.scratch/<date>-<slug>/spec.md`               |
-| 2    | `/to-tickets` | Splits the spec into tickets, each listing the tickets that block it                 | `.scratch/<date>-<slug>/issues/<NN>-<slug>.md` |
-| 3    | `/triage`     | Moves a ticket through the triage roles; use it on anything not already triaged     | `Status:` line updated                         |
-| 4    | `/implement`  | Builds from a ticket, test-first via `/tdd` where it can; does not ask for a plan    | Code and tests                                 |
+| Step | Command       | What it does                                                                      | Output                                         |
+| ---- | ------------- | --------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1    | `/to-spec`    | Turns the conversation into a spec                                                | `.scratch/<date>-<slug>/spec.md`               |
+| 2    | `/to-tickets` | Splits the spec into tickets, each listing the tickets that block it              | `.scratch/<date>-<slug>/issues/<NN>-<slug>.md` |
+| 3    | `/triage`     | Moves a ticket through the triage roles; use it on anything not already triaged   | `Status:` line updated                         |
+| 4    | `/implement`  | Builds from a ticket, test-first via `/tdd` where it can; does not ask for a plan | Code and tests                                 |
 
 - `/to-spec` and `/to-tickets` output is already `ready-for-agent`. Run `/triage` on anything else: a bug, a rough idea, or a ticket with no `Status:`.
 - `/implement` takes only `ready-for-agent` tickets whose `Blocked by` tickets are all `done`.
@@ -97,14 +97,14 @@ Then work through the chain:
 
 Use conventional commit prefixes for all commit messages:
 
-| Prefix       | Usage                                      |
-| ------------ | ------------------------------------------ |
-| `feat:`      | New feature                                |
-| `fix:`       | Bug fix                                    |
-| `docs:`      | Documentation changes                      |
-| `refactor:`  | Code restructuring without behavior change |
-| `test:`      | Adding or updating tests                   |
-| `chore:`     | Build, CI, dependency, or tooling changes  |
+| Prefix      | Usage                                      |
+| ----------- | ------------------------------------------ |
+| `feat:`     | New feature                                |
+| `fix:`      | Bug fix                                    |
+| `docs:`     | Documentation changes                      |
+| `refactor:` | Code restructuring without behavior change |
+| `test:`     | Adding or updating tests                   |
+| `chore:`    | Build, CI, dependency, or tooling changes  |
 
 **Examples:**
 
