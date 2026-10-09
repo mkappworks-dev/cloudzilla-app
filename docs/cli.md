@@ -13,19 +13,33 @@ The server archive and Docker image don't include `cz`.
 ## Logging in
 
 ```bash
-cz auth login --host https://git.example.com        # prompts for a token
+cz auth login --host https://git.example.com                   # approve in the browser
+cz auth login --host https://git.example.com --scope repo:read # ask for less
 echo "$TOKEN" | cz auth login --host https://git.example.com --with-token
 cz auth status
 cz auth logout
 ```
 
-Create a personal access token under your account settings, with the scopes from [the table below](#scopes-per-command). `login` verifies the token with one call to `GET /api/user` before saving it, and prints the host, user and where the token went.
+`login` runs the device flow (RFC 8628) by default. It prints a one-time code and the URL `<host>/login/device`, you sign in there in a browser (2FA works) and type the code, and `cz` stores the personal access token the server then issues. Like the `--with-token` path, it verifies the token with one call to `GET /api/user` before saving it, and prints the host, user and where the token went.
 
-| Flag                 | Effect                                                             |
-| -------------------- | ------------------------------------------------------------------ |
-| `--host URL`         | The Cloudzilla URL; `CZ_HOST` is used when omitted                 |
-| `--with-token`       | Read the token from stdin (required when stdin isn't a terminal)   |
-| `--insecure-storage` | Store the token in a `0600` file instead of the OS keychain        |
+What `cz` shows and does:
+
+- The code (`XXXX-XXXX`) and the URL go to stderr, always. The code is never part of a URL: you read it from your terminal and type it, so a link someone sends you can't skip that check.
+- The code is copied to the clipboard where a tool exists (`pbcopy`, `wl-copy`, `xclip`, `xsel`, `clip.exe`), silently otherwise.
+- The plain URL is opened in your browser only when stdin and stdout are both terminals and `--no-browser` isn't set.
+- Nothing is read from stdin, so it works headless and over SSH: open the URL on any machine, sign in, and type the code. `cz` polls until you approve, deny or the code expires (15 minutes), or you press Ctrl-C. Nothing is stored unless the login succeeds.
+
+The token is a normal personal access token named `cz (<hostname>) · <date>`, with no expiry. It appears under Settings, Access tokens, where you can revoke it. It asks for `repo:write` by default (the scope that admits merging, creating and forking repositories and pushing); the approval page lets you untick scopes but never add any. `repo:admin` can't be requested this way: create that token under Settings and use `--with-token`.
+
+An older server without the endpoint answers `404`, and `cz` points you to `--with-token`. In that case, create a personal access token under your account settings with the scopes from [the table below](#scopes-per-command) and pipe it in.
+
+| Flag                 | Effect                                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--host URL`         | The Cloudzilla URL; `CZ_HOST` is used when omitted                                                          |
+| `--scope S`          | Scope to request: `repo:read`, `repo:write`, `issues:write`, `pulls:write`. Repeatable or space-separated; default `repo:write` |
+| `--no-browser`       | Print the URL and code without opening a browser                                                            |
+| `--with-token`       | Skip the browser: read a personal access token from stdin                                                   |
+| `--insecure-storage` | Store the token in a `0600` file instead of the OS keychain                                                 |
 
 `cz auth status` fails when nobody is logged in.
 
