@@ -482,7 +482,7 @@ The repository's Checks tab (`/{owner}/{repo}/checks`) lists the commits with re
 
 `POST .../cards` takes `column_id` plus the card fields; `PATCH .../cards/:cardID/details` takes the same fields without `column_id` and replaces all of them:
 `title`, `description`, `due_date` (`YYYY-MM-DD` or empty), `assignee_ids`, `label_ids`, and at most one of `issue_id`/`pull_id`.
-A card needs a non-empty `title` unless it is a bare issue/PR link. Assignees must be the repo owner or a collaborator and labels must belong to the repo, else 400; an issue or PR from another repo is 404.
+A card needs a non-empty `title` unless it is a bare issue/PR link. Assignees must be the repo owner or a collaborator and labels must belong to the repo, else 400; an issue or PR from another repo is 404. `due_date` must fall in years 0001-9999. A card holds at most 65536 bytes of `description`, 50 `assignee_ids` and 50 `label_ids`; going over any of them is a 400. A card may keep an assignee who has since left the repo, but cannot gain one.
 
 ## Wiki
 

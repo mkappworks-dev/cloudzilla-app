@@ -1494,7 +1494,7 @@ DELETE     /api/repos/{owner}/{repo}/projects/{id}/cards/{cardID}   (authMW)
 
 **Page names to register:** `"projects"`, `"project_detail"`
 
-**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `111`), `#N` autolinks in descriptions, convert-to-issue and a side-panel editor; see the card API in [api-reference](./api-reference.md#projects-kanban).
+**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `113`), `#N` autolinks in descriptions, convert-to-issue and a side-panel editor; see the card API in [api-reference](./api-reference.md#projects-kanban).
 
 **Wire up:**
 

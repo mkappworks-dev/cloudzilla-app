@@ -308,6 +308,8 @@ func TestProjects_CardDetails(t *testing.T) {
 		{"issue of another repo", patch(e.writer.token, target, fmt.Sprintf(`{"title":"t","issue_id":%d}`, foreignIssue)), http.StatusNotFound},
 		{"card of another project", patch(e.writer.token, e.path("/projects/%d/cards/%d/details", other, note), body), http.StatusNotFound},
 		{"bad due date", patch(e.writer.token, target, `{"title":"t","due_date":"31/12"}`), http.StatusBadRequest},
+		{"oversized description", patch(e.writer.token, target, `{"title":"t","description":"`+strings.Repeat("a", 65537)+`"}`), http.StatusBadRequest},
+		{"too many labels", patch(e.writer.token, target, `{"title":"t","label_ids":[`+strings.Repeat("1,", 50)+`1]}`), http.StatusBadRequest},
 		{"due date before year 1", patch(e.writer.token, target, `{"title":"t","due_date":"0000-01-01"}`), http.StatusBadRequest},
 		{"create with due date before year 1", metaReq{method: "POST", target: e.path("/projects/%d/cards", p), token: e.writer.token,
 			json: fmt.Sprintf(`{"column_id":%d,"title":"t","due_date":"0000-12-31"}`, col)}, http.StatusBadRequest},

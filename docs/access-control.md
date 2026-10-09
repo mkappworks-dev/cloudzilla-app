@@ -729,6 +729,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | DELETE | `.../projects/{id}`                 | authMW | CanManage (service) | DeleteProject     |
 | POST   | `.../projects/{id}/columns`         | authMW | CanWrite (service)  | CreateColumn      |
 | DELETE | `.../projects/{id}/columns/{colID}` | authMW | CanWrite (service)  | DeleteColumn      |
+| GET    | `.../projects/{id}/card-targets`    | authMW | CanWrite (service)  | SearchCardTargets |
 | POST   | `.../projects/{id}/cards`           | authMW | CanWrite (service)  | CreateCard        |
 | PATCH  | `.../projects/{id}/cards/{cardID}`  | authMW | CanWrite (service)  | MoveCard          |
 | PATCH  | `.../projects/{id}/cards/{cardID}/details` | authMW | CanWrite (service) | UpdateCardDetails |

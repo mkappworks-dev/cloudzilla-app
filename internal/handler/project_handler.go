@@ -535,7 +535,8 @@ func writeProjectError(w http.ResponseWriter, err error) {
 	}
 	if errors.Is(err, service.ErrNotConvertible) || errors.Is(err, service.ErrTitleTooLong) ||
 		errors.Is(err, service.ErrInvalidPosition) || errors.Is(err, service.ErrInvalidCard) ||
-		errors.Is(err, service.ErrInvalidAssignee) || errors.Is(err, service.ErrInvalidLabel) {
+		errors.Is(err, service.ErrInvalidAssignee) || errors.Is(err, service.ErrInvalidLabel) ||
+		errors.Is(err, service.ErrDescriptionTooLong) || errors.Is(err, service.ErrTooManyAssignees) || errors.Is(err, service.ErrTooManyLabels) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}

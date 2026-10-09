@@ -24,9 +24,18 @@ var ErrForbidden = errors.New("forbidden")
 var ErrCardTargetNotFound = errors.New("issue or pull request not found in this repository")
 
 var (
-	ErrInvalidCard     = errors.New("invalid card")
-	ErrInvalidAssignee = errors.New("assignee must be the owner or a collaborator")
-	ErrInvalidLabel    = errors.New("label does not belong to this repository")
+	ErrInvalidCard        = errors.New("invalid card")
+	ErrInvalidAssignee    = errors.New("assignee must be the owner or a collaborator")
+	ErrInvalidLabel       = errors.New("label does not belong to this repository")
+	ErrDescriptionTooLong = fmt.Errorf("description must be at most %d bytes", MaxCardDescriptionBytes)
+	ErrTooManyAssignees   = fmt.Errorf("a card takes at most %d assignees", MaxCardAssignees)
+	ErrTooManyLabels      = fmt.Errorf("a card takes at most %d labels", MaxCardLabels)
+)
+
+const (
+	MaxCardDescriptionBytes = 65536
+	MaxCardAssignees        = 50
+	MaxCardLabels           = 50
 )
 
 // ErrInvalidPosition re-exports the store sentinel so handlers map it to 400.
@@ -246,6 +255,14 @@ func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Reposi
 	}
 	if len([]rune(d.Title)) > MaxTitleLen {
 		return ErrInvalidCard
+	}
+	switch {
+	case len(d.Description) > MaxCardDescriptionBytes:
+		return ErrDescriptionTooLong
+	case len(d.AssigneeIDs) > MaxCardAssignees:
+		return ErrTooManyAssignees
+	case len(d.LabelIDs) > MaxCardLabels:
+		return ErrTooManyLabels
 	}
 	inRepo, err := s.projects.CardTargetsInRepo(ctx, repo.ID, d.IssueID, d.PullID)
 	if err != nil {
