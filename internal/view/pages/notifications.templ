@@ -248,6 +248,14 @@ func notifSelectData(total int) string {
 		"all(on) { $root.querySelectorAll('input[name=ids]').forEach(c => c.checked = on); this.count() } }"
 }
 
+// notifUnsubscribeBlocked is the tooltip on a disabled Unsubscribe button.
+func notifUnsubscribeBlocked(n model.Notification) string {
+	if n.Type == model.NotifRepoTransfer {
+		return "A repository transfer has no watch to unsubscribe from"
+	}
+	return "You're not watching " + n.OwnerName + "/" + n.RepoName
+}
+
 const notifIconBtnClass = "size-7 grid place-items-center border border-border rounded-md bg-card text-muted-foreground hover:text-foreground hover:bg-accent"
 
 templ notifRow(n model.Notification, filter string, page int, watched bool) {
@@ -302,6 +310,16 @@ templ notifRow(n model.Notification, filter string, page int, watched bool) {
 							hx-vals={ `{"ids":"` + strconv.FormatInt(n.ID, 10) + `"}` }
 							hx-target="#notifications-view"
 							hx-swap="outerHTML"
+						>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M13.7 21a2 2 0 01-3.4 0M18.6 13A17 17 0 0118 8M6.3 6.3A6 6 0 006 8c0 7-3 9-3 9h14M18 8a6 6 0 00-9.3-5M1 1l22 22"/></svg>
+						</button>
+					} else {
+						<button
+							type="button"
+							class={ notifIconBtnClass, "opacity-40 cursor-not-allowed hover:bg-card hover:text-muted-foreground" }
+							aria-label={ "Unsubscribe from " + n.OwnerName + "/" + n.RepoName }
+							title={ notifUnsubscribeBlocked(n) }
+							disabled
 						>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M13.7 21a2 2 0 01-3.4 0M18.6 13A17 17 0 0118 8M6.3 6.3A6 6 0 006 8c0 7-3 9-3 9h14M18 8a6 6 0 00-9.3-5M1 1l22 22"/></svg>
 						</button>

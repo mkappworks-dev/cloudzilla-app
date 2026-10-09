@@ -58,11 +58,19 @@ func TestNotifications_RowActions(t *testing.T) {
 	if got := strings.Count(out, `name="ids"`); got != 3 {
 		t.Errorf("row checkboxes = %d, want 3", got)
 	}
-	if got := strings.Count(out, "Unsubscribe from alice/watched"); got != 1 {
-		t.Errorf("per-row unsubscribe buttons for the watched repo = %d, want 1 (none on the transfer row)", got)
+	if got := strings.Count(out, `hx-post="/api/notifications/unsubscribe"`); got != 2 {
+		t.Errorf("active unsubscribe hx-posts = %d, want 2 (1 row button + the bulk bar)", got)
 	}
-	if strings.Contains(out, "Unsubscribe from alice/plain") {
-		t.Error("unwatched repo must not offer unsubscribe")
+	if got := strings.Count(out, "<button type=\"button\" class=\"size-7"); got < 3 {
+		t.Errorf("a row's buttons = %d, every card needs an Unsubscribe button", got)
+	}
+	for _, want := range []string{"You&#39;re not watching alice/plain", "A repository transfer has no watch to unsubscribe from"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("disabled Unsubscribe tooltip %q missing", want)
+		}
+	}
+	if got := strings.Count(out, "disabled"); got != 2 {
+		t.Errorf("disabled Unsubscribe buttons = %d, want 2 (unwatched repo and transfer)", got)
 	}
 	if got := strings.Count(out, `hx-patch="/api/notifications/`); got != 2 {
 		t.Errorf("Done buttons = %d, want 2 (read rows have none)", got)
