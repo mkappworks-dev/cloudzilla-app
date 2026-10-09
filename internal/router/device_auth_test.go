@@ -121,3 +121,22 @@ func TestDeviceLogin_NoCSRFToken(t *testing.T) {
 		t.Errorf("code without a CSRF token = %d; want 200", rec.Code)
 	}
 }
+
+func TestDeviceLogin_CodeRateLimit(t *testing.T) {
+	h, _, db := newTestRouter(t)
+	testutil.SeedUser(t, db, testutil.UniqueSuffix(t)) // the setup gate redirects every request until a user exists
+	ip := deviceTestIP()
+	clear := func() { testutil.Exec(t, db, `DELETE FROM device_grants WHERE requester_ip = $1`, ip) }
+	t.Cleanup(clear)
+
+	for i := 1; i <= 20; i++ {
+		if rec := postDevice(h, "/api/auth/device/code", url.Values{}, ip); rec.Code != 200 {
+			t.Fatalf("request %d = %d %s; want 200", i, rec.Code, rec.Body)
+		}
+		clear() // keeps the live-grant cap out of the way
+	}
+	rec := postDevice(h, "/api/auth/device/code", url.Values{}, ip)
+	if rec.Code != 429 || decode(t, rec)["error"] != "rate limit exceeded" || rec.Header().Get("Retry-After") == "" || rec.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("21st request = %d %s, Retry-After %q, Cache-Control %q", rec.Code, rec.Body, rec.Header().Get("Retry-After"), rec.Header().Get("Cache-Control"))
+	}
+}

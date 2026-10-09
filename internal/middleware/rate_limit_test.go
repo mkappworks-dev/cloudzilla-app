@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -112,5 +113,31 @@ func TestFixedWindow_ReportsRemainingAndReset(t *testing.T) {
 	remaining, reset, ok = c.take("k", 2)
 	if ok || remaining != 0 || !reset.Equal(time.Unix(1_000_060, 0)) {
 		t.Errorf("third take: want a refusal with the window's reset, got %d %v %v", remaining, reset, ok)
+	}
+}
+
+func TestRateLimit_RejectionFormatByPath(t *testing.T) {
+	clock := &fakeClock{t: time.Unix(1_000_000, 0)}
+	h := newRateLimiter(1, time.Minute, clock.now).middleware(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	over := func(path string) *httptest.ResponseRecorder {
+		var rr *httptest.ResponseRecorder
+		for range 2 {
+			req := httptest.NewRequest(http.MethodPost, path, nil)
+			req.RemoteAddr = net.JoinHostPort("203.0.113.50", "1234")
+			rr = httptest.NewRecorder()
+			h.ServeHTTP(rr, req)
+		}
+		return rr
+	}
+
+	api := over("/api/auth/device/code")
+	if api.Code != http.StatusTooManyRequests || api.Header().Get("Content-Type") != "application/json" ||
+		api.Header().Get("Retry-After") != "60" || strings.TrimSpace(api.Body.String()) != `{"error":"rate limit exceeded"}` {
+		t.Errorf("API path = %d %q %q retry %q", api.Code, api.Header().Get("Content-Type"), api.Body, api.Header().Get("Retry-After"))
+	}
+
+	page := over("/register")
+	if page.Code != http.StatusTooManyRequests || !strings.HasPrefix(page.Header().Get("Content-Type"), "text/plain") || page.Header().Get("Retry-After") != "60" {
+		t.Errorf("page path = %d %q retry %q", page.Code, page.Header().Get("Content-Type"), page.Header().Get("Retry-After"))
 	}
 }

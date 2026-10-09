@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/netip"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -29,6 +30,12 @@ func (l *rateLimiter) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, reset, ok := l.counter.take(rateLimitKey(r), l.limit); !ok {
 			setRetryAfter(w, reset.Sub(l.counter.now()))
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusTooManyRequests)
+				_, _ = w.Write([]byte(`{"error":"rate limit exceeded"}` + "\n"))
+				return
+			}
 			http.Error(w, "Too many attempts. Try again later.", http.StatusTooManyRequests)
 			return
 		}
@@ -98,4 +105,12 @@ func (c *fixedWindow) take(key string, limit int) (remaining int, reset time.Tim
 	}
 	w.count++
 	return limit - w.count, reset, true
+}
+
+// NoStore keeps tokens and device codes out of shared and browser caches.
+func NoStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
 }

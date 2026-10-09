@@ -287,8 +287,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Use(apiBodyLimit)
 		r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.Login)
 		r.Post("/logout", h.Logout)
-		r.With(middleware.RateLimit(deviceCodeLimit, deviceCodeWindow)).Post("/device/code", h.DeviceCode)
-		r.Post("/device/token", h.DeviceToken)
+		r.With(middleware.NoStore, middleware.RateLimit(deviceCodeLimit, deviceCodeWindow)).Post("/device/code", h.DeviceCode)
+		r.With(middleware.NoStore).Post("/device/token", h.DeviceToken)
 	})
 
 	r.With(authMW).Get("/api/user", h.GetCurrentUser)
