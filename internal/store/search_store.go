@@ -4,9 +4,24 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
+	"unicode"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+// prefixTSQuery turns what was typed into a to_tsquery string in which every word is a prefix, so
+// "bra" finds "brave". Only letters and digits survive, which keeps tsquery syntax out of the
+// query and is why the result can be passed to to_tsquery unchecked.
+func prefixTSQuery(q string) string {
+	words := strings.FieldsFunc(strings.ToLower(q), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+	for i, w := range words {
+		words[i] = w + ":*"
+	}
+	return strings.Join(words, " & ")
+}
 
 // SearchStore provides full-text search queries across repos, issues, PRs, and users.
 type SearchStore struct{ db *sql.DB }
@@ -15,17 +30,21 @@ type SearchStore struct{ db *sql.DB }
 func NewSearchStore(db *sql.DB) *SearchStore { return &SearchStore{db: db} }
 
 func (s *SearchStore) SearchRepos(ctx context.Context, query string, requestingUserID *int64, limit int) ([]model.Repository, error) {
+	tsq := prefixTSQuery(query)
+	if tsq == "" {
+		return nil, nil
+	}
 	q := `
 SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private,
        r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count
 FROM repositories r
-WHERE r.search_vector @@ plainto_tsquery('english', $1)
+WHERE r.search_vector @@ to_tsquery('english', $1)
   AND r.deleted_at IS NULL
   AND ` + readableBy("r", "$2") + `
-ORDER BY ts_rank(r.search_vector, plainto_tsquery('english', $1)) DESC
+ORDER BY ts_rank(r.search_vector, to_tsquery('english', $1)) DESC
 LIMIT $3`
 
-	rows, err := s.db.QueryContext(ctx, q, query, viewerID(requestingUserID), limit)
+	rows, err := s.db.QueryContext(ctx, q, tsq, viewerID(requestingUserID), limit)
 	if err != nil {
 		return nil, fmt.Errorf("search repos: %w", err)
 	}
@@ -34,19 +53,23 @@ LIMIT $3`
 }
 
 func (s *SearchStore) SearchIssues(ctx context.Context, query string, requestingUserID *int64, limit int) ([]model.Issue, error) {
+	tsq := prefixTSQuery(query)
+	if tsq == "" {
+		return nil, nil
+	}
 	q := `
 SELECT i.id, i.repo_id, i.number, i.author_id, u.username, i.title, i.body, i.state,
        i.created_at, i.updated_at, i.closed_at
 FROM issues i
 JOIN users u ON u.id = i.author_id
 JOIN repositories r ON r.id = i.repo_id
-WHERE i.search_vector @@ plainto_tsquery('english', $1)
+WHERE i.search_vector @@ to_tsquery('english', $1)
   AND r.deleted_at IS NULL
   AND ` + readableBy("r", "$2") + `
   AND ` + issueVisibleTo("i", "$2") + `
-ORDER BY ts_rank(i.search_vector, plainto_tsquery('english', $1)) DESC
+ORDER BY ts_rank(i.search_vector, to_tsquery('english', $1)) DESC
 LIMIT $3`
-	rows, err := s.db.QueryContext(ctx, q, query, viewerID(requestingUserID), limit)
+	rows, err := s.db.QueryContext(ctx, q, tsq, viewerID(requestingUserID), limit)
 	if err != nil {
 		return nil, fmt.Errorf("search issues: %w", err)
 	}
@@ -55,18 +78,22 @@ LIMIT $3`
 }
 
 func (s *SearchStore) SearchPulls(ctx context.Context, query string, requestingUserID *int64, limit int) ([]model.PullRequest, error) {
+	tsq := prefixTSQuery(query)
+	if tsq == "" {
+		return nil, nil
+	}
 	q := `
 SELECT p.id, p.repo_id, p.number, p.author_id, u.username, p.title, p.body, p.state,
        p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at
 FROM pull_requests p
 JOIN users u ON u.id = p.author_id
 JOIN repositories r ON r.id = p.repo_id
-WHERE p.search_vector @@ plainto_tsquery('english', $1)
+WHERE p.search_vector @@ to_tsquery('english', $1)
   AND r.deleted_at IS NULL
   AND ` + readableBy("r", "$2") + `
-ORDER BY ts_rank(p.search_vector, plainto_tsquery('english', $1)) DESC
+ORDER BY ts_rank(p.search_vector, to_tsquery('english', $1)) DESC
 LIMIT $3`
-	rows, err := s.db.QueryContext(ctx, q, query, viewerID(requestingUserID), limit)
+	rows, err := s.db.QueryContext(ctx, q, tsq, viewerID(requestingUserID), limit)
 	if err != nil {
 		return nil, fmt.Errorf("search pulls: %w", err)
 	}
@@ -95,6 +122,75 @@ LIMIT $2`
 		users = append(users, u)
 	}
 	return users, rows.Err()
+}
+
+// SuggestRepos matches a prefix of the repo name or of owner/name.
+func (s *SearchStore) SuggestRepos(ctx context.Context, query string, requestingUserID *int64, limit int) ([]model.Repository, error) {
+	q := `
+SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private,
+       r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count
+FROM repositories r
+WHERE (lower(r.name) LIKE $1 OR lower(r.owner_name || '/' || r.name) LIKE $1)
+  AND r.deleted_at IS NULL
+  AND ` + readableBy("r", "$2") + `
+ORDER BY (lower(r.name) = lower($4)) DESC, r.updated_at DESC
+LIMIT $3`
+
+	rows, err := s.db.QueryContext(ctx, q, likePrefix(query), viewerID(requestingUserID), limit, query)
+	if err != nil {
+		return nil, fmt.Errorf("suggest repos: %w", err)
+	}
+	defer rows.Close()
+	return scanSearchRepos(rows)
+}
+
+// SuggestUsers matches a prefix of the username.
+func (s *SearchStore) SuggestUsers(ctx context.Context, query string, limit int) ([]model.User, error) {
+	const q = `
+SELECT id, username, email, bio, avatar_url, avatar_key, created_at, updated_at
+FROM users
+WHERE lower(username) LIKE $1 AND ` + notGhost + `
+ORDER BY username
+LIMIT $2`
+	rows, err := s.db.QueryContext(ctx, q, likePrefix(query), limit)
+	if err != nil {
+		return nil, fmt.Errorf("suggest users: %w", err)
+	}
+	defer rows.Close()
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.AvatarKey, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// SuggestOrgs matches a prefix of the org name or display name. Orgs are
+// public, so there is no viewer filter.
+func (s *SearchStore) SuggestOrgs(ctx context.Context, query string, limit int) ([]model.Organization, error) {
+	const q = `
+SELECT id, name, display_name, description, avatar_url, avatar_key
+FROM organizations
+WHERE lower(name) LIKE $1 OR lower(display_name) LIKE $1
+ORDER BY name
+LIMIT $2`
+	rows, err := s.db.QueryContext(ctx, q, likePrefix(query), limit)
+	if err != nil {
+		return nil, fmt.Errorf("suggest orgs: %w", err)
+	}
+	defer rows.Close()
+	var orgs []model.Organization
+	for rows.Next() {
+		var o model.Organization
+		if err := rows.Scan(&o.ID, &o.Name, &o.DisplayName, &o.Description, &o.AvatarURL, &o.AvatarKey); err != nil {
+			return nil, err
+		}
+		orgs = append(orgs, o)
+	}
+	return orgs, rows.Err()
 }
 
 func scanSearchRepos(rows *sql.Rows) ([]model.Repository, error) {

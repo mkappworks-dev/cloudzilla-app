@@ -91,6 +91,7 @@ func TestClassifyRequest(t *testing.T) {
 		{"GET", "/a%2Fb/app/archive/main", ResourceArchive, true},
 		{"GET", "/search", ResourceSearch, true},
 		{"GET", "/search/code", ResourceSearch, true},
+		{"GET", "/search/suggest", ResourceSearch, true},
 		{"GET", "/acme/app/blame/main/README.md", ResourceCore, true},
 		{"GET", "/acme/app/tree/main/info/refs", ResourceCore, true},
 		{"GET", "/acme/app/raw/main/x.go", ResourceCore, true},

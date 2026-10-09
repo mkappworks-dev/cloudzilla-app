@@ -145,18 +145,40 @@ templ Base(base view.BasePage, title string) {
 
 					<nav aria-label="Account" class="ml-auto flex items-center gap-1">
 						if !base.SetupPending {
-							<form action="/search" method="GET" class="hidden md:block">
+							<form action="/search" method="GET" class="hidden md:block" x-data="topnavSearch" x-on:click.outside="close()">
 								<label for="topnav-search" class="sr-only">Search Cloudzilla</label>
 								<div class="relative" x-data="{ q: '' }">
-									<input id="topnav-search" name="q" type="search" x-ref="q" x-model="q" placeholder="Search…" class="w-72 focus:w-96 transition-[width] duration-150 h-7 pl-7 pr-14 text-[13px] bg-muted border border-transparent hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground"/>
+									<input
+										id="topnav-search"
+										name="q"
+										type="search"
+										x-ref="q"
+										x-model="q"
+										placeholder="Search…"
+										autocomplete="off"
+										role="combobox"
+										aria-autocomplete="list"
+										aria-haspopup="listbox"
+										aria-controls="topnav-suggest"
+										x-bind:aria-expanded="open"
+										x-bind:aria-activedescendant="active >= 0 ? 'suggest-' + active : null"
+										hx-get="/search/suggest"
+										hx-trigger="input changed delay:200ms"
+										hx-target="#topnav-suggest"
+										hx-sync="this:replace"
+										x-on:keydown.arrow-down.prevent="move(1)"
+										x-on:keydown.arrow-up.prevent="move(-1)"
+										x-on:keydown.enter="follow($event)"
+										x-on:keydown.escape="escape($event)"
+										x-on:focus="reopen()"
+										class="w-72 focus:w-96 transition-[width] duration-150 h-7 pl-7 pr-14 text-[13px] bg-muted border border-transparent hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground"
+									/>
 									<svg class="absolute left-2 top-1.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-									<button type="button" x-cloak x-show="q" x-on:click="q = ''; $refs.q.focus()" class="absolute right-1.5 top-1 h-5 w-5 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">
+									<button type="button" x-cloak x-show="q" x-on:click="q = ''; clear(); $refs.q.focus()" class="absolute right-1.5 top-1 h-5 w-5 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">
 										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg>
 									</button>
-									<span x-show="!q" class="absolute right-1.5 top-1 flex gap-0.5 text-muted-foreground" aria-hidden="true">
-										<kbd class="h-5 min-w-5 px-1 grid place-items-center text-[11px] font-sans leading-none border border-border rounded">⌘</kbd>
-										<kbd class="h-5 min-w-5 px-1 grid place-items-center text-[11px] font-sans leading-none border border-border rounded">K</kbd>
-									</span>
+									<kbd x-show="!q" class="absolute right-1.5 top-1 h-5 min-w-5 px-1 grid place-items-center text-[11px] font-sans leading-none text-muted-foreground border border-border rounded" aria-hidden="true">/</kbd>
+									<div id="topnav-suggest" x-show="open" x-cloak class="absolute inset-x-0 top-full mt-1 z-50 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"></div>
 								</div>
 							</form>
 						}
@@ -495,6 +517,7 @@ templ Base(base view.BasePage, title string) {
 			<script src={ assets.URL("/htmx.min.js") } defer></script>
 			<!-- Before Alpine: it registers its component on alpine:init. -->
 			<script src={ assets.URL("/static/select-menu.js") } defer></script>
+			<script src={ assets.URL("/static/topnav-search.js") } defer></script>
 			<script src={ assets.URL("/alpine.min.js") } defer></script>
 			<script data-mermaid-src={ assets.URL("/static/mermaid.min.js") }>
 				// Mermaid is megabytes of JS, so only a page holding a diagram loads it.
