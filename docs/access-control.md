@@ -409,6 +409,8 @@ Without SMTP, `/register` is the classic username/email/password form, which sti
 
 4. Otherwise a new account is created, subject to `allow_registration`, linked to the Google ID, and starts with its email verified, since Google verified it.
 
+The callback refuses with 400 before any token exchange unless the `state` parameter equals a non-empty `oauth_state` (sign-in), `oauth_link_state` or `oauth_reauth_state` cookie. An empty cookie matching an empty `state` does not count, or a victim's browser could be signed in with an attacker's `code`.
+
 LDAP and SAML still never link on email, verified or not: only the IdP operator vouches for the address they assert.
 
 ## Email Verification

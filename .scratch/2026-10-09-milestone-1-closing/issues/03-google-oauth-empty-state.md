@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: bug
-Status: needs-triage
+Status: done
 
 ## Problem
 
@@ -23,9 +23,13 @@ Read from the code only; not reproduced. The router tests could not get past the
 
 ## Acceptance criteria
 
-- [ ] An empty `oauth_state` cookie, or a cookie that differs from `state`, is refused before any token exchange, in every branch.
-- [ ] Test covers: no cookie, empty cookie with empty state, mismatched state, matching state (still works).
+- [x] An empty `oauth_state` cookie, or a cookie that differs from `state`, is refused before any token exchange, in every branch.
+- [x] Test covers: no cookie, empty cookie with empty state, mismatched state, matching state (still works).
 
 ## Blocked by
 
 Nothing.
+
+## Comments
+
+Claude, 2026-10-09: Triaged as a bug. `TestGoogleOAuthRoutes_CallbackRefusesEmptyOrMismatchedStateBeforeExchange` failed on main: an `oauth_state` cookie with an empty value plus an empty or missing `state` returned 303 with a session cookie after three token exchanges. A missing cookie was already refused; only the present-but-empty one got through. The link and re-auth branches already required a non-empty cookie, and the test pins that. The main branch now does too, and `handler.UseFakeGoogle` is in `fake_google.go` so router tests can reach the callback (part of ticket 08).
