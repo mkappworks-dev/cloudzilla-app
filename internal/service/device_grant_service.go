@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"html"
 	"log/slog"
 	"math/big"
 	"slices"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -57,6 +59,8 @@ type DeviceCode struct {
 type DeviceToken struct {
 	AccessToken string
 	Scopes      []string
+	UserID      int64
+	TokenName   string
 }
 
 // DeviceGrantService runs the device-code login: the CLI asks for a code, a signed-in
@@ -64,11 +68,40 @@ type DeviceToken struct {
 type DeviceGrantService struct {
 	grants *store.DeviceGrantStore
 	tokens *store.AccessTokenStore
+	users  *store.UserStore
+	email  *EmailService
 	now    func() time.Time
 }
 
-func NewDeviceGrantService(grants *store.DeviceGrantStore, tokens *store.AccessTokenStore) *DeviceGrantService {
-	return &DeviceGrantService{grants: grants, tokens: tokens, now: time.Now}
+func NewDeviceGrantService(grants *store.DeviceGrantStore, tokens *store.AccessTokenStore, users *store.UserStore) *DeviceGrantService {
+	return &DeviceGrantService{grants: grants, tokens: tokens, users: users, now: time.Now}
+}
+
+func (s *DeviceGrantService) WithEmail(e *EmailService) *DeviceGrantService { s.email = e; return s }
+
+// NotifyApproved mails userID that a device login was approved on their account.
+func (s *DeviceGrantService) NotifyApproved(userID int64, deviceName, ip string, scopes []string) {
+	if s.email == nil {
+		return
+	}
+	concurrency.Go("device_login.notice", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		u, err := s.users.GetByID(ctx, userID)
+		if err != nil {
+			slog.Error("device login notice: load user", "user_id", userID, "error", err)
+			return
+		}
+		if deviceName == "" {
+			deviceName = defaultDeviceName
+		}
+		body := fmt.Sprintf("<p>A login from the device <strong>%s</strong> (IP %s) was approved on the Cloudzilla account <strong>@%s</strong>. It can use: <code>%s</code>.</p>"+
+			"<p>If that wasn't you, revoke the token under Account settings → Access tokens and change your password.</p>",
+			html.EscapeString(deviceName), html.EscapeString(ip), html.EscapeString(u.Username), html.EscapeString(strings.Join(scopes, " ")))
+		if err := s.email.SendSecurityNotice(u, "A new device was authorized to use your account", body); err != nil {
+			slog.Error("device login notice: send", "user_id", userID, "error", err)
+		}
+	})
 }
 
 // SetClock replaces the time source, for tests.
@@ -152,7 +185,8 @@ func (s *DeviceGrantService) Poll(ctx context.Context, deviceCode string) (*Devi
 		return nil, ErrAccessDenied
 	}
 
-	var raw string
+	var raw, name string
+	var userID int64
 	err = s.grants.Redeem(ctx, hash, now, func(ctx context.Context, tx *sql.Tx, g *model.DeviceGrant) error {
 		var t *model.AccessToken
 		var err error
@@ -160,6 +194,7 @@ func (s *DeviceGrantService) Poll(ctx context.Context, deviceCode string) (*Devi
 		if err != nil {
 			return err
 		}
+		userID, name = g.UserID.Int64, t.Name
 		return s.tokens.CreateTx(ctx, tx, t)
 	})
 	if errors.Is(err, sql.ErrNoRows) {
@@ -168,7 +203,7 @@ func (s *DeviceGrantService) Poll(ctx context.Context, deviceCode string) (*Devi
 	if err != nil {
 		return nil, err
 	}
-	return &DeviceToken{AccessToken: raw, Scopes: g.Scopes}, nil
+	return &DeviceToken{AccessToken: raw, Scopes: g.Scopes, UserID: userID, TokenName: name}, nil
 }
 
 // Lookup returns the pending grant for a code as the user typed it.

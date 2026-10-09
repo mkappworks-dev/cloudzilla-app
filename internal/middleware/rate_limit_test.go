@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -139,5 +140,36 @@ func TestRateLimit_RejectionFormatByPath(t *testing.T) {
 	page := over("/register")
 	if page.Code != http.StatusTooManyRequests || !strings.HasPrefix(page.Header().Get("Content-Type"), "text/plain") || page.Header().Get("Retry-After") != "60" {
 		t.Errorf("page path = %d %q retry %q", page.Code, page.Header().Get("Content-Type"), page.Header().Get("Retry-After"))
+	}
+}
+
+func TestUserLimiter_CountsPerUser(t *testing.T) {
+	now := time.Now()
+	l := newUserLimiter(2, time.Hour, func() time.Time { return now })
+	limited := 0
+	h := l.Middleware(func(w http.ResponseWriter, r *http.Request) { limited++; w.WriteHeader(http.StatusTooManyRequests) })(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }))
+	call := func(userID int64) int {
+		req := httptest.NewRequest("POST", "/x", nil)
+		req = req.WithContext(context.WithValue(req.Context(), claimsKey, Claims{UserID: userID}))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code == http.StatusTooManyRequests && rec.Header().Get("Retry-After") == "" {
+			t.Error("429 without Retry-After")
+		}
+		return rec.Code
+	}
+	if call(1) != 200 || call(1) != 200 || call(1) != 429 {
+		t.Fatal("user 1 should get two requests, then 429")
+	}
+	if call(2) != 200 {
+		t.Error("user 2 has a budget of its own")
+	}
+	now = now.Add(time.Hour + time.Second)
+	if call(1) != 200 {
+		t.Error("the window should reset after an hour")
+	}
+	if limited != 1 {
+		t.Errorf("onLimited ran %d times; want 1", limited)
 	}
 }
