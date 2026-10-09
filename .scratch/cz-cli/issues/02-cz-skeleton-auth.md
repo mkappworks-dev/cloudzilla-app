@@ -3,7 +3,7 @@
 Created: 2026-10-09
 Category: enhancement
 Status: ready-for-agent
-Blocked by: 01
+Blocked by: 01, 02a
 
 Part of [spec](../spec.md).
 

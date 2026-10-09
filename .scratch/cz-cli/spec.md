@@ -77,9 +77,10 @@ Agreed with the maintainer on 2026-10-09.
 Tickets in `issues/`, in order:
 
 1. `01-rename-admin-cli` — mechanical rename; land first and alone to keep conflicts with open branches small.
-2. `02-cz-skeleton-auth` — `cmd/cz`, API client package, token store, `auth` commands, `api`.
-3. `03-cz-repo` — repo commands.
-4. `04-cz-issue` — issue commands.
-5. `05-cz-pr` — PR commands.
-6. `06-cz-build-release-docs` — Makefile, Dockerfile, CI, release archive, `docs/cli.md`.
-7. `07-device-code-login` — stage 2; `needs-triage`.
+2. `02a-whoami-endpoint` — server: `GET /api/user` so `cz auth login` can verify a token and learn the username. Found while starting 02.
+3. `02-cz-skeleton-auth` — `cmd/cz`, API client package, token store, `auth` commands, `api`.
+4. `03-cz-repo` — repo commands.
+5. `04-cz-issue` — issue commands.
+6. `05-cz-pr` — PR commands.
+7. `06-cz-build-release-docs` — Makefile, Dockerfile, CI, release archive, `docs/cli.md`.
+8. `07-device-code-login` — stage 2; `needs-triage`.
