@@ -322,6 +322,37 @@ document.addEventListener('alpine:init', () => {
     }),
   );
 
+  Alpine.data('columnDialog', () => ({
+    name: '',
+    error: '',
+    busy: false,
+
+    get blank() {
+      return this.name.trim() === '';
+    },
+
+    init() {
+      this.$el.closest('dialog').addEventListener('close', () => {
+        this.name = '';
+        this.error = '';
+        this.busy = false;
+      });
+    },
+
+    async submit() {
+      if (this.busy || this.blank) return;
+      this.busy = true;
+      this.error = '';
+      try {
+        await send('POST', projectURL(this.$el, '/columns'), { name: this.name.trim() });
+        window.location.reload();
+      } catch (err) {
+        this.error = err.message;
+        this.busy = false;
+      }
+    },
+  }));
+
   Alpine.data('linkPicker', () =>
     withPicker((text) => (text.trim() ? text.trim().replace(/^#/, '') : null), {
       onPick(target) {

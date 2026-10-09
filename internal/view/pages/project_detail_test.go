@@ -111,6 +111,35 @@ func TestProjectDetail_PanelWriteControls(t *testing.T) {
 	}
 }
 
+func TestProjectDetail_AddColumnDialog(t *testing.T) {
+	out := renderBoard(t, boardData(true))
+	for _, want := range []string{
+		`<dialog id="add-column-dialog"`, `aria-labelledby="add-column-dialog-title"`,
+		`id="add-column-dialog-title"`, "Columns group the cards on this board.",
+		`x-data="columnDialog"`, `<label for="add-column-name"`, `id="add-column-name"`,
+		`placeholder="To do"`, `role="alert"`, "showModal()", "+ Add column",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("writer board missing %q", want)
+		}
+	}
+	if !regexp.MustCompile(`<button[^>]*type="submit"[^>]*x-bind:disabled="busy \|\| blank"|<button[^>]*x-bind:disabled="busy \|\| blank"[^>]*type="submit"`).MatchString(out) {
+		t.Error("the Add column submit button is not disabled while busy or blank")
+	}
+	for _, gone := range []string{"new-col-name", "adding: false"} {
+		if strings.Contains(out, gone) {
+			t.Errorf("board still renders the inline add-column form (%q)", gone)
+		}
+	}
+
+	ro := renderBoard(t, boardData(false))
+	for _, gone := range []string{"add-column-dialog", "columnDialog", "+ Add column"} {
+		if strings.Contains(ro, gone) {
+			t.Errorf("read-only board renders %q", gone)
+		}
+	}
+}
+
 func TestProjectDetail_ReadOnlyPanel(t *testing.T) {
 	out := renderBoard(t, boardData(false))
 	for _, gone := range []string{

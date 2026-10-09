@@ -152,6 +152,7 @@ func TestProjects_Columns(t *testing.T) {
 		{"foreign project", metaReq{method: "POST", target: e.path("/projects/%d/columns", foreignProject), token: e.owner.token, json: `{"name":"x"}`}, http.StatusNotFound},
 		{"bad json", metaReq{method: "POST", target: cols, token: e.owner.token, json: `{`}, http.StatusBadRequest},
 		{"no name", metaReq{method: "POST", target: cols, token: e.owner.token, json: `{"name":""}`}, http.StatusBadRequest},
+		{"blank name", metaReq{method: "POST", target: cols, token: e.owner.token, json: `{"name":"  \t "}`}, http.StatusBadRequest},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })

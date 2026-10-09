@@ -106,6 +106,9 @@ templ ProjectDetail(data view.ProjectDetailData) {
 			@keydown="onCardKey($event)"
 		>
 			@cardPanel(data)
+			if data.CanWrite {
+				@addColumnDialog()
+			}
 			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="project-title">
 				<div class="min-w-0">
 					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -186,38 +189,60 @@ templ ProjectDetail(data view.ProjectDetailData) {
 					</section>
 				}
 				if data.CanWrite {
-					<div class="flex-none w-72" x-data="{ adding: false }">
+					<div class="flex-none w-72">
 						<button
 							type="button"
-							x-show="!adding"
-							@click="adding = true; $nextTick(() => $refs.name.focus())"
+							onclick="document.getElementById('add-column-dialog').showModal()"
 							class="flex h-11 w-full items-center justify-center rounded-md border border-dashed border-border text-[13px] text-muted-foreground hover:border-ring hover:text-foreground"
 						>+ Add column</button>
-						<div x-show="adding" x-cloak class="space-y-2 rounded-md border border-border bg-muted/30 p-2">
-							<label for="new-col-name" class="sr-only">Column name</label>
-							@components.Input(templ.Attributes{
-								"id":                     "new-col-name",
-								"type":                   "text",
-								"placeholder":            "Column name",
-								"x-ref":                  "name",
-								"@keydown.enter.prevent": "$refs.add.click()",
-								"@keydown.escape":        "adding = false",
-							})
-							<div class="flex items-center gap-2">
-								<button
-									type="button"
-									x-ref="add"
-									class="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90"
-									onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }
-								>Add column</button>
-								<button type="button" class="px-1 text-[12px] text-muted-foreground hover:text-foreground" @click="adding = false">Cancel</button>
-							</div>
-						</div>
 					</div>
 				}
 			</div>
 		</div>
 		<script src={ assets.URL("/static/kanban.js") } defer></script>
+	}
+}
+
+templ addColumnDialog() {
+	@components.Dialog("add-column-dialog") {
+		<form x-data="columnDialog" @submit.prevent="submit()">
+			@components.DialogHeader() {
+				@components.DialogTitle("add-column-dialog") {
+					Add column
+				}
+				@components.DialogDescription() {
+					Columns group the cards on this board.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-3">
+					<div>
+						<label for="add-column-name" class="block text-[12px] font-medium text-foreground mb-1">Name</label>
+						@components.Input(templ.Attributes{
+							"id":           "add-column-name",
+							"type":         "text",
+							"x-model":      "name",
+							"required":     "required",
+							"autofocus":    "autofocus",
+							"autocomplete": "off",
+							"placeholder":  "To do",
+						})
+					</div>
+					<p x-show="error" x-cloak x-text="error" class="text-[12px] text-destructive" role="alert"></p>
+				</div>
+			}
+			@components.DialogFooter() {
+				@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+					"type":    "button",
+					"onclick": "this.closest('dialog').close()",
+				}) {
+					Cancel
+				}
+				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "x-bind:disabled": "busy || blank"}) {
+					Add column
+				}
+			}
+		</form>
 	}
 }
 
@@ -642,17 +667,6 @@ script setProjectClosedJS(owner, repoName string, projectID int64, closed bool) 
 		method: 'PATCH',
 		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({closed: closed})
-	}).then(function(r){ if(r.ok) window.location.reload(); });
-}
-
-script addColumnJS(owner, repoName string, projectID int64) {
-	var name = document.getElementById('new-col-name').value.trim();
-	if (!name) return;
-	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns', {
-		method: 'POST',
-		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
-		body: JSON.stringify({name: name})
 	}).then(function(r){ if(r.ok) window.location.reload(); });
 }
 
