@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -49,7 +50,7 @@ func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, card
 		return nil, err
 	}
 
-	issue, err := s.issues.Create(ctx, repo.OwnerName, repo.Name, userID, card.Title, card.Note, "public")
+	issue, err := s.createIssue(ctx, repo, userID, card)
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +65,27 @@ func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, card
 		log.Printf("TouchProject(%d): %v", projectID, err)
 	}
 	return s.projects.GetCardInProject(ctx, cardID, projectID)
+}
+
+const issueCreateAttempts = 3
+
+// IssueStore.Create numbers issues with MAX(number)+1, so a concurrent creator in the
+// same repo can take the number first; the unique violation is retried with a fresh one.
+func (s *ProjectService) createIssue(ctx context.Context, repo *model.Repository, userID int64, card *model.ProjectCard) (*model.Issue, error) {
+	var err error
+	for range issueCreateAttempts {
+		var issue *model.Issue
+		issue, err = s.issues.Create(ctx, repo.OwnerName, repo.Name, userID, card.Title, card.Note, "public")
+		if !isUniqueViolation(err) {
+			return issue, err
+		}
+	}
+	return nil, err
+}
+
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 func (s *ProjectService) linkConverted(ctx context.Context, projectID int64, card *model.ProjectCard, issueID int64, assignees []model.CardUser, labels []model.Label) error {
