@@ -23,7 +23,7 @@ func TestDiffPages_HighlightTheirCode(t *testing.T) {
 	author := service.GitAuthor{Name: owner, Email: owner + "@test.invalid"}
 	commit := func(branch, src, msg string) {
 		t.Helper()
-		if err := svc.Code.CommitFile(owner, repoName, branch, "main.go", []byte(src), author, msg); err != nil {
+		if _, err := svc.Code.CommitFile(owner, repoName, branch, "main.go", []byte(src), author, msg); err != nil {
 			t.Fatalf("CommitFile %s: %v", branch, err)
 		}
 	}
