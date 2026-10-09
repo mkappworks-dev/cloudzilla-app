@@ -33,8 +33,6 @@ type (
 	PRReviewsFragData         = view.PRReviewsFragData
 	SettingsData              = view.SettingsData
 	NotificationsData         = view.NotificationsData
-	NotificationsFragData     = view.NotificationsFragData
-	NotificationItemFragData  = view.NotificationItemFragData
 	IssueDetailFragData       = view.IssueDetailFragData
 	PullDetailFragData        = view.PullDetailFragData
 	CommentFragData           = view.CommentFragData
