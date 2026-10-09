@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01-org-results, 02-result-context, 03-shared-list-rows
 
 ## What
@@ -11,7 +11,7 @@ Rebuild the groups in `pages/search.templ` from the row components: Repositories
 
 ## Acceptance criteria
 
-- [ ] `/search?q=brave` shows all five groups on a seeded DB, each row links to its item.
+- [x] `/search?q=brave` shows all five groups on a seeded DB, each row links to its item.
 - [x] `type=orgs` shows only organizations; the tab count matches.
 - [x] Private repos show the Private badge; there is no Public badge.
 - [x] No-results state still renders when all five lists are empty.
