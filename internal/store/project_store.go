@@ -247,7 +247,7 @@ func insertCardPeople(ctx context.Context, tx *sql.Tx, cardID int64, assigneeIDs
 
 const cardTitleMax = 120
 
-// splitNote mirrors migration 113's backfill: first line becomes the title (max 120 runes), the
+// splitNote mirrors migration 116's backfill: first line becomes the title (max 120 runes), the
 // rest the description. A first line over 120 runes keeps the whole text in the description.
 func splitNote(note string) (title, description string) {
 	note = strings.TrimSpace(note)

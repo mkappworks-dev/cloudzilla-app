@@ -34,23 +34,24 @@ type IssuesData struct {
 // IssueDetailData holds template data for the issue detail page.
 type IssueDetailData struct {
 	BasePage
-	Repo          model.Repository
-	Issue         model.Issue
-	Comments      []RenderedComment
-	Events        []model.IssueEvent
-	Owner         string
-	RepoName      string
-	BodyHTML      string
-	Labels        []model.Label
-	Assignees     []model.User
-	AllLabels     []model.Label
-	Milestone     *model.Milestone
-	AllMilestones []model.Milestone
-	LinkedPRs     []model.PullRequest
-	RepoPulls     []model.PullRequest
-	Collaborators []string
-	CanWrite      bool
-	CanManage     bool
+	Repo               model.Repository
+	Issue              model.Issue
+	Comments           []RenderedComment
+	Events             []model.IssueEvent
+	Owner              string
+	RepoName           string
+	BodyHTML           string
+	Labels             []model.Label
+	Assignees          []model.User
+	AllLabels          []model.Label
+	Milestone          *model.Milestone
+	AllMilestones      []model.Milestone
+	LinkedPRs          []model.PullRequest
+	RepoPulls          []model.PullRequest
+	Collaborators      []string
+	CanWrite           bool
+	CanManage          bool
+	ThreadSubscription ThreadSubscriptionData
 }
 
 type IssuePrioritySidebarData struct {

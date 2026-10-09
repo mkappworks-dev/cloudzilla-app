@@ -43,39 +43,42 @@ func TestNotifications_RowActions(t *testing.T) {
 	var sb strings.Builder
 	data := view.NotificationsData{
 		Notifications: []model.Notification{
-			{ID: 1, ActorName: "bob", Type: model.NotifIssueComment, RepoID: 10, OwnerName: "alice", RepoName: "watched", SubjectID: 1, SubjectURL: "/alice/watched/issues/1", CreatedAt: time.Now()},
-			{ID: 2, ActorName: "bob", Type: model.NotifIssueComment, RepoID: 11, OwnerName: "alice", RepoName: "plain", SubjectID: 2, SubjectURL: "/alice/plain/issues/2", Read: true, CreatedAt: time.Now()},
-			{ID: 3, ActorName: "bob", Type: model.NotifRepoTransfer, RepoID: 10, OwnerName: "alice", RepoName: "watched", SubjectID: 3, SubjectURL: "/repos/transfers", CreatedAt: time.Now()},
+			{ID: 1, ActorName: "bob", Type: model.NotifIssueComment, SubjectKind: model.ThreadKindIssue, RepoID: 10, OwnerName: "alice", RepoName: "demo", SubjectID: 1, SubjectURL: "/alice/demo/issues/1", CreatedAt: time.Now()},
+			{ID: 2, ActorName: "bob", Type: model.NotifPRComment, SubjectKind: model.ThreadKindPull, RepoID: 11, OwnerName: "alice", RepoName: "plain", SubjectID: 2, SubjectURL: "/alice/plain/pulls/2", Read: true, CreatedAt: time.Now()},
+			{ID: 3, ActorName: "bob", Type: model.NotifRepoTransfer, RepoID: 10, OwnerName: "alice", RepoName: "demo", SubjectID: 3, SubjectURL: "/repos/transfers", CreatedAt: time.Now()},
+			{ID: 4, ActorName: "bob", Type: model.NotifMention, RepoID: 10, OwnerName: "alice", RepoName: "demo", SubjectID: 4, SubjectURL: "/alice/demo/wiki", CreatedAt: time.Now()},
 		},
-		Filter: "inbox", Page: 1, TotalPages: 1, PerPage: 25, Total: 3, UnreadCount: 2,
-		WatchedRepos: map[int64]bool{10: true},
+		Filter: "inbox", Page: 1, TotalPages: 1, PerPage: 25, Total: 4, UnreadCount: 3,
 	}
 	if err := pages.Notifications(data).Render(context.Background(), &sb); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	out := sb.String()
 
-	if got := strings.Count(out, `name="ids"`); got != 3 {
-		t.Errorf("row checkboxes = %d, want 3", got)
+	if got := strings.Count(out, `name="ids"`); got != 4 {
+		t.Errorf("row checkboxes = %d, want 4", got)
 	}
-	if got := strings.Count(out, `hx-post="/api/notifications/unsubscribe"`); got != 2 {
-		t.Errorf("active unsubscribe hx-posts = %d, want 2 (1 row button + the bulk bar)", got)
+	if got := strings.Count(out, `hx-post="/api/notifications/unsubscribe"`); got != 3 {
+		t.Errorf("active unsubscribe hx-posts = %d, want 3 (2 row buttons + the bulk bar)", got)
 	}
-	if got := strings.Count(out, "<button type=\"button\" class=\"size-7"); got < 3 {
-		t.Errorf("a row's buttons = %d, every card needs an Unsubscribe button", got)
+	if got := strings.Count(out, `title="Unsubscribe: mute this thread. Repo watch unchanged."`); got != 2 {
+		t.Errorf("enabled Unsubscribe tooltips = %d, want 2", got)
 	}
-	for _, want := range []string{"You&#39;re not watching alice/plain", "A repository transfer has no watch to unsubscribe from"} {
+	for _, want := range []string{"A repository transfer has no thread to unsubscribe from", "This notification has no thread to unsubscribe from"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("disabled Unsubscribe tooltip %q missing", want)
 		}
 	}
 	if got := strings.Count(out, "disabled"); got != 2 {
-		t.Errorf("disabled Unsubscribe buttons = %d, want 2 (unwatched repo and transfer)", got)
+		t.Errorf("disabled Unsubscribe buttons = %d, want 2 (transfer and null-kind rows)", got)
 	}
-	if got := strings.Count(out, `hx-patch="/api/notifications/`); got != 2 {
-		t.Errorf("Done buttons = %d, want 2 (read rows have none)", got)
+	if strings.Contains(out, "stop watching") || strings.Contains(out, "not watching") {
+		t.Error("Unsubscribe still talks about the repo watch")
 	}
-	for _, want := range []string{`hx-post="/api/notifications/done"`, `hx-post="/api/notifications/unsubscribe"`, `hx-include="#notifications-form"`} {
+	if got := strings.Count(out, `hx-patch="/api/notifications/`); got != 3 {
+		t.Errorf("Done buttons = %d, want 3 (read rows have none)", got)
+	}
+	for _, want := range []string{`hx-post="/api/notifications/done"`, `hx-post="/api/notifications/unsubscribe"`, `hx-include="#notifications-form"`, `title="Mute the selected threads"`} {
 		if !strings.Contains(out, want) {
 			t.Errorf("bulk bar missing %q", want)
 		}

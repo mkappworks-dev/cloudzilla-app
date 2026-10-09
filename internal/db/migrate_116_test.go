@@ -46,7 +46,7 @@ func TestProjectCardDetailsMigration_SplitsNotesIntoTitleAndDescription(t *testi
 	}
 	testutil.Exec(t, db, `INSERT INTO project_cards (column_id, issue_id) VALUES ($1, $2), ($1, $3)`, colID, ownIssueID, awayIssueID)
 
-	for _, file := range []string{"migrations/113_drop_cross_repo_project_cards.sql", "migrations/114_project_card_details.sql"} {
+	for _, file := range []string{"migrations/113_drop_cross_repo_project_cards.sql", "migrations/116_project_card_details.sql"} {
 		migration, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatalf("read migration: %v", err)

@@ -263,21 +263,27 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
+	threadSub, err := h.threadSubscriptionData(r, repo, model.ThreadKindDiscussion, "discussions", discussion.Number)
+	if err != nil {
+		slog.Warn("discussion detail: subscription lookup failed; rendering as not subscribed", "owner", owner, "repo", repoName, "discussion", discussion.Number, "error", err)
+	}
+
 	h.render(w, h.withAvatars(r, participants...), pages.DiscussionDetail(view.DiscussionDetailData{
-		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
-		Repo:          *repo,
-		Owner:         owner,
-		RepoName:      repoName,
-		Discussion:    *discussion,
-		Category:      category,
-		AllCategories: cats,
-		Labels:        labels,
-		AllLabels:     allLabels,
-		Replies:       replies,
-		Participants:  participants,
-		OPReactions:   opReactions,
-		BodyHTML:      bodyHTML,
-		CanWrite:      canWrite,
+		BasePage:           h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
+		Repo:               *repo,
+		Owner:              owner,
+		RepoName:           repoName,
+		Discussion:         *discussion,
+		Category:           category,
+		AllCategories:      cats,
+		Labels:             labels,
+		AllLabels:          allLabels,
+		Replies:            replies,
+		Participants:       participants,
+		OPReactions:        opReactions,
+		BodyHTML:           bodyHTML,
+		CanWrite:           canWrite,
+		ThreadSubscription: threadSub,
 	}))
 }
 
@@ -514,7 +520,7 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		replyBody, parentID = body.Body, body.ParentID
 	}
 
-	reply, err := h.Services.Discussion.CreateReply(r.Context(), discussion.ID, claims.UserID, claims.Username, replyBody, parentID)
+	reply, err := h.Services.Discussion.CreateReply(r.Context(), *discussion, claims.UserID, claims.Username, replyBody, parentID)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

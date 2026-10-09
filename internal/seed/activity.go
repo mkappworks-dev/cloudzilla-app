@@ -316,7 +316,7 @@ func (s *seeder) seedDiscussions() error {
 				if len(replies) > 0 && chance(s.rng, 0.3) {
 					parent = &pick(s.rng, replies).ID
 				}
-				reply, err := s.svcs.Discussion.CreateReply(s.ctx, d.ID, p.ID, p.Username, commentBody(s.rng, s.mention(r, p)), parent)
+				reply, err := s.svcs.Discussion.CreateReply(s.ctx, *d, p.ID, p.Username, commentBody(s.rng, s.mention(r, p)), parent)
 				if err != nil {
 					return err
 				}

@@ -28,11 +28,18 @@ type IssueService struct {
 	repoSvc  *RepoService
 	mentions *store.MentionStore
 	events   *store.IssueEventStore
+	threads  threadAutoSubscriber
 }
 
 // NewIssueService creates an IssueService backed by the given stores.
 func NewIssueService(issues *store.IssueStore, repos *store.RepoStore, pulls *store.PullStore, repoSvc *RepoService) *IssueService {
 	return &IssueService{issues: issues, repos: repos, pulls: pulls, repoSvc: repoSvc}
+}
+
+// WithThreadSubscriptions makes participation subscribe the user to the thread.
+func (s *IssueService) WithThreadSubscriptions(t threadAutoSubscriber) *IssueService {
+	s.threads = t
+	return s
 }
 
 // WithEventStore records manual closes and reopens on the issue timeline.
@@ -87,6 +94,7 @@ func (s *IssueService) Create(ctx context.Context, owner, repoName string, autho
 	if err := s.issues.Create(ctx, issue); err != nil {
 		return nil, err
 	}
+	autoSubscribe(ctx, s.threads, authorID, repo.ID, model.ThreadKindIssue, issue.Number, model.ThreadReasonAuthor)
 	return issue, nil
 }
 

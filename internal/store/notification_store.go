@@ -9,7 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-const notificationCols = `id, user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title, read, created_at`
+const notificationCols = `id, user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title, COALESCE(subject_kind, ''), read, created_at`
 
 // Inbox filters for ListPage and CountByFilter.
 const (
@@ -37,9 +37,9 @@ func NewNotificationStore(db *sql.DB) *NotificationStore { return &NotificationS
 
 func (s *NotificationStore) Create(ctx context.Context, n *model.Notification) error {
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO notifications (user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-		n.UserID, n.ActorID, n.ActorName, string(n.Type), n.RepoID, n.RepoName, n.OwnerName, n.SubjectID, n.SubjectURL, n.SubjectTitle,
+		`INSERT INTO notifications (user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title, subject_kind)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULLIF($11, '')) RETURNING id`,
+		n.UserID, n.ActorID, n.ActorName, string(n.Type), n.RepoID, n.RepoName, n.OwnerName, n.SubjectID, n.SubjectURL, n.SubjectTitle, n.SubjectKind,
 	).Scan(&n.ID)
 	if err != nil {
 		return fmt.Errorf("notification create: %w", err)
@@ -60,7 +60,7 @@ func (s *NotificationStore) ListByUser(ctx context.Context, userID int64) ([]mod
 	var notifs []model.Notification
 	for rows.Next() {
 		var n model.Notification
-		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.Read, &n.CreatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.SubjectKind, &n.Read, &n.CreatedAt); err != nil {
 			return nil, err
 		}
 		notifs = append(notifs, n)
@@ -94,7 +94,7 @@ func (s *NotificationStore) MarkRead(ctx context.Context, id, userID int64) erro
 // its repo isn't until they accept.
 func (s *NotificationStore) ListUnreadReadable(ctx context.Context, userID int64) ([]model.Notification, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT n.id, n.user_id, n.actor_id, n.actor_name, n.type, n.repo_id, n.repo_name, n.owner_name, n.subject_id, n.subject_url, n.subject_title, n.read, n.created_at
+		`SELECT n.id, n.user_id, n.actor_id, n.actor_name, n.type, n.repo_id, n.repo_name, n.owner_name, n.subject_id, n.subject_url, n.subject_title, COALESCE(n.subject_kind, ''), n.read, n.created_at
 		 FROM notifications n JOIN repositories r ON r.id = n.repo_id
 		 WHERE n.user_id = $1 AND n.read = FALSE AND (`+readableBy("r", "$1")+`
 		    OR n.type = 'repo_transfer' AND EXISTS (SELECT 1 FROM repo_transfers t
@@ -109,7 +109,7 @@ func (s *NotificationStore) ListUnreadReadable(ctx context.Context, userID int64
 	var notifs []model.Notification
 	for rows.Next() {
 		var n model.Notification
-		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.Read, &n.CreatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.SubjectKind, &n.Read, &n.CreatedAt); err != nil {
 			return nil, err
 		}
 		notifs = append(notifs, n)
@@ -140,7 +140,7 @@ func (s *NotificationStore) ListPage(ctx context.Context, userID int64, filter s
 	var notifs []model.Notification
 	for rows.Next() {
 		var n model.Notification
-		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.Read, &n.CreatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.SubjectKind, &n.Read, &n.CreatedAt); err != nil {
 			return nil, err
 		}
 		notifs = append(notifs, n)
@@ -184,29 +184,58 @@ func (s *NotificationStore) MarkReadMany(ctx context.Context, userID int64, ids 
 	return err
 }
 
-// RepoIDsOf returns the distinct repos of userID's notifications among ids, leaving out
-// repo_transfer rows: a transfer says nothing about whether the user watches that repo.
-func (s *NotificationStore) RepoIDsOf(ctx context.Context, userID int64, ids []int64) ([]int64, error) {
+// NotificationThread identifies the issue, pull request or discussion a notification is about.
+type NotificationThread struct {
+	RepoID int64
+	Kind   string
+	Number int64
+}
+
+// ThreadsOf returns the distinct threads of userID's notifications among ids. Rows without a
+// subject_kind (repo_transfer, unclassifiable mentions) name no thread and are left out.
+func (s *NotificationStore) ThreadsOf(ctx context.Context, userID int64, ids []int64) ([]NotificationThread, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	ph, args := inPlaceholders(2, ids)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT DISTINCT repo_id FROM notifications
-		 WHERE user_id = $1 AND type <> 'repo_transfer' AND id IN (`+ph+`)`,
+		`SELECT DISTINCT repo_id, subject_kind, subject_id FROM notifications
+		 WHERE user_id = $1 AND subject_kind IS NOT NULL AND id IN (`+ph+`)
+		 ORDER BY repo_id, subject_kind, subject_id`,
 		append([]any{userID}, args...)...,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("notification repo ids: %w", err)
+		return nil, fmt.Errorf("notification threads: %w", err)
 	}
 	defer rows.Close()
-	var repoIDs []int64
+	var threads []NotificationThread
 	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
+		var t NotificationThread
+		if err := rows.Scan(&t.RepoID, &t.Kind, &t.Number); err != nil {
+			return nil, fmt.Errorf("notification threads: scan: %w", err)
 		}
-		repoIDs = append(repoIDs, id)
+		threads = append(threads, t)
 	}
-	return repoIDs, rows.Err()
+	return threads, rows.Err()
+}
+
+// MarkThreadsRead marks read every unread notification of userID on the threads of the notifications
+// among ids, selected or not. Ids that aren't userID's or have no subject_kind select no thread.
+func (s *NotificationStore) MarkThreadsRead(ctx context.Context, userID int64, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	ph, args := inPlaceholders(2, ids)
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE notifications n SET read = TRUE
+		 WHERE n.user_id = $1 AND n.read = FALSE AND EXISTS (
+		   SELECT 1 FROM notifications sel
+		   WHERE sel.user_id = $1 AND sel.id IN (`+ph+`) AND sel.subject_kind IS NOT NULL
+		     AND sel.repo_id = n.repo_id AND sel.subject_kind = n.subject_kind AND sel.subject_id = n.subject_id)`,
+		append([]any{userID}, args...)...,
+	)
+	if err != nil {
+		return fmt.Errorf("notification mark threads read: %w", err)
+	}
+	return nil
 }

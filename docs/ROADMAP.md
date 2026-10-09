@@ -13,7 +13,7 @@
 
 # Milestone 1 — Core Platform (Phases 0–15.3) ✅ COMPLETE
 
-_All of Phases 0–15.3 shipped, and the closing pass (a security and coverage review in October 2026) is finished. Migrations now run through 114; 054 onward is work outside the phase plan, the largest pieces of which are listed under [Shipped outside the phase plan](#shipped-outside-the-phase-plan)._
+_All of Phases 0–15.3 shipped, and the closing pass (a security and coverage review in October 2026) is finished. Migrations now run through 116; 054 onward is work outside the phase plan, the largest pieces of which are listed under [Shipped outside the phase plan](#shipped-outside-the-phase-plan)._
 
 ---
 
@@ -1495,7 +1495,7 @@ DELETE     /api/repos/{owner}/{repo}/projects/{id}/cards/{cardID}   (authMW)
 
 **Page names to register:** `"projects"`, `"project_detail"`
 
-**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `114`), `#N` autolinks in descriptions, convert-to-issue and a side-panel editor; see the card API in [api-reference](./api-reference.md#projects-kanban).
+**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `116`), `#N` autolinks in descriptions, convert-to-issue and a side-panel editor; see the card API in [api-reference](./api-reference.md#projects-kanban).
 
 **Wire up:**
 

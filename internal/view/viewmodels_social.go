@@ -34,19 +34,20 @@ type DiscussionsData struct {
 
 type DiscussionDetailData struct {
 	BasePage
-	Repo          model.Repository
-	Owner         string
-	RepoName      string
-	Discussion    model.Discussion
-	Category      model.DiscussionCategory
-	AllCategories []model.DiscussionCategory
-	Labels        []model.Label
-	AllLabels     []model.Label
-	Replies       []RenderedDiscussionReply
-	Participants  []string
-	OPReactions   []model.ReactionSummary
-	BodyHTML      string
-	CanWrite      bool
+	Repo               model.Repository
+	Owner              string
+	RepoName           string
+	Discussion         model.Discussion
+	Category           model.DiscussionCategory
+	AllCategories      []model.DiscussionCategory
+	Labels             []model.Label
+	AllLabels          []model.Label
+	Replies            []RenderedDiscussionReply
+	Participants       []string
+	OPReactions        []model.ReactionSummary
+	BodyHTML           string
+	CanWrite           bool
+	ThreadSubscription ThreadSubscriptionData
 }
 
 type DiscussionNewData struct {

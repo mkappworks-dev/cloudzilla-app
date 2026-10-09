@@ -29,11 +29,18 @@ var ErrUnknownDiscussionCategory = store.ErrUnknownDiscussionCategory
 type DiscussionService struct {
 	discussions *store.DiscussionStore
 	repos       *store.RepoStore
+	threads     threadAutoSubscriber
 }
 
 // NewDiscussionService creates a DiscussionService backed by the given stores.
 func NewDiscussionService(discussions *store.DiscussionStore, repos *store.RepoStore) *DiscussionService {
 	return &DiscussionService{discussions: discussions, repos: repos}
+}
+
+// WithThreadSubscriptions makes participation subscribe the user to the thread.
+func (s *DiscussionService) WithThreadSubscriptions(t threadAutoSubscriber) *DiscussionService {
+	s.threads = t
+	return s
 }
 
 func (s *DiscussionService) ListCategories(ctx context.Context) ([]model.DiscussionCategory, error) {
@@ -93,15 +100,16 @@ func (s *DiscussionService) Create(ctx context.Context, owner, repoName string, 
 	if err := s.discussions.Create(ctx, d); err != nil {
 		return nil, fmt.Errorf("create discussion: %w", err)
 	}
+	autoSubscribe(ctx, s.threads, authorID, repo.ID, model.ThreadKindDiscussion, d.Number, model.ThreadReasonAuthor)
 	return d, nil
 }
 
-func (s *DiscussionService) CreateReply(ctx context.Context, discussionID, authorID int64, authorName, body string, parentID *int64) (*model.DiscussionReply, error) {
+func (s *DiscussionService) CreateReply(ctx context.Context, d model.Discussion, authorID int64, authorName, body string, parentID *int64) (*model.DiscussionReply, error) {
 	if body == "" {
 		return nil, fmt.Errorf("body is required")
 	}
 	r := &model.DiscussionReply{
-		DiscussionID: discussionID,
+		DiscussionID: d.ID,
 		AuthorID:     authorID,
 		AuthorName:   authorName,
 		Body:         body,
@@ -112,6 +120,7 @@ func (s *DiscussionService) CreateReply(ctx context.Context, discussionID, autho
 	if err := s.discussions.CreateReply(ctx, r); err != nil {
 		return nil, fmt.Errorf("create reply: %w", err)
 	}
+	autoSubscribe(ctx, s.threads, authorID, d.RepoID, model.ThreadKindDiscussion, d.Number, model.ThreadReasonComment)
 	return r, nil
 }
 
