@@ -497,7 +497,8 @@ func (b cardDetailsBody) details() (model.CardDetails, error) {
 	}
 	if b.DueDate != "" {
 		t, err := time.Parse("2006-01-02", b.DueDate)
-		if err != nil {
+		// time.Parse accepts year 0, which Postgres DATE has no value for.
+		if err != nil || t.Year() < 1 || t.Year() > 9999 {
 			return d, errors.New("due_date must be YYYY-MM-DD")
 		}
 		d.DueDate = &t
