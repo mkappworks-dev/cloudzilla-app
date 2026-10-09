@@ -34,7 +34,7 @@ func TestListColumnsWithCardsExpanded_DescriptionHTMLLinksRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID)
+	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}

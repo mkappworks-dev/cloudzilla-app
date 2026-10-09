@@ -402,14 +402,15 @@ func (s *ProjectService) SearchCardTargets(ctx context.Context, projectID, userI
 }
 
 // ListColumnsWithCards returns all columns for a project, each with its cards pre-loaded.
-func (s *ProjectService) ListColumnsWithCards(ctx context.Context, projectID int64) ([]ColumnWithCards, error) {
+// A nil viewer is anonymous.
+func (s *ProjectService) ListColumnsWithCards(ctx context.Context, projectID int64, viewerID *int64) ([]ColumnWithCards, error) {
 	cols, err := s.projects.ListColumns(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]ColumnWithCards, len(cols))
 	for i, col := range cols {
-		cards, err := s.projects.ListCardsByColumn(ctx, col.ID)
+		cards, err := s.projects.ListCardsByColumn(ctx, col.ID, viewerID)
 		if err != nil {
 			return nil, err
 		}
@@ -431,12 +432,13 @@ type ColumnWithCards struct {
 // Title is the card's own title when it has one, else the linked issue or PR title.
 // Number and State describe the linked item for issue and pull cards (0 and "" otherwise);
 // LinkKind, LinkNumber and LinkState describe the link even when a custom title makes Kind "note".
+// Kind "hidden" is a plain card for a private issue the viewer can't see: every other field is empty.
 type KanbanCardView struct {
 	ID          int64
 	Title       string
 	Number      int
 	State       string // "open" | "closed" | "merged" | "" (note)
-	Kind        string // "issue" | "pull" | "note"
+	Kind        string // "issue" | "pull" | "note" | "hidden"
 	Description string
 	// DescriptionHTML is Description rendered with #N linked to the repo's issues and PRs.
 	DescriptionHTML string
@@ -494,14 +496,14 @@ func (s *ProjectService) loadLinkedPeople(ctx context.Context, kind string, ids 
 
 // ListColumnsWithCardsExpanded resolves columns + cards joined with the owning
 // repo's full name (owner/name) for display in the kanban board.
-func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, projectID int64) ([]KanbanColumnView, error) {
+func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, projectID int64, viewerID *int64) ([]KanbanColumnView, error) {
 	repo, err := s.repoForProject(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
 	fullName := repo.OwnerName + "/" + repo.Name
 
-	cols, err := s.ListColumnsWithCards(ctx, projectID)
+	cols, err := s.ListColumnsWithCards(ctx, projectID, viewerID)
 	if err != nil {
 		return nil, err
 	}
@@ -509,7 +511,7 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 	for _, col := range cols {
 		for _, c := range col.Cards {
 			cardIDs = append(cardIDs, c.ID)
-			if c.Title != "" {
+			if c.Title != "" || c.IssueHidden {
 				continue
 			}
 			if c.IssueID != nil {
@@ -552,7 +554,7 @@ collect:
 			}
 		}
 	}
-	kinds, err := s.projects.RefKinds(ctx, repo.ID, refNums)
+	kinds, err := s.projects.RefKinds(ctx, repo.ID, refNums, viewerID)
 	if err != nil {
 		return nil, err
 	}
@@ -568,10 +570,14 @@ collect:
 				ColumnID:     c.ColumnID,
 				Position:     c.Position,
 				RepoFullName: fullName,
-				Description:  c.Note,
-				Assignees:    assignees[c.ID],
-				Labels:       labels[c.ID],
 			}
+			// A plain card stands for its issue, so its own fields may describe the hidden issue too.
+			if c.IssueHidden && c.Title == "" {
+				cv.Kind = "hidden"
+				cards[j] = cv
+				continue
+			}
+			cv.Description, cv.Assignees, cv.Labels = c.Note, assignees[c.ID], labels[c.ID]
 			if c.Note != "" {
 				cv.DescriptionHTML = markdown.RenderWithRefs(ctx, c.Note, repoBase, kinds)
 			}
@@ -579,7 +585,7 @@ collect:
 				cv.DueDate = c.DueDate.Format("2006-01-02")
 			}
 			switch {
-			case c.IssueID != nil:
+			case c.IssueID != nil && !c.IssueHidden:
 				cv.LinkKind, cv.LinkNumber, cv.LinkState = "issue", c.IssueNumber, c.IssueState
 				cv.LinkID, cv.LinkTitle = *c.IssueID, c.IssueTitle
 				cv.Kind, cv.Title, cv.Number, cv.State = "issue", c.IssueTitle, c.IssueNumber, c.IssueState

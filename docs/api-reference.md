@@ -42,7 +42,7 @@ Git over HTTP answers `413` with `storage quota reached (X of Y)` for a push tha
 | POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`                                                                                                                                                                 |
 | GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                                                                                                                                                                                  |
 | GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/`; links an existing account only when both Google and the account have verified the email; re-renders login with 403 if Google hasn't verified the email, 409 if the matching account's email is unverified or it is linked to another Google account; redirects to `/auth/2fa` when TOTP is on ([details](./access-control.md#google-oauth-sign-in)) |
-| POST   | `/auth/ldap`            | --   | LDAP login (username + password)                                                                                                                                                                                               |
+| POST   | `/auth/ldap`            | --   | LDAP login (username + password; [SSO](./sso.md))                                                                                                                                                                                               |
 | GET    | `/auth/saml`            | --   | Initiate SAML SSO flow (redirects to IdP)                                                                                                                                                                                      |
 | POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                                                                                                                                                                                 |
 | GET    | `/auth/saml/metadata`   | --   | SAML SP metadata XML                                                                                                                                                                                                           |
@@ -224,6 +224,8 @@ Public user objects — returned by `GET /api/users/:username` and by `/api/repo
 | POST   | `/api/repos/:owner/:repo/archive`   | IsOwner  | Archive a repository                                                                |
 | POST   | `/api/repos/:owner/:repo/unarchive` | IsOwner  | Unarchive a repository                                                              |
 | PATCH  | `/api/repos/:owner/:repo/template`  | IsOwner  | Toggle repository template flag                                                     |
+| PATCH  | `/api/repos/:owner/:repo`           | CanManage | Edit `description`, `website` and `license` (form fields); 204 with `HX-Refresh` |
+| POST   | `/api/repos/:owner/:repo/delete`    | IsOwner  | Soft-delete the repository; `restore` brings it back. Takes the [confirmation](#confirmed-actions). HTMX: 204 with `HX-Redirect` to `/:owner`; otherwise 303 |
 | POST   | `/api/repos/from-template`          | Required | Create a new repo from a template                                                   |
 
 Repository creation (here and under `/api/orgs/:org/repos`) accepts optional init options that seed an initial commit: `add_readme` (bool), `gitignore` (`Go`, `Node`, `Python`, `Rust`, `Java`, `C++`, `Ruby`), and `license` (`mit`, `apache-2.0`, `gpl-3.0`, `bsd-3-clause`, `unlicense`). An unknown template name leaves the repository empty rather than failing the request.
@@ -297,6 +299,9 @@ Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` an
 | POST   | `/api/repos/:owner/:repo/issues/:number/comments`     | Required | Add a comment                            |
 | PATCH  | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Edit a comment body (author only)        |
 | DELETE | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Delete a comment (author or repo writer) |
+| POST   | `/api/repos/:owner/:repo/issues/:number/priority`     | CanWrite | Set `priority` (`P0`, `P1`, `P2`, `P3`; empty or `none` clears it); 400 for anything else |
+| POST   | `/api/repos/:owner/:repo/issues/:number/linked-pulls/:pullNumber` | CanWrite | Link a pull request to the issue; 404 when either does not exist |
+| DELETE | `/api/repos/:owner/:repo/issues/:number/linked-pulls/:pullNumber` | CanWrite | Unlink it |
 
 ## Labels
 
@@ -364,6 +369,13 @@ A JSON request gets 201 `{"owner", "name", "url"}`. Other requests are redirecte
 | POST   | `/api/repos/:owner/:repo/pulls/`        | Required | Create a pull request                                                                                                                      |
 | GET    | `/api/repos/:owner/:repo/pulls/:number` | --       | Get PR details                                                                                                                             |
 | PATCH  | `/api/repos/:owner/:repo/pulls/:number` | CanWrite | Update PR state. `state=merged` merges using `merge_strategy` (`ff` default, `merge`, or `squash`); `state=closed` closes without merging. |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/linked-issues/:issueNumber` | CanWrite | Link an issue the pull request closes; 404 when either does not exist |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/linked-issues/:issueNumber` | CanWrite | Unlink it |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/reviewers` | CanWrite | Request a review from `username` (form); 400 when it is missing or unknown, 403 when that user cannot read the repository; 204 |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/reviewers?username=X` | CanWrite | Withdraw the request; 204 |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/comments` | Required | Comment on the conversation (JSON `body`; an HTMX request sends it as a form field); 400 for a blank body |
+| PATCH  | `/api/repos/:owner/:repo/pulls/:number/comments/:commentID` | Required | Edit a comment body (author only) |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/comments/:commentID` | Required | Delete a comment (author or repo writer) |
 
 ## PR Reviews
 
@@ -403,7 +415,7 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 | Method | Path                                               | Auth      | Description                                                                                                                  |
 | ------ | -------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/branches/protections`     | CanManage | List all branch protection rules for the repository                                                                          |
-| POST   | `/api/repos/:owner/:repo/branches/protections`     | CanManage | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`, `require_pull_request`)     |
+| POST   | `/api/repos/:owner/:repo/branches/protections`     | CanManage | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`, `require_pull_request`); a malformed glob such as `[` returns 422 |
 | PATCH  | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Update an existing rule (same fields as POST except `pattern`; a field left out is reset, so `require_pull_request` turns off) |
 | DELETE | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Delete a protection rule                                                                                                     |
 
@@ -413,9 +425,9 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 
 | Method | Path                                      | Auth     | Description                                                                                                     |
 | ------ | ----------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`) |
+| POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`, or for a name `git check-ref-format` rejects) |
 | DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push` or `require_pull_request`)              |
-| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields)                                                                         |
+| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields; 422 for a name `git check-ref-format` rejects)                          |
 | DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                                                      |
 
 All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.
@@ -439,6 +451,8 @@ Deleting a branch whose protection rule has `block_force_push` returns 422 `cann
 | GET    | `/api/repos/:owner/:repo/releases/:id`    | --       | Get release by ID                                                          |
 | PATCH  | `/api/repos/:owner/:repo/releases/:id`    | CanWrite | Update a release                                                           |
 | DELETE | `/api/repos/:owner/:repo/releases/:id`    | CanWrite | Delete a release; HTMX requests return `HX-Redirect` to the releases list  |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id/prerelease` | CanWrite | Set `is_prerelease` (`true`; anything else clears it) |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id/publish` | CanWrite | Publish a draft; 422 when it is already published |
 
 ## Commit Statuses
 
@@ -466,11 +480,11 @@ The repository's Checks tab (`/{owner}/{repo}/checks`) lists the commits with re
 
 ## Projects (Kanban)
 
-| Method | Path                                                        | Auth     | Description                                                                                                                                                   |
+| Method | Path                                                         | Auth     | Description                                                                                                                                                   |
 | ------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | POST   | `/api/repos/:owner/:repo/projects`                           | Required | Create a project board                                                                                                                                        |
-| PATCH  | `/api/repos/:owner/:repo/projects/:id`                       | Required | Close or reopen a project board (`closed` in body)                                                                                                            |
 | DELETE | `/api/repos/:owner/:repo/projects/:id`                       | Required | Delete a project board                                                                                                                                        |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id`                       | Required | Close or reopen a board (JSON `closed`); 200 with the board                                                                                                   |
 | POST   | `/api/repos/:owner/:repo/projects/:id/columns`               | Required | Create a column                                                                                                                                               |
 | DELETE | `/api/repos/:owner/:repo/projects/:id/columns/:colID`        | Required | Delete a column                                                                                                                                               |
 | GET    | `/api/repos/:owner/:repo/projects/:id/card-targets`          | Required | Search the repo's issues and PRs by title or number (`q`) for the card link picker; up to 8 results                                                           |
@@ -490,8 +504,9 @@ A card needs a non-empty `title` unless it is a bare issue/PR link. Assignees mu
 | ------ | ------------------------------------ | -------- | ---------------------------- |
 | POST   | `/api/repos/:owner/:repo/wiki/:slug` | Required | Create or update a wiki page |
 | DELETE | `/api/repos/:owner/:repo/wiki/:slug` | Required | Delete a wiki page           |
+| POST   | `/api/repos/:owner/:repo/wiki/order` | Required | Set the sidebar order (`order`: comma-separated slugs); 200 |
 
-Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that moves with the repository when it is deleted, restored, purged or transferred. Page content is Markdown. When a repository named `<repo>.wiki` from before that suffix was reserved holds the path, `<repo>`'s wiki pages return 404 and the directory stays with `<repo>.wiki`.
+Slugs, access rules and conflicts are in [wiki](./wiki.md). Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that moves with the repository when it is deleted, restored, purged or transferred. Page content is Markdown. When a repository named `<repo>.wiki` from before that suffix was reserved holds the path, `<repo>`'s wiki pages return 404 and the directory stays with `<repo>.wiki`.
 
 ## Discussions
 
@@ -501,6 +516,10 @@ Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that
 | POST   | `/api/repos/:owner/:repo/discussions/:number/replies`     | Required | Reply to a discussion               |
 | PATCH  | `/api/repos/:owner/:repo/discussions/:number`             | Required | Mark a reply as the accepted answer |
 | DELETE | `/api/repos/:owner/:repo/discussions/:number/replies/:id` | Required | Delete a reply                      |
+| POST   | `/api/repos/:owner/:repo/discussions/:number/labels/:labelID` | CanWrite | Add a label to a discussion |
+| DELETE | `/api/repos/:owner/:repo/discussions/:number/labels/:labelID` | CanWrite | Remove it |
+| POST   | `/api/repos/:owner/:repo/discussions/:number/reactions` | Required | Toggle a reaction (`emoji`); answers the reaction bar HTML, 400 for an unsupported emoji |
+| POST   | `/api/repos/:owner/:repo/discussions/:number/replies/:id/reactions` | Required | Toggle a reaction on a reply |
 
 ## Gists
 
@@ -664,6 +683,8 @@ A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` w
 | POST   | `/api/admin/users/:username/password-reset-link` | Superadmin | Issue a 24-hour single-use password reset link, replacing any earlier one, and mail the account a notice without it. 200 with `{"link", "expires_at"}`, or for HTMX the shown-once panel; `Cache-Control: no-store`. 409 for a suspended or passwordless account |
 | POST   | `/api/admin/users/:username/delete` | Superadmin | Delete the account (`confirm_username` must equal it; 400 otherwise). 409 for a sole organization owner or the last active superadmin. HTMX: `HX-Redirect` to `/admin/users` |
 | POST   | `/api/admin/users/verify-email` | Superadmin | Mark a user's email verified (`username`, `email`, plus `password` and, with 2FA, `code`; `email` must be their current address, else 404; 400 when either is missing). HTMX: 204, form: 303 to `/admin/settings`; audit-logged |
+| POST   | `/api/admin/orgs/:org/owners` | Superadmin | Make `username` an owner of any organization (optional `from`: the admin user page to return to, plus `password` and, with 2FA, `code`). 404 for an unknown user or organization, 409 for a suspended user |
+| POST   | `/api/admin/sso/:provider/enabled` | Superadmin | Turn `ldap` or `saml` sign-in on or off (`enabled=true`, plus `password` and, with 2FA, `code`); 404 for another provider, 422 until the settings it needs are saved ([sso](./sso.md#settings)) |
 
 The `/api/admin/users/:username/…` actions take `password` and, with 2FA, `code`, refuse the admin's own account with 403, and are audit-logged. HTMX requests get 204 with `HX-Refresh`, forms a 303 to the user page, except `password-reset-link`, which answers with the link. See [Managing accounts](./access-control.md#managing-accounts). A suspended account's personal access tokens and OAuth app tokens get `403 {"error":"account_suspended"}` on every endpoint.
 
@@ -691,6 +712,21 @@ The `/api/admin/users/:username/…` actions take `password` and, with 2FA, `cod
 | Method | Path                                              | Description                                  |
 | ------ | ------------------------------------------------- | -------------------------------------------- |
 | GET    | `/fragments/:owner/:repo/issues/:number/comments` | Returns rendered HTML fragment for HTMX swap |
+| POST   | `/api/markdown/preview` | Signed-in only. Renders the `body` form field as HTML for the editors' Preview tabs; a blank body returns a "Nothing to preview" paragraph |
+
+### Inline edit sections
+
+The issue, release and milestone pages edit their title, body and due date in place. Each section is a `GET` that returns its HTML (`?mode=edit` returns the form) and a `PATCH` that saves and returns the section again; they exist for the page's own HTMX requests rather than for API clients. A blank title is 400.
+
+| Method    | Path                                                | Auth             | Field         |
+| --------- | --------------------------------------------------- | ---------------- | ------------- |
+| GET/PATCH | `/api/repos/:owner/:repo/issues/:number/title`      | -- / CanWrite    | `title`       |
+| GET/PATCH | `/api/repos/:owner/:repo/issues/:number/body`       | -- / CanWrite    | `body`        |
+| GET/PATCH | `/api/repos/:owner/:repo/releases/:id/title`        | -- / CanWrite    | `name`        |
+| GET/PATCH | `/api/repos/:owner/:repo/releases/:id/body`         | -- / CanWrite    | `body`        |
+| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/title`  | -- / CanWrite    | `title`       |
+| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/body`   | -- / CanWrite    | `description` |
+| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/due`    | -- / CanWrite    | `due_date`    |
 
 ## Auth Levels Reference
 

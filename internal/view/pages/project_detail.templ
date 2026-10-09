@@ -245,6 +245,9 @@ templ kanbanCard(data view.ProjectDetailData, card service.KanbanCardView, colum
 		}
 		if opensPanel(card) {
 			<p class="text-[13px] font-medium line-clamp-3 break-words">{ card.Title }</p>
+		} else if card.Kind == "hidden" {
+			<p class="text-[13px] italic text-muted-foreground">Private issue</p>
+			<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">Hidden</p>
 		} else {
 			<div class="flex items-start gap-2">
 				@linkKindIcon(card.LinkKind)

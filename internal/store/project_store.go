@@ -368,13 +368,14 @@ func (s *ProjectStore) CardAssignees(ctx context.Context, cardIDs []int64) (map[
 }
 
 // RefKinds maps each number in nums to "issues" or "pulls"; numbers matching
-// neither are absent. A number that is both resolves to "issues".
-func (s *ProjectStore) RefKinds(ctx context.Context, repoID int64, nums []int) (map[int]string, error) {
+// neither, or only a private issue the viewer cannot see (issueVisibleTo), are
+// absent. A number that is both resolves to "issues".
+func (s *ProjectStore) RefKinds(ctx context.Context, repoID int64, nums []int, visibleToUserID *int64) (map[int]string, error) {
 	out := map[int]string{}
 	if len(nums) == 0 {
 		return out, nil
 	}
-	args := []any{repoID}
+	args := []any{repoID, viewerID(visibleToUserID)}
 	var ph []string
 	for _, n := range nums {
 		if n <= 0 || n > math.MaxInt32 {
@@ -390,7 +391,7 @@ func (s *ProjectStore) RefKinds(ctx context.Context, repoID int64, nums []int) (
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT number, 'pulls' FROM pull_requests WHERE repo_id = $1 AND number IN (`+in+`)
 		 UNION ALL
-		 SELECT number, 'issues' FROM issues WHERE repo_id = $1 AND number IN (`+in+`)`, args...)
+		 SELECT i.number, 'issues' FROM issues i WHERE i.repo_id = $1 AND i.number IN (`+in+`) AND `+issueVisibleTo("i", "$2"), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -540,18 +541,24 @@ func (s *ProjectStore) CardTargetsInRepo(ctx context.Context, repoID int64, issu
 	return true, nil
 }
 
-const cardSelect = `SELECT
+// cardSelect reads cards with their linked issue or pull request; hidden is the
+// SQL for issue_hidden.
+func cardSelect(hidden string) string {
+	return `SELECT
 	     c.id, c.column_id, c.issue_id, c.pull_id, c.title, c.note, c.due_date, c.position, c.created_at,
 	     COALESCE(i.title, '')       AS issue_title,
 	     COALESCE(i.number, 0)       AS issue_number,
 	     COALESCE(i.state, '')       AS issue_state,
 	     COALESCE(pr.title, '')      AS pull_title,
 	     COALESCE(pr.number, 0)      AS pull_number,
-	     COALESCE(pr.state, '')      AS pull_state
+	     COALESCE(pr.state, '')      AS pull_state,
+	     ` + hidden + ` AS issue_hidden
 	 FROM project_cards c
 	 LEFT JOIN issues       i  ON i.id  = c.issue_id
 	 LEFT JOIN pull_requests pr ON pr.id = c.pull_id`
+}
 
+// scanCards blanks the issue fields of a hidden card, so the title never leaves the store.
 func scanCards(rows *sql.Rows) ([]model.ProjectCard, error) {
 	var cards []model.ProjectCard
 	for rows.Next() {
@@ -563,8 +570,12 @@ func scanCards(rows *sql.Rows) ([]model.ProjectCard, error) {
 			&card.Title, &card.Note, &due, &card.Position, &card.CreatedAt,
 			&card.IssueTitle, &card.IssueNumber, &card.IssueState,
 			&card.PullTitle, &card.PullNumber, &card.PullState,
+			&card.IssueHidden,
 		); err != nil {
 			return nil, err
+		}
+		if card.IssueHidden {
+			card.IssueTitle, card.IssueNumber, card.IssueState = "", 0, ""
 		}
 		if issueID.Valid {
 			card.IssueID = &issueID.Int64
@@ -580,9 +591,13 @@ func scanCards(rows *sql.Rows) ([]model.ProjectCard, error) {
 	return cards, rows.Err()
 }
 
-func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([]model.ProjectCard, error) {
+// ListCardsByColumn marks a card whose private issue the viewer cannot see
+// (issueVisibleTo) as IssueHidden.
+func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64, visibleToUserID *int64) ([]model.ProjectCard, error) {
 	rows, err := s.db.QueryContext(ctx,
-		cardSelect+` WHERE c.column_id = $1 ORDER BY c.position ASC, c.id ASC`, columnID)
+		cardSelect(`(i.id IS NOT NULL AND NOT `+issueVisibleTo("i", "$2")+`)`)+
+			` WHERE c.column_id = $1 ORDER BY c.position ASC, c.id ASC`,
+		columnID, viewerID(visibleToUserID))
 	if err != nil {
 		return nil, fmt.Errorf("card list: %w", err)
 	}
@@ -591,9 +606,10 @@ func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([
 }
 
 // GetCardInProject returns ErrCardNotInProject when the card is missing or in another project.
+// It never hides the linked issue: its callers are gated on CanWrite, which issueVisibleTo lets see every issue.
 func (s *ProjectStore) GetCardInProject(ctx context.Context, cardID, projectID int64) (*model.ProjectCard, error) {
 	rows, err := s.db.QueryContext(ctx,
-		cardSelect+` WHERE c.id = $1 AND c.column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
+		cardSelect(`FALSE`)+` WHERE c.id = $1 AND c.column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
 		cardID, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("card get: %w", err)

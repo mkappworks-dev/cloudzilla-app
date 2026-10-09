@@ -36,7 +36,7 @@ func TestProjectStore_CreateCard_TitleRoundTrips(t *testing.T) {
 	if err := s.CreateCard(ctx, &model.ProjectCard{ColumnID: cols[0], Title: "t", Note: "d"}); err != nil {
 		t.Fatalf("CreateCard: %v", err)
 	}
-	got, err := s.ListCardsByColumn(ctx, cols[0])
+	got, err := s.ListCardsByColumn(ctx, cols[0], nil)
 	if err != nil || len(got) != 1 {
 		t.Fatalf("ListCardsByColumn = %v, %v", got, err)
 	}
@@ -126,7 +126,7 @@ func TestProjectStore_SetCardDetails_ReplacesSets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SetCardDetails: %v", err)
 	}
-	got, _ := s.ListCardsByColumn(ctx, cols[0])
+	got, _ := s.ListCardsByColumn(ctx, cols[0], nil)
 	if got[0].Title != "new title" || got[0].Note != "new desc" || got[0].DueDate == nil || got[0].DueDate.Format("2006-01-02") != "2026-11-02" {
 		t.Errorf("card = %+v", got[0])
 	}
@@ -153,7 +153,7 @@ func TestProjectStore_SetCardDetails_ReplacesSets(t *testing.T) {
 	if len(labels[card.ID]) != 1 || labels[card.ID][0].ID != l2 {
 		t.Errorf("labels after replace = %v", labels[card.ID])
 	}
-	got, _ = s.ListCardsByColumn(ctx, cols[0])
+	got, _ = s.ListCardsByColumn(ctx, cols[0], nil)
 	if got[0].DueDate != nil {
 		t.Errorf("due date = %v, want cleared", got[0].DueDate)
 	}

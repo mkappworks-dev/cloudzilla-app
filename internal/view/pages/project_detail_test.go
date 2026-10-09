@@ -81,6 +81,23 @@ func TestProjectDetail_CardFace(t *testing.T) {
 	}
 }
 
+// The service hands over a hidden card with nothing but its ID, column and position.
+func TestProjectDetail_HiddenCardIsAPlaceholderWithoutPanelOrLink(t *testing.T) {
+	data := boardData(false)
+	data.Columns[0].Cards = []service.KanbanCardView{{ID: 43, Kind: "hidden", RepoFullName: "acme/widgets", ColumnID: 2}}
+	out := renderBoard(t, data)
+
+	li := regexp.MustCompile(`(?s)<li[^>]*data-card-id="43".*?</li>`).FindString(out)
+	if !strings.Contains(li, "Private issue") {
+		t.Fatalf("hidden card = %q, want the Private issue placeholder", li)
+	}
+	for _, gone := range []string{"data-card-json", "data-card-panel", `role="button"`, "href=", "data-card-link", "#0"} {
+		if strings.Contains(li, gone) {
+			t.Errorf("hidden card renders %q: %s", gone, li)
+		}
+	}
+}
+
 func TestProjectDetail_PanelWriteControls(t *testing.T) {
 	out := renderBoard(t, boardData(true))
 	for _, want := range []string{

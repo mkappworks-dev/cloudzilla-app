@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -84,6 +86,10 @@ func (h *Handler) CreateBranchProtection(w http.ResponseWriter, r *http.Request)
 		RequirePullRequest:  r.FormValue("require_pull_request") == "true",
 	}
 	if err := h.Services.BranchProtection.Create(r.Context(), bp); err != nil {
+		if errors.Is(err, service.ErrInvalidPattern) {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
 		writeError(w, http.StatusUnprocessableEntity, "failed to create branch protection")
 		return
 	}

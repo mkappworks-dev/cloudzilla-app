@@ -1,74 +1,89 @@
 package db_test
 
 import (
+	"database/sql"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-func TestProjectCardDetailsMigration_SplitsNotesIntoTitleAndDescription(t *testing.T) {
-	db := testutil.OpenFreshTestDB(t)
-	testutil.Exec(t, db, `DROP TABLE card_assignees, card_labels`)
-	testutil.Exec(t, db, `ALTER TABLE project_cards DROP CONSTRAINT project_cards_shape, DROP COLUMN title, DROP COLUMN due_date`)
-	testutil.Exec(t, db, `ALTER TABLE project_cards ADD CONSTRAINT project_cards_check CHECK (
-		(issue_id IS NOT NULL AND pull_id IS NULL AND note = '')
-		OR (pull_id IS NOT NULL AND issue_id IS NULL AND note = '')
-		OR (issue_id IS NULL AND pull_id IS NULL AND note <> ''))`)
+const dropCrossRepoCardsMigration = "migrations/113_drop_cross_repo_project_cards.sql"
 
-	owner := seedNamedUser(t, db, "alice")
-	var repoID, projectID, colID int64
-	if err := db.QueryRow(`INSERT INTO repositories (owner_id, owner_name, name) VALUES ($1, 'alice', 'mine') RETURNING id`, owner).Scan(&repoID); err != nil {
-		t.Fatalf("seed repo: %v", err)
+func TestDropCrossRepoCardsMigration_DeletesOnlyCardsPointingAtAnotherRepo(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+	alice := seedNamedUser(t, db, "alice")
+	var home, away, project, column int64
+	for name, id := range map[string]*int64{"home": &home, "away": &away} {
+		if err := db.QueryRow(`INSERT INTO repositories (owner_id, owner_name, name) VALUES ($1, 'alice', $2) RETURNING id`, alice, name).Scan(id); err != nil {
+			t.Fatalf("seed repo %s: %v", name, err)
+		}
 	}
-	if err := db.QueryRow(`INSERT INTO projects (repo_id, name, description) VALUES ($1, 'p', '') RETURNING id`, repoID).Scan(&projectID); err != nil {
+	if err := db.QueryRow(`INSERT INTO projects (repo_id, name) VALUES ($1, 'Board') RETURNING id`, home).Scan(&project); err != nil {
 		t.Fatalf("seed project: %v", err)
 	}
-	if err := db.QueryRow(`INSERT INTO project_columns (project_id, name, position) VALUES ($1, 'c', 0) RETURNING id`, projectID).Scan(&colID); err != nil {
+	if err := db.QueryRow(`INSERT INTO project_columns (project_id, name) VALUES ($1, 'Todo') RETURNING id`, project).Scan(&column); err != nil {
 		t.Fatalf("seed column: %v", err)
 	}
 
-	long := strings.Repeat("x", 130)
-	notes := []string{"one line", "head\nbody line 1\nbody line 2", "\n\n  padded\nrest", long + "\nmore"}
-	for _, n := range notes {
-		testutil.Exec(t, db, `INSERT INTO project_cards (column_id, note) VALUES ($1, $2)`, colID, n)
+	issueIn := func(repo int64, number int) int64 {
+		var id int64
+		if err := db.QueryRow(`INSERT INTO issues (repo_id, number, author_id, title) VALUES ($1, $2, $3, 'i') RETURNING id`, repo, number, alice).Scan(&id); err != nil {
+			t.Fatalf("seed issue: %v", err)
+		}
+		return id
+	}
+	pullIn := func(repo int64, number int) int64 {
+		var id int64
+		if err := db.QueryRow(`INSERT INTO pull_requests (repo_id, number, author_id, title, head_branch) VALUES ($1, $2, $3, 'p', 'x') RETURNING id`, repo, number, alice).Scan(&id); err != nil {
+			t.Fatalf("seed pull: %v", err)
+		}
+		return id
+	}
+	card := func(name string, issue, pull any, title string) int64 {
+		var id int64
+		if err := db.QueryRow(`INSERT INTO project_cards (column_id, issue_id, pull_id, title) VALUES ($1, $2, $3, $4) RETURNING id`, column, issue, pull, title).Scan(&id); err != nil {
+			t.Fatalf("seed card %s: %v", name, err)
+		}
+		return id
 	}
 
-	migration, err := os.ReadFile("migrations/113_project_card_details.sql")
+	keep := map[string]int64{
+		"own issue": card("own issue", issueIn(home, 1), nil, ""),
+		"own pull":  card("own pull", nil, pullIn(home, 2), ""),
+		"note":      card("note", nil, nil, "remember"),
+	}
+	drop := map[string]int64{
+		"foreign issue": card("foreign issue", issueIn(away, 1), nil, ""),
+		"foreign pull":  card("foreign pull", nil, pullIn(away, 2), ""),
+	}
+
+	migration, err := os.ReadFile(dropCrossRepoCardsMigration)
 	if err != nil {
 		t.Fatalf("read migration: %v", err)
 	}
-	if _, err := db.Exec(string(migration)); err != nil {
-		t.Fatalf("migrate: %v", err)
+	for run := 1; run <= 2; run++ {
+		if _, err := db.Exec(string(migration)); err != nil {
+			t.Fatalf("run %d: %v", run, err)
+		}
+		for name, id := range keep {
+			if !cardExists(t, db, id) {
+				t.Errorf("run %d: %s card was deleted", run, name)
+			}
+		}
+		for name, id := range drop {
+			if cardExists(t, db, id) {
+				t.Errorf("run %d: %s card survived", run, name)
+			}
+		}
 	}
+}
 
-	want := [][2]string{
-		{"one line", ""},
-		{"head", "body line 1\nbody line 2"},
-		{"padded", "rest"},
-		{long[:120], long + "\nmore"},
+func cardExists(t *testing.T, db *sql.DB, id int64) bool {
+	t.Helper()
+	var ok bool
+	if err := db.QueryRow(`SELECT EXISTS (SELECT 1 FROM project_cards WHERE id = $1)`, id).Scan(&ok); err != nil {
+		t.Fatalf("look up card %d: %v", id, err)
 	}
-	rows, err := db.Query(`SELECT title, note FROM project_cards WHERE column_id = $1 ORDER BY id`, colID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer rows.Close()
-	i := 0
-	for rows.Next() {
-		var title, note string
-		if err := rows.Scan(&title, &note); err != nil {
-			t.Fatal(err)
-		}
-		if i >= len(want) || title != want[i][0] || note != want[i][1] {
-			t.Errorf("card %d = (%q, %q), want %q", i, title, note, want[i])
-		}
-		i++
-	}
-	if err := rows.Err(); err != nil {
-		t.Fatal(err)
-	}
-	if i != len(want) {
-		t.Errorf("got %d cards, want %d", i, len(want))
-	}
+	return ok
 }

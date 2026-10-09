@@ -13,7 +13,7 @@
 
 # Milestone 1 — Core Platform (Phases 0–15.3) ✅ COMPLETE
 
-_All Phase 0–15.3 migrations implemented (60+ total, currently 064). Code complete — closing with licensing, security audit, documentation overhaul, refactoring, and test coverage._
+_All of Phases 0–15.3 shipped, and the closing pass (a security and coverage review in October 2026) is finished. Migrations now run through 114; 054 onward is work outside the phase plan, the largest pieces of which are listed under [Shipped outside the phase plan](#shipped-outside-the-phase-plan)._
 
 ---
 
@@ -1259,9 +1259,9 @@ POST   /api/repos/{owner}/{repo}/comments/{id}/reactions   (authMW)  — toggle 
 
 ---
 
-## Phase 8 — Two-Factor Auth (TOTP), Audit Log, LDAP / SAML SSO (8.1 ✅ IMPLEMENTED)
+## Phase 8 — Two-Factor Auth (TOTP), Audit Log, LDAP / SAML SSO ✅ IMPLEMENTED
 
-_Instance security hardening: strong authentication, accountability, and enterprise identity integration. 8.1 implemented (migration 034); 8.2–8.3 planned._
+_Instance security hardening: strong authentication, accountability, and enterprise identity integration. Implemented as 8.1 (migration 034), 8.2 (035) and 8.3 (106)._
 
 ### 8.1 Two-Factor Authentication (TOTP)
 
@@ -1389,7 +1389,7 @@ ALTER TABLE users
     ADD CONSTRAINT uq_users_sso UNIQUE (sso_provider, sso_id);
 ```
 
-**LDAP flow:** bind → search for user DN → verify password via secondary bind → upsert user (same account-linking priority as OAuth: `sso_id` match → email match → new user). Config keys: `host`, `port`, `bind_dn`, `bind_password`, `base_dn`, `user_filter`, `attr_username`, `attr_email`, `attr_display_name`, `use_tls`.
+**LDAP flow:** simple bind as the DN built from `bind_dn_tmpl` (no search step) → upsert user: an `sso_id` match signs in, an existing email is refused rather than linked, otherwise a new user. Config keys: `host`, `port`, `base_dn`, `bind_dn_tmpl`, `use_tls`. See [sso](./sso.md).
 
 **SAML flow:** SP-initiated redirect → identity provider → ACS `POST /auth/saml/callback` → parse assertion → upsert user. Uses `encoding/xml` from stdlib for assertion parsing; SP metadata served at `GET /auth/saml/metadata`.
 
@@ -1402,10 +1402,11 @@ ALTER TABLE users
 
 ```
 GET/POST /admin/sso              (authMW + superadmin)  — configure SSO
+POST     /api/admin/sso/{provider}/enabled  (authMW + superadmin)  — switch a provider on or off
 GET      /auth/saml              — initiate SAML redirect
 POST     /auth/saml/callback     — SAML ACS endpoint
 GET      /auth/saml/metadata     — SP metadata XML
-POST     /auth/ldap/login        — LDAP credential login (JSON body)
+POST     /auth/ldap              — LDAP credential login (form: username, password)
 ```
 
 **Templates:**
@@ -1494,7 +1495,7 @@ DELETE     /api/repos/{owner}/{repo}/projects/{id}/cards/{cardID}   (authMW)
 
 **Page names to register:** `"projects"`, `"project_detail"`
 
-**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `113`), `#N` autolinks in descriptions, convert-to-issue and a side-panel editor; see the card API in [api-reference](./api-reference.md#projects-kanban).
+**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `114`), `#N` autolinks in descriptions, convert-to-issue and a side-panel editor; see the card API in [api-reference](./api-reference.md#projects-kanban).
 
 **Wire up:**
 
@@ -1508,7 +1509,7 @@ DELETE     /api/repos/{owner}/{repo}/projects/{id}/cards/{cardID}   (authMW)
 
 _Per-repository wiki backed by a bare git repo on disk._
 
-**No migration needed.** Wiki content lives in a separate bare git repo at `<ReposRoot>/<owner>/<repo>.wiki.git`. Created on first wiki page save.
+**No migration needed.** Wiki content lives in a separate bare git repo at `<ReposRoot>/<owner>/<repo>.wiki.git`. Created on first wiki page save. See [wiki](./wiki.md).
 
 **`CodeService` additions:**
 
@@ -2106,7 +2107,7 @@ After each push, a `DependencyService.ParseAndStore(ctx, repo)` goroutine reads 
 
 ---
 
-> **Milestone 1 Closing (April 2026):** All Phases 0–15.3 are code-complete (60+ migrations, currently through 064). Current work: BSL 1.1 licensing, security audit, Go server refactor, frontend DRY refactor, documentation overhaul, and test coverage plan. These close Milestone 1 before tagging v0.1.0.
+> **Milestone 1 closed (October 2026):** All Phases 0–15.3 are code-complete and the correctness fixes from the closing review have landed: branch and tag names are checked against `git check-ref-format` (#225), malformed branch-protection patterns are refused with 422 (#224), an empty `oauth_state` cookie is refused in the Google callback (#222), and project boards drop cross-repo cards and hide private issue titles (#223). Follow-ups that are not blockers (splitting large files, SAML canonicalization, remaining test gaps) are tracked in `.scratch/2026-10-09-milestone-1-closing/`, not here.
 
 ---
 
@@ -2122,7 +2123,7 @@ _First-class artifact hosting alongside source code._
 
 ### Phase 16.1 — Container Registry (Docker)
 
-**Migration** (`053_create_container_registry.sql`):
+**Migration** (`114_create_container_registry.sql`):
 
 ```sql
 CREATE TABLE container_images (
@@ -2144,7 +2145,7 @@ Implements the OCI Distribution Specification v1.1 API (`/v2/...`) for push and 
 
 ### Phase 16.2 — Generic Package Registry
 
-**Migration** (`054_create_packages.sql`):
+**Migration** (`115_create_packages.sql`):
 
 ```sql
 CREATE TABLE packages (
@@ -2180,7 +2181,7 @@ _Large file storage, cryptographic commit trust, and security hygiene._
 
 ### Phase 17.1 — Git LFS Support
 
-**Migration** (`055_create_lfs_objects.sql`):
+**Migration** (`116_create_lfs_objects.sql`):
 
 ```sql
 CREATE TABLE lfs_objects (
@@ -2212,7 +2213,7 @@ On commit display, the server attempts to verify the commit signature using the 
 
 ### Phase 17.3 — Secret Scanning
 
-**Migration** (`056_create_secret_scan_alerts.sql`):
+**Migration** (`117_create_secret_scan_alerts.sql`):
 
 ```sql
 CREATE TABLE secret_scan_alerts (
@@ -2239,7 +2240,7 @@ _First-class built-in continuous integration without needing an external CI serv
 
 ### Phase 18.1 — CI/CD Pipeline Runner (basic)
 
-**Migration** (`057_create_pipelines.sql`):
+**Migration** (`118_create_pipelines.sql`):
 
 ```sql
 CREATE TABLE pipelines (
@@ -2271,7 +2272,7 @@ On push, `PipelineService.TriggerForCommit(ctx, repo, sha, branch)` is called fi
 
 ### Phase 18.2 — Pipeline YAML Config & UI
 
-**Migration** (`058_create_pipeline_config.sql`):
+**Migration** (`119_create_pipeline_config.sql`):
 
 ```sql
 CREATE TABLE pipeline_configs (
@@ -2309,7 +2310,7 @@ Adds LDAP group-to-role mapping: a config field `group_map` specifies which LDAP
 
 ### Phase 19.2 — IP Allowlisting & Access Policies
 
-**Migration** (`059_create_access_policies.sql`):
+**Migration** (`120_create_access_policies.sql`):
 
 ```sql
 CREATE TABLE ip_allowlists (
@@ -2437,21 +2438,45 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 15.1  | Advanced Code Search                 | ✅ Done    | 052          |
 | 15.2  | Explore / Trending                   | ✅ Done    | —            |
 | 15.3  | Dependency Graph                     | ✅ Done    | 053          |
-| 16.1  | Container Registry (Docker)          | ⬜ Planned | 053          |
-| 16.2  | Generic Package Registry             | ⬜ Planned | 054          |
+| 16.1  | Container Registry (Docker)          | ⬜ Planned | 114          |
+| 16.2  | Generic Package Registry             | ⬜ Planned | 115          |
 | 16.3  | Release Asset Enhancements           | ⬜ Planned | —            |
-| 17.1  | Git LFS Support                      | ⬜ Planned | 055          |
+| 17.1  | Git LFS Support                      | ⬜ Planned | 116          |
 | 17.2  | Signed Commit Verification (GPG/SSH) | ⬜ Planned | —            |
-| 17.3  | Secret Scanning                      | ⬜ Planned | 056          |
-| 18.1  | CI/CD Pipeline Runner (basic)        | ⬜ Planned | 057          |
-| 18.2  | Pipeline YAML Config & UI            | ⬜ Planned | 058          |
+| 17.3  | Secret Scanning                      | ⬜ Planned | 117          |
+| 18.1  | CI/CD Pipeline Runner (basic)        | ⬜ Planned | 118          |
+| 18.2  | Pipeline YAML Config & UI            | ⬜ Planned | 119          |
 | 18.3  | CI Status Dashboard                  | ⬜ Planned | —            |
 | 19.1  | LDAP / SAML Improvements             | ⬜ Planned | —            |
-| 19.2  | IP Allowlisting & Access Policies    | ⬜ Planned | 059          |
+| 19.2  | IP Allowlisting & Access Policies    | ⬜ Planned | 120          |
 | 19.3  | API Rate Limiting & Quotas           | ✅ Done    | 110          |
 | 20.1  | S3/GCS Storage Backend (avatars and attachments done) | 🚧 Partial | 104, 109     |
 | 20.2  | Instance Clustering / HA             | ⬜ Planned | —            |
 | 20.3  | GraphQL API v2                       | ⬜ Planned | —            |
+
+Milestone 2 migration numbers are provisional: take the next free number when the work starts.
+
+### Shipped outside the phase plan
+
+| Feature                                                  | PR   | Migration(s) |
+| -------------------------------------------------------- | ---- | ------------ |
+| Email verification and Google account linking            | #73  | 091–092      |
+| Organizations own repositories                           | #80  | 085          |
+| Repository transfer with recipient acceptance            | #97  | 099          |
+| Repository import from another Git host                  | #136 | —            |
+| Syntax highlighting with per-user code themes            | #150 | 101          |
+| Closing keywords in issues                               | #174 | 102          |
+| Password reset by email, with a CLI fallback             | #175 | 105          |
+| Account management and suspension (`/admin/users`)       | #176 | 103          |
+| Pull mirrors with scheduled sync                         | #181 | 107          |
+| `cz-admin reset-2fa`                                     | #182 | —            |
+| Admin-issued password reset links                        | #183 | —            |
+| Prometheus metrics on a separate listener                | #184 | —            |
+| Require a pull request on protected branches             | #189 | 108          |
+| Backup and restore                                       | #192 | —            |
+| `cz` remote CLI client                                   | #199 | —            |
+| Device-code login for `cz auth login`                    | #207, #214, #216 | 111 |
+| Notifications inbox with subject titles                  | #213 | 112          |
 
 **Critical files touched by every phase:**
 

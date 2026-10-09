@@ -38,7 +38,7 @@ func TestListColumnsWithCardsExpanded_CardDetails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID)
+	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestListColumnsWithCardsExpanded_LinkedCardWithTitle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID)
+	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestListColumnsWithCardsExpanded_PlainLinkedCardsShowTheLinkedItemsPeople(t
 		t.Fatal(err)
 	}
 
-	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID)
+	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +167,7 @@ func TestListColumnsWithCardsExpanded_ConvertedCardKeepsLabelsAndAssignees(t *te
 		t.Fatal(err)
 	}
 
-	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID)
+	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}

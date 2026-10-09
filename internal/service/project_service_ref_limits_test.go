@@ -31,7 +31,7 @@ func descriptionHTMLFor(t *testing.T, e *projBoardEnv, issueNumbers []int, descr
 		model.CardDetails{Title: "x", Description: description}); err != nil {
 		t.Fatal(err)
 	}
-	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID)
+	cols, err := e.svc.ListColumnsWithCardsExpanded(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatalf("board failed to load: %v", err)
 	}

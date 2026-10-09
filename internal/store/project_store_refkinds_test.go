@@ -20,7 +20,7 @@ func TestProjectStore_RefKinds(t *testing.T) {
 	seedIssueRow(t, db, repoID, ownerID, 3, "open")
 	seedPullRow(t, db, repoID, ownerID, 3, "open")
 
-	got, err := s.RefKinds(context.Background(), repoID, []int{1, 2, 3, 4})
+	got, err := s.RefKinds(context.Background(), repoID, []int{1, 2, 3, 4}, nil)
 	if err != nil {
 		t.Fatalf("RefKinds: %v", err)
 	}
@@ -34,11 +34,11 @@ func TestProjectStore_RefKinds(t *testing.T) {
 		}
 	}
 
-	if g, err := s.RefKinds(context.Background(), repoID, []int{3000000000, -1, 0, 1}); err != nil || len(g) != 1 || g[1] != "issues" {
+	if g, err := s.RefKinds(context.Background(), repoID, []int{3000000000, -1, 0, 1}, nil); err != nil || len(g) != 1 || g[1] != "issues" {
 		t.Fatalf("RefKinds with out-of-range = %v, %v", g, err)
 	}
 
-	empty, err := s.RefKinds(context.Background(), repoID, nil)
+	empty, err := s.RefKinds(context.Background(), repoID, nil, nil)
 	if err != nil || len(empty) != 0 {
 		t.Fatalf("RefKinds(nil) = %v, %v", empty, err)
 	}

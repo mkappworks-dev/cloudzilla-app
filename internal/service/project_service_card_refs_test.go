@@ -53,7 +53,7 @@ func TestProjectService_CreateCard_RefusesAnotherReposIssueOrPull(t *testing.T) 
 		t.Errorf("issue and pull together: got %v, want ErrInvalidCard", err)
 	}
 
-	cols, err := e.svc.ListColumnsWithCards(ctx, p.ID)
+	cols, err := e.svc.ListColumnsWithCards(ctx, p.ID, &e.ownerID)
 	if err != nil {
 		t.Fatal(err)
 	}
