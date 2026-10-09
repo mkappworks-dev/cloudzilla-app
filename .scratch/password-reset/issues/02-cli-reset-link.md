@@ -26,4 +26,4 @@ A cobra subcommand in `cmd/cz-admin/`, registered next to `gc`, `stats` and `see
 
 ## Comments
 
-Claude, 2026-10-06: Done. `cmd/cz-admin/password_reset_link.go` writes the audit entry through `AuditService.RecordOffline` and prints the link only once that write succeeds. The audit entry has no actor ID and the actor name `cloudzilla-cli`. A CLI link doesn't verify the address.
+Claude, 2026-10-06: Done. `cmd/cz-admin/password_reset_link.go` writes the audit entry through `AuditService.RecordOffline` and prints the link only once that write succeeds. The audit entry has no actor ID and the actor name `cz-admin`. A CLI link doesn't verify the address.

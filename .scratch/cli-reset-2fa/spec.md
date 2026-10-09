@@ -19,7 +19,7 @@ Example: the only superadmin of a small instance replaces their phone without mo
 
 - Clears the TOTP secret, flag and backup codes through the same code path as `AdminUserService.ResetTOTP` (`users.SetTOTPEnabled(ctx, id, false, "")` plus `notifySecurityChange(..., "admin_totp_reset", adminTOTPResetNotice)`), not a copy. `ResetTOTP` goes through `target`, which needs an acting admin ID, so the shared part has to be split out (e.g. an unexported method taking the resolved user, called by both `ResetTOTP` and a new offline entry point).
 - Mails the same security notice. Its wording says "An administrator turned off…", which still fits an operator.
-- Writes the audit entry through `AuditService.RecordOffline` with actor name `cloudzilla-cli` and no actor ID, as `password-reset-link` does. It reuses `admin.user.2fa_reset`: the audit log page shows the raw action string and filters on it exactly, and `user.password.reset_link` is likewise one action for the admin and CLI paths, told apart by the actor.
+- Writes the audit entry through `AuditService.RecordOffline` with actor name `cz-admin` and no actor ID, as `password-reset-link` does. It reuses `admin.user.2fa_reset`: the audit log page shows the raw action string and filters on it exactly, and `user.password.reset_link` is likewise one action for the admin and CLI paths, told apart by the actor.
 - Prints a confirmation only after the audit write succeeds; a failed audit write exits non-zero.
 - A user without 2FA enabled: prints that 2FA isn't on and exits 0, with no audit entry and no notice.
 - The notice is sent synchronously: `notifySecurityChange` mails from a `concurrency.Go` goroutine, which the CLI would exit before. A failed send is a warning on stderr, not a failure, since the reset already stands. The notice goes out even when the audit write fails, since 2FA is off either way.
@@ -29,7 +29,7 @@ Example: the only superadmin of a small instance replaces their phone without mo
 - [x] `cz-admin reset-2fa <username>` turns off 2FA and clears the secret and backup codes for that account.
 - [x] The admin `reset-2fa` endpoint and the CLI share one implementation of the reset itself.
 - [x] The account's owner gets the same security notice email.
-- [x] An audit entry is written with actor name `cloudzilla-cli` and no actor ID; the confirmation prints only after it succeeds.
+- [x] An audit entry is written with actor name `cz-admin` and no actor ID; the confirmation prints only after it succeeds.
 - [x] An unknown username and bad arguments exit non-zero with a clear message; the ghost user is treated as `password-reset-link` treats it.
 - [x] Tests cover the command (as `password_reset_link_test.go` does) and the shared service path.
 - [x] `docs/configuration.md` documents the command next to `password-reset-link`.

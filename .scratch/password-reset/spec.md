@@ -194,4 +194,4 @@ Claude, 2026-10-06: Built on `feat/password-reset`. Changes from the design abov
 
 - Q5 applies to emailed links only. A CLI or admin link is handed over by hand, so spending it proves nothing about the mailbox. Verifying from it would let an account registered with someone else's unverified address capture that person's later Google sign-in (found in the security review).
 - The cooldown uses a separate `emailed_at` column, so a manual link doesn't reset it. While a manual link is still usable, the forgot form sends nothing, so nobody can cancel that link with a form request.
-- The audit entry from the CLI has no actor ID and the actor name `cloudzilla-cli`, written through the new `AuditService.RecordOffline`.
+- The audit entry from the CLI has no actor ID and the actor name `cz-admin`, written through the new `AuditService.RecordOffline`.

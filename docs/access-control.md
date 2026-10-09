@@ -47,7 +47,7 @@ Turning TOTP on needs the password as well as a code from the new authenticator:
 
 **Lost authenticator.** A superadmin turns 2FA off for another account with `reset-2fa` under [Managing accounts](#managing-accounts). A sole superadmin, who can't use that on their own account, recovers from the server instead:
 
-1. `cz-admin reset-2fa <username>` turns 2FA off ([CLI reference](./configuration.md#cz-admin-reset-2fa)). It writes `admin.user.2fa_reset` with no actor ID and the actor name `cloudzilla-cli`, and mails the security notice.
+1. `cz-admin reset-2fa <username>` turns 2FA off ([CLI reference](./configuration.md#cz-admin-reset-2fa)). It writes `admin.user.2fa_reset` with no actor ID and the actor name `cz-admin`, and mails the security notice.
 2. If the password is lost too, `cz-admin password-reset-link <username>` prints a link (see [Resetting a forgotten password](#resetting-a-forgotten-password)). Neither command bumps `session_version`, so the link survives the reset in either order.
 3. Sign in, turn 2FA back on from Settings, and, if the old device might be in someone else's hands, use **Sign out other sessions** (see [Ending sessions](#ending-sessions)).
 
@@ -112,7 +112,7 @@ Accounts without a password (created by Google, LDAP or SAML sign-up) can't set 
 
 **Issued by an admin.** A superadmin can issue a link from `/admin/users/{username}` (see [Managing accounts](#managing-accounts)), with or without SMTP. The link is shown to the admin once and never emailed, since the action is for users whose mail doesn't reach them. With SMTP on, the account is emailed a notice that an administrator issued one, without the link. Refusals and the audit entry are under [Managing accounts](#managing-accounts); a 2FA account still needs its code to use the link.
 
-**From the CLI.** `cz-admin password-reset-link <username>` prints a 24-hour link to pass on by hand ([CLI reference](./configuration.md#cz-admin-password-reset-link)). It refuses accounts without a password and suspended accounts, and writes `user.password.reset_link` to the audit log with no actor ID and the actor name `cloudzilla-cli`.
+**From the CLI.** `cz-admin password-reset-link <username>` prints a 24-hour link to pass on by hand ([CLI reference](./configuration.md#cz-admin-password-reset-link)). It refuses accounts without a password and suspended accounts, and writes `user.password.reset_link` to the audit log with no actor ID and the actor name `cz-admin`.
 
 Both `POST` routes are limited to 10 requests per client IP per 15 minutes, each with its own budget.
 
