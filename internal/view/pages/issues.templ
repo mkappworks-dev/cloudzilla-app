@@ -2,7 +2,6 @@ package pages
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -142,15 +141,14 @@ templ Issues(data view.IssuesData) {
 					<ol class="divide-y divide-border">
 						for _, issue := range data.Issues {
 							@components.IssueListRow(components.IssueListRowData{
-								Href:      "/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(issue.Number),
-								Number:    issue.Number,
-								Title:     issue.Title,
-								Author:    issue.AuthorName,
-								State:     string(issue.State),
-								Private:   issue.Visibility == "private",
-								OpenedAt:  formatRelative(issue.CreatedAt),
-								OpenedISO: issue.CreatedAt.UTC().Format(time.RFC3339),
-								Labels:    issueLabelChips(data.IssueLabels[issue.ID]),
+								Href:    "/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(issue.Number),
+								Number:  issue.Number,
+								Title:   issue.Title,
+								Author:  issue.AuthorName,
+								State:   string(issue.State),
+								Private: issue.Visibility == "private",
+								Time:    formatRelative(issue.CreatedAt),
+								Labels:  issueLabelChips(data.IssueLabels[issue.ID]),
 							})
 						}
 					</ol>

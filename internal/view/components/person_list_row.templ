@@ -1,13 +1,27 @@
 package components
 
+type PersonListRowData struct {
+	Name     string
+	Subtitle string
+	Badge    string // e.g. "Owner"; empty omits it
+	Query    string // highlights matching words in the name
+}
+
 // PersonListRow is a user or an organization: both live at /{name}.
-templ PersonListRow(name, subtitle, query string) {
-	<li class="flex items-center gap-3 px-6 py-4">
-		@Avatar(name, AvatarSizeDefault, name)
-		<div class="min-w-0">
-			<a href={ templ.SafeURL("/" + name) } class="text-foreground font-semibold hover:underline">@Highlight(name, query)</a>
-			if subtitle != "" {
-				<p class="text-xs text-muted-foreground truncate">{ subtitle }</p>
+templ PersonListRow(d PersonListRowData) {
+	<li class="flex items-center gap-4 px-4 py-3.5">
+		@Avatar(d.Name, AvatarSizeLG, d.Name)
+		<div class="min-w-0 flex-1">
+			<div class="flex flex-wrap items-center gap-2">
+				<a href={ templ.SafeURL("/" + d.Name) } class="text-sm font-medium hover:underline">@Highlight(d.Name, d.Query)</a>
+				if d.Badge != "" {
+					@Badge(BadgeOutline) {
+						{ d.Badge }
+					}
+				}
+			</div>
+			if d.Subtitle != "" {
+				<p class="text-xs text-muted-foreground mt-0.5 truncate">{ d.Subtitle }</p>
 			}
 		</div>
 	</li>

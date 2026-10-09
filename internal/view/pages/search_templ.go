@@ -216,6 +216,8 @@ func Search(data view.SearchData) templ.Component {
 									Name:        repo.Name,
 									Description: repo.Description,
 									Private:     repo.Private,
+									Time:        "Updated " + compactRelative(repo.UpdatedAt),
+									TimeISO:     repo.UpdatedAt.UTC().Format(time.RFC3339),
 									Query:       data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
@@ -247,7 +249,7 @@ func Search(data view.SearchData) templ.Component {
 							}
 							ctx = templ.InitializeContext(ctx)
 							for _, o := range data.Results.Orgs {
-								templ_7745c5c3_Err = components.PersonListRow(o.Name, orgSubtitle(o), data.Query).Render(ctx, templ_7745c5c3_Buffer)
+								templ_7745c5c3_Err = components.PersonListRow(components.PersonListRowData{Name: o.Name, Subtitle: orgSubtitle(o), Query: data.Query}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -278,16 +280,15 @@ func Search(data view.SearchData) templ.Component {
 							ctx = templ.InitializeContext(ctx)
 							for _, issue := range data.Results.Issues {
 								templ_7745c5c3_Err = components.IssueListRow(components.IssueListRowData{
-									Href:      "/" + issue.RepoOwner + "/" + issue.RepoName + "/issues/" + strconv.Itoa(issue.Number),
-									Repo:      issue.RepoOwner + "/" + issue.RepoName,
-									Number:    issue.Number,
-									Title:     issue.Title,
-									Author:    issue.AuthorName,
-									State:     string(issue.State),
-									Private:   issue.Visibility == "private",
-									OpenedAt:  formatRelative(issue.CreatedAt),
-									OpenedISO: issue.CreatedAt.UTC().Format(time.RFC3339),
-									Query:     data.Query,
+									Href:    "/" + issue.RepoOwner + "/" + issue.RepoName + "/issues/" + strconv.Itoa(issue.Number),
+									Repo:    issue.RepoOwner + "/" + issue.RepoName,
+									Number:  issue.Number,
+									Title:   issue.Title,
+									Author:  issue.AuthorName,
+									State:   string(issue.State),
+									Private: issue.Visibility == "private",
+									Time:    relativeTime(issue.CreatedAt),
+									Query:   data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
@@ -358,7 +359,7 @@ func Search(data view.SearchData) templ.Component {
 							}
 							ctx = templ.InitializeContext(ctx)
 							for _, u := range data.Results.Users {
-								templ_7745c5c3_Err = components.PersonListRow(u.Username, u.Bio, data.Query).Render(ctx, templ_7745c5c3_Buffer)
+								templ_7745c5c3_Err = components.PersonListRow(components.PersonListRowData{Name: u.Username, Subtitle: u.Bio, Query: data.Query}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -439,7 +440,7 @@ func searchGroup(data view.SearchData, title string) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 144, Col: 109}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 145, Col: 109}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {

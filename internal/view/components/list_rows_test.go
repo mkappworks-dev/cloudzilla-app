@@ -5,72 +5,71 @@ import (
 	"context"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/a-h/templ"
 )
 
-func TestIssueListRow(t *testing.T) {
+func render(t *testing.T, c templ.Component) string {
+	t.Helper()
 	var buf bytes.Buffer
+	if err := c.Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	return buf.String()
+}
+
+func assertHas(t *testing.T, out string, want ...string) {
+	t.Helper()
+	for _, w := range want {
+		if !strings.Contains(out, w) {
+			t.Errorf("missing %q in %s", w, out)
+		}
+	}
+}
+
+func assertLacks(t *testing.T, out string, unwanted ...string) {
+	t.Helper()
+	for _, u := range unwanted {
+		if strings.Contains(out, u) {
+			t.Errorf("unexpected %q in %s", u, out)
+		}
+	}
+}
+
+func TestIssueListRow(t *testing.T) {
 	d := IssueListRowData{
 		Href: "/alice/app/issues/4", Repo: "alice/app", Number: 4, Title: "Crash <on> load",
-		Author: "bob", State: "open", Private: true, OpenedAt: "2 days ago", OpenedISO: "2026-10-07T00:00:00Z",
-		Labels: []LabelChip{{Name: "bug", Color: "#ff0000"}},
+		Author: "bob", State: "open", Private: true, Time: "2d ago",
+		Labels: []LabelChip{{Name: "bug", Color: "#ff0000"}}, Priority: "P0", Comments: 3,
+		LiAttrs: templ.Attributes{"data-name": "alice/app Crash"},
 	}
-	if err := IssueListRow(d).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	out := buf.String()
-	for _, want := range []string{`href="/alice/app/issues/4"`, "<span>alice/app</span>", "#4", "opened by bob", "2 days ago", "Private", "bug", "Crash &lt;on&gt; load"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("missing %q in %s", want, out)
-		}
-	}
+	assertHas(t, render(t, IssueListRow(d)),
+		`href="/alice/app/issues/4"`, "alice/app", "#4", ">bob<", "2d ago", `aria-label="Private"`,
+		"bug", "P0", `title="3 comments"`, "Crash &lt;on&gt; load", `data-name="alice/app Crash"`, "Open")
 
-	buf.Reset()
-	d.Repo, d.Private, d.OpenedAt, d.Labels = "", false, "", nil
-	if err := IssueListRow(d).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	for _, unwanted := range []string{"<span>alice/app</span>", `aria-label="Private"`, "<time", `aria-label="Labels"`} {
-		if strings.Contains(buf.String(), unwanted) {
-			t.Errorf("unexpected %q in %s", unwanted, buf.String())
-		}
-	}
+	d.Repo, d.Private, d.Time, d.Labels, d.Priority, d.Comments, d.State = "", false, "", nil, "", 0, "closed"
+	out := render(t, IssueListRow(d))
+	assertHas(t, out, "Closed")
+	assertLacks(t, out, "<time", `aria-label="Private"`, "P0", "comments")
 }
 
 func TestRepoListRow(t *testing.T) {
-	var buf bytes.Buffer
 	d := RepoListRowData{
-		Owner: "alice", Name: "app", Description: "does things", Private: true,
-		CreatedAt: time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC), ShowStats: true, Stars: 3, Forks: 1,
+		Owner: "alice", Name: "app", Description: "does things", Private: true, Template: true,
+		Role: "Owner", RoleClass: "text-x", Language: "Go", LangClass: "bg-go", Time: "Updated 2h ago",
+		Topics: []string{"cli"}, ShowStats: true, Stars: 3, Forks: 1, Commits: 12,
 	}
-	if err := RepoListRow(d).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	for _, want := range []string{`href="/alice/app"`, "does things", "Private", "Jan 2, 2026", `title="Stars"`} {
-		if !strings.Contains(buf.String(), want) {
-			t.Errorf("missing %q in %s", want, buf.String())
-		}
-	}
+	assertHas(t, render(t, RepoListRow(d)),
+		`href="/alice/app"`, "does things", "Private", "Template", "Owner", "Go", "Updated 2h ago", "cli",
+		`title="3 stars"`, `title="1 fork"`, `title="12 commits"`)
 
-	buf.Reset()
-	if err := RepoListRow(RepoListRowData{Owner: "alice", Name: "app"}).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	for _, unwanted := range []string{"Private", "Created", `title="Stars"`} {
-		if strings.Contains(buf.String(), unwanted) {
-			t.Errorf("unexpected %q in %s", unwanted, buf.String())
-		}
-	}
+	out := render(t, RepoListRow(RepoListRowData{Owner: "alice", Name: "app"}))
+	assertHas(t, out, "Public")
+	assertLacks(t, out, "Private", "Template", "Archived", `title="0 stars"`, "commit")
 }
 
 func TestPersonListRow(t *testing.T) {
-	var buf bytes.Buffer
-	if err := PersonListRow("brave-software", "Brave Software", "").Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	for _, want := range []string{`href="/brave-software"`, "Brave Software"} {
-		if !strings.Contains(buf.String(), want) {
-			t.Errorf("missing %q in %s", want, buf.String())
-		}
-	}
+	assertHas(t, render(t, PersonListRow(PersonListRowData{Name: "brave-software", Subtitle: "Brave Software", Badge: "Owner"})),
+		`href="/brave-software"`, "Brave Software", "Owner")
+	assertLacks(t, render(t, PersonListRow(PersonListRowData{Name: "brave-software"})), "<p ")
 }

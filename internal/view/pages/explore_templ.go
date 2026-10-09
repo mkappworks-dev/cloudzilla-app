@@ -9,6 +9,8 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -270,7 +272,8 @@ func Explore(data view.ExploreData) templ.Component {
 						Name:        repo.Name,
 						Description: repo.Description,
 						Private:     repo.Private,
-						CreatedAt:   repo.CreatedAt,
+						Time:        "Created " + repo.CreatedAt.Format("Jan 2, 2006"),
+						TimeISO:     repo.CreatedAt.UTC().Format(time.RFC3339),
 						ShowStats:   true,
 						Stars:       repo.StarCount,
 						Forks:       repo.ForkCount,

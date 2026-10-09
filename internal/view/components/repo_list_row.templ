@@ -1,48 +1,131 @@
 package components
 
-import (
-	"strconv"
-	"time"
-)
+import "strconv"
 
 type RepoListRowData struct {
 	Owner, Name string
-	Description string
+	Description string // omitted on pages that don't show one
 	Private     bool
-	CreatedAt   time.Time // zero omits the line
+	Template    bool
+	Archived    bool
+	Role        string // "Owner", "Collaborator"; empty omits it
+	RoleClass   string
+	Language    string
+	LangClass   string // background class of the language dot
+	Time        string // pre-formatted, e.g. "Updated 2h ago"
+	TimeISO     string
+	Topics      []string
 	ShowStats   bool
 	Stars       int
 	Forks       int
+	Commits     int    // zero omits the commit count
 	Query       string // highlights matching words in the name
+	LiAttrs     templ.Attributes
 }
 
 templ RepoListRow(d RepoListRowData) {
-	<li class="px-6 py-4">
-		<div class="flex items-start justify-between gap-4">
-			<div class="min-w-0">
-				<a href={ templ.SafeURL("/" + d.Owner + "/" + d.Name) } class="text-foreground font-semibold hover:underline">@Highlight(d.Owner+"/"+d.Name, d.Query)</a>
-				if d.Description != "" {
-					<p class="text-sm text-muted-foreground mt-0.5 truncate">{ d.Description }</p>
-				}
-				if !d.CreatedAt.IsZero() {
-					<p class="text-xs text-muted-foreground mt-1">
-						Created <time datetime={ d.CreatedAt.UTC().Format(time.RFC3339) }>{ d.CreatedAt.Format("Jan 2, 2006") }</time>
-					</p>
-				}
-			</div>
-			if d.Private || d.ShowStats {
-				<div class="shrink-0 flex items-center gap-3 text-xs text-muted-foreground">
-					if d.Private {
-						@Badge(BadgeWarning) {
-							Private
-						}
+	<li { d.LiAttrs... }>
+		<a href={ templ.SafeURL("/" + d.Owner + "/" + d.Name) } class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+			<div class="flex items-start gap-3 mb-1.5">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" focusable="false">
+					<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path>
+					<path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"></path>
+				</svg>
+				<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+					<p class="text-[13.5px] font-medium leading-snug group-hover:underline">@Highlight(d.Owner+"/"+d.Name, d.Query)</p>
+					@RepoVisibilityBadge(d.Private)
+					if d.Template {
+						@RepoLabel("template", "Template")
 					}
-					if d.ShowStats {
-						<span title="Stars"><span aria-hidden="true">&#9733;</span> { strconv.Itoa(d.Stars) }</span>
-						<span title="Forks"><span aria-hidden="true">&#8921;</span> { strconv.Itoa(d.Forks) }</span>
+					if d.Archived {
+						@RepoLabel("plain", "Archived")
 					}
 				</div>
+			</div>
+			if d.Description != "" {
+				<p class="pl-[27px] mb-1.5 text-[12.5px] text-muted-foreground truncate">{ d.Description }</p>
 			}
-		</div>
+			<div class="flex items-center justify-between gap-3 pl-[27px]">
+				<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+					if d.Role != "" {
+						<span class={ d.RoleClass }>{ d.Role }</span>
+						<span class="opacity-50" aria-hidden="true">·</span>
+					}
+					if d.Language != "" {
+						<span class="inline-flex items-center gap-1">
+							<span class={ "w-2 h-2 rounded-full", d.LangClass } aria-hidden="true"></span>
+							{ d.Language }
+						</span>
+						<span class="opacity-50" aria-hidden="true">·</span>
+					}
+					if d.Time != "" {
+						<time datetime={ d.TimeISO }>{ d.Time }</time>
+					}
+					if len(d.Topics) > 0 {
+						<span class="opacity-50" aria-hidden="true">·</span>
+						for _, t := range d.Topics {
+							@RepoLabel("plain", t)
+						}
+					}
+				</div>
+				if d.ShowStats {
+					<div class="flex items-center gap-3 text-[12px] shrink-0 text-muted-foreground">
+						<span class="inline-flex items-center gap-1" title={ repoStatTitle(d.Stars, "star") }>
+							<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+								<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+							</svg>
+							{ strconv.Itoa(d.Stars) }
+						</span>
+						<span class="inline-flex items-center gap-1" title={ repoStatTitle(d.Forks, "fork") }>
+							<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+								<circle cx="6" cy="3" r="3"></circle>
+								<circle cx="18" cy="6" r="3"></circle>
+								<circle cx="6" cy="21" r="3"></circle>
+								<path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"></path>
+							</svg>
+							{ strconv.Itoa(d.Forks) }
+						</span>
+						if d.Commits > 0 {
+							<span class="inline-flex items-center gap-1" title={ repoStatTitle(d.Commits, "commit") }>
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+									<circle cx="12" cy="12" r="3"></circle>
+									<line x1="3" y1="12" x2="9" y2="12"></line>
+									<line x1="15" y1="12" x2="21" y2="12"></line>
+								</svg>
+								{ strconv.Itoa(d.Commits) }
+							</span>
+						}
+					</div>
+				}
+			</div>
+		</a>
 	</li>
+}
+
+templ RepoVisibilityBadge(private bool) {
+	if private {
+		<span class="inline-flex items-center shrink-0 h-[20px] px-2 rounded-full border text-[10px] font-medium bg-warning/15 text-warning border-warning/30">Private</span>
+	} else {
+		<span class="inline-flex items-center shrink-0 h-[20px] px-2 rounded-full border text-[10px] font-medium bg-success/15 text-success border-success/30">Public</span>
+	}
+}
+
+templ RepoLabel(variant, text string) {
+	<span class={ "inline-flex items-center text-[10px] leading-[1.4] px-[7px] py-px rounded-full border whitespace-nowrap", repoLabelClass(variant) }>
+		{ text }
+	</span>
+}
+
+func repoLabelClass(variant string) string {
+	if variant == "template" {
+		return "bg-warning/15 text-warning border-warning/30"
+	}
+	return "bg-muted text-muted-foreground border-border"
+}
+
+func repoStatTitle(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return strconv.Itoa(n) + " " + noun + "s"
 }

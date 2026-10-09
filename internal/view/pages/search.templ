@@ -71,6 +71,8 @@ templ Search(data view.SearchData) {
 									Name:        repo.Name,
 									Description: repo.Description,
 									Private:     repo.Private,
+									Time:        "Updated " + compactRelative(repo.UpdatedAt),
+									TimeISO:     repo.UpdatedAt.UTC().Format(time.RFC3339),
 									Query:       data.Query,
 								})
 							}
@@ -79,7 +81,7 @@ templ Search(data view.SearchData) {
 					if searchShows(data, "orgs") && len(data.Results.Orgs) > 0 {
 						@searchGroup(data, "Organizations") {
 							for _, o := range data.Results.Orgs {
-								@components.PersonListRow(o.Name, orgSubtitle(o), data.Query)
+								@components.PersonListRow(components.PersonListRowData{Name: o.Name, Subtitle: orgSubtitle(o), Query: data.Query})
 							}
 						}
 					}
@@ -87,16 +89,15 @@ templ Search(data view.SearchData) {
 						@searchGroup(data, "Issues") {
 							for _, issue := range data.Results.Issues {
 								@components.IssueListRow(components.IssueListRowData{
-									Href:      "/" + issue.RepoOwner + "/" + issue.RepoName + "/issues/" + strconv.Itoa(issue.Number),
-									Repo:      issue.RepoOwner + "/" + issue.RepoName,
-									Number:    issue.Number,
-									Title:     issue.Title,
-									Author:    issue.AuthorName,
-									State:     string(issue.State),
-									Private:   issue.Visibility == "private",
-									OpenedAt:  formatRelative(issue.CreatedAt),
-									OpenedISO: issue.CreatedAt.UTC().Format(time.RFC3339),
-									Query:     data.Query,
+									Href:    "/" + issue.RepoOwner + "/" + issue.RepoName + "/issues/" + strconv.Itoa(issue.Number),
+									Repo:    issue.RepoOwner + "/" + issue.RepoName,
+									Number:  issue.Number,
+									Title:   issue.Title,
+									Author:  issue.AuthorName,
+									State:   string(issue.State),
+									Private: issue.Visibility == "private",
+									Time:    relativeTime(issue.CreatedAt),
+									Query:   data.Query,
 								})
 							}
 						}
@@ -121,7 +122,7 @@ templ Search(data view.SearchData) {
 					if searchShows(data, "users") && len(data.Results.Users) > 0 {
 						@searchGroup(data, "Users") {
 							for _, u := range data.Results.Users {
-								@components.PersonListRow(u.Username, u.Bio, data.Query)
+								@components.PersonListRow(components.PersonListRowData{Name: u.Username, Subtitle: u.Bio, Query: data.Query})
 							}
 						}
 					}
