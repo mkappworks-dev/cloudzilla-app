@@ -98,12 +98,17 @@ templ PullNew(data view.PullNewData) {
 						x-data={ "{ open: null, reviewers: " + reviewersInit + ", labels: [], toggle(a, v) { const i = a.indexOf(v); i < 0 ? a.push(v) : a.splice(i, 1) } }" }
 						x-on:keydown.escape.window="open = null"
 					>
-						<section>
-							@pullNewReviewers(data)
-						</section>
-						<section class="border-t border-border pt-6">
-							@pullNewLabels(data)
-						</section>
+						if data.CanWrite {
+							<section>
+								@pullNewReviewers(data)
+							</section>
+							<section class="border-t border-border pt-6">
+								@pullNewLabels(data)
+							</section>
+						} else {
+							@issueNewMetaSection("Reviewers", "No reviews requested.", false)
+							@issueNewMetaSection("Labels", "No labels yet.", true)
+						}
 					</aside>
 
 				</form>
