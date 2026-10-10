@@ -97,16 +97,6 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 	redirectAfterSave(w, r, "/settings#security")
 }
 
-// PageTOTPVerify renders GET /auth/2fa — the 6-digit input page.
-func (h *Handler) PageTOTPVerify(w http.ResponseWriter, r *http.Request) {
-	next := r.URL.Query().Get("next")
-	if _, err := r.Cookie(totpPendingCookieName); err != nil {
-		http.Redirect(w, r, view.WithNext("/login", next), http.StatusSeeOther)
-		return
-	}
-	h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{BasePage: basePage(r, h.Services), Next: next}))
-}
-
 // VerifyTOTP handles POST /auth/2fa/verify (form: code, backup_code).
 func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	next := r.FormValue("next")
