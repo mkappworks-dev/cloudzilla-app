@@ -34,6 +34,10 @@ document.addEventListener('alpine:init', () => {
     if (document.activeElement !== el && tries > 0) requestAnimationFrame(() => focusWhenShown(el, tries - 1));
   };
 
+  const LIST_EDGE = 12;
+  const LIST_MIN_ROOM = 160;
+  const LIST_MAX_HEIGHT = 288;
+
   const blankEditor = () => ({
     mode: 'create',
     id: null,
@@ -95,10 +99,12 @@ document.addEventListener('alpine:init', () => {
       return !e.busy && !this.inflight && !e.confirm && (e.title.trim() !== '' || (e.mode === 'create' && e.link !== null));
     },
 
-    // A card keeps an assignee who left the repo; the checkbox list no longer has them, so the
-    // dialog shows them separately and they stay untickable.
+    // A card keeps an assignee who left the repo; the dropdown no longer offers them, so the
+    // assignee dropdown lists them separately and they stay removable.
     get staleAssignees() {
-      const listed = new Set(Array.from(this.$root.querySelectorAll('[data-person]'), (i) => i.value));
+      const listed = new Set(
+        Array.from(this.$root.querySelectorAll('[data-card-people] [role=option]:not([data-stale])'), (o) => o.dataset.value),
+      );
       return this.editor.card.assignees.filter((a) => !listed.has(String(a.id)));
     },
 
@@ -417,9 +423,17 @@ document.addEventListener('alpine:init', () => {
       if (!this.$el.contains(e.relatedTarget)) this.reset();
     },
 
+    // The list opens below the input unless that leaves too little room and more fits above;
+    // it scrolls within the room it has, so it is never cut off by the viewport.
     place() {
       const r = this.$refs.input.getBoundingClientRect();
-      this.listStyle = `position:fixed;left:${r.left}px;top:${r.bottom + 4}px;width:${r.width}px`;
+      const below = window.innerHeight - r.bottom - LIST_EDGE;
+      const above = r.top - LIST_EDGE;
+      const down = below >= LIST_MIN_ROOM || below >= above;
+      const height = Math.min(LIST_MAX_HEIGHT, down ? below : above);
+      // Anchoring to the input's top edge keeps a short list next to the input when it opens above.
+      const anchor = down ? `top:${r.bottom + 4}px` : `bottom:${window.innerHeight - r.top + 4}px`;
+      this.listStyle = `position:fixed;left:${r.left}px;${anchor};width:${r.width}px;max-height:${height}px`;
     },
 
     reset() {

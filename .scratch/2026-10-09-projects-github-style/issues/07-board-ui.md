@@ -10,8 +10,8 @@ Spec: [../spec.md](../spec.md)
 ## Acceptance criteria
 
 - [x] Card face shows title, description preview, label chips, due date (danger when past), assignee avatars and linked issue/PR state; the whole card opens the card modal, or navigates for a plain linked card.
-- [x] One card modal creates a card from a column's "+ Add item" (every field; title optional only for a linked-only card) and edits a note card (title, markdown description, assignees, labels, linked item as a link chip, due date via a calendar picker) with Save, Delete and Convert to issue confirmed inline; read-only users see no controls.
-- [x] The `#` picker dropdown and the calendar popover are not clipped by the modal's scroll container; Escape closes them before the modal.
+- [x] One card modal creates a card from a column's "+ Add item" (every field; title optional only for a linked-only card) and edits a note card (two-column modal with a close X: title and markdown description on the left; assignee and label dropdowns, due date via a calendar picker and the linked item as a link chip on the right) with Save, Delete and Convert to issue confirmed inline; read-only users see no controls.
+- [x] The `#` picker list, the calendar and the assignee and label dropdowns are not clipped by the modal's scroll container or the viewport; Escape closes them before the modal.
 - [x] Column `⋯` menu with delete; dashed "Add column" slot; drag-to-move unchanged and never opens the modal.
 - [x] `make generate-templ` run; verified in the browser on a throwaway server with a scratch DB.
 

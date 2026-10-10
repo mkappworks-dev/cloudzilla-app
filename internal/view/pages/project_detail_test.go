@@ -3,6 +3,7 @@ package pages_test
 import (
 	"context"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -119,8 +120,8 @@ func TestProjectDetail_CardDialogWriteControls(t *testing.T) {
 		`<label for="card-title-input"`, `id="card-title-input"`,
 		`id="card-desc-label"`, `x-model="editor.description"`, `Write</button>`, `Preview</button>`,
 		`x-data="linkPicker"`, `<label for="card-link-input"`, `data-picker-list`,
-		`data-card-people`, `x-model="editor.assignees" value="7"`, "daisy",
-		`data-card-labels`, `x-model="editor.labels" value="4"`, "docs", `style="background-color: #fef2c0; color: #1f2328;"`,
+		`data-card-people`, `x-model="editor.assignees"`, `data-value="7"`, "daisy",
+		`data-card-labels`, `x-model="editor.labels"`, `data-value="4"`, "docs", `style="background-color: #fef2c0; color: #1f2328;"`,
 		`<label for="card-due-input"`, `id="card-due-input"`, `x-data="datePicker"`, `x-model="editor.dueDate"`,
 		`aria-label="Choose due date"`, `name="due_date"`,
 		`type="submit"`, "Create card", `@click="close()"`, `role="alert"`,
@@ -198,7 +199,7 @@ func TestProjectDetail_ReadOnlyCardDialog(t *testing.T) {
 	out := renderBoard(t, boardData(false))
 	for _, gone := range []string{
 		"convertCard", "deleteCard", "linkPicker", "data-add-card", "+ Add item",
-		"data-card-people", "data-card-labels", "Remove from board", `draggable="true"`,
+		"data-card-people", "data-card-labels", "multiSelect", "Remove from board", `draggable="true"`,
 	} {
 		if strings.Contains(out, gone) {
 			t.Errorf("read-only board renders write control %q", gone)
@@ -280,5 +281,111 @@ func TestProjectDetail_CardDialogConvertStaysOpen(t *testing.T) {
 	ro := cardDialog(t, renderBoard(t, boardData(false)))
 	if strings.Contains(ro, "data-card-notice") {
 		t.Error("read-only dialog renders the convert success line")
+	}
+}
+
+func TestProjectDetail_CardDialogUsesDropdownsForAssigneesAndLabels(t *testing.T) {
+	dlg := cardDialog(t, renderBoard(t, boardData(true)))
+	if strings.Contains(dlg, `type="checkbox"`) {
+		t.Error("the card dialog still renders an always-visible checkbox list")
+	}
+	for _, id := range []string{"card-assignees-trigger", "card-labels-trigger"} {
+		trigger := regexp.MustCompile(`<button[^>]*id="` + id + `"[^>]*>`).FindString(dlg)
+		for _, want := range []string{`aria-haspopup="listbox"`, `x-bind:aria-expanded="open.toString()"`, `aria-labelledby=`} {
+			if !strings.Contains(trigger, want) {
+				t.Errorf("%s missing %s: %q", id, want, trigger)
+			}
+		}
+	}
+	if n := strings.Count(dlg, `x-data="multiSelect"`); n != 2 {
+		t.Errorf("multiSelect components = %d, want 2 (assignees, labels)", n)
+	}
+	if n := strings.Count(dlg, `role="listbox" aria-multiselectable="true"`); n != 2 {
+		t.Errorf("multiselectable listboxes = %d, want 2", n)
+	}
+	for _, want := range []string{`role="option"`, `x-bind:aria-selected="has($el.dataset.value).toString()"`, `Unassigned`, `No labels`, `staleAssignees`} {
+		if !strings.Contains(dlg, want) {
+			t.Errorf("writer card dialog missing %q", want)
+		}
+	}
+	// Two options each: no filter box below the threshold.
+	if strings.Contains(dlg, "data-multiselect-filter") {
+		t.Error("a short option list renders a filter box")
+	}
+
+	many := boardData(true)
+	for i := int64(10); i < 18; i++ {
+		many.People = append(many.People, model.CardUser{ID: i, Username: "user" + strconv.FormatInt(i, 10)})
+	}
+	if !strings.Contains(cardDialog(t, renderBoard(t, many)), "data-multiselect-filter") {
+		t.Error("a long option list renders no filter box")
+	}
+}
+
+// Linked item and due date sit in the right-hand column with the assignee and label
+// dropdowns; title and description own the left column. Create and edit share this markup.
+func TestProjectDetail_CardDialogSideColumn(t *testing.T) {
+	for _, canWrite := range []bool{true, false} {
+		dlg := cardDialog(t, renderBoard(t, boardData(canWrite)))
+		mainAt, sideAt := strings.Index(dlg, "data-card-main"), strings.Index(dlg, "data-card-side")
+		if mainAt < 0 || sideAt < 0 || mainAt > sideAt {
+			t.Fatalf("canWrite=%v: main column %d, side column %d, want both with main first", canWrite, mainAt, sideAt)
+		}
+		main, side := dlg[mainAt:sideAt], dlg[sideAt:]
+		for _, want := range []string{`id="card-title-input"`, `id="card-desc-label"`} {
+			if !strings.Contains(main, want) {
+				t.Errorf("canWrite=%v: main column missing %q", canWrite, want)
+			}
+		}
+		for _, want := range []string{`id="card-assignees-label"`, `id="card-labels-label"`, `id="card-due-input"`, "data-card-link-chip"} {
+			if !strings.Contains(side, want) || strings.Contains(main, want) {
+				t.Errorf("canWrite=%v: %q is not only in the side column", canWrite, want)
+			}
+		}
+		order := []string{`id="card-assignees-label"`, `id="card-labels-label"`, `id="card-due-input"`, "data-card-link-chip"}
+		last := -1
+		for _, want := range order {
+			at := strings.Index(side, want)
+			if at < last {
+				t.Errorf("canWrite=%v: side column order is wrong at %q", canWrite, want)
+			}
+			last = at
+		}
+		grid := regexp.MustCompile(`<div class="[^"]*\bgrid\b[^"]*"><div data-card-main`).FindString(dlg)
+		if !strings.Contains(grid, "lg:grid-cols-") || strings.Contains(grid, "editor.mode") {
+			t.Errorf("canWrite=%v: the columns should split from lg up and stack below, whatever the mode: %q", canWrite, grid)
+		}
+	}
+}
+
+func TestProjectDetail_ReadOnlyCardDialogShowsSelectionAsText(t *testing.T) {
+	dlg := cardDialog(t, renderBoard(t, boardData(false)))
+	for _, want := range []string{`x-for="a in editor.card.assignees"`, `x-for="l in editor.card.labels"`} {
+		if !strings.Contains(dlg, want) {
+			t.Errorf("read-only dialog missing %q", want)
+		}
+	}
+	for _, gone := range []string{`role="listbox"`, `role="option"`, `x-data="multiSelect"`, `aria-haspopup="listbox"`} {
+		if strings.Contains(dlg, gone) {
+			t.Errorf("read-only dialog renders %q", gone)
+		}
+	}
+}
+
+// The X sits in the header beside the title, for writers and read-only viewers alike, and
+// closes through the same guarded close() as Cancel.
+func TestProjectDetail_CardDialogHasACloseX(t *testing.T) {
+	for _, canWrite := range []bool{true, false} {
+		dlg := cardDialog(t, renderBoard(t, boardData(canWrite)))
+		x := regexp.MustCompile(`<button[^>]*aria-label="Close"[^>]*>`).FindString(dlg)
+		if !strings.Contains(x, `@click="close()"`) || !strings.Contains(x, `x-bind:disabled="editor.busy"`) || !strings.Contains(x, `type="button"`) {
+			t.Errorf("canWrite=%v: close X = %q, want a type=button wired to close() and disabled while busy", canWrite, x)
+		}
+		if at, title := strings.Index(dlg, `aria-label="Close"`), strings.Index(dlg, `id="card-title-input"`); at < 0 || at > title {
+			t.Errorf("canWrite=%v: the close X (%d) is not in the header above the fields (%d)", canWrite, at, title)
+		}
+		if !strings.Contains(dlg, `class="block truncate"`) {
+			t.Errorf("canWrite=%v: a long heading is not truncated beside the X", canWrite)
+		}
 	}
 }

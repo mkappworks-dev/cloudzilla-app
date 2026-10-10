@@ -88,6 +88,31 @@ func labelChipStyle(color string) string {
 	return "background-color: " + color + "; color: " + fg
 }
 
+func personOptions(people []model.CardUser) []components.MultiSelectOption {
+	opts := make([]components.MultiSelectOption, 0, len(people))
+	for _, p := range people {
+		opts = append(opts, components.MultiSelectOption{Value: strconv.FormatInt(p.ID, 10), Label: p.Username, Avatar: true})
+	}
+	return opts
+}
+
+func labelOptions(labels []model.Label) []components.MultiSelectOption {
+	opts := make([]components.MultiSelectOption, 0, len(labels))
+	for _, l := range labels {
+		opts = append(opts, components.MultiSelectOption{Value: strconv.FormatInt(l.ID, 10), Label: l.Name, Style: labelChipStyle(l.Color)})
+	}
+	return opts
+}
+
+// emptyOptionsText is what a dropdown says when it lists nothing: the repo has no options at
+// all, or the filter matched none.
+func emptyOptionsText(options int, none string) string {
+	if options == 0 {
+		return none
+	}
+	return "No matches"
+}
+
 func cardDueLabel(due string) string {
 	t, err := time.Parse("2006-01-02", due)
 	if err != nil {
@@ -214,6 +239,7 @@ templ ProjectDetail(data view.ProjectDetailData) {
 			</div>
 		</div>
 		<script src={ assets.URL("/static/datepicker.js") } defer></script>
+		<script src={ assets.URL("/static/multiselect.js") } defer></script>
 		<script src={ assets.URL("/static/kanban.js") } defer></script>
 	}
 }
@@ -432,193 +458,190 @@ templ cardDialog(data view.ProjectDetailData) {
 		@card-link-picked="pickLink($event.detail)"
 	>
 		<form class="flex max-h-[calc(100dvh-4rem)] flex-col" @submit.prevent="submit()">
-			@components.DialogHeader() {
-				@components.DialogTitle("card-dialog") {
-					<span x-text="heading"></span>
-				}
-			}
+			<div class="flex items-start justify-between gap-3 border-b border-border p-5">
+				<div class="min-w-0 flex-1">
+					@components.DialogTitle("card-dialog") {
+						<span x-text="heading" x-bind:title="heading" class="block truncate"></span>
+					}
+				</div>
+				<button
+					type="button"
+					aria-label="Close"
+					x-bind:disabled="editor.busy"
+					@click="close()"
+					class="-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+				</button>
+			</div>
 			<div class="min-h-0 flex-1 overflow-y-auto p-5 text-sm">
-				<div class="flex flex-col gap-5">
-					<div>
-						<label for="card-title-input" class="mb-1 block text-[12px] font-medium text-muted-foreground">Title</label>
-						<input
-							id="card-title-input"
-							type="text"
-							x-ref="cardTitle"
-							x-model="editor.title"
-							maxlength="256"
-							autocomplete="off"
-							disabled?={ !data.CanWrite }
-							class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70"
-						/>
-						if data.CanWrite {
-							<p x-show="editor.mode === 'create'" x-text="titleHint" class="mt-1 text-[11px] text-muted-foreground"></p>
-						}
-					</div>
-					<div class="grid gap-5 md:grid-cols-[minmax(0,1fr)_13rem]">
-						<div class="flex min-w-0 flex-col gap-5">
-							<div>
-								<div class="mb-1 flex items-center justify-between gap-2">
-									<span id="card-desc-label" class="text-[12px] font-medium text-muted-foreground">Description</span>
-									if data.CanWrite {
-										<div class="flex items-center gap-0.5 rounded-md bg-muted p-0.5 text-[12px]">
-											<button
-												type="button"
-												@click="editor.tab = 'write'"
-												x-bind:aria-pressed="(editor.tab === 'write').toString()"
-												x-bind:class="editor.tab === 'write' ? 'bg-background shadow-xs text-foreground' : 'text-muted-foreground'"
-												class="rounded px-2 py-0.5"
-											>Write</button>
-											<button
-												type="button"
-												@click="editor.tab = 'preview'"
-												x-bind:aria-pressed="(editor.tab === 'preview').toString()"
-												x-bind:class="editor.tab === 'preview' ? 'bg-background shadow-xs text-foreground' : 'text-muted-foreground'"
-												class="rounded px-2 py-0.5"
-											>Preview</button>
-										</div>
-									}
-								</div>
+				<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
+					<div data-card-main class="flex min-w-0 flex-col gap-5">
+						<div>
+							<label for="card-title-input" class="mb-1 block text-[12px] font-medium text-muted-foreground">Title</label>
+							<input
+								id="card-title-input"
+								type="text"
+								x-ref="cardTitle"
+								x-model="editor.title"
+								maxlength="256"
+								autocomplete="off"
+								disabled?={ !data.CanWrite }
+								class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70"
+							/>
+							if data.CanWrite {
+								<p x-show="editor.mode === 'create'" x-text="titleHint" class="mt-1 text-[11px] text-muted-foreground"></p>
+							}
+						</div>
+						<div>
+							<div class="mb-1 flex items-center justify-between gap-2">
+								<span id="card-desc-label" class="text-[12px] font-medium text-muted-foreground">Description</span>
 								if data.CanWrite {
-									<textarea
-										x-show="editor.tab === 'write'"
-										x-model="editor.description"
-										@input="editor.descDirty = true"
-										rows="14"
-										aria-labelledby="card-desc-label"
-										placeholder="Markdown supported. Reference #123 to link an issue or pull request."
-										class="block w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
-									></textarea>
-								}
-								<div x-show="editor.tab === 'preview'" class="flex min-h-24 flex-col gap-2 rounded-md border border-border bg-card px-3 py-2" aria-labelledby="card-desc-label" role="region">
-									if data.CanWrite {
-										<p x-show="editor.mode === 'create'" class="text-[12px] text-muted-foreground">Nothing saved to preview yet: the description is rendered once the card is created.</p>
-										<p x-show="editor.mode === 'edit' && editor.descDirty" class="text-[11px] text-muted-foreground">Save to refresh the preview</p>
-									}
-									<div x-show="editor.mode === 'edit' && editor.previewHTML" x-html="editor.previewHTML" class="prose prose-sm dark:prose-invert max-w-none break-words" data-card-preview></div>
-									<p x-show="editor.mode === 'edit' && !editor.previewHTML" class="text-[12px] text-muted-foreground">No description</p>
-								</div>
-							</div>
-							<div>
-								<span class="mb-1 block text-[12px] font-medium text-muted-foreground">Linked item</span>
-								<div x-show="editor.link" class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[13px]" data-card-link-chip>
-									<a
-										x-ref="linkAnchor"
-										x-bind:href="linkURL"
-										class="flex min-w-0 flex-1 items-baseline gap-2 rounded hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-									>
-										<span class="shrink-0 font-mono text-[11px] text-muted-foreground" x-text="editor.link ? (editor.link.kind === 'pull' ? 'PR #' : '#') + editor.link.number : ''"></span>
-										<span class="min-w-0 flex-1 truncate" x-text="editor.link ? editor.link.title : ''"></span>
-										<span class="shrink-0 text-[11px] text-muted-foreground" x-text="editor.link ? editor.link.state : ''"></span>
-									</a>
-									if data.CanWrite {
+									<div class="flex items-center gap-0.5 rounded-md bg-muted p-0.5 text-[12px]">
 										<button
 											type="button"
-											x-ref="linkClear"
-											aria-label="Remove link"
-											@click="clearLink()"
-											class="rounded px-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
-										>✕</button>
-									}
-								</div>
-								if data.CanWrite {
-									<div x-show="!editor.link" x-data="linkPicker" @click.outside="reset()" @focusout="onFocusOut($event)">
-										<label for="card-link-input" class="sr-only">Find an issue or pull request</label>
-										<input
-											id="card-link-input"
-											type="text"
-											x-ref="input"
-											x-model="text"
-											placeholder="Search issues and pull requests by title or #number"
-											autocomplete="off"
-											class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
-											@input="search()"
-											@keydown.enter.prevent="enterPick()"
-											@keydown.escape="showList && ($event.preventDefault(), $event.stopPropagation(), reset())"
-											@keydown.arrow-down.prevent="move(1)"
-											@keydown.arrow-up.prevent="move(-1)"
-										/>
-										@targetResults()
+											@click="editor.tab = 'write'"
+											x-bind:aria-pressed="(editor.tab === 'write').toString()"
+											x-bind:class="editor.tab === 'write' ? 'bg-background shadow-xs text-foreground' : 'text-muted-foreground'"
+											class="rounded px-2 py-0.5"
+										>Write</button>
+										<button
+											type="button"
+											@click="editor.tab = 'preview'"
+											x-bind:aria-pressed="(editor.tab === 'preview').toString()"
+											x-bind:class="editor.tab === 'preview' ? 'bg-background shadow-xs text-foreground' : 'text-muted-foreground'"
+											class="rounded px-2 py-0.5"
+										>Preview</button>
 									</div>
-								} else {
-									<p x-show="!editor.link" class="text-[12px] text-muted-foreground">None</p>
 								}
 							</div>
-							<div>
-								<label for="card-due-input" class="mb-1 block text-[12px] font-medium text-muted-foreground">Due date</label>
-								@components.DatePicker(components.DatePickerProps{
-									ID:          "card-due-input",
-									Name:        "due_date",
-									Label:       "Due date",
-									Disabled:    !data.CanWrite,
-									Placeholder: "No due date",
-									Attrs:       templ.Attributes{"x-model": "editor.dueDate"},
-								})
+							if data.CanWrite {
+								<textarea
+									x-show="editor.tab === 'write'"
+									x-model="editor.description"
+									@input="editor.descDirty = true"
+									rows="14"
+									aria-labelledby="card-desc-label"
+									placeholder="Markdown supported. Reference #123 to link an issue or pull request."
+									class="block w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+								></textarea>
+							}
+							<div x-show="editor.tab === 'preview'" class="flex min-h-24 flex-col gap-2 rounded-md border border-border bg-card px-3 py-2" aria-labelledby="card-desc-label" role="region">
+								if data.CanWrite {
+									<p x-show="editor.mode === 'create'" class="text-[12px] text-muted-foreground">Nothing saved to preview yet: the description is rendered once the card is created.</p>
+									<p x-show="editor.mode === 'edit' && editor.descDirty" class="text-[11px] text-muted-foreground">Save to refresh the preview</p>
+								}
+								<div x-show="editor.mode === 'edit' && editor.previewHTML" x-html="editor.previewHTML" class="prose prose-sm dark:prose-invert max-w-none break-words" data-card-preview></div>
+								<p x-show="editor.mode === 'edit' && !editor.previewHTML" class="text-[12px] text-muted-foreground">No description</p>
 							</div>
 						</div>
-						<div class="flex min-w-0 flex-col gap-5">
-							<div>
-								<span id="card-assignees-label" class="mb-1 block text-[12px] font-medium text-muted-foreground">Assignees</span>
+					</div>
+					<div data-card-side class="flex min-w-0 flex-col gap-5">
+						<div>
+							<span id="card-assignees-label" class="mb-1 block text-[12px] font-medium text-muted-foreground">Assignees</span>
+							if data.CanWrite {
+								@components.MultiSelect(components.MultiSelectProps{
+									ID:          "card-assignees-trigger",
+									LabelID:     "card-assignees-label",
+									Placeholder: "Unassigned",
+									Empty:       emptyOptionsText(len(data.People), "No collaborators"),
+									Options:     personOptions(data.People),
+									Attrs: templ.Attributes{
+										"x-model":          "editor.assignees",
+										"x-effect":         "extra = staleAssignees.map((a) => ({ value: String(a.id), label: a.username }))",
+										"data-card-people": true,
+									},
+								})
+							} else {
+								<p x-show="!editor.card.assignees.length" class="text-[12px] text-muted-foreground">None</p>
+								<ul class="flex flex-col gap-1 text-[13px]">
+									<template x-for="a in editor.card.assignees" x-bind:key="a.id">
+										<li x-text="a.username"></li>
+									</template>
+								</ul>
+							}
+						</div>
+						<div>
+							<span id="card-labels-label" class="mb-1 block text-[12px] font-medium text-muted-foreground">Labels</span>
+							if data.CanWrite {
+								@components.MultiSelect(components.MultiSelectProps{
+									ID:          "card-labels-trigger",
+									LabelID:     "card-labels-label",
+									Placeholder: "No labels",
+									Empty:       emptyOptionsText(len(data.Labels), "No labels in this repository"),
+									Options:     labelOptions(data.Labels),
+									Attrs: templ.Attributes{
+										"x-model":         "editor.labels",
+										"data-card-labels": true,
+									},
+								})
+							} else {
+								<p x-show="!editor.card.labels.length" class="text-[12px] text-muted-foreground">None</p>
+								<ul class="flex flex-col gap-1 text-[13px]">
+									<template x-for="l in editor.card.labels" x-bind:key="l.id">
+										<li class="flex items-center gap-2">
+											<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" x-bind:style="l.color ? { backgroundColor: l.color } : {}"></span>
+											<span x-text="l.name"></span>
+										</li>
+									</template>
+								</ul>
+							}
+						</div>
+						<div>
+							<label for="card-due-input" class="mb-1 block text-[12px] font-medium text-muted-foreground">Due date</label>
+							@components.DatePicker(components.DatePickerProps{
+								ID:          "card-due-input",
+								Name:        "due_date",
+								Label:       "Due date",
+								Disabled:    !data.CanWrite,
+								Placeholder: "No due date",
+								Attrs:       templ.Attributes{"x-model": "editor.dueDate"},
+							})
+						</div>
+						<div>
+							<span class="mb-1 block text-[12px] font-medium text-muted-foreground">Linked item</span>
+							<div x-show="editor.link" class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[13px]" data-card-link-chip>
+								<a
+									x-ref="linkAnchor"
+									x-bind:href="linkURL"
+									class="flex min-w-0 flex-1 items-baseline gap-2 rounded hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<span class="shrink-0 font-mono text-[11px] text-muted-foreground" x-text="editor.link ? (editor.link.kind === 'pull' ? 'PR #' : '#') + editor.link.number : ''"></span>
+									<span class="min-w-0 flex-1 truncate" x-text="editor.link ? editor.link.title : ''"></span>
+									<span class="shrink-0 text-[11px] text-muted-foreground" x-text="editor.link ? editor.link.state : ''"></span>
+								</a>
 								if data.CanWrite {
-									if len(data.People) == 0 {
-										<p class="text-[12px] text-muted-foreground">No collaborators</p>
-									} else {
-										<div role="group" aria-labelledby="card-assignees-label" class="flex max-h-48 flex-col gap-0.5 overflow-y-auto" data-card-people>
-											for _, p := range data.People {
-												<label class="flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted">
-													<input type="checkbox" data-person x-model="editor.assignees" value={ strconv.FormatInt(p.ID, 10) } class="accent-primary"/>
-													@components.Avatar(p.Username, components.AvatarSizeXS, "")
-													<span class="truncate">{ p.Username }</span>
-												</label>
-											}
-										</div>
-									}
-									<div class="mt-1 flex flex-col gap-0.5">
-										<template x-for="a in staleAssignees" x-bind:key="a.id">
-											<label class="flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted">
-												<input type="checkbox" x-model="editor.assignees" x-bind:value="String(a.id)" class="accent-primary"/>
-												<span class="truncate" x-text="a.username"></span>
-												<span class="shrink-0 text-[11px] text-muted-foreground">not a collaborator</span>
-											</label>
-										</template>
-									</div>
-								} else {
-									<p x-show="!editor.card.assignees.length" class="text-[12px] text-muted-foreground">None</p>
-									<ul class="flex flex-col gap-1 text-[13px]">
-										<template x-for="a in editor.card.assignees" x-bind:key="a.id">
-											<li x-text="a.username"></li>
-										</template>
-									</ul>
+									<button
+										type="button"
+										x-ref="linkClear"
+										aria-label="Remove link"
+										@click="clearLink()"
+										class="rounded px-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
+									>✕</button>
 								}
 							</div>
-							<div>
-								<span id="card-labels-label" class="mb-1 block text-[12px] font-medium text-muted-foreground">Labels</span>
-								if data.CanWrite {
-									if len(data.Labels) == 0 {
-										<p class="text-[12px] text-muted-foreground">No labels in this repository</p>
-									} else {
-										<div role="group" aria-labelledby="card-labels-label" class="flex max-h-48 flex-col gap-0.5 overflow-y-auto" data-card-labels>
-											for _, l := range data.Labels {
-												<label class="flex items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-muted">
-													<input type="checkbox" x-model="editor.labels" value={ strconv.FormatInt(l.ID, 10) } class="accent-primary"/>
-													<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" style={ labelChipStyle(l.Color) }></span>
-													<span class="truncate">{ l.Name }</span>
-												</label>
-											}
-										</div>
-									}
-								} else {
-									<p x-show="!editor.card.labels.length" class="text-[12px] text-muted-foreground">None</p>
-									<ul class="flex flex-col gap-1 text-[13px]">
-										<template x-for="l in editor.card.labels" x-bind:key="l.id">
-											<li class="flex items-center gap-2">
-												<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" x-bind:style="l.color ? { backgroundColor: l.color } : {}"></span>
-												<span x-text="l.name"></span>
-											</li>
-										</template>
-									</ul>
-								}
-							</div>
+							if data.CanWrite {
+								<div x-show="!editor.link" x-data="linkPicker" @click.outside="reset()" @focusout="onFocusOut($event)">
+									<label for="card-link-input" class="sr-only">Find an issue or pull request</label>
+									<input
+										id="card-link-input"
+										type="text"
+										x-ref="input"
+										x-model="text"
+										placeholder="Find an issue or PR by title or #number"
+										autocomplete="off"
+										class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+										@input="search()"
+										@keydown.enter.prevent="enterPick()"
+										@keydown.escape="showList && ($event.preventDefault(), $event.stopPropagation(), reset())"
+										@keydown.arrow-down.prevent="move(1)"
+										@keydown.arrow-up.prevent="move(-1)"
+									/>
+									@targetResults()
+								</div>
+							} else {
+								<p x-show="!editor.link" class="text-[12px] text-muted-foreground">None</p>
+							}
 						</div>
 					</div>
 				</div>

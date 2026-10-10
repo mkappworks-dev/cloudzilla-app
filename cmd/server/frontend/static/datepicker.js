@@ -213,7 +213,9 @@
         const height = pop.offsetHeight || 340;
         const width = pop.offsetWidth || 288;
         const below = r.bottom + 4;
-        const top = below + height > window.innerHeight && r.top - 4 - height >= 0 ? r.top - 4 - height : below;
+        const side = below + height > window.innerHeight && r.top - 4 - height >= 0 ? r.top - 4 - height : below;
+        // With no room on either side the calendar overlaps the field rather than leave the viewport.
+        const top = Math.max(8, Math.min(side, window.innerHeight - height - 8));
         const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
         this.popStyle = `position:fixed;left:${left}px;top:${top}px`;
       },
