@@ -18,7 +18,7 @@ These paths call it but don't check today:
 - release create, which creates its tag: `release_service.go:82`
 - changing the default branch: `RepoService.UpdateGeneral`, when `defaultBranch` changes. Description and website stay editable.
 
-These existing checks switch to the guard: `git_http.go:114`, `ssh/server.go:219`, `repo_files_handler.go:198`, `profile_readme_handler.go:43`. `repo_service.go:1065` (template source) stays as is: it reads an archived template and doesn't write to it.
+These existing checks switch to the guard: `git_http.go:114`, `ssh/server.go:219`, `repo_files_handler.go:198`, `profile_readme_handler.go:43`. `CreateFromTemplate` in `repo_service_create.go` (template source) stays as is: it reads an archived template and doesn't write to it.
 
 The UI hides the matching controls on archived repos: the `refs.templ` create and delete buttons, the merge box, apply suggestion, new release, and the default-branch field.
 

@@ -73,7 +73,7 @@ CREATE INDEX idx_repos_owner ON repositories(owner_id);
 
 **Store:** `internal/store/repo_store.go` — `Create`, `GetByOwnerAndName`, `ListByOwner`, `Update`, `Delete`. Bare git repo created on disk via `go-git.PlainInit()`.
 
-**Service:** `internal/service/repo_service.go` — `Create` (validates name, inits bare repo); `CanRead`, `CanWrite`, `CanManage`; `TransferRepo`.
+**Service:** `internal/service/repo_service_create.go` — `Create` (validates name, inits bare repo); `repo_service_access.go` — `CanRead`, `CanWrite`, `CanManage`; `TransferRepo`.
 
 **Git HTTP:** `internal/handler/git_handler.go` — `InfoRefs`, `UploadPack`, `ReceivePack`. Implements Git smart HTTP protocol via `go-git`. Auth: Basic or JWT cookie.
 
@@ -535,7 +535,7 @@ CREATE INDEX idx_repos_fork_of ON repositories(fork_of_id);
 - Add `DecrementForkCount(ctx, repoID int64) error`
 - Add `ListForks(ctx, repoID int64) ([]model.Repository, error)`
 
-**Service changes (`internal/service/repo_service.go`):**
+**Service changes (`internal/service/repo_service_fork.go`):**
 
 - Add `Fork(ctx, originalOwner, originalName, newOwnerUsername string, actorID int64) (*model.Repository, error)`:
   1. Fetch & validate original repo (must be readable by actor)

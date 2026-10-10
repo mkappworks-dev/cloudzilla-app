@@ -3,7 +3,14 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"errors"
+	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -25,6 +32,51 @@ func fakeLDAP(t *testing.T, resultCode byte) (host, port string, requests <-chan
 	if err != nil {
 		t.Fatal(err)
 	}
+	return serveFakeLDAP(t, ln, resultCode)
+}
+
+// fakeLDAPS is fakeLDAP behind TLS with a certificate from a fresh self-signed
+// CA, which it returns as a pool.
+func fakeLDAPS(t *testing.T, resultCode byte) (host, port string, ca *x509.CertPool) {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "cloudzilla test ldap"},
+		NotBefore:             time.Now().Add(-time.Minute),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf, err := x509.ParseCertificate(der)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ca = x509.NewCertPool()
+	ca.AddCert(leaf)
+
+	ln, err := tls.Listen("tcp", "127.0.0.1:0", &tls.Config{
+		Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	host, port, _ = serveFakeLDAP(t, ln, resultCode)
+	return host, port, ca
+}
+
+func serveFakeLDAP(t *testing.T, ln net.Listener, resultCode byte) (host, port string, requests <-chan []byte) {
+	t.Helper()
 	t.Cleanup(func() { _ = ln.Close() })
 	got := make(chan []byte, 8)
 	go func() {
@@ -192,6 +244,30 @@ func TestBindLDAP_UnreachableServer(t *testing.T) {
 	_ = ln.Close()
 	if err := bindLDAP(addr, "cn=a", "pw", false); err == nil || !strings.Contains(err.Error(), "ldap dial") {
 		t.Errorf("got %v, want a dial error", err)
+	}
+}
+
+func useLDAPRootCAs(t *testing.T, pool *x509.CertPool) {
+	t.Helper()
+	prev := ldapRootCAs
+	ldapRootCAs = pool
+	t.Cleanup(func() { ldapRootCAs = prev })
+}
+
+func TestBindLDAP_TLS(t *testing.T) {
+	host, port, ca := fakeLDAPS(t, 0)
+	addr := net.JoinHostPort(host, port)
+
+	if err := bindLDAP(addr, "cn=a", "pw", true); err == nil || !strings.Contains(err.Error(), "ldap dial") {
+		t.Errorf("certificate from an unknown CA: got %v, want a dial error", err)
+	}
+
+	useLDAPRootCAs(t, ca)
+	if err := bindLDAP(addr, "cn=a", "pw", true); err != nil {
+		t.Errorf("certificate from a trusted CA: %v", err)
+	}
+	if err := bindLDAP(addr, "cn=a", "pw", false); err == nil {
+		t.Error("plaintext bind against a TLS-only server succeeded")
 	}
 }
 
