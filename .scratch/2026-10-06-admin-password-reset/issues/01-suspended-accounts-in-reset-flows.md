@@ -10,7 +10,7 @@ Spec: [../spec.md](../spec.md)
 
 - `passwordResetUsable` in `internal/store/password_reset_store.go` adds `u.suspended_at IS NULL`, which covers `Lookup`, the locked recheck in `Consume` and the admin-link check in `Issue`'s cooldown.
 - `PasswordResetService.Request` sends nothing for a suspended account and returns nil.
-- `PasswordResetService.IssueLink` returns `ErrUserSuspended` for a suspended account. `cloudzilla password-reset-link` turns it into "@user is suspended: unsuspend it first".
+- `PasswordResetService.IssueLink` returns `ErrUserSuspended` for a suspended account. `cz-admin password-reset-link` turns it into "@user is suspended: unsuspend it first".
 
 ## Acceptance criteria
 
