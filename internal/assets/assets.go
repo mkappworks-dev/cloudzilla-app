@@ -25,6 +25,19 @@ type Set struct {
 	fsys  fs.FS
 	files map[string]*file
 	dev   bool
+
+	devMu    sync.Mutex
+	devCache map[string]devEntry
+}
+
+// devEntry is a hash and what it was computed from. Keying the cache on mtime
+// and size assumes sub-second timestamps, which APFS and ext4 both give; on a
+// filesystem with one-second stamps a same-size edit inside one tick would be
+// missed. That is the trade for not re-reading 5.3 MB of mermaid per render.
+type devEntry struct {
+	hash    string
+	modTime time.Time
+	size    int64
 }
 
 type file struct {
@@ -70,7 +83,27 @@ func New(fsys fs.FS) (*Set, error) {
 // edit under the served tree needs no restart. Exported for the tests, which
 // are an external package; the dev build tag is what reaches it in a binary.
 func NewDev(fsys fs.FS) *Set {
-	return &Set{fsys: fsys, dev: true}
+	return &Set{fsys: fsys, dev: true, devCache: map[string]devEntry{}}
+}
+
+// devHash returns the file's content hash, re-reading it only when stat says
+// it has changed since the last call.
+func (s *Set) devHash(name string) (string, error) {
+	info, err := fs.Stat(s.fsys, name)
+	if err != nil {
+		return "", err
+	}
+	s.devMu.Lock()
+	defer s.devMu.Unlock()
+	if e, ok := s.devCache[name]; ok && e.modTime.Equal(info.ModTime()) && e.size == info.Size() {
+		return e.hash, nil
+	}
+	hash, err := hashFile(s.fsys, name)
+	if err != nil {
+		return "", err
+	}
+	s.devCache[name] = devEntry{hash: hash, modTime: info.ModTime(), size: info.Size()}
+	return hash, nil
 }
 
 // devName resolves a URL path against fsys, where an fs name carries no
@@ -97,14 +130,11 @@ func hashFile(fsys fs.FS, name string) (string, error) {
 // when s has no such file.
 func (s *Set) URL(urlPath string) string {
 	if s.dev {
-		// Hashed on every render rather than stamped from mtime, whose
-		// resolution varies by filesystem: two same-size edits in one second
-		// would otherwise keep serving the first.
 		name, ok := devName(urlPath)
 		if !ok {
 			return urlPath
 		}
-		hash, err := hashFile(s.fsys, name)
+		hash, err := s.devHash(name)
 		if err != nil {
 			return urlPath
 		}

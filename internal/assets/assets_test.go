@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -196,6 +197,39 @@ func TestNewDev_URLFollowsTheFileOnDisk(t *testing.T) {
 	writeFile(t, dir, "static/app.js", appJS+"console.log('edited');\n")
 	if after := set.URL("/static/app.js"); after == before {
 		t.Errorf("URL = %q after an edit, want a different hash", after)
+	}
+}
+
+// countingFS counts the reads that reach the filesystem. It answers Stat
+// itself, so fs.Stat can't fall back to Open and inflate the count.
+type countingFS struct {
+	dir   fs.FS
+	opens int
+}
+
+func (c *countingFS) Open(name string) (fs.File, error)     { c.opens++; return c.dir.Open(name) }
+func (c *countingFS) Stat(name string) (fs.FileInfo, error) { return fs.Stat(c.dir, name) }
+
+// The layout asks for eight assets per page render, one of them a 5.3 MB
+// mermaid bundle, so hashing an unchanged file again is 2.5ms of pure waste.
+func TestNewDev_ReadsTheFileAgainOnlyAfterAnEdit(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "app.js", appJS)
+	counting := &countingFS{dir: os.DirFS(dir)}
+	set := assets.NewDev(counting)
+
+	first := set.URL("/app.js")
+	if again := set.URL("/app.js"); again != first {
+		t.Fatalf("URL = %q then %q with no edit, want them equal", first, again)
+	}
+	if counting.opens != 1 {
+		t.Errorf("read the file %d times for two renders, want 1", counting.opens)
+	}
+
+	// Same length, different bytes: the cache may not key on size alone.
+	writeFile(t, dir, "app.js", strings.Repeat("x", len(appJS)))
+	if after := set.URL("/app.js"); after == first {
+		t.Errorf("URL = %q after a same-size edit, want a different hash", after)
 	}
 }
 
