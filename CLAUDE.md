@@ -35,6 +35,8 @@ A new design mock is an HTML file beside the spec it serves, in `.scratch/<date>
 
 `cmd/server/frontend/` is embedded and served by `internal/assets`. Templates reference a file as `assets.URL("/static/x.js")`, never as a literal path: the `?v=<content hash>` query is what lets browsers cache it for a year.
 
+`assets.Set` is an interface with two implementations, picked by the `dev` build tag: the release one walks the embedded tree once at startup, and the dev one reads `cmd/server/frontend` from disk per request so a CSS or JS edit needs no rebuild. See [dev-loop](./docs/dev-loop.md).
+
 ## Adding a feature
 
 1. Migration in `internal/db/migrations/` (next sequential number).
@@ -76,6 +78,7 @@ Read the matching doc before working in an area:
 - [ui-overhaul-class-map](./docs/ui-overhaul-class-map.md) — mockup → shadcn class map and Tailwind v3 → v4 names; the source of truth when porting UI
 - [design/mockups-2026-05](./docs/design/mockups-2026-05/README.md) — the archived May 2026 mockups; Tailwind v3 and frozen, so read them through the class map
 - [testing](./docs/testing.md) — what CI runs, why `backup` and `seed` are local-only, `make test-integration`
+- [dev-loop](./docs/dev-loop.md) — the `dev` build tag, disk-served assets, `internal/devreload`, air's config; what CI does not compile
 - [ROADMAP](./docs/ROADMAP.md) — phase status
 
 Docs formatting: `docs/**/*.md`, `README.md`, `CONTRIBUTING.md` and `.scratch/**/*.md` are formatted with Prettier's defaults (there is no config file): `npx prettier --write "docs/**/*.md" README.md CONTRIBUTING.md ".scratch/**/*.md"`. It re-aligns tables and reformats JSON and YAML code fences in place, so run it after editing a doc.
