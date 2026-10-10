@@ -38,6 +38,7 @@ templ MultiSelect(p MultiSelectProps) {
 			x-ref="trigger"
 			aria-haspopup="listbox"
 			x-bind:aria-expanded="open.toString()"
+			aria-controls={ p.ID + "-list" }
 			aria-labelledby={ p.LabelID + " " + p.ID }
 			@click="toggleOpen()"
 			@keydown.arrow-down.prevent="show()"
@@ -81,12 +82,14 @@ templ MultiSelect(p MultiSelectProps) {
 						data-multiselect-filter
 						aria-label="Filter options"
 						aria-controls={ p.ID + "-list" }
+						x-bind:aria-activedescendant="activeID"
 						autocomplete="off"
 						placeholder="Filter"
 						class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
 					/>
 				</div>
 			}
+			// With a filter box, focus stays in it, so the box names the active option instead.
 			<ul
 				id={ p.ID + "-list" }
 				x-ref="list"
@@ -94,7 +97,9 @@ templ MultiSelect(p MultiSelectProps) {
 				aria-multiselectable="true"
 				tabindex="-1"
 				aria-labelledby={ p.LabelID }
-				x-bind:aria-activedescendant="activeID"
+				if len(p.Options) <= multiSelectFilterThreshold {
+					x-bind:aria-activedescendant="activeID"
+				}
 				class="min-h-0 flex-1 overflow-y-auto p-1 focus:outline-hidden"
 			>
 				for _, o := range p.Options {

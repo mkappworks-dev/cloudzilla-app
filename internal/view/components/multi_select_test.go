@@ -52,14 +52,39 @@ func TestMultiSelect_Structure(t *testing.T) {
 	}
 }
 
-func TestMultiSelect_FilterBoxOnlyAboveTheThreshold(t *testing.T) {
-	options := func(n int) []components.MultiSelectOption {
-		var o []components.MultiSelectOption
-		for i := range n {
-			o = append(o, components.MultiSelectOption{Value: strconv.Itoa(i), Label: "opt" + strconv.Itoa(i)})
-		}
-		return o
+func multiSelectOptions(n int) []components.MultiSelectOption {
+	var o []components.MultiSelectOption
+	for i := range n {
+		o = append(o, components.MultiSelectOption{Value: strconv.Itoa(i), Label: "opt" + strconv.Itoa(i)})
 	}
+	return o
+}
+
+// The active option is announced from whichever element holds focus: the filter box when there
+// is one, else the list.
+func TestMultiSelect_ActiveDescendantFollowsFocus(t *testing.T) {
+	const active = `x-bind:aria-activedescendant="activeID"`
+	short := renderMultiSelect(t, components.MultiSelectProps{ID: "ms", LabelID: "l", Options: multiSelectOptions(2)})
+	long := renderMultiSelect(t, components.MultiSelectProps{ID: "ms", LabelID: "l", Options: multiSelectOptions(7)})
+	for name, out := range map[string]string{"short": short, "long": long} {
+		trigger := regexp.MustCompile(`<button[^>]*id="ms"[^>]*>`).FindString(out)
+		if !strings.Contains(trigger, `aria-controls="ms-list"`) {
+			t.Errorf("%s: trigger has no aria-controls for the list: %q", name, trigger)
+		}
+		if n := strings.Count(out, active); n != 1 {
+			t.Errorf("%s: %d elements carry aria-activedescendant, want 1", name, n)
+		}
+	}
+	if !regexp.MustCompile(`<ul[^>]*` + regexp.QuoteMeta(active)).MatchString(short) {
+		t.Error("without a filter box the list does not carry aria-activedescendant")
+	}
+	if !regexp.MustCompile(`<input[^>]*data-multiselect-filter[^>]*` + regexp.QuoteMeta(active) + `|<input[^>]*` + regexp.QuoteMeta(active) + `[^>]*data-multiselect-filter`).MatchString(long) {
+		t.Error("with a filter box the focused filter input does not carry aria-activedescendant")
+	}
+}
+
+func TestMultiSelect_FilterBoxOnlyAboveTheThreshold(t *testing.T) {
+	options := multiSelectOptions
 	if strings.Contains(renderMultiSelect(t, components.MultiSelectProps{ID: "ms", Options: options(6)}), "data-multiselect-filter") {
 		t.Error("six options get a filter box")
 	}
