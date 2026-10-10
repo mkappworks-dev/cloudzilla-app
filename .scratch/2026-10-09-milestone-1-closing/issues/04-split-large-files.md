@@ -36,7 +36,8 @@ Sequence after open PRs that touch the same files have merged (several `feat/*` 
 Claude, 2026-10-10: progress, one PR per file.
 
 - Done: `internal/service/repo_service.go` (1271 lines), split into `repo_service.go` (types, constructor, `With*`, read queries) and `repo_service_{access,create,fork,settings,lifecycle,push}.go`.
-- Remaining: `user_store.go`, `page_pull_handler.go`. `sso_service.go` and `milestone_handler.go` are in flight on `tech/split-sso-service` and `tech/split-milestone-handler`.
+- Done: `internal/store/user_store.go` (1057 lines), split into `user_store.go` (types, constructor, `userColumns`/`scanUser`, lookups, batch reads) and `user_store_{create,auth,reauth,totp,profile,delete,pins}.go`.
+- Remaining: `page_pull_handler.go`. `sso_service.go` and `milestone_handler.go` are in flight on `tech/split-sso-service` and `tech/split-milestone-handler`.
 - The ticket stays open until every file in the table is split.
 
 Claude, 2026-10-10: split `internal/handler/milestone_handler.go` into `milestone_api_handler.go` (JSON API handlers and their error helpers) and `milestone_page_handler.go` (page handlers, fragments and detail helpers); the old file is gone. Remaining: `user_store.go`, `page_pull_handler.go`; `sso_service.go` is in flight on `tech/split-sso-service`. Ticket stays open.
