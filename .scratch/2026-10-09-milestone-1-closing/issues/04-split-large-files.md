@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -22,10 +22,10 @@ Pure moves: cut whole functions into new files in the same package, named for th
 
 ## Acceptance criteria
 
-- [ ] One PR per source file, so each is easy to review and revert.
-- [ ] `git diff --stat -M` shows moves only; the same set of top-level declarations exists before and after (compare `go doc -all` or a symbol list).
-- [ ] `go build ./...`, `go test ./...` with `TEST_DATABASE_DSN` set, and `golangci-lint run` unchanged and passing.
-- [ ] Update any doc or ticket that names the old file path (`grep -rn "sso_service.go" docs .scratch`).
+- [x] One PR per source file, so each is easy to review and revert.
+- [x] `git diff --stat -M` shows moves only; the same set of top-level declarations exists before and after (compare `go doc -all` or a symbol list).
+- [x] `go build ./...`, `go test ./...` with `TEST_DATABASE_DSN` set, and `golangci-lint run` unchanged and passing.
+- [x] Update any doc or ticket that names the old file path (`grep -rn "sso_service.go" docs .scratch`).
 
 ## Blocked by
 
@@ -38,7 +38,8 @@ Claude, 2026-10-10: progress, one PR per file.
 - Done: `internal/service/repo_service.go` (1271 lines), split into `repo_service.go` (types, constructor, `With*`, read queries) and `repo_service_{access,create,fork,settings,lifecycle,push}.go`.
 - Done: `internal/store/user_store.go` (1057 lines), split into `user_store.go` (types, constructor, `userColumns`/`scanUser`, lookups, batch reads) and `user_store_{create,auth,reauth,totp,profile,delete,pins}.go`.
 - Done: `internal/service/sso_service.go` (1024 lines), split into `sso_service.go` (type, constructor, config) and `sso_{ldap,saml,provision}.go`.
-- Remaining: `page_pull_handler.go`. `milestone_handler.go` is in flight on `tech/split-milestone-handler`.
-- The ticket stays open until every file in the table is split.
+- Done: `internal/handler/milestone_handler.go` (894 lines), split into `milestone_api_handler.go` (JSON API handlers and their error helpers) and `milestone_page_handler.go` (page handlers, fragments and detail helpers).
+- Done: `internal/handler/page_pull_handler.go` (952 lines), split into `page_pull_handler.go` (list, plus `pullInitials`, `pullFormatRelative` and the shared `firstNonEmpty`, `collaboratorUsernames`) and `page_pull_{new,detail,tabs}_handler.go` (new-PR form and reviewer options; detail; commits/checks/files tabs and the tab-badge helpers).
+- All five files in the table are now split, so the ticket is done.
 
 Claude, 2026-10-10: split `internal/handler/milestone_handler.go` into `milestone_api_handler.go` (JSON API handlers and their error helpers) and `milestone_page_handler.go` (page handlers, fragments and detail helpers); the old file is gone. Remaining: `user_store.go`, `page_pull_handler.go`; `sso_service.go` is in flight on `tech/split-sso-service`. Ticket stays open.
