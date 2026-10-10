@@ -81,6 +81,7 @@ const referenced = `(
 	OR EXISTS (SELECT 1 FROM releases WHERE strpos(body, a.token) > 0)
 	OR EXISTS (SELECT 1 FROM milestones WHERE strpos(description, a.token) > 0)
 	OR EXISTS (SELECT 1 FROM saved_replies WHERE strpos(body, a.token) > 0)
+	OR EXISTS (SELECT 1 FROM project_cards WHERE strpos(note, a.token) > 0)
 )`
 
 // ListSweepable returns up to limit attachments whose repo no longer exists,

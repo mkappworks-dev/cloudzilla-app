@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -16,6 +18,12 @@ var ErrInvalidPosition = errors.New("invalid card position")
 // ErrCardNotInProject: MoveCard source/destination doesn't belong to the claimed project.
 // Distinct sentinel so the service doesn't have to overload errors.Is(sql.ErrNoRows).
 var ErrCardNotInProject = errors.New("card not in project")
+
+// ErrCardNotLinkable: the card is missing, already linked, or has no title.
+var ErrCardNotLinkable = errors.New("card cannot be linked to an issue")
+
+// ErrLinkCommit: COMMIT of the link transaction failed, so it may still have been applied.
+var ErrLinkCommit = errors.New("link commit failed")
 
 var ErrColumnNotInProject = errors.New("column not in project")
 
@@ -192,21 +200,407 @@ func (s *ProjectStore) DeleteColumn(ctx context.Context, id, projectID int64) er
 // --- Cards ---
 
 func (s *ProjectStore) CreateCard(ctx context.Context, card *model.ProjectCard) error {
-	issueID := sql.NullInt64{}
-	if card.IssueID != nil {
-		issueID = sql.NullInt64{Int64: *card.IssueID, Valid: true}
+	return s.CreateCardWithPeople(ctx, card, nil, nil)
+}
+
+// CreateCardWithPeople inserts the card and its assignee and label rows in one transaction.
+func (s *ProjectStore) CreateCardWithPeople(ctx context.Context, card *model.ProjectCard, assigneeIDs, labelIDs []int64) error {
+	if card.Title == "" && card.IssueID == nil && card.PullID == nil {
+		card.Title, card.Note = splitNote(card.Note)
 	}
-	pullID := sql.NullInt64{}
-	if card.PullID != nil {
-		pullID = sql.NullInt64{Int64: *card.PullID, Valid: true}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
 	}
-	return s.db.QueryRowContext(ctx,
-		`INSERT INTO project_cards (column_id, issue_id, pull_id, note, position)
-		 VALUES ($1, $2, $3, $4,
+	defer tx.Rollback()
+	err = tx.QueryRowContext(ctx,
+		`INSERT INTO project_cards (column_id, issue_id, pull_id, title, note, due_date, position)
+		 VALUES ($1, $2, $3, $4, $5, $6,
 		         COALESCE((SELECT MAX(position)+1 FROM project_cards WHERE column_id = $1), 0))
 		 RETURNING id, position, created_at`,
-		card.ColumnID, issueID, pullID, card.Note,
+		card.ColumnID, nullInt64(card.IssueID), nullInt64(card.PullID), card.Title, card.Note, nullDate(card.DueDate),
 	).Scan(&card.ID, &card.Position, &card.CreatedAt)
+	if err != nil {
+		return err
+	}
+	if err := insertCardPeople(ctx, tx, card.ID, assigneeIDs, labelIDs); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func insertCardPeople(ctx context.Context, tx *sql.Tx, cardID int64, assigneeIDs, labelIDs []int64) error {
+	for _, id := range assigneeIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO card_assignees (card_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, cardID, id); err != nil {
+			return err
+		}
+	}
+	for _, id := range labelIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO card_labels (card_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, cardID, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+const cardTitleMax = 120
+
+// splitNote mirrors migration 116's backfill: first line becomes the title (max 120 runes), the
+// rest the description. A first line over 120 runes keeps the whole text in the description.
+func splitNote(note string) (title, description string) {
+	note = strings.TrimSpace(note)
+	first, rest, _ := strings.Cut(note, "\n")
+	if r := []rune(first); len(r) > cardTitleMax {
+		return string(r[:cardTitleMax]), note
+	}
+	return first, rest
+}
+
+func nullInt64(p *int64) sql.NullInt64 {
+	if p == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: *p, Valid: true}
+}
+
+func nullDate(t *time.Time) sql.NullString {
+	if t == nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: t.Format("2006-01-02"), Valid: true}
+}
+
+// SetCardDetails replaces a card's editable state, assignees and labels atomically.
+func (s *ProjectStore) SetCardDetails(ctx context.Context, cardID, projectID int64, d model.CardDetails) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := writeCardDetails(ctx, tx, cardID, projectID, d); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// MergeCardDetails locks the card row, hands its stored details and assignees to merge, and
+// writes the details merge returns, in one transaction: concurrent partial updates of one card
+// apply one after the other instead of overwriting each other. An error from merge writes nothing.
+// merge runs while the lock and this connection are held, so it must not query the database:
+// waiting there for a second pool connection can starve the pool.
+func (s *ProjectStore) MergeCardDetails(ctx context.Context, cardID, projectID int64,
+	merge func(cur model.CardDetails, assignees []model.CardUser) (model.CardDetails, error)) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var cur model.CardDetails
+	var due sql.NullTime
+	var issueID, pullID sql.NullInt64
+	err = tx.QueryRowContext(ctx,
+		`SELECT title, note, due_date, issue_id, pull_id FROM project_cards
+		 WHERE id = $1 AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)
+		 FOR UPDATE`,
+		cardID, projectID,
+	).Scan(&cur.Title, &cur.Description, &due, &issueID, &pullID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("card %d in project %d: %w", cardID, projectID, ErrCardNotInProject)
+	}
+	if err != nil {
+		return err
+	}
+	if due.Valid {
+		cur.DueDate = &due.Time
+	}
+	if issueID.Valid {
+		cur.IssueID = &issueID.Int64
+	}
+	if pullID.Valid {
+		cur.PullID = &pullID.Int64
+	}
+	assigned, err := cardAssignees(ctx, tx, []int64{cardID})
+	if err != nil {
+		return err
+	}
+	cur.AssigneeIDs = []int64{}
+	for _, u := range assigned[cardID] {
+		cur.AssigneeIDs = append(cur.AssigneeIDs, u.ID)
+	}
+	cur.LabelIDs, err = cardLabelIDs(ctx, tx, cardID)
+	if err != nil {
+		return err
+	}
+
+	next, err := merge(cur, assigned[cardID])
+	if err != nil {
+		return err
+	}
+	if err := writeCardDetails(ctx, tx, cardID, projectID, next); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func cardLabelIDs(ctx context.Context, tx *sql.Tx, cardID int64) ([]int64, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT label_id FROM card_labels WHERE card_id = $1 ORDER BY label_id`, cardID)
+	if err != nil {
+		return nil, fmt.Errorf("card label ids: %w", err)
+	}
+	defer rows.Close()
+	ids := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// writeCardDetails replaces the card's row fields and its assignee and label sets.
+func writeCardDetails(ctx context.Context, tx *sql.Tx, cardID, projectID int64, d model.CardDetails) error {
+	res, err := tx.ExecContext(ctx,
+		`UPDATE project_cards SET title = $3, note = $4, due_date = $5, issue_id = $6, pull_id = $7
+		 WHERE id = $1 AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
+		cardID, projectID, d.Title, d.Description, nullDate(d.DueDate), nullInt64(d.IssueID), nullInt64(d.PullID),
+	)
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return err
+	} else if n == 0 {
+		return fmt.Errorf("card %d in project %d: %w", cardID, projectID, ErrCardNotInProject)
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM card_assignees WHERE card_id = $1`, cardID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM card_labels WHERE card_id = $1`, cardID); err != nil {
+		return err
+	}
+	return insertCardPeople(ctx, tx, cardID, d.AssigneeIDs, d.LabelIDs)
+}
+
+// LinkNoteCardToIssue links an unlinked titled card to issueID and changes nothing else on it.
+// It reports ErrCardNotLinkable when the card is gone or was linked first, so concurrent
+// converts can't both win.
+func (s *ProjectStore) LinkNoteCardToIssue(ctx context.Context, cardID, projectID, issueID int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx,
+		`UPDATE project_cards SET issue_id = $3
+		 WHERE id = $1 AND issue_id IS NULL AND pull_id IS NULL AND title <> ''
+		   AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
+		cardID, projectID, issueID)
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return err
+	} else if n == 0 {
+		return ErrCardNotLinkable
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("%w: %w", ErrLinkCommit, err)
+	}
+	return nil
+}
+
+// CardAssignees returns each card's assignees ordered by username; cards without any are absent.
+func (s *ProjectStore) CardAssignees(ctx context.Context, cardIDs []int64) (map[int64][]model.CardUser, error) {
+	return cardAssignees(ctx, s.db, cardIDs)
+}
+
+type rowsQuerier interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
+func cardAssignees(ctx context.Context, q rowsQuerier, cardIDs []int64) (map[int64][]model.CardUser, error) {
+	out := map[int64][]model.CardUser{}
+	if len(cardIDs) == 0 {
+		return out, nil
+	}
+	rows, err := q.QueryContext(ctx,
+		`SELECT a.card_id, u.id, u.username
+		 FROM card_assignees a JOIN users u ON u.id = a.user_id
+		 WHERE a.card_id = ANY($1)
+		 ORDER BY u.username, u.id`, cardIDs)
+	if err != nil {
+		return nil, fmt.Errorf("card assignees: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cardID int64
+		var u model.CardUser
+		if err := rows.Scan(&cardID, &u.ID, &u.Username); err != nil {
+			return nil, err
+		}
+		out[cardID] = append(out[cardID], u)
+	}
+	return out, rows.Err()
+}
+
+// RefKinds maps each number in nums to "issues" or "pulls"; numbers matching
+// neither, or only a private issue the viewer cannot see (issueVisibleTo), are
+// absent. A number that is both resolves to "issues".
+func (s *ProjectStore) RefKinds(ctx context.Context, repoID int64, nums []int, visibleToUserID *int64) (map[int]string, error) {
+	out := map[int]string{}
+	if len(nums) == 0 {
+		return out, nil
+	}
+	args := []any{repoID, viewerID(visibleToUserID)}
+	var ph []string
+	for _, n := range nums {
+		if n <= 0 || n > math.MaxInt32 {
+			continue
+		}
+		args = append(args, n)
+		ph = append(ph, fmt.Sprintf("$%d", len(args)))
+	}
+	if len(ph) == 0 {
+		return out, nil
+	}
+	in := strings.Join(ph, ",")
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT number, 'pulls' FROM pull_requests WHERE repo_id = $1 AND number IN (`+in+`)
+		 UNION ALL
+		 SELECT i.number, 'issues' FROM issues i WHERE i.repo_id = $1 AND i.number IN (`+in+`) AND `+issueVisibleTo("i", "$2"), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var n int
+		var kind string
+		if err := rows.Scan(&n, &kind); err != nil {
+			return nil, err
+		}
+		if kind == "issues" || out[n] == "" {
+			out[n] = kind
+		}
+	}
+	return out, rows.Err()
+}
+
+// CardLabels returns each card's labels ordered by name; cards without any are absent.
+func (s *ProjectStore) CardLabels(ctx context.Context, cardIDs []int64) (map[int64][]model.Label, error) {
+	out := map[int64][]model.Label{}
+	if len(cardIDs) == 0 {
+		return out, nil
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT cl.card_id, l.id, l.repo_id, l.name, l.color, l.description, l.created_at
+		 FROM card_labels cl JOIN labels l ON l.id = cl.label_id
+		 WHERE cl.card_id = ANY($1)
+		 ORDER BY l.name, l.id`, cardIDs)
+	if err != nil {
+		return nil, fmt.Errorf("card labels: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cardID int64
+		var l model.Label
+		if err := rows.Scan(&cardID, &l.ID, &l.RepoID, &l.Name, &l.Color, &l.Description, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		out[cardID] = append(out[cardID], l)
+	}
+	return out, rows.Err()
+}
+
+// linkedTables names the join tables and id column of a card link kind; they are
+// interpolated into SQL, so only these constants may reach it.
+var linkedTables = map[string]struct{ labels, assignees, idCol string }{
+	"issue": {"issue_labels", "issue_assignees", "issue_id"},
+	"pull":  {"pull_labels", "pull_assignees", "pull_id"},
+}
+
+// LinkedLabels returns the labels of the given issues ("issue") or pull requests ("pull"), keyed by their id.
+func (s *ProjectStore) LinkedLabels(ctx context.Context, kind string, ids []int64) (map[int64][]model.Label, error) {
+	t, ok := linkedTables[kind]
+	if !ok {
+		return nil, fmt.Errorf("linked labels: unknown kind %q", kind)
+	}
+	out := map[int64][]model.Label{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT j.`+t.idCol+`, l.id, l.repo_id, l.name, l.color, l.description, l.created_at
+		 FROM `+t.labels+` j JOIN labels l ON l.id = j.label_id
+		 WHERE j.`+t.idCol+` = ANY($1)
+		 ORDER BY l.name, l.id`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("linked labels: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var l model.Label
+		if err := rows.Scan(&id, &l.ID, &l.RepoID, &l.Name, &l.Color, &l.Description, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		out[id] = append(out[id], l)
+	}
+	return out, rows.Err()
+}
+
+// LinkedAssignees returns the assignees of the given issues ("issue") or pull requests ("pull"), keyed by their id.
+func (s *ProjectStore) LinkedAssignees(ctx context.Context, kind string, ids []int64) (map[int64][]model.CardUser, error) {
+	t, ok := linkedTables[kind]
+	if !ok {
+		return nil, fmt.Errorf("linked assignees: unknown kind %q", kind)
+	}
+	out := map[int64][]model.CardUser{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT j.`+t.idCol+`, u.id, u.username
+		 FROM `+t.assignees+` j JOIN users u ON u.id = j.user_id
+		 WHERE j.`+t.idCol+` = ANY($1)
+		 ORDER BY u.username, u.id`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("linked assignees: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var u model.CardUser
+		if err := rows.Scan(&id, &u.ID, &u.Username); err != nil {
+			return nil, err
+		}
+		out[id] = append(out[id], u)
+	}
+	return out, rows.Err()
+}
+
+// LabelsInRepo reports whether every given label belongs to repoID.
+func (s *ProjectStore) LabelsInRepo(ctx context.Context, repoID int64, labelIDs []int64) (bool, error) {
+	unique := map[int64]struct{}{}
+	for _, id := range labelIDs {
+		unique[id] = struct{}{}
+	}
+	if len(unique) == 0 {
+		return true, nil
+	}
+	var n int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM labels WHERE repo_id = $1 AND id = ANY($2)`, repoID, labelIDs,
+	).Scan(&n); err != nil {
+		return false, err
+	}
+	return n == len(unique), nil
 }
 
 // CardTargetsInRepo reports whether every given issue or pull request belongs to repoID.
@@ -230,37 +624,33 @@ func (s *ProjectStore) CardTargetsInRepo(ctx context.Context, repoID int64, issu
 	return true, nil
 }
 
-// ListCardsByColumn blanks the issue fields of a card whose private issue the
-// viewer cannot see (issueVisibleTo), so the title never leaves the store.
-func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64, visibleToUserID *int64) ([]model.ProjectCard, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT
-		     c.id, c.column_id, c.issue_id, c.pull_id, c.note, c.position, c.created_at,
-		     COALESCE(i.title, '')       AS issue_title,
-		     COALESCE(i.number, 0)       AS issue_number,
-		     COALESCE(i.state, '')       AS issue_state,
-		     COALESCE(pr.title, '')      AS pull_title,
-		     COALESCE(pr.number, 0)      AS pull_number,
-		     COALESCE(pr.state, '')      AS pull_state,
-		     (i.id IS NOT NULL AND NOT `+issueVisibleTo("i", "$2")+`) AS issue_hidden
-		 FROM project_cards c
-		 LEFT JOIN issues       i  ON i.id  = c.issue_id
-		 LEFT JOIN pull_requests pr ON pr.id = c.pull_id
-		 WHERE c.column_id = $1
-		 ORDER BY c.position ASC, c.id ASC`,
-		columnID, viewerID(visibleToUserID),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("card list: %w", err)
-	}
-	defer rows.Close()
+// cardSelect reads cards with their linked issue or pull request; hidden is the
+// SQL for issue_hidden.
+func cardSelect(hidden string) string {
+	return `SELECT
+	     c.id, c.column_id, c.issue_id, c.pull_id, c.title, c.note, c.due_date, c.position, c.created_at,
+	     COALESCE(i.title, '')       AS issue_title,
+	     COALESCE(i.number, 0)       AS issue_number,
+	     COALESCE(i.state, '')       AS issue_state,
+	     COALESCE(pr.title, '')      AS pull_title,
+	     COALESCE(pr.number, 0)      AS pull_number,
+	     COALESCE(pr.state, '')      AS pull_state,
+	     ` + hidden + ` AS issue_hidden
+	 FROM project_cards c
+	 LEFT JOIN issues       i  ON i.id  = c.issue_id
+	 LEFT JOIN pull_requests pr ON pr.id = c.pull_id`
+}
+
+// scanCards blanks the issue fields of a hidden card, so the title never leaves the store.
+func scanCards(rows *sql.Rows) ([]model.ProjectCard, error) {
 	var cards []model.ProjectCard
 	for rows.Next() {
 		var card model.ProjectCard
 		var issueID, pullID sql.NullInt64
+		var due sql.NullTime
 		if err := rows.Scan(
 			&card.ID, &card.ColumnID, &issueID, &pullID,
-			&card.Note, &card.Position, &card.CreatedAt,
+			&card.Title, &card.Note, &due, &card.Position, &card.CreatedAt,
 			&card.IssueTitle, &card.IssueNumber, &card.IssueState,
 			&card.PullTitle, &card.PullNumber, &card.PullState,
 			&card.IssueHidden,
@@ -276,9 +666,46 @@ func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64, vi
 		if pullID.Valid {
 			card.PullID = &pullID.Int64
 		}
+		if due.Valid {
+			card.DueDate = &due.Time
+		}
 		cards = append(cards, card)
 	}
 	return cards, rows.Err()
+}
+
+// ListCardsByColumn marks a card whose private issue the viewer cannot see
+// (issueVisibleTo) as IssueHidden.
+func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64, visibleToUserID *int64) ([]model.ProjectCard, error) {
+	rows, err := s.db.QueryContext(ctx,
+		cardSelect(`(i.id IS NOT NULL AND NOT `+issueVisibleTo("i", "$2")+`)`)+
+			` WHERE c.column_id = $1 ORDER BY c.position ASC, c.id ASC`,
+		columnID, viewerID(visibleToUserID))
+	if err != nil {
+		return nil, fmt.Errorf("card list: %w", err)
+	}
+	defer rows.Close()
+	return scanCards(rows)
+}
+
+// GetCardInProject returns ErrCardNotInProject when the card is missing or in another project.
+// It never hides the linked issue: its callers are gated on CanWrite, which issueVisibleTo lets see every issue.
+func (s *ProjectStore) GetCardInProject(ctx context.Context, cardID, projectID int64) (*model.ProjectCard, error) {
+	rows, err := s.db.QueryContext(ctx,
+		cardSelect(`FALSE`)+` WHERE c.id = $1 AND c.column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
+		cardID, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("card get: %w", err)
+	}
+	defer rows.Close()
+	cards, err := scanCards(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(cards) == 0 {
+		return nil, fmt.Errorf("card %d in project %d: %w", cardID, projectID, ErrCardNotInProject)
+	}
+	return &cards[0], nil
 }
 
 // maxPositionInColumn returns the largest valid newPosition for a move into
@@ -403,6 +830,36 @@ func (s *ProjectStore) DeleteCard(ctx context.Context, id, projectID int64) erro
 		return fmt.Errorf("card %d in project %d: %w", id, projectID, ErrCardNotInProject)
 	}
 	return nil
+}
+
+// SearchCardTargets lists the repo's issues and pull requests whose title
+// contains query or whose number equals number (0 for none), newest first.
+// position() rather than ILIKE so a typed % or _ matches literally.
+func (s *ProjectStore) SearchCardTargets(ctx context.Context, repoID int64, query string, number, limit int) ([]model.CardTarget, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, kind, number, title, state FROM (
+		     SELECT id, 'issue' AS kind, number, title, state, created_at FROM issues WHERE repo_id = $1
+		     UNION ALL
+		     SELECT id, 'pull' AS kind, number, title, state, created_at FROM pull_requests WHERE repo_id = $1
+		 ) t
+		 WHERE ($2 = '' OR position(lower($2) in lower(title)) > 0 OR number = $3)
+		 ORDER BY created_at DESC, id DESC
+		 LIMIT $4`,
+		repoID, query, number, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []model.CardTarget{}
+	for rows.Next() {
+		var t model.CardTarget
+		if err := rows.Scan(&t.ID, &t.Kind, &t.Number, &t.Title, &t.State); err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
 }
 
 // TouchProject updates updated_at for a project (called after card mutations).
