@@ -69,6 +69,48 @@ Refer to the [README](README.md) for full setup instructions.
 make dev
 ```
 
+### The dev loop
+
+`make dev` rebuilds, restarts and refreshes the browser on save. It needs the reloader once:
+
+```bash
+make setup-air
+```
+
+It runs two processes — air rebuilds and restarts the server, Tailwind rebuilds the stylesheet —
+and the browser stays on <http://localhost:8080> as always.
+
+What each kind of change costs:
+
+| you edit                            | what happens                                  |
+| ----------------------------------- | --------------------------------------------- |
+| `tailwind/input.css`, a `.js` asset | **no Go rebuild** — refreshes on its own      |
+| a `.templ` file                     | regenerate, rebuild, restart, refresh (~2-5s) |
+| a `.go` file                        | rebuild, restart, refresh (~1-4s)             |
+
+Two dev-only pieces make that work, both behind the `dev` build tag and absent from a release
+binary:
+
+- `cmd/server/embed_dev.go` reads `cmd/server/frontend` from disk rather than the embedded copy,
+  which is what lets a CSS change skip the rebuild. `make build` embeds as always. Because the
+  path is relative, **`make dev` must run from the repo root**.
+- `internal/devreload` serves an event stream at `/_dev/reload` and injects a small client into
+  the layout. The page refreshes when the stream **reconnects and reports a different server
+  instance** — so a refresh cannot arrive before the new server is listening, and cannot loop,
+  since reconnecting to the same instance does nothing. Asset edits are pushed down the same
+  stream by a watcher on `cmd/server/frontend`.
+
+**A compile error leaves the last good server running** and prints the error with its file and
+line. Fix it and the next build restarts the server. (That is `stop_on_error = false` in
+`.air.toml`; with air's default the site goes down on a typo.)
+
+**A brand-new Tailwind class needs `make build-css`.** The Tailwind watcher rebuilds when
+`tailwind/input.css` changes, but it does not watch the `@source` glob
+(`../internal/view/**/*.templ`), so adding a class that has never appeared in the project emits
+no CSS for it — the markup updates and the style is simply missing. Existing classes are already
+in `main.css` and are unaffected. This predates the dev loop and is tracked in
+`.scratch/2026-10-11-tailwind-source-watch/`.
+
 ## Planning Workflow (Claude Code)
 
 Planned work is tracked as markdown under `.scratch/` and driven by skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Using Claude Code is optional; the files are plain markdown and can be written by hand.

@@ -8,7 +8,7 @@ Status: done
 
 A user who forgets their password on an instance without SMTP has no way back in from the web: the forgot-password form needs outgoing email, and the admin user page (`/admin/users/{username}`, `internal/handler/admin_user_handler.go`) has no reset action. Today the only fix is shell access for `cz-admin password-reset-link <username>`. Even with SMTP, a user who lost their mailbox can't get the emailed link.
 
-A second gap: the self-service flows ignore suspension. `PasswordResetService.Request` mails a link to a suspended account, and `PasswordResetStore.Lookup`/`Consume` accept it. Suppose an admin suspends an account because its mailbox is compromised. The attacker requests a reset during the suspension, sets a password only they know, and signs in the moment the admin unsuspends. Links issued *before* a suspension are already dead, because `UserStore.Suspend` bumps `session_version`, which `passwordResetUsable` checks.
+A second gap: the self-service flows ignore suspension. `PasswordResetService.Request` mails a link to a suspended account, and `PasswordResetStore.Lookup`/`Consume` accept it. Suppose an admin suspends an account because its mailbox is compromised. The attacker requests a reset during the suspension, sets a password only they know, and signs in the moment the admin unsuspends. Links issued _before_ a suspension are already dead, because `UserStore.Suspend` bumps `session_version`, which `passwordResetUsable` checks.
 
 ## Proposed design
 

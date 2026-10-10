@@ -25,6 +25,7 @@ Spec: [../spec.md](../spec.md#pull-mirrors)
 ## Comments
 
 **Claude, 2026-10-06:**
+
 - The mirror row is written by a callback in `RepoService.createFromImport`, right after the repo row. If it fails, the import is abandoned the same way as when the rename fails.
 - The interval list is the presets that fit `mirror.min_interval`, plus the instance's default if it isn't a preset.
 - A mirror import records `repo.mirror.create`, with the requested interval, instead of `repo.import`.

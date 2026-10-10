@@ -18,6 +18,7 @@ Spec: [../spec.md](../spec.md)
 ## Comments
 
 claude, 2026-10-09: Ticked on the task 6 browser check (14 of 15 pass) and template tests. Known gaps:
+
 - Drag-to-move was verified with synthetic DragEvents only; the browser's own click-after-drag suppression was not exercised with a real mouse.
 - The column `⋯` menu is in the markup but its delete was not itemised in the browser check; the dashed "Add column" slot was driven.
 - Deferred minors: no client-side canWrite guard on panel actions (server returns 403), picker listeners never removed, no focus trap or dirty prompt in the panel, cards lost the `cursor-grab` affordance.

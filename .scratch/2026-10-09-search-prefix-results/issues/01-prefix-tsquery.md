@@ -8,7 +8,7 @@ Spec: [../spec.md](../spec.md)
 
 ## What to build
 
-- `prefixTSQuery(q string) string` in `internal/store/search_store.go`: letter/digit tokens, lowercased, each `token:*`, joined with ` & `; empty string when there are none.
+- `prefixTSQuery(q string) string` in `internal/store/search_store.go`: letter/digit tokens, lowercased, each `token:*`, joined with `&`; empty string when there are none.
 - `SearchRepos`, `SearchIssues` and `SearchPulls` use `to_tsquery('english', $1)` with it in the `WHERE` and the `ts_rank`, and return nil without querying when it is empty.
 
 ## Acceptance criteria

@@ -58,23 +58,23 @@ Device flow is the default. It prints the URL and code to stderr always, copies 
 
 ### Threat model
 
-| Threat | Mitigation |
-| --- | --- |
+| Threat                                                            | Mitigation                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Phishing: an attacker starts a flow and sends the victim the code | Confirm step shows device name, IP and scopes; the password is re-asked; the owner is mailed; the token is revocable and `last_used_at` visible. A residual risk remains, as with GitHub's flow, and `docs/access-control.md` must say so. |
-| Guessing a user code | Needs sign-in; 50 entries per hour per user; ~34 bits against a few live codes. |
-| Polling brute force or a leaked `device_code` | 256-bit value, hash-only storage, interval enforcement, token returned once. A leaked code is useless until a user approves, and an approved grant is consumed by the first poll. |
-| Replay or double redemption | Conditional `UPDATE`s; dead states are terminal. |
-| Scope escalation to `repo:admin` | Rejected at code request and at approval. |
-| A link that carries the code (phishing, history, logs) | None exists; the user types the code after reading it from their own terminal. |
-| Spoofed device name | Displayed as unverified, capped, stripped, HTML-escaped by Templ. |
+| Guessing a user code                                              | Needs sign-in; 50 entries per hour per user; ~34 bits against a few live codes.                                                                                                                                                            |
+| Polling brute force or a leaked `device_code`                     | 256-bit value, hash-only storage, interval enforcement, token returned once. A leaked code is useless until a user approves, and an approved grant is consumed by the first poll.                                                          |
+| Replay or double redemption                                       | Conditional `UPDATE`s; dead states are terminal.                                                                                                                                                                                           |
+| Scope escalation to `repo:admin`                                  | Rejected at code request and at approval.                                                                                                                                                                                                  |
+| A link that carries the code (phishing, history, logs)            | None exists; the user types the code after reading it from their own terminal.                                                                                                                                                             |
+| Spoofed device name                                               | Displayed as unverified, capped, stripped, HTML-escaped by Templ.                                                                                                                                                                          |
 
 ### Split
 
-| Ticket | Scope | Blocked by |
-| --- | --- | --- |
-| [07a](./07a-device-grant-api.md) | Migration, model, store, service, the two JSON endpoints, CSRF exemption, limits, lifecycle tests, `api-reference.md` | 02 |
-| [07b](./07b-device-approval-page.md) | `/login/device` pages, reauth, scope narrowing, email notice, audit events, `access-control.md` and threat model | 07a |
-| [07c](./07c-cz-device-login.md) | `cz auth login` device flow, fallbacks, `docs/cli.md` | 07a |
+| Ticket                               | Scope                                                                                                                 | Blocked by |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ---------- |
+| [07a](./07a-device-grant-api.md)     | Migration, model, store, service, the two JSON endpoints, CSRF exemption, limits, lifecycle tests, `api-reference.md` | 02         |
+| [07b](./07b-device-approval-page.md) | `/login/device` pages, reauth, scope narrowing, email notice, audit events, `access-control.md` and threat model      | 07a        |
+| [07c](./07c-cz-device-login.md)      | `cz auth login` device flow, fallbacks, `docs/cli.md`                                                                 | 07a        |
 
 ## Acceptance criteria
 

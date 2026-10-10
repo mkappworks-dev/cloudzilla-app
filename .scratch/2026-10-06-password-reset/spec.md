@@ -45,14 +45,14 @@ The routes live under `/auth/`, which is already a reserved owner name. A new to
 
 New table `password_reset_tokens` (next free migration number at commit time; `102` as of `4d1e48d7`):
 
-| Column                | Notes                                                                      |
-| --------------------- | -------------------------------------------------------------------------- |
-| `user_id`             | `UNIQUE`, `ON DELETE CASCADE`. One row per account, so only the newest link works |
-| `email`               | Address the link was sent to                                               |
-| `token_hash`          | SHA-256 of 32 `crypto/rand` bytes (base64url in the link). `NULL` when the email carried no link (the passwordless notice) |
-| `session_version`     | The user's version at issue                                                |
-| `issued_by`           | `email`, `admin` or `cli`, for the audit entry                             |
-| `created_at`, `expires_at`, `used_at` |                                                            |
+| Column                                | Notes                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `user_id`                             | `UNIQUE`, `ON DELETE CASCADE`. One row per account, so only the newest link works                                          |
+| `email`                               | Address the link was sent to                                                                                               |
+| `token_hash`                          | SHA-256 of 32 `crypto/rand` bytes (base64url in the link). `NULL` when the email carried no link (the passwordless notice) |
+| `session_version`                     | The user's version at issue                                                                                                |
+| `issued_by`                           | `email`, `admin` or `cli`, for the audit entry                                                                             |
+| `created_at`, `expires_at`, `used_at` |                                                                                                                            |
 
 A link is usable only while all of these hold. The spend checks them in the same `UPDATE`/transaction, with the user row locked first (the lock order `EmailVerificationStore` uses):
 
@@ -62,6 +62,7 @@ A link is usable only while all of these hold. The spend checks them in the same
 - `users.password_hash <> ''`.
 
 Lifetimes:
+
 - An emailed link lasts **1 hour**.
 - A link issued by an admin or the CLI lasts **24 hours**, because it is passed on by hand.
 
@@ -176,6 +177,7 @@ Items marked (Qn) follow the answer to that open question (see Comments).
    - (c) Both.
 
    Recommendation: (a) here, plus `IssueLink` for (b) in the admin-user-management work. (a) is the only fallback that rescues a sole superadmin who forgot their own password, and the admin UI for managing users belongs to that session.
+
 5. **Reset to an unverified address, and verify it on success?** Recommendation: allow it, and set `email_verified_at` when the reset completes. Only the mailbox's owner could open the link, which is the reason a signup link already starts its account verified. Refusing would lock out every account created before migration 091 or through the classic no-SMTP `/register`.
 
 ## Comments

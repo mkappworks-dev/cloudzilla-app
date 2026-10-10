@@ -26,6 +26,7 @@ Spec: [../spec.md](../spec.md#pull-mirrors)
 ## Comments
 
 **Claude, 2026-10-06:**
+
 - `Repository.ContentReadOnly()` now covers mirrors too, so every control ticket 01 hid for archived repos hides for mirrors without new template code.
 - Sync now's endpoint (`POST /api/repos/{owner}/{repo}/mirror/sync`, which needs `CanWrite`) moved here from ticket 08, so the banner's button works from the commit that adds it. Ticket 08 opens it to `repo:admin` tokens with the rest of the mirror API.
 - An HTTP push refusal no longer ends with two newlines: `http.Error` adds its own.

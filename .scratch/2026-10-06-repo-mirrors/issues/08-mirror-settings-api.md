@@ -29,6 +29,7 @@ Spec: [../spec.md](../spec.md#api)
 ## Comments
 
 **Claude, 2026-10-06:**
+
 - `PATCH` takes JSON or the settings form. In both, an empty `auth_token` keeps the stored token and `clear_token` removes it.
 - A new URL, username or token makes the mirror due at once and wakes the loop, so a fix shows within seconds. A new interval counts from the last sync.
 - The `repo.mirror.update` audit entry lists the changed field names and the remote URL, never the token.

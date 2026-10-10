@@ -29,5 +29,6 @@ Spec: [../spec.md](../spec.md#data-model)
 ## Comments
 
 **Claude, 2026-10-06:**
+
 - Backoff counts from the first failure, so one transient error keeps the normal schedule. A mirror with an interval over 24h never retries sooner than its interval.
 - `feat/issue-closing-keywords` and a `claude/*` branch also added `102_*.sql`. They landed first, so the mirror migration is `107_repo_mirrors.sql`.

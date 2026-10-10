@@ -20,6 +20,7 @@ Part of [07](./07-device-code-login.md); read its Design section first. The brow
   6. One primary **Authorize cz** button and a **Deny** button beside it, then a line saying the token can be revoked under Settings → Tokens.
 
   The page sends `X-Frame-Options: DENY` and `frame-ancestors 'none'`. The approval controls are real labelled form fields and buttons, not just text.
+
 - Approving calls `Reauth.Confirm` through `confirmationFrom(r)` and `reauthRefusal`, as `ConfirmAuthorize` does, and renders `components.ConfirmFactors` for password, 2FA, LDAP, Google/SAML and email-code accounts. The provider sign-in round-trip must return to the confirm step with the grant intact; keep it server-side or in a short-lived signed cookie, never in a URL. Denying needs no confirmation.
 - Audit events `user.device.approve`, `user.device.deny` (add to `internal/model/audit_log.go`); 07a's token mint writes `user.token.create`. Approval mails the account a notice (device name, IP, scopes).
 - `docs/access-control.md`: the flow, the confirmation rules, the threat model from 07 (including the phishing residual risk), the new endpoints in the authorization matrix. `docs/api-reference.md`: the three browser routes.

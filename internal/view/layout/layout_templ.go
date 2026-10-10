@@ -1899,7 +1899,15 @@ func Base(base view.BasePage, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, "\">\n\t\t\t\t// Mermaid is megabytes of JS, so only a page holding a diagram loads it.\n\t\t\t\t(function() {\n\t\t\t\t\tvar src = document.currentScript.dataset.mermaidSrc;\n\t\t\t\t\tvar loaded;\n\t\t\t\t\tfunction load() {\n\t\t\t\t\t\tif (!loaded) {\n\t\t\t\t\t\t\tloaded = new Promise(function(resolve) {\n\t\t\t\t\t\t\t\tvar script = document.createElement('script');\n\t\t\t\t\t\t\t\tscript.src = src;\n\t\t\t\t\t\t\t\tscript.onload = resolve;\n\t\t\t\t\t\t\t\tdocument.head.appendChild(script);\n\t\t\t\t\t\t\t}).then(function() {\n\t\t\t\t\t\t\t\t// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.\n\t\t\t\t\t\t\t\tmermaid.initialize({\n\t\t\t\t\t\t\t\t\tstartOnLoad: false,\n\t\t\t\t\t\t\t\t\ttheme: 'default',\n\t\t\t\t\t\t\t\t\tlook: 'classic',\n\t\t\t\t\t\t\t\t\tlayout: 'dagre',\n\t\t\t\t\t\t\t\t\tflowchart: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\tstate: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\t// A site-wide layout would replace these diagrams' own layout engines.\n\t\t\t\t\t\t\t\t\tmindmap: { layout: 'cose-bilkent' },\n\t\t\t\t\t\t\t\t\tswimlane: { layout: 'swimlane' },\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t}\n\t\t\t\t\t\treturn loaded;\n\t\t\t\t\t}\n\t\t\t\t\tfunction render() {\n\t\t\t\t\t\tif (document.querySelector('.mermaid:not([data-processed])')) {\n\t\t\t\t\t\t\tload().then(function() { mermaid.run(); });\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\tdocument.addEventListener('DOMContentLoaded', render);\n\t\t\t\t\tdocument.addEventListener('htmx:after:swap', render);\n\t\t\t\t})();\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, "\">\n\t\t\t\t// Mermaid is megabytes of JS, so only a page holding a diagram loads it.\n\t\t\t\t(function() {\n\t\t\t\t\tvar src = document.currentScript.dataset.mermaidSrc;\n\t\t\t\t\tvar loaded;\n\t\t\t\t\tfunction load() {\n\t\t\t\t\t\tif (!loaded) {\n\t\t\t\t\t\t\tloaded = new Promise(function(resolve) {\n\t\t\t\t\t\t\t\tvar script = document.createElement('script');\n\t\t\t\t\t\t\t\tscript.src = src;\n\t\t\t\t\t\t\t\tscript.onload = resolve;\n\t\t\t\t\t\t\t\tdocument.head.appendChild(script);\n\t\t\t\t\t\t\t}).then(function() {\n\t\t\t\t\t\t\t\t// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.\n\t\t\t\t\t\t\t\tmermaid.initialize({\n\t\t\t\t\t\t\t\t\tstartOnLoad: false,\n\t\t\t\t\t\t\t\t\ttheme: 'default',\n\t\t\t\t\t\t\t\t\tlook: 'classic',\n\t\t\t\t\t\t\t\t\tlayout: 'dagre',\n\t\t\t\t\t\t\t\t\tflowchart: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\tstate: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\t// A site-wide layout would replace these diagrams' own layout engines.\n\t\t\t\t\t\t\t\t\tmindmap: { layout: 'cose-bilkent' },\n\t\t\t\t\t\t\t\t\tswimlane: { layout: 'swimlane' },\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t}\n\t\t\t\t\t\treturn loaded;\n\t\t\t\t\t}\n\t\t\t\t\tfunction render() {\n\t\t\t\t\t\tif (document.querySelector('.mermaid:not([data-processed])')) {\n\t\t\t\t\t\t\tload().then(function() { mermaid.run(); });\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\tdocument.addEventListener('DOMContentLoaded', render);\n\t\t\t\t\tdocument.addEventListener('htmx:after:swap', render);\n\t\t\t\t})();\n\t\t\t</script>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = devReload().Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, "</body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1984,43 +1992,43 @@ func workspaceChip(name, avatarKey string) templ.Component {
 			templ_7745c5c3_Var102 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, "<span class=\"relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[10px] font-medium\" aria-hidden=\"true\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, "<span class=\"relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[10px] font-medium\" aria-hidden=\"true\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var103 string
 		templ_7745c5c3_Var103, templ_7745c5c3_Err = templ.JoinStringErrs(firstInitial(name))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 630, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 631, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var103))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, " ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, " ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if avatarKey != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "<img data-avatar src=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, "<img data-avatar src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var104 string
 			templ_7745c5c3_Var104, templ_7745c5c3_Err = templ.ResolveAttributeValue(components.AvatarURL(avatarKey))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 632, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 633, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var104)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, "\" alt=\"\" width=\"20\" height=\"20\" decoding=\"async\" class=\"absolute inset-0 h-full w-full object-cover\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, "\" alt=\"\" width=\"20\" height=\"20\" decoding=\"async\" class=\"absolute inset-0 h-full w-full object-cover\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, "</span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "</span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

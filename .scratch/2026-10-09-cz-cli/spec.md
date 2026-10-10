@@ -31,12 +31,14 @@ Later, not in this spec: `release`, `label`, `milestone`, `notification`, `searc
 ### Authentication, in two stages
 
 **Stage 1: personal access token** (tickets 02–06).
+
 - `cz auth login --host <url>` prompts for a PAT, or reads one from stdin with `--with-token`. It verifies the token with one authenticated call before saving it.
 - `CZ_TOKEN` and `CZ_HOST` override the stored values, for CI.
 - The token goes to the OS keychain; when none is available it falls back to a `0600` file under the user config dir. `cz auth status` says which one is in use, and `--insecure-storage` forces the file, as `gh` does.
 - A token can't do everything. `pulls:write` doesn't merge (merging needs `repo:write`); account, admin and import routes are closed to tokens; `repo:admin` tokens need every request signed with an SSH key. `cz` doesn't sign requests. When the server answers `403 insufficient_scope`, `cz` prints the missing scope from the `WWW-Authenticate` header.
 
 **Stage 2: device-code flow** (ticket 07), modelled on GitHub's OAuth device flow.
+
 - `cz auth login` asks the server for a device code and prints a short user code and a URL. The user approves in the browser, where the existing login and 2FA apply, and `cz` polls until it gets a token. No client secret; the token has the same format and scopes as a PAT.
 - Needs a migration for pending grants (15-minute expiry), an approval page that re-checks the password and 2FA, rate limits on code entry and polling, and `authorization_pending` / `slow_down` / `expired_token` / `access_denied` responses.
 - Its own ticket, `needs-triage`, because it adds server surface and security review.

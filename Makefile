@@ -1,10 +1,13 @@
-.PHONY: dev build build-backend build-cli build-cz migrate seed lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
+.PHONY: dev dev-build build build-backend build-cli build-cz migrate seed lint test test-db test-integration clean setup-tailwind setup-templ setup-air build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
+DEV_BINARY := tmp/cloudzilla
 GO := /usr/local/go/bin/go
 GO_SRC := $(shell find . -name '*.go' -not -path './vendor/*')
 TAILWIND := bin/tailwindcss
 TAILWIND_OUT := cmd/server/frontend/static/main.css
+TEMPL := ~/go/bin/templ
+AIR := ~/go/bin/air
 
 TAILWIND_VERSION := v4.3.3
 HTMX_VERSION := 4.0.0
@@ -36,8 +39,11 @@ setup-tailwind:                    ## Download Tailwind standalone CLI
 setup-templ:                       ## Install the templ CLI
 	go install github.com/a-h/templ/cmd/templ@latest
 
+setup-air:                         ## Install the air reloader used by `make dev`
+	go install github.com/air-verse/air@latest
+
 generate-templ:                    ## Generate *_templ.go from *.templ files
-	~/go/bin/templ generate ./internal/view/...
+	$(TEMPL) generate ./internal/view/...
 
 generate-code-themes:              ## Regenerate static/code-themes.css from internal/highlight
 	$(GO) run ./cmd/gen-code-themes
@@ -62,11 +68,17 @@ build-css:                         ## Compile Tailwind → static/main.css
 	@mkdir -p cmd/server/frontend/static
 	$(TAILWIND) -i tailwind/input.css -o $(TAILWIND_OUT) --minify
 
-dev: download-mermaid download-htmx build-css generate-templ  ## Run backend + Tailwind + templ watch
+dev-build:                         ## Regenerate templates and build the dev server (air's build step)
+	$(TEMPL) generate ./internal/view/...
+	CGO_ENABLED=0 $(GO) build -tags dev -o $(DEV_BINARY) ./cmd/server/.
+
+# Two processes: air rebuilds and restarts, Tailwind rebuilds the stylesheet.
+# The browser is refreshed by the dev server itself (internal/devreload), so
+# there is no proxy, no second port and nothing polling for the restart.
+dev: download-mermaid download-htmx build-css generate-templ  ## Rebuild, restart and refresh the browser on save
 	@(trap 'kill 0' SIGINT; \
-		$(GO) run ./cmd/server/. & \
+		$(AIR) & \
 		$(TAILWIND) -i tailwind/input.css -o $(TAILWIND_OUT) --watch=always & \
-		~/go/bin/templ generate --watch ./internal/view/... & \
 		wait)
 
 build: download-mermaid download-htmx build-css generate-templ build-backend build-cli build-cz  ## Full build (server, cz-admin, cz)
@@ -104,7 +116,7 @@ test-integration: test-db          ## Run all tests including integration tests 
 	  $(GO) test ./...
 
 clean:
-	rm -rf dist/
+	rm -rf dist/ tmp/
 	rm -f $(TAILWIND_OUT) cmd/server/frontend/static/mermaid.min.js
 
 docker-build:              ## Build Docker image

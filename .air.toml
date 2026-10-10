@@ -1,0 +1,36 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "make dev-build"
+  entrypoint = ["./tmp/cloudzilla"]
+
+  # An allowlist, not a denylist: this repo root holds ~52k files, two thirds of
+  # them other branches' worktrees and bare repositories, against ~1.5k under
+  # cmd and internal. On darwin fsnotify watches through kqueue, which holds a
+  # descriptor per watched directory, so overshooting exhausts descriptors
+  # rather than merely wasting CPU. An allowlist also stays correct as the repo
+  # grows.
+  include_dir = ["cmd", "internal"]
+
+  # dev-build regenerates _templ.go, so watching that output would make every
+  # build trigger the next one. The .templ source is watched instead.
+  include_ext = ["go", "templ"]
+  exclude_regex = ["_test\\.go$", "_templ\\.go$"]
+
+  delay = 100
+
+  # false keeps the last good server serving while a build is broken: air's
+  # stop_on_error stops the binary after a failed build, which would take the
+  # site down on a typo rather than leaving it up with the error on the console.
+  stop_on_error = false
+
+  # SIGINT is what frees :8080 and :2222 — cmd/server/main.go closes the
+  # listeners before draining — but the drain then waits up to 30s for
+  # in-flight requests, and a git clone over HTTP is one. The kill 2s later
+  # abandons a transfer that no longer matters in dev.
+  send_interrupt = true
+  kill_delay = "2s"
+
+[misc]
+  clean_on_exit = true

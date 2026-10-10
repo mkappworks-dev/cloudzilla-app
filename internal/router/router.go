@@ -690,10 +690,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		_, _ = w.Write(faviconBytes)
 	})
 
-	return &probeMux{Mux: r, probes: map[string]http.HandlerFunc{
+	return &probeMux{Mux: r, probes: withDevProbes(map[string]http.HandlerFunc{
 		HealthzPath: h.Healthz,
 		ReadyzPath:  h.Readyz,
-	}}, nil
+	})}, nil
 }
 
 const (
