@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>Add OAuth scopes to access tokens · Pull request #341 · mkappworks/cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #000;
+    --surface: #0a0a0a;
+    --elevated: #1a1a1a;
+    --border: rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.18);
+    --fg: #ededed;
+    --fg-2: #b4b4b4;
+    --fg-3: #8c8c8c;
+    --focus: #6ea8fe;
+    --link: #93c5fd;
+    --success: #4ade80;
+    --success-bg: rgba(74,222,128,0.12);
+    --warn: #fbbf24;
+    --warn-bg: rgba(251,191,36,0.12);
+    --danger: #f87171;
+    --danger-bg: rgba(248,113,113,0.12);
+    --accent: #a78bfa;
+    --accent-bg: rgba(167,139,250,0.12);
+  }
+  html.light {
+    --bg: #fff;
+    --surface: #fafafa;
+    --elevated: #ededed;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.18);
+    --fg: #0a0a0a;
+    --fg-2: #444;
+    --fg-3: #5e5e5e;
+    --focus: #1d4ed8;
+    --link: #1d4ed8;
+    --success: #15803d;
+    --success-bg: rgba(21,128,61,0.10);
+    --warn: #b45309;
+    --warn-bg: rgba(180,83,9,0.10);
+    --danger: #b91c1c;
+    --danger-bg: rgba(185,28,28,0.10);
+    --accent: #6d28d9;
+    --accent-bg: rgba(109,40,217,0.10);
+  }
+  body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--fg); font-feature-settings: "ss01", "ss02", "cv11"; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+  .surface { background: var(--surface); }
+  .elevated { background: var(--elevated); }
+  .b { border-color: var(--border); } .divide-y.b > * + * { border-top-color: var(--border); }
+  .bs { border-color: var(--border-strong); }
+  .fg2 { color: var(--fg-2); }
+  .fg3 { color: var(--fg-3); }
+  .link { color: var(--link); }
+  .hover-row:hover { background: var(--elevated); }
+
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .skip-link { position:absolute; left:8px; top:-40px; z-index:100; padding:8px 12px; background:var(--fg); color:var(--bg); border-radius:6px; font-weight:500; font-size:13px; transition: top 120ms; }
+  .skip-link:focus { top:8px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  input:focus-visible, textarea:focus-visible, [contenteditable]:focus-visible { outline-offset: 0; }
+  .tab-active { color: var(--fg); border-bottom-color: var(--fg); }
+  .avatar { background: var(--elevated); border: 1px solid var(--border); }
+
+  /* Badge variants */
+  .badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid var(--border); }
+  .badge--open { background: var(--success-bg); color: var(--success); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+  .badge--merged { background: var(--accent-bg); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .badge--closed { background: var(--danger-bg); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+  .badge--draft { background: var(--elevated); color: var(--fg-2); }
+
+  /* Timeline */
+  .timeline { position: relative; }
+  .timeline > li { position: relative; padding-left: 44px; }
+  .timeline > li::before {
+    content: ''; position: absolute; left: 19px; top: 0; bottom: -16px; width: 2px; background: var(--border);
+  }
+  .timeline > li:last-child::before { display: none; }
+  .timeline-icon {
+    position: absolute; left: 8px; top: 4px; height: 24px; width: 24px;
+    border-radius: 9999px; display: grid; place-items: center;
+    border: 2px solid var(--bg);
+    background: var(--elevated);
+    color: var(--fg-2);
+  }
+
+  /* prose */
+  .prose { color: var(--fg-2); font-size: 14px; line-height: 1.7; }
+  .prose p { margin: 0 0 12px; }
+  .prose p:last-child { margin: 0; }
+  .prose a { color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
+  .prose code { font-family: 'Geist Mono', monospace; font-size: 12.5px; background: var(--elevated); padding: 1.5px 5px; border-radius: 4px; border: 1px solid var(--border); color: var(--fg); }
+  .prose pre { font-family: 'Geist Mono', monospace; font-size: 12.5px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; overflow-x: auto; margin: 0 0 12px; }
+  .prose pre code { background: transparent; border: 0; padding: 0; }
+  .prose ul { padding-left: 20px; margin: 0 0 12px; }
+  .prose li { margin: 3px 0; }
+  .prose strong { color: var(--fg); font-weight: 600; }
+
+  /* Diff colors */
+  .diff-add { background: rgba(74,222,128,0.10); }
+  .diff-add::before { content: '+'; color: var(--success); margin-right: 8px; }
+  .diff-del { background: rgba(248,113,113,0.10); }
+  .diff-del::before { content: '-'; color: var(--danger); margin-right: 8px; }
+  .diff-line { padding: 1px 12px; font-family: 'Geist Mono', monospace; font-size: 12px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+  @media (forced-colors: active) {
+    .b, .bs { border-color: CanvasText !important; }
+    :focus-visible { outline: 2px solid Highlight !important; }
+    .badge { border-color: CanvasText !important; }
+  }
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+
+  /* Diff view: unified / split / hide-whitespace */
+  .diff-unified, .diff-split { font-family:'Geist Mono',monospace; font-size:12px; line-height:1.7; }
+  .diff-unified { overflow-x:auto; }
+  .dl { display:block; padding:1px 12px; white-space:pre; }
+  .dl .mk { display:inline-block; width:14px; color:var(--fg-3); user-select:none; }
+  .dl .lno, .dl .lnn, .diff-split .cell .lnum { display:inline-block; box-sizing:border-box; width:40px; padding-right:8px; text-align:right; color:var(--fg-3); user-select:none; }
+  .dl .lnn, .diff-split .cell .lnum { border-right:1px solid var(--border); margin-right:8px; }
+  .dl-hunk { color:var(--fg-3); background:var(--elevated); }
+  .dl-add { background:rgba(74,222,128,0.10); }
+  .dl-add .mk { color:var(--success); }
+  .dl-del { background:rgba(248,113,113,0.10); }
+  .dl-del .mk { color:var(--danger); }
+  .diff-split { display:grid; grid-template-columns:1fr 1fr; overflow-x:auto; }
+  .diff-split .cell { padding:1px 12px; white-space:pre; min-height:1.7em; }
+  .diff-split .cell-r { border-left:1px solid var(--border); }
+  .diff-split .cell-hunk { grid-column:1 / -1; color:var(--fg-3); background:var(--elevated); }
+  .diff-split .cell-add { background:rgba(74,222,128,0.10); }
+  .diff-split .cell-del { background:rgba(248,113,113,0.10); }
+  .diff-split .cell-empty { background:rgba(127,127,127,0.04); }
+  .diff-split .cell .mk { display:inline-block; width:14px; color:var(--fg-3); user-select:none; }
+  .diff-split .cell-add .mk { color:var(--success); }
+  .diff-split .cell-del .mk { color:var(--danger); }
+  #diff-root[data-view="unified"] .diff-split { display:none; }
+  #diff-root[data-view="split"] .diff-unified { display:none; }
+  /* Hide-whitespace: drop the deleted half, render the rest as plain context */
+  #diff-root.hide-ws .diff-unified .dl-del.ws-only { display:none; }
+  #diff-root.hide-ws .dl-add.ws-only { background:transparent; }
+  #diff-root.hide-ws .dl-add.ws-only .mk { visibility:hidden; }
+  #diff-root.hide-ws .cell-add.ws-only, #diff-root.hide-ws .cell-del.ws-only { background:transparent; }
+  #diff-root.hide-ws .cell-add.ws-only .mk, #diff-root.hide-ws .cell-del.ws-only .mk { visibility:hidden; }
+  /* File tree view + per-file collapse */
+  .tree-row { display:flex; align-items:center; gap:6px; width:100%; padding:3px 6px; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; border-radius:6px; }
+  .tree-row:hover { background:var(--elevated); }
+  .tree-caret { transition:transform .12s; flex-shrink:0; }
+  .tree-folder.collapsed > .tree-children { display:none; }
+  .tree-folder.collapsed > .tree-row .tree-caret { transform:rotate(-90deg); }
+  #diff-root section.is-collapsed .diff-unified,
+  #diff-root section.is-collapsed .diff-split { display:none; }
+  #diff-root.solo section { display:none; }
+  #diff-root.solo section.is-current { display:block; }
+  section header button[aria-label="Collapse"] svg { transition:transform .12s; }
+  section.is-collapsed header button[aria-label="Collapse"] svg { transform:rotate(-90deg); }
+  .pr-title-editing { background:var(--elevated); border-radius:6px; padding:0 6px; outline:1px solid var(--border-strong); }
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+  /* PR views nav — filled-pill active tab */
+  nav[aria-label="Pull request views"] { padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Pull request views"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; margin-bottom: 0; }
+  nav[aria-label="Pull request views"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- TOP NAV -->
+<div id="cz-header" data-repo-tab="pulls"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <!-- PR header -->
+  <section class="mb-3 b border-b pb-3" aria-labelledby="pr-title">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="pulls.html" class="hover:underline">Pull requests</a>
+      <span aria-hidden="true">·</span>
+      <a href="pr.html" class="hover:underline">#341</a>
+    </p>
+    <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+      <h1 id="pr-title" class="text-2xl tracking-tight font-medium min-w-0">
+        <span id="pr-title-text">Add OAuth scopes to access tokens</span>
+        <span class="fg3 font-normal" aria-label="Pull request number 341">#341</span>
+      </h1>
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <button type="button" id="edit-pr-btn" class="h-8 px-3 text-[13px] b border rounded-md hover:elevated">Edit</button>
+        <div class="dropdown-wrap">
+          <button type="button" class="h-8 px-3 text-[13px] b border rounded-md hover:elevated inline-flex items-center gap-1.5" aria-haspopup="menu" aria-expanded="false" data-menu>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Code
+            <svg class="fg3" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right hidden" role="menu" aria-label="Check out this pull request" style="min-width:288px">
+            <p class="dropdown-header">Check out — daisy/oauth-scopes</p>
+            <pre class="mono text-[11px] fg2 m-1 p-2 rounded b border" style="background:var(--bg);white-space:pre;overflow-x:auto">git fetch origin
+git checkout daisy/oauth-scopes</pre>
+            <div class="dropdown-divider"></div>
+            <a href="#" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download .patch
+            </a>
+            <a href="#" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download .diff
+            </a>
+            <a href="blob.html" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Browse branch code
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="badge badge--open" role="status" aria-label="Pull request status: Open">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M6 8v8M6 18h6a6 6 0 006-6V8"/></svg>
+        Open
+      </span>
+      <p class="text-[13px] fg2">
+        <a href="#" class="link hover:underline">@daisy</a>
+        wants to merge <strong class="text-current font-medium">3 commits</strong> into
+        <span class="mono px-1.5 py-0.5 elevated b border rounded text-[12px]">main</span>
+        from
+        <span class="mono px-1.5 py-0.5 elevated b border rounded text-[12px]">daisy/oauth-scopes</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- Tabs -->
+  <nav class="b border-b mb-4 flex items-center gap-1 text-sm" aria-label="Pull request views">
+    <a href="pr.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current inline-flex items-center gap-2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      Conversation <span class="mono text-[11px] fg3" aria-label="8 events">8</span>
+    </a>
+    <a href="pr_commits.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current inline-flex items-center gap-2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="M12 9v6"/></svg>
+      Commits <span class="mono text-[11px] fg3">3</span>
+    </a>
+    <a href="pr_checks.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current inline-flex items-center gap-2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 12h6M15 6L9 10M15 18l-6-4"/></svg>
+      Checks <span class="badge badge--open" style="height: 18px; padding: 0 6px; font-size: 10px;">✓ 6</span>
+    </a>
+    <a href="pr_files.html" class="px-3 py-2.5 border-b -mb-px border-transparent tab-active font-medium inline-flex items-center gap-2" aria-current="page">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Files changed <span class="mono text-[11px] fg3">10</span>
+      <span class="text-[10px] font-medium mono ml-1" style="color: var(--success);">+260</span>
+      <span class="text-[10px] font-medium mono" style="color: var(--danger);">−46</span>
+    </a>
+  </nav>
+
+  <section class="mb-4 flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-center gap-2 text-[12.5px] fg2">
+      <span><strong class="text-[var(--fg)]">10</strong> changed files</span>
+      <span class="opacity-50" aria-hidden="true">·</span>
+      <span style="color:var(--success)" class="mono">+260</span>
+      <span style="color:var(--danger)" class="mono">−46</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <div class="inline-flex items-center b border rounded-md overflow-hidden" role="group" aria-label="Diff layout">
+        <button type="button" data-view="unified" aria-pressed="true" class="h-8 px-3 text-[12.5px] inline-flex items-center gap-1.5 hover:elevated elevated">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          Unified
+        </button>
+        <button type="button" data-view="split" aria-pressed="false" class="h-8 px-3 text-[12.5px] inline-flex items-center gap-1.5 hover:elevated fg2 b border-l">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
+          Split
+        </button>
+      </div>
+      <button type="button" id="ws-toggle" aria-pressed="false" class="h-8 px-3 text-[12.5px] rounded-md b border hover:elevated fg2 inline-flex items-center gap-1.5">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0112 20C5 20 1 12 1 12a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        Hide whitespace
+      </button>
+      <button type="button" id="collapse-toggle" aria-pressed="false" class="h-8 px-3 text-[12.5px] rounded-md b border hover:elevated fg2 inline-flex items-center gap-1.5">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Single file
+      </button>
+    </div>
+  </section>
+
+  <div id="diff-root" data-view="unified" class="grid grid-cols-[260px_1fr] gap-4">
+
+    <aside class="b border rounded-md surface p-3 sticky top-4 self-start max-h-[80vh] overflow-auto" aria-label="Files in this PR">
+      <div class="flex items-center justify-between gap-2 mb-2 px-1">
+        <p class="mono text-[10px] fg3 uppercase tracking-wider">Changed files</p>
+        <div class="inline-flex items-center b border rounded overflow-hidden" role="group" aria-label="File list layout">
+          <button type="button" id="list-btn" aria-pressed="true" title="List view" aria-label="List view" class="px-1.5 py-1 inline-flex hover:elevated elevated">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </button>
+          <button type="button" id="tree-btn" aria-pressed="false" title="Tree view" aria-label="Tree view" class="px-1.5 py-1 inline-flex hover:elevated fg2 b border-l">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 12h-8"/><path d="M21 6H8"/><path d="M21 18h-8"/><path d="M3 6v4c0 1.1.9 2 2 2h3"/><path d="M3 10v6c0 1.1.9 2 2 2h3"/></svg>
+          </button>
+        </div>
+      </div>
+      <ul id="file-list" class="text-[12.5px] space-y-0.5">
+        <li><a href="#f-1" data-spy aria-current="true" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated file-sel text-[var(--fg)]"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">internal/view/pages/pulls.templ</span> <span class="mono text-[10px]" style="color:var(--success)">+58</span></a></li>
+        <li><a href="#f-2" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">internal/view/pages/discussions.templ</span> <span class="mono text-[10px]" style="color:var(--success)">+47</span></a></li>
+        <li><a href="#f-3" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">tailwind/input.css</span> <span class="mono text-[10px]" style="color:var(--success)">+25</span> <span class="mono text-[10px]" style="color:var(--danger)">−1</span></a></li>
+        <li><a href="#f-4" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">CLAUDE.md</span> <span class="mono text-[10px]" style="color:var(--success)">+12</span> <span class="mono text-[10px]" style="color:var(--danger)">−18</span></a></li>
+        <li><a href="#f-5" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">internal/model/oauth.go</span> <span class="mono text-[10px]" style="color:var(--success)">+18</span></a></li>
+        <li><a href="#f-6" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">internal/store/token_store.go</span> <span class="mono text-[10px]" style="color:var(--success)">+31</span> <span class="mono text-[10px]" style="color:var(--danger)">−6</span></a></li>
+        <li><a href="#f-7" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">internal/service/auth_service.go</span> <span class="mono text-[10px]" style="color:var(--success)">+24</span> <span class="mono text-[10px]" style="color:var(--danger)">−9</span></a></li>
+        <li><a href="#f-8" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">internal/handler/oauth_handler.go</span> <span class="mono text-[10px]" style="color:var(--success)">+14</span> <span class="mono text-[10px]" style="color:var(--danger)">−3</span></a></li>
+        <li><a href="#f-9" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">migrations/0042_token_scopes.sql</span> <span class="mono text-[10px]" style="color:var(--success)">+9</span></a></li>
+        <li><a href="#f-10" data-spy aria-current="false" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:elevated fg2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="truncate flex-1 mono">docs/access-control.md</span> <span class="mono text-[10px]" style="color:var(--success)">+22</span> <span class="mono text-[10px]" style="color:var(--danger)">−5</span></a></li>
+      </ul>
+      <ul id="file-tree" class="text-[12.5px] space-y-0.5 hidden"></ul>
+      <template id="tree-folder-tpl"><svg class="tree-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><span class="mono truncate"></span></template>
+    </aside>
+
+    <div class="space-y-6 min-w-0 pb-[40vh]">
+
+      <section id="f-1" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">internal/view/pages/pulls.templ</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+58</span> <span style="color:var(--danger)">−4</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -118,7 +118,12 @@ templ pulls(data PullsData) {</div>
+          <div class="dl"><span class="lno">118</span><span class="lnn">118</span><span class="mk"> </span>  &lt;section class="space-y-2"&gt;</div>
+          <div class="dl dl-del"><span class="lno">119</span><span class="lnn"></span><span class="mk">-</span>  &lt;ol class="divide-y"&gt;</div>
+          <div class="dl dl-del"><span class="lno">120</span><span class="lnn"></span><span class="mk">-</span>    // inline old markup</div>
+          <div class="dl dl-del"><span class="lno">121</span><span class="lnn"></span><span class="mk">-</span>  &lt;/ol&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">119</span><span class="mk">+</span>  &lt;ol class="divide-y b"&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">120</span><span class="mk">+</span>    for _, pr := range data.Pulls {</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">121</span><span class="mk">+</span>      @pullCard(pr)</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">122</span><span class="mk">+</span>    }</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">123</span><span class="mk">+</span>  &lt;/ol&gt;</div>
+          <div class="dl"><span class="lno">122</span><span class="lnn">124</span><span class="mk"> </span>  &lt;/section&gt;</div>
+          <div class="dl dl-hunk">@@ -156,2 +161,8 @@ }</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">161</span><span class="mk">+</span>templ pullCard(pr model.PullRequest) {</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">162</span><span class="mk">+</span>  &lt;a href={ prURL(pr) } class="pr-card block"&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">163</span><span class="mk">+</span>    @prStatusIcon(pr.State)</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">164</span><span class="mk">+</span>    &lt;span class="font-medium"&gt;{ pr.Title }&lt;/span&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">165</span><span class="mk">+</span>  &lt;/a&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">166</span><span class="mk">+</span>}</div>
+          <div class="dl dl-hunk">@@ -204,3 +216,3 @@ templ prStatusIcon(s string) {</div>
+          <div class="dl"><span class="lno">204</span><span class="lnn">216</span><span class="mk"> </span>  switch s {</div>
+          <div class="dl dl-del ws-only"><span class="lno">205</span><span class="lnn"></span><span class="mk">-</span>  case "open":</div>
+          <div class="dl dl-add ws-only"><span class="lno"></span><span class="lnn">217</span><span class="mk">+</span>      case "open":</div>
+          <div class="dl"><span class="lno">206</span><span class="lnn">218</span><span class="mk"> </span>  }</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -118,7 +118,12 @@ templ pulls(data PullsData) {</div>
+          <div class="cell cell-ctx"><span class="lnum">118</span><span class="mk"> </span>  &lt;section class="space-y-2"&gt;</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">118</span><span class="mk"> </span>  &lt;section class="space-y-2"&gt;</div>
+          <div class="cell cell-del"><span class="lnum">119</span><span class="mk">-</span>  &lt;ol class="divide-y"&gt;</div>
+          <div class="cell cell-add cell-r"><span class="lnum">119</span><span class="mk">+</span>  &lt;ol class="divide-y b"&gt;</div>
+          <div class="cell cell-del"><span class="lnum">120</span><span class="mk">-</span>    // inline old markup</div>
+          <div class="cell cell-add cell-r"><span class="lnum">120</span><span class="mk">+</span>    for _, pr := range data.Pulls {</div>
+          <div class="cell cell-del"><span class="lnum">121</span><span class="mk">-</span>  &lt;/ol&gt;</div>
+          <div class="cell cell-add cell-r"><span class="lnum">121</span><span class="mk">+</span>      @pullCard(pr)</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">122</span><span class="mk">+</span>    }</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">123</span><span class="mk">+</span>  &lt;/ol&gt;</div>
+          <div class="cell cell-ctx"><span class="lnum">122</span><span class="mk"> </span>  &lt;/section&gt;</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">124</span><span class="mk"> </span>  &lt;/section&gt;</div>
+          <div class="cell cell-hunk">@@ -156,2 +161,8 @@ }</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">161</span><span class="mk">+</span>templ pullCard(pr model.PullRequest) {</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">162</span><span class="mk">+</span>  &lt;a href={ prURL(pr) } class="pr-card block"&gt;</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">163</span><span class="mk">+</span>    @prStatusIcon(pr.State)</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">164</span><span class="mk">+</span>    &lt;span class="font-medium"&gt;{ pr.Title }&lt;/span&gt;</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">165</span><span class="mk">+</span>  &lt;/a&gt;</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">166</span><span class="mk">+</span>}</div>
+          <div class="cell cell-hunk">@@ -204,3 +216,3 @@ templ prStatusIcon(s string) {</div>
+          <div class="cell cell-ctx"><span class="lnum">204</span><span class="mk"> </span>  switch s {</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">216</span><span class="mk"> </span>  switch s {</div>
+          <div class="cell cell-del ws-only"><span class="lnum">205</span><span class="mk">-</span>  case "open":</div>
+          <div class="cell cell-add cell-r ws-only"><span class="lnum">217</span><span class="mk">+</span>      case "open":</div>
+          <div class="cell cell-ctx"><span class="lnum">206</span><span class="mk"> </span>  }</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">218</span><span class="mk"> </span>  }</div>
+        </div>
+      </section>
+
+      <section id="f-2" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">internal/view/pages/discussions.templ</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+47</span> <span style="color:var(--danger)">−0</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -88,5 +88,9 @@ templ discussions(data DiscussionsData) {</div>
+          <div class="dl"><span class="lno">88</span><span class="lnn">88</span><span class="mk"> </span>  &lt;ul class="space-y-1"&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">89</span><span class="mk">+</span>    for _, d := range data.Threads {</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">90</span><span class="mk">+</span>      @discussionRow(d)</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">91</span><span class="mk">+</span>    }</div>
+          <div class="dl"><span class="lno">89</span><span class="lnn">92</span><span class="mk"> </span>  &lt;/ul&gt;</div>
+          <div class="dl dl-hunk">@@ -140,2 +148,7 @@ }</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">148</span><span class="mk">+</span>templ discussionRow(d model.Discussion) {</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">149</span><span class="mk">+</span>  &lt;li class="flex items-center gap-2"&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">150</span><span class="mk">+</span>    &lt;span class="truncate"&gt;{ d.Title }&lt;/span&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">151</span><span class="mk">+</span>  &lt;/li&gt;</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">152</span><span class="mk">+</span>}</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -88,5 +88,9 @@ templ discussions(data DiscussionsData) {</div>
+          <div class="cell cell-ctx"><span class="lnum">88</span><span class="mk"> </span>  &lt;ul class="space-y-1"&gt;</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">88</span><span class="mk"> </span>  &lt;ul class="space-y-1"&gt;</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">89</span><span class="mk">+</span>    for _, d := range data.Threads {</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">90</span><span class="mk">+</span>      @discussionRow(d)</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">91</span><span class="mk">+</span>    }</div>
+          <div class="cell cell-ctx"><span class="lnum">89</span><span class="mk"> </span>  &lt;/ul&gt;</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">92</span><span class="mk"> </span>  &lt;/ul&gt;</div>
+          <div class="cell cell-hunk">@@ -140,2 +148,7 @@ }</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">148</span><span class="mk">+</span>templ discussionRow(d model.Discussion) {</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">149</span><span class="mk">+</span>  &lt;li class="flex items-center gap-2"&gt;</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">150</span><span class="mk">+</span>    &lt;span class="truncate"&gt;{ d.Title }&lt;/span&gt;</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">151</span><span class="mk">+</span>  &lt;/li&gt;</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">152</span><span class="mk">+</span>}</div>
+        </div>
+      </section>
+
+      <section id="f-3" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">tailwind/input.css</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+25</span> <span style="color:var(--danger)">−1</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -42,3 +42,6 @@</div>
+          <div class="dl"><span class="lno">42</span><span class="lnn">42</span><span class="mk"> </span>  .label { font-size: 11px; }</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">43</span><span class="mk">+</span>  .pr-card { display: block; padding: 12px 16px; }</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">44</span><span class="mk">+</span>  .pr-card:hover { background: var(--elevated); }</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">45</span><span class="mk">+</span>  .pr-card .title { font-weight: 600; }</div>
+          <div class="dl"><span class="lno">43</span><span class="lnn">46</span><span class="mk"> </span>  .badge { border-radius: 9999px; }</div>
+          <div class="dl dl-hunk">@@ -60,3 +66,3 @@</div>
+          <div class="dl"><span class="lno">60</span><span class="lnn">66</span><span class="mk"> </span>  .timeline { position: relative; }</div>
+          <div class="dl dl-del ws-only"><span class="lno">61</span><span class="lnn"></span><span class="mk">-</span>  .timeline-icon { display: grid; }</div>
+          <div class="dl dl-add ws-only"><span class="lno"></span><span class="lnn">67</span><span class="mk">+</span>    .timeline-icon { display: grid; }</div>
+          <div class="dl"><span class="lno">62</span><span class="lnn">68</span><span class="mk"> </span>  .prose { color: var(--fg-2); }</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -42,3 +42,6 @@</div>
+          <div class="cell cell-ctx"><span class="lnum">42</span><span class="mk"> </span>  .label { font-size: 11px; }</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">42</span><span class="mk"> </span>  .label { font-size: 11px; }</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">43</span><span class="mk">+</span>  .pr-card { display: block; padding: 12px 16px; }</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">44</span><span class="mk">+</span>  .pr-card:hover { background: var(--elevated); }</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">45</span><span class="mk">+</span>  .pr-card .title { font-weight: 600; }</div>
+          <div class="cell cell-ctx"><span class="lnum">43</span><span class="mk"> </span>  .badge { border-radius: 9999px; }</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">46</span><span class="mk"> </span>  .badge { border-radius: 9999px; }</div>
+          <div class="cell cell-hunk">@@ -60,3 +66,3 @@</div>
+          <div class="cell cell-ctx"><span class="lnum">60</span><span class="mk"> </span>  .timeline { position: relative; }</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">66</span><span class="mk"> </span>  .timeline { position: relative; }</div>
+          <div class="cell cell-del ws-only"><span class="lnum">61</span><span class="mk">-</span>  .timeline-icon { display: grid; }</div>
+          <div class="cell cell-add cell-r ws-only"><span class="lnum">67</span><span class="mk">+</span>    .timeline-icon { display: grid; }</div>
+          <div class="cell cell-ctx"><span class="lnum">62</span><span class="mk"> </span>  .prose { color: var(--fg-2); }</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">68</span><span class="mk"> </span>  .prose { color: var(--fg-2); }</div>
+        </div>
+      </section>
+
+      <section id="f-4" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">CLAUDE.md</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+12</span> <span style="color:var(--danger)">−18</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -28,6 +28,4 @@ ## Components</div>
+          <div class="dl"><span class="lno">28</span><span class="lnn">28</span><span class="mk"> </span>Pull request cards live on the pulls page.</div>
+          <div class="dl dl-del"><span class="lno">29</span><span class="lnn"></span><span class="mk">-</span>The old card markup was inlined directly</div>
+          <div class="dl dl-del"><span class="lno">30</span><span class="lnn"></span><span class="mk">-</span>into the templ range loop, which made</div>
+          <div class="dl dl-del"><span class="lno">31</span><span class="lnn"></span><span class="mk">-</span>cards hard to reuse across dashboards.</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">29</span><span class="mk">+</span>Cards now render via the pullCard component.</div>
+          <div class="dl"><span class="lno">32</span><span class="lnn">30</span><span class="mk"> </span></div>
+          <div class="dl dl-hunk">@@ -52,4 +50,5 @@ ## Styling</div>
+          <div class="dl dl-del"><span class="lno">52</span><span class="lnn"></span><span class="mk">-</span>Use raw Tailwind utility classes on cards.</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">50</span><span class="mk">+</span>Use the .pr-card utility for containers.</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">51</span><span class="mk">+</span>See tailwind/input.css for the token set.</div>
+          <div class="dl"><span class="lno">53</span><span class="lnn">52</span><span class="mk"> </span>Run make build-css after editing styles.</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -28,6 +28,4 @@ ## Components</div>
+          <div class="cell cell-ctx"><span class="lnum">28</span><span class="mk"> </span>Pull request cards live on the pulls page.</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">28</span><span class="mk"> </span>Pull request cards live on the pulls page.</div>
+          <div class="cell cell-del"><span class="lnum">29</span><span class="mk">-</span>The old card markup was inlined directly</div>
+          <div class="cell cell-add cell-r"><span class="lnum">29</span><span class="mk">+</span>Cards now render via the pullCard component.</div>
+          <div class="cell cell-del"><span class="lnum">30</span><span class="mk">-</span>into the templ range loop, which made</div>
+          <div class="cell cell-empty cell-r"></div>
+          <div class="cell cell-del"><span class="lnum">31</span><span class="mk">-</span>cards hard to reuse across dashboards.</div>
+          <div class="cell cell-empty cell-r"></div>
+          <div class="cell cell-ctx"><span class="lnum">32</span><span class="mk"> </span></div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">30</span><span class="mk"> </span></div>
+          <div class="cell cell-hunk">@@ -52,4 +50,5 @@ ## Styling</div>
+          <div class="cell cell-del"><span class="lnum">52</span><span class="mk">-</span>Use raw Tailwind utility classes on cards.</div>
+          <div class="cell cell-add cell-r"><span class="lnum">50</span><span class="mk">+</span>Use the .pr-card utility for containers.</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">51</span><span class="mk">+</span>See tailwind/input.css for the token set.</div>
+          <div class="cell cell-ctx"><span class="lnum">53</span><span class="mk"> </span>Run make build-css after editing styles.</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">52</span><span class="mk"> </span>Run make build-css after editing styles.</div>
+        </div>
+      </section>
+
+      <section id="f-5" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">internal/model/oauth.go</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+18</span> <span style="color:var(--danger)">−0</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -12,5 +12,6 @@ type AccessToken struct {</div>
+          <div class="dl"><span class="lno">12</span><span class="lnn">12</span><span class="mk"> </span>  ID        int64</div>
+          <div class="dl"><span class="lno">13</span><span class="lnn">13</span><span class="mk"> </span>  UserID    int64</div>
+          <div class="dl"><span class="lno">14</span><span class="lnn">14</span><span class="mk"> </span>  ExpiresAt time.Time</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">15</span><span class="mk">+</span>  Scopes    []string</div>
+          <div class="dl"><span class="lno">15</span><span class="lnn">16</span><span class="mk"> </span>}</div>
+          <div class="dl dl-hunk">@@ -28,1 +30,4 @@ }</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">30</span><span class="mk">+</span>func (t AccessToken) HasScope(scope string) bool {</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">31</span><span class="mk">+</span>  return slices.Contains(t.Scopes, scope)</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">32</span><span class="mk">+</span>}</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -12,5 +12,6 @@ type AccessToken struct {</div>
+          <div class="cell cell-ctx"><span class="lnum">12</span><span class="mk"> </span>  ID        int64</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">12</span><span class="mk"> </span>  ID        int64</div>
+          <div class="cell cell-ctx"><span class="lnum">13</span><span class="mk"> </span>  UserID    int64</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">13</span><span class="mk"> </span>  UserID    int64</div>
+          <div class="cell cell-ctx"><span class="lnum">14</span><span class="mk"> </span>  ExpiresAt time.Time</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">14</span><span class="mk"> </span>  ExpiresAt time.Time</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">15</span><span class="mk">+</span>  Scopes    []string</div>
+          <div class="cell cell-ctx"><span class="lnum">15</span><span class="mk"> </span>}</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">16</span><span class="mk"> </span>}</div>
+          <div class="cell cell-hunk">@@ -28,1 +30,4 @@ }</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">30</span><span class="mk">+</span>func (t AccessToken) HasScope(scope string) bool {</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">31</span><span class="mk">+</span>  return slices.Contains(t.Scopes, scope)</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">32</span><span class="mk">+</span>}</div>
+        </div>
+      </section>
+
+      <section id="f-6" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">internal/store/token_store.go</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+31</span> <span style="color:var(--danger)">−6</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -40,5 +40,6 @@ func (s *TokenStore) Create(t Token) error {</div>
+          <div class="dl"><span class="lno">40</span><span class="lnn">40</span><span class="mk"> </span>  const base = "INSERT INTO access_tokens "</div>
+          <div class="dl dl-del"><span class="lno">41</span><span class="lnn"></span><span class="mk">-</span>  cols := "(user_id, token)"</div>
+          <div class="dl dl-del"><span class="lno">42</span><span class="lnn"></span><span class="mk">-</span>  vals := "VALUES ($1, $2)"</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">41</span><span class="mk">+</span>  cols := "(user_id, token, scopes)"</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">42</span><span class="mk">+</span>  vals := "VALUES ($1, $2, $3)"</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">43</span><span class="mk">+</span>  args := []any{t.UserID, t.Token, t.Scopes}</div>
+          <div class="dl"><span class="lno">43</span><span class="lnn">44</span><span class="mk"> </span>  _, err := s.db.ExecContext(ctx, base)</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -40,5 +40,6 @@ func (s *TokenStore) Create(t Token) error {</div>
+          <div class="cell cell-ctx"><span class="lnum">40</span><span class="mk"> </span>  const base = "INSERT INTO access_tokens "</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">40</span><span class="mk"> </span>  const base = "INSERT INTO access_tokens "</div>
+          <div class="cell cell-del"><span class="lnum">41</span><span class="mk">-</span>  cols := "(user_id, token)"</div>
+          <div class="cell cell-add cell-r"><span class="lnum">41</span><span class="mk">+</span>  cols := "(user_id, token, scopes)"</div>
+          <div class="cell cell-del"><span class="lnum">42</span><span class="mk">-</span>  vals := "VALUES ($1, $2)"</div>
+          <div class="cell cell-add cell-r"><span class="lnum">42</span><span class="mk">+</span>  vals := "VALUES ($1, $2, $3)"</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">43</span><span class="mk">+</span>  args := []any{t.UserID, t.Token, t.Scopes}</div>
+          <div class="cell cell-ctx"><span class="lnum">43</span><span class="mk"> </span>  _, err := s.db.ExecContext(ctx, base)</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">44</span><span class="mk"> </span>  _, err := s.db.ExecContext(ctx, base)</div>
+        </div>
+      </section>
+
+      <section id="f-7" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">internal/service/auth_service.go</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+24</span> <span style="color:var(--danger)">−9</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -55,4 +55,5 @@ func (s *AuthService) Issue(u User) (Token, error) {</div>
+          <div class="dl"><span class="lno">55</span><span class="lnn">55</span><span class="mk"> </span>  tok := model.AccessToken{UserID: u.ID}</div>
+          <div class="dl dl-del"><span class="lno">56</span><span class="lnn"></span><span class="mk">-</span>  tok.ExpiresAt = now.Add(time.Hour)</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">56</span><span class="mk">+</span>  tok.Scopes = u.DefaultScopes()</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">57</span><span class="mk">+</span>  tok.ExpiresAt = now.Add(s.ttl)</div>
+          <div class="dl"><span class="lno">57</span><span class="lnn">58</span><span class="mk"> </span>  return tok, s.store.Create(ctx, tok)</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -55,4 +55,5 @@ func (s *AuthService) Issue(u User) (Token, error) {</div>
+          <div class="cell cell-ctx"><span class="lnum">55</span><span class="mk"> </span>  tok := model.AccessToken{UserID: u.ID}</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">55</span><span class="mk"> </span>  tok := model.AccessToken{UserID: u.ID}</div>
+          <div class="cell cell-del"><span class="lnum">56</span><span class="mk">-</span>  tok.ExpiresAt = now.Add(time.Hour)</div>
+          <div class="cell cell-add cell-r"><span class="lnum">56</span><span class="mk">+</span>  tok.Scopes = u.DefaultScopes()</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">57</span><span class="mk">+</span>  tok.ExpiresAt = now.Add(s.ttl)</div>
+          <div class="cell cell-ctx"><span class="lnum">57</span><span class="mk"> </span>  return tok, s.store.Create(ctx, tok)</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">58</span><span class="mk"> </span>  return tok, s.store.Create(ctx, tok)</div>
+        </div>
+      </section>
+
+      <section id="f-8" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">internal/handler/oauth_handler.go</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+14</span> <span style="color:var(--danger)">−3</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -22,3 +22,7 @@ func (h *Handler) Authorize(w, r) {</div>
+          <div class="dl"><span class="lno">22</span><span class="lnn">22</span><span class="mk"> </span>  scopes := r.URL.Query()["scope"]</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">23</span><span class="mk">+</span>  if !auth.ValidScopes(scopes) {</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">24</span><span class="mk">+</span>    writeJSON(w, 400, errInvalidScope)</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">25</span><span class="mk">+</span>    return</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">26</span><span class="mk">+</span>  }</div>
+          <div class="dl"><span class="lno">23</span><span class="lnn">27</span><span class="mk"> </span>  h.svc.Issue(ctx, user, scopes)</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -22,3 +22,7 @@ func (h *Handler) Authorize(w, r) {</div>
+          <div class="cell cell-ctx"><span class="lnum">22</span><span class="mk"> </span>  scopes := r.URL.Query()["scope"]</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">22</span><span class="mk"> </span>  scopes := r.URL.Query()["scope"]</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">23</span><span class="mk">+</span>  if !auth.ValidScopes(scopes) {</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">24</span><span class="mk">+</span>    writeJSON(w, 400, errInvalidScope)</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">25</span><span class="mk">+</span>    return</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">26</span><span class="mk">+</span>  }</div>
+          <div class="cell cell-ctx"><span class="lnum">23</span><span class="mk"> </span>  h.svc.Issue(ctx, user, scopes)</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">27</span><span class="mk"> </span>  h.svc.Issue(ctx, user, scopes)</div>
+        </div>
+      </section>
+
+      <section id="f-9" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">migrations/0042_token_scopes.sql</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+9</span> <span style="color:var(--danger)">−0</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -0,0 +1,5 @@</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">1</span><span class="mk">+</span>ALTER TABLE access_tokens</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">2</span><span class="mk">+</span>  ADD COLUMN scopes TEXT[] NOT NULL DEFAULT '{}';</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">3</span><span class="mk">+</span></div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">4</span><span class="mk">+</span>CREATE INDEX idx_tokens_scopes</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">5</span><span class="mk">+</span>  ON access_tokens USING GIN (scopes);</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -0,0 +1,5 @@</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">1</span><span class="mk">+</span>ALTER TABLE access_tokens</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">2</span><span class="mk">+</span>  ADD COLUMN scopes TEXT[] NOT NULL DEFAULT '{}';</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">3</span><span class="mk">+</span></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">4</span><span class="mk">+</span>CREATE INDEX idx_tokens_scopes</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-add cell-r"><span class="lnum">5</span><span class="mk">+</span>  ON access_tokens USING GIN (scopes);</div>
+        </div>
+      </section>
+
+      <section id="f-10" class="b border rounded-md overflow-hidden scroll-mt-6">
+        <header class="px-3 py-2 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <button type="button" class="fg3 hover:text-current" aria-label="Collapse"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <span class="mono font-medium">docs/access-control.md</span>
+          <span class="ml-auto mono text-[11px]"><span style="color:var(--success)">+22</span> <span style="color:var(--danger)">−5</span></span>
+          <a href="blob.html" class="text-[12px] fg2 hover:text-current">View file →</a>
+        </header>
+        <div class="diff-unified">
+          <div class="dl dl-hunk">@@ -18,5 +18,4 @@ ## Token scopes</div>
+          <div class="dl"><span class="lno">18</span><span class="lnn">18</span><span class="mk"> </span>Access tokens carry a set of scopes.</div>
+          <div class="dl dl-del"><span class="lno">19</span><span class="lnn"></span><span class="mk">-</span>Scopes are not yet enforced on the API.</div>
+          <div class="dl dl-del"><span class="lno">20</span><span class="lnn"></span><span class="mk">-</span>This is tracked on the roadmap.</div>
+          <div class="dl dl-add"><span class="lno"></span><span class="lnn">19</span><span class="mk">+</span>Every API request is checked against them.</div>
+          <div class="dl"><span class="lno">21</span><span class="lnn">20</span><span class="mk"> </span>See oauth_handler.go for enforcement.</div>
+          <div class="dl dl-hunk">@@ -40,3 +39,3 @@ Supported scopes:</div>
+          <div class="dl"><span class="lno">40</span><span class="lnn">39</span><span class="mk"> </span>The built-in scopes are:</div>
+          <div class="dl dl-del ws-only"><span class="lno">41</span><span class="lnn"></span><span class="mk">-</span>- repo:read grants read access</div>
+          <div class="dl dl-add ws-only"><span class="lno"></span><span class="lnn">40</span><span class="mk">+</span>  - repo:read grants read access</div>
+          <div class="dl"><span class="lno">42</span><span class="lnn">41</span><span class="mk"> </span>- repo:write grants write access</div>
+        </div>
+        <div class="diff-split">
+          <div class="cell cell-hunk">@@ -18,5 +18,4 @@ ## Token scopes</div>
+          <div class="cell cell-ctx"><span class="lnum">18</span><span class="mk"> </span>Access tokens carry a set of scopes.</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">18</span><span class="mk"> </span>Access tokens carry a set of scopes.</div>
+          <div class="cell cell-del"><span class="lnum">19</span><span class="mk">-</span>Scopes are not yet enforced on the API.</div>
+          <div class="cell cell-add cell-r"><span class="lnum">19</span><span class="mk">+</span>Every API request is checked against them.</div>
+          <div class="cell cell-del"><span class="lnum">20</span><span class="mk">-</span>This is tracked on the roadmap.</div>
+          <div class="cell cell-empty cell-r"></div>
+          <div class="cell cell-ctx"><span class="lnum">21</span><span class="mk"> </span>See oauth_handler.go for enforcement.</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">20</span><span class="mk"> </span>See oauth_handler.go for enforcement.</div>
+          <div class="cell cell-hunk">@@ -40,3 +39,3 @@ Supported scopes:</div>
+          <div class="cell cell-ctx"><span class="lnum">40</span><span class="mk"> </span>The built-in scopes are:</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">39</span><span class="mk"> </span>The built-in scopes are:</div>
+          <div class="cell cell-del ws-only"><span class="lnum">41</span><span class="mk">-</span>- repo:read grants read access</div>
+          <div class="cell cell-add cell-r ws-only"><span class="lnum">40</span><span class="mk">+</span>  - repo:read grants read access</div>
+          <div class="cell cell-ctx"><span class="lnum">42</span><span class="mk"> </span>- repo:write grants write access</div>
+          <div class="cell cell-ctx cell-r"><span class="lnum">41</span><span class="mk"> </span>- repo:write grants write access</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const html = document.documentElement;
+  const STORAGE_KEY = 'cz-theme';
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === 'light' || (!saved && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+    html.classList.add('light');
+  }
+  function syncThemeUI() {
+    const isLight = html.classList.contains('light');
+    document.querySelectorAll('.dark-only').forEach(el => el.classList.toggle('hidden', isLight));
+    document.querySelectorAll('.light-only').forEach(el => el.classList.toggle('hidden', !isLight));
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', String(isLight));
+      toggle.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme');
+    }
+  }
+  function toggleTheme() {
+    html.classList.toggle('light');
+    localStorage.setItem(STORAGE_KEY, html.classList.contains('light') ? 'light' : 'dark');
+    syncThemeUI();
+  }
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+      e.preventDefault();
+      toggleTheme();
+    }
+  });
+  syncThemeUI();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>/* PR FILES: diff layout toggle + sidebar scrollspy */
+  (function(){
+    var root = document.getElementById('diff-root');
+    if (!root) return;
+
+    // Unified / Split layout
+    var viewBtns = document.querySelectorAll('[data-view]');
+    function setView(view){
+      root.setAttribute('data-view', view);
+      viewBtns.forEach(function(b){
+        var on = b.getAttribute('data-view') === view;
+        b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('elevated', on);
+        b.classList.toggle('fg2', !on);
+      });
+    }
+    viewBtns.forEach(function(b){
+      b.addEventListener('click', function(){ setView(b.getAttribute('data-view')); });
+    });
+
+    // Hide whitespace
+    var wsBtn = document.getElementById('ws-toggle');
+    if (wsBtn){
+      wsBtn.addEventListener('click', function(){
+        var on = root.classList.toggle('hide-ws');
+        wsBtn.setAttribute('aria-pressed', String(on));
+        wsBtn.classList.toggle('fg2', !on);
+        wsBtn.classList.toggle('elevated', on);
+      });
+    }
+
+    var sections = Array.prototype.slice.call(root.querySelectorAll('section[id^="f-"]'));
+
+    // Build the directory tree from the flat file list (single source of truth)
+    var fileList = document.getElementById('file-list');
+    var fileTree = document.getElementById('file-tree');
+    var folderTpl = document.getElementById('tree-folder-tpl');
+    (function buildTree(){
+      var treeRoot = { dirs:{}, order:[], files:[] };
+      fileList.querySelectorAll('a[data-spy]').forEach(function(a){
+        var parts = a.querySelector('.mono').textContent.trim().split('/');
+        var node = treeRoot;
+        for (var i = 0; i < parts.length - 1; i++){
+          var d = parts[i];
+          if (!node.dirs[d]){ node.dirs[d] = { dirs:{}, order:[], files:[] }; node.order.push(d); }
+          node = node.dirs[d];
+        }
+        node.files.push({ name: parts[parts.length - 1], a: a });
+      });
+      function render(node, depth){
+        var ul = document.createElement('ul');
+        ul.className = 'space-y-0.5';
+        node.order.forEach(function(name){
+          var li = document.createElement('li');
+          li.className = 'tree-folder';
+          var row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'tree-row fg2';
+          row.style.paddingLeft = (6 + depth * 14) + 'px';
+          row.appendChild(folderTpl.content.cloneNode(true));
+          row.querySelector('span').textContent = name;
+          row.addEventListener('click', function(){ li.classList.toggle('collapsed'); });
+          var children = render(node.dirs[name], depth + 1);
+          children.className = 'tree-children space-y-0.5';
+          li.appendChild(row);
+          li.appendChild(children);
+          ul.appendChild(li);
+        });
+        node.files.forEach(function(f){
+          var li = document.createElement('li');
+          var link = f.a.cloneNode(true);
+          link.querySelector('.mono').textContent = f.name;
+          link.style.paddingLeft = (10 + depth * 14) + 'px';
+          li.appendChild(link);
+          ul.appendChild(li);
+        });
+        return ul;
+      }
+      fileTree.appendChild(render(treeRoot, 0));
+    })();
+
+    // Tree / List layout toggle
+    var listBtn = document.getElementById('list-btn');
+    var treeBtn = document.getElementById('tree-btn');
+    function setLayout(tree){
+      fileTree.classList.toggle('hidden', !tree);
+      fileList.classList.toggle('hidden', tree);
+      treeBtn.classList.toggle('elevated', tree); treeBtn.classList.toggle('fg2', !tree);
+      treeBtn.setAttribute('aria-pressed', String(tree));
+      listBtn.classList.toggle('elevated', !tree); listBtn.classList.toggle('fg2', tree);
+      listBtn.setAttribute('aria-pressed', String(!tree));
+    }
+    listBtn.addEventListener('click', function(){ setLayout(false); });
+    treeBtn.addEventListener('click', function(){ setLayout(true); });
+
+    // Scrollspy: highlight the active file in whichever list is visible
+    var activeId = null;
+    function setActive(id){
+      activeId = id;
+      document.querySelectorAll('a[data-spy]').forEach(function(a){
+        var on = a.getAttribute('href').slice(1) === id;
+        a.classList.toggle('text-[var(--fg)]', on);
+        a.classList.toggle('fg2', !on);
+        a.setAttribute('aria-current', String(on));
+      });
+    }
+    // The active file is the last one whose top has scrolled past a line
+    // near the top of the viewport — so it updates the moment a file leads.
+    var SPY_LINE = 140;
+    function syncSpy(){
+      if (!sections.length || root.classList.contains('solo')) return;
+      var atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      var active = atBottom ? sections[sections.length - 1].id : sections[0].id;
+      if (!atBottom){
+        for (var i = 0; i < sections.length; i++){
+          if (sections[i].getBoundingClientRect().top - SPY_LINE <= 0) active = sections[i].id;
+        }
+      }
+      setActive(active);
+    }
+    var spyQueued = false;
+    window.addEventListener('scroll', function(){
+      if (spyQueued) return;
+      spyQueued = true;
+      window.requestAnimationFrame(function(){ spyQueued = false; syncSpy(); });
+    }, { passive: true });
+    syncSpy();
+
+    // Collapse files: single-file view — only the selected file is shown
+    var collapseBtn = document.getElementById('collapse-toggle');
+    var collapseMode = false;
+    function showOnly(id){
+      sections.forEach(function(s){ s.classList.toggle('is-current', s.id === id); });
+    }
+    collapseBtn.addEventListener('click', function(){
+      collapseMode = !collapseMode;
+      collapseBtn.setAttribute('aria-pressed', String(collapseMode));
+      collapseBtn.classList.toggle('elevated', collapseMode);
+      collapseBtn.classList.toggle('fg2', !collapseMode);
+      root.classList.toggle('solo', collapseMode);
+      if (collapseMode){
+        var keep = document.getElementById(activeId) || sections[0];
+        showOnly(keep.id);
+        setActive(keep.id);
+        keep.scrollIntoView({ block: 'start' });
+      } else {
+        syncSpy();
+      }
+    });
+
+    // Per-file collapse chevron in each section header
+    sections.forEach(function(s){
+      var btn = s.querySelector('header button[aria-label="Collapse"]');
+      if (btn) btn.addEventListener('click', function(){ s.classList.toggle('is-collapsed'); });
+    });
+
+    // Clicking a file in the sidebar selects it — in collapse mode, opens only it
+    var aside = document.querySelector('aside[aria-label="Files in this PR"]');
+    aside.addEventListener('click', function(e){
+      var a = e.target.closest('a[data-spy]');
+      if (!a) return;
+      var id = a.getAttribute('href').slice(1);
+      setActive(id);
+      if (collapseMode) showOnly(id);
+      else { var s = document.getElementById(id); if (s) s.classList.remove('is-collapsed'); }
+    });
+
+    // PR header: Edit toggles the title into an editable field
+    var editBtn = document.getElementById('edit-pr-btn');
+    var titleText = document.getElementById('pr-title-text');
+    if (editBtn && titleText){
+      editBtn.addEventListener('click', function(){
+        if (titleText.isContentEditable){
+          titleText.contentEditable = 'false';
+          titleText.classList.remove('pr-title-editing');
+          editBtn.textContent = 'Edit';
+        } else {
+          titleText.contentEditable = 'true';
+          titleText.classList.add('pr-title-editing');
+          editBtn.textContent = 'Save';
+          titleText.focus();
+          var range = document.createRange();
+          range.selectNodeContents(titleText);
+          var sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      });
+    }
+  })();
+</script>
+</body>
+</html>

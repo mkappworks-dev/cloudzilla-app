@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .elevated-40{background:color-mix(in srgb, var(--elevated) 40%, transparent)}
+  .b{border-color:var(--border)}.divide-y.b > * + *{border-top-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px}
+  .nav-item:hover{background:var(--elevated);color:var(--fg)}
+  .nav-item-active{background:var(--elevated);color:var(--fg);font-weight:500}
+  .danger-zone{border-color:rgba(248,113,113,0.30)}
+  label.field{display:block;font-size:12px;font-weight:500;color:var(--fg-2);margin-bottom:6px}
+  input.txt,textarea.txt,select.txt{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--fg);font-family:inherit}
+  input.txt:focus,textarea.txt:focus,select.txt:focus{outline:none;border-color:var(--focus)}
+  .toggle{position:relative;width:36px;height:20px;background:var(--elevated);border:1px solid var(--border);border-radius:9999px;cursor:pointer;flex-shrink:0}
+  .toggle::after{content:"";position:absolute;left:2px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:var(--fg-2);border-radius:50%;transition:left 120ms}
+  .toggle[aria-pressed="true"]{background:var(--success);border-color:var(--success)}
+  .toggle[aria-pressed="true"]::after{left:18px;background:var(--bg)}
+  .cz-dialog{padding:0;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface);color:var(--fg);max-width:420px;width:calc(100% - 32px);box-shadow:0 20px 50px rgba(0,0,0,0.5);margin-top:28vh;margin-bottom:auto}
+  .cz-dialog.cz-dialog-wide{max-width:480px}
+  .cz-dialog::backdrop{background:rgba(0,0,0,0.6);backdrop-filter:blur(2px)}
+  .cz-toast{position:fixed;left:50%;top:20px;transform:translate(-50%,-8px);display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;font-size:13px;color:var(--fg);box-shadow:0 10px 30px rgba(0,0,0,0.4);opacity:0;pointer-events:none;transition:opacity 160ms,transform 160ms;z-index:60}
+  .cz-toast.cz-toast-show{opacity:1;transform:translate(-50%,0)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="settings"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-8" aria-labelledby="set-title">
+    <h1 id="set-title" class="text-2xl font-semibold tracking-tight">Repository settings</h1>
+  </section>
+
+  <div class="grid grid-cols-12 gap-8">
+
+    <aside class="col-span-3" aria-label="Settings sections">
+      <nav class="sticky top-4 flex flex-col gap-0.5">
+        <a href="#general" class="nav-item nav-item-active" aria-current="true">General</a>
+        <a href="#access" class="nav-item">Access</a>
+        <a href="#collaborators" class="nav-item">Collaborators</a>
+        <a href="#deploy-keys" class="nav-item">Deploy keys</a>
+        <a href="#labels" class="nav-item">Labels</a>
+        <a href="#branches" class="nav-item">Branch protection</a>
+        <a href="#webhooks" class="nav-item">Webhooks</a>
+        <a href="#template" class="nav-item">Template</a>
+        <p class="mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5" style="color:var(--danger)">Danger zone</p>
+        <a href="#archive" class="nav-item" style="color:var(--danger)">Archive</a>
+        <a href="#transfer" class="nav-item" style="color:var(--danger)">Transfer Ownership</a>
+        <a href="#delete" class="nav-item" style="color:var(--danger)">Delete repository</a>
+      </nav>
+    </aside>
+
+    <div class="col-span-9 space-y-8">
+
+      <!-- General -->
+      <section id="general" aria-labelledby="general-h" class="b border rounded-lg surface p-6">
+        <h2 id="general-h" class="text-base font-semibold tracking-tight mb-1">General</h2>
+        <p class="text-[12.5px] fg3 mb-6">Basic information visible across the repository.</p>
+        <div class="space-y-5">
+          <div>
+            <label class="field" for="repo-name">Repository name</label>
+            <input id="repo-name" class="txt" type="text" value="cloudzilla" readonly />
+            <p class="text-[12px] fg3 mt-1.5">Renaming from settings is not yet available.</p>
+          </div>
+          <div>
+            <label class="field" for="repo-desc">Description</label>
+            <textarea id="repo-desc" class="txt" rows="2">A self-hosted Git platform written in Go.</textarea>
+          </div>
+          <div>
+            <label class="field" for="repo-home">Homepage URL</label>
+            <input id="repo-home" class="txt" type="url" placeholder="https://example.com" value="" />
+          </div>
+          <div>
+            <label class="field" for="repo-default">Default branch</label>
+            <input id="repo-default" class="txt mono" type="text" value="main" style="max-width:20rem" />
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end">
+          <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)" data-toast="#save-toast">Save changes</button>
+        </div>
+      </section>
+
+      <!-- Access -->
+      <section id="access" aria-labelledby="access-h" class="b border rounded-lg surface p-6">
+        <h2 id="access-h" class="text-base font-semibold tracking-tight mb-1">Access</h2>
+        <p class="text-[12.5px] fg3 mb-6">Control which features are enabled for this repository.</p>
+        <div class="flex items-start justify-between gap-4 pb-4 mb-2 b border-b">
+          <div class="min-w-0">
+            <p class="text-[13.5px] font-medium">Visibility</p>
+            <p id="visibility-desc" class="mt-0.5 text-[12.5px] fg3">This repository is public — anyone can view it.</p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <span id="visibility-label" class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium" style="background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)">Public</span>
+            <button type="button" class="toggle" data-confirm aria-pressed="true" aria-label="Repository visibility" id="visibility-toggle"></button>
+          </div>
+        </div>
+        <ul class="divide-y b">
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Issues</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Let people open and track issues.</p>
+            </div>
+            <button type="button" class="toggle" aria-pressed="true" aria-label="Allow issues"></button>
+          </li>
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Discussions</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Enable the Discussions tab for Q&amp;A and announcements.</p>
+            </div>
+            <button type="button" class="toggle" aria-pressed="true" aria-label="Allow discussions"></button>
+          </li>
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Projects</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Enable project boards for planning work.</p>
+            </div>
+            <button type="button" class="toggle" aria-pressed="true" aria-label="Allow projects"></button>
+          </li>
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Wiki</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Enable the wiki for long-form documentation.</p>
+            </div>
+            <button type="button" class="toggle" aria-pressed="true" aria-label="Allow wiki"></button>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Collaborators -->
+      <section id="collaborators" aria-labelledby="collab-h" class="b border rounded-lg surface p-6">
+        <h2 id="collab-h" class="text-base font-semibold tracking-tight mb-1">Collaborators</h2>
+        <p class="text-[12.5px] fg3 mb-6">People with explicit access to this repository.</p>
+        <div class="flex items-center gap-2 mb-4">
+          <input class="txt" type="text" placeholder="Username" />
+          <div class="dropdown-wrap" id="collab-role">
+            <button type="button" class="flex items-center justify-between gap-2 h-9 px-3 text-sm rounded-md b border hover:elevated shrink-0" style="min-width:7rem" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Collaborator role">
+              <span data-role-label>reader</span>
+              <svg class="fg3" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="dropdown-panel hidden" role="menu" aria-label="Collaborator role" style="min-width:8rem">
+              <button type="button" role="menuitemradio" aria-checked="true" class="dropdown-item dropdown-item-active" data-role="reader">reader</button>
+              <button type="button" role="menuitemradio" aria-checked="false" class="dropdown-item" data-role="writer">writer</button>
+              <button type="button" role="menuitemradio" aria-checked="false" class="dropdown-item" data-role="admin">admin</button>
+            </div>
+          </div>
+          <button type="button" class="h-9 px-4 text-sm rounded-md font-medium shrink-0" style="background:var(--fg);color:var(--bg)">Add</button>
+        </div>
+        <ul class="divide-y b">
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-7 w-7 rounded-full grid place-items-center text-xs font-medium" aria-hidden="true">MK</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium">malith</p>
+              <p class="text-[12px] fg3">Owner</p>
+            </div>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-7 w-7 rounded-full grid place-items-center text-xs font-medium" aria-hidden="true">JM</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium">jamie</p>
+              <p class="text-[12px] fg3 capitalize">writer</p>
+            </div>
+            <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)" data-confirm-action data-confirm-danger data-confirm-title="Remove jamie from this repository?" data-confirm-msg="jamie will lose access to cloudzilla. You can add them back later." data-confirm-label="Remove">Remove</button>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Deploy keys -->
+      <section id="deploy-keys" aria-labelledby="keys-h" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 id="keys-h" class="text-base font-semibold tracking-tight mb-1">Deploy Keys</h2>
+            <p class="text-[12.5px] fg3">SSH keys that grant CI/CD pipelines access to this repository.</p>
+          </div>
+          <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated font-medium shrink-0" data-dialog="#deploy-key-dialog">Add deploy key</button>
+        </div>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left fg3 b border-b">
+              <th class="pb-2 font-medium">Title</th>
+              <th class="pb-2 font-medium">Fingerprint</th>
+              <th class="pb-2 font-medium">Access</th>
+              <th class="pb-2"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y b">
+            <tr>
+              <td class="py-3 font-medium">ci-server</td>
+              <td class="py-3 mono fg3 text-xs">SHA256:nThbg6kXU…</td>
+              <td class="py-3"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] border" style="background:rgba(251,191,36,0.15);color:var(--warn);border-color:rgba(251,191,36,0.30)">Read-only</span></td>
+              <td class="py-3 text-right"><button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)" data-confirm-action data-confirm-danger data-confirm-title="Revoke this deploy key?" data-confirm-msg="The ci-server key will immediately lose access to cloudzilla. Any pipeline using it will stop working." data-confirm-label="Revoke">Revoke</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Labels -->
+      <section id="labels" aria-labelledby="labels-h" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 id="labels-h" class="text-base font-semibold tracking-tight mb-1">Labels</h2>
+            <p class="text-[12.5px] fg3">Categorize issues and pull requests.</p>
+          </div>
+          <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated font-medium shrink-0" data-dialog="#label-dialog">New label</button>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between b border rounded-md p-3">
+            <div class="flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full inline-block b border" style="background:#ef4444" aria-hidden="true"></span>
+              <span class="text-sm font-medium">bug</span>
+              <span class="text-xs fg3 ml-2">Something isn't working</span>
+            </div>
+            <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)" data-confirm-action data-confirm-danger data-confirm-title="Delete this label?" data-confirm-msg="The bug label will be removed from every issue and pull request that uses it." data-confirm-label="Delete">Delete</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Branch protection -->
+      <section id="branches" aria-labelledby="branches-h" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 id="branches-h" class="text-base font-semibold tracking-tight mb-1">Branch Protection</h2>
+            <p class="text-[12.5px] fg3">Protect branches by requiring reviews, status checks, or blocking force pushes.</p>
+          </div>
+          <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated font-medium shrink-0" data-dialog="#protection-rule-dialog">Add rule</button>
+        </div>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left fg3 b border-b">
+              <th class="pb-2 font-medium">Pattern</th>
+              <th class="pb-2 font-medium">Reviews</th>
+              <th class="pb-2 font-medium">Force push</th>
+              <th class="pb-2"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y b">
+            <tr>
+              <td class="py-3 mono">main</td>
+              <td class="py-3">1</td>
+              <td class="py-3"><button type="button" class="toggle" aria-pressed="true" aria-label="Block force pushes on main"></button></td>
+              <td class="py-3 text-right"><button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)" data-confirm-action data-confirm-danger data-confirm-title="Delete this protection rule?" data-confirm-msg="The main branch will no longer require reviews or block force pushes." data-confirm-label="Delete">Delete</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Webhooks -->
+      <section id="webhooks" aria-labelledby="hooks-h" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 id="hooks-h" class="text-base font-semibold tracking-tight mb-1">Webhooks</h2>
+            <p class="text-[12.5px] fg3">Send HTTP requests to external services when events occur in this repository.</p>
+          </div>
+          <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated font-medium shrink-0" data-dialog="#webhook-dialog">Add webhook</button>
+        </div>
+        <div class="space-y-2">
+          <div class="b border rounded-md p-4 flex justify-between items-start">
+            <div class="min-w-0">
+              <p class="font-medium text-sm mono break-all">https://hooks.example.dev/cloudzilla</p>
+              <p class="text-xs fg3 mt-1">Events: push,pull_request</p>
+            </div>
+            <div class="flex items-center gap-3 ml-4 shrink-0">
+              <button type="button" class="toggle" aria-pressed="true" aria-label="Webhook active"></button>
+              <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)" data-confirm-action data-confirm-danger data-confirm-title="Delete this webhook?" data-confirm-msg="cloudzilla will stop sending events to https://hooks.example.dev/cloudzilla." data-confirm-label="Delete">Delete</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Template -->
+      <section id="template" aria-labelledby="template-h" class="b border rounded-lg surface p-6">
+        <h2 id="template-h" class="text-base font-semibold tracking-tight mb-1">Template Repository</h2>
+        <div class="flex items-center justify-between gap-4 mt-3">
+          <div class="min-w-0">
+            <p class="text-[13.5px] font-medium">Template repository</p>
+            <p class="mt-0.5 text-[12.5px] fg3">Allow other users to create new repositories with the same directory structure and files.</p>
+          </div>
+          <button type="button" class="toggle" data-confirm data-confirm-action data-confirm-title="Make this a template repository?" data-confirm-msg="Anyone will be able to create new repositories with the same directory structure and files as cloudzilla." data-confirm-label="Make template" aria-pressed="false" aria-label="Template repository"></button>
+        </div>
+      </section>
+
+      <!-- Danger zone -->
+      <section id="archive" aria-labelledby="archive-h" class="b border rounded-lg surface p-6 danger-zone">
+        <h2 id="archive-h" class="text-base font-semibold tracking-tight mb-1" style="color:var(--danger)">Archive this repository</h2>
+        <p class="text-[12.5px] fg3 mb-6">Make the repository read-only and hide it from active views. You can unarchive it later.</p>
+        <div class="flex justify-end">
+          <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--danger);color:#1a0000" data-confirm-action data-confirm-danger data-confirm-title="Archive this repository?" data-confirm-msg="cloudzilla will become read-only and hidden from active views. You can unarchive it later." data-confirm-label="Archive">Archive</button>
+        </div>
+      </section>
+
+      <section id="transfer" aria-labelledby="transfer-h" class="b border rounded-lg surface p-6 danger-zone">
+        <h2 id="transfer-h" class="text-base font-semibold tracking-tight mb-1" style="color:var(--danger)">Transfer Ownership</h2>
+        <p class="text-[12.5px] fg3 mb-6">Transfer this repository to another user. You will lose owner access.</p>
+        <div class="flex items-center gap-3">
+          <input class="txt" type="text" placeholder="New owner username" />
+          <button type="button" class="h-9 px-4 text-sm rounded-md font-medium shrink-0" style="background:var(--danger);color:#1a0000" data-confirm-action data-confirm-danger data-confirm-title="Transfer ownership?" data-confirm-msg="cloudzilla will be transferred to another user. You will lose owner access to this repository." data-confirm-label="Transfer">Transfer</button>
+        </div>
+      </section>
+
+      <section id="delete" aria-labelledby="delete-h" class="b border rounded-lg surface p-6 danger-zone">
+        <h2 id="delete-h" class="text-base font-semibold tracking-tight mb-1" style="color:var(--danger)">Delete this repository</h2>
+        <p class="text-[12.5px] fg3 mb-6">Permanently remove this repository and all its data. This cannot be undone.</p>
+        <div class="flex justify-end">
+          <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--danger);color:#1a0000" data-confirm-action data-confirm-danger data-confirm-title="Delete this repository?" data-confirm-msg="This permanently removes cloudzilla and all of its data — issues, pull requests, and history. This cannot be undone." data-confirm-label="Delete repository">Delete repository</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+  document.querySelectorAll('.toggle:not([data-confirm])').forEach(t => t.addEventListener('click', () => {
+    const on = t.getAttribute('aria-pressed') === 'true';
+    t.setAttribute('aria-pressed', String(!on));
+  }));
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>/* SETTINGS_SCROLLSPY_JS */
+  (function(){
+    var navItems = Array.prototype.slice.call(
+      document.querySelectorAll('aside[aria-label="Settings sections"] .nav-item'));
+    if(!navItems.length || !('IntersectionObserver' in window)) return;
+
+    var sections = navItems
+      .map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); })
+      .filter(Boolean);
+
+    function setActive(id){
+      navItems.forEach(function(a){
+        var on = a.getAttribute('href') === '#' + id;
+        a.classList.toggle('nav-item-active', on);
+        if(on) a.setAttribute('aria-current','true');
+        else a.removeAttribute('aria-current');
+      });
+    }
+
+    var visible = new Set();
+    var observer = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting) visible.add(e.target);
+        else visible.delete(e.target);
+      });
+      var top = sections.filter(function(s){ return visible.has(s); })
+        .sort(function(a,b){ return a.getBoundingClientRect().top - b.getBoundingClientRect().top; })[0];
+      if(top) setActive(top.id);
+    }, { rootMargin: '-80px 0px -55% 0px', threshold: 0 });
+
+    sections.forEach(function(s){ observer.observe(s); });
+    navItems.forEach(function(a){
+      a.addEventListener('click', function(){ setActive(a.getAttribute('href').slice(1)); });
+    });
+  })();
+</script>
+
+<dialog id="visibility-dialog" class="cz-dialog" aria-labelledby="vd-title">
+  <div class="p-5">
+    <h2 id="vd-title" class="text-base font-semibold tracking-tight mb-1">Change repository visibility</h2>
+    <p id="vd-msg" class="text-[13px] fg3 leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="vd-cancel" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated">Cancel</button>
+      <button type="button" id="vd-confirm" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Change visibility</button>
+    </div>
+  </div>
+</dialog>
+<script>/* VISIBILITY_CONFIRM_JS */
+  (function(){
+    var toggle = document.getElementById('visibility-toggle');
+    var dialog = document.getElementById('visibility-dialog');
+    var msg    = document.getElementById('vd-msg');
+    var label  = document.getElementById('visibility-label');
+    var desc   = document.getElementById('visibility-desc');
+    if(!toggle || !dialog || typeof dialog.showModal !== 'function') return;
+
+    var PUBLIC  = 'background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)';
+    var PRIVATE = 'background:var(--elevated);color:var(--fg-2);border-color:var(--border)';
+
+    toggle.addEventListener('click', function(){
+      var goingPrivate = toggle.getAttribute('aria-pressed') === 'true';
+      msg.textContent = goingPrivate
+        ? 'You are about to make cloudzilla private. Only collaborators with access will be able to view it.'
+        : 'You are about to make cloudzilla public. Anyone on the internet will be able to view this repository.';
+      dialog.returnValue = '';
+      dialog.showModal();
+    });
+
+    document.getElementById('vd-cancel').addEventListener('click', function(){ dialog.close('cancel'); });
+    document.getElementById('vd-confirm').addEventListener('click', function(){ dialog.close('confirm'); });
+
+    dialog.addEventListener('close', function(){
+      if(dialog.returnValue !== 'confirm') return;
+      var nowPublic = toggle.getAttribute('aria-pressed') !== 'true';
+      toggle.setAttribute('aria-pressed', String(nowPublic));
+      label.textContent = nowPublic ? 'Public' : 'Private';
+      label.setAttribute('style', nowPublic ? PUBLIC : PRIVATE);
+      desc.textContent = nowPublic
+        ? 'This repository is public — anyone can view it.'
+        : 'This repository is private — only collaborators can view it.';
+    });
+  })();
+</script>
+
+<dialog id="deploy-key-dialog" class="cz-dialog cz-dialog-wide" aria-labelledby="dk-dialog-title">
+  <div class="p-5">
+    <h2 id="dk-dialog-title" class="text-base font-semibold tracking-tight mb-4">Add deploy key</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="field" for="dk-title">Title</label>
+        <input id="dk-title" class="txt" type="text" placeholder="e.g., CI server" />
+      </div>
+      <div>
+        <label class="field" for="dk-key">Public Key</label>
+        <textarea id="dk-key" class="txt mono" rows="3" placeholder="ssh-ed25519 AAAA..."></textarea>
+      </div>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked class="h-4 w-4 rounded b border bg-transparent" style="accent-color:var(--fg)" /> Read-only (uncheck to allow push access)
+      </label>
+    </div>
+    <div class="flex justify-end gap-2 mt-5">
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated" data-dialog-close>Cancel</button>
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Add Deploy Key</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="label-dialog" class="cz-dialog cz-dialog-wide" aria-labelledby="lbl-dialog-title">
+  <div class="p-5">
+    <h2 id="lbl-dialog-title" class="text-base font-semibold tracking-tight mb-4">New label</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="field" for="lbl-name">Name</label>
+        <input id="lbl-name" class="txt" type="text" placeholder="bug, enhancement…" />
+      </div>
+      <div>
+        <label class="field" for="lbl-color">Color</label>
+        <input id="lbl-color" type="color" value="#e5e5e5" class="w-12 h-9 rounded-md b border bg-transparent cursor-pointer" />
+      </div>
+      <div>
+        <label class="field" for="lbl-desc">Description</label>
+        <input id="lbl-desc" class="txt" type="text" placeholder="Short description" />
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 mt-5">
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated" data-dialog-close>Cancel</button>
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Create label</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="protection-rule-dialog" class="cz-dialog cz-dialog-wide" aria-labelledby="bp-dialog-title">
+  <div class="p-5">
+    <h2 id="bp-dialog-title" class="text-base font-semibold tracking-tight mb-4">Add protection rule</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="field" for="bp-pattern">Branch Pattern</label>
+        <input id="bp-pattern" class="txt" type="text" placeholder="e.g., main or release/*" />
+      </div>
+      <div>
+        <label class="field" for="bp-reviews">Required Approvals</label>
+        <input id="bp-reviews" class="txt" type="number" value="1" min="0" style="max-width:8rem" />
+      </div>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked class="h-4 w-4 rounded b border bg-transparent" style="accent-color:var(--fg)" /> Block force pushes
+      </label>
+    </div>
+    <div class="flex justify-end gap-2 mt-5">
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated" data-dialog-close>Cancel</button>
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Add Rule</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="webhook-dialog" class="cz-dialog cz-dialog-wide" aria-labelledby="wh-dialog-title">
+  <div class="p-5">
+    <h2 id="wh-dialog-title" class="text-base font-semibold tracking-tight mb-4">Add webhook</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="field" for="wh-url">Payload URL</label>
+        <input id="wh-url" class="txt" type="url" placeholder="https://example.com/webhook" />
+      </div>
+      <div>
+        <label class="field" for="wh-secret">Secret</label>
+        <input id="wh-secret" class="txt" type="text" placeholder="Optional HMAC secret" />
+      </div>
+      <div>
+        <label class="field" for="wh-events">Events (comma-separated)</label>
+        <input id="wh-events" class="txt" type="text" value="push,issues,pull_request" />
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 mt-5">
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated" data-dialog-close>Cancel</button>
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Add Webhook</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="confirm-dialog" class="cz-dialog" aria-labelledby="confirm-title">
+  <div class="p-5">
+    <h2 id="confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="confirm-msg" class="text-[13px] fg3 leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated" data-confirm-cancel>Cancel</button>
+      <button type="button" id="confirm-ok" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Confirm</button>
+    </div>
+  </div>
+</dialog>
+<script>/* SETTINGS_ADD_DIALOGS_JS */
+  (function(){
+    document.querySelectorAll('[data-dialog]').forEach(function(trigger){
+      trigger.addEventListener('click', function(){
+        var dialog = document.querySelector(trigger.getAttribute('data-dialog'));
+        if(dialog && typeof dialog.showModal === 'function') dialog.showModal();
+      });
+    });
+    document.querySelectorAll('[data-dialog-close]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var dialog = btn.closest('dialog');
+        if(dialog) dialog.close();
+      });
+    });
+    document.querySelectorAll('dialog.cz-dialog-wide').forEach(function(dialog){
+      dialog.addEventListener('click', function(e){ if(e.target === dialog) dialog.close(); });
+    });
+  })();
+</script>
+<script>/* SETTINGS_CONFIRM_JS */
+  (function(){
+    var dialog = document.getElementById('confirm-dialog');
+    if(!dialog || typeof dialog.showModal !== 'function') return;
+    var titleEl = document.getElementById('confirm-title');
+    var msgEl   = document.getElementById('confirm-msg');
+    var okBtn   = document.getElementById('confirm-ok');
+    var DANGER  = 'background:var(--danger);color:#1a0000';
+    var DEFAULT = 'background:var(--fg);color:var(--bg)';
+    var pending = null;
+
+    document.querySelectorAll('[data-confirm-action]').forEach(function(trigger){
+      trigger.addEventListener('click', function(){
+        pending = trigger;
+        titleEl.textContent = trigger.getAttribute('data-confirm-title') || 'Are you sure?';
+        msgEl.textContent   = trigger.getAttribute('data-confirm-msg') || '';
+        okBtn.textContent   = trigger.getAttribute('data-confirm-label') || 'Confirm';
+        okBtn.setAttribute('style', trigger.hasAttribute('data-confirm-danger') ? DANGER : DEFAULT);
+        dialog.returnValue = '';
+        dialog.showModal();
+      });
+    });
+
+    dialog.querySelector('[data-confirm-cancel]').addEventListener('click', function(){ dialog.close('cancel'); });
+    okBtn.addEventListener('click', function(){ dialog.close('confirm'); });
+    dialog.addEventListener('click', function(e){ if(e.target === dialog) dialog.close('cancel'); });
+
+    dialog.addEventListener('close', function(){
+      if(dialog.returnValue === 'confirm' && pending && pending.classList.contains('toggle')){
+        var on = pending.getAttribute('aria-pressed') === 'true';
+        pending.setAttribute('aria-pressed', String(!on));
+      }
+      pending = null;
+    });
+  })();
+</script>
+<script>/* SETTINGS_ROLE_DROPDOWN_JS */
+  (function(){
+    var wrap = document.getElementById('collab-role');
+    if(!wrap) return;
+    var label = wrap.querySelector('[data-role-label]');
+    var btn   = wrap.querySelector('[data-menu]');
+    var panel = wrap.querySelector('.dropdown-panel');
+    wrap.querySelectorAll('[data-role]').forEach(function(item){
+      item.addEventListener('click', function(){
+        wrap.querySelectorAll('[data-role]').forEach(function(i){
+          var on = i === item;
+          i.classList.toggle('dropdown-item-active', on);
+          i.setAttribute('aria-checked', String(on));
+        });
+        label.textContent = item.getAttribute('data-role');
+        panel.classList.add('hidden');
+        btn.setAttribute('aria-expanded','false');
+      });
+    });
+  })();
+</script>
+
+<div id="save-toast" class="cz-toast" role="status" aria-live="polite">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+  <span>Changes saved</span>
+</div>
+<script>/* SETTINGS_TOAST_JS */
+  (function(){
+    var timers = new WeakMap();
+    document.querySelectorAll('[data-toast]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var toast = document.querySelector(btn.getAttribute('data-toast'));
+        if(!toast) return;
+        toast.classList.add('cz-toast-show');
+        clearTimeout(timers.get(toast));
+        timers.set(toast, setTimeout(function(){ toast.classList.remove('cz-toast-show'); }, 2400));
+      });
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Actions · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="actions"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-8" aria-labelledby="act-title">
+    <h1 id="act-title" class="text-2xl font-semibold tracking-tight">Actions</h1>
+  </section>
+
+  <section class="b border rounded-lg surface px-8 py-16 text-center" aria-labelledby="empty-title">
+    <div class="mx-auto w-12 h-12 rounded-full elevated grid place-items-center mb-4" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </div>
+    <h2 id="empty-title" class="text-lg font-semibold tracking-tight mb-2">Workflows coming soon</h2>
+    <p class="text-[13.5px] fg2 max-w-md mx-auto leading-relaxed">
+      Cloudzilla Actions will run jobs against pushes, pull requests, and schedules — pipelines defined in your repo, executed on isolated runners. Tracking is on the roadmap; this tab is a placeholder for now.
+    </p>
+    <div class="mt-6 flex items-center justify-center gap-2">
+      <a href="#" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center b border hover:elevated">Read the proposal</a>
+      <a href="#" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center fg2 hover:text-current">Subscribe to updates</a>
+    </div>
+  </section>
+
+  <section class="mt-10" aria-labelledby="prev-title">
+    <h2 id="prev-title" class="text-sm font-semibold tracking-tight mb-3 fg2">Preview — what a run might look like</h2>
+    <ol class="b border rounded-md surface overflow-hidden divide-y opacity-50">
+      <li class="px-4 py-3 flex items-start gap-3">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5" style="color:var(--success)" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        <div class="min-w-0 flex-1">
+          <p class="text-[13.5px] font-medium leading-snug">build-and-test · main</p>
+          <p class="mt-0.5 text-[12px] fg3"><span class="mono">#341</span> · ran <time datetime="2026-05-13T11:00">2h ago</time> · 1m 42s</p>
+        </div>
+        <span class="text-[11px] mono fg3 shrink-0">commit <span class="text-[var(--fg)]">a1b2c3d</span></span>
+      </li>
+      <li class="px-4 py-3 flex items-start gap-3">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 fg2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <div class="min-w-0 flex-1">
+          <p class="text-[13.5px] font-medium leading-snug">build-and-test · feat/phase-16</p>
+          <p class="mt-0.5 text-[12px] fg3"><span class="mono">#340</span> · queued · waiting for runner</p>
+        </div>
+        <span class="text-[11px] mono fg3 shrink-0">commit <span class="text-[var(--fg)]">e4f5a6b</span></span>
+      </li>
+    </ol>
+  </section>
+
+</main>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+</body>
+</html>

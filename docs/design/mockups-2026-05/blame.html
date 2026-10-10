@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blame · internal/router/router.go — mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #000; --surface: #0a0a0a; --elevated: #1a1a1a;
+    --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+    --fg: #ededed; --fg-2: #b4b4b4; --fg-3: #8c8c8c;
+    --focus: #6ea8fe; --link: #93c5fd;
+    --success: #4ade80; --warn: #fbbf24; --danger: #f87171;
+  }
+  html.light {
+    --bg: #fff; --surface: #fafafa; --elevated: #ededed;
+    --border: rgba(0,0,0,0.10); --border-strong: rgba(0,0,0,0.18);
+    --fg: #0a0a0a; --fg-2: #444; --fg-3: #5e5e5e;
+    --focus: #1d4ed8; --link: #1d4ed8;
+    --success: #15803d; --warn: #b45309; --danger: #b91c1c;
+  }
+  body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--fg); font-feature-settings: "ss01", "ss02", "cv11"; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+  .surface { background: var(--surface); }
+  .elevated { background: var(--elevated); }
+  .b { border-color: var(--border); }
+  .bs { border-color: var(--border-strong); }
+  .fg2 { color: var(--fg-2); }
+  .fg3 { color: var(--fg-3); }
+  .link { color: var(--link); }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .skip-link { position:absolute; left:8px; top:-40px; z-index:100; padding:8px 12px; background:var(--fg); color:var(--bg); border-radius:6px; font-weight:500; font-size:13px; transition: top 120ms; }
+  .skip-link:focus { top:8px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .tab-active { color: var(--fg); border-bottom-color: var(--fg); }
+  .avatar { background: var(--elevated); border: 1px solid var(--border); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+  @media (forced-colors: active) { .b, .bs { border-color: CanvasText !important; } :focus-visible { outline: 2px solid Highlight !important; } }
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6" aria-labelledby="blame-title">
+    <h1 id="blame-title" class="text-xl tracking-tight font-medium flex flex-wrap items-center gap-x-1.5 gap-y-1">
+      <a href="repo.html" class="hover:underline fg2">cloudzilla</a>
+      <span class="fg3" aria-hidden="true">/</span>
+      <a href="#" class="hover:underline fg2">internal</a>
+      <span class="fg3" aria-hidden="true">/</span>
+      <a href="#" class="hover:underline fg2">router</a>
+      <span class="fg3" aria-hidden="true">/</span>
+      <a href="#" class="hover:underline font-semibold">router.go</a>
+    </h1>
+    <div class="mt-3 flex flex-wrap items-center gap-2">
+      <span class="inline-flex items-center gap-1.5 h-8 px-3 b border surface rounded-md text-[13px]">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
+        <span class="font-medium">main</span>
+      </span>
+      <a href="blob.html" class="h-8 px-3 b border rounded-md hover:elevated text-[13px] fg2 inline-flex items-center gap-1.5">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        View file
+      </a>
+    </div>
+  </section>
+
+  <section class="b border rounded-md surface overflow-hidden" aria-labelledby="blame-heading">
+    <h2 id="blame-heading" class="sr-only">Blame for router.go</h2>
+    <header class="px-4 py-2 b border-b elevated flex items-center gap-3">
+      <svg class="fg2" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4z"/></svg>
+      <h3 class="text-[13px] font-medium">router.go</h3>
+      <span class="text-[12px] fg3 ml-auto">17 lines · 3 contributors</span>
+    </header>
+
+    <div class="overflow-x-auto">
+      <table class="w-full mono text-[12.5px] leading-[1.6]">
+        <caption class="sr-only">Per-line blame metadata for router.go</caption>
+        <colgroup><col style="width: 240px" /><col style="width: 48px" /><col /></colgroup>
+        <thead class="sr-only"><tr><th scope="col">Last commit</th><th scope="col">Line</th><th scope="col">Code</th></tr></thead>
+        <tbody>
+          <tr class="hover:elevated">
+            <td class="w-60 px-3 py-1.5 align-top text-[11px] b border-r surface">
+              <a href="#" class="mono font-medium hover:underline">96a6f51</a>
+              <div class="fg2 truncate">malith</div>
+              <time class="fg3 block" datetime="2026-03-19">2026-03-19</time>
+            </td>
+            <td class="select-none fg3 px-3 py-1.5 text-right align-top b border-r elevated"><a href="#L1" class="hover:text-current">1</a></td>
+            <td class="pl-4 pr-4 py-1.5 whitespace-pre">package router</td>
+          </tr>
+          <tr class="hover:elevated">
+            <td class="w-60 px-3 py-1.5 align-top text-[11px] b border-r surface"><span class="fg3/40 select-none" aria-hidden="true">·</span></td>
+            <td class="select-none fg3 px-3 py-1.5 text-right align-top b border-r elevated"><a href="#L2" class="hover:text-current">2</a></td>
+            <td class="pl-4 pr-4 py-1.5 whitespace-pre"> </td>
+          </tr>
+          <tr class="hover:elevated">
+            <td class="w-60 px-3 py-1.5 align-top text-[11px] b border-r surface">
+              <a href="#" class="mono font-medium hover:underline">2a5f3ec</a>
+              <div class="fg2 truncate">daisy</div>
+              <time class="fg3 block" datetime="2026-04-15">2026-04-15</time>
+            </td>
+            <td class="select-none fg3 px-3 py-1.5 text-right align-top b border-r elevated"><a href="#L3" class="hover:text-current">3</a></td>
+            <td class="pl-4 pr-4 py-1.5 whitespace-pre">import (</td>
+          </tr>
+          <tr class="hover:elevated">
+            <td class="w-60 px-3 py-1.5 align-top text-[11px] b border-r surface"><span class="fg3/40 select-none" aria-hidden="true">·</span></td>
+            <td class="select-none fg3 px-3 py-1.5 text-right align-top b border-r elevated"><a href="#L4" class="hover:text-current">4</a></td>
+            <td class="pl-4 pr-4 py-1.5 whitespace-pre">	"net/http"</td>
+          </tr>
+          <tr class="hover:elevated">
+            <td class="w-60 px-3 py-1.5 align-top text-[11px] b border-r surface"><span class="fg3/40 select-none" aria-hidden="true">·</span></td>
+            <td class="select-none fg3 px-3 py-1.5 text-right align-top b border-r elevated"><a href="#L5" class="hover:text-current">5</a></td>
+            <td class="pl-4 pr-4 py-1.5 whitespace-pre"> </td>
+          </tr>
+          <tr class="hover:elevated">
+            <td class="w-60 px-3 py-1.5 align-top text-[11px] b border-r surface">
+              <a href="#" class="mono font-medium hover:underline">420b44b</a>
+              <div class="fg2 truncate">malith</div>
+              <time class="fg3 block" datetime="2026-05-13">2026-05-13</time>
+            </td>
+            <td class="select-none fg3 px-3 py-1.5 text-right align-top b border-r elevated"><a href="#L6" class="hover:text-current">6</a></td>
+            <td class="pl-4 pr-4 py-1.5 whitespace-pre">	"github.com/go-chi/chi/v5"</td>
+          </tr>
+          <tr class="hover:elevated">
+            <td class="w-60 px-3 py-1.5 align-top text-[11px] b border-r surface"><span class="fg3/40 select-none" aria-hidden="true">·</span></td>
+            <td class="select-none fg3 px-3 py-1.5 text-right align-top b border-r elevated"><a href="#L7" class="hover:text-current">7</a></td>
+            <td class="pl-4 pr-4 py-1.5 whitespace-pre">	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"</td>
+          </tr>
+          <tr class="hover:elevated">
+            <td class="w-60 px-3 py-1.5 align-top text-[11px] b border-r surface"><span class="fg3/40 select-none" aria-hidden="true">·</span></td>
+            <td class="select-none fg3 px-3 py-1.5 text-right align-top b border-r elevated"><a href="#L8" class="hover:text-current">8</a></td>
+            <td class="pl-4 pr-4 py-1.5 whitespace-pre">)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="mt-4 text-[12px] fg3">A dot (·) marks consecutive lines from the same commit — only the first row in each run shows the commit metadata.</p>
+</main>
+
+<script>
+  const html = document.documentElement;
+  const KEY = 'cz-theme';
+  const saved = localStorage.getItem(KEY);
+  if (saved === 'light' || (!saved && window.matchMedia('(prefers-color-scheme: light)').matches)) html.classList.add('light');
+  function syncThemeUI() {
+    const isLight = html.classList.contains('light');
+    document.querySelectorAll('.dark-only').forEach(el => el.classList.toggle('hidden', isLight));
+    document.querySelectorAll('.light-only').forEach(el => el.classList.toggle('hidden', !isLight));
+    const t = document.getElementById('theme-toggle');
+    if (t) { t.setAttribute('aria-pressed', String(isLight)); t.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme'); }
+  }
+  function toggleTheme() { html.classList.toggle('light'); localStorage.setItem(KEY, html.classList.contains('light') ? 'light' : 'dark'); syncThemeUI(); }
+  syncThemeUI();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+</body>
+</html>

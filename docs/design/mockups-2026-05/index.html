@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cloudzilla — UI direction</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { font-family: 'Geist', system-ui, sans-serif; background: #000; color: #ededed; font-feature-settings: "ss01"; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+  .b { border-color: rgba(255,255,255,0.10); }
+  .fg2 { color: #b4b4b4; }
+  .fg3 { color: #8c8c8c; }
+  .focus-ring:focus-visible { outline: 2px solid #6ea8fe; outline-offset: 2px; border-radius: 6px; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .card { display:block; padding: 1.25rem 1.5rem; border: 1px solid rgba(255,255,255,0.10); border-radius: 0.5rem; position: relative; overflow: hidden; transition: border-color 120ms; }
+  .card:hover { border-color: rgba(255,255,255,0.30); }
+  .card::before { content: ""; position: absolute; inset-x: 0; top: 0; height: 1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.20), transparent); }
+  .card .eyebrow { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: #8c8c8c; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+  .card h2 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.3rem; }
+  .card p.desc { font-size: 12.5px; color: #b4b4b4; line-height: 1.55; margin-bottom: 0.75rem; }
+  .card .open { font-size: 11.5px; color: #b4b4b4; display: inline-flex; align-items: center; gap: 4px; }
+  .card:hover .open { color: #fff; }
+</style>
+</head>
+<body class="min-h-screen">
+<div class="max-w-5xl mx-auto px-6 py-20">
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Cloudzilla · UI overhaul · prototypes</p>
+  <h1 class="text-3xl font-semibold tracking-tight mb-3">Modern minimal dashboard, fully accessible.</h1>
+  <p class="fg2 mb-12 max-w-xl leading-relaxed">Geist font, dark default with light toggle, shadcn-style class conventions, WCAG AA contrast, semantic tables, skip link, focus rings, <span class="mono">prefers-reduced-motion</span>, and <span class="mono">forced-colors</span> support.</p>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Flagship pages</p>
+  <div class="grid md:grid-cols-3 gap-3 mb-10">
+    <a href="home.html" class="card focus-ring group">
+      <p class="eyebrow">/</p>
+      <h2>Home dashboard</h2>
+      <p class="desc">Workspace overview: stat strip, repositories table, attention list, commit heatmap, activity feed.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="repo.html" class="card focus-ring group">
+      <p class="eyebrow">/&lt;owner&gt;/&lt;repo&gt;</p>
+      <h2>Repository</h2>
+      <p class="desc">Action bar, branch picker, file tree, README, About sidebar, releases, languages, contributors.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="pr.html" class="card focus-ring group">
+      <p class="eyebrow">…/pulls/341</p>
+      <h2>Pull request detail</h2>
+      <p class="desc">Conversation timeline with inline review, mergeability box, sidebar metadata.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 1 · Code browser</p>
+  <div class="grid md:grid-cols-2 gap-3 mb-10">
+    <a href="tree.html" class="card focus-ring group">
+      <p class="eyebrow">…/tree/main/internal/view/pages</p>
+      <h2>Tree</h2>
+      <p class="desc">GitLab-style IDE sidebar on the left, file viewer on the right. Clicking a file in the tree swaps the right side; <span class="mono">Raw</span> opens it standalone.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="blob.html" class="card focus-ring group">
+      <p class="eyebrow">…/blob/main/internal/router/router.go</p>
+      <h2>Blob</h2>
+      <p class="desc">Single-file viewer reached from the <span class="mono">Raw</span> button — line-numbered code with permalink anchors.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="blame.html" class="card focus-ring group">
+      <p class="eyebrow">…/blame/main/internal/router/router.go</p>
+      <h2>Blame</h2>
+      <p class="desc">File with per-line author attribution, commit SHA, and date columns.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="project.html" class="card focus-ring group">
+      <p class="eyebrow">…/projects</p>
+      <h2>Projects</h2>
+      <p class="desc">List of kanban boards for the repo with progress bars and open/closed filter; rows open the board.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="project_board.html" class="card focus-ring group">
+      <p class="eyebrow">…/projects/roadmap-q2</p>
+      <h2>Project board</h2>
+      <p class="desc">Single project kanban: backlog / in-progress / review / done columns with draggable cards.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 2 · Repository activity</p>
+  <div class="grid md:grid-cols-2 gap-3 mb-10">
+    <a href="commits.html" class="card focus-ring group">
+      <p class="eyebrow">…/commits/main</p>
+      <h2>Commits</h2>
+      <p class="desc">Commit list grouped by date, with author, SHA, browse-files action.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="contributors.html" class="card focus-ring group">
+      <p class="eyebrow">…/graphs/contributors</p>
+      <h2>Contributors</h2>
+      <p class="desc">Per-contributor stats: commit count, additions/deletions, sparkline timeline.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="pulse.html" class="card focus-ring group">
+      <p class="eyebrow">…/pulse</p>
+      <h2>Pulse</h2>
+      <p class="desc">Repository activity summary — last 30 days of issues/PRs/commits with mini charts.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="dependencies.html" class="card focus-ring group">
+      <p class="eyebrow">…/network/dependencies</p>
+      <h2>Dependency graph</h2>
+      <p class="desc">Direct and transitive dependencies grouped by manifest, with version + license columns.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 3 · Issues, PRs, Discussions, Actions</p>
+  <div class="grid md:grid-cols-2 gap-3 mb-10">
+    <a href="issues.html" class="card focus-ring group">
+      <p class="eyebrow">…/issues</p>
+      <h2>Issues</h2>
+      <p class="desc">Repo issue list with state filters, labels, and bulk actions.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="issue_detail.html" class="card focus-ring group">
+      <p class="eyebrow">…/issues/214</p>
+      <h2>Issue detail</h2>
+      <p class="desc">Single issue with comment thread, assignees, labels, priority, milestone, linked PRs.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="issue_new.html" class="card focus-ring group">
+      <p class="eyebrow">…/issues/new</p>
+      <h2>New issue</h2>
+      <p class="desc">Issue creation form with template picker, labels, assignees.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="pulls.html" class="card focus-ring group">
+      <p class="eyebrow">…/pulls</p>
+      <h2>Pull requests</h2>
+      <p class="desc">Repo PR list with state subnav, CI status, reviewer avatars, label chips.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="pull_new.html" class="card focus-ring group">
+      <p class="eyebrow">…/compare</p>
+      <h2>New pull request</h2>
+      <p class="desc">Compare branches + title/description form with reviewers picker.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="discussions.html" class="card focus-ring group">
+      <p class="eyebrow">…/discussions</p>
+      <h2>Discussions</h2>
+      <p class="desc">Thread list with category chips, Open/Answered/Closed filter, pinned + answered badges.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="actions.html" class="card focus-ring group">
+      <p class="eyebrow">…/actions</p>
+      <h2>Actions (coming soon)</h2>
+      <p class="desc">Empty-state placeholder for CI/CD — friendly explanation + dimmed preview runs.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 4 · Pull request sub-views</p>
+  <div class="grid md:grid-cols-3 gap-3 mb-10">
+    <a href="pr_commits.html" class="card focus-ring group">
+      <p class="eyebrow">…/pulls/341/commits</p>
+      <h2>PR · Commits</h2>
+      <p class="desc">Commits in this PR, grouped by date. Same chrome as pr.html.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="pr_checks.html" class="card focus-ring group">
+      <p class="eyebrow">…/pulls/341/checks</p>
+      <h2>PR · Checks</h2>
+      <p class="desc">Status checks for this PR — build, lint, templ-generate, tests, integration, docker.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="pr_files.html" class="card focus-ring group">
+      <p class="eyebrow">…/pulls/341/files</p>
+      <h2>PR · Files changed</h2>
+      <p class="desc">Diff view with file-tree sidebar and inline hunk display.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 5 · Distribution &amp; docs</p>
+  <div class="grid md:grid-cols-2 gap-3 mb-10">
+    <a href="releases.html" class="card focus-ring group">
+      <p class="eyebrow">…/releases</p>
+      <h2>Releases</h2>
+      <p class="desc">Published + draft releases with assets, changelogs, and prerelease tags.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="wiki.html" class="card focus-ring group">
+      <p class="eyebrow">…/wiki</p>
+      <h2>Wiki</h2>
+      <p class="desc">Markdown documentation with sidebar nav and on-this-page TOC.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="topic.html" class="card focus-ring group">
+      <p class="eyebrow">/topics/go</p>
+      <h2>Topic page</h2>
+      <p class="desc">All repositories tagged with a topic (crowd-sourced labels).</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="settings.html" class="card focus-ring group">
+      <p class="eyebrow">…/settings</p>
+      <h2>Repository settings</h2>
+      <p class="desc">Sidebar nav with General, Access, Collaborators, Branches, Webhooks, Deploy keys, Danger zone.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 6 · Gists</p>
+  <div class="grid md:grid-cols-3 gap-3 mb-10">
+    <a href="gists.html" class="card focus-ring group">
+      <p class="eyebrow">/gists</p>
+      <h2>Gists list</h2>
+      <p class="desc">Public + secret gists with file/star/fork counts and language labels.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="gist_detail.html" class="card focus-ring group">
+      <p class="eyebrow">/gists/&lt;hash&gt;</p>
+      <h2>Gist detail</h2>
+      <p class="desc">Single gist view with file tabs, code, comments, and clone-URL field.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="gist_new.html" class="card focus-ring group">
+      <p class="eyebrow">/gists/new</p>
+      <h2>New gist</h2>
+      <p class="desc">Gist creation form with filename + language selector + Write/Preview tabs.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 7 · Your dashboard (cross-repo)</p>
+  <div class="grid md:grid-cols-2 gap-3 mb-10">
+    <a href="my_repositories.html" class="card focus-ring group">
+      <p class="eyebrow">/&lt;you&gt;?tab=repositories</p>
+      <h2>Your repositories</h2>
+      <p class="desc">Filterable list of repos you own or collaborate on, with role badges and language indicators.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="my_pulls.html" class="card focus-ring group">
+      <p class="eyebrow">/pulls</p>
+      <h2>Your pull requests</h2>
+      <p class="desc">PRs across every repo you author or review — Created/Assigned/Review requests/Mentioned tabs.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="my_issues.html" class="card focus-ring group">
+      <p class="eyebrow">/issues</p>
+      <h2>Your issues</h2>
+      <p class="desc">Issues assigned to, created by, or mentioning you across every repo.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="activity.html" class="card focus-ring group">
+      <p class="eyebrow">/activity</p>
+      <h2>Activity feed</h2>
+      <p class="desc">Chronological feed of merges, opens, comments, stars, and releases.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="stars.html" class="card focus-ring group">
+      <p class="eyebrow">/stars</p>
+      <h2>Your stars</h2>
+      <p class="desc">Repos you've starred across Cloudzilla, with language filter chips.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 8 · Profile &amp; organizations</p>
+  <div class="grid md:grid-cols-2 gap-3 mb-10">
+    <a href="profile.html" class="card focus-ring group">
+      <p class="eyebrow">/&lt;username&gt;</p>
+      <h2>Public profile</h2>
+      <p class="desc">Bio, pinned repos, contribution heatmap, recent activity, orgs, top languages.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="organizations.html" class="card focus-ring group">
+      <p class="eyebrow">/settings/organizations</p>
+      <h2>Your organizations</h2>
+      <p class="desc">Orgs you own or are a member of, with role badge and Leave/Manage actions.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="new_organization.html" class="card focus-ring group">
+      <p class="eyebrow">/organizations/new</p>
+      <h2>New organization</h2>
+      <p class="desc">Organization creation form: name, email, owner type, plan selection.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="new_repo.html" class="card focus-ring group">
+      <p class="eyebrow">/new</p>
+      <h2>New repository</h2>
+      <p class="desc">Repo creation: owner, name, visibility radios, init options (README, .gitignore, license).</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Tier 9 · Settings &amp; global pages</p>
+  <div class="grid md:grid-cols-2 gap-3 mb-10">
+    <a href="account_settings.html" class="card focus-ring group">
+      <p class="eyebrow">/settings</p>
+      <h2>Account settings</h2>
+      <p class="desc">Profile, password &amp; 2FA, SSH keys, personal access tokens, notifications, danger zone.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="docs.html" class="card focus-ring group">
+      <p class="eyebrow">/docs</p>
+      <h2>Documentation</h2>
+      <p class="desc">3-column docs layout: section nav, prose, on-this-page TOC. Getting started + reference.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="changelog.html" class="card focus-ring group">
+      <p class="eyebrow">/changelog</p>
+      <h2>Changelog</h2>
+      <p class="desc">Vertical release timeline with feature/fix/breaking tags and dated dots.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+    <a href="auth.html" class="card focus-ring group">
+      <p class="eyebrow">/login · /register · /setup · /404 · /403</p>
+      <h2>Auth &amp; state pages</h2>
+      <p class="desc">Six panel variants on one page: login, 2FA verify, 404, OAuth consent, invite accept, 403.</p>
+      <p class="open">Open <span aria-hidden="true">→</span></p>
+    </a>
+  </div>
+
+  <div class="b border rounded-lg p-5 mb-6">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-3">Gallery stats</p>
+    <p class="text-sm fg2 leading-relaxed"><strong class="text-white">42 mockups</strong> across 9 tiers + Flagship. Every page carries the canonical top-nav chrome (workspace switcher → account/org dropdown, user-menu avatar with profile/orgs/settings/docs/changelog/sign-out, theme toggle). Every repo-scoped page carries the 9-tab Repository sections subnav. Every user-scoped page carries the 8-tab dashboard nav. Hover any card here for the destination URL pattern.</p>
+  </div>
+
+  <p class="mono text-[11px] fg3">mockups/ · static HTML · no build step · Tailwind via CDN · Geist font</p>
+</div>
+</body>
+</html>

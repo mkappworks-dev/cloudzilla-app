@@ -2,6 +2,8 @@
 
 Source of truth for the UI overhaul. Every per-phase page port translates mockup classes mechanically using this map. If a mockup uses a class not in this map, **halt and update the map first** — do not invent ad-hoc replacements during a port.
 
+The mockups themselves are archived in [`design/mockups-2026-05/`](./design/mockups-2026-05/README.md). They are Tailwind v3 play-CDN pages, so this map — not the mockup markup — is what binds.
+
 ## Token reference (CSS variables)
 
 | Mockup variable   | shadcn variable in `tailwind/input.css`   | Tailwind utility             |

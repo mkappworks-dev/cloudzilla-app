@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wiki · Home — mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}.link{color:var(--link)}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .cz-dialog{padding:0;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface);color:var(--fg);max-width:420px;width:calc(100% - 32px);box-shadow:0 20px 50px rgba(0,0,0,0.5);margin-top:28vh;margin-bottom:auto}
+  .cz-dialog::backdrop{background:rgba(0,0,0,0.6);backdrop-filter:blur(2px)}
+  .prose{color:var(--fg-2);font-size:14px;line-height:1.7}
+  .prose h1{color:var(--fg);font-size:24px;font-weight:600;margin:0 0 12px}
+  .prose h2{color:var(--fg);font-size:18px;font-weight:600;margin:24px 0 10px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+  .prose p{margin:0 0 12px}
+  .prose code{font-family:'Geist Mono',monospace;font-size:12.5px;background:var(--elevated);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+  .prose pre{font-family:'Geist Mono',monospace;font-size:12.5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;overflow-x:auto;margin:0 0 16px}
+  .prose pre code{background:transparent;border:0;padding:0}
+  .prose a{color:var(--link);text-decoration:underline;text-underline-offset:3px}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<div id="cz-header" data-repo-tab="wiki"></div>
+<script src="nav.js"></script>
+
+<main class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6 flex flex-wrap items-start justify-between gap-4" aria-labelledby="wiki-title">
+    <div class="min-w-0">
+      <h1 id="wiki-title" class="text-2xl font-semibold tracking-tight">Home</h1>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <a href="wiki_edit.html" class="h-8 px-3 b border rounded-md hover:elevated text-[13px] fg2 inline-flex items-center gap-1.5">Edit</a>
+      <button type="button" id="wiki-delete" class="h-8 px-3 rounded-md text-[13px] inline-flex items-center gap-1.5" style="background:rgba(248,113,113,0.10);color:#f87171;border:1px solid rgba(248,113,113,0.40)">Delete</button>
+    </div>
+  </section>
+
+  <div class="grid lg:grid-cols-[220px_1fr] gap-8">
+    <aside aria-label="Wiki pages">
+      <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">Pages</p>
+      <ul id="wiki-page-list" class="space-y-0.5 text-[13px]">
+        <li data-slug="Home">
+          <a href="wiki.html" class="block px-2 py-1.5 rounded-md font-medium elevated" aria-current="page">Home</a>
+        </li>
+        <li data-slug="Architecture">
+          <a href="wiki_architecture.html" class="block px-2 py-1.5 rounded-md fg2 hover:text-current hover:elevated">Architecture</a>
+        </li>
+        <li data-slug="Contributing">
+          <a href="wiki_contributing.html" class="block px-2 py-1.5 rounded-md fg2 hover:text-current hover:elevated">Contributing</a>
+        </li>
+        <li data-slug="Code-of-Conduct">
+          <a href="wiki_code_of_conduct.html" class="block px-2 py-1.5 rounded-md fg2 hover:text-current hover:elevated">Code-of-Conduct</a>
+        </li>
+        <li data-slug="Setup-on-mac">
+          <a href="wiki_setup_on_mac.html" class="block px-2 py-1.5 rounded-md fg2 hover:text-current hover:elevated">Setup-on-mac</a>
+        </li>
+        <li data-slug="Release-process">
+          <a href="wiki_release_process.html" class="block px-2 py-1.5 rounded-md fg2 hover:text-current hover:elevated">Release-process</a>
+        </li>
+      </ul>
+      <a href="wiki_new.html" class="inline-block mt-3 text-[12px] fg2 hover:text-current px-2 py-1.5">+ New page</a>
+      <button type="button" id="wiki-reorder-toggle" class="mt-2 inline-block text-[12px] fg2 hover:text-current px-2 py-1.5">Reorder pages</button>
+    </aside>
+
+    <article class="b border rounded-md surface p-6">
+      <div class="prose">
+        <h1>Welcome to the Cloudzilla wiki</h1>
+        <p>This wiki holds project-wide documentation that doesn't fit in the README — design notes, runbooks, contributor onboarding, and the longer-form architecture decisions.</p>
+        <h2>Pick a topic</h2>
+        <p>The sidebar on the left lists every wiki page. The most commonly-visited entry points:</p>
+        <ul style="padding-left:22px;margin:0 0 12px;">
+          <li><a href="wiki_architecture.html">Architecture</a> — the strict <code>Stores → Services → Handlers</code> layering, plus how Templ and HTMX fit together.</li>
+          <li><a href="wiki_contributing.html">Contributing</a> — branch naming, commit conventions, and how to run the test suite locally.</li>
+          <li><a href="wiki_setup_on_mac.html">Setup-on-mac</a> — the one-time PostgreSQL and Tailwind CLI setup steps.</li>
+        </ul>
+        <h2>Editing pages</h2>
+        <p>Anyone with write access can edit pages. Click <strong>Edit</strong> in the page header to open the Markdown editor. Each save writes a commit to the wiki's bare repo — you can review history in the project's <a href="#">audit log</a>.</p>
+        <pre><code># Render the wiki locally
+make dev
+open http://localhost:8080/mkappworks/cloudzilla/wiki/Home</code></pre>
+      </div>
+    </article>
+  </div>
+
+</main>
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<dialog id="wiki-delete-dialog" class="cz-dialog" aria-labelledby="wdd-title">
+  <div class="p-5">
+    <h2 id="wdd-title" class="text-base font-semibold tracking-tight mb-1">Delete this page?</h2>
+    <p class="text-[13px] fg3 leading-relaxed mb-5">Are you sure you want to delete the <strong class="text-current">Home</strong> wiki page? This removes it from the wiki repo. This action cannot be undone.</p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="wdd-cancel" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated">Cancel</button>
+      <button type="button" id="wdd-confirm" class="h-9 px-4 text-sm rounded-md font-medium" style="background:#f87171;color:#450a0a">Delete page</button>
+    </div>
+  </div>
+</dialog>
+<script>/* WIKI_DELETE_CONFIRM_JS */
+  (function(){
+    var trigger = document.getElementById('wiki-delete');
+    var dialog  = document.getElementById('wiki-delete-dialog');
+    if(!trigger || !dialog || typeof dialog.showModal !== 'function') return;
+
+    trigger.addEventListener('click', function(){
+      dialog.returnValue = '';
+      dialog.showModal();
+    });
+    document.getElementById('wdd-cancel').addEventListener('click', function(){ dialog.close('cancel'); });
+    document.getElementById('wdd-confirm').addEventListener('click', function(){ dialog.close('confirm'); });
+
+    dialog.addEventListener('close', function(){
+      if(dialog.returnValue === 'confirm') window.location.href = 'wiki.html';
+    });
+  })();
+</script>
+</body>
+</html>

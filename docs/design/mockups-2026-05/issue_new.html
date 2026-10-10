@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New issue · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--success:#4ade80;--danger:#f87171;--danger-bg:rgba(248,113,113,0.12);--accent:#a78bfa;--accent-bg:rgba(167,139,250,0.12); }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--success:#15803d;--danger:#b91c1c;--danger-bg:rgba(185,28,28,0.10);--accent:#6d28d9;--accent-bg:rgba(109,40,217,0.10); }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:9999px;font-size:11px;font-weight:500;border:1px solid var(--border)}
+  .meta-menu{max-height:340px;overflow-y:auto}
+  .meta-menu .check{visibility:hidden;flex:none}
+  .meta-menu [aria-checked="true"] .check{visibility:visible}
+  .meta-dot{width:9px;height:9px;border-radius:9px;flex:none}
+  [data-entry].off,[data-empty].off{display:none}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .md-preview h1,.md-preview h2,.md-preview h3{font-weight:600;margin:16px 0 8px}
+  .md-preview h1{font-size:20px}.md-preview h2{font-size:17px}.md-preview h3{font-size:15px}
+  .md-preview p{margin:8px 0}.md-preview ul,.md-preview ol{margin:8px 0;padding-left:22px}
+  .md-preview ul{list-style:disc}.md-preview ol{list-style:decimal}.md-preview li{margin:2px 0}
+  .md-preview blockquote{border-left:2px solid var(--border-strong);padding-left:12px;color:var(--fg-2);margin:8px 0}
+  .md-preview pre{background:var(--elevated);border:1px solid var(--border);border-radius:6px;padding:12px;overflow-x:auto;margin:8px 0;font-size:12px}
+  .md-preview a{color:var(--focus)}.md-preview a:hover{text-decoration:underline}
+  .md-preview > :first-child{margin-top:0}.md-preview > :last-child{margin-bottom:0}
+  html.light [style*="color:#052e16"]{color:#fff !important}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<div id="cz-header" data-repo-tab="issues"></div>
+<script src="nav.js"></script>
+
+<main class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6" aria-labelledby="new-title">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="issues.html" class="hover:underline">Issues</a>
+      <span aria-hidden="true">·</span>
+      New
+    </p>
+    <h1 id="new-title" class="text-2xl font-semibold tracking-tight">Open a new issue</h1>
+    <p class="mt-1 text-[13px] fg2">Describe the bug, request, or task — the more context, the faster it gets triaged.</p>
+  </section>
+
+  <div class="grid lg:grid-cols-[1fr_280px] gap-8">
+  <div class="min-w-0">
+
+  <section aria-labelledby="composer" class="b border rounded-md surface p-6">
+    <h2 id="composer" class="text-[13px] font-medium mb-4">Compose</h2>
+    <form class="space-y-5">
+      <div class="space-y-1.5">
+        <label for="title" class="block text-sm font-medium">Title</label>
+        <input id="title" name="title" type="text" required placeholder="Short summary of the issue" class="flex h-9 w-full rounded-md b border bg-transparent px-3 py-1 text-sm placeholder:fg3" />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium">Description</label>
+        <!-- MarkdownEditor (rendered by markdown-editor.js) -->
+        <div data-markdown-editor data-rows="12" data-placeholder="### Steps to reproduce&#10;&#10;1. ...&#10;2. ..."></div>
+        <p class="text-[11px] fg3">Markdown is supported. <kbd class="mono px-1 py-0.5 elevated b border rounded">@</kbd> mentions notify users; <kbd class="mono px-1 py-0.5 elevated b border rounded">#</kbd> links issues/PRs.</p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input id="visibility_private" type="checkbox" name="visibility" value="private" class="h-4 w-4 rounded b border bg-transparent" />
+        <label for="visibility_private" class="text-sm">Private issue <span class="fg3">(visible only to collaborators with write access)</span></label>
+      </div>
+
+      <div class="pt-2 flex items-center gap-3">
+        <button type="submit" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5" style="background:var(--success);color:#052e16">
+          Submit new issue
+        </button>
+        <a href="issues.html" class="text-sm fg2 hover:underline">Cancel</a>
+      </div>
+    </form>
+  </section>
+  </div>
+
+  <aside class="space-y-6" aria-label="Issue metadata">
+
+    <!-- Assignees -->
+    <section id="meta-assignees" aria-labelledby="assignees-heading">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="assignees-heading" class="text-[12px] font-medium fg2">Assignees</h2>
+        <div class="dropdown-wrap">
+          <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Edit assignees">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Edit assignees">
+            <p class="dropdown-header">Assign people</p>
+            <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="malith" class="dropdown-item">
+              <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+              <span class="flex-1">@malith</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="yumi" class="dropdown-item">
+              <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">YM</span>
+              <span class="flex-1">@yumi</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="daisy" class="dropdown-item">
+              <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">DK</span>
+              <span class="flex-1">@daisy</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="dropdown-divider"></div>
+            <a href="settings.html#collaborators" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="11" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              <span>Invite a collaborator</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <ul class="space-y-1.5">
+        <li data-entry="malith" class="flex items-center gap-2 text-[13px]">
+          <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+          <a href="#" class="hover:underline">@malith</a>
+        </li>
+        <li data-entry="yumi" class="off flex items-center gap-2 text-[13px]">
+          <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">YM</span>
+          <a href="#" class="hover:underline">@yumi</a>
+        </li>
+        <li data-entry="daisy" class="off flex items-center gap-2 text-[13px]">
+          <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">DK</span>
+          <a href="#" class="hover:underline">@daisy</a>
+        </li>
+      </ul>
+      <p data-empty class="off text-[13px] fg3">No one assigned.</p>
+    </section>
+
+    <!-- Labels -->
+    <section id="meta-labels" aria-labelledby="labels-heading" class="b border-t pt-5">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="labels-heading" class="text-[12px] font-medium fg2">Labels</h2>
+        <div class="dropdown-wrap">
+          <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Edit labels">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Edit labels">
+            <p class="dropdown-header">Apply labels</p>
+            <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="bug" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--danger)" aria-hidden="true"></span>
+              <span class="flex-1">bug</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="security" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--warn)" aria-hidden="true"></span>
+              <span class="flex-1">security</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="enhancement" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--success)" aria-hidden="true"></span>
+              <span class="flex-1">enhancement</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="performance" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--focus)" aria-hidden="true"></span>
+              <span class="flex-1">performance</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="documentation" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--focus)" aria-hidden="true"></span>
+              <span class="flex-1">documentation</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="dropdown-divider"></div>
+            <a href="settings.html#labels" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              <span>Create a new label</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <ul class="flex flex-wrap gap-1.5">
+        <li data-entry="bug"><span class="badge" style="background:rgba(248,113,113,0.12);color:var(--danger);border-color:rgba(248,113,113,0.30)">bug</span></li>
+        <li data-entry="security"><span class="badge" style="background:rgba(251,191,36,0.12);color:var(--warn);border-color:rgba(251,191,36,0.30)">security</span></li>
+        <li data-entry="enhancement" class="off"><span class="badge" style="background:rgba(74,222,128,0.12);color:var(--success);border-color:rgba(74,222,128,0.30)">enhancement</span></li>
+        <li data-entry="performance" class="off"><span class="badge" style="background:rgba(110,168,254,0.12);color:var(--focus);border-color:rgba(110,168,254,0.30)">performance</span></li>
+        <li data-entry="documentation" class="off"><span class="badge" style="background:rgba(110,168,254,0.12);color:var(--focus);border-color:rgba(110,168,254,0.30)">documentation</span></li>
+      </ul>
+      <p data-empty class="off text-[13px] fg3">No labels.</p>
+    </section>
+
+    <!-- Priority -->
+    <section id="meta-priority" aria-labelledby="priority-heading" class="b border-t pt-5">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="priority-heading" class="text-[12px] font-medium fg2">Priority</h2>
+        <div class="dropdown-wrap">
+          <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Set priority">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Set priority">
+            <p class="dropdown-header">Set priority</p>
+            <button type="button" role="menuitemradio" aria-checked="false" data-key="P0" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--danger)" aria-hidden="true"></span>
+              <span class="flex-1">P0 · Critical</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemradio" aria-checked="true" data-key="P1" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--focus)" aria-hidden="true"></span>
+              <span class="flex-1">P1 · High</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemradio" aria-checked="false" data-key="P2" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--warn)" aria-hidden="true"></span>
+              <span class="flex-1">P2 · Medium</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemradio" aria-checked="false" data-key="P3" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--fg-3)" aria-hidden="true"></span>
+              <span class="flex-1">P3 · Low</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button type="button" role="menuitemradio" aria-checked="false" data-key="none" class="dropdown-item">
+              <span class="flex-1 fg3">No priority</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div data-entry="P0" class="off"><span class="badge" style="background:rgba(248,113,113,0.12);color:var(--danger);border-color:rgba(248,113,113,0.30)">P0</span></div>
+      <div data-entry="P1"><span class="badge" style="background:rgba(110,168,254,0.12);color:var(--focus);border-color:rgba(110,168,254,0.30)">P1</span></div>
+      <div data-entry="P2" class="off"><span class="badge" style="background:rgba(251,191,36,0.12);color:var(--warn);border-color:rgba(251,191,36,0.30)">P2</span></div>
+      <div data-entry="P3" class="off"><span class="badge" style="background:var(--elevated);color:var(--fg-2)">P3</span></div>
+      <p data-empty class="off text-[13px] fg3">No priority.</p>
+    </section>
+
+    <!-- Milestone -->
+    <section id="meta-milestone" aria-labelledby="milestone-heading" class="b border-t pt-5">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="milestone-heading" class="text-[12px] font-medium fg2">Milestone</h2>
+        <div class="dropdown-wrap">
+          <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Set milestone">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Set milestone">
+            <p class="dropdown-header">Set milestone</p>
+            <button type="button" role="menuitemradio" aria-checked="true" data-key="m1" class="dropdown-item">
+              <span class="flex-1">v1.0 release</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemradio" aria-checked="false" data-key="m2" class="dropdown-item">
+              <span class="flex-1">v1.1 hardening</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button type="button" role="menuitemradio" aria-checked="false" data-key="none" class="dropdown-item">
+              <span class="flex-1 fg3">No milestone</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="dropdown-divider"></div>
+            <a href="milestone_new.html" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              <span>New milestone</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div data-entry="m1">
+        <p class="text-[13px]"><a href="#" class="hover:underline">v1.0 release</a></p>
+        <div class="mt-1.5" role="progressbar" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100" aria-label="Milestone progress: 68%">
+          <div class="h-1.5 b border rounded-full overflow-hidden surface">
+            <div class="h-full" style="width: 68%; background: var(--success);"></div>
+          </div>
+          <p class="mt-1 text-[11px] fg3 mono">34 / 50 closed <span aria-hidden="true">·</span> 68%</p>
+        </div>
+      </div>
+      <div data-entry="m2" class="off">
+        <p class="text-[13px]"><a href="#" class="hover:underline">v1.1 hardening</a></p>
+        <div class="mt-1.5" role="progressbar" aria-valuenow="22" aria-valuemin="0" aria-valuemax="100" aria-label="Milestone progress: 22%">
+          <div class="h-1.5 b border rounded-full overflow-hidden surface">
+            <div class="h-full" style="width: 22%; background: var(--success);"></div>
+          </div>
+          <p class="mt-1 text-[11px] fg3 mono">8 / 36 closed <span aria-hidden="true">·</span> 22%</p>
+        </div>
+      </div>
+      <p data-empty class="off text-[13px] fg3">No milestone.</p>
+    </section>
+
+    <!-- Linked pull requests -->
+    <section id="meta-linked" aria-labelledby="linked-heading" class="b border-t pt-5">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="linked-heading" class="text-[12px] font-medium fg2">Linked pull requests</h2>
+        <div class="dropdown-wrap">
+          <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Link a pull request">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Link a pull request">
+            <p class="dropdown-header">Link a pull request</p>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="350" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+              <span class="flex-1 truncate"><span class="mono fg3">#350</span> Harden SSH host key handling</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="361" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+              <span class="flex-1 truncate"><span class="mono fg3">#361</span> Document known_hosts remediation</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="dropdown-divider"></div>
+            <a href="pulls.html" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+              <span>Browse pull requests</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <ul class="space-y-1.5 text-[13px]">
+        <li data-entry="350" class="off flex items-center gap-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true" focusable="false"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+          <a href="#" class="hover:underline truncate"><span class="mono fg3">#350</span> Harden SSH host key handling</a>
+        </li>
+        <li data-entry="361" class="off flex items-center gap-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true" focusable="false"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+          <a href="#" class="hover:underline truncate"><span class="mono fg3">#361</span> Document known_hosts remediation</a>
+        </li>
+      </ul>
+      <p data-empty class="text-[13px] fg3">No linked PRs yet.</p>
+    </section>
+
+  </aside>
+  </div>
+</main>
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>/* sidebar metadata menus: live toggle */
+  (function(){
+    function syncEmpty(section){
+      var placeholder = section.querySelector('[data-empty]');
+      if (!placeholder) return;
+      var anyVisible = Array.prototype.some.call(
+        section.querySelectorAll('[data-entry]'),
+        function(en){ return !en.classList.contains('off'); }
+      );
+      placeholder.classList.toggle('off', anyVisible);
+    }
+    document.querySelectorAll('.meta-menu').forEach(function(panel){
+      var section = panel.closest('section');
+      if (!section) return;
+      panel.addEventListener('click', function(e){
+        var item = e.target.closest('[data-key]');
+        if (!item || !panel.contains(item)) return;
+        var key = item.getAttribute('data-key');
+        if (item.getAttribute('role') === 'menuitemradio'){
+          panel.querySelectorAll('[data-key]').forEach(function(it){
+            it.setAttribute('aria-checked', String(it === item));
+          });
+          section.querySelectorAll('[data-entry]').forEach(function(en){
+            en.classList.toggle('off', en.getAttribute('data-entry') !== key);
+          });
+        } else {
+          var on = item.getAttribute('aria-checked') !== 'true';
+          item.setAttribute('aria-checked', String(on));
+          var entry = section.querySelector('[data-entry="' + key + '"]');
+          if (entry) entry.classList.toggle('off', !on);
+        }
+        syncEmpty(section);
+      });
+      syncEmpty(section);
+    });
+  })();
+</script>
+<script src="markdown-editor.js"></script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phase 15.3 — Dependency graph · Releases — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--success:#4ade80;--warn:#fbbf24;--danger:#f87171; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .badge-success{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .badge-warn{background:rgba(251,191,36,0.15);color:var(--warn);border-color:rgba(251,191,36,0.30)}
+  .badge-draft{background:var(--elevated);color:var(--fg-3);border-color:transparent}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .title-editing{background:var(--elevated);border-radius:6px;padding:0 6px;outline:1px solid var(--border-strong)}
+  .btn-success{background:var(--success);color:#052e16}
+  html.light .btn-success{color:#fff}
+  .btn-danger-soft{background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.30)}
+  .btn-danger-soft:hover{background:rgba(248,113,113,0.20)}
+  .cz-dialog{padding:0;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface);color:var(--fg);max-width:480px;width:calc(100% - 32px);box-shadow:0 20px 50px rgba(0,0,0,0.5);margin-top:28vh;margin-bottom:auto}
+  .cz-dialog::backdrop{background:rgba(0,0,0,0.6);backdrop-filter:blur(2px)}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<div id="cz-header" data-repo-tab="releases"></div>
+<script src="nav.js"></script>
+
+<main class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6" aria-labelledby="rel-title">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="releases.html" class="hover:underline">Releases</a>
+      <span aria-hidden="true">·</span>
+      v0.2.0
+    </p>
+    <div class="flex flex-wrap items-center gap-2">
+      <h1 id="rel-title" class="text-2xl font-semibold tracking-tight"><span id="title-text">Phase 15.3 — Dependency graph</span></h1>
+      <code class="mono px-2 py-0.5 b border elevated rounded text-[12px]">v0.2.0</code>
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border badge-success">Latest</span>
+      <button type="button" id="edit-title-btn" class="ml-auto h-8 px-3 text-[13px] rounded-md b border hover:elevated inline-flex items-center shrink-0">Edit</button>
+    </div>
+    <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] fg2">
+      <span class="inline-flex items-center gap-1.5">
+        <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+        Malith Kuruppu
+      </span>
+      <span aria-hidden="true" class="fg3">·</span>
+      <span>published <time datetime="2026-05-12">May 12, 2026</time></span>
+      <span aria-hidden="true" class="fg3">·</span>
+      <span class="inline-flex items-center gap-1.5">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.2 4.2l4.2 4.2M15.6 15.6l4.2 4.2"/></svg>
+        <code class="mono text-[12px]">420b44b</code>
+      </span>
+    </div>
+  </section>
+
+  <div class="grid lg:grid-cols-[1fr_280px] gap-6 items-start">
+
+    <div class="space-y-6 min-w-0">
+
+      <section class="b border rounded-md surface overflow-hidden" aria-labelledby="notes-heading">
+        <header class="px-5 py-3 b border-b elevated flex items-center gap-2">
+          <h2 id="notes-heading" class="text-[13px] font-medium">Release notes</h2>
+          <button type="button" id="edit-desc-btn" class="ml-auto inline-flex items-center gap-1 h-7 px-2 rounded-md b border hover:elevated text-[12px] fg2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
+        </header>
+        <div class="p-5">
+          <!-- MarkdownEditor edit form -->
+          <div id="desc-editor" class="hidden mb-3">
+            <div data-markdown-editor data-rows="16" data-placeholder="Edit the release notes…"><textarea>## Dependency graph
+
+This release ships the dependency graph for `go.mod` and `package.json` manifests, giving every repository a parsed view of its direct and transitive dependencies.
+
+## What's new
+
+- Parse and render the dependency graph for Go modules from `go.mod` / `go.sum`.
+- Parse and render npm dependencies from `package.json`, including dev dependencies.
+- Surface direct vs. transitive dependencies with version constraints.
+- Add the auto-publish workflow powered by release-please — merged release PRs now tag and publish automatically.
+- Release notes are generated from Conventional Commits since the previous tag.
+
+## Upgrade notes
+
+No migrations are required. The dependency graph is computed on first view and cached per commit.</textarea></div>
+            <div id="desc-actions" class="flex justify-end gap-2 mt-3">
+              <button type="button" id="desc-cancel" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated">Cancel</button>
+              <button type="button" id="desc-save" class="h-8 px-3 text-[13px] rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Save</button>
+            </div>
+          </div>
+          <div id="desc-rendered" class="text-[13px] fg2 leading-relaxed space-y-3">
+            <h3 class="text-base font-semibold text-current">Dependency graph</h3>
+            <p>This release ships the dependency graph for <code class="mono px-1.5 py-0.5 b border elevated rounded text-[12px]">go.mod</code> and <code class="mono px-1.5 py-0.5 b border elevated rounded text-[12px]">package.json</code> manifests, giving every repository a parsed view of its direct and transitive dependencies.</p>
+            <h3 class="text-sm font-semibold text-current mt-4">What's new</h3>
+            <ul class="list-disc pl-5 space-y-1.5">
+              <li>Parse and render the dependency graph for Go modules from <code class="mono px-1.5 py-0.5 b border elevated rounded text-[12px]">go.mod</code> / <code class="mono px-1.5 py-0.5 b border elevated rounded text-[12px]">go.sum</code>.</li>
+              <li>Parse and render npm dependencies from <code class="mono px-1.5 py-0.5 b border elevated rounded text-[12px]">package.json</code>, including dev dependencies.</li>
+              <li>Surface direct vs. transitive dependencies with version constraints.</li>
+              <li>Add the auto-publish workflow powered by release-please — merged release PRs now tag and publish automatically.</li>
+              <li>Release notes are generated from Conventional Commits since the previous tag.</li>
+            </ul>
+            <h3 class="text-sm font-semibold text-current mt-4">Upgrade notes</h3>
+            <p>No migrations are required. The dependency graph is computed on first view and cached per commit.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="b border rounded-md surface overflow-hidden" aria-labelledby="assets-heading">
+        <header class="px-5 py-3 b border-b elevated flex items-center gap-2">
+          <h2 id="assets-heading" class="text-[13px] font-medium">Assets</h2>
+          <span class="mono text-[11px] fg3 ml-auto">3 files</span>
+        </header>
+        <ul class="divide-y" style="border-color:var(--border)">
+          <li class="flex items-center gap-3 px-5 py-3">
+            <svg class="fg3 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="mono text-[13px] min-w-0 truncate">Source code (zip)</span>
+            <span class="text-[12px] fg3 ml-auto whitespace-nowrap">— KB</span>
+            <a href="#" class="h-7 px-2.5 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5 text-[12px] shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </a>
+          </li>
+          <li class="flex items-center gap-3 px-5 py-3">
+            <svg class="fg3 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="mono text-[13px] min-w-0 truncate">Source code (tar.gz)</span>
+            <span class="text-[12px] fg3 ml-auto whitespace-nowrap">— KB</span>
+            <a href="#" class="h-7 px-2.5 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5 text-[12px] shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </a>
+          </li>
+          <li class="flex items-center gap-3 px-5 py-3">
+            <svg class="fg3 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <span class="mono text-[13px] min-w-0 truncate">cloudzilla_0.2.0_linux_amd64.tar.gz</span>
+            <span class="text-[12px] fg3 ml-auto whitespace-nowrap">18.4 MB</span>
+            <a href="#" class="h-7 px-2.5 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5 text-[12px] shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </a>
+          </li>
+        </ul>
+      </section>
+
+    </div>
+
+    <aside class="space-y-6" aria-label="Release metadata">
+
+      <section id="meta-tag" aria-labelledby="tag-heading">
+        <h2 id="tag-heading" class="text-[12px] font-medium fg2 mb-2">Tag</h2>
+        <p><code class="mono px-2 py-0.5 b border elevated rounded text-[12px]">v0.2.0</code></p>
+      </section>
+
+      <section id="meta-commit" aria-labelledby="commit-heading" class="b border-t pt-5">
+        <h2 id="commit-heading" class="text-[12px] font-medium fg2 mb-2">Commit</h2>
+        <p class="mono text-[12px] fg2">420b44b</p>
+      </section>
+
+      <section id="meta-status" aria-labelledby="status-heading" class="b border-t pt-5">
+        <h2 id="status-heading" class="text-[12px] font-medium fg2 mb-2">Status</h2>
+        <p><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border badge-success">Latest</span></p>
+      </section>
+
+      <section id="meta-contributors" aria-labelledby="contributors-heading" class="b border-t pt-5">
+        <h2 id="contributors-heading" class="text-[12px] font-medium fg2 mb-2">Contributors</h2>
+        <div class="flex items-center gap-1.5">
+          <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-label="Malith Kuruppu">MK</span>
+          <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-label="acme-corp">A</span>
+          <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-label="openforge">O</span>
+        </div>
+      </section>
+
+      <!-- Manage -->
+      <section aria-labelledby="rel-manage-heading" class="b border-t pt-5">
+        <h2 id="rel-manage-heading" class="text-[12px] font-medium fg2 mb-2">Manage</h2>
+        <div class="space-y-1.5">
+          <!-- Shown only when the release is still a draft -->
+          <button type="button" id="rel-publish-btn" class="btn-success flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            <span>Publish release</span>
+          </button>
+          <!-- Label flips: "Mark as pre-release" (demote) ↔ "Mark as latest release" (promote) -->
+          <button type="button" id="rel-prerelease-btn" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md b border text-[13px] fg2 hover:elevated hover:text-current">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+            <span>Mark as pre-release</span>
+          </button>
+          <button type="button" id="rel-delete-btn" class="btn-danger-soft flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px]">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+            <span>Delete release</span>
+          </button>
+        </div>
+        <p class="mt-2 text-[11px] fg3 leading-relaxed">Deleting a release removes the notes and metadata. The git tag itself stays in the repository.</p>
+      </section>
+
+    </aside>
+
+  </div>
+</main>
+
+<dialog id="rel-publish-dialog" class="cz-dialog" aria-labelledby="rpd-title">
+  <div class="p-5">
+    <h2 id="rpd-title" class="text-base font-semibold tracking-tight mb-1">Publish this release?</h2>
+    <p class="text-[13px] fg3 leading-relaxed mb-5">Publish <strong class="text-current">Phase 15.3 — Dependency graph</strong> (<code class="mono">v0.2.0</code>). Subscribers will be notified, the audit log will record the publish, and the release will appear in feeds. This cannot be undone — to roll back, you have to delete and recreate the release.</p>
+    <div class="flex justify-end gap-2">
+      <button type="button" data-dialog-cancel="rel-publish-dialog" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated">Cancel</button>
+      <button type="button" class="btn-success h-9 px-4 text-sm rounded-md font-medium">Publish release</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="rel-demote-dialog" class="cz-dialog" aria-labelledby="rdd-title">
+  <div class="p-5">
+    <h2 id="rdd-title" class="text-base font-semibold tracking-tight mb-1">Mark as pre-release?</h2>
+    <p class="text-[13px] fg3 leading-relaxed mb-5">Mark <strong class="text-current">Phase 15.3 — Dependency graph</strong> as a pre-release. It stops being eligible for the "Latest" badge until you mark it back. Consumers who already pulled it as stable won't be re-notified.</p>
+    <div class="flex justify-end gap-2">
+      <button type="button" data-dialog-cancel="rel-demote-dialog" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated">Cancel</button>
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Mark as pre-release</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="rel-delete-dialog" class="cz-dialog" aria-labelledby="rdd2-title">
+  <div class="p-5">
+    <h2 id="rdd2-title" class="text-base font-semibold tracking-tight mb-1">Delete this release?</h2>
+    <p class="text-[13px] fg3 leading-relaxed mb-5">Delete <strong class="text-current">Phase 15.3 — Dependency graph</strong>. The release notes and metadata are removed, but the git tag <code class="mono">v0.2.0</code> is preserved — you can re-attach it as a new release later. This cannot be undone.</p>
+    <div class="flex justify-end gap-2">
+      <button type="button" data-dialog-cancel="rel-delete-dialog" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated">Cancel</button>
+      <button type="button" class="h-9 px-4 text-sm rounded-md font-medium" style="background:#f87171;color:#450a0a">Delete release</button>
+    </div>
+  </div>
+</dialog>
+
+<script>/* Manage-section dialog wiring */
+  (function(){
+    var pairs = [
+      ['rel-publish-btn', 'rel-publish-dialog'],
+      ['rel-prerelease-btn', 'rel-demote-dialog'],
+      ['rel-delete-btn', 'rel-delete-dialog'],
+    ];
+    pairs.forEach(function(p){
+      var btn = document.getElementById(p[0]);
+      var dlg = document.getElementById(p[1]);
+      if (!btn || !dlg || typeof dlg.showModal !== 'function') return;
+      btn.addEventListener('click', function(){ dlg.returnValue = ''; dlg.showModal(); });
+    });
+    document.querySelectorAll('[data-dialog-cancel]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var dlg = document.getElementById(b.getAttribute('data-dialog-cancel'));
+        if (dlg && typeof dlg.close === 'function') dlg.close();
+      });
+    });
+  })();
+</script>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>/* inline title + description editing */
+  (function(){
+    var titleBtn = document.getElementById('edit-title-btn');
+    var titleText = document.getElementById('title-text');
+    if (titleBtn && titleText){
+      titleBtn.addEventListener('click', function(){
+        var editing = titleText.isContentEditable;
+        titleText.contentEditable = editing ? 'false' : 'true';
+        titleText.classList.toggle('title-editing', !editing);
+        titleBtn.textContent = editing ? 'Edit' : 'Save';
+        if (!editing){
+          titleText.focus();
+          var r = document.createRange(); r.selectNodeContents(titleText);
+          var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        }
+      });
+    }
+    var descBtn = document.getElementById('edit-desc-btn');
+    var editor = document.getElementById('desc-editor');
+    var rendered = document.getElementById('desc-rendered');
+    if (!descBtn || !editor || !rendered) return;
+    function edit(on){
+      editor.classList.toggle('hidden', !on);
+      rendered.classList.toggle('hidden', on);
+      descBtn.classList.toggle('hidden', on);
+    }
+    descBtn.addEventListener('click', function(){ edit(true); });
+    document.getElementById('desc-cancel').addEventListener('click', function(){ edit(false); });
+    document.getElementById('desc-save').addEventListener('click', function(){ edit(false); });
+  })();
+</script>
+<script src="markdown-editor.js"></script>
+</body>
+</html>

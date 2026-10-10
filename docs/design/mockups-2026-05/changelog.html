@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Changelog — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}.link{color:var(--link)}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .tag{font-size:10px;padding:1px 7px;border-radius:9999px;border:1px solid var(--border);background:var(--elevated);color:var(--fg-2);white-space:nowrap;font-weight:500}
+  .tag-feature{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .tag-fix{background:rgba(110,168,254,0.15);color:#93c5fd;border-color:rgba(110,168,254,0.30)}
+  .tag-breaking{background:rgba(248,113,113,0.15);color:var(--danger);border-color:rgba(248,113,113,0.30)}
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<header class="b border-b" role="banner">
+  <div class="max-w-[1400px] mx-auto px-6 h-12 flex items-center gap-3">
+    <a href="home.html" class="flex items-center" aria-label="Cloudzilla, home">
+      <svg width="22" height="22" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="22" cy="36" r="9"/><circle cx="32" cy="28" r="11"/><circle cx="44" cy="36" r="9"/><rect x="22" y="36" width="22" height="9" rx="4.5"/></svg>
+    </a>
+    <svg class="fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M16 4L8 20"/></svg>
+    <span class="text-sm font-medium">Changelog</span>
+    <nav aria-label="Account" class="ml-auto flex items-center gap-1">
+      <a href="changelog.html" class="text-sm px-2.5 h-7 inline-flex items-center font-medium">Changelog</a>
+      <a href="home.html" class="text-sm fg2 hover:text-current px-2.5 h-7 inline-flex items-center">Back to app →</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-[820px] mx-auto px-6 pt-10 pb-20">
+
+  <section class="mb-8">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">Cloudzilla · Changelog</p>
+    <h1 class="text-3xl font-semibold tracking-tight">What's shipped</h1>
+    <p class="mt-1 text-[14px] fg2">Notable changes, additions, and fixes. Subscribe via <a href="#" class="link hover:underline">RSS</a>.</p>
+  </section>
+
+  <ol class="relative space-y-10 b border-l ml-2 pl-8">
+
+    <li class="relative">
+      <span class="absolute -left-[35px] top-1 w-3 h-3 rounded-full" style="background:var(--success);box-shadow:0 0 0 2px var(--bg)"></span>
+      <div class="flex flex-wrap items-baseline gap-3 mb-2">
+        <h2 class="text-lg font-semibold tracking-tight">v0.18.0</h2>
+        <span class="text-[12px] fg3 mono"><time datetime="2026-05-10">May 10, 2026</time></span>
+        <span class="tag tag-feature">feature</span>
+      </div>
+      <p class="text-[13.5px] fg2 leading-relaxed mb-3">Dependency graph + advanced code search land. Repos now show a navigable graph of imports and a global search index that ranks by symbol.</p>
+      <ul class="text-[13px] fg2 space-y-1 list-disc pl-5">
+        <li>Add <a href="dependencies.html" class="link hover:underline">repository dependency graph</a> for Go and TypeScript projects.</li>
+        <li>Global search now supports <code class="mono text-[12px] elevated b border rounded px-1.5 py-0.5">symbol:</code> and <code class="mono text-[12px] elevated b border rounded px-1.5 py-0.5">path:</code> qualifiers.</li>
+        <li>Pull request page shows a tree of changed files alongside the diff.</li>
+      </ul>
+    </li>
+
+    <li class="relative">
+      <span class="absolute -left-[35px] top-1 w-3 h-3 rounded-full" style="background:var(--success);box-shadow:0 0 0 2px var(--bg)"></span>
+      <div class="flex flex-wrap items-baseline gap-3 mb-2">
+        <h2 class="text-lg font-semibold tracking-tight">v0.17.2</h2>
+        <span class="text-[12px] fg3 mono"><time datetime="2026-04-22">Apr 22, 2026</time></span>
+        <span class="tag tag-fix">fix</span>
+      </div>
+      <p class="text-[13.5px] fg2 leading-relaxed">SSH transport now correctly handles connection re-use under high concurrency. Resolves intermittent <code class="mono text-[12px] elevated b border rounded px-1.5 py-0.5">remote hung up unexpectedly</code> errors during CI fan-out.</p>
+    </li>
+
+    <li class="relative">
+      <span class="absolute -left-[35px] top-1 w-3 h-3 rounded-full" style="background:#c084fc;box-shadow:0 0 0 2px var(--bg)"></span>
+      <div class="flex flex-wrap items-baseline gap-3 mb-2">
+        <h2 class="text-lg font-semibold tracking-tight">v0.17.0</h2>
+        <span class="text-[12px] fg3 mono"><time datetime="2026-04-05">Apr 5, 2026</time></span>
+        <span class="tag tag-feature">feature</span>
+        <span class="tag tag-breaking">breaking</span>
+      </div>
+      <p class="text-[13.5px] fg2 leading-relaxed mb-3"><strong>Breaking:</strong> the <code class="mono text-[12px] elevated b border rounded px-1.5 py-0.5">cz_token</code> cookie is now <code class="mono text-[12px] elevated b border rounded px-1.5 py-0.5">SameSite=Lax</code> by default. If you embed Cloudzilla in an iframe on another origin you'll need to flip <code class="mono text-[12px] elevated b border rounded px-1.5 py-0.5">auth.cookie_samesite</code> back to <code class="mono text-[12px] elevated b border rounded px-1.5 py-0.5">none</code>.</p>
+      <ul class="text-[13px] fg2 space-y-1 list-disc pl-5">
+        <li>Add discussions feature with categories, answered-by tracking, and category-level pinning.</li>
+        <li>Project boards now support cross-repo cards.</li>
+      </ul>
+    </li>
+
+    <li class="relative">
+      <span class="absolute -left-[35px] top-1 w-3 h-3 rounded-full" style="background:var(--success);box-shadow:0 0 0 2px var(--bg)"></span>
+      <div class="flex flex-wrap items-baseline gap-3 mb-2">
+        <h2 class="text-lg font-semibold tracking-tight">v0.16.0</h2>
+        <span class="text-[12px] fg3 mono"><time datetime="2026-03-12">Mar 12, 2026</time></span>
+        <span class="tag tag-feature">feature</span>
+      </div>
+      <p class="text-[13.5px] fg2 leading-relaxed">TOTP two-factor authentication. Recovery codes are downloadable from <a href="account_settings.html" class="link hover:underline">Account settings → Security</a>.</p>
+    </li>
+
+  </ol>
+
+  <p class="mt-10 text-[12.5px] fg3 text-center">See <a href="#" class="link hover:underline">all releases →</a></p>
+</main>
+<script>
+  const s=localStorage.getItem('cz-theme');
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))document.documentElement.classList.add('light');
+</script>
+
+</body>
+</html>

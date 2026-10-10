@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Roadmap Q2 — mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #000; --surface: #0a0a0a; --elevated: #1a1a1a;
+    --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+    --fg: #ededed; --fg-2: #b4b4b4; --fg-3: #8c8c8c;
+    --focus: #6ea8fe; --link: #93c5fd;
+    --success: #4ade80; --warn: #fbbf24; --danger: #f87171;
+  }
+  html.light {
+    --bg: #fff; --surface: #fafafa; --elevated: #ededed;
+    --border: rgba(0,0,0,0.10); --border-strong: rgba(0,0,0,0.18);
+    --fg: #0a0a0a; --fg-2: #444; --fg-3: #5e5e5e;
+    --focus: #1d4ed8; --link: #1d4ed8;
+    --success: #15803d; --warn: #b45309; --danger: #b91c1c;
+  }
+  body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--fg); font-feature-settings: "ss01", "ss02", "cv11"; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+  .surface { background: var(--surface); }
+  .elevated { background: var(--elevated); }
+  .b { border-color: var(--border); }
+  .bs { border-color: var(--border-strong); }
+  .fg2 { color: var(--fg-2); }
+  .fg3 { color: var(--fg-3); }
+  .link { color: var(--link); }
+  .badge-success { background: rgba(74,222,128,0.15); color: var(--success); border-color: rgba(74,222,128,0.30); }
+  .badge-danger { background: rgba(248,113,113,0.15); color: var(--danger); border-color: rgba(248,113,113,0.30); }
+  .badge-merged { background: rgba(168,85,247,0.15); color: #c084fc; border-color: rgba(168,85,247,0.30); }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .skip-link { position:absolute; left:8px; top:-40px; z-index:100; padding:8px 12px; background:var(--fg); color:var(--bg); border-radius:6px; font-weight:500; font-size:13px; transition: top 120ms; }
+  .skip-link:focus { top:8px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .tab-active { color: var(--fg); border-bottom-color: var(--fg); }
+  .avatar { background: var(--elevated); border: 1px solid var(--border); }
+  .btn-success { background: var(--success); color: #052e16; }
+  html.light .btn-success { color: #fff; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+  @media (forced-colors: active) { .b, .bs { border-color: CanvasText !important; } :focus-visible { outline: 2px solid Highlight !important; } }
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="projects"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6 flex flex-wrap items-start justify-between gap-4" aria-labelledby="project-title">
+    <div class="min-w-0">
+      <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">
+        <a href="repo.html" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="project.html" class="hover:underline">Projects</a>
+        <span aria-hidden="true">·</span>
+        Roadmap Q2
+      </p>
+      <h1 id="project-title" class="text-2xl font-semibold tracking-tight">Roadmap Q2</h1>
+      <p class="mt-1 text-[13px] fg2 max-w-2xl">Phase 16–17 work — performance, search, and the new SSO settings UI.</p>
+    </div>
+    <button type="button" class="h-9 px-4 text-sm rounded-md font-medium inline-flex items-center gap-1.5 btn-success">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Column
+    </button>
+  </section>
+
+  <!-- Kanban board -->
+  <div class="flex gap-4 overflow-x-auto pb-6">
+
+    <!-- Column: Backlog -->
+    <section class="flex-none w-72 b border surface rounded-md" aria-labelledby="col-backlog">
+      <header class="px-3 py-2.5 b border-b flex items-center justify-between">
+        <h2 id="col-backlog" class="mono text-[11px] uppercase tracking-wider fg2">Backlog <span class="ml-1 fg3">3</span></h2>
+        <button type="button" class="fg3 hover:text-current text-xs px-1" aria-label="Delete column Backlog">✕</button>
+      </header>
+      <ul class="p-2 space-y-2 min-h-12">
+        <li class="elevated b border rounded-md p-3">
+          <a href="#" class="text-[13px] font-medium hover:underline block">Index commits table by repo_id + author_date</a>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="mono text-[11px] fg3">#142</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium badge-success">open</span>
+          </div>
+        </li>
+        <li class="elevated b border rounded-md p-3">
+          <a href="#" class="text-[13px] font-medium hover:underline block">Profile slow query: pulls list with assignee join</a>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="mono text-[11px] fg3">#138</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium badge-success">open</span>
+          </div>
+        </li>
+        <li class="elevated b border rounded-md p-3">
+          <p class="text-[13px]">Decide retention window for audit_log table — 90d vs 365d.</p>
+          <p class="mt-1.5 text-[11px] fg3">Note</p>
+        </li>
+      </ul>
+      <button type="button" class="w-full text-left text-[12px] fg2 hover:text-current px-3 py-2 border-t b">+ Add card</button>
+    </section>
+
+    <!-- Column: In progress -->
+    <section class="flex-none w-72 b border surface rounded-md" aria-labelledby="col-progress">
+      <header class="px-3 py-2.5 b border-b flex items-center justify-between">
+        <h2 id="col-progress" class="mono text-[11px] uppercase tracking-wider fg2">In progress <span class="ml-1 fg3">2</span></h2>
+        <button type="button" class="fg3 hover:text-current text-xs px-1" aria-label="Delete column In progress">✕</button>
+      </header>
+      <ul class="p-2 space-y-2 min-h-12">
+        <li class="elevated b border rounded-md p-3">
+          <a href="pr.html" class="text-[13px] font-medium hover:underline block">tech: lift UI design system foundation across pages</a>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="mono text-[11px] fg3">#341</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium badge-success">open</span>
+          </div>
+        </li>
+        <li class="elevated b border rounded-md p-3">
+          <a href="#" class="text-[13px] font-medium hover:underline block">Wire SAML SSO toggle in admin settings</a>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="mono text-[11px] fg3">#149</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium badge-success">open</span>
+          </div>
+        </li>
+      </ul>
+      <button type="button" class="w-full text-left text-[12px] fg2 hover:text-current px-3 py-2 border-t b">+ Add card</button>
+    </section>
+
+    <!-- Column: Review -->
+    <section class="flex-none w-72 b border surface rounded-md" aria-labelledby="col-review">
+      <header class="px-3 py-2.5 b border-b flex items-center justify-between">
+        <h2 id="col-review" class="mono text-[11px] uppercase tracking-wider fg2">Review <span class="ml-1 fg3">1</span></h2>
+        <button type="button" class="fg3 hover:text-current text-xs px-1" aria-label="Delete column Review">✕</button>
+      </header>
+      <ul class="p-2 space-y-2 min-h-12">
+        <li class="elevated b border rounded-md p-3">
+          <a href="pr.html" class="text-[13px] font-medium hover:underline block">feat: dependency graph rendering</a>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="mono text-[11px] fg3">#318</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium badge-success">open</span>
+          </div>
+        </li>
+      </ul>
+      <button type="button" class="w-full text-left text-[12px] fg2 hover:text-current px-3 py-2 border-t b">+ Add card</button>
+    </section>
+
+    <!-- Column: Done -->
+    <section class="flex-none w-72 b border surface rounded-md" aria-labelledby="col-done">
+      <header class="px-3 py-2.5 b border-b flex items-center justify-between">
+        <h2 id="col-done" class="mono text-[11px] uppercase tracking-wider fg2">Done <span class="ml-1 fg3">2</span></h2>
+        <button type="button" class="fg3 hover:text-current text-xs px-1" aria-label="Delete column Done">✕</button>
+      </header>
+      <ul class="p-2 space-y-2 min-h-12">
+        <li class="elevated b border rounded-md p-3">
+          <a href="#" class="text-[13px] font-medium hover:underline block">feat: phase 15.3 dependency graph data model</a>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="mono text-[11px] fg3">#312</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium badge-merged">merged</span>
+          </div>
+        </li>
+        <li class="elevated b border rounded-md p-3">
+          <a href="#" class="text-[13px] font-medium hover:underline block">chore: release-please scaffolding</a>
+          <div class="mt-1.5 flex items-center gap-2">
+            <span class="mono text-[11px] fg3">#305</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium badge-merged">merged</span>
+          </div>
+        </li>
+      </ul>
+      <button type="button" class="w-full text-left text-[12px] fg2 hover:text-current px-3 py-2 border-t b">+ Add card</button>
+    </section>
+
+  </div>
+
+  <p class="mt-2 text-[12px] fg3">Cards link to their underlying issue or PR; standalone notes are free-form text.</p>
+</main>
+
+<script>
+  const html = document.documentElement;
+  const KEY = 'cz-theme';
+  const saved = localStorage.getItem(KEY);
+  if (saved === 'light' || (!saved && window.matchMedia('(prefers-color-scheme: light)').matches)) html.classList.add('light');
+  function syncThemeUI() {
+    const isLight = html.classList.contains('light');
+    document.querySelectorAll('.dark-only').forEach(el => el.classList.toggle('hidden', isLight));
+    document.querySelectorAll('.light-only').forEach(el => el.classList.toggle('hidden', !isLight));
+    const t = document.getElementById('theme-toggle');
+    if (t) { t.setAttribute('aria-pressed', String(isLight)); t.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme'); }
+  }
+  function toggleTheme() { html.classList.toggle('light'); localStorage.setItem(KEY, html.classList.contains('light') ? 'light' : 'dark'); syncThemeUI(); }
+  syncThemeUI();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+</body>
+</html>

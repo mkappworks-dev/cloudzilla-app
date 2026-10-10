@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Milestones · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.divide-y.b > * + *{border-top-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .btn-success{background:var(--success);color:#052e16}
+  html.light .btn-success{color:#fff}
+  .milestone-card{position:relative;transition:padding-left 120ms}
+  .milestone-card::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--fg);opacity:0;transition:opacity 120ms;border-radius:2px}
+  .milestone-card:hover::before{opacity:1}
+  .milestone-card:hover{padding-left:18px}
+  .milestone-card a.card-link::after{content:"";position:absolute;inset:0}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="milestones"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6 flex flex-wrap items-start justify-between gap-4" aria-labelledby="milestones-title">
+    <div class="min-w-0">
+      <h1 id="milestones-title" class="text-2xl font-semibold tracking-tight">Milestones</h1>
+      <p class="mt-1 text-[13px] fg3">Group issues and pull requests toward a shared goal and track progress.</p>
+    </div>
+    <a href="milestone_new.html" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5 btn-success">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      New milestone
+    </a>
+  </section>
+
+  <!-- Open / Closed tab strip -->
+  <nav class="mb-4 flex items-center gap-1 b border-b text-sm" aria-label="Milestone filters">
+    <a href="milestones.html" class="px-3 py-2.5 border-b -mb-px tab-active font-medium" aria-current="page">Open <span class="mono text-[11px] fg3 ml-0.5">3</span></a>
+    <a href="#" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current">Closed <span class="mono text-[11px] fg3 ml-0.5">2</span></a>
+    <div class="ml-auto flex items-center gap-1.5 pb-1.5">
+      <label for="sort-milestones" class="sr-only">Sort milestones</label>
+      <select id="sort-milestones" class="h-8 px-2 text-[13px] surface b border rounded-md fg2">
+        <option>Sort: Closest due date</option>
+        <option>Sort: Furthest due date</option>
+        <option>Sort: Least complete</option>
+        <option>Sort: Most complete</option>
+      </select>
+    </div>
+  </nav>
+
+  <section class="b border rounded-md surface overflow-hidden" aria-labelledby="milestone-list">
+    <h2 id="milestone-list" class="sr-only">Open milestones</h2>
+    <ol class="divide-y b">
+      <li class="milestone-card flex items-start gap-3 px-4 py-4 hover:elevated">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5" style="color:var(--success)" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <div class="min-w-0 flex-1">
+          <a href="milestone_detail.html" class="card-link text-[14px] font-semibold hover:underline">Milestone 1: Core platform</a>
+          <p class="mt-0.5 text-[12px] fg3">Due by <time datetime="2026-05-30">May 30, 2026</time> <span aria-hidden="true">·</span> updated 2 days ago</p>
+          <p class="mt-1.5 text-[13px] fg2">Ship the core repository, issue tracker, and pull request experience.</p>
+          <div class="mt-2.5 max-w-md" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" aria-label="Milestone progress: 92%">
+            <div class="h-1.5 b border rounded-full overflow-hidden surface">
+              <div class="h-full" style="width: 92%; background: var(--success);"></div>
+            </div>
+          </div>
+          <p class="mt-1.5 text-[11px] fg3 mono">92% complete <span aria-hidden="true">·</span> 46 closed <span aria-hidden="true">·</span> 4 open</p>
+        </div>
+      </li>
+      <li class="milestone-card flex items-start gap-3 px-4 py-4 hover:elevated">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5" style="color:var(--success)" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <div class="min-w-0 flex-1">
+          <a href="milestone_detail.html" class="card-link text-[14px] font-semibold hover:underline">Milestone 2: Public beta</a>
+          <p class="mt-0.5 text-[12px] fg3">Due by <time datetime="2026-07-15">Jul 15, 2026</time> <span aria-hidden="true">·</span> updated 5 days ago</p>
+          <p class="mt-1.5 text-[13px] fg2">Open the platform to external testers and harden onboarding.</p>
+          <div class="mt-2.5 max-w-md" role="progressbar" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100" aria-label="Milestone progress: 30%">
+            <div class="h-1.5 b border rounded-full overflow-hidden surface">
+              <div class="h-full" style="width: 30%; background: var(--success);"></div>
+            </div>
+          </div>
+          <p class="mt-1.5 text-[11px] fg3 mono">30% complete <span aria-hidden="true">·</span> 12 closed <span aria-hidden="true">·</span> 28 open</p>
+        </div>
+      </li>
+      <li class="milestone-card flex items-start gap-3 px-4 py-4 hover:elevated">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5" style="color:var(--warn)" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <div class="min-w-0 flex-1">
+          <a href="milestone_detail.html" class="card-link text-[14px] font-semibold hover:underline">Milestone 3: GA</a>
+          <p class="mt-0.5 text-[12px] fg3">Due by <time datetime="2026-09-01">Sep 1, 2026</time> <span aria-hidden="true">·</span> no issues closed yet</p>
+          <p class="mt-1.5 text-[13px] fg2">General availability: production SLAs, billing, and public launch.</p>
+          <div class="mt-2.5 max-w-md" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Milestone progress: 0%">
+            <div class="h-1.5 b border rounded-full overflow-hidden surface">
+              <div class="h-full" style="width: 0%; background: var(--success);"></div>
+            </div>
+          </div>
+          <p class="mt-1.5 text-[11px] fg3 mono">0% complete <span aria-hidden="true">·</span> 0 closed <span aria-hidden="true">·</span> 25 open</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <p class="mt-4 text-[12px] fg3">Closed milestones stay searchable from issues with <code class="mono px-1 py-0.5 elevated b border rounded">milestone:"Milestone 1: Core platform"</code>.</p>
+</main>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+</body>
+</html>

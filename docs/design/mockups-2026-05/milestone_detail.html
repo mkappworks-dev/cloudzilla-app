@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Milestone 2: Public beta · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171;--merged:#c084fc; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c;--merged:#7e22ce; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.bs{border-color:var(--border-strong)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}.link{color:var(--link)}
+  .divide-y.b > * + *{border-top-color:var(--border)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .badge-success{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .badge-danger{background:rgba(248,113,113,0.15);color:var(--danger);border-color:rgba(248,113,113,0.30)}
+  .badge-merged{background:rgba(192,132,252,0.15);color:var(--merged);border-color:rgba(192,132,252,0.30)}
+  .btn-danger-soft{background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.30)}
+  .btn-danger-soft:hover{background:rgba(248,113,113,0.20)}
+  .cz-dialog{padding:0;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface);color:var(--fg);max-width:420px;width:calc(100% - 32px);box-shadow:0 20px 50px rgba(0,0,0,0.5);margin-top:28vh;margin-bottom:auto}
+  .cz-dialog::backdrop{background:rgba(0,0,0,0.6);backdrop-filter:blur(2px)}
+  .prose{color:var(--fg-2);font-size:14px;line-height:1.7}
+  .prose > :first-child{margin-top:0}.prose > :last-child{margin-bottom:0}
+  .prose h1{color:var(--fg);font-size:24px;font-weight:600;margin:0 0 12px}
+  .prose h2{color:var(--fg);font-size:18px;font-weight:600;margin:24px 0 10px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+  .prose h3{color:var(--fg);font-size:15px;font-weight:600;margin:18px 0 8px}
+  .prose p{margin:0 0 12px}
+  .prose ul,.prose ol{padding-left:22px;margin:0 0 12px}
+  .prose li{margin:2px 0}
+  .prose code{font-family:'Geist Mono',monospace;font-size:12.5px;background:var(--elevated);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+  .prose a{color:var(--link);text-decoration:underline;text-underline-offset:3px}
+  label.field{display:block;font-size:12px;font-weight:500;color:var(--fg-2);margin-bottom:6px}
+  input.txt,textarea.txt,select.txt{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--fg);font-family:inherit}
+  input.txt:focus,textarea.txt:focus,select.txt:focus{outline:none;border-color:var(--focus)}
+  .title-editing{background:var(--elevated);border-radius:6px;padding:0 6px;outline:1px solid var(--border-strong)}
+  .issue-card{position:relative;transition:padding-left 120ms}
+  .issue-card::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--fg);opacity:0;transition:opacity 120ms;border-radius:2px}
+  .issue-card:hover::before{opacity:1}
+  .issue-card:hover{padding-left:18px}
+  [data-list].off{display:none}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="milestones"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6 b border-b pb-6">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="milestones.html" class="hover:underline">Milestones</a>
+      <span aria-hidden="true">·</span>
+      <span aria-current="page">Public beta</span>
+    </p>
+    <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+      <h1 class="text-2xl tracking-tight font-medium min-w-0">
+        <span id="title-text">Milestone 2: Public beta</span>
+      </h1>
+      <button type="button" id="edit-title-btn" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated inline-flex items-center shrink-0">Edit title</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <span id="open-badge" class="inline-flex items-center gap-1.5 h-[24px] px-2.5 rounded-full text-[12px] font-medium" style="background:rgba(74,222,128,0.15);color:var(--success);border:1px solid rgba(74,222,128,0.30)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        Open
+      </span>
+      <span id="closed-badge" class="hidden items-center gap-1.5 h-[24px] px-2.5 rounded-full text-[12px] font-medium elevated b border fg2">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        Closed
+      </span>
+      <p class="text-[13px] fg2">
+        Due by <strong class="text-[var(--fg)]"><time datetime="2026-07-15">Jul 15, 2026</time></strong>
+        <span aria-hidden="true" class="fg3">·</span>
+        <span class="fg3">in 8 weeks</span>
+      </p>
+    </div>
+  </section>
+
+  <div class="grid grid-cols-[1fr_280px] gap-8">
+
+    <article class="space-y-5">
+
+      <!-- Description -->
+      <section class="b border rounded-md surface overflow-hidden">
+        <header class="px-4 py-2.5 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <strong>Description</strong>
+          <button type="button" id="edit-desc-btn" class="ml-auto inline-flex items-center gap-1 h-7 px-2 rounded-md b border hover:elevated text-[12px] fg2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
+        </header>
+        <div class="px-4 py-4">
+          <!-- MarkdownEditor edit form (rendered by markdown-editor.js) -->
+          <div id="desc-editor" class="hidden mb-3">
+            <div data-markdown-editor data-rows="8" data-placeholder="Describe what ships when this milestone is done…"><textarea>### Goal
+
+Open the platform to external testers and harden onboarding before general availability.
+
+### Scope
+
+- Public sign-up with invite codes
+- Onboarding walkthrough + empty states
+- Rate limiting and abuse protection
+- Feedback widget wired to #42</textarea></div>
+            <div class="flex justify-end gap-2 mt-3">
+              <button type="button" id="desc-cancel" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated">Cancel</button>
+              <button type="button" id="desc-save" class="h-8 px-3 text-[13px] rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Save</button>
+            </div>
+          </div>
+          <div id="desc-rendered" class="prose">
+            <h3>Goal</h3>
+            <p>Open the platform to external testers and harden onboarding before general availability.</p>
+            <h3>Scope</h3>
+            <ul>
+              <li>Public sign-up with invite codes</li>
+              <li>Onboarding walkthrough + empty states</li>
+              <li>Rate limiting and abuse protection</li>
+              <li>Feedback widget wired to <a href="issue_detail.html">#42</a></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Issues / Pull requests -->
+      <section class="b border rounded-md surface overflow-hidden" aria-label="Issues and pull requests in this milestone">
+        <nav class="flex items-center gap-1 b border-b px-2 text-sm" aria-label="Milestone items">
+          <button type="button" class="tab-btn px-3 py-2.5 border-b -mb-px tab-active font-medium" data-tab="issues" aria-current="page">
+            Issues <span class="mono text-[11px] fg3 ml-0.5">40</span>
+          </button>
+          <button type="button" class="tab-btn px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current" data-tab="pulls">
+            Pull requests <span class="mono text-[11px] fg3 ml-0.5">6</span>
+          </button>
+          <div class="ml-auto flex items-center py-1.5">
+            <div class="inline-flex b border rounded-md overflow-hidden text-[12px]" role="group" aria-label="Filter by state">
+              <button type="button" class="state-btn px-2.5 py-1 elevated text-current" data-state="open" aria-pressed="true">Open <span class="state-count mono fg3">28</span></button>
+              <button type="button" class="state-btn px-2.5 py-1 fg2 hover:text-current b border-l" data-state="closed" aria-pressed="false">Closed <span class="state-count mono fg3">12</span></button>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Issues · open -->
+        <div data-list data-group="issues" data-state-panel="open">
+          <ol class="divide-y b">
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Public sign-up flow rejects invite codes with trailing whitespace</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#41</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">yumi</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-16">3 days ago</time>
+                  <span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] border" style="background:#ef444433;color:#ef4444;border-color:#ef444455">bug</span>
+                  </span>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Onboarding walkthrough: empty repo state has no call to action</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#38</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">daisy</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-14">5 days ago</time>
+                  <span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] border" style="background:#a855f733;color:#a855f7;border-color:#a855f755">design</span>
+                  </span>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Rate-limit signups per IP to slow automated abuse</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#34</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-11">1 week ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Invite-code emails render with a broken layout in Outlook</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#31</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">yumi</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-09">1 week ago</time>
+                  <span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] border" style="background:#ef444433;color:#ef4444;border-color:#ef444455">bug</span>
+                  </span>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Add structured logging to the public sign-up handler</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#29</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-07">2 weeks ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Onboarding checklist does not persist dismissed steps</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#27</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">daisy</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-06">2 weeks ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Beta feedback widget overlaps the footer on small screens</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#23</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">yumi</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-05">2 weeks ago</time>
+                  <span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] border" style="background:#a855f733;color:#a855f7;border-color:#a855f755">design</span>
+                  </span>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Expired invite codes return a 500 instead of a friendly error</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#20</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-04">3 weeks ago</time>
+                  <span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] border" style="background:#ef444433;color:#ef4444;border-color:#ef444455">bug</span>
+                  </span>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Capture sign-up source for beta analytics</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#18</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">daisy</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-03">3 weeks ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Add a resend button to the invite-code screen</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#16</span>
+                  <span aria-hidden="true">·</span>
+                  <span>opened by <a href="#" class="hover:text-current">yumi</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-02">3 weeks ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+          </ol>
+          <div class="flex items-center justify-between gap-3 px-4 py-2.5 b border-t">
+            <span class="text-[12px] fg3">Showing <span class="mono">1–10</span> of <span class="mono">28</span></span>
+            <nav class="flex items-center gap-1" aria-label="Open issues pages">
+              <button type="button" class="h-7 w-7 grid place-items-center rounded-md b border fg3 cursor-not-allowed" disabled aria-label="Previous page"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <button type="button" class="h-7 min-w-[28px] px-2 rounded-md elevated b border text-[12px] font-medium" aria-current="page">1</button>
+              <button type="button" class="h-7 min-w-[28px] px-2 rounded-md b border text-[12px] fg2 hover:elevated">2</button>
+              <button type="button" class="h-7 min-w-[28px] px-2 rounded-md b border text-[12px] fg2 hover:elevated">3</button>
+              <button type="button" class="h-7 w-7 grid place-items-center rounded-md b border fg2 hover:elevated" aria-label="Next page"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </nav>
+          </div>
+        </div>
+
+        <!-- Issues · closed -->
+        <div data-list data-group="issues" data-state-panel="closed" class="off">
+          <ol class="divide-y b">
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Decide invite-code length and entropy</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#26</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-10">last week</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Wire the feedback widget to issue #42</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#24</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">daisy</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-09">last week</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Pick a font stack for the marketing pages</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#22</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-08">2 weeks ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Draft the public beta announcement copy</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#19</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">yumi</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-05">2 weeks ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Stand up the staging environment for external testers</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#15</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-01">3 weeks ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Choose the invite-code rate-limit thresholds</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#13</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-04-28">last month</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Write the tester welcome email</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#11</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">yumi</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-04-25">last month</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Set up the beta feedback inbox</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#9</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">daisy</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-04-22">last month</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Decide the public beta launch date</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#7</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-04-18">last month</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline fg2">Scope the public beta milestone</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#5</span>
+                  <span aria-hidden="true">·</span>
+                  <span>closed by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-04-12">last month</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium elevated b fg2 shrink-0">closed</span>
+            </li>
+          </ol>
+          <div class="flex items-center justify-between gap-3 px-4 py-2.5 b border-t">
+            <span class="text-[12px] fg3">Showing <span class="mono">1–10</span> of <span class="mono">12</span></span>
+            <nav class="flex items-center gap-1" aria-label="Closed issues pages">
+              <button type="button" class="h-7 w-7 grid place-items-center rounded-md b border fg3 cursor-not-allowed" disabled aria-label="Previous page"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <button type="button" class="h-7 min-w-[28px] px-2 rounded-md elevated b border text-[12px] font-medium" aria-current="page">1</button>
+              <button type="button" class="h-7 min-w-[28px] px-2 rounded-md b border text-[12px] fg2 hover:elevated">2</button>
+              <button type="button" class="h-7 w-7 grid place-items-center rounded-md b border fg2 hover:elevated" aria-label="Next page"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </nav>
+          </div>
+        </div>
+
+        <!-- Pull requests · open -->
+        <div data-list data-group="pulls" data-state-panel="open" class="off">
+          <ol class="divide-y b">
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="pr.html" class="text-[13px] font-medium hover:underline">Add invite-code sign-up endpoint</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#212</span>
+                  <span aria-hidden="true">·</span>
+                  <span>by <a href="#" class="hover:text-current">yumi</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-17">2 days ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="pr.html" class="text-[13px] font-medium hover:underline">Empty-state CTA component for onboarding</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#209</span>
+                  <span aria-hidden="true">·</span>
+                  <span>by <a href="#" class="hover:text-current">daisy</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-15">4 days ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="pr.html" class="text-[13px] font-medium hover:underline">Per-IP rate limiter middleware</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#207</span>
+                  <span aria-hidden="true">·</span>
+                  <span>by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-13">6 days ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="pr.html" class="text-[13px] font-medium hover:underline">Structured logging for auth handlers</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#203</span>
+                  <span aria-hidden="true">·</span>
+                  <span>by <a href="#" class="hover:text-current">malith</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-10">1 week ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+            </li>
+          </ol>
+        </div>
+
+        <!-- Pull requests · closed -->
+        <div data-list data-group="pulls" data-state-panel="closed" class="off">
+          <ol class="divide-y b">
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M6 15v6M18 9v3a6 6 0 01-6 6H9"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="pr.html" class="text-[13px] font-medium hover:underline fg2">Onboarding walkthrough scaffold</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#205</span>
+                  <span aria-hidden="true">·</span>
+                  <span>by <a href="#" class="hover:text-current">daisy</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-12">1 week ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-merged shrink-0">merged</span>
+            </li>
+            <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1" style="color:var(--merged)" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M6 15v6M18 9v3a6 6 0 01-6 6H9"/></svg>
+              <div class="min-w-0 flex-1">
+                <a href="pr.html" class="text-[13px] font-medium hover:underline fg2">Invite-code email template</a>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+                  <span class="mono">#198</span>
+                  <span aria-hidden="true">·</span>
+                  <span>by <a href="#" class="hover:text-current">yumi</a></span>
+                  <span aria-hidden="true">·</span>
+                  <time datetime="2026-05-06">2 weeks ago</time>
+                </div>
+              </div>
+              <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium badge-merged shrink-0">merged</span>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="space-y-6" aria-label="Milestone details">
+
+      <!-- Progress -->
+      <section aria-labelledby="progress-heading">
+        <h2 id="progress-heading" class="text-[12px] font-medium fg2 mb-2">Progress</h2>
+        <div role="progressbar" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100" aria-label="Milestone progress: 30%">
+          <div class="h-2 b border rounded-full overflow-hidden surface">
+            <div class="h-full" style="width:30%;background:var(--success)"></div>
+          </div>
+        </div>
+        <p class="mt-2 text-[20px] font-semibold tracking-tight">30%<span class="text-[13px] fg3 font-normal ml-1.5">complete</span></p>
+        <ul class="mt-2 space-y-1 text-[12px] fg2">
+          <li class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:var(--success)"></span> 12 closed</li>
+          <li class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full b border"></span> 28 open</li>
+        </ul>
+      </section>
+
+      <!-- Due date -->
+      <section aria-labelledby="due-heading" class="b border-t pt-5">
+        <div class="flex items-center justify-between mb-2">
+          <h2 id="due-heading" class="text-[12px] font-medium fg2">Due date</h2>
+          <button type="button" id="edit-due-btn" class="fg3 hover:text-current" aria-label="Edit due date">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+        <p id="due-display" class="text-[13px]">
+          <time datetime="2026-07-15">Jul 15, 2026</time>
+          <span class="fg3">· 8 weeks left</span>
+        </p>
+        <div id="due-editor" class="hidden">
+          <input type="date" value="2026-07-15" class="txt" />
+          <div class="flex justify-end gap-2 mt-2">
+            <button type="button" id="due-cancel" class="h-7 px-2.5 text-[12px] rounded-md b border hover:elevated">Cancel</button>
+            <button type="button" id="due-save" class="h-7 px-2.5 text-[12px] rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Save</button>
+          </div>
+          <p class="mt-1.5 text-[11px] fg3">Clear the field for an open-ended milestone.</p>
+        </div>
+      </section>
+
+      <!-- Details -->
+      <section aria-labelledby="details-heading" class="b border-t pt-5">
+        <h2 id="details-heading" class="text-[12px] font-medium fg2 mb-2">Details</h2>
+        <dl class="space-y-1.5 text-[12px]">
+          <div class="flex justify-between gap-2"><dt class="fg3">Created</dt><dd><time datetime="2026-04-02">Apr 2, 2026</time></dd></div>
+          <div class="flex justify-between gap-2"><dt class="fg3">Updated</dt><dd><time datetime="2026-05-14">5 days ago</time></dd></div>
+        </dl>
+        <p class="mt-3 text-[12px] fg3 leading-relaxed">Searchable from issues with <code class="mono px-1 py-0.5 elevated b border rounded text-[11px]">milestone:"Public beta"</code>.</p>
+      </section>
+
+      <!-- Manage -->
+      <section aria-labelledby="manage-heading" class="b border-t pt-5">
+        <h2 id="manage-heading" class="text-[12px] font-medium fg2 mb-2">Manage</h2>
+        <div class="space-y-1.5">
+          <button type="button" id="close-milestone-btn" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md b border text-[13px] fg2 hover:elevated hover:text-current">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Close milestone</span>
+          </button>
+          <button type="button" id="delete-milestone-btn" class="btn-danger-soft flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px]">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+            <span>Delete milestone</span>
+          </button>
+        </div>
+        <p class="mt-2 text-[11px] fg3 leading-relaxed">Deleting a milestone unassigns it from all issues and pull requests. This cannot be undone.</p>
+      </section>
+
+    </aside>
+
+  </div>
+</main>
+
+<dialog id="delete-dialog" class="cz-dialog" aria-labelledby="dd-title">
+  <div class="p-5">
+    <h2 id="dd-title" class="text-base font-semibold tracking-tight mb-1">Delete this milestone?</h2>
+    <p class="text-[13px] fg3 leading-relaxed mb-5">Delete <strong class="text-current">Milestone 2: Public beta</strong>. It will be unassigned from <strong class="text-current">40</strong> issues and pull requests. This cannot be undone.</p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="dd-cancel" class="h-9 px-4 text-sm rounded-md font-medium b border hover:elevated">Cancel</button>
+      <button type="button" id="dd-confirm" class="h-9 px-4 text-sm rounded-md font-medium" style="background:#f87171;color:#450a0a">Delete milestone</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="markdown-editor.js"></script>
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* inline title editing */
+  (function(){
+    var btn = document.getElementById('edit-title-btn');
+    var text = document.getElementById('title-text');
+    if (!btn || !text) return;
+    btn.addEventListener('click', function(){
+      var editing = text.isContentEditable;
+      text.contentEditable = editing ? 'false' : 'true';
+      text.classList.toggle('title-editing', !editing);
+      btn.textContent = editing ? 'Edit title' : 'Save';
+      if (!editing){
+        text.focus();
+        var r = document.createRange(); r.selectNodeContents(text);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      }
+    });
+  })();
+</script>
+<script>/* inline description editing */
+  (function(){
+    var btn = document.getElementById('edit-desc-btn');
+    var editor = document.getElementById('desc-editor');
+    var rendered = document.getElementById('desc-rendered');
+    if (!btn || !editor || !rendered) return;
+    function edit(on){
+      editor.classList.toggle('hidden', !on);
+      rendered.classList.toggle('hidden', on);
+      btn.classList.toggle('hidden', on);
+    }
+    btn.addEventListener('click', function(){ edit(true); });
+    document.getElementById('desc-cancel').addEventListener('click', function(){ edit(false); });
+    document.getElementById('desc-save').addEventListener('click', function(){ edit(false); });
+  })();
+</script>
+<script>/* inline due-date editing */
+  (function(){
+    var btn = document.getElementById('edit-due-btn');
+    var display = document.getElementById('due-display');
+    var editor = document.getElementById('due-editor');
+    if (!btn || !display || !editor) return;
+    function edit(on){
+      editor.classList.toggle('hidden', !on);
+      display.classList.toggle('hidden', on);
+    }
+    btn.addEventListener('click', function(){ edit(true); });
+    document.getElementById('due-cancel').addEventListener('click', function(){ edit(false); });
+    document.getElementById('due-save').addEventListener('click', function(){ edit(false); });
+  })();
+</script>
+<script>/* Issues / Pull requests tabs + Open / Closed state filter */
+  (function(){
+    var counts = { issues: { open: 28, closed: 12 }, pulls: { open: 4, closed: 2 } };
+    var tab = 'issues', state = 'open';
+    function refresh(){
+      document.querySelectorAll('[data-list]').forEach(function(list){
+        var on = list.getAttribute('data-group') === tab && list.getAttribute('data-state-panel') === state;
+        list.classList.toggle('off', !on);
+      });
+      document.querySelectorAll('.tab-btn').forEach(function(b){
+        var on = b.getAttribute('data-tab') === tab;
+        b.classList.toggle('tab-active', on);
+        b.classList.toggle('font-medium', on);
+        b.classList.toggle('border-transparent', !on);
+        b.classList.toggle('fg2', !on);
+        if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+      });
+      document.querySelectorAll('.state-btn').forEach(function(b){
+        var st = b.getAttribute('data-state');
+        var on = st === state;
+        b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('elevated', on);
+        b.classList.toggle('text-current', on);
+        b.classList.toggle('fg2', !on);
+        var count = b.querySelector('.state-count');
+        if (count) count.textContent = counts[tab][st];
+      });
+    }
+    document.querySelectorAll('.tab-btn').forEach(function(b){
+      b.addEventListener('click', function(){ tab = b.getAttribute('data-tab'); refresh(); });
+    });
+    document.querySelectorAll('.state-btn').forEach(function(b){
+      b.addEventListener('click', function(){ state = b.getAttribute('data-state'); refresh(); });
+    });
+    refresh();
+  })();
+</script>
+<script>/* close milestone toggle */
+  (function(){
+    var btn = document.getElementById('close-milestone-btn');
+    var openBadge = document.getElementById('open-badge');
+    var closedBadge = document.getElementById('closed-badge');
+    if (!btn) return;
+    var closed = false;
+    btn.addEventListener('click', function(){
+      closed = !closed;
+      btn.querySelector('span').textContent = closed ? 'Reopen milestone' : 'Close milestone';
+      openBadge.classList.toggle('hidden', closed);
+      openBadge.classList.toggle('inline-flex', !closed);
+      closedBadge.classList.toggle('hidden', !closed);
+      closedBadge.classList.toggle('inline-flex', closed);
+    });
+  })();
+</script>
+<script>/* delete confirm dialog */
+  (function(){
+    var trigger = document.getElementById('delete-milestone-btn');
+    var dialog = document.getElementById('delete-dialog');
+    if (!trigger || !dialog || typeof dialog.showModal !== 'function') return;
+    trigger.addEventListener('click', function(){ dialog.returnValue = ''; dialog.showModal(); });
+    document.getElementById('dd-cancel').addEventListener('click', function(){ dialog.close('cancel'); });
+    document.getElementById('dd-confirm').addEventListener('click', function(){ dialog.close('confirm'); });
+    dialog.addEventListener('close', function(){
+      if (dialog.returnValue === 'confirm') window.location.href = 'milestones.html';
+    });
+  })();
+</script>
+</body>
+</html>
