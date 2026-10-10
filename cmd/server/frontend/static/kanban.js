@@ -666,6 +666,69 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
+  // columnMenu is a column header's ⋯ popover. Delete column swaps the menu for an inline
+  // confirmation in the same popover; a failed delete keeps it open with the error.
+  Alpine.data('columnMenu', () => ({
+    open: false,
+    confirming: false,
+    busy: false,
+    error: '',
+
+    toggle() {
+      if (this.open) this.close();
+      else this.open = true;
+    },
+
+    // A click outside mid-request must not hide the pending delete or its error.
+    close() {
+      if (this.busy) return;
+      this.open = false;
+      this.confirming = false;
+      this.error = '';
+    },
+
+    ask() {
+      this.error = '';
+      this.confirming = true;
+      this.$nextTick(() => focusWhenShown(this.$refs.confirmDelete));
+    },
+
+    cancel() {
+      if (this.busy) return;
+      this.confirming = false;
+      this.error = '';
+      this.$nextTick(() => focusWhenShown(this.$refs.deleteItem));
+    },
+
+    onEscape(e) {
+      if (this.busy) {
+        e.preventDefault();
+        return;
+      }
+      if (this.confirming) {
+        e.preventDefault();
+        this.cancel();
+      } else if (this.open) {
+        e.preventDefault();
+        this.close();
+        this.$refs.trigger.focus();
+      }
+    },
+
+    async remove() {
+      if (this.busy) return;
+      this.busy = true;
+      this.error = '';
+      try {
+        await send('DELETE', projectURL(this.$root, `/columns/${this.$root.dataset.columnId}`));
+        window.location.reload();
+      } catch (err) {
+        this.error = err.message;
+        this.busy = false;
+      }
+    },
+  }));
+
   // linkPicker searches the repo's issues and PRs by title fragment or #number and
   // dispatches card-link-picked with the pick.
   Alpine.data('linkPicker', () => ({

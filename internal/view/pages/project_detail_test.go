@@ -392,6 +392,39 @@ func TestProjectDetail_ConvertOnlyWhenIssuesAreAllowed(t *testing.T) {
 	}
 }
 
+func TestProjectDetail_ColumnDeleteConfirmsInline(t *testing.T) {
+	out := renderBoard(t, boardData(true))
+	for _, want := range []string{
+		`x-data="columnMenu"`,
+		`data-column-id="2"`,
+		`Delete this column and its 2 cards?`,
+		`x-ref="confirmDelete"`,
+		`@click="remove()"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("writer board missing %q", want)
+		}
+	}
+	if strings.Contains(out, "confirm(") {
+		t.Error("the board still calls the native confirm()")
+	}
+
+	viewer := renderBoard(t, boardData(false))
+	for _, gone := range []string{"columnMenu", "Delete this column", "confirm("} {
+		if strings.Contains(viewer, gone) {
+			t.Errorf("read-only board has %q", gone)
+		}
+	}
+
+	for cards, want := range map[int]string{0: "Delete this column?", 1: "Delete this column and its 1 card?"} {
+		data := boardData(true)
+		data.Columns[0].Cards = data.Columns[0].Cards[:cards]
+		if got := renderBoard(t, data); !strings.Contains(got, want) {
+			t.Errorf("%d cards: missing %q", cards, want)
+		}
+	}
+}
+
 func TestProjectDetail_CardDialogUsesDropdownsForAssigneesAndLabels(t *testing.T) {
 	dlg := cardDialog(t, renderBoard(t, boardData(true)))
 	if strings.Contains(dlg, `type="checkbox"`) {
