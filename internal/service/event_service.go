@@ -55,20 +55,34 @@ func (s *EventService) RecordPush(ctx context.Context, actorID int64, actorName 
 // filter selects the scope: "yours" (events the user performed),
 // "watching" (events from watched repos), or "all"/"" (the full personalised feed).
 func (s *EventService) Feed(ctx context.Context, userID int, filter string, page, pageSize int) ([]model.Event, error) {
+	events, _, err := s.FeedPage(ctx, userID, filter, page, pageSize)
+	return events, err
+}
+
+// FeedPage is Feed plus whether a later page exists, found by reading one row past the page.
+func (s *EventService) FeedPage(ctx context.Context, userID int, filter string, page, pageSize int) (events []model.Event, hasMore bool, err error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 30
 	}
+	limit, offset := pageSize+1, (page-1)*pageSize
 	switch filter {
 	case "yours":
-		return s.events.ListOwnActivity(ctx, int64(userID), page, pageSize)
+		events, err = s.events.ListOwnActivity(ctx, int64(userID), limit, offset)
 	case "watching":
-		return s.events.ListWatching(ctx, int64(userID), page, pageSize)
+		events, err = s.events.ListWatching(ctx, int64(userID), limit, offset)
 	default:
-		return s.events.ListForFeed(ctx, int64(userID), page, pageSize)
+		events, err = s.events.ListForFeed(ctx, int64(userID), limit, offset)
 	}
+	if err != nil {
+		return nil, false, err
+	}
+	if len(events) > pageSize {
+		return events[:pageSize], true, nil
+	}
+	return events, false, nil
 }
 
 // FeedCounts returns event totals keyed "all", "yours", "watching".

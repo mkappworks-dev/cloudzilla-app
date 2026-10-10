@@ -35,18 +35,13 @@ func (h *Handler) PageActivity(w http.ResponseWriter, r *http.Request) {
 
 	const pageSize = 10
 	loadFailed := false
-	events, err := h.Services.Event.Feed(r.Context(), int(claims.UserID), filter, page, pageSize+1)
+	events, hasMore, err := h.Services.Event.FeedPage(r.Context(), int(claims.UserID), filter, page, pageSize)
 	if err != nil {
 		slog.Error("activity: failed to load events", "user_id", claims.UserID, "error", err)
-		events = []model.Event{}
 		loadFailed = true
 	}
 	if events == nil {
 		events = []model.Event{}
-	}
-	hasMore := len(events) > pageSize
-	if hasMore {
-		events = events[:pageSize]
 	}
 
 	prevURL, nextURL := "", ""
