@@ -22,15 +22,31 @@ tmp_dir = "tmp"
 [build]
   cmd = "CGO_ENABLED=0 go build -tags dev -o ./tmp/cloudzilla ./cmd/server/."
   bin = "./tmp/cloudzilla"
+  include_dir = ["cmd", "internal"]
   include_ext = ["go"]
-  exclude_dir = ["tmp", "dist", "git-repos", "storage", "mockups", "docs", ".scratch", ".worktrees"]
   exclude_regex = ["_test\\.go$"]
   delay = 100
   send_interrupt = true
   kill_delay = "2s"
 ```
 
-Two of those values are load-bearing:
+`include_dir` is an allowlist on purpose, and it is the difference between a watcher that
+works and one that falls over. Counted in this checkout:
+
+| watched                 |  files |
+| ----------------------- | -----: |
+| whole repo root         | 51,790 |
+| `.worktrees/` alone     | 32,069 |
+| the bare repo store     | 13,035 |
+| `cmd` + `internal` only |  1,458 |
+
+A default `root = "."` watcher would take on 35x the files it needs, most of them other
+branches' worktrees and bare repositories that never trigger a useful rebuild. On darwin
+fsnotify watches through kqueue, which holds descriptors per watched directory, so the blast
+radius of getting this wrong is descriptor exhaustion rather than merely wasted CPU. An
+allowlist also stays correct as the repo grows, where a denylist silently stops being complete.
+
+Two more values are load-bearing:
 
 - `CGO_ENABLED=0` drops a view-page rebuild from 6.1s to 4.2s by using Go's internal linker
   instead of clang. It is the cheapest win in this spec and costs nothing in dev.
@@ -55,9 +71,16 @@ while :; do
   else
     up=0
   fi
-  sleep 0.2
+  sleep 1
 done
 ```
+
+The interval is 1s rather than the 200ms this ticket first specified, because a `curl` spawn
+measures 5.5ms: at 200ms that is 2.8% of a core burned continuously for the whole session,
+against 0.6% at 1s. The cost is up to a second of extra latency on a refresh that already
+waits ~4s for the rebuild, which is not worth 2.2% of a core and the battery that goes with
+it. If that second ever grates, replace the script with a ~20-line Go notifier that watches
+`tmp/cloudzilla` with fsnotify and dials the port — no process spawns, no polling, exact.
 
 **`Makefile`** — `dev` keeps its prerequisites and its `trap 'kill 0' SIGINT` wrapper, and runs
 four children: `air`, the Tailwind watch, `templ generate --watch --proxy` (with no `--cmd`, as
