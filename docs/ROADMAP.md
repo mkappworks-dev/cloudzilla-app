@@ -1474,7 +1474,8 @@ CREATE INDEX idx_project_cards_pull   ON project_cards(pull_id);
 - `internal/model/project.go` — `Project`, `ProjectColumn`, `ProjectCard` structs; `ProjectCard` has helper fields `IssueTitle`, `IssueState`, `PullTitle`, `PullState` (populated via JOIN in store)
 - `internal/store/project_store.go` — `CreateProject`, `ListByRepo`, `GetProject`, `DeleteProject`; `CreateColumn`, `ListColumns`, `UpdateColumnPosition`, `DeleteColumn`; `CreateCard`, `ListCardsByColumn`, `MoveCard(ctx, cardID, newColumnID, newPosition)`, `DeleteCard`
 - `internal/service/project_service.go`
-- `internal/handler/project_handler.go` — `PageProjects`, `PageProjectDetail`, `CreateProject`, `DeleteProject`, `CreateColumn`, `DeleteColumn`, `CreateCard`, `MoveCard`, `DeleteCard`; HTMX-aware card move uses `hx-patch` with `column_id` + `position`
+- `internal/handler/project_page_handler.go` — `PageProjects`, `PageProjectDetail`
+- `internal/handler/project_handler.go` — `CreateProject`, `DeleteProject`, `CreateColumn`, `DeleteColumn`, `CreateCard`, `MoveCard`, `DeleteCard`; HTMX-aware card move uses `hx-patch` with `column_id` + `position`
 
 **Routes:**
 
