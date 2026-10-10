@@ -137,6 +137,7 @@ type PullNewData struct {
 	Branches     []service.BranchInfo
 	Base         string
 	Head         string
+	CanWrite     bool
 	AllLabels    []model.Label
 	Reviewer     components.ReviewerPickerData
 	Error        string
