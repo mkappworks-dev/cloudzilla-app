@@ -3,6 +3,7 @@
 Created: 2026-10-09
 Category: enhancement
 Status: ready-for-human
+Decision needed: approve or reject adding `github.com/russellhaering/goxmldsig` v1.6.1 (with `etree` v1.8.1 and `clockwork` v0.5.0) as a roadmap exception. Recommendation: approve; see [Comments](#comments).
 
 ## Problem
 
