@@ -297,8 +297,16 @@ func TestProjectDetail_CardViewEditsFieldsInPlace(t *testing.T) {
 	if !regexp.MustCompile(`(?s)<div x-show="editor.mode === 'create'"[^>]*>\s*<button[^>]*>\s*Cancel\s*</button>\s*<button[^>]*type="submit"`).MatchString(dlg) {
 		t.Error("the submit button is not inside the create-only footer group")
 	}
-	if strings.Contains(dlg, `x-show="editor.mode === &#39;edit&#39;" x-cloak>Save`) {
-		t.Error("edit mode still has a Save-all button")
+	// Convert and Delete wait for every field save; Convert also for fields edited in place.
+	for ref, want := range map[string]string{
+		"confirmConvert": `x-bind:disabled="editor.busy || anySaving || anyEditing"`,
+		"confirmDelete":  `x-bind:disabled="editor.busy || anySaving"`,
+		"deleteButton":   `x-bind:disabled="editor.busy || anySaving"`,
+		"convertButton":  `x-bind:disabled="editor.busy || anySaving || anyEditing"`,
+	} {
+		if btn := regexp.MustCompile(`<button[^>]*x-ref="` + ref + `"[^>]*>`).FindString(dlg); !strings.Contains(btn, want) {
+			t.Errorf("%s = %q, want %s", ref, btn, want)
+		}
 	}
 	for _, gone := range []string{"descDirty", "Save to refresh the preview", "editor.tab", "previewHTML"} {
 		if strings.Contains(dlg, gone) {
@@ -338,7 +346,7 @@ func TestProjectDetail_CardJSONDropsInvalidLabelColour(t *testing.T) {
 }
 
 // Convert keeps the dialog open: the success line is a polite live region, and the chip it
-// reveals is driven by editor.link, the same state body() sends on the next Save.
+// reveals is driven by editor.link, which showConverted sets with editor.saved.link.
 func TestProjectDetail_CardDialogConvertStaysOpen(t *testing.T) {
 	dlg := cardDialog(t, renderBoard(t, boardData(true)))
 	live := regexp.MustCompile(`(?s)<div role="status" aria-live="polite">.*?data-card-notice.*?</div>`).FindString(dlg)
@@ -453,14 +461,14 @@ func TestProjectDetail_ReadOnlyCardDialogShowsSelectionAsText(t *testing.T) {
 	}
 }
 
-// The X sits in the header beside the title, for writers and read-only viewers alike, and
-// closes through the same guarded close() as Cancel.
+// The X sits in the header beside the title, for writers and read-only viewers alike, closes
+// through the guarded close(), and is disabled while a request or a field save is running.
 func TestProjectDetail_CardDialogHasACloseX(t *testing.T) {
 	for _, canWrite := range []bool{true, false} {
 		dlg := cardDialog(t, renderBoard(t, boardData(canWrite)))
 		x := regexp.MustCompile(`<button[^>]*aria-label="Close"[^>]*>`).FindString(dlg)
-		if !strings.Contains(x, `@click="close()"`) || !strings.Contains(x, `x-bind:disabled="editor.busy"`) || !strings.Contains(x, `type="button"`) {
-			t.Errorf("canWrite=%v: close X = %q, want a type=button wired to close() and disabled while busy", canWrite, x)
+		if !strings.Contains(x, `@click="close()"`) || !strings.Contains(x, `x-bind:disabled="closeBlocked"`) || !strings.Contains(x, `type="button"`) {
+			t.Errorf("canWrite=%v: close X = %q, want a type=button wired to close() and disabled while closeBlocked", canWrite, x)
 		}
 		if at, body := strings.Index(dlg, `aria-label="Close"`), strings.Index(dlg, "data-card-main"); at < 0 || at > body {
 			t.Errorf("canWrite=%v: the close X (%d) is not in the header above the fields (%d)", canWrite, at, body)

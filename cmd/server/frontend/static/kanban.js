@@ -71,6 +71,8 @@ document.addEventListener('alpine:init', () => {
     saved: blankSaved(),
     fields: Object.fromEntries(FIELDS.map((f) => [f, blankField()])),
     lastEdited: '',
+    // Close was asked for while a field saved; the dialog closes once every save has succeeded.
+    closeWhenSaved: false,
     error: '',
     notice: '',
     busy: false,
@@ -100,9 +102,6 @@ document.addEventListener('alpine:init', () => {
     editor: blankEditor(),
     // Outlives the editor object: a request started before the dialog was reopened still counts.
     inflight: false,
-    // Field saves still running; the page reloads once they finish if the dialog closed meanwhile.
-    pendingSaves: 0,
-    reloadWhenSettled: false,
     // The card was changed server-side while the dialog stayed open, so the board behind it is stale.
     changed: false,
 
@@ -138,6 +137,11 @@ document.addEventListener('alpine:init', () => {
 
     get anySaving() {
       return FIELDS.some((f) => this.editor.fields[f].saving);
+    },
+
+    // The dialog stays open while a field saves, so its error has somewhere to show.
+    get closeBlocked() {
+      return this.editor.busy || this.anySaving;
     },
 
     get anyEditing() {
@@ -220,16 +224,32 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
+    // close saves a dropdown left open first, as closing its popover would, and then waits for
+    // that save: the dialog closes when it succeeds and stays open on its error.
     close() {
-      if (this.editor.busy) return;
+      if (this.closeBlocked) return;
+      this.commitOpenDropdowns();
+      if (this.anySaving) {
+        this.editor.closeWhenSaved = true;
+        return;
+      }
       this.$refs.cardDialog.close();
+    },
+
+    // commitOpenDropdowns closes any open dropdown, whose multiselect-closed starts its save
+    // synchronously; a click outside it would close it only after this click's own handler.
+    commitOpenDropdowns() {
+      for (const el of this.$refs.cardDialog.querySelectorAll('[x-data="multiSelect"]')) {
+        const dropdown = Alpine.$data(el);
+        if (dropdown.open) dropdown.close(false);
+      }
     },
 
     // Escape (keydown, or the cancel event where keydown is not the trigger) backs out of a field
     // edited in place, then the delete/convert confirmation, and never closes the dialog
     // mid-request. Popovers and the picker list stop their own Escape before it gets here.
     onEscape(e) {
-      if (this.editor.busy) {
+      if (this.closeBlocked) {
         e.preventDefault();
         return;
       }
@@ -254,10 +274,6 @@ document.addEventListener('alpine:init', () => {
 
     // Closing drops a field edited in place without saving it.
     onDialogClosed() {
-      if (this.pendingSaves > 0) {
-        this.reloadWhenSettled = true;
-        return;
-      }
       if (this.changed) {
         window.location.reload();
         return;
@@ -370,12 +386,16 @@ document.addEventListener('alpine:init', () => {
     async saveField(name, body, onSaved) {
       const editor = this.editor;
       const f = editor.fields[name];
-      if (!this.canWrite || f.saving || editor.busy) return;
+      if (f.saving) return;
+      if (!this.canWrite || editor.busy) {
+        // The choice was not saved, so the control must not keep showing it.
+        if (!f.editing) this.resetDraft(editor, name);
+        return;
+      }
       clearTimeout(f.timer);
       f.saving = true;
       f.status = 'saving';
       f.error = '';
-      this.pendingSaves++;
       try {
         const r = await send('PATCH', projectURL(this.$root, `/cards/${editor.id}/fields`), body);
         this.changed = true;
@@ -400,10 +420,16 @@ document.addEventListener('alpine:init', () => {
         f.error = err.message;
         // A field edited in place keeps the typed text to retry; the others show the stored value again.
         if (!f.editing) this.resetDraft(editor, name);
-      } finally {
-        this.pendingSaves--;
-        if (this.pendingSaves === 0 && this.reloadWhenSettled) window.location.reload();
+        // Stay open on the error.
+        editor.closeWhenSaved = false;
       }
+      this.closeIfSaved(editor);
+    },
+
+    closeIfSaved(editor) {
+      if (!editor.closeWhenSaved || FIELDS.some((n) => editor.fields[n].saving)) return;
+      editor.closeWhenSaved = false;
+      if (this.editor === editor) this.$refs.cardDialog.close();
     },
 
     pickLink(link) {
@@ -485,13 +511,21 @@ document.addEventListener('alpine:init', () => {
       return this.run([() => send('POST', projectURL(this.$root, '/cards'), { column_id: e.columnID, ...payload })]);
     },
 
-    // ask swaps the footer for an inline confirmation of a convert or delete.
+    // ask swaps the footer for an inline confirmation of a convert or delete. A dropdown left
+    // open is saved first, and the action waits: it is refused until every field save is done.
     ask(action) {
-      if (!this.canWrite || this.anySaving || (action === 'convert' && this.anyEditing)) return;
+      if (!this.canWrite) return;
+      this.commitOpenDropdowns();
+      if (this.actionBlocked(action)) return;
       this.editor.error = '';
       this.editor.notice = '';
       this.editor.confirm = action;
       this.$nextTick(() => focusWhenShown(action === 'convert' ? this.$refs.confirmConvert : this.$refs.confirmDelete));
+    },
+
+    // Convert copies the stored card, so it also waits for fields edited in place.
+    actionBlocked(action) {
+      return this.anySaving || (action === 'convert' && this.anyEditing);
     },
 
     cancelConfirm() {
@@ -505,6 +539,8 @@ document.addEventListener('alpine:init', () => {
     // it reloads when the dialog closes.
     convertCard() {
       if (!this.canWrite || this.editor.confirm !== 'convert') return;
+      this.commitOpenDropdowns();
+      if (this.actionBlocked('convert')) return;
       const editor = this.editor;
       let card = null;
       return this.run(
@@ -534,6 +570,8 @@ document.addEventListener('alpine:init', () => {
 
     deleteCard() {
       if (!this.canWrite || this.editor.confirm !== 'delete') return;
+      this.commitOpenDropdowns();
+      if (this.actionBlocked('delete')) return;
       return this.run([() => send('DELETE', projectURL(this.$root, `/cards/${this.editor.id}`))]);
     },
 

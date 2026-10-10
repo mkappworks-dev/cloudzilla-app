@@ -1400,7 +1400,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, "</div><button type=\"button\" aria-label=\"Close\" x-ref=\"cardClose\" x-bind:disabled=\"editor.busy\" @click=\"close()\" class=\"-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg></button></div><div class=\"min-h-0 flex-1 overflow-y-auto p-5 text-sm\"><div class=\"grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]\"><div data-card-main class=\"flex min-w-0 flex-col gap-5\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, "</div><button type=\"button\" aria-label=\"Close\" x-ref=\"cardClose\" x-bind:disabled=\"closeBlocked\" @click=\"close()\" class=\"-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg></button></div><div class=\"min-h-0 flex-1 overflow-y-auto p-5 text-sm\"><div class=\"grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]\"><div data-card-main class=\"flex min-w-0 flex-col gap-5\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1841,7 +1841,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				"type":            "button",
 				"x-ref":           "confirmConvert",
 				"x-show":          "editor.confirm === 'convert'",
-				"x-bind:disabled": "editor.busy",
+				"x-bind:disabled": "editor.busy || anySaving || anyEditing",
 				"@click":          "convertCard()",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var64), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
@@ -1869,7 +1869,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				"type":            "button",
 				"x-ref":           "confirmDelete",
 				"x-show":          "editor.confirm === 'delete'",
-				"x-bind:disabled": "editor.busy",
+				"x-bind:disabled": "editor.busy || anySaving",
 				"@click":          "deleteCard()",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var65), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {

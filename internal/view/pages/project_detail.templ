@@ -497,7 +497,7 @@ templ cardDialog(data view.ProjectDetailData) {
 					type="button"
 					aria-label="Close"
 					x-ref="cardClose"
-					x-bind:disabled="editor.busy"
+					x-bind:disabled="closeBlocked"
 					@click="close()"
 					class="-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 				>
@@ -773,7 +773,7 @@ templ cardDialog(data view.ProjectDetailData) {
 							"type":            "button",
 							"x-ref":           "confirmConvert",
 							"x-show":          "editor.confirm === 'convert'",
-							"x-bind:disabled": "editor.busy",
+							"x-bind:disabled": "editor.busy || anySaving || anyEditing",
 							"@click":          "convertCard()",
 						}) {
 							Create issue
@@ -782,7 +782,7 @@ templ cardDialog(data view.ProjectDetailData) {
 							"type":            "button",
 							"x-ref":           "confirmDelete",
 							"x-show":          "editor.confirm === 'delete'",
-							"x-bind:disabled": "editor.busy",
+							"x-bind:disabled": "editor.busy || anySaving",
 							"@click":          "deleteCard()",
 						}) {
 							Delete card
