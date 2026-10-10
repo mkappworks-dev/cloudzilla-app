@@ -2,7 +2,7 @@
 
 Created: 2026-10-10
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -31,12 +31,12 @@ Pure moves and renames: no signature changes, no edits inside function bodies, n
 
 ## Acceptance criteria
 
-- [ ] CLAUDE.md states the page-handler convention the folder actually follows
-- [ ] `page_handler.go` no longer exists; its symbols moved to files named for their concern
-- [ ] `internal/handler/viewmodels.go` and `code_service_tree_lc.go` renamed
-- [ ] `git diff --stat -M` shows only renames, whole-function moves, and doc path edits
-- [ ] No stale paths in `docs`, `.scratch`, `CLAUDE.md`, `CONTRIBUTING.md`
-- [ ] `go build ./...`, `go vet ./internal/handler/...`, `golangci-lint run` and `go test ./...` pass
+- [x] CLAUDE.md states the page-handler convention the folder actually follows
+- [x] `page_handler.go` no longer exists; its symbols moved to files named for their concern
+- [x] `internal/handler/viewmodels.go` and `code_service_tree_lc.go` renamed
+- [x] `git diff --stat -M` shows only renames, whole-function moves, and doc path edits
+- [x] No stale paths in `docs`, `.scratch`, `CLAUDE.md`, `CONTRIBUTING.md`
+- [x] `go build ./...`, `go vet ./internal/handler/...`, `golangci-lint run` and `go test ./...` pass
 
 ## Blocked by
 

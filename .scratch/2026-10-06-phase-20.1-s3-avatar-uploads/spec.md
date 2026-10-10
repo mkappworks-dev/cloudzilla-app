@@ -222,7 +222,7 @@ The help text becomes "PNG, JPEG, GIF or WebP, max 2 MB." Layout (mockup picked 
 - Wiring: `cmd/server/main.go`, `internal/service/services.go`, `internal/router/router.go`
 - Stores: `internal/store/user_store.go` (`userColumns`, `scanUser`), `internal/store/org_store.go`, the author-join queries behind each activity surface
 - Services: `internal/service/user_service.go` (`DeleteUser`, `CodeThemes`), `internal/service/org_service.go` (`IsOwner`, `Delete`)
-- Handlers: `internal/handler/settings_page_handler.go`, `internal/handler/org_handler.go`, `internal/handler/user_handler.go` (`publicUser`), `internal/handler/page_handler.go` (`basePage`)
+- Handlers: `internal/handler/settings_page_handler.go`, `internal/handler/org_handler.go`, `internal/handler/user_handler.go` (`publicUser`), `internal/handler/base_page.go` (`basePage`)
 - Middleware: `internal/middleware/body_limit.go`, `internal/middleware/csrf.go`
 - Views: `internal/view/components/avatar.templ`, `internal/view/layout/layout.templ`, `internal/view/pages/settings.templ`, `internal/view/pages/org_settings.templ`, and every call site listed in §8
 - Docs: `docs/configuration.md`, `docs/deployment.md`, `docs/api-reference.md`, `docs/ROADMAP.md`, new `docs/storage.md`, `CLAUDE.md`
