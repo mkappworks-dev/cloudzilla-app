@@ -48,19 +48,6 @@ func (h *Handler) ResendVerificationEmail(w http.ResponseWriter, r *http.Request
 	http.Redirect(w, r, "/settings?profile_error="+code+"#email", http.StatusSeeOther)
 }
 
-// PageVerifyEmail handles GET /verify-email. It only checks the token: mail
-// scanners fetch links, and a GET that spent it would leave the person a dead link.
-func (h *Handler) PageVerifyEmail(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
-	link, err := h.Services.EmailVerifier.Check(r.Context(), token)
-	if err != nil {
-		slog.Error("check verification token", "error", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	h.renderVerifyEmail(w, r, link, token)
-}
-
 // VerifyEmailSubmit handles POST /verify-email.
 func (h *Handler) VerifyEmailSubmit(w http.ResponseWriter, r *http.Request) {
 	state, u, err := h.Services.EmailVerifier.Verify(r.Context(), r.FormValue("token"))

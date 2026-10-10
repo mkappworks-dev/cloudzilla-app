@@ -19,4 +19,4 @@ Typing in the results page's own input opens the same dropdown as the topnav. `t
 
 ## Relevant files
 
-`cmd/server/frontend/static/topnav-search.js`, `internal/view/fragments/search_suggestions.templ`, `internal/view/layout/` (topnav form), `internal/view/pages/search.templ`, `internal/handler/search_handler.go`
+`cmd/server/frontend/static/topnav-search.js`, `internal/view/fragments/search_suggestions.templ`, `internal/view/layout/` (topnav form), `internal/view/pages/search.templ`, `internal/handler/search_page_handler.go`

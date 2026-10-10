@@ -74,7 +74,7 @@ Checked on 2026-10-06 in the desktop app's built-in browser against a throwaway 
 
 - `internal/handler/repo_page_handler.go` (`PageBlob`, `EditURL`)
 - `internal/view/pages/blob.templ`, `internal/view/viewmodels_repo.go` (`BlobData`, `NewFileData`)
-- `internal/handler/repo_files_handler.go` (`PageNewFile`, `SubmitNewFile`, `parseNewFileForm`, body caps)
+- `internal/handler/repo_files_handler.go` (`SubmitNewFile`, `parseNewFileForm`, body caps), `repo_files_page_handler.go` (`PageNewFile`)
 - `internal/view/pages/new_file.templ`, `internal/view/components/confirm_dialog.templ` (toast wiring)
 - `internal/service/code_service_files.go` (`CommitFile`, `insertBlobIntoTree`)
 - `internal/service/code_service_tree.go` (`GetBlob`, `BlobResult`)

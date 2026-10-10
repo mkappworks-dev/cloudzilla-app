@@ -41,7 +41,7 @@ Out of scope: issue and PR suggestions, recent searches, highlighting the matche
 
 - `internal/store/search_store.go`, `internal/store/repo_store.go` (`readableBy`, `viewerID`), `internal/store/search_visibility_test.go`
 - `internal/service/search_service.go`
-- `internal/handler/search_handler.go`
+- `internal/handler/search_page_handler.go`
 - `internal/router/router.go`, `internal/middleware/api_rate_limit.go`
 - `internal/view/layout/layout.templ`, `internal/view/fragments/`, `internal/view/components/avatar.templ`
 
