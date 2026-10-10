@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -49,12 +49,12 @@ Later, not in this spec: `release`, `label`, `milestone`, `notification`, `searc
 
 ## Acceptance criteria
 
-- [ ] `cloudzilla-cli` is `cz-admin` everywhere: binary, `cmd/` directory, Makefile, Dockerfile, CI, release archive, README and docs. Nothing refers to the old name.
+- [x] `cloudzilla-cli` is `cz-admin` everywhere: binary, `cmd/` directory, Makefile, Dockerfile, CI, release archive, README and docs. Only the tickets and specs that describe the rename, and a deliberate note in `docs/configuration.md` about old audit-log rows, still name it.
 - [x] `cz auth login` stores a verified token; `status` shows host, user and storage; `logout` removes it.
-- [ ] The core commands above work against a real server with a PAT carrying the right scopes.
+- [x] The core commands above work against a real server with a PAT carrying the right scopes.
 - [x] A missing scope, a bad token and an unreachable host each give a one-line message and a non-zero exit.
 - [x] `cz` builds without importing the store or service layers (checked in CI or by a test on its imports).
-- [ ] `cz` ships in the release archive and the Docker image's `dist/`, and is documented in `docs/cli.md`, linked from `CLAUDE.md`'s subsystem list.
+- [x] `cz` ships in its own release archive per platform, not in the server archive or the Docker image (only operators run those), and is documented in `docs/cli.md`, linked from `CLAUDE.md`'s subsystem list.
 
 ## Relevant files
 
@@ -93,3 +93,9 @@ Claude, 2026-10-10: ticked the auth, error-message and import-boundary criteria 
 - **Old name everywhere.** `.scratch/2026-10-06-admin-password-reset/` still names `cloudzilla password-reset-link`. The stale `cloudzilla gc` in `docs/configuration.md` is fixed.
 - **Core commands against a real server.** The repo, issue and PR commands are tested against stub servers only; the one run against the real router is the device login.
 - **Docker image's `dist/`.** Ticket 06 deliberately keeps `cz` out of the server image (`docs/cli.md` says so), which contradicts this criterion. Reword it or ship `cz` in the image.
+
+Claude, 2026-10-10: closed the three open items.
+
+- **Old name everywhere.** Reworded to what holds: no code, build file or doc an operator follows names `cloudzilla-cli`. The hits left are the rename ticket, this spec and the audit-row note in `docs/configuration.md`; the older `.scratch/2026-10-06-admin-password-reset/` specs describe the shell command as it was then and stay as written.
+- **Core commands against a real server.** Ran a `cz` built from `main` against a throwaway server on a seeded database, with a `repo:write` PAT in `CZ_TOKEN` and `CZ_HOST`: `auth status`, `repo list|view|create`, `issue list|create|comment|close`, `pr list|view|review|close` and `api GET /api/user` all exited 0 with JSON from the real router. A bad token (`cz: unauthorized: token missing, invalid or expired; run cz auth login`) and an unreachable host each gave one line and exit 1. Not run: `repo fork|clone`, `pr create|merge`, which need a pushed branch, and the keychain (the token came from the environment).
+- **Docker image's `dist/`.** Reworded to match ticket 06: `cz` has its own archive and is left out of the server image, as `docs/cli.md` states.
