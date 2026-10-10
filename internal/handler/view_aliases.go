@@ -1,8 +1,7 @@
 package handler
 
-// This file re-exports all view-model types from internal/view so that handler
-// code can continue to reference them without a package qualifier.  The
-// canonical definitions now live in internal/view/viewmodels.go.
+// Type aliases for the view-model structs defined in internal/view/viewmodels*.go,
+// so handler code can name them without a package qualifier.
 
 import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
 

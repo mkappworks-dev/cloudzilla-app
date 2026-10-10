@@ -660,7 +660,7 @@ GET  /api/repos/{owner}/{repo}/commits/{sha}/status    (optAuthMW)
 
 - `pages/commit.html`: status bar below commit message; extend `CommitData` with `Statuses []model.CommitStatus`
 - `pages/pull_detail.html`: combined status of head branch's latest commit; extend `PullDetailData` with `HeadStatuses []model.CommitStatus`
-- `page_handler.go` `PageCommit` and `PagePullDetail`: call `CommitStatusService.List`
+- `repo_page_handler.go` `PageCommit` and `pull_detail_page_handler.go` `PagePullDetail`: call `CommitStatusService.List`
 
 **Wire up:**
 
@@ -816,7 +816,7 @@ DELETE   /api/repos/{owner}/{repo}/pulls/{number}/line_comments/{id}      (authM
 
 - `pages/pull_detail.html` diff table: add `data-path` + `data-line` attrs to diff rows; "+" click target reveals inline comment form; comments injected as table rows between diff lines
 - Viewmodel: add `LineComments map[string][]RenderedLineComment` to `PullDetailData` (keyed by `path`, pre-rendered body HTML)
-- `page_handler.go` `PagePullDetail`: call `PullLineCommentService.ListByPull`, group by path
+- `pull_detail_page_handler.go` `PagePullDetail`: call `PullLineCommentService.ListByPull`, group by path
 
 **Wire up:**
 
@@ -2483,9 +2483,9 @@ Milestone 2 migration numbers are provisional: take the next free number when th
 **Critical files touched by every phase:**
 
 - `internal/router/router.go` — register new routes + add page names to `pageNames`
-- `internal/handler/viewmodels.go` — add data structs for new pages/fragments
+- `internal/view/viewmodels_*.go` — add data structs for new pages/fragments, and alias them in `internal/handler/view_aliases.go`
 - `internal/service/services.go` — wire new service into `Services` struct + `New()`
 - `internal/store/stores.go` — wire new store into `Stores` struct + `New()`
-- `internal/handler/page_handler.go` — extend existing page handlers with new data fetches
+- `internal/handler/<concern>_handler.go` or `<concern>_page_handler.go` — extend existing page handlers with new data fetches
 
 ---
