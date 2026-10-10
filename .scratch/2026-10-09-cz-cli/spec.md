@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -51,7 +51,7 @@ Later, not in this spec: `release`, `label`, `milestone`, `notification`, `searc
 
 - [x] `cloudzilla-cli` is `cz-admin` everywhere: binary, `cmd/` directory, Makefile, Dockerfile, CI, release archive, README and docs. Nothing refers to the old name.
 - [x] `cz auth login` stores a verified token; `status` shows host, user and storage; `logout` removes it.
-- [ ] The core commands above work against a real server with a PAT carrying the right scopes.
+- [x] The core commands above work against a real server with a PAT carrying the right scopes.
 - [x] A missing scope, a bad token and an unreachable host each give a one-line message and a non-zero exit.
 - [x] `cz` builds without importing the store or service layers (checked in CI or by a test on its imports).
 - [x] `cz` ships as its own release archive per platform (the server archive and Docker image leave it out), and is documented in `docs/cli.md`, linked from `CLAUDE.md`'s subsystem list.
@@ -95,3 +95,13 @@ Claude, 2026-10-10: ticked the auth, error-message and import-boundary criteria 
 - **Docker image's `dist/`.** Ticket 06 deliberately keeps `cz` out of the server image (`docs/cli.md` says so), which contradicts this criterion. Reword it or ship `cz` in the image.
 
 Claude, 2026-10-10 (later): fixed the last stale `cloudzilla password-reset-link` in `.scratch/2026-10-06-admin-password-reset/` and ticked the old-name criterion. Reworded the last criterion to match ticket 06 (`cz` ships as its own archive, not in the server image) and ticked it. Still open: the core commands against a real server.
+
+Claude, 2026-10-10 (real-server run): built the server, `cz-admin` and `cz` from `main` and ran `cz` against them on a seeded scratch database. Three tokens came from the device flow through the real approval page (`repo:write`, `repo:read`, `pulls:write`), and git traffic went over HTTP with the token. All 69 checks passed:
+
+- `auth login | status | logout`: the stored file is `0600`, `status` shows host, user and storage, and no URL carries the code.
+- `repo create | list | view | clone | fork`: the clone's `origin` and `.git/config` hold no token.
+- `issue create | list | view | comment | close`: the repo came from the `origin` remote.
+- `pr create | list | view | review | merge --squash | close`, and `cz api` with `-f` fields.
+- Failure modes: `repo:read` on `repo create` names `repo:write`, `pulls:write` on `pr merge` names `repo:write`, a reviewer without write access gets `403`, and an unreachable host fails with one line. A bad token fails with one line on `auth status` and on every write.
+
+One behaviour to know: a bad token on a public read (`repo list`, `issue list`, `pr list` of a public repo) is not an error. The server treats an unverifiable bearer token as anonymous there and returns public data, so `cz` exits 0. Closing the last box leaves that as is; `docs/cli.md` doesn't mention it.
