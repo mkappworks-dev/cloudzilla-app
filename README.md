@@ -12,10 +12,10 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 
 ## Milestones
 
-| Milestone                                       | Scope                                                                                                                            | Status       |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Milestone                                       | Scope                                                                                                                             | Status       |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | **M1 — Core Platform** (Phases 0–15.3)          | Identity, git hosting, issues, PRs, code review, orgs, wikis, discussions, gists, search, and 50+ features across 100+ migrations | **Complete** |
-| **M2 — Advanced Infrastructure** (Phases 16–20) | Container registry, Git LFS, CI/CD pipelines, clustering, GraphQL API                                                            | In progress  |
+| **M2 — Advanced Infrastructure** (Phases 16–20) | Container registry, Git LFS, CI/CD pipelines, clustering, GraphQL API                                                             | In progress  |
 
 ---
 
