@@ -1313,7 +1313,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			templ_7745c5c3_Var56 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "<dialog id=\"card-dialog\" x-ref=\"cardDialog\" class=\"rounded-lg border border-border bg-popover text-popover-foreground p-0 m-auto w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs\" aria-labelledby=\"card-dialog-title\" @close=\"onDialogClosed()\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "<dialog id=\"card-dialog\" x-ref=\"cardDialog\" class=\"rounded-lg border border-border bg-popover text-popover-foreground p-0 m-auto w-[960px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs\" aria-labelledby=\"card-dialog-title\" @close=\"onDialogClosed()\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1402,7 +1402,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "<textarea x-show=\"editor.tab === 'write'\" x-model=\"editor.description\" @input=\"editor.descDirty = true\" rows=\"8\" aria-labelledby=\"card-desc-label\" placeholder=\"Markdown supported. Reference #123 to link an issue or pull request.\" class=\"block w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></textarea>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "<textarea x-show=\"editor.tab === 'write'\" x-model=\"editor.description\" @input=\"editor.descDirty = true\" rows=\"14\" aria-labelledby=\"card-desc-label\" placeholder=\"Markdown supported. Reference #123 to link an issue or pull request.\" class=\"block w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></textarea>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

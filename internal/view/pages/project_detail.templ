@@ -422,7 +422,7 @@ templ cardDialog(data view.ProjectDetailData) {
 	<dialog
 		id="card-dialog"
 		x-ref="cardDialog"
-		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 m-auto w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs"
+		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 m-auto w-[960px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs"
 		aria-labelledby="card-dialog-title"
 		@close="onDialogClosed()"
 		if data.CanWrite {
@@ -484,7 +484,7 @@ templ cardDialog(data view.ProjectDetailData) {
 										x-show="editor.tab === 'write'"
 										x-model="editor.description"
 										@input="editor.descDirty = true"
-										rows="8"
+										rows="14"
 										aria-labelledby="card-desc-label"
 										placeholder="Markdown supported. Reference #123 to link an issue or pull request."
 										class="block w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
