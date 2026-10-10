@@ -139,10 +139,13 @@
         });
       },
 
+      // multiselect-closed fires only when the user closes the popover, not when its dialog
+      // closes, so a page can commit the selection then.
       close(returnFocus = true) {
         if (!this.open) return;
         this.open = false;
         if (returnFocus) this.$refs.trigger.focus();
+        this.$dispatch('multiselect-closed', { selected: [...this.selected] });
       },
 
       move(delta) {

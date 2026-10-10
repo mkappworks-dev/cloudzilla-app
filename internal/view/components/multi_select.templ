@@ -22,7 +22,8 @@ type MultiSelectProps struct {
 // MultiSelect is a multi-select dropdown driven by multiSelect in static/multiselect.js, which
 // the page must load. `selected` (x-modelable) holds the chosen values as strings, so an
 // x-model in Attrs binds it, and an x-effect in Attrs may set `extra` ({value, label} items
-// that are not in Options) to list a selection the options no longer offer.
+// that are not in Options) to list a selection the options no longer offer. Closing the
+// popover dispatches multiselect-closed with the selection in detail.selected.
 templ MultiSelect(p MultiSelectProps) {
 	<div
 		class="relative"

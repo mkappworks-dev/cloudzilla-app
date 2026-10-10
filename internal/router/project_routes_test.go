@@ -538,12 +538,14 @@ func TestProjects_BoardCardDialogData(t *testing.T) {
 	bodyHas(t, rr, "triage-me")
 	bodyHas(t, rr, `@click="deleteCard()"`)
 	bodyHas(t, rr, fmt.Sprintf(`data-add-card="%d"`, col))
+	bodyHas(t, rr, `aria-label="Edit title"`)
+	bodyHas(t, rr, `<div class="md-editor" data-md-editor>`)
 
 	rr = e.page(t, e.pagePath("/projects/%d", board), "", false)
 	wantStatus(t, rr, http.StatusOK)
 	bodyHas(t, rr, "dialog card")
-	bodyHas(t, rr, `id="card-title-input"`)
-	for _, gone := range []string{"data-card-people", "data-card-labels", "triage-me", "deleteCard", "data-add-card", "linkPicker"} {
+	bodyHas(t, rr, `id="card-dialog-title"`)
+	for _, gone := range []string{"data-card-people", "data-card-labels", "triage-me", "deleteCard", "data-add-card", "linkPicker", `aria-label="Edit title"`, `<div class="md-editor" data-md-editor>`} {
 		if strings.Contains(rr.Body.String(), gone) {
 			t.Errorf("anonymous board renders %q", gone)
 		}

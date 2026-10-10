@@ -33,7 +33,8 @@ var datePickerWeekdays = []struct{ Short, Long string }{
 
 // DatePicker is a calendar date field driven by datePicker in static/datepicker.js, which
 // the page must load. The value is a local YYYY-MM-DD in the hidden input and in `value`
-// (x-modelable), so an x-model in Attrs binds it.
+// (x-modelable), so an x-model in Attrs binds it. Picking a day, Today or Clear dispatches
+// date-picked with the new value in detail.value.
 templ DatePicker(p DatePickerProps) {
 	<div
 		class="relative"

@@ -53,6 +53,12 @@ func renderBoard(t *testing.T, data view.ProjectDetailData) string {
 	return sb.String()
 }
 
+// jsonEscaped spells s the way json.Marshal escapes < and > inside an HTML attribute.
+func jsonEscaped(s string) string {
+	bs := "\\"
+	return strings.NewReplacer("<", bs+"u003c", ">", bs+"u003e", `"`, bs+"&#34;").Replace(s)
+}
+
 func TestProjectDetail_CardFace(t *testing.T) {
 	out := renderBoard(t, boardData(true))
 
@@ -66,7 +72,7 @@ func TestProjectDetail_CardFace(t *testing.T) {
 		`data-card-open`,
 		`role="button"`,
 		`href="/acme/widgets/issues/9"`,
-		`<template id="desc-41"><p>Blocked on <a href="/acme/widgets/issues/1">#1</a></p></template>`,
+		"&#34;description_html&#34;:&#34;" + jsonEscaped(`<p>Blocked on <a href="/acme/widgets/issues/1">#1</a></p>`) + "&#34;",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("board missing %q", want)
@@ -78,8 +84,8 @@ func TestProjectDetail_CardFace(t *testing.T) {
 	if !regexp.MustCompile(`data-card-link>(?s:.*?)#5`).MatchString(out) {
 		t.Error("the linked PR badge #5 is missing from the note card")
 	}
-	if strings.Contains(out, `id="desc-42"`) {
-		t.Error("a plain linked card must not carry a description template")
+	if strings.Contains(out, "<template id=\"desc-") {
+		t.Error("the board still renders per-card description templates; the card JSON carries the HTML")
 	}
 }
 
@@ -118,7 +124,7 @@ func TestProjectDetail_CardDialogWriteControls(t *testing.T) {
 		`aria-labelledby="card-dialog-title"`, `id="card-dialog-title"`, `x-text="heading"`,
 		`@submit.prevent="submit()"`,
 		`<label for="card-title-input"`, `id="card-title-input"`,
-		`id="card-desc-label"`, `x-model="editor.description"`, `Write</button>`, `Preview</button>`,
+		`id="card-desc-label"`, `data-md-editor`, `id="card-description"`, `Write</button>`, `Preview</button>`,
 		`x-data="linkPicker"`, `<label for="card-link-input"`, `data-picker-list`,
 		`data-card-people`, `x-model="editor.assignees"`, `data-value="7"`, "daisy",
 		`data-card-labels`, `x-model="editor.labels"`, `data-value="4"`, "docs", `style="background-color: #fef2c0; color: #1f2328;"`,
@@ -207,25 +213,96 @@ func TestProjectDetail_ReadOnlyCardDialog(t *testing.T) {
 	}
 	dlg := cardDialog(t, out)
 	for _, gone := range []string{
-		`type="submit"`, "Create card", `x-model="editor.description"`, "Write</button>",
+		`type="submit"`, "Create card", "data-md-editor", "Write</button>", "<input", "<textarea",
+		`aria-label="Edit`, "Add a description", "data-field-status", "saveTitle", "saveDescription", "commitField",
 		"data-card-confirm", "Create an issue from this card?", "Delete this card?", "cancelConfirm",
-		"Remove link", "Choose due date", "Today</button>", "Clear</button>",
+		"Remove link", "Choose due date", "Today</button>", "Clear</button>", `x-data="datePicker"`,
 	} {
 		if strings.Contains(dlg, gone) {
 			t.Errorf("read-only card dialog renders %q", gone)
 		}
 	}
-	for _, want := range []string{`id="card-title-input"`, `@click="close()"`, "Close", `data-card-preview`} {
+	for _, want := range []string{
+		`@click="close()"`, "Close", `x-html="editor.saved.descriptionHTML"`, `data-card-preview`, "No description",
+		`x-text="dueLabel(editor.saved.dueDate) || 'None'"`,
+	} {
 		if !strings.Contains(dlg, want) {
 			t.Errorf("read-only card dialog missing %q", want)
 		}
 	}
-	if !strings.Contains(out, `<template id="desc-41">`) {
-		t.Error("read-only board is missing the rendered description template")
+	if !strings.Contains(out, "&#34;description_html&#34;:&#34;"+jsonEscaped("<p>Blocked on")) {
+		t.Error("read-only board is missing the rendered description in the card JSON")
 	}
-	for _, id := range []string{"card-title-input", "card-due-input"} {
-		if !regexp.MustCompile(`id="` + id + `"[^>]*\sdisabled[\s>]`).MatchString(dlg) {
-			t.Errorf("read-only %s is not disabled", id)
+}
+
+// A card opens as a detail view: writers get a pencil per text field, the dropdowns and the
+// date save on their own when the user is done choosing, and nothing saves the whole form.
+func TestProjectDetail_CardViewEditsFieldsInPlace(t *testing.T) {
+	dlg := cardDialog(t, renderBoard(t, boardData(true)))
+	for _, want := range []string{
+		`aria-label="Edit title"`, `@click="editField(&#39;title&#39;)"`,
+		`id="card-title-edit"`, `@keydown.enter.prevent="saveTitle()"`, `@click="saveTitle()"`, `@click="cancelField(&#39;title&#39;)"`,
+		`aria-label="Edit description"`, `@click="editField(&#39;description&#39;)"`, "Add a description",
+		`x-html="editor.saved.descriptionHTML"`, `@click="saveDescription()"`, `@click="cancelField(&#39;description&#39;)"`,
+		`aria-label="Change linked item"`, `@click="clearLink()"`,
+		`x-bind:disabled="editor.busy || anySaving || anyEditing"`,
+	} {
+		if !strings.Contains(dlg, want) {
+			t.Errorf("writer card view missing %q", want)
+		}
+	}
+	// The commit listeners wrap the dropdowns and the date picker: inside them they would run
+	// in the component's own scope, where the board's $root is out of reach.
+	for field, listener := range map[string]string{
+		"assignees": `@multiselect-closed="commitField('assignees', $event.detail.selected)"`,
+		"labels":    `@multiselect-closed="commitField('labels', $event.detail.selected)"`,
+		"due":       `@date-picked="commitField('due', $event.detail.value)"`,
+	} {
+		wrap := regexp.MustCompile(`<fieldset[^>]*` + regexp.QuoteMeta(listener) + `[^>]*>\s*<legend[^>]*>[^<]*</legend>\s*<div[^>]*x-data="(multiSelect|datePicker)"`).FindString(dlg)
+		if wrap == "" {
+			t.Errorf("%s: no fieldset around the component carrying %s", field, listener)
+		}
+	}
+	for _, field := range []string{"title", "description", "assignees", "labels", "due", "link"} {
+		status := regexp.MustCompile(`<span[^>]*data-field-status="` + field + `"[^>]*>`).FindString(dlg)
+		for _, want := range []string{`role="status"`, `aria-live="polite"`, `x-text="fieldStatus(&#39;` + field + `&#39;)"`} {
+			if !strings.Contains(status, want) {
+				t.Errorf("%s status missing %s: %q", field, want, status)
+			}
+		}
+	}
+
+	// The issues page's editor: Write/Preview tabs, the toolbar, and a preview of the typed text.
+	if n := strings.Count(dlg, "data-md-editor"); n != 1 {
+		t.Errorf("markdown editors = %d, want 1 shared by create and edit", n)
+	}
+	for _, want := range []string{
+		`data-md-tab="write"`, `data-md-tab="preview"`, `hx-post="/api/markdown/preview"`,
+		`document.getElementById(&#39;card-description&#39;).value`, `hx-target="#card-description-preview"`,
+		`data-md-action="bold"`, `data-md-action="link"`,
+	} {
+		if !strings.Contains(dlg, want) {
+			t.Errorf("description editor missing %q", want)
+		}
+	}
+	editor := regexp.MustCompile(`<div x-show="([^"]*)"[^>]*data-card-description-editor`).FindStringSubmatch(dlg)
+	if len(editor) < 2 || editor[1] != "editor.mode === 'create' || editor.fields.description.editing" {
+		t.Errorf("the description editor should show in create mode and while editing: %q", editor)
+	}
+
+	// Create is the only submit, and only the create footer shows it.
+	if n := strings.Count(dlg, `type="submit"`); n != 1 {
+		t.Errorf("submit buttons = %d, want 1 (Create card)", n)
+	}
+	if !regexp.MustCompile(`(?s)<div x-show="editor.mode === 'create'"[^>]*>\s*<button[^>]*>\s*Cancel\s*</button>\s*<button[^>]*type="submit"`).MatchString(dlg) {
+		t.Error("the submit button is not inside the create-only footer group")
+	}
+	if strings.Contains(dlg, `x-show="editor.mode === &#39;edit&#39;" x-cloak>Save`) {
+		t.Error("edit mode still has a Save-all button")
+	}
+	for _, gone := range []string{"descDirty", "Save to refresh the preview", "editor.tab", "previewHTML"} {
+		if strings.Contains(dlg, gone) {
+			t.Errorf("the old whole-form editor's %q is still rendered", gone)
 		}
 	}
 }
@@ -274,7 +351,7 @@ func TestProjectDetail_CardDialogConvertStaysOpen(t *testing.T) {
 			t.Errorf("linked item chip missing %q: %q", want, chip)
 		}
 	}
-	if !strings.Contains(dlg, `x-show="editor.mode === &#39;edit&#39; &amp;&amp; !editor.link &amp;&amp; editor.title.trim()"`) {
+	if !strings.Contains(dlg, `x-show="editor.mode === &#39;edit&#39; &amp;&amp; !editor.link &amp;&amp; editor.saved.title"`) {
 		t.Error("Convert is not hidden once the editor has a link")
 	}
 
@@ -332,17 +409,21 @@ func TestProjectDetail_CardDialogSideColumn(t *testing.T) {
 			t.Fatalf("canWrite=%v: main column %d, side column %d, want both with main first", canWrite, mainAt, sideAt)
 		}
 		main, side := dlg[mainAt:sideAt], dlg[sideAt:]
-		for _, want := range []string{`id="card-title-input"`, `id="card-desc-label"`} {
+		wantMain := []string{`id="card-desc-label"`, `data-card-field="description"`}
+		if canWrite {
+			wantMain = append(wantMain, `id="card-title-input"`)
+		}
+		for _, want := range wantMain {
 			if !strings.Contains(main, want) {
 				t.Errorf("canWrite=%v: main column missing %q", canWrite, want)
 			}
 		}
-		for _, want := range []string{`id="card-assignees-label"`, `id="card-labels-label"`, `id="card-due-input"`, "data-card-link-chip"} {
+		order := []string{`id="card-assignees-label"`, `id="card-labels-label"`, `data-card-field="due"`, "data-card-link-chip"}
+		for _, want := range order {
 			if !strings.Contains(side, want) || strings.Contains(main, want) {
 				t.Errorf("canWrite=%v: %q is not only in the side column", canWrite, want)
 			}
 		}
-		order := []string{`id="card-assignees-label"`, `id="card-labels-label"`, `id="card-due-input"`, "data-card-link-chip"}
 		last := -1
 		for _, want := range order {
 			at := strings.Index(side, want)
@@ -360,7 +441,7 @@ func TestProjectDetail_CardDialogSideColumn(t *testing.T) {
 
 func TestProjectDetail_ReadOnlyCardDialogShowsSelectionAsText(t *testing.T) {
 	dlg := cardDialog(t, renderBoard(t, boardData(false)))
-	for _, want := range []string{`x-for="a in editor.card.assignees"`, `x-for="l in editor.card.labels"`} {
+	for _, want := range []string{`x-for="a in editor.saved.assignees"`, `x-for="l in editor.saved.labels"`} {
 		if !strings.Contains(dlg, want) {
 			t.Errorf("read-only dialog missing %q", want)
 		}
@@ -381,11 +462,11 @@ func TestProjectDetail_CardDialogHasACloseX(t *testing.T) {
 		if !strings.Contains(x, `@click="close()"`) || !strings.Contains(x, `x-bind:disabled="editor.busy"`) || !strings.Contains(x, `type="button"`) {
 			t.Errorf("canWrite=%v: close X = %q, want a type=button wired to close() and disabled while busy", canWrite, x)
 		}
-		if at, title := strings.Index(dlg, `aria-label="Close"`), strings.Index(dlg, `id="card-title-input"`); at < 0 || at > title {
-			t.Errorf("canWrite=%v: the close X (%d) is not in the header above the fields (%d)", canWrite, at, title)
+		if at, body := strings.Index(dlg, `aria-label="Close"`), strings.Index(dlg, "data-card-main"); at < 0 || at > body {
+			t.Errorf("canWrite=%v: the close X (%d) is not in the header above the fields (%d)", canWrite, at, body)
 		}
-		if !strings.Contains(dlg, `class="block truncate"`) {
-			t.Errorf("canWrite=%v: a long heading is not truncated beside the X", canWrite)
+		if !strings.Contains(dlg, `<span x-text="heading" class="block break-words">`) {
+			t.Errorf("canWrite=%v: a long card title does not wrap beside the X", canWrite)
 		}
 	}
 }

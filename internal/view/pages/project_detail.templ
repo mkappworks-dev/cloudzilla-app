@@ -21,35 +21,38 @@ type cardEditorLabel struct {
 }
 
 type cardEditorState struct {
-	ID          int64             `json:"id"`
-	Column      string            `json:"column"`
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	DueDate     string            `json:"due_date"`
-	Assignees   []model.CardUser  `json:"assignees"`
-	Labels      []cardEditorLabel `json:"labels"`
-	LinkKind    string            `json:"link_kind"`
-	LinkID      int64             `json:"link_id"`
-	LinkNumber  int               `json:"link_number"`
-	LinkTitle   string            `json:"link_title"`
-	LinkState   string            `json:"link_state"`
+	ID          int64  `json:"id"`
+	Column      string `json:"column"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	// DescriptionHTML is server-rendered markdown; the card view shows it with x-html.
+	DescriptionHTML string            `json:"description_html"`
+	DueDate         string            `json:"due_date"`
+	Assignees       []model.CardUser  `json:"assignees"`
+	Labels          []cardEditorLabel `json:"labels"`
+	LinkKind        string            `json:"link_kind"`
+	LinkID          int64             `json:"link_id"`
+	LinkNumber      int               `json:"link_number"`
+	LinkTitle       string            `json:"link_title"`
+	LinkState       string            `json:"link_state"`
 }
 
-// cardEditorJSON is the card's editable state, read by kanban.js when the card dialog opens.
+// cardEditorJSON is the card's state, read by kanban.js when the card dialog opens.
 func cardEditorJSON(card service.KanbanCardView, column string) string {
 	s := cardEditorState{
-		ID:          card.ID,
-		Column:      column,
-		Title:       card.Title,
-		Description: card.Description,
-		DueDate:     card.DueDate,
-		Assignees:   []model.CardUser{},
-		Labels:      []cardEditorLabel{},
-		LinkKind:    card.LinkKind,
-		LinkID:      card.LinkID,
-		LinkNumber:  card.LinkNumber,
-		LinkTitle:   card.LinkTitle,
-		LinkState:   card.LinkState,
+		ID:              card.ID,
+		Column:          column,
+		Title:           card.Title,
+		Description:     card.Description,
+		DescriptionHTML: card.DescriptionHTML,
+		DueDate:         card.DueDate,
+		Assignees:       []model.CardUser{},
+		Labels:          []cardEditorLabel{},
+		LinkKind:        card.LinkKind,
+		LinkID:          card.LinkID,
+		LinkNumber:      card.LinkNumber,
+		LinkTitle:       card.LinkTitle,
+		LinkState:       card.LinkState,
 	}
 	s.Assignees = append(s.Assignees, card.Assignees...)
 	for _, l := range card.Labels {
@@ -304,11 +307,6 @@ templ kanbanCard(data view.ProjectDetailData, card service.KanbanCardView, colum
 			aria-label={ "Open card: " + card.Title }
 		}
 	>
-		if opensEditor(card) && card.DescriptionHTML != "" {
-			<template id={ "desc-" + strconv.FormatInt(card.ID, 10) }>
-				@templ.Raw(card.DescriptionHTML)
-			</template>
-		}
 		if opensEditor(card) {
 			<p class="text-[13px] font-medium line-clamp-3 break-words">{ card.Title }</p>
 		} else if card.Kind == "hidden" {
@@ -442,8 +440,8 @@ templ targetResults() {
 	</div>
 }
 
-// cardDialog creates a card in a column or edits a note card; read-only viewers get the edit
-// view with every field disabled.
+// cardDialog creates a card in a column, or shows a note card as a detail view whose fields
+// writers edit and save one at a time; read-only viewers get the view without controls.
 templ cardDialog(data view.ProjectDetailData) {
 	<dialog
 		id="card-dialog"
@@ -459,14 +457,46 @@ templ cardDialog(data view.ProjectDetailData) {
 	>
 		<form class="flex max-h-[calc(100dvh-4rem)] flex-col" @submit.prevent="submit()">
 			<div class="flex items-start justify-between gap-3 border-b border-border p-5">
-				<div class="min-w-0 flex-1">
-					@components.DialogTitle("card-dialog") {
-						<span x-text="heading" x-bind:title="heading" class="block truncate"></span>
+				<div class="min-w-0 flex-1" data-card-field="title">
+					<p x-show="editor.mode === 'edit'" x-text="editor.column" class="mb-1 truncate font-mono text-[11px] uppercase tracking-wider text-muted-foreground"></p>
+					<div x-show="!editor.fields.title.editing" class="flex items-start gap-1">
+						<div class="min-w-0 pt-1">
+							@components.DialogTitle("card-dialog") {
+								<span x-text="heading" class="block break-words"></span>
+							}
+						</div>
+						if data.CanWrite {
+							@cardEditButton("Edit title", templ.Attributes{
+								"x-ref":           "titleEditButton",
+								"x-show":          "editor.mode === 'edit'",
+								"x-bind:disabled": "editor.busy || editor.fields.title.saving",
+								"@click":          "editField('title')",
+							})
+						}
+					</div>
+					if data.CanWrite {
+						<div x-show="editor.fields.title.editing" x-cloak class="flex flex-col gap-2">
+							<label for="card-title-edit" class="sr-only">Title</label>
+							<input
+								id="card-title-edit"
+								type="text"
+								x-ref="titleEdit"
+								x-model="editor.title"
+								maxlength="256"
+								autocomplete="off"
+								x-bind:disabled="editor.fields.title.saving"
+								@keydown.enter.prevent="saveTitle()"
+								class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[15px] font-semibold focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70"
+							/>
+							@cardFieldActions("title", "saveTitle()", "!editor.title.trim()")
+						</div>
+						@cardFieldStatus("title")
 					}
 				</div>
 				<button
 					type="button"
 					aria-label="Close"
+					x-ref="cardClose"
 					x-bind:disabled="editor.busy"
 					@click="close()"
 					class="-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
@@ -477,108 +507,119 @@ templ cardDialog(data view.ProjectDetailData) {
 			<div class="min-h-0 flex-1 overflow-y-auto p-5 text-sm">
 				<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
 					<div data-card-main class="flex min-w-0 flex-col gap-5">
-						<div>
-							<label for="card-title-input" class="mb-1 block text-[12px] font-medium text-muted-foreground">Title</label>
-							<input
-								id="card-title-input"
-								type="text"
-								x-ref="cardTitle"
-								x-model="editor.title"
-								maxlength="256"
-								autocomplete="off"
-								disabled?={ !data.CanWrite }
-								class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70"
-							/>
-							if data.CanWrite {
-								<p x-show="editor.mode === 'create'" x-text="titleHint" class="mt-1 text-[11px] text-muted-foreground"></p>
-							}
-						</div>
-						<div>
-							<div class="mb-1 flex items-center justify-between gap-2">
+						if data.CanWrite {
+							<div x-show="editor.mode === 'create'">
+								<label for="card-title-input" class="mb-1 block text-[12px] font-medium text-muted-foreground">Title</label>
+								<input
+									id="card-title-input"
+									type="text"
+									x-ref="cardTitle"
+									x-model="editor.title"
+									maxlength="256"
+									autocomplete="off"
+									class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring"
+								/>
+								<p x-text="titleHint" class="mt-1 text-[11px] text-muted-foreground"></p>
+							</div>
+						}
+						<div data-card-field="description">
+							<div class="mb-1 flex min-h-7 items-center gap-1">
 								<span id="card-desc-label" class="text-[12px] font-medium text-muted-foreground">Description</span>
 								if data.CanWrite {
-									<div class="flex items-center gap-0.5 rounded-md bg-muted p-0.5 text-[12px]">
-										<button
-											type="button"
-											@click="editor.tab = 'write'"
-											x-bind:aria-pressed="(editor.tab === 'write').toString()"
-											x-bind:class="editor.tab === 'write' ? 'bg-background shadow-xs text-foreground' : 'text-muted-foreground'"
-											class="rounded px-2 py-0.5"
-										>Write</button>
-										<button
-											type="button"
-											@click="editor.tab = 'preview'"
-											x-bind:aria-pressed="(editor.tab === 'preview').toString()"
-											x-bind:class="editor.tab === 'preview' ? 'bg-background shadow-xs text-foreground' : 'text-muted-foreground'"
-											class="rounded px-2 py-0.5"
-										>Preview</button>
-									</div>
+									@cardEditButton("Edit description", templ.Attributes{
+										"x-ref":           "descriptionEditButton",
+										"x-show":          "editor.mode === 'edit' && !editor.fields.description.editing",
+										"x-bind:disabled": "editor.busy || editor.fields.description.saving",
+										"@click":          "editField('description')",
+									})
+									@cardFieldStatus("description")
+								}
+							</div>
+							<div x-show="editor.mode === 'edit' && !editor.fields.description.editing" role="region" aria-labelledby="card-desc-label">
+								<div x-show="editor.saved.descriptionHTML" x-html="editor.saved.descriptionHTML" class="prose prose-sm dark:prose-invert max-w-none break-words" data-card-preview></div>
+								if data.CanWrite {
+									<button
+										type="button"
+										x-show="!editor.saved.descriptionHTML"
+										x-bind:disabled="editor.busy"
+										@click="editField('description')"
+										class="w-full rounded-md border border-dashed border-border px-3 py-4 text-left text-[13px] text-muted-foreground hover:border-ring hover:text-foreground"
+									>Add a description</button>
+								} else {
+									<p x-show="!editor.saved.descriptionHTML" class="text-[12px] text-muted-foreground">No description</p>
 								}
 							</div>
 							if data.CanWrite {
-								<textarea
-									x-show="editor.tab === 'write'"
-									x-model="editor.description"
-									@input="editor.descDirty = true"
-									rows="14"
-									aria-labelledby="card-desc-label"
-									placeholder="Markdown supported. Reference #123 to link an issue or pull request."
-									class="block w-full resize-y rounded-md border border-input bg-card px-2.5 py-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
-								></textarea>
+								<div x-show="editor.mode === 'create' || editor.fields.description.editing" class="flex flex-col gap-2" data-card-description-editor>
+									<fieldset x-bind:disabled="editor.fields.description.saving" class="min-w-0 overflow-hidden rounded-md border border-border bg-card">
+										<legend class="sr-only">Description</legend>
+										@components.MarkdownEditor("card-description", "description", "", "Markdown supported. Reference #123 to link an issue or pull request.", 10)
+									</fieldset>
+									<div x-show="editor.mode === 'edit'">
+										@cardFieldActions("description", "saveDescription()", "false")
+									</div>
+								</div>
 							}
-							<div x-show="editor.tab === 'preview'" class="flex min-h-24 flex-col gap-2 rounded-md border border-border bg-card px-3 py-2" aria-labelledby="card-desc-label" role="region">
-								if data.CanWrite {
-									<p x-show="editor.mode === 'create'" class="text-[12px] text-muted-foreground">Nothing saved to preview yet: the description is rendered once the card is created.</p>
-									<p x-show="editor.mode === 'edit' && editor.descDirty" class="text-[11px] text-muted-foreground">Save to refresh the preview</p>
-								}
-								<div x-show="editor.mode === 'edit' && editor.previewHTML" x-html="editor.previewHTML" class="prose prose-sm dark:prose-invert max-w-none break-words" data-card-preview></div>
-								<p x-show="editor.mode === 'edit' && !editor.previewHTML" class="text-[12px] text-muted-foreground">No description</p>
-							</div>
 						</div>
 					</div>
 					<div data-card-side class="flex min-w-0 flex-col gap-5">
-						<div>
-							<span id="card-assignees-label" class="mb-1 block text-[12px] font-medium text-muted-foreground">Assignees</span>
+						<div data-card-field="assignees">
+							@cardFieldLabel("card-assignees-label", "Assignees", "assignees", data.CanWrite)
 							if data.CanWrite {
-								@components.MultiSelect(components.MultiSelectProps{
-									ID:          "card-assignees-trigger",
-									LabelID:     "card-assignees-label",
-									Placeholder: "Unassigned",
-									Empty:       emptyOptionsText(len(data.People), "No collaborators"),
-									Options:     personOptions(data.People),
-									Attrs: templ.Attributes{
-										"x-model":          "editor.assignees",
-										"x-effect":         "extra = staleAssignees.map((a) => ({ value: String(a.id), label: a.username }))",
-										"data-card-people": true,
-									},
-								})
+								// The listeners sit outside the dropdown so they run in the board's scope.
+								<fieldset
+									x-bind:disabled="editor.busy || editor.fields.assignees.saving"
+									@multiselect-closed="commitField('assignees', $event.detail.selected)"
+									class="min-w-0"
+								>
+									<legend class="sr-only">Assignees</legend>
+									@components.MultiSelect(components.MultiSelectProps{
+										ID:          "card-assignees-trigger",
+										LabelID:     "card-assignees-label",
+										Placeholder: "Unassigned",
+										Empty:       emptyOptionsText(len(data.People), "No collaborators"),
+										Options:     personOptions(data.People),
+										Attrs: templ.Attributes{
+											"x-model":          "editor.assignees",
+											"x-effect":         "extra = staleAssignees.map((a) => ({ value: String(a.id), label: a.username }))",
+											"data-card-people": true,
+										},
+									})
+								</fieldset>
 							} else {
-								<p x-show="!editor.card.assignees.length" class="text-[12px] text-muted-foreground">None</p>
+								<p x-show="!editor.saved.assignees.length" class="text-[12px] text-muted-foreground">None</p>
 								<ul class="flex flex-col gap-1 text-[13px]">
-									<template x-for="a in editor.card.assignees" x-bind:key="a.id">
+									<template x-for="a in editor.saved.assignees" x-bind:key="a.id">
 										<li x-text="a.username"></li>
 									</template>
 								</ul>
 							}
 						</div>
-						<div>
-							<span id="card-labels-label" class="mb-1 block text-[12px] font-medium text-muted-foreground">Labels</span>
+						<div data-card-field="labels">
+							@cardFieldLabel("card-labels-label", "Labels", "labels", data.CanWrite)
 							if data.CanWrite {
-								@components.MultiSelect(components.MultiSelectProps{
-									ID:          "card-labels-trigger",
-									LabelID:     "card-labels-label",
-									Placeholder: "No labels",
-									Empty:       emptyOptionsText(len(data.Labels), "No labels in this repository"),
-									Options:     labelOptions(data.Labels),
-									Attrs: templ.Attributes{
-										"x-model":         "editor.labels",
-										"data-card-labels": true,
-									},
-								})
+								<fieldset
+									x-bind:disabled="editor.busy || editor.fields.labels.saving"
+									@multiselect-closed="commitField('labels', $event.detail.selected)"
+									class="min-w-0"
+								>
+									<legend class="sr-only">Labels</legend>
+									@components.MultiSelect(components.MultiSelectProps{
+										ID:          "card-labels-trigger",
+										LabelID:     "card-labels-label",
+										Placeholder: "No labels",
+										Empty:       emptyOptionsText(len(data.Labels), "No labels in this repository"),
+										Options:     labelOptions(data.Labels),
+										Attrs: templ.Attributes{
+											"x-model":          "editor.labels",
+											"data-card-labels": true,
+										},
+									})
+								</fieldset>
 							} else {
-								<p x-show="!editor.card.labels.length" class="text-[12px] text-muted-foreground">None</p>
+								<p x-show="!editor.saved.labels.length" class="text-[12px] text-muted-foreground">None</p>
 								<ul class="flex flex-col gap-1 text-[13px]">
-									<template x-for="l in editor.card.labels" x-bind:key="l.id">
+									<template x-for="l in editor.saved.labels" x-bind:key="l.id">
 										<li class="flex items-center gap-2">
 											<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" x-bind:style="l.color ? { backgroundColor: l.color } : {}"></span>
 											<span x-text="l.name"></span>
@@ -587,20 +628,34 @@ templ cardDialog(data view.ProjectDetailData) {
 								</ul>
 							}
 						</div>
-						<div>
-							<label for="card-due-input" class="mb-1 block text-[12px] font-medium text-muted-foreground">Due date</label>
-							@components.DatePicker(components.DatePickerProps{
-								ID:          "card-due-input",
-								Name:        "due_date",
-								Label:       "Due date",
-								Disabled:    !data.CanWrite,
-								Placeholder: "No due date",
-								Attrs:       templ.Attributes{"x-model": "editor.dueDate"},
-							})
+						<div data-card-field="due">
+							if data.CanWrite {
+								<div class="mb-1 flex min-h-7 items-center gap-2">
+									<label for="card-due-input" class="text-[12px] font-medium text-muted-foreground">Due date</label>
+									@cardFieldStatus("due")
+								</div>
+								<fieldset
+									x-bind:disabled="editor.busy || editor.fields.due.saving"
+									@date-picked="commitField('due', $event.detail.value)"
+									class="min-w-0"
+								>
+									<legend class="sr-only">Due date</legend>
+									@components.DatePicker(components.DatePickerProps{
+										ID:          "card-due-input",
+										Name:        "due_date",
+										Label:       "Due date",
+										Placeholder: "No due date",
+										Attrs:       templ.Attributes{"x-model": "editor.dueDate"},
+									})
+								</fieldset>
+							} else {
+								@cardFieldLabel("card-due-label", "Due date", "due", false)
+								<p x-text="dueLabel(editor.saved.dueDate) || 'None'" x-bind:class="editor.saved.dueDate ? 'text-[13px]' : 'text-[12px] text-muted-foreground'" data-card-due-text></p>
+							}
 						</div>
-						<div>
-							<span class="mb-1 block text-[12px] font-medium text-muted-foreground">Linked item</span>
-							<div x-show="editor.link" class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[13px]" data-card-link-chip>
+						<div data-card-field="link">
+							@cardFieldLabel("card-link-label", "Linked item", "link", data.CanWrite)
+							<div x-show="editor.link" class="flex items-center gap-1 rounded-md border border-border bg-card py-1.5 pl-2.5 pr-1 text-[13px]" data-card-link-chip>
 								<a
 									x-ref="linkAnchor"
 									x-bind:href="linkURL"
@@ -611,17 +666,31 @@ templ cardDialog(data view.ProjectDetailData) {
 									<span class="shrink-0 text-[11px] text-muted-foreground" x-text="editor.link ? editor.link.state : ''"></span>
 								</a>
 								if data.CanWrite {
+									@cardEditButton("Change linked item", templ.Attributes{
+										"x-ref":           "linkEditButton",
+										"x-show":          "editor.mode === 'edit' && !editor.fields.link.editing",
+										"x-bind:disabled": "editor.busy || editor.fields.link.saving",
+										"@click":          "editField('link')",
+									})
 									<button
 										type="button"
 										x-ref="linkClear"
 										aria-label="Remove link"
+										x-bind:disabled="editor.busy || editor.fields.link.saving"
 										@click="clearLink()"
-										class="rounded px-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
+										class="h-7 w-7 shrink-0 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-50"
 									>✕</button>
 								}
 							</div>
 							if data.CanWrite {
-								<div x-show="!editor.link" x-data="linkPicker" @click.outside="reset()" @focusout="onFocusOut($event)">
+								<div
+									x-show="!editor.link || editor.fields.link.editing"
+									x-data="linkPicker"
+									@click.outside="reset()"
+									@focusout="onFocusOut($event)"
+									x-bind:class="editor.link ? 'mt-2' : ''"
+									class="flex flex-col gap-2"
+								>
 									<label for="card-link-input" class="sr-only">Find an issue or pull request</label>
 									<input
 										id="card-link-input"
@@ -630,7 +699,8 @@ templ cardDialog(data view.ProjectDetailData) {
 										x-model="text"
 										placeholder="Find an issue or PR by title or #number"
 										autocomplete="off"
-										class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+										x-bind:disabled="editor.busy || editor.fields.link.saving"
+										class="h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70"
 										@input="search()"
 										@keydown.enter.prevent="enterPick()"
 										@keydown.escape="showList && ($event.preventDefault(), $event.stopPropagation(), reset())"
@@ -638,6 +708,15 @@ templ cardDialog(data view.ProjectDetailData) {
 										@keydown.arrow-up.prevent="move(-1)"
 									/>
 									@targetResults()
+								</div>
+								<div x-show="editor.link && editor.fields.link.editing" class="mt-2">
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+										"type":            "button",
+										"x-bind:disabled": "editor.fields.link.saving",
+										"@click":          "cancelField('link')",
+									}) {
+										Cancel
+									}
 								</div>
 							} else {
 								<p x-show="!editor.link" class="text-[12px] text-muted-foreground">None</p>
@@ -659,7 +738,7 @@ templ cardDialog(data view.ProjectDetailData) {
 							"type":            "button",
 							"x-ref":           "deleteButton",
 							"x-show":          "editor.mode === 'edit'",
-							"x-bind:disabled": "editor.busy",
+							"x-bind:disabled": "editor.busy || anySaving",
 							"@click":          "ask('delete')",
 						}) {
 							Delete
@@ -667,19 +746,18 @@ templ cardDialog(data view.ProjectDetailData) {
 						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
 							"type":            "button",
 							"x-ref":           "convertButton",
-							"x-show":          "editor.mode === 'edit' && !editor.link && editor.title.trim()",
-							"x-bind:disabled": "editor.busy",
+							"x-show":          "editor.mode === 'edit' && !editor.link && editor.saved.title",
+							"x-bind:disabled": "editor.busy || anySaving || anyEditing",
 							"@click":          "ask('convert')",
 						}) {
 							Convert to issue
 						}
-						<div class="ml-auto flex items-center gap-2">
+						<div x-show="editor.mode === 'create'" class="ml-auto flex items-center gap-2">
 							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "x-bind:disabled": "editor.busy", "@click": "close()"}) {
 								Cancel
 							}
 							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "x-bind:disabled": "!canSubmit"}) {
-								<span x-show="editor.mode === 'create'">Create card</span>
-								<span x-show="editor.mode === 'edit'" x-cloak>Save</span>
+								Create card
 							}
 						</div>
 					</div>
@@ -711,13 +789,71 @@ templ cardDialog(data view.ProjectDetailData) {
 						}
 					</div>
 				} else {
-					@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "x-ref": "cardClose", "class": "ml-auto", "@click": "close()"}) {
+					@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "class": "ml-auto", "@click": "close()"}) {
 						Close
 					}
 				}
 			</div>
 		</form>
 	</dialog>
+}
+
+// cardEditButton is the pencil that opens a field of the card view for editing.
+templ cardEditButton(label string, attrs templ.Attributes) {
+	<button
+		type="button"
+		aria-label={ label }
+		title={ label }
+		class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+		{ attrs... }
+	>
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+			<path d="M12 20h9"></path>
+			<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"></path>
+		</svg>
+	</button>
+}
+
+// cardFieldLabel names a side-column field and, for writers, carries its save status.
+templ cardFieldLabel(id, label, field string, canWrite bool) {
+	<div class="mb-1 flex min-h-7 items-center gap-2">
+		<span id={ id } class="text-[12px] font-medium text-muted-foreground">{ label }</span>
+		if canWrite {
+			@cardFieldStatus(field)
+		}
+	</div>
+}
+
+// cardFieldStatus says whether the field's own save is running, done or failed.
+templ cardFieldStatus(field string) {
+	<span
+		role="status"
+		aria-live="polite"
+		x-text={ "fieldStatus('" + field + "')" }
+		x-bind:class={ "editor.fields." + field + ".error ? 'text-destructive' : 'text-muted-foreground'" }
+		class="ml-auto min-w-0 text-right text-[11px]"
+		data-field-status={ field }
+	></span>
+}
+
+// cardFieldActions are the Save and Cancel buttons of a field edited in place.
+templ cardFieldActions(field, save, blank string) {
+	<div class="flex items-center gap-2">
+		@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{
+			"type":            "button",
+			"x-bind:disabled": "editor.fields." + field + ".saving || " + blank,
+			"@click":          save,
+		}) {
+			Save
+		}
+		@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+			"type":            "button",
+			"x-bind:disabled": "editor.fields." + field + ".saving",
+			"@click":          "cancelField('" + field + "')",
+		}) {
+			Cancel
+		}
+	</div>
 }
 
 script setProjectClosedJS(owner, repoName string, projectID int64, closed bool) {

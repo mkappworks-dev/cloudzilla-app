@@ -4,8 +4,11 @@
 // data-project-id and data-can-write. Cards carry data-drag="kanban-card" and
 // data-card-id; columns carry data-drop="kanban-column", data-column-id and a
 // [data-cards] list. Cards that open the card dialog carry data-card-open and
-// data-card-json; their rendered description sits in <template id="desc-{id}">.
-// Each column's "+ Add item" button carries data-add-card and data-column-name.
+// data-card-json. Each column's "+ Add item" button carries data-add-card and
+// data-column-name.
+//
+// The dialog creates a card in one POST, or shows a card whose fields a writer edits and
+// saves one at a time through PATCH .../fields.
 document.addEventListener('alpine:init', () => {
   const projectURL = (el, path) => {
     const root = el.closest('[data-project-id]');
@@ -37,27 +40,59 @@ document.addEventListener('alpine:init', () => {
   const LIST_EDGE = 12;
   const LIST_MIN_ROOM = 160;
   const LIST_MAX_HEIGHT = 288;
+  const SAVED_STATUS_MS = 2000;
+  const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+  const DESCRIPTION_ID = 'card-description';
+
+  const FIELDS = ['title', 'description', 'assignees', 'labels', 'due', 'link'];
+  const blankField = () => ({ editing: false, saving: false, status: '', error: '', timer: null });
+
+  const blankSaved = () => ({
+    title: '',
+    description: '',
+    descriptionHTML: '',
+    dueDate: '',
+    assignees: [],
+    labels: [],
+    link: null,
+  });
 
   const blankEditor = () => ({
     mode: 'create',
     id: null,
     columnID: null,
     column: '',
+    // Drafts: the create form's fields, and in edit mode what a field shows while it is edited.
     title: '',
-    description: '',
     dueDate: '',
     assignees: [],
     labels: [],
     link: null,
-    tab: 'write',
-    descDirty: false,
-    previewHTML: '',
+    saved: blankSaved(),
+    fields: Object.fromEntries(FIELDS.map((f) => [f, blankField()])),
+    lastEdited: '',
     error: '',
     notice: '',
     busy: false,
     confirm: '',
-    card: { assignees: [], labels: [] },
   });
+
+  const linkFromJSON = (kind, id, number, title, state) => (kind ? { kind, id, number, title, state } : null);
+
+  // savedFromResponse reads the PATCH .../fields reply, which describes the whole card.
+  const savedFromResponse = (card) => ({
+    title: card.title,
+    description: card.note,
+    descriptionHTML: card.description_html || '',
+    dueDate: card.due_date ? card.due_date.slice(0, 10) : '',
+    assignees: card.assignees || [],
+    labels: (card.labels || []).map((l) => ({ id: l.id, name: l.name, color: HEX_COLOR.test(l.color) ? l.color : '' })),
+    link: card.issue_id
+      ? linkFromJSON('issue', card.issue_id, card.issue_number, card.issue_title, card.issue_state)
+      : linkFromJSON(card.pull_id ? 'pull' : '', card.pull_id, card.pull_number, card.pull_title, card.pull_state),
+  });
+
+  const sameSet = (a, b) => a.length === b.length && a.every((v) => b.includes(v));
 
   Alpine.data('kanbanBoard', () => ({
     dragged: null,
@@ -65,6 +100,9 @@ document.addEventListener('alpine:init', () => {
     editor: blankEditor(),
     // Outlives the editor object: a request started before the dialog was reopened still counts.
     inflight: false,
+    // Field saves still running; the page reloads once they finish if the dialog closed meanwhile.
+    pendingSaves: 0,
+    reloadWhenSettled: false,
     // The card was changed server-side while the dialog stayed open, so the board behind it is stale.
     changed: false,
 
@@ -74,7 +112,7 @@ document.addEventListener('alpine:init', () => {
 
     get heading() {
       if (this.editor.mode === 'create') return 'New card in ' + this.editor.column;
-      return (this.canWrite ? 'Edit card in ' : 'Card in ') + this.editor.column;
+      return this.editor.saved.title;
     },
 
     get titleHint() {
@@ -93,10 +131,17 @@ document.addEventListener('alpine:init', () => {
       return `/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/${kind}/${Number(link.number)}`;
     },
 
-    // A titled card is required everywhere except a new card that only links an issue or PR.
     get canSubmit() {
       const e = this.editor;
-      return !e.busy && !this.inflight && !e.confirm && (e.title.trim() !== '' || (e.mode === 'create' && e.link !== null));
+      return e.mode === 'create' && !e.busy && !this.inflight && (e.title.trim() !== '' || e.link !== null);
+    },
+
+    get anySaving() {
+      return FIELDS.some((f) => this.editor.fields[f].saving);
+    },
+
+    get anyEditing() {
+      return FIELDS.some((f) => this.editor.fields[f].editing);
     },
 
     // A card keeps an assignee who left the repo; the dropdown no longer offers them, so the
@@ -105,7 +150,20 @@ document.addEventListener('alpine:init', () => {
       const listed = new Set(
         Array.from(this.$root.querySelectorAll('[data-card-people] [role=option]:not([data-stale])'), (o) => o.dataset.value),
       );
-      return this.editor.card.assignees.filter((a) => !listed.has(String(a.id)));
+      return this.editor.saved.assignees.filter((a) => !listed.has(String(a.id)));
+    },
+
+    fieldStatus(name) {
+      const f = this.editor.fields[name];
+      if (f.error) return f.error;
+      if (f.status === 'saving') return 'Saving…';
+      if (f.status === 'saved') return 'Saved';
+      return '';
+    },
+
+    dueLabel(iso) {
+      const d = iso && window.CzDate ? CzDate.parseISODate(iso) : null;
+      return d ? CzDate.formatShort(d) : iso;
     },
 
     onCardClick(e) {
@@ -122,6 +180,7 @@ document.addEventListener('alpine:init', () => {
 
     openCreate(button) {
       if (!this.canWrite) return;
+      this.setDescription('');
       this.show(button, {
         ...blankEditor(),
         columnID: Number(button.dataset.addCard),
@@ -131,24 +190,23 @@ document.addEventListener('alpine:init', () => {
 
     openEdit(li) {
       const c = JSON.parse(li.dataset.cardJson);
-      const tpl = document.getElementById('desc-' + c.id);
-      this.show(li, {
+      const editor = {
         ...blankEditor(),
         mode: 'edit',
         id: c.id,
         column: c.column,
-        title: c.title,
-        description: c.description,
-        dueDate: c.due_date,
-        assignees: c.assignees.map((a) => String(a.id)),
-        labels: c.labels.map((l) => String(l.id)),
-        link: c.link_kind
-          ? { kind: c.link_kind, id: c.link_id, number: c.link_number, title: c.link_title, state: c.link_state }
-          : null,
-        tab: this.canWrite ? 'write' : 'preview',
-        previewHTML: tpl ? tpl.innerHTML.trim() : '',
-        card: c,
-      });
+        saved: {
+          title: c.title,
+          description: c.description,
+          descriptionHTML: c.description_html,
+          dueDate: c.due_date,
+          assignees: c.assignees,
+          labels: c.labels,
+          link: linkFromJSON(c.link_kind, c.link_id, c.link_number, c.link_title, c.link_state),
+        },
+      };
+      for (const f of FIELDS) this.resetDraft(editor, f);
+      this.show(li, editor);
     },
 
     show(opener, state) {
@@ -157,8 +215,8 @@ document.addEventListener('alpine:init', () => {
       const dialog = this.$refs.cardDialog;
       if (!dialog.open) dialog.showModal();
       this.$nextTick(() => {
-        const title = this.$refs.cardTitle;
-        (title && !title.disabled ? title : this.$refs.cardClose).focus();
+        if (state.mode === 'create') focusWhenShown(this.$refs.cardTitle);
+        else focusWhenShown(this.canWrite ? this.$refs.titleEditButton : this.$refs.cardClose);
       });
     },
 
@@ -167,18 +225,39 @@ document.addEventListener('alpine:init', () => {
       this.$refs.cardDialog.close();
     },
 
-    // Escape (keydown, or the cancel event where keydown is not the trigger) backs out of the
-    // delete/convert confirmation first, and never closes the dialog mid-request.
+    // Escape (keydown, or the cancel event where keydown is not the trigger) backs out of a field
+    // edited in place, then the delete/convert confirmation, and never closes the dialog
+    // mid-request. Popovers and the picker list stop their own Escape before it gets here.
     onEscape(e) {
       if (this.editor.busy) {
         e.preventDefault();
+        return;
+      }
+      const field = this.editingField(e.target);
+      if (field) {
+        e.preventDefault();
+        this.cancelField(field);
       } else if (this.editor.confirm) {
         e.preventDefault();
         this.cancelConfirm();
       }
     },
 
+    // editingField is the field Escape cancels: the one holding focus, else the last one opened.
+    editingField(target) {
+      const open = FIELDS.filter((f) => this.editor.fields[f].editing);
+      if (!open.length) return '';
+      const el = target && target.closest ? target.closest('[data-card-field]') : null;
+      if (el && open.includes(el.dataset.cardField)) return el.dataset.cardField;
+      return open.includes(this.editor.lastEdited) ? this.editor.lastEdited : open[0];
+    },
+
+    // Closing drops a field edited in place without saving it.
     onDialogClosed() {
+      if (this.pendingSaves > 0) {
+        this.reloadWhenSettled = true;
+        return;
+      }
       if (this.changed) {
         window.location.reload();
         return;
@@ -187,21 +266,179 @@ document.addEventListener('alpine:init', () => {
       this.opener = null;
     },
 
+    descriptionTextarea() {
+      return document.getElementById(DESCRIPTION_ID);
+    },
+
+    // setDescription fills the shared markdown editor and shows its Write tab with an empty preview.
+    setDescription(text) {
+      const ta = this.descriptionTextarea();
+      if (!ta) return;
+      ta.value = text;
+      const ed = ta.closest('[data-md-editor]');
+      const write = ed.querySelector('[data-md-tab="write"]');
+      if (write.getAttribute('aria-selected') !== 'true') write.click();
+      const preview = document.getElementById(DESCRIPTION_ID + '-preview');
+      if (preview) preview.replaceChildren();
+    },
+
+    resetDraft(editor, name) {
+      const s = editor.saved;
+      if (name === 'title') editor.title = s.title;
+      else if (name === 'assignees') editor.assignees = s.assignees.map((a) => String(a.id));
+      else if (name === 'labels') editor.labels = s.labels.map((l) => String(l.id));
+      else if (name === 'due') editor.dueDate = s.dueDate;
+      else if (name === 'link') editor.link = s.link;
+    },
+
+    editButton(name) {
+      return this.$refs[name + 'EditButton'];
+    },
+
+    editField(name) {
+      const e = this.editor;
+      if (!this.canWrite || e.mode !== 'edit' || e.busy || e.fields[name].saving) return;
+      const f = e.fields[name];
+      f.editing = true;
+      f.error = '';
+      e.lastEdited = name;
+      this.resetDraft(e, name);
+      if (name === 'title') this.$nextTick(() => focusWhenShown(this.$refs.titleEdit));
+      if (name === 'description') {
+        this.setDescription(e.saved.description);
+        this.$nextTick(() => focusWhenShown(this.descriptionTextarea()));
+      }
+      if (name === 'link') this.$nextTick(() => focusWhenShown(document.getElementById('card-link-input')));
+    },
+
+    cancelField(name) {
+      const e = this.editor;
+      const f = e.fields[name];
+      if (f.saving) return;
+      f.editing = false;
+      f.error = '';
+      this.resetDraft(e, name);
+      this.$nextTick(() => focusWhenShown(this.editButton(name)));
+    },
+
+    // finishEdit closes a field edited in place once its save is done.
+    finishEdit(name) {
+      this.editor.fields[name].editing = false;
+      this.$nextTick(() => focusWhenShown(this.editButton(name)));
+    },
+
+    saveTitle() {
+      const e = this.editor;
+      const title = e.title.trim();
+      if (!title) {
+        e.fields.title.error = 'A title is required.';
+        return;
+      }
+      if (title === e.saved.title) return this.finishEdit('title');
+      this.saveField('title', { title }, () => this.finishEdit('title'));
+    },
+
+    saveDescription() {
+      const ta = this.descriptionTextarea();
+      const text = ta ? ta.value : '';
+      if (text === this.editor.saved.description) return this.finishEdit('description');
+      this.saveField('description', { description: text }, () => this.finishEdit('description'));
+    },
+
+    // commitField saves a dropdown or the due date when the user is done choosing; the value
+    // comes with the event because x-model catches up a tick later.
+    commitField(name, value) {
+      const e = this.editor;
+      if (!this.canWrite || e.mode !== 'edit') return;
+      const s = e.saved;
+      if (name === 'assignees') {
+        const ids = value.map(Number);
+        if (sameSet(ids, s.assignees.map((a) => a.id))) return;
+        this.saveField(name, { assignee_ids: ids });
+      } else if (name === 'labels') {
+        const ids = value.map(Number);
+        if (sameSet(ids, s.labels.map((l) => l.id))) return;
+        this.saveField(name, { label_ids: ids });
+      } else if (name === 'due') {
+        if (value === s.dueDate) return;
+        this.saveField(name, { due_date: value || null });
+      }
+    },
+
+    // saveField sends one field and, on success, takes only that field from the reply: a reply
+    // to another field's save that lands later must not roll this one back.
+    async saveField(name, body, onSaved) {
+      const editor = this.editor;
+      const f = editor.fields[name];
+      if (!this.canWrite || f.saving || editor.busy) return;
+      clearTimeout(f.timer);
+      f.saving = true;
+      f.status = 'saving';
+      f.error = '';
+      this.pendingSaves++;
+      try {
+        const r = await send('PATCH', projectURL(this.$root, `/cards/${editor.id}/fields`), body);
+        this.changed = true;
+        const card = savedFromResponse(await r.json());
+        if (name === 'description') {
+          editor.saved.description = card.description;
+          editor.saved.descriptionHTML = card.descriptionHTML;
+        } else {
+          const key = { title: 'title', assignees: 'assignees', labels: 'labels', due: 'dueDate', link: 'link' }[name];
+          editor.saved[key] = card[key];
+          this.resetDraft(editor, name);
+        }
+        f.saving = false;
+        f.status = 'saved';
+        f.timer = setTimeout(() => {
+          if (f.status === 'saved') f.status = '';
+        }, SAVED_STATUS_MS);
+        if (onSaved && this.editor === editor) onSaved();
+      } catch (err) {
+        f.saving = false;
+        f.status = '';
+        f.error = err.message;
+        // A field edited in place keeps the typed text to retry; the others show the stored value again.
+        if (!f.editing) this.resetDraft(editor, name);
+      } finally {
+        this.pendingSaves--;
+        if (this.pendingSaves === 0 && this.reloadWhenSettled) window.location.reload();
+      }
+    },
+
     pickLink(link) {
-      this.editor.link = link;
-      this.$nextTick(() => focusWhenShown(this.$refs.linkClear));
+      const e = this.editor;
+      if (e.mode === 'create') {
+        e.link = link;
+        this.$nextTick(() => focusWhenShown(this.$refs.linkClear));
+        return;
+      }
+      const body = { issue_id: link.kind === 'issue' ? link.id : null, pull_id: link.kind === 'pull' ? link.id : null };
+      e.link = link;
+      e.fields.link.editing = false;
+      this.saveField('link', body, () => this.$nextTick(() => focusWhenShown(this.$refs.linkAnchor)));
     },
 
     clearLink() {
-      this.editor.link = null;
-      this.$nextTick(() => focusWhenShown(document.getElementById('card-link-input')));
+      const e = this.editor;
+      if (e.mode === 'create') {
+        e.link = null;
+        this.$nextTick(() => focusWhenShown(document.getElementById('card-link-input')));
+        return;
+      }
+      e.link = null;
+      e.fields.link.editing = false;
+      this.saveField('link', { issue_id: null, pull_id: null }, () =>
+        this.$nextTick(() => focusWhenShown(document.getElementById('card-link-input'))),
+      );
     },
 
     body() {
       const e = this.editor;
+      const ta = this.descriptionTextarea();
       const body = {
         title: e.title.trim(),
-        description: e.description,
+        description: ta ? ta.value : '',
         due_date: e.dueDate || '',
         assignee_ids: e.assignees.map(Number),
         label_ids: e.labels.map(Number),
@@ -237,13 +474,10 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    // submit creates a card; in edit mode each field saves on its own.
     submit() {
       if (!this.canWrite || !this.canSubmit) return;
       const e = this.editor;
-      if (e.mode === 'edit') {
-        const url = projectURL(this.$root, `/cards/${e.id}/details`);
-        return this.run([() => send('PATCH', url, this.body())]);
-      }
       // A title-less card is a plain linked card, whose face shows only the linked item.
       const payload = e.title.trim()
         ? this.body()
@@ -253,7 +487,7 @@ document.addEventListener('alpine:init', () => {
 
     // ask swaps the footer for an inline confirmation of a convert or delete.
     ask(action) {
-      if (!this.canWrite) return;
+      if (!this.canWrite || this.anySaving || (action === 'convert' && this.anyEditing)) return;
       this.editor.error = '';
       this.editor.notice = '';
       this.editor.confirm = action;
@@ -266,21 +500,17 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => focusWhenShown(action === 'convert' ? this.$refs.convertButton : this.$refs.deleteButton));
     },
 
-    // Convert saves the dialog first so the new issue gets what the user sees, then keeps the
-    // dialog open on the new link; the page behind it reloads when the dialog closes.
+    // Every field is saved on its own and Convert is disabled while one is edited or saving, so
+    // the new issue gets the stored card. The dialog stays open on the new link; the page behind
+    // it reloads when the dialog closes.
     convertCard() {
       if (!this.canWrite || this.editor.confirm !== 'convert') return;
       const editor = this.editor;
-      const base = projectURL(this.$root, `/cards/${editor.id}`);
       let card = null;
       return this.run(
         [
           async () => {
-            await send('PATCH', base + '/details', this.body());
-            this.changed = true;
-          },
-          async () => {
-            const r = await send('POST', base + '/convert');
+            const r = await send('POST', projectURL(this.$root, `/cards/${editor.id}/convert`));
             this.changed = true;
             card = await r.json().catch(() => null);
           },
@@ -295,8 +525,8 @@ document.addEventListener('alpine:init', () => {
         window.location.reload();
         return;
       }
-      // body() sends editor.link, so the next Save keeps the link convert just made.
-      editor.link = { kind: 'issue', id: card.issue_id, number: card.issue_number, title: card.issue_title, state: card.issue_state };
+      editor.saved.link = linkFromJSON('issue', card.issue_id, card.issue_number, card.issue_title, card.issue_state);
+      editor.link = editor.saved.link;
       editor.confirm = '';
       editor.notice = `Issue #${card.issue_number} created and linked`;
       this.$nextTick(() => focusWhenShown(this.$refs.linkAnchor));

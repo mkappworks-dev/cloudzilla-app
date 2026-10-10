@@ -255,20 +255,25 @@
         this.moveTo(moves[e.key]());
       },
 
+      // date-picked marks a choice the user made, which a change through x-model is not; the
+      // detail carries the value because x-model updates the bound property a tick later.
+      pick(value) {
+        this.value = value;
+        this.close();
+        this.$dispatch('date-picked', { value });
+      },
+
       select(cell) {
         if (cell.blank) return;
-        this.value = formatISODate(cell);
-        this.close();
+        this.pick(formatISODate(cell));
       },
 
       pickToday() {
-        this.value = formatISODate(today());
-        this.close();
+        this.pick(formatISODate(today()));
       },
 
       clear() {
-        this.value = '';
-        this.close();
+        this.pick('');
       },
     }));
   });
