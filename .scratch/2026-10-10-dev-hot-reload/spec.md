@@ -2,7 +2,7 @@
 
 Created: 2026-10-10
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -58,11 +58,15 @@ darwin links through clang rather than Go's internal linker.
 
 ## Acceptance criteria
 
-- [ ] Editing `tailwind/input.css` shows the new CSS after a refresh with no `go build` in air's log
-- [ ] Editing a `.templ` or `.go` file rebuilds, restarts, and refreshes the browser once
-- [ ] A restart never fails with "address already in use" on `:8080` or `:2222`
-- [ ] `go build ./cmd/server/.` with no tags still embeds the frontend, and `os.DirFS` appears in
+- [x] Editing `tailwind/input.css` shows the new CSS after a refresh with no `go build` in air's log
+- [x] Editing a `.templ` or `.go` file rebuilds, restarts, and refreshes the browser once
+- [x] A restart never fails with "address already in use" on `:8080` or `:2222`
+- [x] `go build ./cmd/server/.` with no tags still embeds the frontend, and `os.DirFS` appears in
       no file that a tagless build compiles
-- [ ] `make test` and `make lint` pass, and so does `go build -tags dev ./...`
+- [x] `make test` and `make lint` pass, and so does `go build -tags dev ./...`
 
 ## Comments
+
+Claude, 2026-10-11: all four tickets closed. 01 and 02 shipped the loop; 04 replaced templ'"'"'s
+proxy with a reload channel in the dev server itself, which made 03 unnecessary. The dev loop is
+two processes on :8080, one refresh per change, and a CSS edit needs no Go rebuild.
