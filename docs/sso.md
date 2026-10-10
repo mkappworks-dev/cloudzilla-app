@@ -1,6 +1,6 @@
 # SSO (LDAP and SAML)
 
-`SSOService` (`internal/service/sso_service.go`) signs users in through a corporate directory (LDAP) or an identity provider (SAML 2.0). A superadmin configures each provider at `/admin/sso`; the settings live in `sso_configs` (migration 106), one row per provider, with the provider's settings as JSONB. Sign-in links an account through `users.sso_provider` and `users.sso_id`, which are unique together. For how the sessions, 2FA and confirmation prompts treat SSO accounts, see [access-control](./access-control.md).
+`SSOService` (`internal/service/sso_service.go`, with `sso_ldap.go`, `sso_saml.go` and `sso_provision.go` beside it) signs users in through a corporate directory (LDAP) or an identity provider (SAML 2.0). A superadmin configures each provider at `/admin/sso`; the settings live in `sso_configs` (migration 106), one row per provider, with the provider's settings as JSONB. Sign-in links an account through `users.sso_provider` and `users.sso_id`, which are unique together. For how the sessions, 2FA and confirmation prompts treat SSO accounts, see [access-control](./access-control.md).
 
 ## Settings
 
@@ -27,13 +27,24 @@ The directory returns no email, so a new account gets `<username>@ldap.local`.
 
 SP-initiated only. `GET /auth/saml` redirects to `sso_url` with a deflated `AuthnRequest` (HTTP-Redirect binding) and the `next` path as `RelayState`, which is dropped above the binding's 80-byte limit. The IdP posts to `POST /auth/saml/callback`, and `HandleSAMLCallback` accepts the response only if:
 
-- the status is success and the assertion's signature verifies against `idp_cert`;
+- the status is success and the assertion's signature verifies against `idp_cert` (see Signature below);
 - `NotBefore` and `NotOnOrAfter` hold (an assertion with no expiry is valid for 5 minutes);
 - its ID has not been seen before (`saml_used_assertions`, migration 037), so a captured response cannot be replayed;
 - an `AudienceRestriction` names `entity_id` (a missing one fails too), and `Recipient`, when present, equals `acs_url`;
 - it carries a `NameID`, which becomes the `sso_id`.
 
 The username comes from the first of `uid`, `username`, `sAMAccountName` or the `…/claims/name` attribute, falling back to the `NameID`. The email comes from `email`, `mail`, `emailAddress` or the `…/claims/emailaddress` attribute, falling back to the `NameID`. `GET /auth/saml/metadata` serves the SP metadata (ACS location, `WantAssertionsSigned="true"`). Encrypted assertions, IdP-initiated login and LDAP group mapping are not supported; they are planned as Phase 19.1.
+
+### Signature
+
+`verifySAMLAssertion` checks the signature with [goxmldsig](https://github.com/russellhaering/goxmldsig) (exclusive C14N and the enveloped-signature transform), so a response from a real IdP such as Keycloak verifies whatever prefixes it uses or where it declares them. Only a signature on the assertion counts: a signed `Response` around an unsigned assertion is refused. Before the library runs, Cloudzilla refuses a response that:
+
+- has anything but exactly one `Assertion`, which must be a direct child of `Response`;
+- carries more than one `Signature` on the assertion, or a `Signature` with more than one `Reference`;
+- has a `Reference/@URI` that is not exactly `#<assertion ID>` (the library also accepts `""`);
+- uses SHA-1 for the signature or the digest (the library accepts it).
+
+Claims are read from the element the library returns, never from the response as received. The certificate in the signature must be `idp_cert` itself and valid at the time of the check; there is no chain building. The library stops after 1000 XML elements, so an assertion with about 500 attributes or more is refused ("traversal limit reached"); 480 verify.
 
 ## Accounts
 

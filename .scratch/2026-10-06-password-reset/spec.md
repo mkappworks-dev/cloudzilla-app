@@ -88,7 +88,7 @@ A reset replaces only the password. TOTP stays on, and the next sign-in still as
 
 ### Accounts without a password
 
-Google-, LDAP- and SAML-created accounts store `password_hash = ''`. LDAP accounts usually carry a made-up `<username>@ldap.local` address (`sso_service.go`), so mail to them goes nowhere. A reset never adds a password to them (question 3). The note they get names how the account signs in: Google, or single sign-on.
+Google-, LDAP- and SAML-created accounts store `password_hash = ''`. LDAP accounts usually carry a made-up `<username>@ldap.local` address (`sso_ldap.go`), so mail to them goes nowhere. A reset never adds a password to them (question 3). The note they get names how the account signs in: Google, or single sign-on.
 
 ### Without SMTP
 
@@ -150,7 +150,8 @@ Items marked (Qn) follow the answer to that open question (see Comments).
 
 - `internal/db/migrations/` — new `password_reset_tokens` migration
 - `internal/store/signup_token_store.go`, `internal/store/email_verification_store.go` — upsert-cooldown and lock-order precedents; new `internal/store/password_reset_store.go`, wired in `stores.go`
-- `internal/store/user_store.go` — `ChangePassword`, `BumpSessionVersion`, `GetByEmail` (skips the ghost)
+- `internal/store/user_store_auth.go` — `ChangePassword`, `BumpSessionVersion`
+- `internal/store/user_store.go` — `GetByEmail` (skips the ghost)
 - `internal/service/signup_service.go`, `internal/service/email_verification_service.go` — token helpers to share; new `internal/service/password_reset_service.go`, wired in `services.go`
 - `internal/service/email_service.go`, `internal/service/security_notice.go` — link email and reset notice
 - `internal/service/reauth_service.go` — `CheckSecondFactor`, `Factors`
