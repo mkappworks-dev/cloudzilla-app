@@ -53,7 +53,7 @@ Filter sidebar, sorting, pagination, code search (`/search/code`), highlighting 
 
 ## Relevant files
 
-- `internal/handler/search_handler.go`, `internal/view/pages/search.templ`, `internal/view/viewmodels_social.go`
+- `internal/handler/search_page_handler.go`, `internal/view/pages/search.templ`, `internal/view/viewmodels_social.go`
 - `internal/service/search_service.go`, `internal/store/search_store.go`
 - `internal/view/pages/issues.templ`, `internal/view/pages/explore.templ`, `internal/view/components/pr_list_row.templ`
 - `internal/view/fragments/search_suggestions.templ`, `cmd/server/frontend/static/topnav-search.js`

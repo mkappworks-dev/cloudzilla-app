@@ -156,7 +156,7 @@ Items marked (Qn) follow the answer to that open question (see Comments).
 - `internal/service/email_service.go`, `internal/service/security_notice.go` — link email and reset notice
 - `internal/service/reauth_service.go` — `CheckSecondFactor`, `Factors`
 - `internal/service/user_service.go` — `MinPasswordLen`, `MaxPasswordBytes`, `hashPassword`
-- `internal/handler/signup_handler.go` — `requestSignup`, `validEmail`; new `internal/handler/password_reset_handler.go`
+- `internal/handler/signup_page_handler.go` — `requestSignup`, `validEmail`; new `internal/handler/password_reset_handler.go`
 - `internal/handler/email_verification_handler.go` — `renderVerifyEmail` headers, audit precedent
 - `internal/handler/auth_page_handler.go` — `PageLogin`, `PageLoginSubmit`, `signIn`
 - `internal/view/pages/login.templ`, `internal/view/viewmodels_auth.go` — link and `LoginData` flag; new forgot/reset pages

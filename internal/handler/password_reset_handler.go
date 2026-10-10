@@ -19,14 +19,6 @@ import (
 
 const passwordResetNotice = "Your password was changed and every session was signed out. Sign in with the new password."
 
-// PageForgotPassword handles GET /auth/password/forgot.
-func (h *Handler) PageForgotPassword(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, pages.ForgotPassword(view.ForgotPasswordData{
-		BasePage:  basePage(r, h.Services),
-		Available: h.Services.PasswordReset.Available(),
-	}))
-}
-
 // ForgotPasswordSubmit handles POST /auth/password/forgot. Like requestSignup,
 // it answers every valid address alike and mails in the background, so neither
 // the response nor its timing shows whether the address has an account.
@@ -51,19 +43,6 @@ func (h *Handler) ForgotPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 	data.Sent = true
 	h.render(w, r, pages.ForgotPassword(data))
-}
-
-// PageResetPassword handles GET /auth/password/reset/{token}. It only checks
-// the link: mail scanners fetch links, and a GET that spent it would leave a dead one.
-func (h *Handler) PageResetPassword(w http.ResponseWriter, r *http.Request) {
-	token := chi.URLParam(r, "token")
-	link, err := h.Services.PasswordReset.Check(r.Context(), token)
-	if err != nil {
-		slog.Error("check password reset link", "error", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	h.renderResetPassword(w, r, view.ResetPasswordData{Link: link}, http.StatusOK)
 }
 
 // ResetPasswordSubmit handles POST /auth/password/reset/{token}. It never signs
