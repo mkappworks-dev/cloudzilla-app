@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 
 Part of [spec](../spec.md). Stage 2. Design approved by the maintainer on 2026-10-09; it is built by [07a](./07a-device-grant-api.md), [07b](./07b-device-approval-page.md) and [07c](./07c-cz-device-login.md). Set this ticket `done` when all three are.
@@ -78,12 +78,12 @@ Device flow is the default. It prints the URL and code to stderr always, copies 
 
 ## Acceptance criteria
 
-- [ ] Login completes end to end for a user with 2FA on (07b + 07c).
-- [ ] Codes expire after 15 minutes and can't be redeemed twice; a denied code is dead (07a).
-- [ ] Polling faster than `interval` gets `slow_down`; code entry is rate limited (07a, 07b).
-- [ ] The issued token appears in Settings → Tokens and can be revoked there (07a).
-- [ ] `docs/api-reference.md` and `docs/access-control.md` document the endpoints and the threat model (07a, 07b).
-- [ ] Tests cover the grant lifecycle and each error response (07a).
+- [x] Login completes end to end for a user with 2FA on (07b + 07c).
+- [x] Codes expire after 15 minutes and can't be redeemed twice; a denied code is dead (07a).
+- [x] Polling faster than `interval` gets `slow_down`; code entry is rate limited (07a, 07b).
+- [x] The issued token appears in Settings → Tokens and can be revoked there (07a).
+- [x] `docs/api-reference.md` and `docs/access-control.md` document the endpoints and the threat model (07a, 07b).
+- [x] Tests cover the grant lifecycle and each error response (07a).
 
 ## Comments
 

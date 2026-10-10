@@ -2,7 +2,7 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 
 Part of [spec](../spec.md). Can land with 02 or after the command tickets.
@@ -18,8 +18,8 @@ Part of [spec](../spec.md). Can land with 02 or after the command tickets.
 
 ## Acceptance criteria
 
-- [ ] `make build` produces `dist/cz`; CI builds it.
-- [ ] A release produces a standalone `cz` archive for each platform the server release covers.
+- [x] `make build` produces `dist/cz`; CI builds it.
+- [x] A release produces a standalone `cz` archive for each platform the server release covers.
 - [x] `docs/cli.md` exists and is linked from `CLAUDE.md` and `README.md`.
 - [x] The docs state every command's required scope.
 

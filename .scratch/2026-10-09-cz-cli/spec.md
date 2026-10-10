@@ -50,10 +50,10 @@ Later, not in this spec: `release`, `label`, `milestone`, `notification`, `searc
 ## Acceptance criteria
 
 - [ ] `cloudzilla-cli` is `cz-admin` everywhere: binary, `cmd/` directory, Makefile, Dockerfile, CI, release archive, README and docs. Nothing refers to the old name.
-- [ ] `cz auth login` stores a verified token; `status` shows host, user and storage; `logout` removes it.
+- [x] `cz auth login` stores a verified token; `status` shows host, user and storage; `logout` removes it.
 - [ ] The core commands above work against a real server with a PAT carrying the right scopes.
-- [ ] A missing scope, a bad token and an unreachable host each give a one-line message and a non-zero exit.
-- [ ] `cz` builds without importing the store or service layers (checked in CI or by a test on its imports).
+- [x] A missing scope, a bad token and an unreachable host each give a one-line message and a non-zero exit.
+- [x] `cz` builds without importing the store or service layers (checked in CI or by a test on its imports).
 - [ ] `cz` ships in the release archive and the Docker image's `dist/`, and is documented in `docs/cli.md`, linked from `CLAUDE.md`'s subsystem list.
 
 ## Relevant files
@@ -85,3 +85,11 @@ Tickets in `issues/`, in order:
 6. `05-cz-pr` — PR commands.
 7. `06-cz-build-release-docs` — Makefile, Dockerfile, CI, release archive, `docs/cli.md`.
 8. `07-device-code-login` — stage 2 design (approved 2026-10-09), built by `07a-device-grant-api` (server), `07b-device-approval-page` (browser) and `07c-cz-device-login` (`cz`).
+
+## Comments
+
+Claude, 2026-10-10: ticked the auth, error-message and import-boundary criteria (`internal/cli/imports_test.go` runs in CI under `go test ./...`). Left open:
+
+- **Old name everywhere.** `docs/configuration.md` still says `cloudzilla gc` where it means `cz-admin gc`, and `.scratch/2026-10-06-admin-password-reset/` still names `cloudzilla password-reset-link`.
+- **Core commands against a real server.** The repo, issue and PR commands are tested against stub servers only; the one run against the real router is the device login.
+- **Docker image's `dist/`.** Ticket 06 deliberately keeps `cz` out of the server image (`docs/cli.md` says so), which contradicts this criterion. Reword it or ship `cz` in the image.

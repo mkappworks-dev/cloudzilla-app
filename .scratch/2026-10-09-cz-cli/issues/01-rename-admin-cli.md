@@ -16,10 +16,12 @@ References to update: `Makefile`, `Dockerfile` (build, `COPY`, and the comment a
 ## Acceptance criteria
 
 - [ ] `grep -rI cloudzilla-cli` finds nothing outside git history.
-- [ ] `make build` produces `dist/cz-admin`; the Docker image has `/app/cz-admin` and no `/app/cloudzilla-cli`.
-- [ ] The release archive contains `cloudzilla` and `cz-admin`.
-- [ ] `make test` passes, including the command tests moved with the directory.
+- [x] `make build` produces `dist/cz-admin`; the Docker image has `/app/cz-admin` and no `/app/cloudzilla-cli`.
+- [x] The release archive contains `cloudzilla` and `cz-admin`.
+- [x] `make test` passes, including the command tests moved with the directory.
 - [x] Docs that tell an operator to run a command use `cz-admin`.
 - [ ] The PR description tells operators to update scripts and `docker compose exec` calls that use the old name.
 
 ## Comments
+
+Claude, 2026-10-10: ticked the build, release archive and test criteria after checking them against `main`. Left unticked: the `grep -rI cloudzilla-cli` criterion, which still matches this ticket, the cz-cli spec and `docs/configuration.md` (a deliberate note about old audit rows), and the PR-description criterion, which can't be checked from the repo.
