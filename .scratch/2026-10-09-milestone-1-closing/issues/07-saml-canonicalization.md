@@ -2,8 +2,8 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-human
-Decision needed: approve or reject adding `github.com/russellhaering/goxmldsig` v1.6.1 (with `etree` v1.8.1 and `clockwork` v0.5.0) as a roadmap exception. Recommendation: approve; see [Comments](#comments).
+Status: ready-for-agent
+Decision: approved 2026-10-10, implemented by [10](./10-saml-goxmldsig-verification.md); this ticket is done when 10 is done.
 
 ## Problem
 
@@ -24,7 +24,7 @@ It also locates elements by string search (`<ds:Signature`, `<Signature`, `<dsig
 
 ## Blocked by
 
-The dependency decision.
+10, the implementation. The dependency decision was made 2026-10-10 (see Comments).
 
 ## Comments
 
@@ -263,3 +263,5 @@ A follow-up ticket (to be written after the decision) would:
 - Algorithm policy: `goxmldsig` accepts SHA-1. Rejecting `rsa-sha1` and `sha1` digests before `Validate` is cheap and I would include it.
 - The 1000-element limit (above) should be tested with a large-group assertion before the first enterprise IdP is onboarded.
 - Responses signed only at the `Response` level (Keycloak's "Sign documents" without "Sign assertions") are rejected today and would stay rejected; supporting them is a separate decision.
+
+**Malith Kuruppu, 2026-10-10:** Approved adding `goxmldsig` v1.6.1 (with `etree` and `clockwork`) as a roadmap exception, as recommended above. Recorded by Claude from the chat; implementation ticket is 10.
