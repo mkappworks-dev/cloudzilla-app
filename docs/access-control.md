@@ -40,7 +40,7 @@ contain control characters. Anything else goes to `/`.
 
 ### Two-factor authentication
 
-TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDAP, Google and SAML routes all end in `signIn` (`page_auth_handler.go`). For a user with TOTP on, it sets a five-minute `cz_totp_pending` cookie and redirects to `/auth/2fa` instead of issuing `cz_token`; `VerifyTOTP` starts the session once a code or backup code checks out. Every web session starts in `startSession`, which records the `login` audit event.
+TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDAP, Google and SAML routes all end in `signIn` (`auth_page_handler.go`). For a user with TOTP on, it sets a five-minute `cz_totp_pending` cookie and redirects to `/auth/2fa` instead of issuing `cz_token`; `VerifyTOTP` starts the session once a code or backup code checks out. Every web session starts in `startSession`, which records the `login` audit event.
 
 `VerifyTOTP` checks the code with `ReauthService.CheckSecondFactor`, which draws on the per-user failure limit of [confirmations](#confirming-sensitive-actions). After five wrong codes or backup codes in 15 minutes, the page refuses even the right code for the rest of the window, so a stolen password can't guess its way past 2FA.
 

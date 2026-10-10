@@ -124,7 +124,7 @@ A suspended user who signs in with correct credentials sees "This account is sus
 - `internal/service/user_service.go` (`generateJWT`, `Authenticate`, `DeleteUser`), `sso_provision.go` (`generateJWT`), `access_token_service.go` (`Validate`), `oauth_app_service.go` (`ResolveOAuthToken`), `ssh_key_service.go`, `deploy_key_service.go`, `email_service.go` (`wantsEmail`), a new admin user service
 - `internal/middleware/auth.go` (`sessionLive`, the `SessionVersions` interface)
 - `internal/ssh/server.go`, `internal/handler/git_http.go` (`resolveGitUser`)
-- `internal/handler/page_auth_handler.go`, `auth_handler.go`, the LDAP, SAML and Google handlers, `totp_handler.go`, `page_settings_handler.go` (`DeleteAccount`), a new admin users handler
+- `internal/handler/auth_page_handler.go`, `auth_handler.go`, the LDAP, SAML and Google handlers, `totp_handler.go`, `settings_page_handler.go` (`DeleteAccount`), a new admin users handler
 - `internal/view/pages/admin_nav.templ`, new admin user templates, `user.templ` (badge), `internal/view/viewmodels_user.go`
 - `internal/router/router.go`
 - `docs/access-control.md`, `docs/api-reference.md`

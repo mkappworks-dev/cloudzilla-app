@@ -6,7 +6,7 @@ Status: done
 
 ## Problem
 
-Every repository has an Actions tab. `internal/view/fragments/repo_subnav.templ` renders it unconditionally, and no repo setting hides it. It leads to `GET /{owner}/{repo}/actions` (`internal/router/router.go`, `PageActions` in `internal/handler/page_actions_handler.go`). The page is the placeholder that UI overhaul phase 4 added. It shows an "Actions are coming soon." empty state, followed by two run rows carried over from the mockup (`internal/view/pages/actions.templ`):
+Every repository has an Actions tab. `internal/view/fragments/repo_subnav.templ` renders it unconditionally, and no repo setting hides it. It leads to `GET /{owner}/{repo}/actions` (`internal/router/router.go`, `PageActions` in `internal/handler/actions_page_handler.go`). The page is the placeholder that UI overhaul phase 4 added. It shows an "Actions are coming soon." empty state, followed by two run rows carried over from the mockup (`internal/view/pages/actions.templ`):
 
 - `CI · Go test` / `build · main · 2m 14s` / `just now`
 - `CI · Go test` / `build · main · 1m 58s` / `2 days ago`
@@ -35,7 +35,7 @@ Settings → Access has toggles for Issues, Discussions, Projects and Wiki (`all
 A sweep of every `.templ` file under `internal/view/` (2026-10-06) found no other dimmed mockup rows. It did find visible mockup copy that claims behaviour the code doesn't have. These are out of scope for this ticket. Each wants its own:
 
 - `internal/view/layout/layout.templ` (footer of every page): `● all systems normal` in a `role="status"` span. It's a literal, and nothing checks any system.
-- `internal/view/pages/issues.templ` (issues list): "Filter syntax: `is:open`, `label:bug`, `milestone:v0.3`, `author:daisy`", and the search box placeholder "Filter is:open". `PageIssues` (`internal/handler/page_issue_handler.go`) only matches a case-insensitive substring of the title, so none of these qualifiers work. "daisy" and "v0.3" come from the mockup.
+- `internal/view/pages/issues.templ` (issues list): "Filter syntax: `is:open`, `label:bug`, `milestone:v0.3`, `author:daisy`", and the search box placeholder "Filter is:open". `PageIssues` (`internal/handler/issue_page_handler.go`) only matches a case-insensitive substring of the title, so none of these qualifiers work. "daisy" and "v0.3" come from the mockup.
 - `internal/view/components/comment_editor.templ` (comment box on issues, PRs and discussions): "Markdown supported · drop files to attach". Comments have no drop or upload handling; the only drop handlers are on the project board and the wiki.
 - `internal/view/pages/pull_new.templ` (new PR): "Suggested from the files changed." under a picker built from `data.Reviewer.All`. The handler computes `Reviewer.Suggested` with `PullService.SuggestReviewers`, but this page never renders it.
 - `internal/view/pages/repo_new.templ` (new repository): "Need inspiration? `turbo-octo-meme`". It's always the same name, copied from GitHub's random suggestion.
@@ -59,7 +59,7 @@ A sweep of every `.templ` file under `internal/view/` (2026-10-06) found no othe
 ## Relevant files
 
 - `internal/view/pages/actions.templ`: placeholder page with the mockup rows
-- `internal/handler/page_actions_handler.go`: `PageActions`
+- `internal/handler/actions_page_handler.go`: `PageActions`
 - `internal/view/viewmodels_social.go`: `ActionsData`
 - `internal/view/fragments/repo_subnav.templ`: the tab
 - `internal/router/router.go`: `GET /{owner}/{repo}/actions`
