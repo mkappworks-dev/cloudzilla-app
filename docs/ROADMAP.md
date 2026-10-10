@@ -693,7 +693,7 @@ ALTER TABLE pull_requests ADD COLUMN IF NOT EXISTS milestone_id BIGINT REFERENCE
 - `internal/model/milestone.go` — `Milestone{ID, RepoID, Number, Title, Description, State, DueDate, ClosedAt, OpenCount, ClosedCount}` (`OpenCount`/`ClosedCount` populated via JOIN)
 - `internal/store/milestone_store.go` — `Create`, `ListByRepo`, `GetByNumber`, `Update`, `Delete`, `IncrementOpenCount`, `IncrementClosedCount`
 - `internal/service/milestone_service.go`
-- `internal/handler/milestone_handler.go`
+- `internal/handler/milestone_api_handler.go` (JSON API), `internal/handler/milestone_page_handler.go` (pages and fragments)
 
 **Model changes:**
 
@@ -1395,7 +1395,9 @@ ALTER TABLE users
 
 **Files:**
 
-- `internal/service/sso_service.go` — `AuthenticateLDAP(ctx, username, password)`, `HandleSAMLCallback(ctx, samlResponse)`, `GetConfig(ctx, provider)`, `SetConfig(ctx, provider, config, enabled)`
+- `internal/service/sso_service.go` — `GetConfig(ctx, provider)`, `SetConfig(ctx, provider, config, enabled)`
+- `internal/service/sso_ldap.go` — `AuthenticateLDAP(ctx, username, password)`
+- `internal/service/sso_saml.go` — `HandleSAMLCallback(ctx, samlResponse)`
 - `internal/handler/sso_handler.go` — `PageSSOSettings` (superadmin), `SaveSSOConfig`, `InitiateSAML`, `SAMLCallback`, `SAMLMetadata`
 
 **Routes:**
