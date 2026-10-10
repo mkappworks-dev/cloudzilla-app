@@ -60,6 +60,8 @@ The token goes to the OS keychain. When none is available, or with `--insecure-s
 
 On a terminal, commands print human-readable text. `--json`, or a stdout that isn't a terminal, prints JSON instead. Errors are one line on stderr prefixed `cz:`, with a non-zero exit: an unreachable host, a bad token (`401`, run `cz auth login`) and a missing scope each get their own message. A `429` reports the `Retry-After` wait.
 
+A bad token is not an error on a public read. `repo list`, `issue list`, `pr list` and the like on a public repository succeed with public data, because the server treats a token it can't verify as anonymous on those routes. If a listing shows only public repositories, run `cz auth status`: it verifies the token and fails when it is bad.
+
 ## Scopes per command
 
 A token acts as its user but only on the routes its scopes admit ([Token Scopes](./access-control.md#token-scopes)). When the server answers `403 insufficient_scope`, `cz` prints the scope from the `WWW-Authenticate` header.
