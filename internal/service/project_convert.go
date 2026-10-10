@@ -14,6 +14,9 @@ import (
 // ErrNotConvertible: only a titled card with no issue or pull link can become an issue.
 var ErrNotConvertible = errors.New("only a note card without a link can be converted to an issue")
 
+// ErrIssuesDisabled: the repository has issues switched off, so a card cannot become one.
+var ErrIssuesDisabled = errors.New("issues are disabled for this repository")
+
 // WithConvertDeps enables ConvertCardToIssue.
 func (s *ProjectService) WithConvertDeps(issues *IssueService, issueStore *store.IssueStore, labels *store.LabelStore, assignees *store.AssigneeStore) *ProjectService {
 	s.issues, s.issueStore, s.labelStore, s.assigneeStore = issues, issueStore, labels, assignees
@@ -30,6 +33,9 @@ func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, card
 	}
 	if !s.repos.CanWrite(ctx, repo, userID) {
 		return nil, nil, ErrForbidden
+	}
+	if !repo.AllowIssues {
+		return nil, nil, ErrIssuesDisabled
 	}
 	card, err := s.projects.GetCardInProject(ctx, cardID, projectID)
 	if errors.Is(err, store.ErrCardNotInProject) {

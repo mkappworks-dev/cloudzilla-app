@@ -736,7 +736,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | PATCH  | `.../projects/{id}/cards/{cardID}`  | authMW | CanWrite (service)  | MoveCard          |
 | PATCH  | `.../projects/{id}/cards/{cardID}/details` | authMW | CanWrite (service) | UpdateCardDetails |
 | PATCH  | `.../projects/{id}/cards/{cardID}/fields` | authMW | CanWrite (service) | UpdateCardFields |
-| POST   | `.../projects/{id}/cards/{cardID}/convert` | authMW | CanWrite (service) | ConvertCard |
+| POST   | `.../projects/{id}/cards/{cardID}/convert` | authMW | CanWrite, then `allow_issues` (service; 404 `not found` when issues are off, as `CreateIssue`) | ConvertCard |
 | DELETE | `.../projects/{id}/cards/{cardID}`  | authMW | CanWrite (service)  | DeleteCard        |
 
 ### Git Transport

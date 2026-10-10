@@ -7,7 +7,36 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
+
+func TestProjects_ConvertCardRefusedWhenIssuesDisabled(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	col := e.createColumn(t, p, "To do")
+	card := e.createNote(t, p, col, "No issues here")
+	testutil.Exec(t, e.db, `UPDATE repositories SET allow_issues = FALSE WHERE id = $1`, e.repoID)
+
+	created := e.do(t, metaReq{method: "POST", target: e.path("/issues"), token: e.writer.token, json: `{"title":"x"}`})
+	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards/%d/convert", p, card), token: e.writer.token})
+	wantStatus(t, rr, created.Code)
+	if rr.Body.String() != created.Body.String() {
+		t.Errorf("convert replied %q, issue creation replied %q; want the same", rr.Body.String(), created.Body.String())
+	}
+	if n := e.issueCount(t); n != 0 {
+		t.Errorf("issues = %d, want none", n)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE id = $1 AND issue_id IS NULL AND pull_id IS NULL`, card); n != 1 {
+		t.Errorf("the card was linked or removed")
+	}
+
+	testutil.Exec(t, e.db, `UPDATE repositories SET allow_issues = TRUE WHERE id = $1`, e.repoID)
+	wantStatus(t, e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards/%d/convert", p, card), token: e.writer.token}), http.StatusOK)
+	if n := e.issueCount(t); n != 1 {
+		t.Errorf("issues after re-enabling = %d, want 1", n)
+	}
+}
 
 func TestProjects_ConvertCardAnnouncesTheNewIssue(t *testing.T) {
 	e := newGitMetaEnv(t)

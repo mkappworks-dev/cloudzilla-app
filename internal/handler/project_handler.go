@@ -486,6 +486,11 @@ func writeProjectError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 		return
 	}
+	// Same reply as CreateIssue gives for a repository without issues.
+	if errors.Is(err, service.ErrIssuesDisabled) {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
 	if errors.Is(err, service.ErrNotConvertible) || errors.Is(err, service.ErrTitleTooLong) ||
 		errors.Is(err, service.ErrInvalidPosition) || errors.Is(err, service.ErrInvalidCard) ||
 		errors.Is(err, service.ErrInvalidAssignee) || errors.Is(err, service.ErrInvalidLabel) ||

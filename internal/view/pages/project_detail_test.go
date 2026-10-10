@@ -31,6 +31,7 @@ func boardData(canWrite bool) view.ProjectDetailData {
 	}
 	d := view.ProjectDetailData{
 		Owner: "acme", RepoName: "widgets",
+		Repo:     model.Repository{AllowIssues: true},
 		Project:  model.Project{ID: 14, Name: "Roadmap"},
 		Columns:  []service.KanbanColumnView{{ID: 2, Name: "Todo", Cards: []service.KanbanCardView{note, plain}}},
 		CanWrite: canWrite,
@@ -366,6 +367,28 @@ func TestProjectDetail_CardDialogConvertStaysOpen(t *testing.T) {
 	ro := cardDialog(t, renderBoard(t, boardData(false)))
 	if strings.Contains(ro, "data-card-notice") {
 		t.Error("read-only dialog renders the convert success line")
+	}
+}
+
+func TestProjectDetail_ConvertOnlyWhenIssuesAreAllowed(t *testing.T) {
+	markers := []string{"convertButton", "confirmConvert", "convertCard()"}
+	on := cardDialog(t, renderBoard(t, boardData(true)))
+	for _, m := range markers {
+		if !strings.Contains(on, m) {
+			t.Errorf("issues enabled: dialog lacks %q", m)
+		}
+	}
+
+	data := boardData(true)
+	data.Repo.AllowIssues = false
+	off := cardDialog(t, renderBoard(t, data))
+	for _, m := range append(markers, "Convert to issue", "Create an issue from this card") {
+		if strings.Contains(off, m) {
+			t.Errorf("issues disabled: dialog still has %q", m)
+		}
+	}
+	if !strings.Contains(off, "deleteButton") {
+		t.Error("issues disabled: Delete went missing too")
 	}
 }
 

@@ -743,14 +743,16 @@ templ cardDialog(data view.ProjectDetailData) {
 						}) {
 							Delete
 						}
-						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
-							"type":            "button",
-							"x-ref":           "convertButton",
-							"x-show":          "editor.mode === 'edit' && !editor.link && editor.saved.title",
-							"x-bind:disabled": "editor.busy || anySaving || anyEditing",
-							"@click":          "ask('convert')",
-						}) {
-							Convert to issue
+						if data.Repo.AllowIssues {
+							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+								"type":            "button",
+								"x-ref":           "convertButton",
+								"x-show":          "editor.mode === 'edit' && !editor.link && editor.saved.title",
+								"x-bind:disabled": "editor.busy || anySaving || anyEditing",
+								"@click":          "ask('convert')",
+							}) {
+								Convert to issue
+							}
 						}
 						<div x-show="editor.mode === 'create'" class="ml-auto flex items-center gap-2">
 							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "x-bind:disabled": "editor.busy", "@click": "close()"}) {
@@ -763,20 +765,24 @@ templ cardDialog(data view.ProjectDetailData) {
 					</div>
 					<div x-show="editor.confirm" x-cloak class="flex w-full flex-wrap items-center justify-end gap-x-2 gap-y-3" role="group" aria-labelledby="card-confirm-text" data-card-confirm>
 						<p id="card-confirm-text" class="basis-full text-[13px] font-medium">
-							<span x-show="editor.confirm === 'convert'">Create an issue from this card? The card will link to the new issue.</span>
+							if data.Repo.AllowIssues {
+								<span x-show="editor.confirm === 'convert'">Create an issue from this card? The card will link to the new issue.</span>
+							}
 							<span x-show="editor.confirm === 'delete'">Delete this card?</span>
 						</p>
 						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "x-bind:disabled": "editor.busy", "@click": "cancelConfirm()"}) {
 							Cancel
 						}
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-							"type":            "button",
-							"x-ref":           "confirmConvert",
-							"x-show":          "editor.confirm === 'convert'",
-							"x-bind:disabled": "editor.busy || anySaving || anyEditing",
-							"@click":          "convertCard()",
-						}) {
-							Create issue
+						if data.Repo.AllowIssues {
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+								"type":            "button",
+								"x-ref":           "confirmConvert",
+								"x-show":          "editor.confirm === 'convert'",
+								"x-bind:disabled": "editor.busy || anySaving || anyEditing",
+								"@click":          "convertCard()",
+							}) {
+								Create issue
+							}
 						}
 						@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 							"type":            "button",
