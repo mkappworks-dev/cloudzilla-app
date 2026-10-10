@@ -192,22 +192,50 @@ templ ProjectDetail(data view.ProjectDetailData) {
 								<span class="shrink-0 rounded-full bg-muted px-1.5 font-mono text-[11px] font-normal text-muted-foreground">{ strconv.Itoa(len(col.Cards)) }</span>
 							</h2>
 							if data.CanWrite {
-								<div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+								<div
+									class="relative"
+									x-data="columnMenu"
+									data-column-id={ strconv.FormatInt(col.ID, 10) }
+									@click.outside="close()"
+									@keydown.escape="onEscape($event)"
+								>
 									<button
 										type="button"
+										x-ref="trigger"
 										aria-label={ "Actions for column " + col.Name }
 										aria-haspopup="menu"
 										x-bind:aria-expanded="open.toString()"
-										@click="open = !open"
+										@click="toggle()"
 										class="rounded px-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
 									>⋯</button>
-									<div x-show="open" x-cloak role="menu" class="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-border bg-popover p-1 shadow-md">
-										<button
-											type="button"
-											role="menuitem"
-											onclick={ deleteColumnJS(data.Owner, data.RepoName, data.Project.ID, col.ID) }
-											class="w-full rounded px-2 py-1.5 text-left text-[13px] text-destructive hover:bg-muted"
-										>Delete column</button>
+									<div x-show="open" x-cloak class="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-md">
+										<div x-show="!confirming" role="menu">
+											<button
+												type="button"
+												role="menuitem"
+												x-ref="deleteItem"
+												@click="ask()"
+												class="w-full rounded px-2 py-1.5 text-left text-[13px] text-destructive hover:bg-muted"
+											>Delete column</button>
+										</div>
+										<div
+											x-show="confirming"
+											x-cloak
+											role="group"
+											aria-labelledby={ "col-" + strconv.FormatInt(col.ID, 10) + "-confirm" }
+											class="flex flex-col gap-2 p-2"
+										>
+											<p id={ "col-" + strconv.FormatInt(col.ID, 10) + "-confirm" } class="text-[13px] font-medium">{ columnDeletePrompt(len(col.Cards)) }</p>
+											<p x-show="error" x-cloak x-text="error" class="text-[12px] text-destructive" role="alert"></p>
+											<div class="flex justify-end gap-2">
+												@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "x-bind:disabled": "busy", "@click": "cancel()"}) {
+													Cancel
+												}
+												@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{"type": "button", "x-ref": "confirmDelete", "x-bind:disabled": "busy", "@click": "remove()"}) {
+													Delete column
+												}
+											</div>
+										</div>
 									</div>
 								</div>
 							}
@@ -245,6 +273,16 @@ templ ProjectDetail(data view.ProjectDetailData) {
 		<script src={ assets.URL("/static/multiselect.js") } defer></script>
 		<script src={ assets.URL("/static/kanban.js") } defer></script>
 	}
+}
+
+func columnDeletePrompt(cards int) string {
+	switch cards {
+	case 0:
+		return "Delete this column?"
+	case 1:
+		return "Delete this column and its 1 card?"
+	}
+	return "Delete this column and its " + strconv.Itoa(cards) + " cards?"
 }
 
 templ addColumnDialog() {
@@ -743,14 +781,16 @@ templ cardDialog(data view.ProjectDetailData) {
 						}) {
 							Delete
 						}
-						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
-							"type":            "button",
-							"x-ref":           "convertButton",
-							"x-show":          "editor.mode === 'edit' && !editor.link && editor.saved.title",
-							"x-bind:disabled": "editor.busy || anySaving || anyEditing",
-							"@click":          "ask('convert')",
-						}) {
-							Convert to issue
+						if data.Repo.AllowIssues {
+							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+								"type":            "button",
+								"x-ref":           "convertButton",
+								"x-show":          "editor.mode === 'edit' && !editor.link && editor.saved.title",
+								"x-bind:disabled": "editor.busy || anySaving || anyEditing",
+								"@click":          "ask('convert')",
+							}) {
+								Convert to issue
+							}
 						}
 						<div x-show="editor.mode === 'create'" class="ml-auto flex items-center gap-2">
 							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "x-bind:disabled": "editor.busy", "@click": "close()"}) {
@@ -763,20 +803,24 @@ templ cardDialog(data view.ProjectDetailData) {
 					</div>
 					<div x-show="editor.confirm" x-cloak class="flex w-full flex-wrap items-center justify-end gap-x-2 gap-y-3" role="group" aria-labelledby="card-confirm-text" data-card-confirm>
 						<p id="card-confirm-text" class="basis-full text-[13px] font-medium">
-							<span x-show="editor.confirm === 'convert'">Create an issue from this card? The card will link to the new issue.</span>
+							if data.Repo.AllowIssues {
+								<span x-show="editor.confirm === 'convert'">Create an issue from this card? The card will link to the new issue.</span>
+							}
 							<span x-show="editor.confirm === 'delete'">Delete this card?</span>
 						</p>
 						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "x-bind:disabled": "editor.busy", "@click": "cancelConfirm()"}) {
 							Cancel
 						}
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-							"type":            "button",
-							"x-ref":           "confirmConvert",
-							"x-show":          "editor.confirm === 'convert'",
-							"x-bind:disabled": "editor.busy || anySaving || anyEditing",
-							"@click":          "convertCard()",
-						}) {
-							Create issue
+						if data.Repo.AllowIssues {
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+								"type":            "button",
+								"x-ref":           "confirmConvert",
+								"x-show":          "editor.confirm === 'convert'",
+								"x-bind:disabled": "editor.busy || anySaving || anyEditing",
+								"@click":          "convertCard()",
+							}) {
+								Create issue
+							}
 						}
 						@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 							"type":            "button",
@@ -863,13 +907,6 @@ script setProjectClosedJS(owner, repoName string, projectID int64, closed bool) 
 		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({closed: closed})
 	}).then(function(r){ if(r.ok) window.location.reload(); });
-}
-
-script deleteColumnJS(owner, repoName string, projectID, columnID int64) {
-	if(!confirm('Delete column and all its cards?')) return;
-	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns/' + columnID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
-		.then(function(r){ if(r.ok) window.location.reload(); });
 }
 
 script deleteCardJS(owner, repoName string, projectID, cardID int64) {

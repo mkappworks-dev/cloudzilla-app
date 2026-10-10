@@ -31,6 +31,7 @@ func boardData(canWrite bool) view.ProjectDetailData {
 	}
 	d := view.ProjectDetailData{
 		Owner: "acme", RepoName: "widgets",
+		Repo:     model.Repository{AllowIssues: true},
 		Project:  model.Project{ID: 14, Name: "Roadmap"},
 		Columns:  []service.KanbanColumnView{{ID: 2, Name: "Todo", Cards: []service.KanbanCardView{note, plain}}},
 		CanWrite: canWrite,
@@ -366,6 +367,61 @@ func TestProjectDetail_CardDialogConvertStaysOpen(t *testing.T) {
 	ro := cardDialog(t, renderBoard(t, boardData(false)))
 	if strings.Contains(ro, "data-card-notice") {
 		t.Error("read-only dialog renders the convert success line")
+	}
+}
+
+func TestProjectDetail_ConvertOnlyWhenIssuesAreAllowed(t *testing.T) {
+	markers := []string{"convertButton", "confirmConvert", "convertCard()"}
+	on := cardDialog(t, renderBoard(t, boardData(true)))
+	for _, m := range markers {
+		if !strings.Contains(on, m) {
+			t.Errorf("issues enabled: dialog lacks %q", m)
+		}
+	}
+
+	data := boardData(true)
+	data.Repo.AllowIssues = false
+	off := cardDialog(t, renderBoard(t, data))
+	for _, m := range append(markers, "Convert to issue", "Create an issue from this card") {
+		if strings.Contains(off, m) {
+			t.Errorf("issues disabled: dialog still has %q", m)
+		}
+	}
+	if !strings.Contains(off, "deleteButton") {
+		t.Error("issues disabled: Delete went missing too")
+	}
+}
+
+func TestProjectDetail_ColumnDeleteConfirmsInline(t *testing.T) {
+	out := renderBoard(t, boardData(true))
+	for _, want := range []string{
+		`x-data="columnMenu"`,
+		`data-column-id="2"`,
+		`Delete this column and its 2 cards?`,
+		`x-ref="confirmDelete"`,
+		`@click="remove()"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("writer board missing %q", want)
+		}
+	}
+	if strings.Contains(out, "confirm(") {
+		t.Error("the board still calls the native confirm()")
+	}
+
+	viewer := renderBoard(t, boardData(false))
+	for _, gone := range []string{"columnMenu", "Delete this column", "confirm("} {
+		if strings.Contains(viewer, gone) {
+			t.Errorf("read-only board has %q", gone)
+		}
+	}
+
+	for cards, want := range map[int]string{0: "Delete this column?", 1: "Delete this column and its 1 card?"} {
+		data := boardData(true)
+		data.Columns[0].Cards = data.Columns[0].Cards[:cards]
+		if got := renderBoard(t, data); !strings.Contains(got, want) {
+			t.Errorf("%d cards: missing %q", cards, want)
+		}
 	}
 }
 

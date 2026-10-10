@@ -15,18 +15,39 @@ document.addEventListener('alpine:init', () => {
     return `/api/repos/${root.dataset.owner}/${root.dataset.repoName}/projects/${root.dataset.projectId}${path}`;
   };
 
+  const REQUEST_TIMEOUT_MS = 30000;
+
+  const timeoutSignal = () => {
+    if (AbortSignal.timeout) return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    const c = new AbortController();
+    setTimeout(() => c.abort(), REQUEST_TIMEOUT_MS);
+    return c.signal;
+  };
+
+  // The body is read inside the try because the timeout also aborts a hung body stream; the
+  // reply's json() then parses the buffered text, so it cannot fail on the timeout later.
   const send = async (method, url, body) => {
     const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-    const r = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    if (!r.ok) {
-      const detail = await r.json().then((j) => j.error, () => '');
-      throw new Error(detail || 'Request failed (' + r.status + ')');
+    try {
+      const r = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: timeoutSignal(),
+      });
+      const text = await r.text();
+      if (!r.ok) {
+        let detail = '';
+        try {
+          detail = JSON.parse(text).error;
+        } catch (_) {}
+        throw new Error(detail || 'Request failed (' + r.status + ')');
+      }
+      return { json: async () => JSON.parse(text) };
+    } catch (err) {
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error('The request timed out.');
+      throw err;
     }
-    return r;
   };
 
   // x-show reveals an element on a later animation frame than $nextTick, so focus retries
@@ -637,6 +658,69 @@ document.addEventListener('alpine:init', () => {
       this.error = '';
       try {
         await send('POST', projectURL(this.$el, '/columns'), { name: this.name.trim() });
+        window.location.reload();
+      } catch (err) {
+        this.error = err.message;
+        this.busy = false;
+      }
+    },
+  }));
+
+  // columnMenu is a column header's ⋯ popover. Delete column swaps the menu for an inline
+  // confirmation in the same popover; a failed delete keeps it open with the error.
+  Alpine.data('columnMenu', () => ({
+    open: false,
+    confirming: false,
+    busy: false,
+    error: '',
+
+    toggle() {
+      if (this.open) this.close();
+      else this.open = true;
+    },
+
+    // A click outside mid-request must not hide the pending delete or its error.
+    close() {
+      if (this.busy) return;
+      this.open = false;
+      this.confirming = false;
+      this.error = '';
+    },
+
+    ask() {
+      this.error = '';
+      this.confirming = true;
+      this.$nextTick(() => focusWhenShown(this.$refs.confirmDelete));
+    },
+
+    cancel() {
+      if (this.busy) return;
+      this.confirming = false;
+      this.error = '';
+      this.$nextTick(() => focusWhenShown(this.$refs.deleteItem));
+    },
+
+    onEscape(e) {
+      if (this.busy) {
+        e.preventDefault();
+        return;
+      }
+      if (this.confirming) {
+        e.preventDefault();
+        this.cancel();
+      } else if (this.open) {
+        e.preventDefault();
+        this.close();
+        this.$refs.trigger.focus();
+      }
+    },
+
+    async remove() {
+      if (this.busy) return;
+      this.busy = true;
+      this.error = '';
+      try {
+        await send('DELETE', projectURL(this.$root, `/columns/${this.$root.dataset.columnId}`));
         window.location.reload();
       } catch (err) {
         this.error = err.message;
