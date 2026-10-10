@@ -82,11 +82,11 @@ and the browser stays on <http://localhost:8080> as always.
 
 What each kind of change costs:
 
-| you edit                            | what happens                                   |
-| ----------------------------------- | ---------------------------------------------- |
-| `tailwind/input.css`, a `.js` asset | **no Go rebuild** — refreshes on its own        |
-| a `.templ` file                     | regenerate, rebuild, restart, refresh (~2-5s)  |
-| a `.go` file                        | rebuild, restart, refresh (~1-4s)              |
+| you edit                            | what happens                                  |
+| ----------------------------------- | --------------------------------------------- |
+| `tailwind/input.css`, a `.js` asset | **no Go rebuild** — refreshes on its own      |
+| a `.templ` file                     | regenerate, rebuild, restart, refresh (~2-5s) |
+| a `.go` file                        | rebuild, restart, refresh (~1-4s)             |
 
 Two dev-only pieces make that work, both behind the `dev` build tag and absent from a release
 binary:
