@@ -54,7 +54,7 @@ The code is in `internal/service/import_service.go`, `import_clone.go`, `import_
 - SSH push: `internal/ssh/server.go:219`
 - the new-file form: `repo_files_handler.go:198`
 - the profile README: `profile_readme_handler.go:43`
-- creating a repo from a template: `repo_service.go:1065`
+- creating a repo from a template: `repo_service_create.go` (`CreateFromTemplate`)
 
 These paths write to an archived repo without checking:
 
@@ -217,7 +217,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 - `internal/service/import_service.go`, `import_clone.go`, `import_source.go`, `import_guard.go`, `repo_import.go`: the clone, URL rules, guard and publish to reuse
 - `internal/gittransport/storer.go` (`WrapForReceive`) and `internal/gitref/gitref.go` (`Move`)
 - `internal/handler/git_http.go` and `internal/ssh/server.go`: the push checks and post-push steps
-- `internal/service/repo_service.go`: `OnPostReceive`, `UpdateGeneral` and `PushSummaries`
+- `internal/service/repo_service_push.go`: `OnPostReceive` and `PushSummaries`; `repo_service_settings.go`: `UpdateGeneral`
 - `internal/service/code_service_refs.go`, `code_service_merge.go`, `release_service.go`, `internal/handler/pull_handler.go` (`tryAutoMerge`): write paths that need the guard
 - `internal/service/webhook_service.go`: `PushPayload` and `Dispatch`
 - `cmd/server/main.go`: where the scheduler starts

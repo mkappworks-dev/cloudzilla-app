@@ -175,7 +175,7 @@ One migration, the next free number at commit time (102 today):
 - `internal/service/pull_service.go`: `Create`, `SetState`, `EnableAutoMerge`, `DisableAutoMerge`
 - `internal/service/issue_service.go`, `internal/store/issue_store.go`, `internal/store/pull_store.go`: links, `UpdateState`, `ListLinkedToPull`, `ListLinkedToIssue`
 - `internal/store/repo_store.go`: `readableBy`
-- `internal/service/repo_service.go`: `OnPostReceive`, `forEachPushedCommit`, `CanRead`, `CanWrite`
+- `internal/service/repo_service_push.go`: `OnPostReceive`, `forEachPushedCommit`; `repo_service_access.go`: `CanRead`, `CanWrite`
 - `internal/service/code_service_merge.go`, `commit_range.go`, `merge_base.go`: merge methods, `commitRange`, `isAncestor`
 - `internal/service/notification_service.go`, `internal/service/webhook_service.go`, `internal/service/event_service.go`
 - `internal/service/pull_event_service.go`, `internal/model/pull_event.go`: the pattern for `issue_events`
