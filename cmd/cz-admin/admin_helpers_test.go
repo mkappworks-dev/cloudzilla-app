@@ -9,12 +9,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/spf13/cobra"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/backup"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -130,12 +132,24 @@ func fakeRestore(t *testing.T) string {
 cat > /dev/null`)
 }
 
-// requirePgTools skips unless real pg_dump and pg_restore are on PATH.
+// requirePgTools skips unless real pg_dump and pg_restore on PATH are at least the test server's major version;
+// CI runners ship older clients, which backup refuses.
 func requirePgTools(t *testing.T) {
 	t.Helper()
+	var versionNum string
+	if err := testutil.OpenTestDB(t).QueryRow("SHOW server_version_num").Scan(&versionNum); err != nil {
+		t.Fatal(err)
+	}
+	num, err := strconv.Atoi(versionNum)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, tool := range []string{"pg_dump", "pg_restore"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			t.Skipf("%s not on PATH; skipping the real backup round trip", tool)
+		}
+		if _, err := backup.CheckClient(t.Context(), tool, backup.ServerMajor(num), "the server"); err != nil {
+			t.Skipf("skipping the real backup round trip: %v", err)
 		}
 	}
 }
