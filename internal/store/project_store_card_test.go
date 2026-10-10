@@ -168,6 +168,69 @@ func TestProjectStore_SetCardDetails_ReplacesSets(t *testing.T) {
 	}
 }
 
+func TestProjectStore_MergeCardDetails(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	projectID, cols := seedProjectWithColumns(t, db, repoID, []string{"todo"})
+	otherProject, _ := seedProjectWithColumns(t, db, repoID, []string{"elsewhere"})
+	label := seedLabelRow(t, db, repoID, "bug")
+	s := store.NewProjectStore(db)
+	ctx := context.Background()
+	card := seedCard(t, s, cols[0], "first")
+	due := time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC)
+	if err := s.SetCardDetails(ctx, card.ID, projectID, model.CardDetails{
+		Title: "first", Description: "desc", DueDate: &due, AssigneeIDs: []int64{ownerID}, LabelIDs: []int64{label},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var seen model.CardDetails
+	var seenAssignees []model.CardUser
+	err := s.MergeCardDetails(ctx, card.ID, projectID, func(cur model.CardDetails, assignees []model.CardUser) (model.CardDetails, error) {
+		seen, seenAssignees = cur, assignees
+		cur.Title = "merged"
+		return cur, nil
+	})
+	if err != nil {
+		t.Fatalf("MergeCardDetails: %v", err)
+	}
+	if seen.Title != "first" || seen.Description != "desc" || seen.DueDate == nil || seen.DueDate.Format("2006-01-02") != "2026-11-02" ||
+		len(seen.AssigneeIDs) != 1 || seen.AssigneeIDs[0] != ownerID || len(seen.LabelIDs) != 1 || seen.LabelIDs[0] != label {
+		t.Errorf("merge saw %+v", seen)
+	}
+	if len(seenAssignees) != 1 || seenAssignees[0].ID != ownerID || seenAssignees[0].Username != "testuser_"+suffix {
+		t.Errorf("merge saw assignees %+v", seenAssignees)
+	}
+	got, _ := s.GetCardInProject(ctx, card.ID, projectID)
+	labels, _ := s.CardLabels(ctx, []int64{card.ID})
+	if got.Title != "merged" || got.Note != "desc" || got.DueDate == nil || len(labels[card.ID]) != 1 {
+		t.Errorf("after merge: card %+v labels %v", got, labels[card.ID])
+	}
+
+	refused := errors.New("refused")
+	err = s.MergeCardDetails(ctx, card.ID, projectID, func(cur model.CardDetails, _ []model.CardUser) (model.CardDetails, error) {
+		cur.Title = "not written"
+		return cur, refused
+	})
+	if !errors.Is(err, refused) {
+		t.Errorf("merge error = %v, want it returned", err)
+	}
+	if got, _ := s.GetCardInProject(ctx, card.ID, projectID); got.Title != "merged" {
+		t.Errorf("a refused merge wrote the title %q", got.Title)
+	}
+
+	called := false
+	err = s.MergeCardDetails(ctx, card.ID, otherProject, func(cur model.CardDetails, _ []model.CardUser) (model.CardDetails, error) {
+		called = true
+		return cur, nil
+	})
+	if !errors.Is(err, store.ErrCardNotInProject) || called {
+		t.Errorf("other project: err %v, merge called %v; want ErrCardNotInProject without a call", err, called)
+	}
+}
+
 func TestProjectStore_SetCardDetails_OtherProjectRejected(t *testing.T) {
 	db := openStoreDB(t)
 	suffix := testutil.UniqueSuffix(t)

@@ -65,6 +65,53 @@ type CardDetails struct {
 	LabelIDs           []int64
 }
 
+// Optional is one field of a partial update: Set means the request named it, even to clear it.
+type Optional[T any] struct {
+	Set   bool
+	Value T
+}
+
+// CardPatch is a partial card update: fields that are not Set keep their stored value.
+type CardPatch struct {
+	Title, Description Optional[string]
+	DueDate            Optional[*time.Time]
+	IssueID, PullID    Optional[*int64]
+	AssigneeIDs        Optional[[]int64]
+	LabelIDs           Optional[[]int64]
+}
+
+// Empty reports whether the patch names no field.
+func (p CardPatch) Empty() bool {
+	return !p.Title.Set && !p.Description.Set && !p.DueDate.Set && !p.IssueID.Set && !p.PullID.Set &&
+		!p.AssigneeIDs.Set && !p.LabelIDs.Set
+}
+
+// Apply returns d with every Set field of the patch replaced.
+func (p CardPatch) Apply(d CardDetails) CardDetails {
+	if p.Title.Set {
+		d.Title = p.Title.Value
+	}
+	if p.Description.Set {
+		d.Description = p.Description.Value
+	}
+	if p.DueDate.Set {
+		d.DueDate = p.DueDate.Value
+	}
+	if p.IssueID.Set {
+		d.IssueID = p.IssueID.Value
+	}
+	if p.PullID.Set {
+		d.PullID = p.PullID.Value
+	}
+	if p.AssigneeIDs.Set {
+		d.AssigneeIDs = p.AssigneeIDs.Value
+	}
+	if p.LabelIDs.Set {
+		d.LabelIDs = p.LabelIDs.Value
+	}
+	return d
+}
+
 // CardTarget is an issue or pull request a board card can link to.
 type CardTarget struct {
 	ID     int64  `json:"id"`

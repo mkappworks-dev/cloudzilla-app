@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -455,6 +456,99 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// UpdateCardFields saves the fields named in the body and leaves the others as stored, so the
+// card modal can save one field at a time.
+func (h *Handler) UpdateCardFields(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	projectID, ok := h.projectIDInRepo(w, r)
+	if !ok {
+		return
+	}
+	cardID, err := strconv.ParseInt(chi.URLParam(r, "cardID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid card id")
+		return
+	}
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil || raw == nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	patch, err := cardPatch(raw)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	card, err := h.Services.Project.UpdateCardFields(r.Context(), projectID, cardID, claims.UserID, patch)
+	if err != nil {
+		writeProjectError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, card)
+}
+
+// cardPatch reads the fields of a partial card update; a key that is absent stays unset.
+func cardPatch(raw map[string]json.RawMessage) (model.CardPatch, error) {
+	var p model.CardPatch
+	for key, v := range raw {
+		isNull := string(v) == "null"
+		var err error
+		switch key {
+		case "title":
+			p.Title.Set = true
+			err = decodeField(v, isNull, &p.Title.Value)
+			p.Title.Value = strings.TrimSpace(p.Title.Value)
+		case "description":
+			p.Description.Set = true
+			err = decodeField(v, isNull, &p.Description.Value)
+		case "assignee_ids":
+			p.AssigneeIDs.Set = true
+			err = decodeField(v, isNull, &p.AssigneeIDs.Value)
+		case "label_ids":
+			p.LabelIDs.Set = true
+			err = decodeField(v, isNull, &p.LabelIDs.Value)
+		case "issue_id":
+			p.IssueID.Set = true
+			err = json.Unmarshal(v, &p.IssueID.Value)
+		case "pull_id":
+			p.PullID.Set = true
+			err = json.Unmarshal(v, &p.PullID.Value)
+		case "due_date":
+			p.DueDate.Set = true
+			var s *string
+			if json.Unmarshal(v, &s) != nil {
+				return p, errors.New("due_date must be YYYY-MM-DD")
+			}
+			if s != nil && *s != "" {
+				if p.DueDate.Value, err = parseDueDate(*s); err != nil {
+					return p, err
+				}
+			}
+		default:
+			return p, fmt.Errorf("unknown field %q", key)
+		}
+		if err != nil {
+			return p, fmt.Errorf("invalid %s", key)
+		}
+	}
+	if p.Empty() {
+		return p, errors.New("no fields to update")
+	}
+	return p, nil
+}
+
+// decodeField rejects null for fields that have no "unset" value: a string or an id list.
+func decodeField(v json.RawMessage, isNull bool, dst any) error {
+	if isNull {
+		return errors.New("null")
+	}
+	return json.Unmarshal(v, dst)
+}
+
 func (h *Handler) ConvertCard(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -499,14 +593,22 @@ func (b cardDetailsBody) details() (model.CardDetails, error) {
 		LabelIDs:    b.LabelIDs,
 	}
 	if b.DueDate != "" {
-		t, err := time.Parse("2006-01-02", b.DueDate)
-		// time.Parse accepts year 0, which Postgres DATE has no value for.
-		if err != nil || t.Year() < 1 || t.Year() > 9999 {
-			return d, errors.New("due_date must be YYYY-MM-DD")
+		t, err := parseDueDate(b.DueDate)
+		if err != nil {
+			return d, err
 		}
-		d.DueDate = &t
+		d.DueDate = t
 	}
 	return d, nil
+}
+
+func parseDueDate(s string) (*time.Time, error) {
+	t, err := time.Parse("2006-01-02", s)
+	// time.Parse accepts year 0, which Postgres DATE has no value for.
+	if err != nil || t.Year() < 1 || t.Year() > 9999 {
+		return nil, errors.New("due_date must be YYYY-MM-DD")
+	}
+	return &t, nil
 }
 
 func (h *Handler) SearchCardTargets(w http.ResponseWriter, r *http.Request) {

@@ -380,6 +380,65 @@ func (s *ProjectService) UpdateCardDetails(ctx context.Context, projectID, cardI
 	return nil
 }
 
+// CardFieldsView is a card after a partial update, with what the card modal redraws.
+type CardFieldsView struct {
+	model.ProjectCard
+	// DescriptionHTML is the description rendered like the board's, with #N linked for the caller.
+	DescriptionHTML string           `json:"description_html"`
+	Assignees       []model.CardUser `json:"assignees"`
+	Labels          []model.Label    `json:"labels"`
+}
+
+// UpdateCardFields applies a partial update. The merged card is checked like a full
+// UpdateCardDetails, against the state stored under the card's row lock.
+func (s *ProjectService) UpdateCardFields(ctx context.Context, projectID, cardID, userID int64, p model.CardPatch) (*CardFieldsView, error) {
+	repo, err := s.repoForProject(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if !s.repos.CanWrite(ctx, repo, userID) {
+		return nil, ErrForbidden
+	}
+	err = s.projects.MergeCardDetails(ctx, cardID, projectID, func(cur model.CardDetails, assigned []model.CardUser) (model.CardDetails, error) {
+		next := p.Apply(cur)
+		// As in UpdateCardDetails: only a card stored without a title may stay title-less.
+		return next, s.validateDetails(ctx, repo, next, cur.Title == "", assigned)
+	})
+	if errors.Is(err, store.ErrCardNotInProject) {
+		return nil, ErrProjectNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := s.projects.TouchProject(ctx, projectID); err != nil {
+		log.Printf("TouchProject(%d): %v", projectID, err)
+	}
+
+	card, err := s.projects.GetCardInProject(ctx, cardID, projectID)
+	if err != nil {
+		return nil, err
+	}
+	assignees, err := s.projects.CardAssignees(ctx, []int64{cardID})
+	if err != nil {
+		return nil, err
+	}
+	labels, err := s.projects.CardLabels(ctx, []int64{cardID})
+	if err != nil {
+		return nil, err
+	}
+	view := &CardFieldsView{ProjectCard: *card, Assignees: []model.CardUser{}, Labels: []model.Label{}}
+	view.Assignees = append(view.Assignees, assignees[cardID]...)
+	view.Labels = append(view.Labels, labels[cardID]...)
+	if card.Note != "" {
+		kinds, err := s.projects.RefKinds(ctx, repo.ID, refNumbers([]string{card.Note}), &userID)
+		if err != nil {
+			return nil, err
+		}
+		view.DescriptionHTML = markdown.RenderWithRefs(ctx, card.Note, "/"+repo.OwnerName+"/"+repo.Name, kinds)
+	}
+	return view, nil
+}
+
 const cardTargetLimit = 8
 
 // SearchCardTargets backs the board's "#" picker with the project repo's
@@ -460,6 +519,25 @@ type KanbanCardView struct {
 // query's parameter limit; refs past it render as plain text.
 const maxBoardRefs = 200
 
+// refNumbers is the distinct #N references across notes, at most maxBoardRefs of them.
+func refNumbers(notes []string) []int {
+	var nums []int
+	seen := map[int]bool{}
+	for _, note := range notes {
+		for _, n := range markdown.RefNumbers(note) {
+			if seen[n] {
+				continue
+			}
+			if len(nums) == maxBoardRefs {
+				return nums
+			}
+			seen[n] = true
+			nums = append(nums, n)
+		}
+	}
+	return nums
+}
+
 // cardOverdue: a card whose linked item is already resolved is never overdue.
 func cardOverdue(due *time.Time, linkState string, today time.Time) bool {
 	if due == nil || linkState == "closed" || linkState == "merged" {
@@ -537,24 +615,13 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 	if err != nil {
 		return nil, err
 	}
-	var refNums []int
-	seenRef := map[int]bool{}
-collect:
+	var notes []string
 	for _, col := range cols {
 		for _, c := range col.Cards {
-			for _, n := range markdown.RefNumbers(c.Note) {
-				if seenRef[n] {
-					continue
-				}
-				if len(refNums) == maxBoardRefs {
-					break collect
-				}
-				seenRef[n] = true
-				refNums = append(refNums, n)
-			}
+			notes = append(notes, c.Note)
 		}
 	}
-	kinds, err := s.projects.RefKinds(ctx, repo.ID, refNums, viewerID)
+	kinds, err := s.projects.RefKinds(ctx, repo.ID, refNumbers(notes), viewerID)
 	if err != nil {
 		return nil, err
 	}

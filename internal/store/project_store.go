@@ -279,7 +279,89 @@ func (s *ProjectStore) SetCardDetails(ctx context.Context, cardID, projectID int
 		return err
 	}
 	defer tx.Rollback()
+	if err := writeCardDetails(ctx, tx, cardID, projectID, d); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
 
+// MergeCardDetails locks the card row, hands its stored details and assignees to merge, and
+// writes the details merge returns, in one transaction: concurrent partial updates of one card
+// apply one after the other instead of overwriting each other. An error from merge writes nothing.
+func (s *ProjectStore) MergeCardDetails(ctx context.Context, cardID, projectID int64,
+	merge func(cur model.CardDetails, assignees []model.CardUser) (model.CardDetails, error)) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var cur model.CardDetails
+	var due sql.NullTime
+	var issueID, pullID sql.NullInt64
+	err = tx.QueryRowContext(ctx,
+		`SELECT title, note, due_date, issue_id, pull_id FROM project_cards
+		 WHERE id = $1 AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)
+		 FOR UPDATE`,
+		cardID, projectID,
+	).Scan(&cur.Title, &cur.Description, &due, &issueID, &pullID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("card %d in project %d: %w", cardID, projectID, ErrCardNotInProject)
+	}
+	if err != nil {
+		return err
+	}
+	if due.Valid {
+		cur.DueDate = &due.Time
+	}
+	if issueID.Valid {
+		cur.IssueID = &issueID.Int64
+	}
+	if pullID.Valid {
+		cur.PullID = &pullID.Int64
+	}
+	assigned, err := cardAssignees(ctx, tx, []int64{cardID})
+	if err != nil {
+		return err
+	}
+	cur.AssigneeIDs = []int64{}
+	for _, u := range assigned[cardID] {
+		cur.AssigneeIDs = append(cur.AssigneeIDs, u.ID)
+	}
+	cur.LabelIDs, err = cardLabelIDs(ctx, tx, cardID)
+	if err != nil {
+		return err
+	}
+
+	next, err := merge(cur, assigned[cardID])
+	if err != nil {
+		return err
+	}
+	if err := writeCardDetails(ctx, tx, cardID, projectID, next); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func cardLabelIDs(ctx context.Context, tx *sql.Tx, cardID int64) ([]int64, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT label_id FROM card_labels WHERE card_id = $1 ORDER BY label_id`, cardID)
+	if err != nil {
+		return nil, fmt.Errorf("card label ids: %w", err)
+	}
+	defer rows.Close()
+	ids := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// writeCardDetails replaces the card's row fields and its assignee and label sets.
+func writeCardDetails(ctx context.Context, tx *sql.Tx, cardID, projectID int64, d model.CardDetails) error {
 	res, err := tx.ExecContext(ctx,
 		`UPDATE project_cards SET title = $3, note = $4, due_date = $5, issue_id = $6, pull_id = $7
 		 WHERE id = $1 AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
@@ -300,10 +382,7 @@ func (s *ProjectStore) SetCardDetails(ctx context.Context, cardID, projectID int
 	if _, err := tx.ExecContext(ctx, `DELETE FROM card_labels WHERE card_id = $1`, cardID); err != nil {
 		return err
 	}
-	if err := insertCardPeople(ctx, tx, cardID, d.AssigneeIDs, d.LabelIDs); err != nil {
-		return err
-	}
-	return tx.Commit()
+	return insertCardPeople(ctx, tx, cardID, d.AssigneeIDs, d.LabelIDs)
 }
 
 // LinkNoteCardToIssue links an unlinked titled card to issueID and changes nothing else on it.
@@ -337,11 +416,19 @@ func (s *ProjectStore) LinkNoteCardToIssue(ctx context.Context, cardID, projectI
 
 // CardAssignees returns each card's assignees ordered by username; cards without any are absent.
 func (s *ProjectStore) CardAssignees(ctx context.Context, cardIDs []int64) (map[int64][]model.CardUser, error) {
+	return cardAssignees(ctx, s.db, cardIDs)
+}
+
+type rowsQuerier interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
+func cardAssignees(ctx context.Context, q rowsQuerier, cardIDs []int64) (map[int64][]model.CardUser, error) {
 	out := map[int64][]model.CardUser{}
 	if len(cardIDs) == 0 {
 		return out, nil
 	}
-	rows, err := s.db.QueryContext(ctx,
+	rows, err := q.QueryContext(ctx,
 		`SELECT a.card_id, u.id, u.username
 		 FROM card_assignees a JOIN users u ON u.id = a.user_id
 		 WHERE a.card_id = ANY($1)
