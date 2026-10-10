@@ -13,11 +13,10 @@ tmp_dir = "tmp"
   # grows.
   include_dir = ["cmd", "internal"]
 
-  # Go files only, _templ.go included: templ's watcher owns generation, and its
-  # output is what tells air a template changed. dev-build must therefore not
-  # regenerate, or each build would trigger the next.
-  include_ext = ["go"]
-  exclude_regex = ["_test\\.go$"]
+  # dev-build regenerates _templ.go, so watching that output would make every
+  # build trigger the next one. The .templ source is watched instead.
+  include_ext = ["go", "templ"]
+  exclude_regex = ["_test\\.go$", "_templ\\.go$"]
 
   delay = 100
   stop_on_error = true

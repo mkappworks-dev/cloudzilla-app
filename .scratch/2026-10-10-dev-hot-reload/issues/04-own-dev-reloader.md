@@ -2,7 +2,7 @@
 
 Created: 2026-10-11
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 02
 
 ## Problem
@@ -81,16 +81,50 @@ Also removed, since the proxy is gone:
 
 ## Acceptance criteria
 
-- [ ] A `.templ` edit rebuilds, restarts and refreshes the browser **exactly once**
-- [ ] A `.go` edit does the same
-- [ ] A `tailwind/input.css` or `cmd/server/frontend/**/*.js` edit refreshes with **no rebuild**
-- [ ] No refresh can arrive before the new binary is listening, by construction rather than by
+- [x] A `.templ` edit rebuilds, restarts and refreshes the browser **exactly once**
+- [x] A `.go` edit does the same
+- [x] A `tailwind/input.css` or `cmd/server/frontend/**/*.js` edit refreshes with **no rebuild**
+- [x] No refresh can arrive before the new binary is listening, by construction rather than by
       polling — demonstrated by a test over the instance-id rule
-- [ ] A reload never loops: reconnecting to the same server does not refresh again
-- [ ] `make dev` runs two processes and one Ctrl-C stops both; the browser URL is `:8080`
-- [ ] `go build ./cmd/server/.` with no tags registers no `/_dev/` route and starts no watcher,
+- [x] A reload never loops: reconnecting to the same server does not refresh again
+- [x] `make dev` runs two processes and one Ctrl-C stops both; the browser URL is `:8080`
+- [x] `go build ./cmd/server/.` with no tags registers no `/_dev/` route and starts no watcher,
       and `grep -rn "_dev/reload" internal/view/layout` matches only the dev-tagged file
-- [ ] Unit tests for the hub without the build tag: hello carries the id, a broadcast reaches
+- [x] Unit tests for the hub without the build tag: hello carries the id, a broadcast reaches
       every subscriber, a slow subscriber cannot block another, and the watcher debounces
-- [ ] `make test`, `make lint`, and `go build -tags dev ./...` all pass
-- [ ] CONTRIBUTING.md rewritten for the new loop; ticket 03 closed as superseded
+- [x] `make test`, `make lint`, and `go build -tags dev ./...` all pass
+- [x] CONTRIBUTING.md rewritten for the new loop; ticket 03 closed as superseded
+
+## Comments
+
+Claude, 2026-10-11: done in `tech/dev-hot-reload`. Verified by holding the reload stream like a
+browser tab would and counting the refreshes a client's own rule would perform.
+
+| change                   | served in | refreshes | restarts |
+| ------------------------ | --------: | --------: | -------: |
+| `.templ` edit            |      4.3s |         1 |        1 |
+| `.go` edit               |      1.2s |         1 |        1 |
+| `main.css` edit          |     <0.5s |         1 |        0 |
+| 5s idle after the above  |         — |         0 |        0 |
+
+Six changes over a run produced six refreshes: one each, none spurious, no loop. `make dev` is
+two processes, and one SIGINT to the group stopped make, air, Tailwind **and** the server air had
+started in its own process group.
+
+**One thing the design did not anticipate.** The reload stream is itself a long-lived in-flight
+request, and `http.Server.Shutdown` waits for those, so an open tab held every restart open until
+air's `kill_delay` expired — measured at **2.45s of pure waiting per restart**. `Hub.Close`, wired
+to SIGINT in `internal/router/devreload_dev.go`, ends the streams so the drain completes at once:
+the restart window dropped to **0.48s**, and the whole edit-to-serving cycle for a `.go` edit from
+4.5s to 1.2s. `signal.Notify` fans out, so `main.go`'s own handler is unaffected and needed no
+dev-only hook. `kill_delay` stays at 2s as the backstop for a real in-flight git clone.
+
+Two test-quality notes. The hub's tests were written as one batch, so I mutation-checked the two
+load-bearing ones afterwards: removing the debounce fails the watcher test, and making the
+broadcast blocking fails the slow-subscriber test. The second only started failing after I raised
+that test from 50 events to 50,000 — below the socket and transport buffers nothing ever stalls,
+so the test had been passing against a blocking implementation and proving nothing.
+
+Also replaced ticket 02's criteria that this supersedes: its "refreshes once" and "never refreshes
+before the new binary answers" are now true by construction rather than by polling, and the
+single-Ctrl-C and no-30s-drain checks it left unverified are measured above against this loop.

@@ -8,7 +8,6 @@ TAILWIND := bin/tailwindcss
 TAILWIND_OUT := cmd/server/frontend/static/main.css
 TEMPL := ~/go/bin/templ
 AIR := ~/go/bin/air
-DEV_PROXY_PORT := 7331
 
 TAILWIND_VERSION := v4.3.3
 HTMX_VERSION := 4.0.0
@@ -69,23 +68,17 @@ build-css:                         ## Compile Tailwind → static/main.css
 	@mkdir -p cmd/server/frontend/static
 	$(TAILWIND) -i tailwind/input.css -o $(TAILWIND_OUT) --minify
 
-# Build only. Regenerating here would rewrite the _templ.go files air watches,
-# so every build would trigger the next one; templ's own watcher owns generation.
-dev-build:                         ## Build the dev server (air's build step)
+dev-build:                         ## Regenerate templates and build the dev server (air's build step)
+	$(TEMPL) generate ./internal/view/...
 	CGO_ENABLED=0 $(GO) build -tags dev -o $(DEV_BINARY) ./cmd/server/.
 
-# templ's watch pattern is narrowed to .templ because its proxy cannot be run
-# with the watcher silenced: the proxy only starts once a generation pass has
-# happened. Left on its default pattern it also watches .go, and would reload
-# the browser the moment a handler changed — before air had rebuilt.
+# Two processes: air rebuilds and restarts, Tailwind rebuilds the stylesheet.
+# The browser is refreshed by the dev server itself (internal/devreload), so
+# there is no proxy, no second port and nothing polling for the restart.
 dev: download-mermaid download-htmx build-css generate-templ  ## Rebuild, restart and refresh the browser on save
-	@echo "Browse http://localhost:$(DEV_PROXY_PORT) — the app stays on :8080, and so does git."
 	@(trap 'kill 0' SIGINT; \
 		$(AIR) & \
 		$(TAILWIND) -i tailwind/input.css -o $(TAILWIND_OUT) --watch=always & \
-		$(TEMPL) generate --watch --watch-pattern '(.+\.templ$$)' --proxy=http://localhost:8080 \
-			--proxyport $(DEV_PROXY_PORT) ./internal/view/... & \
-		./scripts/dev-notify-proxy.sh & \
 		wait)
 
 build: download-mermaid download-htmx build-css generate-templ build-backend build-cli build-cz  ## Full build (server, cz-admin, cz)

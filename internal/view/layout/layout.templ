@@ -565,6 +565,7 @@ templ Base(base view.BasePage, title string) {
 					document.addEventListener('htmx:after:swap', render);
 				})();
 			</script>
+			@devReload()
 		</body>
 	</html>
 }

@@ -165,3 +165,11 @@ The first two are now ticket 04's job, which replaces templ's proxy with a reloa
 by the dev build itself — reloading on reconnect, which cannot fire before the new server is
 listening. The two unverified ones will be tested against that loop, since ticket 04 changes
 `make dev` to two processes anyway.
+
+Claude, 2026-10-11: the three criteria left open here were settled by ticket 04 rather than by
+changing this one. "Refreshes once" and "never refreshes before the new binary answers" hold in
+ticket 04's loop by construction. The single-Ctrl-C check was run there too — against two
+processes rather than the four this ticket describes, since the proxy and the notify script are
+gone. The 30s drain turned out to be a real hazard after all, just not the one written here: the
+reload stream itself blocks graceful shutdown, which cost 2.45s per restart until `Hub.Close`
+fixed it.

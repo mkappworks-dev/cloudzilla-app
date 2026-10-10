@@ -77,31 +77,31 @@ make dev
 make setup-air
 ```
 
-**Browse <http://localhost:7331>**, not `:8080`. templ's proxy sits on 7331 and injects the
-script that refreshes the page; the app itself still listens on 8080, and git clone/push stay
-there too — there is no reason to stream packfiles through the proxy.
+It runs two processes — air rebuilds and restarts the server, Tailwind rebuilds the stylesheet —
+and the browser stays on <http://localhost:8080> as always.
 
 What each kind of change costs:
 
-| you edit                            | what happens                                        |
-| ----------------------------------- | --------------------------------------------------- |
-| `tailwind/input.css`, a `.js` asset | **no Go rebuild** — Tailwind rebuilds, then refresh |
-| a `.templ` file                     | regenerate, rebuild, restart, refresh (~2-5s)       |
-| a `.go` file                        | rebuild, restart, refresh (~1-4s)                   |
+| you edit                            | what happens                                   |
+| ----------------------------------- | ---------------------------------------------- |
+| `tailwind/input.css`, a `.js` asset | **no Go rebuild** — refreshes on its own        |
+| a `.templ` file                     | regenerate, rebuild, restart, refresh (~2-5s)  |
+| a `.go` file                        | rebuild, restart, refresh (~1-4s)              |
 
-A dev build reads `cmd/server/frontend` from disk instead of from the embedded copy, which is
-what lets a CSS change skip the rebuild — see `cmd/server/embed_dev.go`. Release builds are
-unaffected: `make build` embeds as always.
+Two dev-only pieces make that work, both behind the `dev` build tag and absent from a release
+binary:
 
-Two things worth knowing:
+- `cmd/server/embed_dev.go` reads `cmd/server/frontend` from disk rather than the embedded copy,
+  which is what lets a CSS change skip the rebuild. `make build` embeds as always. Because the
+  path is relative, **`make dev` must run from the repo root**.
+- `internal/devreload` serves an event stream at `/_dev/reload` and injects a small client into
+  the layout. The page refreshes when the stream **reconnects and reports a different server
+  instance** — so a refresh cannot arrive before the new server is listening, and cannot loop,
+  since reconnecting to the same instance does nothing. Asset edits are pushed down the same
+  stream by a watcher on `cmd/server/frontend`.
 
-- **A `.templ` edit refreshes twice.** templ's proxy only starts once its watcher has run a
-  generation pass, so the watcher cannot be silenced; it fires its own refresh as soon as it
-  regenerates, which is before air has rebuilt. You briefly see the previous build, then
-  `scripts/dev-notify-proxy.sh` refreshes again once `/healthz` answers from the new binary.
-  Edits outside `internal/view` refresh once.
-- **A compile error leaves the last good server running** and prints the error with its
-  file and line. Fix it and the next build restarts the server.
+**A compile error leaves the last good server running** and prints the error with its file and
+line. Fix it and the next build restarts the server.
 
 ## Planning Workflow (Claude Code)
 
