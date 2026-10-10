@@ -1,13 +1,16 @@
 package router_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -291,6 +294,64 @@ func TestProjects_CardFieldsKeepsAssigneeRemovedFromRepo(t *testing.T) {
 	}
 	if s := e.cardState(t, e.card); !slices.Equal(s.assignees, []int64{e.writer.id}) {
 		t.Errorf("assignees = %v, want the stale one kept", s.assignees)
+	}
+}
+
+// A save holding the card's row lock must not wait on a second pool connection: with a small
+// pool, concurrent saves would each hold one connection and wait for another forever.
+func TestProjects_CardFieldsConcurrentSavesOnASmallPool(t *testing.T) {
+	e := newFieldsEnv(t)
+	e.db.SetMaxOpenConns(2)
+	bodies := []string{
+		`{"title":"pooled title"}`,
+		`{"description":"pooled description"}`,
+		`{"due_date":"2033-03-03"}`,
+		fmt.Sprintf(`{"assignee_ids":[%d,%d]}`, e.owner.id, e.writer.id),
+		fmt.Sprintf(`{"label_ids":[%d,%d]}`, e.label, e.label2),
+		`{"issue_id":null}`,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	codes := make([]int, 12)
+	var wg sync.WaitGroup
+	for i := range codes {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			req := jsonPost(e.fields(e.card), e.writer.token, bodies[i%len(bodies)]).WithContext(ctx)
+			req.Method = http.MethodPatch
+			rr := httptest.NewRecorder()
+			e.h.ServeHTTP(rr, req)
+			codes[i] = rr.Code
+		}()
+	}
+	wg.Wait()
+	for i, code := range codes {
+		if code != http.StatusOK {
+			t.Errorf("save %d (%s): status %d", i, bodies[i%len(bodies)], code)
+		}
+	}
+	want := cardState{title: "pooled title", note: "pooled description", due: "2033-03-03",
+		assignees: []int64{e.owner.id, e.writer.id}, labels: []int64{e.label, e.label2}}
+	slices.Sort(want.assignees)
+	slices.Sort(want.labels)
+	if got := e.cardState(t, e.card); !sameCard(got, want) {
+		t.Errorf("card after the saves:\n got  %v\n want %v", got, want)
+	}
+}
+
+func TestProjects_CardFieldsReaderAndForeignProject(t *testing.T) {
+	e := newFieldsEnv(t)
+	testutil.Exec(t, e.db, `INSERT INTO permissions (user_id, repo_id, role) VALUES ($1, $2, 'reader')`, e.outsider.id, e.repoID)
+	if code, _ := e.patchFields(t, e.outsider.token, `{"title":"x"}`); code != http.StatusForbidden {
+		t.Errorf("read collaborator = %d, want 403", code)
+	}
+	other := newGitMetaEnv(t)
+	foreign := other.createProject(t, "Theirs")
+	rr := e.do(t, metaReq{method: "PATCH", target: e.path("/projects/%d/cards/%d/fields", foreign, e.card), token: e.writer.token, json: `{"title":"x"}`})
+	wantStatus(t, rr, http.StatusNotFound)
+	if s := e.cardState(t, e.card); s.title != "before" {
+		t.Errorf("refusals changed the title to %q", s.title)
 	}
 }
 

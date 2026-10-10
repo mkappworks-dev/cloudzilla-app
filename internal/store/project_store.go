@@ -288,6 +288,8 @@ func (s *ProjectStore) SetCardDetails(ctx context.Context, cardID, projectID int
 // MergeCardDetails locks the card row, hands its stored details and assignees to merge, and
 // writes the details merge returns, in one transaction: concurrent partial updates of one card
 // apply one after the other instead of overwriting each other. An error from merge writes nothing.
+// merge runs while the lock and this connection are held, so it must not query the database:
+// waiting there for a second pool connection can starve the pool.
 func (s *ProjectStore) MergeCardDetails(ctx context.Context, cardID, projectID int64,
 	merge func(cur model.CardDetails, assignees []model.CardUser) (model.CardDetails, error)) error {
 	tx, err := s.db.BeginTx(ctx, nil)

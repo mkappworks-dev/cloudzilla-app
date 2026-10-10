@@ -246,6 +246,26 @@ func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, us
 // title is only valid as a bare link, and only where linkOnlyOK says so. An assignee in
 // current may stay even after losing repo access, so the card modal can save around a stale one.
 func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Repository, d model.CardDetails, linkOnlyOK bool, current []model.CardUser) error {
+	if err := checkCardShape(d, linkOnlyOK); err != nil {
+		return err
+	}
+	if err := s.checkLink(ctx, repo, d.IssueID, d.PullID); err != nil {
+		return err
+	}
+	if len(d.AssigneeIDs) > 0 {
+		allowed, err := s.assigneeAllowList(ctx, repo)
+		if err != nil {
+			return err
+		}
+		if err := checkAssignees(d.AssigneeIDs, allowed, current); err != nil {
+			return err
+		}
+	}
+	return s.checkLabels(ctx, repo, d.LabelIDs)
+}
+
+// checkCardShape is the part of validateDetails that needs no other table.
+func checkCardShape(d model.CardDetails, linkOnlyOK bool) error {
 	if d.IssueID != nil && d.PullID != nil {
 		return ErrInvalidCard
 	}
@@ -264,38 +284,56 @@ func (s *ProjectService) validateDetails(ctx context.Context, repo *model.Reposi
 	case len(d.LabelIDs) > MaxCardLabels:
 		return ErrTooManyLabels
 	}
-	inRepo, err := s.projects.CardTargetsInRepo(ctx, repo.ID, d.IssueID, d.PullID)
+	return nil
+}
+
+func (s *ProjectService) checkLink(ctx context.Context, repo *model.Repository, issueID, pullID *int64) error {
+	inRepo, err := s.projects.CardTargetsInRepo(ctx, repo.ID, issueID, pullID)
 	if err != nil {
 		return err
 	}
 	if !inRepo {
 		return ErrCardTargetNotFound
 	}
-	if len(d.AssigneeIDs) > 0 {
-		allowed := map[int64]bool{repo.OwnerID: true}
-		perms, err := s.repos.ListCollaborators(ctx, repo.ID)
-		if err != nil {
-			return err
-		}
-		for _, p := range perms {
-			allowed[p.UserID] = true
-		}
-		for _, u := range current {
-			allowed[u.ID] = true
-		}
-		for _, id := range d.AssigneeIDs {
-			if !allowed[id] {
-				return ErrInvalidAssignee
-			}
-		}
+	return nil
+}
+
+func (s *ProjectService) checkLabels(ctx context.Context, repo *model.Repository, labelIDs []int64) error {
+	if len(labelIDs) == 0 {
+		return nil
 	}
-	if len(d.LabelIDs) > 0 {
-		ok, err := s.projects.LabelsInRepo(ctx, repo.ID, d.LabelIDs)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return ErrInvalidLabel
+	ok, err := s.projects.LabelsInRepo(ctx, repo.ID, labelIDs)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrInvalidLabel
+	}
+	return nil
+}
+
+// assigneeAllowList is the repo owner and its collaborators.
+func (s *ProjectService) assigneeAllowList(ctx context.Context, repo *model.Repository) (map[int64]bool, error) {
+	allowed := map[int64]bool{repo.OwnerID: true}
+	perms, err := s.repos.ListCollaborators(ctx, repo.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range perms {
+		allowed[p.UserID] = true
+	}
+	return allowed, nil
+}
+
+// checkAssignees allows the allow list plus whoever is already on the card.
+func checkAssignees(ids []int64, allowed map[int64]bool, current []model.CardUser) error {
+	onCard := map[int64]bool{}
+	for _, u := range current {
+		onCard[u.ID] = true
+	}
+	for _, id := range ids {
+		if !allowed[id] && !onCard[id] {
+			return ErrInvalidAssignee
 		}
 	}
 	return nil
@@ -389,7 +427,7 @@ type CardFieldsView struct {
 	Labels          []model.Label    `json:"labels"`
 }
 
-// UpdateCardFields applies a partial update. The merged card is checked like a full
+// UpdateCardFields applies a partial update. The merged card is checked by the same rules as
 // UpdateCardDetails, against the state stored under the card's row lock.
 func (s *ProjectService) UpdateCardFields(ctx context.Context, projectID, cardID, userID int64, p model.CardPatch) (*CardFieldsView, error) {
 	repo, err := s.repoForProject(ctx, projectID)
@@ -399,10 +437,42 @@ func (s *ProjectService) UpdateCardFields(ctx context.Context, projectID, cardID
 	if !s.repos.CanWrite(ctx, repo, userID) {
 		return nil, ErrForbidden
 	}
+	// Everything validation reads from other tables is read here, before the row lock: a save
+	// that held the lock while waiting for a second pool connection could starve the pool.
+	// Only the links and labels the patch sets are checked; stored ones passed when saved.
+	var linkErr, labelErr error
+	if p.IssueID.Set || p.PullID.Set {
+		if linkErr = s.checkLink(ctx, repo, p.IssueID.Value, p.PullID.Value); linkErr != nil && !errors.Is(linkErr, ErrCardTargetNotFound) {
+			return nil, linkErr
+		}
+	}
+	if p.LabelIDs.Set {
+		if labelErr = s.checkLabels(ctx, repo, p.LabelIDs.Value); labelErr != nil && !errors.Is(labelErr, ErrInvalidLabel) {
+			return nil, labelErr
+		}
+	}
+	var allowed map[int64]bool
+	if p.AssigneeIDs.Set && len(p.AssigneeIDs.Value) > 0 {
+		if allowed, err = s.assigneeAllowList(ctx, repo); err != nil {
+			return nil, err
+		}
+	}
 	err = s.projects.MergeCardDetails(ctx, cardID, projectID, func(cur model.CardDetails, assigned []model.CardUser) (model.CardDetails, error) {
 		next := p.Apply(cur)
-		// As in UpdateCardDetails: only a card stored without a title may stay title-less.
-		return next, s.validateDetails(ctx, repo, next, cur.Title == "", assigned)
+		// In validateDetails' order. As in UpdateCardDetails, only a card stored without a
+		// title may stay title-less.
+		if err := checkCardShape(next, cur.Title == ""); err != nil {
+			return next, err
+		}
+		if linkErr != nil {
+			return next, linkErr
+		}
+		if allowed != nil {
+			if err := checkAssignees(next.AssigneeIDs, allowed, assigned); err != nil {
+				return next, err
+			}
+		}
+		return next, labelErr
 	})
 	if errors.Is(err, store.ErrCardNotInProject) {
 		return nil, ErrProjectNotFound
@@ -415,6 +485,9 @@ func (s *ProjectService) UpdateCardFields(ctx context.Context, projectID, cardID
 	}
 
 	card, err := s.projects.GetCardInProject(ctx, cardID, projectID)
+	if errors.Is(err, store.ErrCardNotInProject) {
+		return nil, ErrProjectNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
