@@ -128,10 +128,15 @@ func TestProjectDetail_CardDialogWriteControls(t *testing.T) {
 		"Create an issue from this card? The card will link to the new issue.", "Delete this card?",
 		`@click="convertCard()"`, "Create issue", `@click="deleteCard()"`, "Delete card", `@click="cancelConfirm()"`,
 		"Today</button>", "Clear</button>",
+		`@keydown.escape="onEscape($event)"`, `@cancel="onEscape($event)"`,
+		`@click.outside="reset()"`, `@focusout="onFocusOut($event)"`,
 	} {
 		if !strings.Contains(dlg, want) {
 			t.Errorf("writer card dialog missing %q", want)
 		}
+	}
+	if !regexp.MustCompile(`<button[^>]*@click="close\(\)"[^>]*x-bind:disabled="editor.busy"|<button[^>]*x-bind:disabled="editor.busy"[^>]*@click="close\(\)"`).MatchString(dlg) {
+		t.Error("Cancel stays enabled while a request is in flight")
 	}
 	for _, want := range []string{`data-add-card="2"`, `data-column-name="Todo"`, "+ Add item"} {
 		if !strings.Contains(out, want) {

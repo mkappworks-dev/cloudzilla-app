@@ -1318,7 +1318,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, " @keydown.escape=\"editor.confirm && ($event.preventDefault(), cancelConfirm())\" @cancel=\"editor.confirm && ($event.preventDefault(), cancelConfirm())\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, " @keydown.escape=\"onEscape($event)\" @cancel=\"onEscape($event)\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1432,7 +1432,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "<div x-show=\"!editor.link\" x-data=\"linkPicker\"><label for=\"card-link-input\" class=\"sr-only\">Find an issue or pull request</label> <input id=\"card-link-input\" type=\"text\" x-ref=\"input\" x-model=\"text\" placeholder=\"Search issues and pull requests by title or #number\" autocomplete=\"off\" class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\" @input=\"search()\" @keydown.enter.prevent=\"enterPick()\" @keydown.escape=\"showList && ($event.preventDefault(), $event.stopPropagation(), reset())\" @keydown.arrow-down.prevent=\"move(1)\" @keydown.arrow-up.prevent=\"move(-1)\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "<div x-show=\"!editor.link\" x-data=\"linkPicker\" @click.outside=\"reset()\" @focusout=\"onFocusOut($event)\"><label for=\"card-link-input\" class=\"sr-only\">Find an issue or pull request</label> <input id=\"card-link-input\" type=\"text\" x-ref=\"input\" x-model=\"text\" placeholder=\"Search issues and pull requests by title or #number\" autocomplete=\"off\" class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\" @input=\"search()\" @keydown.enter.prevent=\"enterPick()\" @keydown.escape=\"showList && ($event.preventDefault(), $event.stopPropagation(), reset())\" @keydown.arrow-down.prevent=\"move(1)\" @keydown.arrow-up.prevent=\"move(-1)\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1693,7 +1693,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "@click": "close()"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var66), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "x-bind:disabled": "editor.busy", "@click": "close()"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var66), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

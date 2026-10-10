@@ -111,6 +111,7 @@
       view: { y: 1, m: 1 },
       focused: null,
       popStyle: '',
+      unbind: null,
 
       init() {
         this.value = this.$el.dataset.value || '';
@@ -120,16 +121,30 @@
         };
         window.addEventListener('scroll', follow, true);
         window.addEventListener('resize', follow);
-        // Inside a modal <dialog>, Escape that reaches the dialog closes only the calendar.
         const dialog = this.$el.closest('dialog');
+        // Inside a modal <dialog>, Escape that reaches the dialog closes only the calendar.
+        const onCancel = (e) => {
+          if (!this.open) return;
+          e.preventDefault();
+          this.close();
+        };
+        const onClose = () => (this.open = false);
         if (dialog) {
-          dialog.addEventListener('cancel', (e) => {
-            if (!this.open) return;
-            e.preventDefault();
-            this.close();
-          });
-          dialog.addEventListener('close', () => (this.open = false));
+          dialog.addEventListener('cancel', onCancel);
+          dialog.addEventListener('close', onClose);
         }
+        this.unbind = () => {
+          window.removeEventListener('scroll', follow, true);
+          window.removeEventListener('resize', follow);
+          if (dialog) {
+            dialog.removeEventListener('cancel', onCancel);
+            dialog.removeEventListener('close', onClose);
+          }
+        };
+      },
+
+      destroy() {
+        if (this.unbind) this.unbind();
       },
 
       get selected() {

@@ -426,8 +426,8 @@ templ cardDialog(data view.ProjectDetailData) {
 		aria-labelledby="card-dialog-title"
 		@close="onDialogClosed()"
 		if data.CanWrite {
-			@keydown.escape="editor.confirm && ($event.preventDefault(), cancelConfirm())"
-			@cancel="editor.confirm && ($event.preventDefault(), cancelConfirm())"
+			@keydown.escape="onEscape($event)"
+			@cancel="onEscape($event)"
 		}
 		@card-link-picked="pickLink($event.detail)"
 	>
@@ -521,7 +521,7 @@ templ cardDialog(data view.ProjectDetailData) {
 									}
 								</div>
 								if data.CanWrite {
-									<div x-show="!editor.link" x-data="linkPicker">
+									<div x-show="!editor.link" x-data="linkPicker" @click.outside="reset()" @focusout="onFocusOut($event)">
 										<label for="card-link-input" class="sr-only">Find an issue or pull request</label>
 										<input
 											id="card-link-input"
@@ -645,7 +645,7 @@ templ cardDialog(data view.ProjectDetailData) {
 							Convert to issue
 						}
 						<div class="ml-auto flex items-center gap-2">
-							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "@click": "close()"}) {
+							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "x-bind:disabled": "editor.busy", "@click": "close()"}) {
 								Cancel
 							}
 							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "x-bind:disabled": "!canSubmit"}) {

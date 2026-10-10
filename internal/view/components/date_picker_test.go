@@ -66,6 +66,14 @@ func TestDatePicker_DisabledShowsTheDateWithoutPopover(t *testing.T) {
 	}
 }
 
+// kanban's client formatShort prints the year without padding, so the server label must match.
+func TestDatePicker_LabelHasNoYearPadding(t *testing.T) {
+	out := renderDatePicker(t, components.DatePickerProps{ID: "due", Name: "due_date", Label: "Due date", Value: "0005-03-07", Placeholder: "No due date"})
+	if !strings.Contains(out, ">Mar 7, 5<") || strings.Contains(out, "0005,") {
+		t.Errorf("year 5 label is not %q: %s", "Mar 7, 5", out)
+	}
+}
+
 func TestDatePicker_EmptyAndInvalidValuesShowThePlaceholder(t *testing.T) {
 	for _, v := range []string{"", "2026-02-30", "0000-01-01", "not a date"} {
 		out := renderDatePicker(t, components.DatePickerProps{ID: "due", Name: "due_date", Label: "Due date", Value: v, Placeholder: "No due date"})

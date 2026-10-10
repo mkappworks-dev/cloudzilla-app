@@ -161,6 +161,15 @@ func TestProjects_Columns(t *testing.T) {
 		t.Fatalf("refusals created %d columns", n)
 	}
 
+	padded := e.createColumn(t, p, "  Backlog  ")
+	var stored string
+	if err := e.db.QueryRow(`SELECT name FROM project_columns WHERE id = $1`, padded).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored != "Backlog" {
+		t.Errorf("stored column name = %q, want it trimmed to %q", stored, "Backlog")
+	}
+
 	col := e.createColumn(t, p, "To do")
 	del := e.path("/projects/%d/columns/%d", p, col)
 	wantStatus(t, e.do(t, metaReq{method: "DELETE", target: del}), http.StatusUnauthorized)
@@ -513,11 +522,11 @@ func TestProjects_Pages(t *testing.T) {
 	wantStatus(t, e.page(t, e.pagePath("/projects/%d", open), e.outsider.token, false), http.StatusNotFound)
 }
 
-func TestProjects_BoardPanelData(t *testing.T) {
+func TestProjects_BoardCardDialogData(t *testing.T) {
 	e := newGitMetaEnv(t)
-	board := e.createProject(t, "Panel board")
+	board := e.createProject(t, "Card dialog board")
 	col := e.createColumn(t, board, "Todo")
-	e.createNote(t, board, col, "panel card")
+	e.createNote(t, board, col, "dialog card")
 	e.seedLabel(t, "triage-me")
 
 	rr := e.page(t, e.pagePath("/projects/%d", board), e.writer.token, false)
@@ -532,7 +541,7 @@ func TestProjects_BoardPanelData(t *testing.T) {
 
 	rr = e.page(t, e.pagePath("/projects/%d", board), "", false)
 	wantStatus(t, rr, http.StatusOK)
-	bodyHas(t, rr, "panel card")
+	bodyHas(t, rr, "dialog card")
 	bodyHas(t, rr, `id="card-title-input"`)
 	for _, gone := range []string{"data-card-people", "data-card-labels", "triage-me", "deleteCard", "data-add-card", "linkPicker"} {
 		if strings.Contains(rr.Body.String(), gone) {

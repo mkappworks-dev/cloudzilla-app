@@ -58,6 +58,8 @@ document.addEventListener('alpine:init', () => {
     dragged: null,
     opener: null,
     editor: blankEditor(),
+    // Outlives the editor object: a request started before the dialog was reopened still counts.
+    inflight: false,
 
     get canWrite() {
       return this.$root.dataset.canWrite === 'true';
@@ -87,7 +89,7 @@ document.addEventListener('alpine:init', () => {
     // A titled card is required everywhere except a new card that only links an issue or PR.
     get canSubmit() {
       const e = this.editor;
-      return !e.busy && !e.confirm && (e.title.trim() !== '' || (e.mode === 'create' && e.link !== null));
+      return !e.busy && !this.inflight && !e.confirm && (e.title.trim() !== '' || (e.mode === 'create' && e.link !== null));
     },
 
     // A card keeps an assignee who left the repo; the checkbox list no longer has them, so the
@@ -152,11 +154,22 @@ document.addEventListener('alpine:init', () => {
     },
 
     close() {
+      if (this.editor.busy) return;
       this.$refs.cardDialog.close();
     },
 
+    // Escape (keydown, or the cancel event where keydown is not the trigger) backs out of the
+    // delete/convert confirmation first, and never closes the dialog mid-request.
+    onEscape(e) {
+      if (this.editor.busy) {
+        e.preventDefault();
+      } else if (this.editor.confirm) {
+        e.preventDefault();
+        this.cancelConfirm();
+      }
+    },
+
     onDialogClosed() {
-      this.editor.busy = false;
       if (this.opener && this.opener.isConnected) this.opener.focus();
       this.opener = null;
     },
@@ -185,15 +198,21 @@ document.addEventListener('alpine:init', () => {
     },
 
     async run(steps) {
-      if (this.editor.busy) return;
-      this.editor.busy = true;
-      this.editor.error = '';
+      if (this.editor.busy || this.inflight) return;
+      const editor = this.editor;
+      this.inflight = true;
+      editor.busy = true;
+      editor.error = '';
       try {
         for (const step of steps) await step();
         window.location.reload();
       } catch (err) {
-        this.editor.error = err.message;
-        this.editor.busy = false;
+        // A reopened dialog has a fresh editor; the old request's failure is not its error.
+        if (this.editor === editor) {
+          editor.error = err.message;
+          editor.busy = false;
+        }
+        this.inflight = false;
       }
     },
 
@@ -213,6 +232,7 @@ document.addEventListener('alpine:init', () => {
 
     // ask swaps the footer for an inline confirmation of a convert or delete.
     ask(action) {
+      if (!this.canWrite) return;
       this.editor.error = '';
       this.editor.confirm = action;
       this.$nextTick(() => focusWhenShown(action === 'convert' ? this.$refs.confirmConvert : this.$refs.confirmDelete));
@@ -226,7 +246,7 @@ document.addEventListener('alpine:init', () => {
 
     // Convert saves the dialog first so the new issue gets what the user sees.
     convertCard() {
-      if (this.editor.confirm !== 'convert') return;
+      if (!this.canWrite || this.editor.confirm !== 'convert') return;
       const base = projectURL(this.$root, `/cards/${this.editor.id}`);
       return this.run([
         () => send('PATCH', base + '/details', this.body()),
@@ -235,7 +255,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     deleteCard() {
-      if (this.editor.confirm !== 'delete') return;
+      if (!this.canWrite || this.editor.confirm !== 'delete') return;
       return this.run([() => send('DELETE', projectURL(this.$root, `/cards/${this.editor.id}`))]);
     },
 
@@ -320,6 +340,7 @@ document.addEventListener('alpine:init', () => {
     error: '',
     listStyle: '',
     seq: 0,
+    unbind: null,
 
     get query() {
       const q = this.text.trim().replace(/^#/, '');
@@ -334,10 +355,24 @@ document.addEventListener('alpine:init', () => {
       const follow = () => {
         if (this.showList) this.place();
       };
+      const onClose = () => this.reset();
+      const dialog = this.$el.closest('dialog');
       window.addEventListener('scroll', follow, true);
       window.addEventListener('resize', follow);
-      const dialog = this.$el.closest('dialog');
-      if (dialog) dialog.addEventListener('close', () => this.reset());
+      if (dialog) dialog.addEventListener('close', onClose);
+      this.unbind = () => {
+        window.removeEventListener('scroll', follow, true);
+        window.removeEventListener('resize', follow);
+        if (dialog) dialog.removeEventListener('close', onClose);
+      };
+    },
+
+    destroy() {
+      if (this.unbind) this.unbind();
+    },
+
+    onFocusOut(e) {
+      if (!this.$el.contains(e.relatedTarget)) this.reset();
     },
 
     place() {
