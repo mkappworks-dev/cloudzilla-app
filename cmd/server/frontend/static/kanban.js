@@ -15,18 +15,39 @@ document.addEventListener('alpine:init', () => {
     return `/api/repos/${root.dataset.owner}/${root.dataset.repoName}/projects/${root.dataset.projectId}${path}`;
   };
 
+  const REQUEST_TIMEOUT_MS = 30000;
+
+  const timeoutSignal = () => {
+    if (AbortSignal.timeout) return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    const c = new AbortController();
+    setTimeout(() => c.abort(), REQUEST_TIMEOUT_MS);
+    return c.signal;
+  };
+
+  // The body is read inside the try because the timeout also aborts a hung body stream; the
+  // reply's json() then parses the buffered text, so it cannot fail on the timeout later.
   const send = async (method, url, body) => {
     const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-    const r = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    if (!r.ok) {
-      const detail = await r.json().then((j) => j.error, () => '');
-      throw new Error(detail || 'Request failed (' + r.status + ')');
+    try {
+      const r = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: timeoutSignal(),
+      });
+      const text = await r.text();
+      if (!r.ok) {
+        let detail = '';
+        try {
+          detail = JSON.parse(text).error;
+        } catch (_) {}
+        throw new Error(detail || 'Request failed (' + r.status + ')');
+      }
+      return { json: async () => JSON.parse(text) };
+    } catch (err) {
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error('The request timed out.');
+      throw err;
     }
-    return r;
   };
 
   // x-show reveals an element on a later animation frame than $nextTick, so focus retries
