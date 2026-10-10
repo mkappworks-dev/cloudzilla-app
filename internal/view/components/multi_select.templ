@@ -1,0 +1,156 @@
+package components
+
+// multiSelectFilterThreshold is the option count above which the popover gets a filter box.
+const multiSelectFilterThreshold = 6
+
+type MultiSelectOption struct {
+	Value  string
+	Label  string
+	Avatar bool   // render Label as a username with its avatar
+	Style  string // validated inline colour style: a pill in the trigger, a swatch in the list
+}
+
+type MultiSelectProps struct {
+	ID          string // trigger id; prefixes the option ids
+	LabelID     string // id of the visible element that names the field
+	Placeholder string // shown while nothing is selected
+	Empty       string // shown in the popover when the filter matches nothing
+	Options     []MultiSelectOption
+	Attrs       templ.Attributes // spread on the root: the x-model binding the selected values
+}
+
+// MultiSelect is a multi-select dropdown driven by multiSelect in static/multiselect.js, which
+// the page must load. `selected` (x-modelable) holds the chosen values as strings, so an
+// x-model in Attrs binds it, and an x-effect in Attrs may set `extra` ({value, label} items
+// that are not in Options) to list a selection the options no longer offer.
+templ MultiSelect(p MultiSelectProps) {
+	<div
+		class="relative"
+		x-data="multiSelect"
+		x-modelable="selected"
+		@click.outside="close(false)"
+		{ p.Attrs... }
+	>
+		<button
+			type="button"
+			id={ p.ID }
+			x-ref="trigger"
+			aria-haspopup="listbox"
+			x-bind:aria-expanded="open.toString()"
+			aria-labelledby={ p.LabelID + " " + p.ID }
+			@click="toggleOpen()"
+			@keydown.arrow-down.prevent="show()"
+			@keydown.arrow-up.prevent="show()"
+			class="flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-card px-2.5 py-1 text-left text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring"
+		>
+			<span class="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+				<span x-show="!selected.length" class="text-muted-foreground">{ p.Placeholder }</span>
+				for _, o := range p.Options {
+					if o.Avatar {
+						<span x-show="has($el.dataset.value)" x-cloak data-value={ o.Value } class="inline-flex min-w-0 items-center gap-1">
+							@Avatar(o.Label, AvatarSizeXS, "")
+							<span class="truncate">{ o.Label }</span>
+						</span>
+					} else {
+						<span x-show="has($el.dataset.value)" x-cloak data-value={ o.Value } class="inline-flex max-w-full items-center truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium" style={ o.Style }>{ o.Label }</span>
+					}
+				}
+				<template x-for="o in extra" x-bind:key="o.value">
+					<span x-show="has(o.value)" x-text="o.label" class="truncate"></span>
+				</template>
+			</span>
+			<svg class="shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"></path></svg>
+		</button>
+		<div
+			x-show="open"
+			x-cloak
+			x-ref="popover"
+			x-bind:style="popStyle"
+			class="fixed z-50 flex flex-col rounded-md border border-border bg-popover text-popover-foreground shadow-md"
+			@keydown="onKey($event)"
+			@keydown.escape.prevent.stop="close()"
+			@keydown.tab="close(false)"
+		>
+			if len(p.Options) > multiSelectFilterThreshold {
+				<div x-ref="filterBox" class="shrink-0 border-b border-border p-1.5">
+					<input
+						type="text"
+						x-ref="filter"
+						x-model="query"
+						data-multiselect-filter
+						aria-label="Filter options"
+						aria-controls={ p.ID + "-list" }
+						autocomplete="off"
+						placeholder="Filter"
+						class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+			}
+			<ul
+				id={ p.ID + "-list" }
+				x-ref="list"
+				role="listbox"
+				aria-multiselectable="true"
+				tabindex="-1"
+				aria-labelledby={ p.LabelID }
+				x-bind:aria-activedescendant="activeID"
+				class="min-h-0 flex-1 overflow-y-auto p-1 focus:outline-hidden"
+			>
+				for _, o := range p.Options {
+					<li
+						id={ p.ID + "-opt-" + o.Value }
+						role="option"
+						data-value={ o.Value }
+						data-label={ o.Label }
+						x-show="matches($el.dataset.label)"
+						x-bind:aria-selected="has($el.dataset.value).toString()"
+						x-bind:class="isActive($el.dataset.value) ? 'bg-muted' : ''"
+						@mousedown.prevent
+						@click="toggleOption($el.dataset.value)"
+						class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[13px] hover:bg-muted"
+					>
+						@multiSelectCheck()
+						if o.Avatar {
+							@Avatar(o.Label, AvatarSizeXS, "")
+						} else {
+							<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" style={ o.Style }></span>
+						}
+						<span class="min-w-0 flex-1 truncate">{ o.Label }</span>
+					</li>
+				}
+				<template x-for="o in extra" x-bind:key="o.value">
+					<li
+						x-bind:id="uid + '-opt-' + o.value"
+						role="option"
+						data-stale
+						x-bind:data-value="o.value"
+						x-bind:data-label="o.label"
+						x-show="matches(o.label)"
+						x-bind:aria-selected="has(o.value).toString()"
+						x-bind:class="isActive(o.value) ? 'bg-muted' : ''"
+						@mousedown.prevent
+						@click="toggleOption(o.value)"
+						class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[13px] hover:bg-muted"
+					>
+						@multiSelectCheck()
+						<span class="min-w-0 flex-1 truncate" x-text="o.label"></span>
+						<span class="shrink-0 text-[11px] text-muted-foreground">not a collaborator</span>
+					</li>
+				</template>
+				<li x-show="!hasMatch" x-cloak class="px-2 py-1.5 text-[12px] text-muted-foreground">{ p.Empty }</li>
+			</ul>
+		</div>
+	</div>
+}
+
+// multiSelectCheck is the tick box drawn in front of an option; the option's aria-selected
+// is what assistive tech reads.
+templ multiSelectCheck() {
+	<span
+		aria-hidden="true"
+		x-bind:class="checked($el) ? 'border-primary bg-primary text-primary-foreground' : 'border-input'"
+		class="flex h-4 w-4 shrink-0 items-center justify-center rounded border"
+	>
+		<svg x-show="checked($el)" x-cloak width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg>
+	</span>
+}
