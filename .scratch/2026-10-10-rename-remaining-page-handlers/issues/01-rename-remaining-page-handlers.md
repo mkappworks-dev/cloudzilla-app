@@ -2,7 +2,7 @@
 
 Created: 2026-10-10
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 ## Problem
 
@@ -25,13 +25,17 @@ Pure `git mv` renames and whole-function moves: no signature changes, no edits i
 
 ## Acceptance criteria
 
-- [ ] The 12 page-only files and their five tests are renamed with `git mv`
-- [ ] Every `Page*` method outside `project_handler.go` lives in a `*_page_handler.go` file
-- [ ] CLAUDE.md and the 07b ticket state the rule the folder follows
-- [ ] `git diff --stat -M` shows only renames, whole-function moves, and doc path edits
-- [ ] No stale paths in `docs`, `.scratch`, `CLAUDE.md`, `CONTRIBUTING.md`
-- [ ] `go build ./...`, `go vet ./internal/handler/...`, `golangci-lint run` and `go test ./...` pass
+- [x] The 12 page-only files and their five tests are renamed with `git mv`
+- [x] Every `Page*` method outside `project_handler.go` lives in a `*_page_handler.go` file
+- [x] CLAUDE.md and the 07b ticket state the rule the folder follows
+- [x] `git diff --stat -M` shows only renames, whole-function moves, and doc path edits
+- [x] No stale paths in `docs`, `.scratch`, `CLAUDE.md`, `CONTRIBUTING.md`
+- [x] `go build ./...`, `go vet ./internal/handler/...`, `golangci-lint run` and `go test ./...` pass
 
 ## Blocked by
 
 None. PR #241 and `tech: clarify handler file naming` (#243) have merged.
+
+## Comments
+
+Claude, 2026-10-10: Done except `project_handler.go`, which still defines `PageProjects` and `PageProjectDetail`. Split it into `project_page_handler.go` once #240 (`feat/projects-github-style`) has merged. The 12 page-only files and 16 mixed files are done.
