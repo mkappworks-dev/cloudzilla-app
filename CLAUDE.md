@@ -81,6 +81,8 @@ Read the matching doc before working in an area:
 
 Worktrees go in `<main checkout>/.worktrees/<type>+<slug>` (gitignored), mirroring the branch: `git worktree add .worktrees/fix+foo -b fix/foo`. From inside another worktree (e.g. one under `.claude/worktrees/`), pass the main checkout's absolute path, or the new one nests inside that worktree.
 
+A Claude Code session can enter one `.worktrees/` checkout only: `EnterWorktree` refuses a second, and its Bash guard refuses git in any other worktree. Start a new session for each new worktree, or `git switch` inside the current one.
+
 ## Pull requests
 
 - Title: Conventional Commits, enforced by `.github/workflows/pr-title-lint.yml` — e.g. `feat(ui): UI overhaul phase 8 — dashboard`.
