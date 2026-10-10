@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"compress/flate"
 	"context"
-	"crypto"
-	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -21,10 +18,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/beevik/etree"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	dsig "github.com/russellhaering/goxmldsig"
+	"github.com/russellhaering/goxmldsig/etreeutils"
 )
 
 // SSOService handles LDAP and SAML authentication flows.
@@ -34,12 +34,22 @@ type SSOService struct {
 	users       *store.UserStore
 	cfg         config.AuthConfig
 	siteSetting *SiteSettingService
+	// now is nil outside tests, which pin it to replay a captured IdP response
+	// whose assertion is valid for only seconds.
+	now func() time.Time
 }
 
 // NewSSOService creates a new SSOService.
 // NewSSOService creates an SSOService with the given stores, auth config, and site settings.
 func NewSSOService(s *store.SSOStore, users *store.UserStore, cfg config.AuthConfig, siteSetting *SiteSettingService) *SSOService {
 	return &SSOService{store: s, users: users, cfg: cfg, siteSetting: siteSetting}
+}
+
+func (s *SSOService) clock() time.Time {
+	if s.now != nil {
+		return s.now()
+	}
+	return time.Now()
 }
 
 // GetConfig returns the SSOConfig for the given provider.
@@ -395,34 +405,13 @@ func parseLDAPBindResponse(data []byte) error {
 // SAML authentication
 // --------------------------------------------------------------------------
 
-// XML Digital Signature (XMLDSig) types — used to parse the embedded signature.
-type dsSignature struct {
-	SignedInfo     dsSignedInfo `xml:"SignedInfo"`
-	SignatureValue string       `xml:"SignatureValue"`
-}
-
-type dsSignedInfo struct {
-	CanonicalizationMethod dsAlgorithm   `xml:"CanonicalizationMethod"`
-	SignatureMethod        dsAlgorithm   `xml:"SignatureMethod"`
-	Reference              []dsReference `xml:"Reference"`
-}
-
-type dsAlgorithm struct {
-	Algorithm string `xml:"Algorithm,attr"`
-}
-
-type dsReference struct {
-	URI          string      `xml:"URI,attr"`
-	DigestMethod dsAlgorithm `xml:"DigestMethod"`
-	DigestValue  string      `xml:"DigestValue"`
-}
+const samlAssertionNS = "urn:oasis:names:tc:SAML:2.0:assertion"
 
 // samlResponse is the minimal XML structure we need to parse.
 type samlResponse struct {
-	XMLName   xml.Name       `xml:"Response"`
-	Issuer    string         `xml:"Issuer"`
-	Status    samlStatus     `xml:"Status"`
-	Assertion *samlAssertion `xml:"Assertion"`
+	XMLName xml.Name   `xml:"Response"`
+	Issuer  string     `xml:"Issuer"`
+	Status  samlStatus `xml:"Status"`
 }
 
 type samlStatus struct {
@@ -439,7 +428,6 @@ type samlAssertion struct {
 	Subject    samlSubject    `xml:"Subject"`
 	Conditions samlConditions `xml:"Conditions"`
 	AttrStmts  []samlAttrStmt `xml:"AttributeStatement"`
-	Signature  *dsSignature   `xml:"Signature"`
 }
 
 type samlSubject struct {
@@ -521,21 +509,17 @@ func (s *SSOService) HandleSAMLCallback(ctx context.Context, samlResponseB64 str
 		return nil, "", fmt.Errorf("saml response status not success: %s", resp.Status.StatusCode.Value)
 	}
 
-	if resp.Assertion == nil {
-		return nil, "", fmt.Errorf("saml response missing assertion")
-	}
-
-	// Verify the assertion's XML digital signature before trusting any content.
-	if err := verifySAMLSignature(xmlBytes, resp.Assertion, idpCert); err != nil {
+	now := s.clock().UTC()
+	assertion, err := verifySAMLAssertion(xmlBytes, idpCert, now)
+	if err != nil {
 		return nil, "", fmt.Errorf("saml signature verification: %w", err)
 	}
 
 	// Validate conditions: NotBefore / NotOnOrAfter.
 	// SAML 2.0 allows fractional seconds (e.g. Azure AD, Okta, Google all emit them),
 	// so try RFC3339Nano first and fall back to second-precision RFC3339.
-	now := time.Now().UTC()
 	var assertionExpiry time.Time
-	if nb := resp.Assertion.Conditions.NotBefore; nb != "" {
+	if nb := assertion.Conditions.NotBefore; nb != "" {
 		t, err := parseSAMLTime(nb)
 		if err != nil {
 			return nil, "", fmt.Errorf("saml assertion NotBefore unparseable: %w", err)
@@ -544,7 +528,7 @@ func (s *SSOService) HandleSAMLCallback(ctx context.Context, samlResponseB64 str
 			return nil, "", fmt.Errorf("saml assertion not yet valid (NotBefore=%s)", nb)
 		}
 	}
-	if na := resp.Assertion.Conditions.NotOnOrAfter; na != "" {
+	if na := assertion.Conditions.NotOnOrAfter; na != "" {
 		t, err := parseSAMLTime(na)
 		if err != nil {
 			return nil, "", fmt.Errorf("saml assertion NotOnOrAfter unparseable: %w", err)
@@ -561,7 +545,7 @@ func (s *SSOService) HandleSAMLCallback(ctx context.Context, samlResponseB64 str
 
 	// Check assertion ID for replay: record this assertion ID so it cannot be
 	// reused within the validity window.
-	assertionID := resp.Assertion.ID
+	assertionID := assertion.ID
 	if assertionID == "" {
 		return nil, "", fmt.Errorf("saml assertion missing ID attribute")
 	}
@@ -580,7 +564,7 @@ func (s *SSOService) HandleSAMLCallback(ctx context.Context, samlResponseB64 str
 	expectedEntityID := cfg.Config[model.SAMLKeyEntityID]
 	if expectedEntityID != "" {
 		audienceOK := false
-		for _, ar := range resp.Assertion.Conditions.AudienceRestriction {
+		for _, ar := range assertion.Conditions.AudienceRestriction {
 			for _, aud := range ar.Audiences {
 				if aud == expectedEntityID {
 					audienceOK = true
@@ -597,24 +581,24 @@ func (s *SSOService) HandleSAMLCallback(ctx context.Context, samlResponseB64 str
 	// Validate Recipient — SubjectConfirmationData/@Recipient must match our ACS URL.
 	expectedACSURL := cfg.Config[model.SAMLKeyACSURL]
 	if expectedACSURL != "" {
-		for _, sc := range resp.Assertion.Subject.SubjectConfirmations {
+		for _, sc := range assertion.Subject.SubjectConfirmations {
 			if sc.Data.Recipient != "" && sc.Data.Recipient != expectedACSURL {
 				return nil, "", fmt.Errorf("saml assertion recipient mismatch: got %q, want %q", sc.Data.Recipient, expectedACSURL)
 			}
 		}
 	}
 
-	nameID := strings.TrimSpace(resp.Assertion.Subject.NameID.Value)
+	nameID := strings.TrimSpace(assertion.Subject.NameID.Value)
 	if nameID == "" {
 		return nil, "", fmt.Errorf("saml assertion missing NameID")
 	}
 
 	// Extract email attribute (try common attribute names)
-	email := extractSAMLAttribute(resp.Assertion.AttrStmts,
+	email := extractSAMLAttribute(assertion.AttrStmts,
 		"email", "mail", "emailAddress",
 		"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
 	)
-	username := extractSAMLAttribute(resp.Assertion.AttrStmts,
+	username := extractSAMLAttribute(assertion.AttrStmts,
 		"uid", "username", "sAMAccountName",
 		"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
 	)
@@ -681,189 +665,98 @@ func parseSAMLCert(certStr string) (*x509.Certificate, error) {
 	return cert, nil
 }
 
-// verifySAMLSignature verifies the XML digital signature embedded in the SAML
-// assertion against the configured IdP certificate.
+// verifySAMLAssertion returns the response's assertion only if the IdP signed it.
 //
-// It supports RSA-SHA256 signatures (the overwhelmingly common SAML algorithm).
-// The approach:
-//  1. Locate the <ds:Signature> inside the assertion.
-//  2. Extract the assertion element from the raw XML bytes (identified by the
-//     assertion ID from the <ds:Reference URI="#id"> attribute).
-//  3. Remove the embedded <ds:Signature> subtree to obtain the enveloped content.
-//  4. Compute SHA-256 of that content and compare with DigestValue.
-//  5. Verify the SignatureValue against the SignedInfo bytes using the cert.
-//
-// Note: this implementation does not perform full XML Exclusive Canonicalization
-// (EXC-C14N). It verifies the digest and signature over the raw XML bytes,
-// which works for the vast majority of real-world IdP responses but may reject
-// responses that rely on namespace prefix rewriting by the C14N transform.
-// For strict production use, replace this with a full SAML library.
-func verifySAMLSignature(xmlBytes []byte, assertion *samlAssertion, cert *x509.Certificate) error {
-	sig := assertion.Signature
-	if sig == nil {
-		return fmt.Errorf("saml assertion has no embedded signature")
+// Claims must be read from the returned value alone: goxmldsig hands back the bytes
+// it digested, so a second parse of the raw response (encoding/xml keeps the last of
+// several assertions) can't substitute other content.
+func verifySAMLAssertion(xmlBytes []byte, cert *x509.Certificate, now time.Time) (*samlAssertion, error) {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromBytes(xmlBytes); err != nil {
+		return nil, fmt.Errorf("parse saml response: %w", err)
+	}
+	root := doc.Root()
+	if root == nil {
+		return nil, errors.New("parse saml response: no root element")
 	}
 
-	// --- Step 1: locate the raw assertion element bytes ---
-	// Find the opening tag that carries the assertion ID attribute.
-	assertionID := assertion.ID
-	if assertionID == "" {
-		return fmt.Errorf("saml assertion missing ID attribute")
+	// Policy rather than the security boundary: Validate only checks the element it is
+	// handed, so these refuse responses that would be ambiguous about which one that is.
+	found := root.FindElements(".//Assertion")
+	switch {
+	case len(found) == 0:
+		return nil, errors.New("saml response missing assertion")
+	case len(found) > 1:
+		return nil, errors.New("saml response must carry exactly one assertion")
+	case found[0].Parent() != root:
+		return nil, errors.New("saml assertion must be a direct child of the response")
+	}
+	if err := checkSAMLSignaturePolicy(found[0]); err != nil {
+		return nil, err
 	}
 
-	// Find the <Assertion ...> element boundaries in the raw XML.
-	assertionStart := bytes.Index(xmlBytes, []byte("<"+assertionID))
-	if assertionStart < 0 {
-		// Try namespace-prefixed forms.
-		for _, prefix := range []string{"saml:", "saml2:", "Assertion "} {
-			idx := bytes.Index(xmlBytes, []byte("<"+prefix))
-			if idx >= 0 {
-				// Verify the ID attribute is present on this element.
-				idAttr := []byte(`ID="` + assertionID + `"`)
-				if bytes.Contains(xmlBytes[idx:min(idx+512, len(xmlBytes))], idAttr) {
-					assertionStart = idx
-					break
-				}
-			}
-		}
-	}
-	if assertionStart < 0 {
-		// Fall back: search by ID attribute value directly.
-		idAttr := []byte(`ID="` + assertionID + `"`)
-		pos := bytes.Index(xmlBytes, idAttr)
-		if pos < 0 {
-			return fmt.Errorf("saml: cannot locate assertion element with ID=%q in response", assertionID)
-		}
-		// Walk backwards to find the opening '<'.
-		for assertionStart = pos; assertionStart > 0; assertionStart-- {
-			if xmlBytes[assertionStart] == '<' {
-				break
-			}
-		}
-	}
-
-	// Find the matching close tag by counting open/close depth.
-	assertionBytes, err := extractXMLElement(xmlBytes[assertionStart:])
+	// A plain FindElement would lose the declarations the Response made for the
+	// assertion's prefix and fail with "undeclared namespace prefix".
+	assertionEl, err := etreeutils.NSSelectOne(root, samlAssertionNS, "Assertion")
 	if err != nil {
-		return fmt.Errorf("saml: extract assertion element: %w", err)
+		return nil, err
+	}
+	if assertionEl == nil {
+		return nil, errors.New("saml response missing assertion")
 	}
 
-	// --- Step 2: apply enveloped-signature transform (remove <ds:Signature>) ---
-	sigTagVariants := [][]byte{
-		[]byte("<ds:Signature"),
-		[]byte("<Signature"),
-		[]byte("<dsig:Signature"),
-	}
-	contentForDigest := assertionBytes
-	for _, tag := range sigTagVariants {
-		if idx := bytes.Index(contentForDigest, tag); idx >= 0 {
-			sigElement, err := extractXMLElement(contentForDigest[idx:])
-			if err == nil {
-				contentForDigest = append(
-					append([]byte{}, contentForDigest[:idx]...),
-					contentForDigest[idx+len(sigElement):]...,
-				)
-			}
-			break
-		}
-	}
-
-	// --- Step 3: verify digest ---
-	if len(sig.SignedInfo.Reference) == 0 {
-		return fmt.Errorf("saml signature has no references")
-	}
-	ref := sig.SignedInfo.Reference[0]
-	digestBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(ref.DigestValue))
+	vctx := dsig.NewDefaultValidationContext(&dsig.MemoryX509CertificateStore{Roots: []*x509.Certificate{cert}})
+	vctx.Clock = dsig.NewFakeClockAt(now)
+	verified, err := vctx.Validate(assertionEl)
 	if err != nil {
-		return fmt.Errorf("saml: decode DigestValue: %w", err)
-	}
-	computed := sha256.Sum256(contentForDigest)
-	if !bytes.Equal(computed[:], digestBytes) {
-		return fmt.Errorf("saml assertion digest mismatch: signature does not match content")
+		return nil, err
 	}
 
-	// --- Step 4: verify the signature over SignedInfo ---
-	sigValueBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(sig.SignatureValue))
+	out := etree.NewDocument()
+	out.SetRoot(verified)
+	verifiedBytes, err := out.WriteToBytes()
 	if err != nil {
-		return fmt.Errorf("saml: decode SignatureValue: %w", err)
+		return nil, err
 	}
-
-	// Extract the raw <ds:SignedInfo> bytes from the original XML rather than
-	// re-marshalling the parsed Go struct. Re-marshalling produces different bytes
-	// than what the IdP signed (different namespace declarations, attribute order,
-	// whitespace), causing verification to always fail against real IdPs.
-	// Note: for strict compliance, full XML Exclusive Canonicalization (EXC-C14N)
-	// should be applied to these bytes before hashing; for a production deployment
-	// replace this with a dedicated SAML library such as goxmldsig.
-	var signedInfoBytes []byte
-	for _, prefix := range []string{"<ds:SignedInfo", "<SignedInfo", "<dsig:SignedInfo"} {
-		if idx := bytes.Index(xmlBytes, []byte(prefix)); idx >= 0 {
-			elem, extractErr := extractXMLElement(xmlBytes[idx:])
-			if extractErr == nil {
-				signedInfoBytes = elem
-				break
-			}
-		}
+	var assertion samlAssertion
+	if err := xml.Unmarshal(verifiedBytes, &assertion); err != nil {
+		return nil, fmt.Errorf("parse saml assertion: %w", err)
 	}
-	if signedInfoBytes == nil {
-		return fmt.Errorf("saml: cannot locate SignedInfo element in response XML")
-	}
-	signedInfoHash := sha256.Sum256(signedInfoBytes)
-
-	rsaKey, ok := cert.PublicKey.(*rsa.PublicKey)
-	if !ok {
-		return fmt.Errorf("saml: idp_cert does not contain an RSA public key")
-	}
-	if err := rsa.VerifyPKCS1v15(rsaKey, crypto.SHA256, signedInfoHash[:], sigValueBytes); err != nil {
-		return fmt.Errorf("saml assertion signature verification failed: %w", err)
-	}
-	return nil
+	return &assertion, nil
 }
 
-// extractXMLElement extracts the first complete XML element from data,
-// handling nested elements with the same tag name.
-func extractXMLElement(data []byte) ([]byte, error) {
-	if len(data) == 0 || data[0] != '<' {
-		return nil, fmt.Errorf("data does not start with '<'")
+// checkSAMLSignaturePolicy refuses what goxmldsig accepts but a SAML assertion
+// shouldn't use: a Reference to the whole document (URI ""), one to anything but
+// this assertion's ID, several of either, and SHA-1.
+func checkSAMLSignaturePolicy(assertion *etree.Element) error {
+	id := assertion.SelectAttrValue("ID", "")
+	if id == "" {
+		return errors.New("saml assertion missing ID attribute")
 	}
-	// Extract the tag name.
-	end := bytes.IndexAny(data[1:], " \t\n\r/>")
-	if end < 0 {
-		return nil, fmt.Errorf("malformed XML element")
+	sigs := assertion.SelectElements("Signature")
+	switch {
+	case len(sigs) == 0:
+		return errors.New("saml assertion has no embedded signature")
+	case len(sigs) > 1:
+		return errors.New("saml assertion must carry exactly one signature")
 	}
-	tagName := string(data[1 : end+1])
-
-	openTag := []byte("<" + tagName)
-	closeTag := []byte("</" + tagName)
-
-	depth := 0
-	pos := 0
-	for pos < len(data) {
-		if bytes.HasPrefix(data[pos:], closeTag) {
-			depth--
-			if depth == 0 {
-				// Find the '>' that closes this tag.
-				gt := bytes.IndexByte(data[pos:], '>')
-				if gt < 0 {
-					return nil, fmt.Errorf("malformed closing tag")
-				}
-				return data[:pos+gt+1], nil
-			}
-			pos++
-			continue
+	signedInfo := sigs[0].SelectElement("SignedInfo")
+	if signedInfo == nil {
+		return errors.New("saml signature has no SignedInfo")
+	}
+	refs := signedInfo.SelectElements("Reference")
+	if len(refs) != 1 {
+		return errors.New("saml signature must have exactly one reference")
+	}
+	if uri := refs[0].SelectAttrValue("URI", ""); uri != "#"+id {
+		return fmt.Errorf("saml signature reference %q is not the assertion %q", uri, "#"+id)
+	}
+	for _, method := range []*etree.Element{signedInfo.SelectElement("SignatureMethod"), refs[0].SelectElement("DigestMethod")} {
+		if method != nil && strings.HasSuffix(strings.ToLower(method.SelectAttrValue("Algorithm", "")), "sha1") {
+			return errors.New("saml signature uses SHA-1")
 		}
-		if bytes.HasPrefix(data[pos:], openTag) {
-			// Check it's not already inside a self-closing tag.
-			gt := bytes.IndexByte(data[pos:], '>')
-			if gt > 0 && data[pos+gt-1] == '/' {
-				pos += gt + 1
-				continue
-			}
-			depth++
-		}
-		pos++
 	}
-	return nil, fmt.Errorf("unclosed XML element <%s>", tagName)
+	return nil
 }
 
 // --------------------------------------------------------------------------

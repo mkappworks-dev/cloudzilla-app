@@ -1,0 +1,49 @@
+{
+  "realm": "cz-saml-test",
+  "enabled": true,
+  "sslRequired": "none",
+  "users": [
+    {
+      "username": "ann",
+      "email": "ann@example.test",
+      "firstName": "Ann",
+      "lastName": "Test",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "fixture-only-pw", "temporary": false }]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "https://cz.test.invalid/auth/saml/metadata",
+      "protocol": "saml",
+      "enabled": true,
+      "baseUrl": "https://cz.test.invalid/",
+      "redirectUris": ["https://cz.test.invalid/auth/saml/callback"],
+      "attributes": {
+        "saml.assertion.signature": "true",
+        "saml.server.signature": "false",
+        "saml.client.signature": "false",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml.canonicalization.method": "http://www.w3.org/2001/10/xml-exc-c14n#",
+        "saml_name_id_format": "email",
+        "saml.force.post.binding": "true",
+        "saml_assertion_consumer_url_post": "https://cz.test.invalid/auth/saml/callback"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": { "user.attribute": "email", "attribute.name": "email", "attribute.nameformat": "Basic", "friendly.name": "email" }
+        },
+        {
+          "name": "uid",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": { "user.attribute": "username", "attribute.name": "uid", "attribute.nameformat": "Basic", "friendly.name": "uid" }
+        }
+      ]
+    }
+  ]
+}

@@ -2,8 +2,8 @@
 
 Created: 2026-10-09
 Category: enhancement
-Status: ready-for-agent
-Decision: approved 2026-10-10, implemented by [10](./10-saml-goxmldsig-verification.md); this ticket is done when 10 is done.
+Status: done
+Decision: approved 2026-10-10, implemented by [10](./10-saml-goxmldsig-verification.md), which is done.
 
 ## Problem
 
@@ -18,9 +18,9 @@ It also locates elements by string search (`<ds:Signature`, `<Signature`, `<dsig
 
 ## Acceptance criteria
 
-- [ ] Verification passes on real signed responses from the chosen IdP, with a fixture committed.
-- [ ] Wrapping attacks are refused: a second unsigned assertion, a signature reference to a different element, and a `Reference/@URI` that does not match the assertion ID.
-- [ ] Existing SAML tests still pass or are updated to build their fixtures through the new path.
+- [x] Verification passes on real signed responses from the chosen IdP, with a fixture committed.
+- [x] Wrapping attacks are refused: a second unsigned assertion, a signature reference to a different element, and a `Reference/@URI` that does not match the assertion ID.
+- [x] Existing SAML tests still pass or are updated to build their fixtures through the new path.
 
 ## Blocked by
 

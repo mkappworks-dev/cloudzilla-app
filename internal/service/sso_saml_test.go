@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"compress/flate"
 	"context"
-	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
@@ -17,13 +15,18 @@ import (
 	"io"
 	"math/big"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/beevik/etree"
 	"github.com/golang-jwt/jwt/v5"
+	dsig "github.com/russellhaering/goxmldsig"
+	"github.com/russellhaering/goxmldsig/etreeutils"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -36,7 +39,12 @@ const (
 type samlSigner struct {
 	key     *rsa.PrivateKey
 	certPEM string
+	certDER []byte
 }
+
+// GetKeyPair makes the signer a dsig.X509KeyStore; goxmldsig's MemoryX509KeyStore
+// can't be built from a key the tests already hold.
+func (s *samlSigner) GetKeyPair() (*rsa.PrivateKey, []byte, error) { return s.key, s.certDER, nil }
 
 func newSAMLSigner() *samlSigner {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -53,7 +61,7 @@ func newSAMLSigner() *samlSigner {
 	if err != nil {
 		panic(err)
 	}
-	return &samlSigner{key: key, certPEM: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))}
+	return &samlSigner{key: key, certDER: der, certPEM: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))}
 }
 
 var (
@@ -82,54 +90,121 @@ func validSAMLSpec(id string) samlSpec {
 	}
 }
 
-// buildSAMLResponse signs the way verifySAMLSignature checks: a digest over the
-// assertion without its Signature, and an RSA-SHA256 signature over the raw SignedInfo.
-func buildSAMLResponse(t *testing.T, signer *samlSigner, s samlSpec) string {
+const (
+	samlNS         = "urn:oasis:names:tc:SAML:2.0:assertion"
+	samlProtocolNS = "urn:oasis:names:tc:SAML:2.0:protocol"
+)
+
+// samlResponseRoot declares xmlns:saml on the Response, not the Assertion, the way
+// Keycloak does: exclusive C14N must pull the declaration into the signed bytes.
+func samlResponseRoot(status string) *etree.Element {
+	root := etree.NewElement("samlp:Response")
+	root.CreateAttr("xmlns:samlp", samlProtocolNS)
+	root.CreateAttr("xmlns:saml", samlNS)
+	root.CreateAttr("ID", "_resp")
+	root.CreateAttr("Version", "2.0")
+	root.CreateElement("samlp:Status").CreateElement("samlp:StatusCode").CreateAttr("Value", status)
+	return root
+}
+
+// samlAssertionElement is the unsigned assertion for s, with no namespace declaration of its own.
+func samlAssertionElement(t *testing.T, s samlSpec) *etree.Element {
 	t.Helper()
-	const ds = `xmlns:ds="http://www.w3.org/2000/09/xmldsig#"`
-
-	head := fmt.Sprintf(`<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="%s" Version="2.0" IssueInstant="2026-01-01T00:00:00Z"><saml:Issuer>https://idp.test.invalid</saml:Issuer>`, s.ID)
-
-	var tail strings.Builder
-	tail.WriteString(`<saml:Subject><saml:NameID>` + s.NameID + `</saml:NameID>`)
+	var b strings.Builder
+	fmt.Fprintf(&b, `<saml:Assertion ID="%s" Version="2.0" IssueInstant="2026-01-01T00:00:00Z"><saml:Issuer>https://idp.test.invalid</saml:Issuer>`, s.ID)
+	b.WriteString(`<saml:Subject><saml:NameID>` + s.NameID + `</saml:NameID>`)
 	if s.Recipient != "" {
-		fmt.Fprintf(&tail, `<saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><saml:SubjectConfirmationData Recipient="%s"/></saml:SubjectConfirmation>`, s.Recipient)
+		fmt.Fprintf(&b, `<saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><saml:SubjectConfirmationData Recipient="%s"/></saml:SubjectConfirmation>`, s.Recipient)
 	}
-	tail.WriteString(`</saml:Subject>`)
-	fmt.Fprintf(&tail, `<saml:Conditions NotBefore="%s" NotOnOrAfter="%s">`, s.NotBefore, s.NotOnOrAfter)
+	b.WriteString(`</saml:Subject>`)
+	fmt.Fprintf(&b, `<saml:Conditions NotBefore="%s" NotOnOrAfter="%s">`, s.NotBefore, s.NotOnOrAfter)
 	if s.Audience != "" {
-		tail.WriteString(`<saml:AudienceRestriction><saml:Audience>` + s.Audience + `</saml:Audience></saml:AudienceRestriction>`)
+		b.WriteString(`<saml:AudienceRestriction><saml:Audience>` + s.Audience + `</saml:Audience></saml:AudienceRestriction>`)
 	}
-	tail.WriteString(`</saml:Conditions>`)
+	b.WriteString(`</saml:Conditions>`)
 	names := make([]string, 0, len(s.Attrs))
 	for n := range s.Attrs {
 		names = append(names, n)
 	}
 	sort.Strings(names)
-	tail.WriteString(`<saml:AttributeStatement>`)
+	b.WriteString(`<saml:AttributeStatement>`)
 	for _, n := range names {
-		fmt.Fprintf(&tail, `<saml:Attribute Name="%s"><saml:AttributeValue>%s</saml:AttributeValue></saml:Attribute>`, n, s.Attrs[n])
+		fmt.Fprintf(&b, `<saml:Attribute Name="%s"><saml:AttributeValue>%s</saml:AttributeValue></saml:Attribute>`, n, s.Attrs[n])
 	}
-	tail.WriteString(`</saml:AttributeStatement></saml:Assertion>`)
+	b.WriteString(`</saml:AttributeStatement></saml:Assertion>`)
 
-	sig := ""
-	if !s.Unsigned {
-		digest := sha256.Sum256([]byte(head + tail.String()))
-		signedInfo := fmt.Sprintf(`<ds:SignedInfo %s><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/><ds:Reference URI="#%s"><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>%s</ds:DigestValue></ds:Reference></ds:SignedInfo>`,
-			ds, s.ID, base64.StdEncoding.EncodeToString(digest[:]))
-		h := sha256.Sum256([]byte(signedInfo))
-		raw, err := rsa.SignPKCS1v15(rand.Reader, signer.key, crypto.SHA256, h[:])
-		if err != nil {
-			t.Fatal(err)
+	doc := etree.NewDocument()
+	if err := doc.ReadFromString(b.String()); err != nil {
+		t.Fatal(err)
+	}
+	return doc.Root()
+}
+
+// signSAMLElement envelops a signature in el, which must declare its own namespaces,
+// with exclusive C14N. tweak adjusts the signing context, for example to pick SHA-1
+// or another ID attribute.
+func signSAMLElement(t *testing.T, signer *samlSigner, el *etree.Element, tweak func(*dsig.SigningContext)) *etree.Element {
+	t.Helper()
+	ctx := dsig.NewDefaultSigningContext(signer)
+	ctx.Canonicalizer = dsig.MakeC14N10ExclusiveCanonicalizerWithPrefixList("")
+	if tweak != nil {
+		tweak(ctx)
+	}
+	signed, err := ctx.SignEnveloped(el)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return signed
+}
+
+// signSAMLAssertion signs an assertion as it will sit under the Response: the library
+// canonicalizes a detached copy that carries the in-scope declarations, which are then
+// dropped again so only the Response declares them, as in the Keycloak capture.
+func signSAMLAssertion(t *testing.T, signer *samlSigner, a *etree.Element, tweak func(*dsig.SigningContext)) *etree.Element {
+	t.Helper()
+	scratch := samlResponseRoot(samlSuccess)
+	scratch.AddChild(a)
+	self, err := etreeutils.NSSelectOne(scratch, samlNS, "Assertion")
+	if err != nil || self == nil {
+		t.Fatalf("detach assertion: %v", err)
+	}
+	signed := signSAMLElement(t, signer, self, tweak)
+	signed.Attr = slices.DeleteFunc(signed.Attr, func(at etree.Attr) bool { return at.Space == "xmlns" })
+	return signed
+}
+
+func serializeSAML(t *testing.T, root *etree.Element) string {
+	t.Helper()
+	doc := etree.NewDocument()
+	doc.SetRoot(root)
+	out, err := doc.WriteToString()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// samlResponseOf serializes a Response holding children, in order.
+func samlResponseOf(t *testing.T, children ...*etree.Element) string {
+	t.Helper()
+	root := samlResponseRoot(samlSuccess)
+	for _, c := range children {
+		root.AddChild(c)
+	}
+	return serializeSAML(t, root)
+}
+
+func buildSAMLResponse(t *testing.T, signer *samlSigner, s samlSpec) string {
+	t.Helper()
+	root := samlResponseRoot(s.Status)
+	if !s.NoAssertion {
+		a := samlAssertionElement(t, s)
+		if !s.Unsigned {
+			a = signSAMLAssertion(t, signer, a, nil)
 		}
-		sig = fmt.Sprintf(`<ds:Signature %s>%s<ds:SignatureValue>%s</ds:SignatureValue></ds:Signature>`, ds, signedInfo, base64.StdEncoding.EncodeToString(raw))
+		root.AddChild(a)
 	}
-
-	assertion := head + sig + tail.String()
-	if s.NoAssertion {
-		assertion = ""
-	}
-	return fmt.Sprintf(`<?xml version="1.0"?><samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_resp" Version="2.0"><samlp:Status><samlp:StatusCode Value="%s"/></samlp:Status>%s</samlp:Response>`, s.Status, assertion)
+	return serializeSAML(t, root)
 }
 
 func saveSAML(t *testing.T, svc *SSOService, signer *samlSigner, enabled bool) {
@@ -228,9 +303,9 @@ func TestHandleSAMLCallback_Rejects(t *testing.T) {
 		{"status not success", nil, func(s *samlSpec) { s.Status = "urn:oasis:names:tc:SAML:2.0:status:Responder" }, nil, "not success"},
 		{"no assertion", nil, func(s *samlSpec) { s.NoAssertion = true }, nil, "missing assertion"},
 		{"unsigned assertion", nil, func(s *samlSpec) { s.Unsigned = true }, nil, "no embedded signature"},
-		{"signed by another key", otherSigner(), nil, nil, "signature verification failed"},
-		{"name changed after signing", nil, nil, tamper("ann@idp.test", "admin@idp.test"), "digest mismatch"},
-		{"conditions changed after signing", nil, nil, tamper("</saml:Conditions>", `</saml:Conditions><saml:Extra/>`), "digest mismatch"},
+		{"signed by another key", otherSigner(), nil, nil, "not verify certificate"},
+		{"name changed after signing", nil, nil, tamper("ann@idp.test", "admin@idp.test"), "could not be verified"},
+		{"conditions changed after signing", nil, nil, tamper("</saml:Conditions>", `</saml:Conditions><saml:Extra/>`), "could not be verified"},
 		{"expired", nil, func(s *samlSpec) { s.NotOnOrAfter = time.Now().UTC().Add(-10 * time.Minute).Format(time.RFC3339) }, nil, "expired"},
 		{"not yet valid", nil, func(s *samlSpec) { s.NotBefore = time.Now().UTC().Add(10 * time.Minute).Format(time.RFC3339) }, nil, "not yet valid"},
 		{"unparseable NotBefore", nil, func(s *samlSpec) { s.NotBefore = "yesterday" }, nil, "NotBefore unparseable"},
@@ -552,27 +627,18 @@ func TestParseSAMLCert(t *testing.T) {
 	}
 }
 
-func TestExtractXMLElement(t *testing.T) {
-	for _, tc := range []struct{ name, in, want string }{
-		{"simple", `<a>x</a>tail`, `<a>x</a>`},
-		{"attributes", `<a b="1">x</a>tail`, `<a b="1">x</a>`},
-		{"same tag nested", `<a><a>i</a>o</a>tail`, `<a><a>i</a>o</a>`},
-		{"self-closing child of the same name", `<a><a/>o</a>tail`, `<a><a/>o</a>`},
-		{"prefixed", `<ds:S><ds:SV>v</ds:SV></ds:S>z`, `<ds:S><ds:SV>v</ds:SV></ds:S>`},
-	} {
-		got, err := extractXMLElement([]byte(tc.in))
-		if err != nil || string(got) != tc.want {
-			t.Errorf("%s: got %q, %v; want %q", tc.name, got, err, tc.want)
-		}
+// goxmldsig v1.6.1 stops after a fixed 1000 elements (issue #202). Measured 2026-10-10 with
+// two elements per attribute: 300 attributes verify, so do 480, and 500 fail closed with
+// "traversal limit reached".
+func TestHandleSAMLCallback_VerifiesAnAssertionWithManyAttributes(t *testing.T) {
+	svc, _ := newSSOTestService(t)
+	saveSAML(t, svc, idpSigner(), true)
+	spec := validSAMLSpec("_many")
+	for i := range 300 {
+		spec.Attrs[fmt.Sprintf("group-%d", i)] = fmt.Sprintf("team-%d", i)
 	}
-	for name, in := range map[string]string{
-		"empty":             "",
-		"not an element":    "text<a/>",
-		"unclosed":          `<a><b></b>`,
-		"no tag terminator": `<a`,
-	} {
-		if got, err := extractXMLElement([]byte(in)); err == nil {
-			t.Errorf("%s: got %q, want an error", name, got)
-		}
+
+	if _, _, err := callback(svc, buildSAMLResponse(t, idpSigner(), spec)); err != nil {
+		t.Fatal(err)
 	}
 }

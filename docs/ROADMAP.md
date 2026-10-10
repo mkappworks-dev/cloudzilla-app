@@ -1391,7 +1391,7 @@ ALTER TABLE users
 
 **LDAP flow:** simple bind as the DN built from `bind_dn_tmpl` (no search step) → upsert user: an `sso_id` match signs in, an existing email is refused rather than linked, otherwise a new user. Config keys: `host`, `port`, `base_dn`, `bind_dn_tmpl`, `use_tls`. See [sso](./sso.md).
 
-**SAML flow:** SP-initiated redirect → identity provider → ACS `POST /auth/saml/callback` → parse assertion → upsert user. Uses `encoding/xml` from stdlib for assertion parsing; SP metadata served at `GET /auth/saml/metadata`.
+**SAML flow:** SP-initiated redirect → identity provider → ACS `POST /auth/saml/callback` → verify the assertion signature → upsert user. The signature is checked with `goxmldsig` (see the Phase 20 waiver below) and the claims are parsed from the verified assertion with `encoding/xml`; SP metadata served at `GET /auth/saml/metadata`.
 
 **Files:**
 
@@ -2356,6 +2356,8 @@ type Backend interface {
 **First consumer (2026-10-06): avatars.** `internal/storage` ships with `LocalBackend` and `S3Backend` (aws-sdk-go-v2, so AWS, R2, B2, Garage and versitygw all work), and user and org avatars are stored through it (migration 104 adds `avatar_key`). The "no new Go dependencies" rule is waived for this phase: it adds aws-sdk-go-v2 and `golang.org/x/image`. Layout and backup notes are in [storage](./storage.md). **Second consumer (2026-10-08): markdown image attachments**, served through the repo's read check (migration 109). Still to come: GCS, git repos and the other consumers below, and `migrate-storage`.
 
 **Second consumer: markdown image attachments** (migration 109), through the same `Backend`. See [`storage.md`](./storage.md).
+
+**Second waiver (2026-10-10): SAML signature verification.** The same rule is waived for `github.com/russellhaering/goxmldsig` (v1.6.1 or later, with `github.com/beevik/etree` and `github.com/jonboulle/clockwork`), used only to verify the assertion signature: the in-house verifier rejected a real Keycloak response because it never applied exclusive C14N. Pin it at v1.6.1 or later, since v1.6.0 and earlier have advisories. See [sso](./sso.md).
 
 Implementations: `LocalBackend` (current disk storage, default), `S3Backend` (AWS SDK v2 — new dependency when enabled), `GCSBackend` (Google Cloud Storage client — new dependency when enabled). All git repos, LFS objects, release assets, registry blobs, and package files are routed through the backend interface. Config: `storage.backend: local|s3|gcs`; backend-specific keys under `storage.s3.*` / `storage.gcs.*`. Migration from local to S3 is a one-time `cz-admin migrate-storage` command.
 
