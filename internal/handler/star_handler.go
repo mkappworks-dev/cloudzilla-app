@@ -102,32 +102,6 @@ func (h *Handler) ListStargazers(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
-	owner := chi.URLParam(r, "owner")
-	repoName := chi.URLParam(r, "repo")
-
-	repo, ok := h.readableRepoPage(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-
-	stargazers, _ := h.Services.Star.ListStargazers(r.Context(), owner, repoName)
-	if stargazers == nil {
-		stargazers = []model.User{}
-	}
-
-	starCount, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
-
-	h.render(w, withKnownAvatars(r, userAvatarKeys(stargazers)), pages.Stargazers(view.StargazersData{
-		BasePage:   basePage(r, h.Services),
-		Repo:       *repo,
-		Owner:      owner,
-		RepoName:   repoName,
-		Stargazers: stargazers,
-		StarCount:  starCount,
-	}))
-}
-
 func (h *Handler) renderStarButtonFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {

@@ -9,7 +9,7 @@ Part of [07](./07-device-code-login.md); read its Design section first. The brow
 
 ## What to build
 
-- `GET /login/device` (`optAuthMW`; signed-out users go to `/login?next=…` and come back to the empty code-entry page; the code is never carried in a URL), `POST /login/device` (code entry), `POST /login/device/approve`. Handler in `internal/handler/` (full pages share `<concern>_handler.go`; when that concern also has JSON API handlers, or the file has been split for size, they go in `<concern>_page_handler.go`), view-model in `internal/view/viewmodels_*.go`, Templ in `internal/view/pages/`, routes in `internal/router/router.go`. Run `make generate-templ`.
+- `GET /login/device` (`optAuthMW`; signed-out users go to `/login?next=…` and come back to the empty code-entry page; the code is never carried in a URL), `POST /login/device` (code entry), `POST /login/device/approve`. Handler in `internal/handler/` (every `Page*` method goes in `<concern>_page_handler.go`; JSON and form-`POST` handlers stay in `<concern>_handler.go`), view-model in `internal/view/viewmodels_*.go`, Templ in `internal/view/pages/`, routes in `internal/router/router.go`. Run `make generate-templ`.
 - Code entry is limited to 50 per hour per user; an unknown, expired or used code gets one generic message.
 - The confirm step is one page, top to bottom:
   1. Header "Authorize cz" with the signed-in username.
