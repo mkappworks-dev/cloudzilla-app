@@ -101,7 +101,15 @@ binary:
   stream by a watcher on `cmd/server/frontend`.
 
 **A compile error leaves the last good server running** and prints the error with its file and
-line. Fix it and the next build restarts the server.
+line. Fix it and the next build restarts the server. (That is `stop_on_error = false` in
+`.air.toml`; with air's default the site goes down on a typo.)
+
+**A brand-new Tailwind class needs `make build-css`.** The Tailwind watcher rebuilds when
+`tailwind/input.css` changes, but it does not watch the `@source` glob
+(`../internal/view/**/*.templ`), so adding a class that has never appeared in the project emits
+no CSS for it — the markup updates and the style is simply missing. Existing classes are already
+in `main.css` and are unaffected. This predates the dev loop and is tracked in
+`.scratch/2026-10-11-tailwind-source-watch/`.
 
 ## Planning Workflow (Claude Code)
 

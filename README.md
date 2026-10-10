@@ -129,6 +129,8 @@ make docker-down        # Stop and remove containers
 ```bash
 go mod tidy
 make setup-tailwind     # One-time: download Tailwind CLI
+make setup-templ        # One-time: install the templ CLI
+make setup-air          # One-time: install the reloader `make dev` uses
 ```
 
 Start Postgres. The simplest option is the `postgres` service from the bundled compose file, which is preconfigured with the user/db that `config.yaml` expects:
@@ -182,6 +184,7 @@ For a populated instance to click around in, run `make seed` after `make migrate
 | ----------------------- | ------------------------------------------------------------------ |
 | `make setup-tailwind`   | Download Tailwind CLI (one-time)                                   |
 | `make setup-templ`      | Install the templ CLI (one-time)                                   |
+| `make setup-air`        | Install the reloader `make dev` uses (one-time)                    |
 | `make generate-templ`   | Regenerate `*_templ.go` from `*.templ` files                       |
 | `make download-mermaid` | Download mermaid.min.js (one-time; auto-runs in build/dev)         |
 | `make download-htmx`    | Download htmx.min.js (once per version; auto-runs in build/dev)    |

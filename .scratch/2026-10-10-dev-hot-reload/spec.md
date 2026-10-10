@@ -21,11 +21,11 @@ Nothing is read from disk at request time, which is why even a CSS edit needs a 
 
 Measured on an M-series mac, `go build ./cmd/server/.` after a one-line edit:
 
-| edited                                 | compile | link  | total |
-| -------------------------------------- | ------- | ----- | ----- |
-| a page in `internal/view/pages`        | 3.9s    | 0.9s  | ~4.8s |
-| a file in `internal/handler`            | 1.1s    | 0.9s  | ~2.0s |
-| `cmd/server/main.go`                   | —       | 1.0s  | ~1.0s |
+| edited                          | compile | link | total |
+| ------------------------------- | ------- | ---- | ----- |
+| a page in `internal/view/pages` | 3.9s    | 0.9s | ~4.8s |
+| a file in `internal/handler`    | 1.1s    | 0.9s | ~2.0s |
+| `cmd/server/main.go`            | —       | 1.0s | ~1.0s |
 
 With the default `CGO_ENABLED=1` the same view-page edit costs **6.1s** instead of 4.2s, because
 darwin links through clang rather than Go's internal linker.

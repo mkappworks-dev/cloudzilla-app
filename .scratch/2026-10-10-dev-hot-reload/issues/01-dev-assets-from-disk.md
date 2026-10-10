@@ -94,3 +94,15 @@ mode. Without it nothing covered the wiring — every other dev case calls `NewD
 Verified by hand as well as by the suite: a throwaway program doing what `router.New` does
 (`fs.Sub(os.DirFS("cmd/server"), "frontend")` → `assets.New`) reported a changed `?v=` hash after
 a live edit under `-tags dev`, and an unchanged one without the tag.
+
+Claude, 2026-10-11, after review: a code review caught that this ticket's scope argues for
+hashing "on every call ... which buys exactness and avoids an mtime-resolution guess", while the
+code now caches hashes against mtime and size — the guess this ticket rejected. The reversal was
+deliberate and measured (2.5ms down to 0.012ms per page render, the layout resolving eight assets
+of which one is a 5.3 MB bundle), and the trade is recorded at `devEntry` in
+`internal/assets/assets.go`. Noting it here too, because the reasoning in the Scope section above
+now reads as contradicting the code.
+
+The mtime assumption sits in a safer place than the one originally rejected: as a _stamp_ a wrong
+mtime would pin a stale URL indefinitely, whereas as a _cache key_ it can at worst miss one edit,
+and the next edit recovers.

@@ -78,7 +78,7 @@ Read the matching doc before working in an area:
 - [testing](./docs/testing.md) — what CI runs, why `backup` and `seed` are local-only, `make test-integration`
 - [ROADMAP](./docs/ROADMAP.md) — phase status
 
-Docs formatting: `docs/**/*.md` and `README.md` are formatted with Prettier's defaults (there is no config file): `npx prettier --write "docs/**/*.md" README.md`. It re-aligns tables and reformats JSON and YAML code fences in place, so run it after editing a doc.
+Docs formatting: `docs/**/*.md`, `README.md`, `CONTRIBUTING.md` and `.scratch/**/*.md` are formatted with Prettier's defaults (there is no config file): `npx prettier --write "docs/**/*.md" README.md CONTRIBUTING.md ".scratch/**/*.md"`. It re-aligns tables and reformats JSON and YAML code fences in place, so run it after editing a doc.
 
 ## Branches
 

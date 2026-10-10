@@ -19,7 +19,11 @@ tmp_dir = "tmp"
   exclude_regex = ["_test\\.go$", "_templ\\.go$"]
 
   delay = 100
-  stop_on_error = true
+
+  # false keeps the last good server serving while a build is broken: air's
+  # stop_on_error stops the binary after a failed build, which would take the
+  # site down on a typo rather than leaving it up with the error on the console.
+  stop_on_error = false
 
   # SIGINT is what frees :8080 and :2222 — cmd/server/main.go closes the
   # listeners before draining — but the drain then waits up to 30s for

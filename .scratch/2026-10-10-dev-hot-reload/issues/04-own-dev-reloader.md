@@ -42,16 +42,18 @@ so a dropped stream reconnects in half a second, then keepalives. The client com
 the one it saw last:
 
 ```js
-es.addEventListener('hello', function (e) {
+es.addEventListener("hello", function (e) {
   var prev = sessionStorage.getItem(KEY);
   sessionStorage.setItem(KEY, e.data);
   if (prev && prev !== e.data) location.reload();
 });
-es.addEventListener('reload', function () { location.reload(); });
+es.addEventListener("reload", function () {
+  location.reload();
+});
 ```
 
 Comparing ids rather than counting connections is what makes a reload loop impossible: after the
-reload the client reconnects to the *same* server, sees the same id, and stops. A restart changes
+reload the client reconnects to the _same_ server, sees the same id, and stops. A restart changes
 the id exactly once, so a restart reloads exactly once.
 
 `Watch` covers the case that needs no rebuild at all — Tailwind rewriting `main.css`, or a `.js`
@@ -100,12 +102,12 @@ Also removed, since the proxy is gone:
 Claude, 2026-10-11: done in `tech/dev-hot-reload`. Verified by holding the reload stream like a
 browser tab would and counting the refreshes a client's own rule would perform.
 
-| change                   | served in | refreshes | restarts |
-| ------------------------ | --------: | --------: | -------: |
-| `.templ` edit            |      4.3s |         1 |        1 |
-| `.go` edit               |      1.2s |         1 |        1 |
-| `main.css` edit          |     <0.5s |         1 |        0 |
-| 5s idle after the above  |         — |         0 |        0 |
+| change                  | served in | refreshes | restarts |
+| ----------------------- | --------: | --------: | -------: |
+| `.templ` edit           |      4.3s |         1 |        1 |
+| `.go` edit              |      1.2s |         1 |        1 |
+| `main.css` edit         |     <0.5s |         1 |        0 |
+| 5s idle after the above |         — |         0 |        0 |
 
 Six changes over a run produced six refreshes: one each, none spurious, no loop. `make dev` is
 two processes, and one SIGINT to the group stopped make, air, Tailwind **and** the server air had
@@ -128,3 +130,18 @@ so the test had been passing against a blocking implementation and proving nothi
 Also replaced ticket 02's criteria that this supersedes: its "refreshes once" and "never refreshes
 before the new binary answers" are now true by construction rather than by polling, and the
 single-Ctrl-C and no-30s-drain checks it left unverified are measured above against this loop.
+
+Claude, 2026-10-11, after review: a code review argued that a `.templ` edit introducing a new
+Tailwind class would refresh twice — Tailwind rewriting `main.css` inside air's build window, so
+`Hub.Watch` broadcasts against the old, still-running server, and the client's `reload` listener
+bypasses the instance-id rule. The reasoning is sound and the code has no coalescing between the
+asset path and the restart path.
+
+Measured, it does not happen today, for an unrelated reason: Tailwind's watcher never rebuilds on
+a `.templ` change at all (it only watches its own entry file), so no asset event is emitted during
+a rebuild. Verified with an arbitrary value absent from `main.css` — `rotate-[17deg]` produced no
+rewrite in 30s — and tracked as its own bug in `.scratch/2026-10-11-tailwind-source-watch/`.
+
+So "exactly once" holds as measured, but it rests on that bug. Whoever fixes the Tailwind watcher
+should expect the double refresh to appear and needs to suppress an asset push while a source
+rebuild is in flight, or coalesce the two paths in the client.

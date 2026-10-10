@@ -56,7 +56,7 @@ Two more values are load-bearing:
   clone over HTTP is exactly such a request. The listeners close first, so the ports are free
   immediately and the SIGKILL 2s later only abandons a transfer that no longer matters in dev.
 
-**`scripts/dev-notify-proxy.sh`** — refresh the browser when the *new* binary is listening, not
+**`scripts/dev-notify-proxy.sh`** — refresh the browser when the _new_ binary is listening, not
 when the file changed. templ's own discussions report the race in the documented setup: air has
 not finished rebuilding when the proxy's reload event has already gone out. Polling the existing
 `/healthz` probe removes it, since `probeMux` answers it before auth or setup middleware:
@@ -99,9 +99,8 @@ against that port.
 
 - [ ] `make dev` starts air, Tailwind, templ watch+proxy and the notify script; one Ctrl-C stops
       all four — **not verified**: the four were run separately, never through `make dev`
-- [x] Editing a `.templ` file: templ regenerates, air rebuilds with `-tags dev`, the server
-      restarts, and the browser at `:7331` shows the change — but refreshes twice, not once
-      (ticket 04)
+- [x] ~~Editing a `.templ` file: ... the browser at `:7331` shows the change~~ — obsolete:
+      ticket 04 removed the proxy, so there is no `:7331`. Superseded by ticket 04's criteria.
 - [x] Editing a `.go` file does the same
 - [ ] The browser never refreshes before the new binary answers `/healthz` — **not met**:
       ours does not, but templ's own refresh does, and it cannot be switched off (ticket 04)
@@ -110,7 +109,8 @@ against that port.
       reasoned from `kill_delay`
 - [x] `make setup-air` installs air; `tmp/` is gitignored and `git status` stays clean during a
       dev session
-- [x] CONTRIBUTING.md documents the loop, the `:7331` URL, and that git stays on `:8080`
+- [x] ~~CONTRIBUTING.md documents the loop, the `:7331` URL, and that git stays on `:8080`~~
+      — obsolete: there is no proxy and no second port, so CONTRIBUTING.md documents `:8080`
 
 ## Comments
 
@@ -142,12 +142,12 @@ worse than no loop. Verified a syntax error now prints as
 
 Measured, through templ's proxy on 7331:
 
-| change                            | result                                                |
-| --------------------------------- | ----------------------------------------------------- |
-| `.templ` edit                     | served in 6.6s cold, 2.3s warm                        |
-| handler `.go` edit                | rebuild + restart + reload in 2.0s                    |
-| `main.css` edit                   | hash changed, body updated, **0 rebuilds** (boots 2→2) |
-| 3 file changes                     | exactly 3 restarts — no rebuild loop                  |
+| change             | result                                                 |
+| ------------------ | ------------------------------------------------------ |
+| `.templ` edit      | served in 6.6s cold, 2.3s warm                         |
+| handler `.go` edit | rebuild + restart + reload in 2.0s                     |
+| `main.css` edit    | hash changed, body updated, **0 rebuilds** (boots 2→2) |
+| 3 file changes     | exactly 3 restarts — no rebuild loop                   |
 
 Dev asset responses carry `Cache-Control: no-store` and no `Content-Encoding`, confirming ticket
 01's path through the live server rather than only in unit tests.
@@ -173,3 +173,7 @@ processes rather than the four this ticket describes, since the proxy and the no
 gone. The 30s drain turned out to be a real hazard after all, just not the one written here: the
 reload stream itself blocks graceful shutdown, which cost 2.45s per restart until `Hub.Close`
 fixed it.
+
+Claude, 2026-10-11, after review: a code review caught that the two `:7331` criteria above were
+still ticked describing a design this branch no longer contains. Struck through rather than
+re-ticked, since what replaced them is covered by ticket 04.
