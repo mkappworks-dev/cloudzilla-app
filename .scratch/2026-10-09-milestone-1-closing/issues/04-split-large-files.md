@@ -37,5 +37,6 @@ Claude, 2026-10-10: progress, one PR per file.
 
 - Done: `internal/service/repo_service.go` (1271 lines), split into `repo_service.go` (types, constructor, `With*`, read queries) and `repo_service_{access,create,fork,settings,lifecycle,push}.go`.
 - Done: `internal/store/user_store.go` (1057 lines), split into `user_store.go` (types, constructor, `userColumns`/`scanUser`, lookups, batch reads) and `user_store_{create,auth,reauth,totp,profile,delete,pins}.go`.
-- Remaining: `page_pull_handler.go`. `sso_service.go` and `milestone_handler.go` are in flight on `tech/split-sso-service` and `tech/split-milestone-handler`.
+- Done: `internal/handler/page_pull_handler.go` (952 lines), split into `page_pull_handler.go` (list, plus `pullInitials`, `pullFormatRelative` and the shared `firstNonEmpty`, `collaboratorUsernames`) and `page_pull_{new,detail,tabs}_handler.go` (new-PR form and reviewer options; detail; commits/checks/files tabs and the tab-badge helpers).
+- Remaining: `sso_service.go` and `milestone_handler.go`, in flight on `tech/split-sso-service` and `tech/split-milestone-handler`.
 - The ticket stays open until every file in the table is split.
