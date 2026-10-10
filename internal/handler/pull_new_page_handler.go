@@ -41,6 +41,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 	head := r.URL.Query().Get("head")
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 
 	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
 	if err != nil {
@@ -68,6 +69,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		Branches:     branches,
 		Base:         base,
 		Head:         head,
+		CanWrite:     canWrite,
 		AllLabels:    allLabels,
 		Reviewer: components.ReviewerPickerData{
 			Suggested: toReviewerOptions(suggested, nil),
@@ -108,6 +110,8 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	isDraft := r.FormValue("draft") == "1"
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	// Opening a PR needs only read access; labels and reviewers are write-only metadata.
+	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
 	if err != nil {
 		slog.Warn("new PR: label list failed", "owner", owner, "repo", repoName, "error", err)
@@ -139,6 +143,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 			Branches:     branches,
 			Base:         baseBranch,
 			Head:         headBranch,
+			CanWrite:     canWrite,
 			AllLabels:    allLabels,
 			Error:        msg,
 			Reviewer: components.ReviewerPickerData{
@@ -159,29 +164,31 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, raw := range r.Form["labels"] {
-		if id, err := strconv.ParseInt(raw, 10, 64); err == nil {
-			if aerr := h.Services.Label.AddToPull(r.Context(), owner, repoName, pr.Number, id); aerr != nil {
-				slog.Warn("new PR: attach label failed", "label_id", id, "error", aerr)
-			}
-		}
-	}
-
-	if usernames := r.Form["reviewers"]; len(usernames) > 0 {
-		if reviewers, rerr := h.Services.User.GetManyByUsernames(r.Context(), usernames); rerr != nil {
-			slog.Warn("new PR: resolve reviewer usernames failed", "error", rerr)
-		} else {
-			// Only request reviews from users who can actually read the repo,
-			// so a crafted POST cannot pull arbitrary accounts into the PR.
-			eligible := reviewers[:0]
-			for _, u := range reviewers {
-				if h.Services.Repo.CanRead(r.Context(), repo, &u.ID) {
-					eligible = append(eligible, u)
+	if canWrite {
+		for _, raw := range r.Form["labels"] {
+			if id, err := strconv.ParseInt(raw, 10, 64); err == nil {
+				if aerr := h.Services.Label.AddToPull(r.Context(), owner, repoName, pr.Number, id); aerr != nil {
+					slog.Warn("new PR: attach label failed", "label_id", id, "error", aerr)
 				}
 			}
-			if len(eligible) > 0 {
-				if rerr := h.Services.PullReview.RequestReviewers(r.Context(), owner, repoName, pr.Number, eligible); rerr != nil {
-					slog.Warn("new PR: request reviewers failed", "error", rerr)
+		}
+
+		if usernames := r.Form["reviewers"]; len(usernames) > 0 {
+			if reviewers, rerr := h.Services.User.GetManyByUsernames(r.Context(), usernames); rerr != nil {
+				slog.Warn("new PR: resolve reviewer usernames failed", "error", rerr)
+			} else {
+				// Only request reviews from users who can actually read the repo,
+				// so a crafted POST cannot pull arbitrary accounts into the PR.
+				eligible := reviewers[:0]
+				for _, u := range reviewers {
+					if h.Services.Repo.CanRead(r.Context(), repo, &u.ID) {
+						eligible = append(eligible, u)
+					}
+				}
+				if len(eligible) > 0 {
+					if rerr := h.Services.PullReview.RequestReviewers(r.Context(), owner, repoName, pr.Number, eligible); rerr != nil {
+						slog.Warn("new PR: request reviewers failed", "error", rerr)
+					}
 				}
 			}
 		}
