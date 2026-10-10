@@ -99,3 +99,11 @@ Claude, 2026-10-10: closed the three open items.
 - **Old name everywhere.** Reworded to what holds: no code, build file or doc an operator follows names `cloudzilla-cli`. The hits left are the rename ticket, this spec and the audit-row note in `docs/configuration.md`; the older `.scratch/2026-10-06-admin-password-reset/` specs describe the shell command as it was then and stay as written.
 - **Core commands against a real server.** Ran a `cz` built from `main` against a throwaway server on a seeded database, with a `repo:write` PAT in `CZ_TOKEN` and `CZ_HOST`: `auth status`, `repo list|view|create`, `issue list|create|comment|close`, `pr list|view|review|close` and `api GET /api/user` all exited 0 with JSON from the real router. A bad token (`cz: unauthorized: token missing, invalid or expired; run cz auth login`) and an unreachable host each gave one line and exit 1. Not run: `repo fork|clone`, `pr create|merge`, which need a pushed branch, and the keychain (the token came from the environment).
 - **Docker image's `dist/`.** Reworded to match ticket 06: `cz` has its own archive and is left out of the server image, as `docs/cli.md` states.
+
+Claude, 2026-10-10 (second real-server run): covered what the first run skipped. A `cz` built from `main` ran against a seeded scratch server with three tokens from the device flow through the real approval page (`repo:write`, `repo:read`, `pulls:write`). 69 checks passed:
+
+- `repo clone` (real `git` over HTTP; the clone's `origin` and `.git/config` hold no token), `repo fork`, `issue create|list|view|comment|close` with the repo taken from `origin`, and `pr create|list|view|review|merge --squash|close`, with branches pushed over HTTP using the token.
+- A `repo:read` token on `repo create` names `repo:write`; a `pulls:write` token on `pr merge` names `repo:write`; a reviewer without write access gets a one-line `403`.
+- The stored credentials file is `0600`, and `auth logout` removes it.
+
+A bad token is only an error where the route needs auth (`auth status` and every write). On a public read (`repo list`, `issue list`, `pr list` of a public repo) the server treats it as anonymous and `cz` exits 0; `docs/cli.md` now says so. The `.scratch/2026-10-06-admin-password-reset/` specs name `cz-admin password-reset-link` as of this PR.
