@@ -39,7 +39,7 @@ Tailwind v4 utilities only. `tailwind/input.css` is the whole config: `@theme` m
 2. Model in `internal/model/`.
 3. Store method; wire into `Stores` in `internal/store/stores.go`.
 4. Service method; wire into `Services` in `internal/service/services.go`.
-5. Handler in `internal/handler/` (full pages go in `page_*_handler.go`).
+5. Handler in `internal/handler/` (full pages go in `*_page_handler.go`).
 6. View-model in `internal/view/viewmodels_*.go`; Templ component in `internal/view/`.
 7. Route in `internal/router/router.go`. A route reachable before setup completes must also be added to the path check in `internal/middleware/setup.go`.
 

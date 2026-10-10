@@ -6,7 +6,7 @@ Status: done
 
 ## Problem
 
-Writers see an Edit button next to Raw on a file page, but `PageBlob` sets `EditURL: "#"` (`internal/handler/page_repo_handler.go:601`), so the button goes nowhere. The only way to change an existing file from the browser is to retype its whole contents into New file at the same path. That replaces the file without checking whether anyone changed it in the meantime. A file can't be renamed or deleted from the browser at all.
+Writers see an Edit button next to Raw on a file page, but `PageBlob` sets `EditURL: "#"` (`internal/handler/repo_page_handler.go:601`), so the button goes nowhere. The only way to change an existing file from the browser is to retype its whole contents into New file at the same path. That replaces the file without checking whether anyone changed it in the meantime. A file can't be renamed or deleted from the browser at all.
 
 ## What exists
 
@@ -72,7 +72,7 @@ Checked on 2026-10-06 in the desktop app's built-in browser against a throwaway 
 
 ## Relevant files
 
-- `internal/handler/page_repo_handler.go` (`PageBlob`, `EditURL`)
+- `internal/handler/repo_page_handler.go` (`PageBlob`, `EditURL`)
 - `internal/view/pages/blob.templ`, `internal/view/viewmodels_repo.go` (`BlobData`, `NewFileData`)
 - `internal/handler/repo_files_handler.go` (`PageNewFile`, `SubmitNewFile`, `parseNewFileForm`, body caps)
 - `internal/view/pages/new_file.templ`, `internal/view/components/confirm_dialog.templ` (toast wiring)
