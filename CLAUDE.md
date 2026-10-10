@@ -75,6 +75,8 @@ Read the matching doc before working in an area:
 - [testing](./docs/testing.md) — what CI runs, why `backup` and `seed` are local-only, `make test-integration`
 - [ROADMAP](./docs/ROADMAP.md) — phase status
 
+Docs formatting: `docs/**/*.md` is formatted with Prettier's defaults (there is no config file): `npx prettier --write "docs/**/*.md"`. It re-aligns tables and reformats JSON and YAML code fences in place, so run it after editing a doc.
+
 ## Branches
 
 `<type>/<slug>`, where `type` is `feat`, `fix` (or `bug`), or `tech`. Prefix the slug with `phase-<n>-` when the work belongs to a roadmap phase — e.g. `feat/phase-12.3-discussions`, `fix/contributor-stats-sha-dedup`.

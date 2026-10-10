@@ -4,10 +4,10 @@ Files that live outside git and PostgreSQL go through `internal/storage`. Today 
 
 ## Backends
 
-| `storage.backend` | Where objects go |
-| --- | --- |
-| `local` (default) | Files under `storage.local.root` (`./storage`; `/data/storage` in the Docker image) |
-| `s3` | An S3 bucket on AWS, or on any S3-compatible server such as Cloudflare R2, Backblaze B2, Garage or versitygw |
+| `storage.backend` | Where objects go                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| `local` (default) | Files under `storage.local.root` (`./storage`; `/data/storage` in the Docker image)                          |
+| `s3`              | An S3 bucket on AWS, or on any S3-compatible server such as Cloudflare R2, Backblaze B2, Garage or versitygw |
 
 ```go
 type Backend interface {
@@ -92,22 +92,24 @@ attachments/repo/<repo id>/<token>.<png|jpg|gif|webp>
 
 `cz-admin backup` includes the local storage root in its archive, next to the database; an S3 bucket is not copied (see [Backup and restore](./deployment.md#backup-and-restore)). Back up the bucket and prefix with your provider's versioning or replication.
 
-| Restored | Result |
-| --- | --- |
-| Both | Everything works. |
+| Restored      | Result                                                                                                                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Both          | Everything works.                                                                                                                                                                                                              |
 | Database only | Avatars and attachments whose objects are missing return 404. Each `<img data-avatar>` sits over its initials, and a capture-phase `error` listener in the layout hides a failed image, so pages show initials in their place. |
-| Objects only | Objects no row points at are orphans: harmless, and safe to delete. For attachments, the `attachments` table holds the only link to the repo, so restore it with the database. |
+| Objects only  | Objects no row points at are orphans: harmless, and safe to delete. For attachments, the `attachments` table holds the only link to the repo, so restore it with the database.                                                 |
 
 ## Avatars
 
 Uploads go to `POST /settings/avatar` and `POST /orgs/{org}/settings/avatar` (org owners only), as multipart field `avatar`. The handler is in `internal/handler/avatar_handler.go`.
 
 `avatar.Process` handles each upload:
+
 - **Limits:** the file is capped at 2 MB. Its type comes from its bytes: PNG, JPEG, GIF or WebP; the filename and declared type are ignored.
 - **Size check:** an image over 4096 px a side (so at most about 16.8 MP) is rejected from its header, before any pixel is decoded.
 - **Output:** the image is centre-cropped and scaled to at most 460 × 460, then re-encoded. It becomes a PNG if any pixel is transparent, otherwise a JPEG, and all metadata is dropped.
 
 `GET /avatars/*` serves objects through the app:
+
 - The key must match `avatars/(user|org)/<id>/<64 hex>.(png|jpg)`, and the user or org must still point at it. That check is one primary-key read, so made-up keys never reach the backend; the route isn't rate-limited.
 - `GET` and `HEAD` are both served.
 - Response headers: `Cache-Control: public, max-age=31536000, immutable`, `ETag`, `nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`.

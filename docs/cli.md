@@ -33,22 +33,22 @@ The token is a normal personal access token named `cz (<hostname>) · <date>`, w
 
 An older server without the endpoint answers `404`, and `cz` points you to `--with-token`. In that case, create a personal access token under your account settings with the scopes from [the table below](#scopes-per-command) and pipe it in.
 
-| Flag                 | Effect                                                                                                      |
-| -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `--host URL`         | The Cloudzilla URL; `CZ_HOST` is used when omitted                                                          |
+| Flag                 | Effect                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--host URL`         | The Cloudzilla URL; `CZ_HOST` is used when omitted                                                                              |
 | `--scope S`          | Scope to request: `repo:read`, `repo:write`, `issues:write`, `pulls:write`. Repeatable or space-separated; default `repo:write` |
-| `--no-browser`       | Print the URL and code without opening a browser                                                            |
-| `--with-token`       | Skip the browser: read a personal access token from stdin                                                   |
-| `--insecure-storage` | Store the token in a `0600` file instead of the OS keychain                                                 |
+| `--no-browser`       | Print the URL and code without opening a browser                                                                                |
+| `--with-token`       | Skip the browser: read a personal access token from stdin                                                                       |
+| `--insecure-storage` | Store the token in a `0600` file instead of the OS keychain                                                                     |
 
 `cz auth status` fails when nobody is logged in.
 
 ### Environment variables
 
-| Variable   | Effect                                                                 |
-| ---------- | ---------------------------------------------------------------------- |
-| `CZ_TOKEN` | Token to use instead of the stored one, for CI                         |
-| `CZ_HOST`  | Host to use instead of the stored one                                  |
+| Variable   | Effect                                         |
+| ---------- | ---------------------------------------------- |
+| `CZ_TOKEN` | Token to use instead of the stored one, for CI |
+| `CZ_HOST`  | Host to use instead of the stored one          |
 
 With both set, nothing is read from storage. With `CZ_HOST` alone, `cz` refuses to send the stored token to a different host than the one it was saved for and asks you to set `CZ_TOKEN` too. `CZ_TOKEN` alone needs a stored login to supply the host.
 
@@ -64,19 +64,19 @@ On a terminal, commands print human-readable text. `--json`, or a stdout that is
 
 A token acts as its user but only on the routes its scopes admit ([Token Scopes](./access-control.md#token-scopes)). When the server answers `403 insufficient_scope`, `cz` prints the scope from the `WWW-Authenticate` header.
 
-| Command                                                              | Scope needed                                                       |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `cz auth login`, `status`                                            | any scope (calls `GET /api/user`)                                  |
-| `cz auth logout`                                                     | none; removes the local login only                                 |
-| `cz repo list`, `view`                                               | `repo:read`                                                        |
-| `cz repo create`, `fork`                                             | `repo:write`                                                       |
-| `cz repo clone`                                                      | `repo:read` (git fetch)                                            |
-| `cz issue list`, `view`                                              | `repo:read`                                                        |
-| `cz issue create`, `comment`, `close`                                | `issues:write` (or `repo:write`)                                   |
-| `cz pr list`, `view`                                                 | `repo:read`                                                        |
-| `cz pr create`, `close`, `review`                                    | `pulls:write` (or `repo:write`)                                    |
-| `cz pr merge`                                                        | `repo:write`. `pulls:write` can't merge or enable auto-merge       |
-| `cz api <METHOD> <path>`                                             | whatever the request needs                                         |
+| Command                               | Scope needed                                                 |
+| ------------------------------------- | ------------------------------------------------------------ |
+| `cz auth login`, `status`             | any scope (calls `GET /api/user`)                            |
+| `cz auth logout`                      | none; removes the local login only                           |
+| `cz repo list`, `view`                | `repo:read`                                                  |
+| `cz repo create`, `fork`              | `repo:write`                                                 |
+| `cz repo clone`                       | `repo:read` (git fetch)                                      |
+| `cz issue list`, `view`               | `repo:read`                                                  |
+| `cz issue create`, `comment`, `close` | `issues:write` (or `repo:write`)                             |
+| `cz pr list`, `view`                  | `repo:read`                                                  |
+| `cz pr create`, `close`, `review`     | `pulls:write` (or `repo:write`)                              |
+| `cz pr merge`                         | `repo:write`. `pulls:write` can't merge or enable auto-merge |
+| `cz api <METHOD> <path>`              | whatever the request needs                                   |
 
 ## Repositories, issues and pull requests
 

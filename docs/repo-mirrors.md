@@ -80,14 +80,14 @@ Losing or changing the key makes stored tokens unreadable. Syncs then fail with 
 
 ## Configuration
 
-| Key | Default | Meaning |
-| --- | --- | --- |
-| `mirror.enabled` | `true` | Run the sync loop and offer mirroring. When off, existing mirrors stay read-only |
-| `mirror.allow_local_networks` | `false` | Let mirrors reach private-network sources |
-| `mirror.min_interval` | `10m` | Shortest sync interval |
-| `mirror.default_interval` | `8h` | Interval for new mirrors |
-| `mirror.max_concurrent` | `3` | Syncs at once on each instance |
-| `mirror.timeout` | `30m` | Time limit for one sync |
-| `security.secret_key` | `""` | Seals stored tokens; at least 32 bytes |
+| Key                           | Default | Meaning                                                                          |
+| ----------------------------- | ------- | -------------------------------------------------------------------------------- |
+| `mirror.enabled`              | `true`  | Run the sync loop and offer mirroring. When off, existing mirrors stay read-only |
+| `mirror.allow_local_networks` | `false` | Let mirrors reach private-network sources                                        |
+| `mirror.min_interval`         | `10m`   | Shortest sync interval                                                           |
+| `mirror.default_interval`     | `8h`    | Interval for new mirrors                                                         |
+| `mirror.max_concurrent`       | `3`     | Syncs at once on each instance                                                   |
+| `mirror.timeout`              | `30m`   | Time limit for one sync                                                          |
+| `security.secret_key`         | `""`    | Seals stored tokens; at least 32 bytes                                           |
 
 See [configuration](./configuration.md) for the env vars.

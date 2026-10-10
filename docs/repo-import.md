@@ -25,8 +25,8 @@ Jobs live in memory and are dropped an hour after they finish; a user keeps at m
 
 ## Configuration
 
-| Key | Default | Meaning |
-| --- | --- | --- |
-| `import.allow_local_networks` | `false` | Allow sources on private networks |
-| `import.timeout` | `30m` | Time limit for one import |
-| `git.max_pack_bytes` | 2 GiB | Also caps the pack one import downloads (`0` = no cap) |
+| Key                           | Default | Meaning                                                |
+| ----------------------------- | ------- | ------------------------------------------------------ |
+| `import.allow_local_networks` | `false` | Allow sources on private networks                      |
+| `import.timeout`              | `30m`   | Time limit for one import                              |
+| `git.max_pack_bytes`          | 2 GiB   | Also caps the pack one import downloads (`0` = no cap) |
