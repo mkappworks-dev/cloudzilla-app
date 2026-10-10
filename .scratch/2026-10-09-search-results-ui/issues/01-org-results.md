@@ -18,4 +18,4 @@ Search finds organizations. Add `SearchStore.SearchOrgs` (prefix of `name` or `d
 
 ## Relevant files
 
-`internal/store/search_store.go`, `internal/service/search_service.go`, `internal/handler/search_handler.go`, `internal/view/viewmodels_social.go`
+`internal/store/search_store.go`, `internal/service/search_service.go`, `internal/handler/search_page_handler.go`, `internal/view/viewmodels_social.go`

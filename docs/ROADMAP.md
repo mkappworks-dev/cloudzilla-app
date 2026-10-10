@@ -484,7 +484,7 @@ POST/DELETE /api/repos/{owner}/{repo}/pulls/{number}/assignees
 
 - `internal/store/star_store.go` — `Star`, `Unstar`, `CountByRepo`, `IsStarred`, `ListByUser`, `ListStargazers`. Uses `sql.NullInt64` for `org_id` in `scanRepos` helper.
 - `internal/service/star_service.go` — `NewStarService(stars, repos, users)`. Methods: `Star`, `Unstar`, `GetStarCount`, `IsStarred`, `ListStargazers`, `ListByUser`
-- `internal/handler/star_handler.go` — `StarRepo`, `UnstarRepo`, `ListStargazers`, `PageStargazers`, `PageUserStars`, `renderStarButtonFragment`
+- `internal/handler/star_handler.go` — `StarRepo`, `UnstarRepo`, `ListStargazers`, `PageUserStars`, `renderStarButtonFragment`; `star_page_handler.go` — `PageStargazers`
 
 **Routes:**
 
@@ -597,7 +597,7 @@ CREATE TABLE releases (
 - `internal/model/release.go` — `Release{ID, RepoID, TagName, Name, Body, IsPrerelease, IsDraft, AuthorID, CreatedAt, UpdatedAt, PublishedAt}`
 - `internal/store/release_store.go` — `Create`, `ListByRepo`, `GetByTag`, `GetLatest`, `Update`, `Delete`
 - `internal/service/release_service.go` — validates tag exists via `CodeService.ListRefs`
-- `internal/handler/release_handler.go` — `PageReleases`, `PageReleaseDetail`, `CreateRelease`, `UpdateRelease`, `DeleteRelease`
+- `internal/handler/release_handler.go` — `CreateRelease`, `UpdateRelease`, `DeleteRelease`; `release_page_handler.go` — `PageReleases`, `PageReleaseDetail`
 
 **Routes:**
 
@@ -841,7 +841,7 @@ CREATE INDEX IF NOT EXISTS idx_users_username_lower ON users(lower(username));
 
 - `internal/store/search_store.go` — `SearchRepos` (with private-visibility filter), `SearchIssues`, `SearchPulls`, `SearchUsers`
 - `internal/service/search_service.go` — runs 4 queries in parallel via `errgroup`; returns `SearchResults{Repos, Issues, Pulls, Users}`
-- `internal/handler/search_handler.go` — `PageSearch`
+- `internal/handler/search_page_handler.go` — `PageSearch`
 
 **Route:**
 
@@ -1281,7 +1281,7 @@ ALTER TABLE users
 **Files:**
 
 - `internal/service/totp_service.go` — `Generate() (secret, otpAuthURL string, qrPNG []byte)` (QR encoded as base64 data URL using `image/png` + `encoding/base64`); `Verify(secret, code string) bool`; `Enable(ctx, userID, secret, code string) error` (verifies code before storing); `Disable(ctx, userID, code string) error`; `GenerateBackupCodes() ([]string, error)` (10 codes, 8 chars each, hashed with `bcrypt`)
-- `internal/handler/totp_handler.go` — `PageTOTPSetup`, `EnableTOTP`, `DisableTOTP`, `VerifyTOTP` (second step of login)
+- `internal/handler/totp_handler.go` — `EnableTOTP`, `DisableTOTP`, `VerifyTOTP` (second step of login); `totp_page_handler.go` — `PageTOTPSetup`
 
 **Login flow change (`internal/handler/auth_handler.go`):**
 
@@ -1345,7 +1345,7 @@ CREATE INDEX idx_audit_log_created ON audit_log(created_at DESC);
 - `internal/model/audit_log.go` — `AuditEntry{ID, ActorID, ActorName, Action, TargetType, TargetID, TargetName, IPAddress, UserAgent, Metadata, CreatedAt}`
 - `internal/store/audit_log_store.go` — `Create`, `List(ctx, filters AuditFilter, page, pageSize)`; `AuditFilter{ActorID, Action, TargetType, Since, Until}`
 - `internal/service/audit_service.go` — `Record(ctx, r *http.Request, actorID int64, actorName, action, targetType string, targetID int64, targetName string, metadata map[string]any)` (fire-and-forget `go`)
-- `internal/handler/audit_handler.go` — `PageAuditLog` (superadmin only)
+- `internal/handler/audit_page_handler.go` — `PageAuditLog` (superadmin only)
 
 **Routes:**
 
@@ -1398,7 +1398,7 @@ ALTER TABLE users
 - `internal/service/sso_service.go` — `GetConfig(ctx, provider)`, `SetConfig(ctx, provider, config, enabled)`
 - `internal/service/sso_ldap.go` — `AuthenticateLDAP(ctx, username, password)`
 - `internal/service/sso_saml.go` — `HandleSAMLCallback(ctx, samlResponse)`
-- `internal/handler/sso_handler.go` — `PageSSOSettings` (superadmin), `SaveSSOConfig`, `InitiateSAML`, `SAMLCallback`, `SAMLMetadata`
+- `internal/handler/sso_handler.go` — `SaveSSOConfig`, `InitiateSAML`, `SAMLCallback`, `SAMLMetadata`; `sso_page_handler.go` — `PageSSOSettings` (superadmin)
 
 **Routes:**
 
@@ -1520,7 +1520,7 @@ _Per-repository wiki backed by a bare git repo on disk._
 
 Wiki repo path helper: `filepath.Join(cfg.ReposRoot, owner, repo+".wiki.git")`. Init with `go-git PlainInit(path, true)` on first save.
 
-**Handler:** `internal/handler/wiki_handler.go` — `PageWikiHome` (redirects to `Home` page or shows page list), `PageWikiPage`, `PageWikiEdit`, `CreateOrUpdateWikiPage`, `DeleteWikiPage`
+**Handler:** `internal/handler/wiki_handler.go` — `CreateOrUpdateWikiPage`, `DeleteWikiPage`; `wiki_page_handler.go` — `PageWikiHome` (redirects to `Home` page or shows page list), `PageWikiPage`, `PageWikiEdit`
 
 **Routes:**
 
@@ -1591,7 +1591,7 @@ _Zero-migration — derives data from git history and existing tables._
 - `GetCommitActivity(owner, repo string)` → `([]WeeklyActivity, error)` — returns last 52 weeks of `{Week (Unix ts), Total, Days [7]int}` commit counts
 - `GetCodeFrequency(owner, repo string)` → `([]CodeFrequencyWeek, error)` — weekly `{Week, Additions, Deletions}` for last 52 weeks (walks diffs)
 
-**Handler:** `internal/handler/insights_handler.go` — `PageInsights`, `PageContributors`, `PagePulse`
+**Handler:** `internal/handler/insights_page_handler.go` — `PageInsights`, `PageContributors`, `PagePulse`
 
 **Routes:**
 
