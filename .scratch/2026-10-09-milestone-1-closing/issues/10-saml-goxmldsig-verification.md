@@ -45,7 +45,7 @@ Nothing. If ticket 04 has not landed, edit `sso_service.go`; if it has, `sso_sam
 
 ## Comments
 
-**Claude (implementation session), 2026-10-10:** Done on `feat/saml-goxmldsig-verification`. Ticket 04 had not landed, so the verifier is in `sso_service.go` (`verifySAMLAssertion`, `checkSAMLSignaturePolicy`); whoever lands 04 moves them into `sso_saml.go`.
+**Claude (implementation session), 2026-10-10:** Done on `feat/saml-goxmldsig-verification`. Ticket 04 landed (#233) while this was in review, so the verifier (`verifySAMLAssertion`, `checkSAMLSignaturePolicy`) is in `sso_saml.go` and the clock in `sso_service.go`.
 
 - **Fixture.** Captured from Keycloak 26.8.0 on Docker with the realm JSON and `capture.py` from 07. It matches the 07 description (`dsig:` prefix, `xmlns:saml` only on `Response`, 60 s `Conditions`); valid at 2026-10-10T14:01:00Z.
 - **Mutation check.** Without the pre-checks the appended, extension-wrapped, nested, empty-URI, missing-`#` and both SHA-1 cases sign in as the legitimate user, because goxmldsig accepts them. The placed-before, copied-signature, other-ID-URI and two-signature cases are still refused by the library, so there the pre-checks only decide the error message. Reading claims from the raw response on top of that flips nothing more, because the one-assertion pre-check already makes the two trees agree. The results are in the comment above `TestHandleSAMLCallback_RefusesWrappedAndForgedAssertions`.

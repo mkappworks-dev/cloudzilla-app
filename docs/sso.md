@@ -1,6 +1,6 @@
 # SSO (LDAP and SAML)
 
-`SSOService` (`internal/service/sso_service.go`) signs users in through a corporate directory (LDAP) or an identity provider (SAML 2.0). A superadmin configures each provider at `/admin/sso`; the settings live in `sso_configs` (migration 106), one row per provider, with the provider's settings as JSONB. Sign-in links an account through `users.sso_provider` and `users.sso_id`, which are unique together. For how the sessions, 2FA and confirmation prompts treat SSO accounts, see [access-control](./access-control.md).
+`SSOService` (`internal/service/sso_service.go`, with `sso_ldap.go`, `sso_saml.go` and `sso_provision.go` beside it) signs users in through a corporate directory (LDAP) or an identity provider (SAML 2.0). A superadmin configures each provider at `/admin/sso`; the settings live in `sso_configs` (migration 106), one row per provider, with the provider's settings as JSONB. Sign-in links an account through `users.sso_provider` and `users.sso_id`, which are unique together. For how the sessions, 2FA and confirmation prompts treat SSO accounts, see [access-control](./access-control.md).
 
 ## Settings
 
