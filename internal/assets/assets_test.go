@@ -24,7 +24,7 @@ const appJSHash = "ad71a82d6e3c3fec"
 
 // newSet builds the hashing Set the release build serves from. Under the dev
 // tag New answers with a dev Set instead, so those cases have nothing to say.
-func newSet(t *testing.T) *assets.Set {
+func newSet(t *testing.T) assets.Set {
 	t.Helper()
 	if newIsDev {
 		t.Skip("New returns a dev Set under the dev build tag")
@@ -36,7 +36,7 @@ func newSet(t *testing.T) *assets.Set {
 	return set
 }
 
-func get(set *assets.Set, target string, header map[string]string) *httptest.ResponseRecorder {
+func get(set assets.Set, target string, header map[string]string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodGet, target, nil)
 	for k, v := range header {
 		req.Header.Set(k, v)
@@ -151,11 +151,27 @@ func TestServeHTTP_ServesOnlyFiles(t *testing.T) {
 	}
 }
 
+// Tests elsewhere clear the default in their cleanup, so the package-level URL
+// has to survive it: Set is an interface, and a nil one stored inside a non-nil
+// wrapper would pass a plain nil check and panic on the next call.
+func TestSetDefault_NilClearsTheDefault(t *testing.T) {
+	assets.SetDefault(newSet(t))
+	if got, want := assets.URL("/static/app.js"), "/static/app.js?v="+appJSHash; got != want {
+		t.Fatalf("URL = %q, want %q", got, want)
+	}
+
+	assets.SetDefault(nil)
+
+	if got := assets.URL("/static/app.js"); got != "/static/app.js" {
+		t.Errorf("URL = %q after clearing the default, want the path unchanged", got)
+	}
+}
+
 // A dev Set reads the working tree, so every answer has to come from the file
 // as it is now. A real temp dir, not fstest.MapFS, because these cases turn on
 // writes that land after the Set exists.
 
-func newDevSet(t *testing.T) (*assets.Set, string) {
+func newDevSet(t *testing.T) (assets.Set, string) {
 	t.Helper()
 	dir := t.TempDir()
 	if err := os.Mkdir(filepath.Join(dir, "static"), 0o755); err != nil {
@@ -252,20 +268,54 @@ func TestNewDev_ServesAFileCreatedAfterTheSet(t *testing.T) {
 	}
 }
 
-// Both release behaviours would pin the previous edit for the rest of the
-// session: the hashed URL is cached immutable, and the gzip body is memoized
-// per file in a sync.Once.
-func TestNewDev_NeverCachesAndNeverGzips(t *testing.T) {
+// The release path memoizes the gzip body per file in a sync.Once, which would
+// pin one edit for the rest of the session, so dev never gzips.
+func TestNewDev_RevalidatesAndNeverGzips(t *testing.T) {
 	set, _ := newDevSet(t)
 	rr := get(set, "/static/app.js", map[string]string{"Accept-Encoding": "gzip"})
-	if got := rr.Header().Get("Cache-Control"); got != "no-store" {
-		t.Errorf("Cache-Control = %q, want no-store", got)
+	if got := rr.Header().Get("Cache-Control"); got != "no-cache" {
+		t.Errorf("Cache-Control = %q, want no-cache", got)
+	}
+	if got := rr.Header().Get("ETag"); got == "" {
+		t.Error("no ETag, so every refresh would re-download the file")
 	}
 	if got := rr.Header().Get("Content-Encoding"); got != "" {
 		t.Errorf("Content-Encoding = %q, want none", got)
 	}
 	if rr.Body.String() != appJS {
 		t.Errorf("body is not the file on disk")
+	}
+}
+
+// Each save refreshes the page, and no-store would re-send every asset on each
+// one — including a 5.3 MB mermaid bundle, re-parsed every time.
+func TestNewDev_UnchangedFileRevalidatesTo304(t *testing.T) {
+	set, dir := newDevSet(t)
+	etag := get(set, "/static/app.js", nil).Header().Get("ETag")
+	if etag == "" {
+		t.Fatal("no ETag to revalidate with")
+	}
+
+	rr := get(set, "/static/app.js", map[string]string{"If-None-Match": etag})
+	if rr.Code != http.StatusNotModified {
+		t.Errorf("status %d for an unchanged file, want 304", rr.Code)
+	}
+	if rr.Body.Len() != 0 {
+		t.Errorf("304 carried %d bytes of body", rr.Body.Len())
+	}
+
+	// After an edit the same validator must no longer match, or the browser
+	// would keep showing the previous stylesheet.
+	writeFile(t, dir, "static/app.js", appJS+"console.log('edited');\n")
+	rr = get(set, "/static/app.js", map[string]string{"If-None-Match": etag})
+	if rr.Code != http.StatusOK {
+		t.Errorf("status %d after an edit, want 200", rr.Code)
+	}
+	if !strings.Contains(rr.Body.String(), "edited") {
+		t.Error("body is not the edited file")
+	}
+	if got := rr.Header().Get("ETag"); got == etag {
+		t.Errorf("ETag %q unchanged after an edit", got)
 	}
 }
 
