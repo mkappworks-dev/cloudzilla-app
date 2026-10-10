@@ -67,15 +67,25 @@ func TestProjects_ConvertCard(t *testing.T) {
 	rr := convert(e.writer.token, p, card)
 	wantStatus(t, rr, http.StatusOK)
 	var got struct {
-		IssueID *int64 `json:"issue_id"`
-		Title   string `json:"title"`
-		Note    string `json:"note"`
+		IssueID     *int64 `json:"issue_id"`
+		IssueNumber int    `json:"issue_number"`
+		IssueTitle  string `json:"issue_title"`
+		IssueState  string `json:"issue_state"`
+		Title       string `json:"title"`
+		Note        string `json:"note"`
 	}
 	if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
 	if got.IssueID == nil || got.Title != "Ship it" || got.Note != "the body" {
 		t.Fatalf("response card = %s, want it linked and still titled", rr.Body.String())
+	}
+	var number int
+	if err := e.db.QueryRow(`SELECT number FROM issues WHERE id = $1`, *got.IssueID).Scan(&number); err != nil {
+		t.Fatal(err)
+	}
+	if got.IssueNumber != number || got.IssueNumber == 0 || got.IssueTitle != "Ship it" || got.IssueState != "open" {
+		t.Errorf("response card = %s, want issue_number %d, issue_title and an open issue_state for the modal's link chip", rr.Body.String(), number)
 	}
 	var due string
 	if err := e.db.QueryRow(`SELECT due_date::text FROM project_cards WHERE id = $1`, card).Scan(&due); err != nil || due != "2030-01-02" {

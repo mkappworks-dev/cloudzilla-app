@@ -49,6 +49,7 @@ document.addEventListener('alpine:init', () => {
     descDirty: false,
     previewHTML: '',
     error: '',
+    notice: '',
     busy: false,
     confirm: '',
     card: { assignees: [], labels: [] },
@@ -60,6 +61,8 @@ document.addEventListener('alpine:init', () => {
     editor: blankEditor(),
     // Outlives the editor object: a request started before the dialog was reopened still counts.
     inflight: false,
+    // The card was changed server-side while the dialog stayed open, so the board behind it is stale.
+    changed: false,
 
     get canWrite() {
       return this.$root.dataset.canWrite === 'true';
@@ -170,6 +173,10 @@ document.addEventListener('alpine:init', () => {
     },
 
     onDialogClosed() {
+      if (this.changed) {
+        window.location.reload();
+        return;
+      }
       if (this.opener && this.opener.isConnected) this.opener.focus();
       this.opener = null;
     },
@@ -197,15 +204,23 @@ document.addEventListener('alpine:init', () => {
       return body;
     },
 
-    async run(steps) {
+    // afterSteps keeps the dialog open instead of reloading the page.
+    async run(steps, afterSteps) {
       if (this.editor.busy || this.inflight) return;
       const editor = this.editor;
       this.inflight = true;
       editor.busy = true;
       editor.error = '';
+      editor.notice = '';
       try {
         for (const step of steps) await step();
-        window.location.reload();
+        if (!afterSteps) {
+          window.location.reload();
+          return;
+        }
+        afterSteps();
+        editor.busy = false;
+        this.inflight = false;
       } catch (err) {
         // A reopened dialog has a fresh editor; the old request's failure is not its error.
         if (this.editor === editor) {
@@ -234,6 +249,7 @@ document.addEventListener('alpine:init', () => {
     ask(action) {
       if (!this.canWrite) return;
       this.editor.error = '';
+      this.editor.notice = '';
       this.editor.confirm = action;
       this.$nextTick(() => focusWhenShown(action === 'convert' ? this.$refs.confirmConvert : this.$refs.confirmDelete));
     },
@@ -244,14 +260,40 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => focusWhenShown(action === 'convert' ? this.$refs.convertButton : this.$refs.deleteButton));
     },
 
-    // Convert saves the dialog first so the new issue gets what the user sees.
+    // Convert saves the dialog first so the new issue gets what the user sees, then keeps the
+    // dialog open on the new link; the page behind it reloads when the dialog closes.
     convertCard() {
       if (!this.canWrite || this.editor.confirm !== 'convert') return;
-      const base = projectURL(this.$root, `/cards/${this.editor.id}`);
-      return this.run([
-        () => send('PATCH', base + '/details', this.body()),
-        () => send('POST', base + '/convert'),
-      ]);
+      const editor = this.editor;
+      const base = projectURL(this.$root, `/cards/${editor.id}`);
+      let card = null;
+      return this.run(
+        [
+          async () => {
+            await send('PATCH', base + '/details', this.body());
+            this.changed = true;
+          },
+          async () => {
+            const r = await send('POST', base + '/convert');
+            this.changed = true;
+            card = await r.json().catch(() => null);
+          },
+        ],
+        () => this.showConverted(editor, card),
+      );
+    },
+
+    showConverted(editor, card) {
+      // The issue exists but its details are unreadable: a reload shows the card as linked.
+      if (!card || !card.issue_id) {
+        window.location.reload();
+        return;
+      }
+      // body() sends editor.link, so the next Save keeps the link convert just made.
+      editor.link = { kind: 'issue', id: card.issue_id, number: card.issue_number, title: card.issue_title, state: card.issue_state };
+      editor.confirm = '';
+      editor.notice = `Issue #${card.issue_number} created and linked`;
+      this.$nextTick(() => focusWhenShown(this.$refs.linkAnchor));
     },
 
     deleteCard() {

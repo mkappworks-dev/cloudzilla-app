@@ -1417,7 +1417,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "<div x-show=\"editor.mode === 'edit' && editor.previewHTML\" x-html=\"editor.previewHTML\" class=\"prose prose-sm dark:prose-invert max-w-none break-words\" data-card-preview></div><p x-show=\"editor.mode === 'edit' && !editor.previewHTML\" class=\"text-[12px] text-muted-foreground\">No description</p></div></div><div><span class=\"mb-1 block text-[12px] font-medium text-muted-foreground\">Linked item</span><div x-show=\"editor.link\" class=\"flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[13px]\" data-card-link-chip><a x-bind:href=\"linkURL\" class=\"flex min-w-0 flex-1 items-baseline gap-2 rounded hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring\"><span class=\"shrink-0 font-mono text-[11px] text-muted-foreground\" x-text=\"editor.link ? (editor.link.kind === 'pull' ? 'PR #' : '#') + editor.link.number : ''\"></span> <span class=\"min-w-0 flex-1 truncate\" x-text=\"editor.link ? editor.link.title : ''\"></span> <span class=\"shrink-0 text-[11px] text-muted-foreground\" x-text=\"editor.link ? editor.link.state : ''\"></span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "<div x-show=\"editor.mode === 'edit' && editor.previewHTML\" x-html=\"editor.previewHTML\" class=\"prose prose-sm dark:prose-invert max-w-none break-words\" data-card-preview></div><p x-show=\"editor.mode === 'edit' && !editor.previewHTML\" class=\"text-[12px] text-muted-foreground\">No description</p></div></div><div><span class=\"mb-1 block text-[12px] font-medium text-muted-foreground\">Linked item</span><div x-show=\"editor.link\" class=\"flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[13px]\" data-card-link-chip><a x-ref=\"linkAnchor\" x-bind:href=\"linkURL\" class=\"flex min-w-0 flex-1 items-baseline gap-2 rounded hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring\"><span class=\"shrink-0 font-mono text-[11px] text-muted-foreground\" x-text=\"editor.link ? (editor.link.kind === 'pull' ? 'PR #' : '#') + editor.link.number : ''\"></span> <span class=\"min-w-0 flex-1 truncate\" x-text=\"editor.link ? editor.link.title : ''\"></span> <span class=\"shrink-0 text-[11px] text-muted-foreground\" x-text=\"editor.link ? editor.link.state : ''\"></span></a> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1488,7 +1488,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					var templ_7745c5c3_Var59 string
 					templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatInt(p.ID, 10))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 568, Col: 110}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 569, Col: 110}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var59)
 					if templ_7745c5c3_Err != nil {
@@ -1509,7 +1509,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					var templ_7745c5c3_Var60 string
 					templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(p.Username)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 570, Col: 48}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 571, Col: 48}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 					if templ_7745c5c3_Err != nil {
@@ -1558,7 +1558,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					var templ_7745c5c3_Var61 string
 					templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatInt(l.ID, 10))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 602, Col: 95}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 603, Col: 95}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var61)
 					if templ_7745c5c3_Err != nil {
@@ -1571,7 +1571,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					var templ_7745c5c3_Var62 string
 					templ_7745c5c3_Var62, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(labelChipStyle(l.Color))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 603, Col: 114}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 604, Col: 114}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 					if templ_7745c5c3_Err != nil {
@@ -1584,7 +1584,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					var templ_7745c5c3_Var63 string
 					templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(l.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 604, Col: 44}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 605, Col: 44}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 					if templ_7745c5c3_Err != nil {
@@ -1606,12 +1606,22 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "</div></div></div></div></div><p x-show=\"editor.error\" x-cloak x-text=\"editor.error\" class=\"px-5 pb-3 text-[12px] text-destructive\" role=\"alert\"></p><div class=\"flex flex-wrap items-center gap-2 border-t border-border px-5 py-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "</div></div></div></div></div><p x-show=\"editor.error\" x-cloak x-text=\"editor.error\" class=\"px-5 pb-3 text-[12px] text-destructive\" role=\"alert\"></p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, "<div x-show=\"!editor.confirm\" class=\"flex w-full flex-wrap items-center gap-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, "<div role=\"status\" aria-live=\"polite\"><p x-show=\"editor.notice\" x-cloak x-text=\"editor.notice\" class=\"px-5 pb-3 text-[12px] text-muted-foreground\" data-card-notice></p></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, "<div class=\"flex flex-wrap items-center gap-2 border-t border-border px-5 py-4\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.CanWrite {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, "<div x-show=\"!editor.confirm\" class=\"flex w-full flex-wrap items-center gap-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1627,7 +1637,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, "Delete")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "Delete")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1655,7 +1665,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, "Convert to issue")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "Convert to issue")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1671,7 +1681,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "<div class=\"ml-auto flex items-center gap-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, "<div class=\"ml-auto flex items-center gap-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1687,7 +1697,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1709,7 +1719,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, "<span x-show=\"editor.mode === 'create'\">Create card</span> <span x-show=\"editor.mode === 'edit'\" x-cloak>Save</span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "<span x-show=\"editor.mode === 'create'\">Create card</span> <span x-show=\"editor.mode === 'edit'\" x-cloak>Save</span>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1719,7 +1729,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, "</div></div><div x-show=\"editor.confirm\" x-cloak class=\"flex w-full flex-wrap items-center justify-end gap-x-2 gap-y-3\" role=\"group\" aria-labelledby=\"card-confirm-text\" data-card-confirm><p id=\"card-confirm-text\" class=\"basis-full text-[13px] font-medium\"><span x-show=\"editor.confirm === 'convert'\">Create an issue from this card? The card will link to the new issue.</span> <span x-show=\"editor.confirm === 'delete'\">Delete this card?</span></p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "</div></div><div x-show=\"editor.confirm\" x-cloak class=\"flex w-full flex-wrap items-center justify-end gap-x-2 gap-y-3\" role=\"group\" aria-labelledby=\"card-confirm-text\" data-card-confirm><p id=\"card-confirm-text\" class=\"basis-full text-[13px] font-medium\"><span x-show=\"editor.confirm === 'convert'\">Create an issue from this card? The card will link to the new issue.</span> <span x-show=\"editor.confirm === 'delete'\">Delete this card?</span></p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1735,7 +1745,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1757,7 +1767,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "Create issue")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "Create issue")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1785,7 +1795,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, "Delete card")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "Delete card")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1801,7 +1811,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1818,7 +1828,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "Close")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, "Close")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1829,7 +1839,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "</div></form></dialog>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "</div></form></dialog>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

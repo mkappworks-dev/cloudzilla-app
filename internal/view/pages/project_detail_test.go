@@ -258,3 +258,27 @@ func TestProjectDetail_CardJSONDropsInvalidLabelColour(t *testing.T) {
 		t.Error("an invalid label colour reaches the card JSON")
 	}
 }
+
+// Convert keeps the dialog open: the success line is a polite live region, and the chip it
+// reveals is driven by editor.link, the same state body() sends on the next Save.
+func TestProjectDetail_CardDialogConvertStaysOpen(t *testing.T) {
+	dlg := cardDialog(t, renderBoard(t, boardData(true)))
+	live := regexp.MustCompile(`(?s)<div role="status" aria-live="polite">.*?data-card-notice.*?</div>`).FindString(dlg)
+	if !strings.Contains(live, `x-text="editor.notice"`) {
+		t.Errorf("no polite live region showing editor.notice: %q", live)
+	}
+	chip := regexp.MustCompile(`(?s)<div[^>]*data-card-link-chip[^>]*>.*?</a>`).FindString(dlg)
+	for _, want := range []string{`x-show="editor.link"`, `x-ref="linkAnchor"`, `x-bind:href="linkURL"`, `editor.link.number`, `editor.link.title`, `editor.link.state`} {
+		if !strings.Contains(chip, want) {
+			t.Errorf("linked item chip missing %q: %q", want, chip)
+		}
+	}
+	if !strings.Contains(dlg, `x-show="editor.mode === &#39;edit&#39; &amp;&amp; !editor.link &amp;&amp; editor.title.trim()"`) {
+		t.Error("Convert is not hidden once the editor has a link")
+	}
+
+	ro := cardDialog(t, renderBoard(t, boardData(false)))
+	if strings.Contains(ro, "data-card-notice") {
+		t.Error("read-only dialog renders the convert success line")
+	}
+}

@@ -503,6 +503,7 @@ templ cardDialog(data view.ProjectDetailData) {
 								<span class="mb-1 block text-[12px] font-medium text-muted-foreground">Linked item</span>
 								<div x-show="editor.link" class="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[13px]" data-card-link-chip>
 									<a
+										x-ref="linkAnchor"
 										x-bind:href="linkURL"
 										class="flex min-w-0 flex-1 items-baseline gap-2 rounded hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
 									>
@@ -623,6 +624,11 @@ templ cardDialog(data view.ProjectDetailData) {
 				</div>
 			</div>
 			<p x-show="editor.error" x-cloak x-text="editor.error" class="px-5 pb-3 text-[12px] text-destructive" role="alert"></p>
+			if data.CanWrite {
+				<div role="status" aria-live="polite">
+					<p x-show="editor.notice" x-cloak x-text="editor.notice" class="px-5 pb-3 text-[12px] text-muted-foreground" data-card-notice></p>
+				</div>
+			}
 			<div class="flex flex-wrap items-center gap-2 border-t border-border px-5 py-4">
 				if data.CanWrite {
 					<div x-show="!editor.confirm" class="flex w-full flex-wrap items-center gap-2">
