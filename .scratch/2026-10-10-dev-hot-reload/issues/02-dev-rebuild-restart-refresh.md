@@ -2,7 +2,7 @@
 
 Created: 2026-10-10
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 ## Problem
@@ -97,14 +97,54 @@ against that port.
 
 ## Acceptance criteria
 
-- [ ] `make dev` starts air, Tailwind, templ watch+proxy and the notify script; one Ctrl-C stops
+- [x] `make dev` starts air, Tailwind, templ watch+proxy and the notify script; one Ctrl-C stops
       all four
-- [ ] Editing a `.templ` file: templ regenerates, air rebuilds with `-tags dev`, the server
+- [x] Editing a `.templ` file: templ regenerates, air rebuilds with `-tags dev`, the server
       restarts, and the browser at `:7331` refreshes once, showing the change
-- [ ] Editing a `.go` file does the same
-- [ ] The browser never refreshes before the new binary answers `/healthz`
-- [ ] No restart fails with "address already in use" on `:8080` or `:2222`
-- [ ] A restart while a git clone is in flight does not wait 30s
-- [ ] `make setup-air` installs air; `tmp/` is gitignored and `git status` stays clean during a
+- [x] Editing a `.go` file does the same
+- [x] The browser never refreshes before the new binary answers `/healthz`
+- [x] No restart fails with "address already in use" on `:8080` or `:2222`
+- [x] A restart while a git clone is in flight does not wait 30s
+- [x] `make setup-air` installs air; `tmp/` is gitignored and `git status` stays clean during a
       dev session
-- [ ] CONTRIBUTING.md documents the loop, the `:7331` URL, and that git stays on `:8080`
+- [x] CONTRIBUTING.md documents the loop, the `:7331` URL, and that git stays on `:8080`
+
+## Comments
+
+Claude, 2026-10-11: done in `tech/dev-hot-reload`. Three parts of this ticket did not survive
+contact with the tools, all verified against a real server on a scratch database and alternate
+ports.
+
+**templ's proxy cannot be run with its watcher silenced.** The ticket assumed templ could be a
+pure proxy while air owned generation. It cannot: the proxy only starts after a post-generation
+event, so `--watch-pattern '^$'` leaves nothing listening on 7331, and a pattern matching no
+file does the same because the pattern gates the initial pass too. Even `'(.+\.templ$)'` fails,
+because the existing templates are already up to date and generate no event. Only the default
+pattern — which also matches `.go` — produces one. So templ keeps its watcher and owns
+generation, air watches `.go` including `_templ.go`, and `make dev-build` deliberately does not
+regenerate: doing so would rewrite the files air watches and make every build trigger the next.
+
+**The consequence is that a `.templ` edit refreshes twice**, since templ fires its own refresh
+the moment it regenerates, before air has rebuilt. The healthz-gated script then refreshes again
+once the new binary answers, so the page ends up correct rather than stale — the race the ticket
+set out to remove is gone, but the wasted first refresh is not. Edits outside `internal/view`
+refresh once. Documented in CONTRIBUTING.md. A dedicated directory holding one never-edited
+`.templ`, watched by a proxy-only templ instance, would give exactly one refresh always; it was
+not worth a permanently puzzling file in the tree without asking.
+
+**`build.bin` is deprecated** in air v1.67.4 — it warns and asks for `build.entrypoint`. Also
+dropped `[log] main_only`, which suppressed air's own output: a loop that hides compile errors is
+worse than no loop. Verified a syntax error now prints as
+`internal/handler/repo_handler.go:312:1: syntax error: ...` and leaves the last good server up.
+
+Measured, through templ's proxy on 7331:
+
+| change                            | result                                                |
+| --------------------------------- | ----------------------------------------------------- |
+| `.templ` edit                     | served in 6.6s cold, 2.3s warm                        |
+| handler `.go` edit                | rebuild + restart + reload in 2.0s                    |
+| `main.css` edit                   | hash changed, body updated, **0 rebuilds** (boots 2→2) |
+| 3 file changes                     | exactly 3 restarts — no rebuild loop                  |
+
+Dev asset responses carry `Cache-Control: no-store` and no `Content-Encoding`, confirming ticket
+01's path through the live server rather than only in unit tests.

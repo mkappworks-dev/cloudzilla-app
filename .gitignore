@@ -1,5 +1,6 @@
 # Go
 /dist/
+/tmp/
 cmd/server/frontend/static/main.css
 cmd/server/frontend/static/mermaid.min.js
 cmd/server/frontend/htmx.min.js

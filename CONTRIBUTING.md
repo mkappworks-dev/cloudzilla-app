@@ -69,6 +69,40 @@ Refer to the [README](README.md) for full setup instructions.
 make dev
 ```
 
+### The dev loop
+
+`make dev` rebuilds, restarts and refreshes the browser on save. It needs the reloader once:
+
+```bash
+make setup-air
+```
+
+**Browse <http://localhost:7331>**, not `:8080`. templ's proxy sits on 7331 and injects the
+script that refreshes the page; the app itself still listens on 8080, and git clone/push stay
+there too — there is no reason to stream packfiles through the proxy.
+
+What each kind of change costs:
+
+| you edit                            | what happens                                        |
+| ----------------------------------- | --------------------------------------------------- |
+| `tailwind/input.css`, a `.js` asset | **no Go rebuild** — Tailwind rebuilds, then refresh |
+| a `.templ` file                     | regenerate, rebuild, restart, refresh (~2-5s)       |
+| a `.go` file                        | rebuild, restart, refresh (~1-4s)                   |
+
+A dev build reads `cmd/server/frontend` from disk instead of from the embedded copy, which is
+what lets a CSS change skip the rebuild — see `cmd/server/embed_dev.go`. Release builds are
+unaffected: `make build` embeds as always.
+
+Two things worth knowing:
+
+- **A `.templ` edit refreshes twice.** templ's proxy only starts once its watcher has run a
+  generation pass, so the watcher cannot be silenced; it fires its own refresh as soon as it
+  regenerates, which is before air has rebuilt. You briefly see the previous build, then
+  `scripts/dev-notify-proxy.sh` refreshes again once `/healthz` answers from the new binary.
+  Edits outside `internal/view` refresh once.
+- **A compile error leaves the last good server running** and prints the error with its
+  file and line. Fix it and the next build restarts the server.
+
 ## Planning Workflow (Claude Code)
 
 Planned work is tracked as markdown under `.scratch/` and driven by skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Using Claude Code is optional; the files are plain markdown and can be written by hand.
