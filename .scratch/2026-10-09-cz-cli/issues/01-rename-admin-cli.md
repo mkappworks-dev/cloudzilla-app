@@ -27,4 +27,3 @@ References to update: `Makefile`, `Dockerfile` (build, `COPY`, and the comment a
 Claude, 2026-10-10: ticked the build, release archive and test criteria after checking them against `main`. Left unticked: the `grep -rI cloudzilla-cli` criterion, which still matches this ticket, the cz-cli spec and `docs/configuration.md` (a deliberate note about old audit rows), and the PR-description criterion, which can't be checked from the repo.
 
 Claude, 2026-10-10: read the description of PR #199 on GitHub. It says "Operators: cloudzilla-cli is now cz-admin ... Update scripts and docker compose exec calls" and notes that existing audit rows keep the old actor name, so that criterion holds. The `grep` criterion is reworded to what holds: the three remaining hits are deliberate.
-

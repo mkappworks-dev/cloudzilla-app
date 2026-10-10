@@ -19,14 +19,14 @@ What exists today (checked against `origin/main` at 4d1e48d7):
 
 ## Decisions (2026-10-06)
 
-| Question | Decision |
-| --- | --- |
-| S3 client | `github.com/aws/aws-sdk-go-v2` (`config`, `credentials`, `service/s3`). It has the full credential chain (static keys, env, shared files, IAM roles/IRSA), handles custom endpoints and path-style addressing for R2, B2, Garage and versitygw, and can serve later 20.1 consumers (LFS, release assets) through the multipart upload manager. |
-| Image library | `golang.org/x/image` for WebP decoding and `draw.CatmullRom` resizing. |
-| Serving | App proxy with immutable cache headers. No public bucket, no presigned URLs. |
-| Surfaces | Every account avatar. Commit authors stay initials, because matching git emails to accounts is a separate feature. |
-| Markdown image attachments | Out of scope. Follow-up issue on the same storage layer. |
-| Google profile pictures | Not rendered and not imported. `avatar_url` keeps them for API compatibility only. |
+| Question                   | Decision                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S3 client                  | `github.com/aws/aws-sdk-go-v2` (`config`, `credentials`, `service/s3`). It has the full credential chain (static keys, env, shared files, IAM roles/IRSA), handles custom endpoints and path-style addressing for R2, B2, Garage and versitygw, and can serve later 20.1 consumers (LFS, release assets) through the multipart upload manager. |
+| Image library              | `golang.org/x/image` for WebP decoding and `draw.CatmullRom` resizing.                                                                                                                                                                                                                                                                         |
+| Serving                    | App proxy with immutable cache headers. No public bucket, no presigned URLs.                                                                                                                                                                                                                                                                   |
+| Surfaces                   | Every account avatar. Commit authors stay initials, because matching git emails to accounts is a separate feature.                                                                                                                                                                                                                             |
+| Markdown image attachments | Out of scope. Follow-up issue on the same storage layer.                                                                                                                                                                                                                                                                                       |
+| Google profile pictures    | Not rendered and not imported. `avatar_url` keeps them for API compatibility only.                                                                                                                                                                                                                                                             |
 
 ## Proposed design
 
@@ -56,17 +56,17 @@ var ErrNotFound = errors.New("storage: object not found")
 
 ### 2. Configuration
 
-| Key | Default | Env |
-| --- | --- | --- |
-| `storage.backend` | `local` | `CZ_STORAGE_BACKEND` |
-| `storage.local.root` | `./storage` | `CZ_STORAGE_LOCAL_ROOT` |
-| `storage.s3.endpoint` | `""` (AWS) | `CZ_STORAGE_S3_ENDPOINT` |
-| `storage.s3.region` | `us-east-1` | `CZ_STORAGE_S3_REGION` |
-| `storage.s3.bucket` | `""` (required for `s3`) | `CZ_STORAGE_S3_BUCKET` |
-| `storage.s3.access_key_id` | `""` | `CZ_STORAGE_S3_ACCESS_KEY_ID` |
-| `storage.s3.secret_access_key` | `""` | `CZ_STORAGE_S3_SECRET_ACCESS_KEY` |
-| `storage.s3.path_style` | `false` | `CZ_STORAGE_S3_PATH_STYLE` |
-| `storage.s3.prefix` | `""` | `CZ_STORAGE_S3_PREFIX` |
+| Key                            | Default                  | Env                               |
+| ------------------------------ | ------------------------ | --------------------------------- |
+| `storage.backend`              | `local`                  | `CZ_STORAGE_BACKEND`              |
+| `storage.local.root`           | `./storage`              | `CZ_STORAGE_LOCAL_ROOT`           |
+| `storage.s3.endpoint`          | `""` (AWS)               | `CZ_STORAGE_S3_ENDPOINT`          |
+| `storage.s3.region`            | `us-east-1`              | `CZ_STORAGE_S3_REGION`            |
+| `storage.s3.bucket`            | `""` (required for `s3`) | `CZ_STORAGE_S3_BUCKET`            |
+| `storage.s3.access_key_id`     | `""`                     | `CZ_STORAGE_S3_ACCESS_KEY_ID`     |
+| `storage.s3.secret_access_key` | `""`                     | `CZ_STORAGE_S3_SECRET_ACCESS_KEY` |
+| `storage.s3.path_style`        | `false`                  | `CZ_STORAGE_S3_PATH_STYLE`        |
+| `storage.s3.prefix`            | `""`                     | `CZ_STORAGE_S3_PREFIX`            |
 
 Every key gets a viper default, because `AutomaticEnv` only binds nested keys that viper already knows. The Docker image and `docker-compose.yml` set `CZ_STORAGE_LOCAL_ROOT=/data/storage`, next to `/data/git-repos`. `./storage` is gitignored.
 
@@ -116,13 +116,13 @@ Only the decoders above are registered in the package, so `image.Decode` can't b
 
 ### 7. Routes and handlers
 
-| Method | Path | Notes |
-| --- | --- | --- |
-| `POST` | `/settings/avatar` | auth; multipart field `avatar` |
-| `POST` | `/settings/avatar/delete` | auth |
-| `POST` | `/orgs/{org}/settings/avatar` | auth; org owner; outside the `/api/orgs` group (its 1 MB limit) |
-| `POST` | `/orgs/{org}/settings/avatar/delete` | auth; org owner |
-| `GET` | `/avatars/*` | no auth; serves objects |
+| Method | Path                                 | Notes                                                           |
+| ------ | ------------------------------------ | --------------------------------------------------------------- |
+| `POST` | `/settings/avatar`                   | auth; multipart field `avatar`                                  |
+| `POST` | `/settings/avatar/delete`            | auth                                                            |
+| `POST` | `/orgs/{org}/settings/avatar`        | auth; org owner; outside the `/api/orgs` group (its 1 MB limit) |
+| `POST` | `/orgs/{org}/settings/avatar/delete` | auth; org owner                                                 |
+| `GET`  | `/avatars/*`                         | no auth; serves objects                                         |
 
 - Upload routes get `middleware.MaxBodySize(avatarBodyBytes)`, which is 2 MB + 64 KB for multipart overhead.
 - A non-htmx post without `X-CSRF-Token` is parsed by `CSRF` under the global 26 MB cap before the route limit runs. `Process` still rejects the file with `ErrTooLarge`, so the response is 413; buffering up to 26 MB first is accepted.
@@ -159,6 +159,7 @@ Only the decoders above are registered in the package, so `image.Decode` can't b
 ### 9. Settings UI
 
 The disabled "Upload new picture" buttons become a working control on both settings pages. The file input sits in its own form outside the profile form, because forms can't nest. The control:
+
 - picks a file with `accept="image/png,image/jpeg,image/gif,image/webp"` and uploads it as soon as it's chosen, with htmx `hx-encoding="multipart/form-data"`
 - shows "Remove picture" only when an avatar is set
 - shows errors inline

@@ -37,6 +37,7 @@ The UI hides the matching controls on archived repos: the `refs.templ` create an
 ## Comments
 
 **Claude, 2026-10-06:** Done.
+
 - No UI applies suggestions today (it is API-only), so there was no control to hide.
 - Enabling auto-merge is refused too, since it could never fire.
 - Description and website stay editable on archived repos. Only a change to the default branch is refused.

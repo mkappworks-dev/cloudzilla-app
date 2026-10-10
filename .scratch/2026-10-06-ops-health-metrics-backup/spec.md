@@ -50,13 +50,13 @@ The runtime image (`alpine:3.24` plus `ca-certificates tzdata`) has no `pg_dump`
 
 ## State an instance holds
 
-| What             | Where                                            | Notes |
-| ---------------- | ------------------------------------------------ | ----- |
-| Database         | Postgres at `database.dsn`                       | All metadata, gists, users, access tokens, webhook secrets, TOTP secrets |
+| What             | Where                                            | Notes                                                                                                                                                                                                                                   |
+| ---------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database         | Postgres at `database.dsn`                       | All metadata, gists, users, access tokens, webhook secrets, TOTP secrets                                                                                                                                                                |
 | Git repositories | `git.repos_root` (`/data/git-repos` in Docker)   | `<owner>/<name>.git` and `<owner>/<name>.wiki.git`. Soft-deleted repos sit beside them as `.deleted.<unix>` copies until the daily purge (30 days). `.import-tmp/` is scratch space, cleared at boot by `ImportService.RemoveStaleTemp` |
-| SSH host key     | `git.ssh_host_key` (`/data/cloudzilla_host_key`) | If it changes, every client sees `REMOTE HOST IDENTIFICATION HAS CHANGED` |
-| Avatars          | none on disk                                     | Today only a URL column (`users.avatar_url`, `organizations.avatar_url`). The parallel S3 avatar session adds stored files |
-| Config           | `config.yaml` / `CZ_*`                           | Owned by the operator and not backed up. Restoring with a different `auth.jwt_secret` signs everyone out |
+| SSH host key     | `git.ssh_host_key` (`/data/cloudzilla_host_key`) | If it changes, every client sees `REMOTE HOST IDENTIFICATION HAS CHANGED`                                                                                                                                                               |
+| Avatars          | none on disk                                     | Today only a URL column (`users.avatar_url`, `organizations.avatar_url`). The parallel S3 avatar session adds stored files                                                                                                              |
+| Config           | `config.yaml` / `CZ_*`                           | Owned by the operator and not backed up. Restoring with a different `auth.jwt_secret` signs everyone out                                                                                                                                |
 
 ## Proposed design
 
@@ -98,20 +98,20 @@ It probes liveness rather than readiness for two reasons. Orchestrators restart 
 
 **Starting set.** Every name below is prefixed `cloudzilla_` unless shown otherwise:
 
-| Metric | Type | Labels | Source |
-| ------ | ---- | ------ | ------ |
-| `build_info` | gauge (1) | `version` | `main.version` |
-| `http_requests_total` | counter | `method`, `route`, `code` | Middleware. `route` is chi's route pattern; `unmatched` when routing found none; `method` outside the standard verbs becomes `other` |
-| `http_request_duration_seconds` | histogram | `method`, `route` | Same middleware. Buckets 5 ms to 60 s |
-| `http_requests_in_flight` | gauge | (none) | Same middleware |
-| `git_operations_total` | counter | `transport` (`http`/`ssh`), `service` (`upload-pack`/`receive-pack`), `result` (`ok`/`error`) | `GitUploadPack`/`GitReceivePack` and `execGitService` |
-| `git_bytes_total` | counter | `transport`, `service` | Receive-pack: the existing `ByteCounter`. Upload-pack: a new counting writer around `resp.Encode` |
-| `import_jobs` | gauge | `state` (`queued`/`running`) | Scrape-time read of `ImportService`'s in-memory jobs |
-| `imports_total` | counter | `result` (`succeeded`/`failed`) | `ImportService.finish` |
-| `webhook_deliveries_total` | counter | `attempt` (`first`/`retry`), `result` (`success`/`failure`) | `WebhookService.deliver` and `retryDeliver` |
-| `webhook_retries_due` | gauge | (none) | Set on each 60 s retry tick from `ListPendingRetry` |
-| `go_sql_*{db_name="cloudzilla"}` | various | (none) | `collectors.NewDBStatsCollector`: open, in-use and idle connections, wait count and wait time |
-| `go_*`, `process_*` | various | (none) | The standard Go and process collectors, so stock dashboards work |
+| Metric                           | Type      | Labels                                                                                        | Source                                                                                                                               |
+| -------------------------------- | --------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `build_info`                     | gauge (1) | `version`                                                                                     | `main.version`                                                                                                                       |
+| `http_requests_total`            | counter   | `method`, `route`, `code`                                                                     | Middleware. `route` is chi's route pattern; `unmatched` when routing found none; `method` outside the standard verbs becomes `other` |
+| `http_request_duration_seconds`  | histogram | `method`, `route`                                                                             | Same middleware. Buckets 5 ms to 60 s                                                                                                |
+| `http_requests_in_flight`        | gauge     | (none)                                                                                        | Same middleware                                                                                                                      |
+| `git_operations_total`           | counter   | `transport` (`http`/`ssh`), `service` (`upload-pack`/`receive-pack`), `result` (`ok`/`error`) | `GitUploadPack`/`GitReceivePack` and `execGitService`                                                                                |
+| `git_bytes_total`                | counter   | `transport`, `service`                                                                        | Receive-pack: the existing `ByteCounter`. Upload-pack: a new counting writer around `resp.Encode`                                    |
+| `import_jobs`                    | gauge     | `state` (`queued`/`running`)                                                                  | Scrape-time read of `ImportService`'s in-memory jobs                                                                                 |
+| `imports_total`                  | counter   | `result` (`succeeded`/`failed`)                                                               | `ImportService.finish`                                                                                                               |
+| `webhook_deliveries_total`       | counter   | `attempt` (`first`/`retry`), `result` (`success`/`failure`)                                   | `WebhookService.deliver` and `retryDeliver`                                                                                          |
+| `webhook_retries_due`            | gauge     | (none)                                                                                        | Set on each 60 s retry tick from `ListPendingRetry`                                                                                  |
+| `go_sql_*{db_name="cloudzilla"}` | various   | (none)                                                                                        | `collectors.NewDBStatsCollector`: open, in-use and idle connections, wait count and wait time                                        |
+| `go_*`, `process_*`              | various   | (none)                                                                                        | The standard Go and process collectors, so stock dashboards work                                                                     |
 
 Out of scope: per-repo or per-user labels (unbounded cardinality), SSH session gauges, OpenTelemetry, and exemplars.
 

@@ -64,6 +64,7 @@ Nothing limits how many repositories an owner creates or how much disk they use.
   - `OrgService.CreateRepo`
 
   Transfers (`moveRepo` in `repo_transfer.go`) and `RepoService.Restore` bring a repository to an owner without calling it.
+
 - **Where repositories are written.**
   - Pushes go through `gittransport.NewLimitedReadCloser(body, MaxPackBytes)`. HTTP does this in `git_http.go` and answers 413 when the cap is crossed. SSH does it in `ssh/server.go` and writes the error to stderr.
   - Web commits go through `CodeService.CommitFile`.
@@ -95,12 +96,12 @@ The existing `middleware.RateLimit(limit, window)` keeps its signature and its p
 
 The limiter resolves the request's subject itself, because auth hasn't run yet:
 
-| Credential | Bucket key |
-| --- | --- |
-| Session JWT (cookie or `Bearer`) with a valid signature | `user:<id>:web` |
-| PAT (`Bearer czp_…`, or the Basic-auth password for git) that validates and isn't bound to a signing key | `user:<id>:token` |
-| OAuth-app token that resolves | `user:<id>:token` |
-| None, or one that doesn't verify | `ip:<IPv4>` or `ip:<IPv6 /64>` |
+| Credential                                                                                               | Bucket key                     |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Session JWT (cookie or `Bearer`) with a valid signature                                                  | `user:<id>:web`                |
+| PAT (`Bearer czp_…`, or the Basic-auth password for git) that validates and isn't bound to a signing key | `user:<id>:token`              |
+| OAuth-app token that resolves                                                                            | `user:<id>:token`              |
+| None, or one that doesn't verify                                                                         | `ip:<IPv4>` or `ip:<IPv6 /64>` |
 
 - A credential that doesn't verify counts against the IP. Random tokens can't buy fresh buckets.
 - A PAT bound to a signing key also counts against the IP: only auth can check the request's signature, and a leaked token mustn't spend its owner's budget.
@@ -112,12 +113,12 @@ The limiter resolves the request's subject itself, because auth hasn't run yet:
 
 Each request is charged to exactly one resource. Each resource has its own budget per subject:
 
-| Resource | Requests |
-| --- | --- |
-| `git` | `GET …/info/refs`, `POST …/git-upload-pack` and `POST …/git-receive-pack`. A clone, fetch or push is 2 requests |
-| `archive` | `GET /{owner}/{repo}/archive/…` |
-| `search` | `GET /search` and `GET /search/code` |
-| `core` | everything else that isn't exempt, including blame, contributors and pulse |
+| Resource  | Requests                                                                                                        |
+| --------- | --------------------------------------------------------------------------------------------------------------- |
+| `git`     | `GET …/info/refs`, `POST …/git-upload-pack` and `POST …/git-receive-pack`. A clone, fetch or push is 2 requests |
+| `archive` | `GET /{owner}/{repo}/archive/…`                                                                                 |
+| `search`  | `GET /search` and `GET /search/code`                                                                            |
+| `core`    | everything else that isn't exempt, including blame, contributors and pulse                                      |
 
 Classification runs before routing, so it matches the path's shape:
 
@@ -156,18 +157,18 @@ The body comes from an `onLimited http.HandlerFunc` that the router passes in, t
 
 ### Configuration
 
-| Key | Default | Env |
-| --- | --- | --- |
-| `rate_limit.enabled` | `true` | `CZ_RATE_LIMIT_ENABLED` |
-| `rate_limit.window` | `1h` | `CZ_RATE_LIMIT_WINDOW` |
-| `rate_limit.core.authenticated` | `5000` | `CZ_RATE_LIMIT_CORE_AUTHENTICATED` |
-| `rate_limit.core.anonymous` | `1000` | `CZ_RATE_LIMIT_CORE_ANONYMOUS` |
-| `rate_limit.git.authenticated` | `1000` | `CZ_RATE_LIMIT_GIT_AUTHENTICATED` |
-| `rate_limit.git.anonymous` | `200` | `CZ_RATE_LIMIT_GIT_ANONYMOUS` |
-| `rate_limit.archive.authenticated` | `100` | `CZ_RATE_LIMIT_ARCHIVE_AUTHENTICATED` |
-| `rate_limit.archive.anonymous` | `20` | `CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS` |
-| `rate_limit.search.authenticated` | `600` | `CZ_RATE_LIMIT_SEARCH_AUTHENTICATED` |
-| `rate_limit.search.anonymous` | `60` | `CZ_RATE_LIMIT_SEARCH_ANONYMOUS` |
+| Key                                | Default | Env                                   |
+| ---------------------------------- | ------- | ------------------------------------- |
+| `rate_limit.enabled`               | `true`  | `CZ_RATE_LIMIT_ENABLED`               |
+| `rate_limit.window`                | `1h`    | `CZ_RATE_LIMIT_WINDOW`                |
+| `rate_limit.core.authenticated`    | `5000`  | `CZ_RATE_LIMIT_CORE_AUTHENTICATED`    |
+| `rate_limit.core.anonymous`        | `1000`  | `CZ_RATE_LIMIT_CORE_ANONYMOUS`        |
+| `rate_limit.git.authenticated`     | `1000`  | `CZ_RATE_LIMIT_GIT_AUTHENTICATED`     |
+| `rate_limit.git.anonymous`         | `200`   | `CZ_RATE_LIMIT_GIT_ANONYMOUS`         |
+| `rate_limit.archive.authenticated` | `100`   | `CZ_RATE_LIMIT_ARCHIVE_AUTHENTICATED` |
+| `rate_limit.archive.anonymous`     | `20`    | `CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS`     |
+| `rate_limit.search.authenticated`  | `600`   | `CZ_RATE_LIMIT_SEARCH_AUTHENTICATED`  |
+| `rate_limit.search.anonymous`      | `60`    | `CZ_RATE_LIMIT_SEARCH_ANONYMOUS`      |
 
 - `0` means unlimited for that class. A negative value is a startup error.
 - The `authenticated` budget applies to each bucket separately: the `web` bucket and the `token` bucket each get the full number.
@@ -190,12 +191,12 @@ The counter is one small type (`fixedWindow.take(key, limit) → remaining, rese
 
 Four instance-wide limits, all off by default:
 
-| Key | Default | Env |
-| --- | --- | --- |
-| `quota.user.repos` | `0` | `CZ_QUOTA_USER_REPOS` |
-| `quota.user.storage_bytes` | `0` | `CZ_QUOTA_USER_STORAGE_BYTES` |
-| `quota.org.repos` | `0` | `CZ_QUOTA_ORG_REPOS` |
-| `quota.org.storage_bytes` | `0` | `CZ_QUOTA_ORG_STORAGE_BYTES` |
+| Key                        | Default | Env                           |
+| -------------------------- | ------- | ----------------------------- |
+| `quota.user.repos`         | `0`     | `CZ_QUOTA_USER_REPOS`         |
+| `quota.user.storage_bytes` | `0`     | `CZ_QUOTA_USER_STORAGE_BYTES` |
+| `quota.org.repos`          | `0`     | `CZ_QUOTA_ORG_REPOS`          |
+| `quota.org.storage_bytes`  | `0`     | `CZ_QUOTA_ORG_STORAGE_BYTES`  |
 
 - `0` means unlimited, so upgrading changes nothing until an operator sets a value. A negative value is a startup error.
 - Every user gets the same quota, and so does every org; there are no per-owner overrides.

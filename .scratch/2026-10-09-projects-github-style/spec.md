@@ -23,14 +23,14 @@ Mocks approved in conversation: list, New project dialog, board with composer an
 
 A card stays one row in `project_cards` and gains:
 
-| Field | Meaning |
-|---|---|
-| `title` | Short text shown on the card. Required for a note card. |
-| `note` | Reused as the markdown description (column kept, no rename). |
-| `due_date` | Optional date. |
-| `issue_id` / `pull_id` | Optional link. A note card may now carry one; a card with a link and no title is a plain linked card as today. |
-| `card_assignees(card_id, user_id)` | Repo owner or collaborators only. |
-| `card_labels(card_id, label_id)` | Labels of the card's own repo only. |
+| Field                              | Meaning                                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `title`                            | Short text shown on the card. Required for a note card.                                                        |
+| `note`                             | Reused as the markdown description (column kept, no rename).                                                   |
+| `due_date`                         | Optional date.                                                                                                 |
+| `issue_id` / `pull_id`             | Optional link. A note card may now carry one; a card with a link and no title is a plain linked card as today. |
+| `card_assignees(card_id, user_id)` | Repo owner or collaborators only.                                                                              |
+| `card_labels(card_id, label_id)`   | Labels of the card's own repo only.                                                                            |
 
 - The `CHECK` in `036_create_projects.sql` ties `note <> ''` to "no link" and forbids a title alongside a link. A new migration replaces it with: at most one of `issue_id`/`pull_id`, and a card with neither has a non-empty `title`.
 - Backfill: for existing note cards, `title` is the first line (≤120 chars, as `FirstLine` does today) and `note` keeps the remainder; when the first line is longer than 120 chars, `note` keeps the whole original text so nothing is lost.

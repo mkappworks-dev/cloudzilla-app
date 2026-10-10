@@ -8,12 +8,12 @@ Status: done
 
 Several files hold more than one concern, which makes review and conflict resolution harder. Sizes measured on 2026-10-08 (non-generated, non-test):
 
-| File | Lines |
-| ---- | ----- |
-| `internal/service/repo_service.go` | 1231 |
-| `internal/store/user_store.go` | 1057 |
-| `internal/service/sso_service.go` | 1015 (LDAP, SAML and provisioning in one file) |
-| `internal/handler/pull_page_handler.go` | 952 |
+| File                                                                                      | Lines                                              |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `internal/service/repo_service.go`                                                        | 1231                                               |
+| `internal/store/user_store.go`                                                            | 1057                                               |
+| `internal/service/sso_service.go`                                                         | 1015 (LDAP, SAML and provisioning in one file)     |
+| `internal/handler/pull_page_handler.go`                                                   | 952                                                |
 | `internal/handler/milestone_api_handler.go`, `internal/handler/milestone_page_handler.go` | 894 before the split (API and page handlers mixed) |
 
 ## Approach

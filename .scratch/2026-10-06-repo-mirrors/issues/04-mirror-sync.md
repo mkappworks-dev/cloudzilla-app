@@ -24,6 +24,7 @@ Spec: [../spec.md](../spec.md#pull-mirrors)
   4. `ParseAndStore`
 
   No activity events and no notifications.
+
 - Errors map to user-facing messages, as `ImportService.failureMessage` does.
 
 ## Acceptance criteria
@@ -43,5 +44,6 @@ Spec: [../spec.md](../spec.md#pull-mirrors)
 ## Comments
 
 **Claude, 2026-10-06:**
+
 - The thin-pack risk in the spec was wrong. go-git's HTTP and SSH clients strip `thin-pack` from the server's capabilities (`transport.UnsupportedCapabilities`), so they never request one. Wrapping the storer would only have turned every fetched object into a loose file. `TestMirrorSync_GoGitNeverRequestsThinPacks` fails if go-git changes this.
 - Side effects run inside the sync, not in background goroutines. The `mirror.max_concurrent` semaphore then bounds re-indexing load too.

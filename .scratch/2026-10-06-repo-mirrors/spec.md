@@ -120,6 +120,7 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
   ```
 
   The lease keeps other instances off a row, and it expires if the instance holding it crashes.
+
 - **Running:** syncs run under a semaphore of `mirror.max_concurrent`. Each runs under `mirror.timeout`, in a context that shutdown doesn't cancel, as imports do.
 - **Success:** set `next_sync_at = NOW() + interval`, clear `last_error`, and reset `consecutive_failures`.
 - **Failure:** store a user-facing message, mapped the way `ImportService.failureMessage` maps import errors. Then back off to `next_sync_at = NOW() + max(interval, min(interval × 2^(failures−1), 24h))`, so a revoked token doesn't hammer the upstream.
@@ -162,27 +163,27 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 
   ```yaml
   mirror:
-    enabled: true               # CZ_MIRROR_ENABLED
+    enabled: true # CZ_MIRROR_ENABLED
     allow_local_networks: false # CZ_MIRROR_ALLOW_LOCAL_NETWORKS
-    min_interval: 10m           # CZ_MIRROR_MIN_INTERVAL
-    default_interval: 8h        # CZ_MIRROR_DEFAULT_INTERVAL
-    max_concurrent: 3           # CZ_MIRROR_MAX_CONCURRENT
-    timeout: 30m                # CZ_MIRROR_TIMEOUT
+    min_interval: 10m # CZ_MIRROR_MIN_INTERVAL
+    default_interval: 8h # CZ_MIRROR_DEFAULT_INTERVAL
+    max_concurrent: 3 # CZ_MIRROR_MAX_CONCURRENT
+    timeout: 30m # CZ_MIRROR_TIMEOUT
   security:
-    secret_key: ""              # CZ_SECURITY_SECRET_KEY
+    secret_key: "" # CZ_SECURITY_SECRET_KEY
   ```
 
   Intervals must be at least `min_interval` and at most 30 days. Turning `enabled` off stops syncing and hides the mirror options, but keeps existing mirrors read-only.
 
 ### API
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `POST` | `/api/imports` | Gains `mirror` (bool) and `mirror_interval` (a duration string) |
-| `GET` | `/api/repos/{owner}/{repo}/mirror` | Pull-mirror status and settings (never the token) |
-| `PATCH` | `/api/repos/{owner}/{repo}/mirror` | Change the URL, credentials or interval |
-| `DELETE` | `/api/repos/{owner}/{repo}/mirror` | Stop mirroring |
-| `POST` | `/api/repos/{owner}/{repo}/mirror/sync` | Sync now (202) |
+| Method   | Path                                    | Purpose                                                         |
+| -------- | --------------------------------------- | --------------------------------------------------------------- |
+| `POST`   | `/api/imports`                          | Gains `mirror` (bool) and `mirror_interval` (a duration string) |
+| `GET`    | `/api/repos/{owner}/{repo}/mirror`      | Pull-mirror status and settings (never the token)               |
+| `PATCH`  | `/api/repos/{owner}/{repo}/mirror`      | Change the URL, credentials or interval                         |
+| `DELETE` | `/api/repos/{owner}/{repo}/mirror`      | Stop mirroring                                                  |
+| `POST`   | `/api/repos/{owner}/{repo}/mirror/sync` | Sync now (202)                                                  |
 
 ## Acceptance criteria
 
@@ -200,17 +201,17 @@ Add migration `NNN_repo_mirrors.sql`, taking the next free number at commit time
 
 ## Tickets
 
-| # | Ticket | Blocked by |
-| --- | --- | --- |
-| 01 | [Content-writable guard; archived gaps](issues/01-content-writable-guard.md) | — |
-| 02 | [`security.secret_key` and `secretbox`](issues/02-secret-key-encryption.md) | — |
-| 03 | [Schema, model, store, config](issues/03-mirror-schema-store.md) | — |
-| 04 | [Sync](issues/04-mirror-sync.md) | 02, 03 |
-| 05 | [Scheduler](issues/05-mirror-scheduler.md) | 04 |
-| 06 | [Import creates a mirror](issues/06-import-creates-mirror.md) | 02, 03 |
-| 07 | [Read-only mirrors](issues/07-mirror-read-only.md) | 01, 03 |
-| 08 | [Settings card and API](issues/08-mirror-settings-api.md) | 05, 06, 07 |
-| 09 | [Docs](issues/09-mirror-docs.md) | 02–08 |
+| #   | Ticket                                                                       | Blocked by |
+| --- | ---------------------------------------------------------------------------- | ---------- |
+| 01  | [Content-writable guard; archived gaps](issues/01-content-writable-guard.md) | —          |
+| 02  | [`security.secret_key` and `secretbox`](issues/02-secret-key-encryption.md)  | —          |
+| 03  | [Schema, model, store, config](issues/03-mirror-schema-store.md)             | —          |
+| 04  | [Sync](issues/04-mirror-sync.md)                                             | 02, 03     |
+| 05  | [Scheduler](issues/05-mirror-scheduler.md)                                   | 04         |
+| 06  | [Import creates a mirror](issues/06-import-creates-mirror.md)                | 02, 03     |
+| 07  | [Read-only mirrors](issues/07-mirror-read-only.md)                           | 01, 03     |
+| 08  | [Settings card and API](issues/08-mirror-settings-api.md)                    | 05, 06, 07 |
+| 09  | [Docs](issues/09-mirror-docs.md)                                             | 02–08      |
 
 ## Relevant files
 
