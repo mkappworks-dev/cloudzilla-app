@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -18,12 +19,22 @@ type SSOService struct {
 	users       *store.UserStore
 	cfg         config.AuthConfig
 	siteSetting *SiteSettingService
+	// now is nil outside tests, which pin it to replay a captured IdP response
+	// whose assertion is valid for only seconds.
+	now func() time.Time
 }
 
 // NewSSOService creates a new SSOService.
 // NewSSOService creates an SSOService with the given stores, auth config, and site settings.
 func NewSSOService(s *store.SSOStore, users *store.UserStore, cfg config.AuthConfig, siteSetting *SiteSettingService) *SSOService {
 	return &SSOService{store: s, users: users, cfg: cfg, siteSetting: siteSetting}
+}
+
+func (s *SSOService) clock() time.Time {
+	if s.now != nil {
+		return s.now()
+	}
+	return time.Now()
 }
 
 // GetConfig returns the SSOConfig for the given provider.
