@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -39,7 +41,7 @@ func (e metaEnv) createColumn(t *testing.T, project int64, name string) int64 {
 func (e metaEnv) createNote(t *testing.T, project, column int64, note string) int64 {
 	t.Helper()
 	rr := e.do(t, metaReq{method: "POST", target: e.path("/projects/%d/cards", project), token: e.writer.token,
-		json: fmt.Sprintf(`{"column_id":%d,"note":%q}`, column, note)})
+		json: fmt.Sprintf(`{"column_id":%d,"title":%q}`, column, note)})
 	wantStatus(t, rr, http.StatusCreated)
 	var c struct {
 		ID int64 `json:"id"`
@@ -66,6 +68,7 @@ func TestProjects_Create(t *testing.T) {
 		{"outsider", metaReq{method: "POST", target: e.path("/projects"), token: e.outsider.token, json: `{"name":"x"}`}, http.StatusForbidden},
 		{"bad json", metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{`}, http.StatusBadRequest},
 		{"no name", metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{"description":"x"}`}, http.StatusBadRequest},
+		{"blank name", metaReq{method: "POST", target: e.path("/projects"), token: e.owner.token, json: `{"name":"   "}`}, http.StatusBadRequest},
 		{"unknown repo", metaReq{method: "POST", target: "/api/repos/" + e.owner.name + "/nope/projects", token: e.owner.token, json: `{"name":"x"}`}, http.StatusNotFound},
 	}
 	for _, c := range cases {
@@ -149,12 +152,22 @@ func TestProjects_Columns(t *testing.T) {
 		{"foreign project", metaReq{method: "POST", target: e.path("/projects/%d/columns", foreignProject), token: e.owner.token, json: `{"name":"x"}`}, http.StatusNotFound},
 		{"bad json", metaReq{method: "POST", target: cols, token: e.owner.token, json: `{`}, http.StatusBadRequest},
 		{"no name", metaReq{method: "POST", target: cols, token: e.owner.token, json: `{"name":""}`}, http.StatusBadRequest},
+		{"blank name", metaReq{method: "POST", target: cols, token: e.owner.token, json: `{"name":"  \t "}`}, http.StatusBadRequest},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
 	}
 	if n := e.count(t, `SELECT COUNT(*) FROM project_columns WHERE project_id = $1`, p); n != 0 {
 		t.Fatalf("refusals created %d columns", n)
+	}
+
+	padded := e.createColumn(t, p, "  Backlog  ")
+	var stored string
+	if err := e.db.QueryRow(`SELECT name FROM project_columns WHERE id = $1`, padded).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored != "Backlog" {
+		t.Errorf("stored column name = %q, want it trimmed to %q", stored, "Backlog")
 	}
 
 	col := e.createColumn(t, p, "To do")
@@ -267,6 +280,198 @@ func TestProjects_Cards(t *testing.T) {
 	}
 }
 
+func TestProjects_CardDetails(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	col := e.createColumn(t, p, "To do")
+	other := e.createProject(t, "Other board")
+	note := e.createNote(t, p, col, "before")
+	issueID, _ := e.seedIssue(t, "linked", "open")
+	label := e.seedLabel(t, "bug")
+
+	sfx := testutil.UniqueSuffix(t)
+	foreignRepo := testutil.SeedRepo(t, e.db, e.owner.id, e.owner.name, sfx)
+	var foreignLabel, foreignIssue int64
+	if err := e.db.QueryRow(`INSERT INTO labels (repo_id, name) VALUES ($1, 'x') RETURNING id`, foreignRepo).Scan(&foreignLabel); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.db.QueryRow(`INSERT INTO issues (repo_id, number, author_id, title) VALUES ($1, 1, $2, 'f') RETURNING id`, foreignRepo, e.owner.id).Scan(&foreignIssue); err != nil {
+		t.Fatal(err)
+	}
+
+	target := e.path("/projects/%d/cards/%d/details", p, note)
+	body := `{"title":"after","description":"more"}`
+	patch := func(token, path, json string) metaReq {
+		return metaReq{method: "PATCH", target: path, token: token, json: json}
+	}
+	cases := []struct {
+		name string
+		req  metaReq
+		want int
+	}{
+		{"anonymous", patch("", target, body), http.StatusUnauthorized},
+		{"outsider", patch(e.outsider.token, target, body), http.StatusForbidden},
+		{"bad json", patch(e.writer.token, target, `{`), http.StatusBadRequest},
+		{"blank title on a note card", patch(e.writer.token, target, `{"title":"  "}`), http.StatusBadRequest},
+		{"assignee outside the repo", patch(e.writer.token, target, fmt.Sprintf(`{"title":"t","assignee_ids":[%d]}`, e.outsider.id)), http.StatusBadRequest},
+		{"label of another repo", patch(e.writer.token, target, fmt.Sprintf(`{"title":"t","label_ids":[%d]}`, foreignLabel)), http.StatusBadRequest},
+		{"issue of another repo", patch(e.writer.token, target, fmt.Sprintf(`{"title":"t","issue_id":%d}`, foreignIssue)), http.StatusNotFound},
+		{"card of another project", patch(e.writer.token, e.path("/projects/%d/cards/%d/details", other, note), body), http.StatusNotFound},
+		{"bad due date", patch(e.writer.token, target, `{"title":"t","due_date":"31/12"}`), http.StatusBadRequest},
+		{"oversized description", patch(e.writer.token, target, `{"title":"t","description":"`+strings.Repeat("a", 65537)+`"}`), http.StatusBadRequest},
+		{"too many labels", patch(e.writer.token, target, `{"title":"t","label_ids":[`+strings.Repeat("1,", 50)+`1]}`), http.StatusBadRequest},
+		{"due date before year 1", patch(e.writer.token, target, `{"title":"t","due_date":"0000-01-01"}`), http.StatusBadRequest},
+		{"create with due date before year 1", metaReq{method: "POST", target: e.path("/projects/%d/cards", p), token: e.writer.token,
+			json: fmt.Sprintf(`{"column_id":%d,"title":"t","due_date":"0000-12-31"}`, col)}, http.StatusBadRequest},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) { wantStatus(t, e.do(t, c.req), c.want) })
+	}
+	cardTitle := func() string {
+		var s string
+		if err := e.db.QueryRow(`SELECT title FROM project_cards WHERE id = $1`, note).Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	if got := cardTitle(); got != "before" {
+		t.Fatalf("refusals changed the title to %q", got)
+	}
+
+	full := fmt.Sprintf(`{"title":"after","description":"more","due_date":"2030-01-02","assignee_ids":[%d],"label_ids":[%d],"issue_id":%d}`,
+		e.writer.id, label, issueID)
+	wantStatus(t, e.do(t, patch(e.writer.token, target, full)), http.StatusNoContent)
+	var title, desc, due string
+	var linked int64
+	if err := e.db.QueryRow(`SELECT title, note, due_date::text, issue_id FROM project_cards WHERE id = $1`, note).Scan(&title, &desc, &due, &linked); err != nil {
+		t.Fatal(err)
+	}
+	if title != "after" || desc != "more" || due != "2030-01-02" || linked != issueID {
+		t.Errorf("card = %q %q %q %d", title, desc, due, linked)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1 AND user_id = $2`, note, e.writer.id); n != 1 {
+		t.Errorf("assignee rows = %d, want 1", n)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_labels WHERE card_id = $1 AND label_id = $2`, note, label); n != 1 {
+		t.Errorf("label rows = %d, want 1", n)
+	}
+
+	wantStatus(t, e.do(t, patch(e.writer.token, target, `{"title":"after","assignee_ids":[],"label_ids":[]}`)), http.StatusNoContent)
+	if n := e.count(t, `SELECT (SELECT COUNT(*) FROM card_assignees WHERE card_id = $1) + (SELECT COUNT(*) FROM card_labels WHERE card_id = $1)`, note); n != 0 {
+		t.Errorf("join rows = %d, want 0", n)
+	}
+
+	cards := e.path("/projects/%d/cards", p)
+	post := func(json string) *httptest.ResponseRecorder {
+		return e.do(t, metaReq{method: "POST", target: cards, token: e.writer.token, json: json})
+	}
+	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d,"title":"x"}`, col)), http.StatusCreated)
+	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID)), http.StatusCreated)
+	wantStatus(t, post(fmt.Sprintf(`{"column_id":%d}`, col)), http.StatusBadRequest)
+
+	rr := post(fmt.Sprintf(`{"column_id":%d,"title":"full","description":"desc","assignee_ids":[%d],"label_ids":[%d]}`, col, e.writer.id, label))
+	wantStatus(t, rr, http.StatusCreated)
+	var created struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM project_cards WHERE id = $1 AND title = 'full' AND note = 'desc'`, created.ID); n != 1 {
+		t.Errorf("created card rows = %d, want 1", n)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1 AND user_id = $2`, created.ID, e.writer.id); n != 1 {
+		t.Errorf("assignee rows = %d, want 1", n)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_labels WHERE card_id = $1 AND label_id = $2`, created.ID, label); n != 1 {
+		t.Errorf("label rows = %d, want 1", n)
+	}
+
+	rr = post(fmt.Sprintf(`{"column_id":%d,"issue_id":%d}`, col, issueID))
+	wantStatus(t, rr, http.StatusCreated)
+	var linkedCard struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &linkedCard); err != nil {
+		t.Fatal(err)
+	}
+	linkedTarget := e.path("/projects/%d/cards/%d/details", p, linkedCard.ID)
+	wantStatus(t, e.do(t, patch(e.writer.token, linkedTarget, fmt.Sprintf(`{"title":"","issue_id":%d}`, issueID))), http.StatusNoContent)
+	wantStatus(t, e.do(t, patch(e.writer.token, linkedTarget, fmt.Sprintf(`{"title":"named","issue_id":%d}`, issueID))), http.StatusNoContent)
+	wantStatus(t, e.do(t, patch(e.writer.token, linkedTarget, fmt.Sprintf(`{"title":" ","issue_id":%d}`, issueID))), http.StatusBadRequest)
+}
+
+func TestProjects_CardDetailsKeepsAssigneeRemovedFromRepo(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	col := e.createColumn(t, p, "To do")
+	card := e.createNote(t, p, col, "assigned")
+	target := e.path("/projects/%d/cards/%d/details", p, card)
+	patch := func(assignees string) *httptest.ResponseRecorder {
+		return e.do(t, metaReq{method: "PATCH", target: target, token: e.owner.token, json: `{"title":"assigned","assignee_ids":` + assignees + `}`})
+	}
+
+	wantStatus(t, patch(fmt.Sprintf(`[%d]`, e.writer.id)), http.StatusNoContent)
+	testutil.Exec(t, e.db, `DELETE FROM permissions WHERE repo_id = $1 AND user_id = $2`, e.repoID, e.writer.id)
+
+	wantStatus(t, patch(fmt.Sprintf(`[%d]`, e.writer.id)), http.StatusNoContent)
+	wantStatus(t, patch(fmt.Sprintf(`[%d,%d]`, e.writer.id, e.outsider.id)), http.StatusBadRequest)
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1 AND user_id = $2`, card, e.writer.id); n != 1 {
+		t.Fatalf("refused save changed the assignee rows: %d, want 1", n)
+	}
+	wantStatus(t, patch(`[]`), http.StatusNoContent)
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1`, card); n != 0 {
+		t.Errorf("assignee rows after removal = %d, want 0", n)
+	}
+}
+
+func TestProjects_CardTargets(t *testing.T) {
+	e := newGitMetaEnv(t)
+	p := e.createProject(t, "Board")
+	_, issueNum := e.seedIssue(t, "Fix login Crash", "open")
+	e.seedPull(t, "Add 100%_done flag", "open")
+	e.seedIssue(t, "unrelated", "closed")
+	target := func(q string) string { return e.path("/projects/%d/card-targets?q=%s", p, q) }
+
+	wantStatus(t, e.do(t, metaReq{method: "GET", target: target("x")}), http.StatusUnauthorized)
+	wantStatus(t, e.do(t, metaReq{method: "GET", target: target("x"), token: e.outsider.token}), http.StatusForbidden)
+	wantStatus(t, e.do(t, metaReq{method: "GET", target: e.path("/projects/999999999/card-targets"), token: e.owner.token}), http.StatusNotFound)
+
+	search := func(q string) []string {
+		rr := e.do(t, metaReq{method: "GET", target: target(q), token: e.writer.token})
+		wantStatus(t, rr, http.StatusOK)
+		var got []struct {
+			Kind  string `json:"kind"`
+			Title string `json:"title"`
+		}
+		if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
+			t.Fatal(err)
+		}
+		out := []string{}
+		for _, g := range got {
+			out = append(out, g.Kind+":"+g.Title)
+		}
+		return out
+	}
+	if got := search("crash"); len(got) != 1 || got[0] != "issue:Fix login Crash" {
+		t.Errorf("title match = %v", got)
+	}
+	if got := search(fmt.Sprintf("%%23%d", issueNum)); !slices.Contains(got, "issue:Fix login Crash") {
+		t.Errorf("#number match = %v, want it to contain issue:Fix login Crash", got)
+	}
+	rr := e.do(t, metaReq{method: "GET", target: target("%2399999999999"), token: e.writer.token})
+	wantStatus(t, rr, http.StatusOK)
+	if body := strings.TrimSpace(rr.Body.String()); body != "[]" {
+		t.Errorf("out-of-range #number body = %q, want []", body)
+	}
+	if got := search("%25_"); len(got) != 1 || got[0] != "pull:Add 100%_done flag" {
+		t.Errorf("literal wildcard match = %v", got)
+	}
+	if got := search(""); len(got) != 3 {
+		t.Errorf("empty query = %v, want all 3", got)
+	}
+}
+
 func TestProjects_Pages(t *testing.T) {
 	e := newGitMetaEnv(t)
 	open := e.createProject(t, "Alpha board")
@@ -315,4 +520,34 @@ func TestProjects_Pages(t *testing.T) {
 	testutil.Exec(t, e.db, `UPDATE repositories SET allow_projects = TRUE, private = TRUE WHERE id = $1`, e.repoID)
 	wantStatus(t, e.page(t, e.pagePath("/projects"), e.outsider.token, false), http.StatusNotFound)
 	wantStatus(t, e.page(t, e.pagePath("/projects/%d", open), e.outsider.token, false), http.StatusNotFound)
+}
+
+func TestProjects_BoardCardDialogData(t *testing.T) {
+	e := newGitMetaEnv(t)
+	board := e.createProject(t, "Card dialog board")
+	col := e.createColumn(t, board, "Todo")
+	e.createNote(t, board, col, "dialog card")
+	e.seedLabel(t, "triage-me")
+
+	rr := e.page(t, e.pagePath("/projects/%d", board), e.writer.token, false)
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "data-card-people")
+	bodyHas(t, rr, fmt.Sprintf(`id="card-assignees-trigger-opt-%d"`, e.owner.id))
+	bodyHas(t, rr, fmt.Sprintf(`id="card-assignees-trigger-opt-%d"`, e.writer.id))
+	bodyHas(t, rr, "data-card-labels")
+	bodyHas(t, rr, "triage-me")
+	bodyHas(t, rr, `@click="deleteCard()"`)
+	bodyHas(t, rr, fmt.Sprintf(`data-add-card="%d"`, col))
+	bodyHas(t, rr, `aria-label="Edit title"`)
+	bodyHas(t, rr, `<div class="md-editor" data-md-editor>`)
+
+	rr = e.page(t, e.pagePath("/projects/%d", board), "", false)
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "dialog card")
+	bodyHas(t, rr, `id="card-dialog-title"`)
+	for _, gone := range []string{"data-card-people", "data-card-labels", "triage-me", "deleteCard", "data-add-card", "linkPicker", `aria-label="Edit title"`, `<div class="md-editor" data-md-editor>`} {
+		if strings.Contains(rr.Body.String(), gone) {
+			t.Errorf("anonymous board renders %q", gone)
+		}
+	}
 }

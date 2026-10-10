@@ -20,7 +20,7 @@ func TestProjectService_Board_HidesPrivateIssueFromViewersWhoCannotSeeIt(t *test
 		if err := e.issues.Create(ctx, i); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.ownerID, &i.ID, nil, ""); err != nil {
+		if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.ownerID, model.CardDetails{IssueID: &i.ID}); err != nil {
 			t.Fatal(err)
 		}
 		return i.ID

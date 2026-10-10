@@ -39,15 +39,18 @@ func TestProjectService_CreateCard_RefusesAnotherReposIssueOrPull(t *testing.T) 
 	for name, tc := range map[string]struct {
 		issue, pull *int64
 	}{
-		"issue in another repo":   {issue: &secret.ID},
-		"pull in another repo":    {pull: &foreignPull.ID},
-		"own issue, foreign pull": {issue: &own.ID, pull: &foreignPull.ID},
-		"nonexistent issue":       {issue: &missing},
-		"nonexistent pull":        {pull: &missing},
+		"issue in another repo": {issue: &secret.ID},
+		"pull in another repo":  {pull: &foreignPull.ID},
+		"nonexistent issue":     {issue: &missing},
+		"nonexistent pull":      {pull: &missing},
 	} {
-		if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.writerID, tc.issue, tc.pull, ""); !errors.Is(err, service.ErrCardTargetNotFound) {
+		if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.writerID, model.CardDetails{IssueID: tc.issue, PullID: tc.pull}); !errors.Is(err, service.ErrCardTargetNotFound) {
 			t.Errorf("%s: got %v, want ErrCardTargetNotFound", name, err)
 		}
+	}
+
+	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.writerID, model.CardDetails{IssueID: &own.ID, PullID: &foreignPull.ID}); !errors.Is(err, service.ErrInvalidCard) {
+		t.Errorf("issue and pull together: got %v, want ErrInvalidCard", err)
 	}
 
 	cols, err := e.svc.ListColumnsWithCards(ctx, p.ID, &e.ownerID)
@@ -60,7 +63,7 @@ func TestProjectService_CreateCard_RefusesAnotherReposIssueOrPull(t *testing.T) 
 		}
 	}
 
-	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.writerID, &own.ID, nil, ""); err != nil {
+	if _, err := e.svc.CreateCard(ctx, p.ID, col.ID, e.writerID, model.CardDetails{IssueID: &own.ID}); err != nil {
 		t.Errorf("an issue from the project's own repo: %v", err)
 	}
 }

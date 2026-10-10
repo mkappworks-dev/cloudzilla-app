@@ -40,9 +40,9 @@ func TestDropCrossRepoCardsMigration_DeletesOnlyCardsPointingAtAnotherRepo(t *te
 		}
 		return id
 	}
-	card := func(name string, issue, pull any, note string) int64 {
+	card := func(name string, issue, pull any, title string) int64 {
 		var id int64
-		if err := db.QueryRow(`INSERT INTO project_cards (column_id, issue_id, pull_id, note) VALUES ($1, $2, $3, $4) RETURNING id`, column, issue, pull, note).Scan(&id); err != nil {
+		if err := db.QueryRow(`INSERT INTO project_cards (column_id, issue_id, pull_id, title) VALUES ($1, $2, $3, $4) RETURNING id`, column, issue, pull, title).Scan(&id); err != nil {
 			t.Fatalf("seed card %s: %v", name, err)
 		}
 		return id

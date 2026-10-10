@@ -19,7 +19,7 @@ func seedCmd() *cobra.Command {
 		Use:   "seed",
 		Short: "Fill a fresh instance with test data",
 		Long: "Creates a superadmin, users, organizations, repositories with a year of backdated git history,\n" +
-			"issues, pull requests, discussions, releases, stars and gists. Refuses to run unless the database\n" +
+			"issues, pull requests, project boards, discussions, releases, stars and gists. Refuses to run unless the database\n" +
 			"has no accounts and git.repos_root is empty. Every account signs in with the --password value.",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -41,10 +41,10 @@ func seedCmd() *cobra.Command {
 				return err
 			}
 			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "\n%d users, %d orgs, %d repos (%d commits), %d issues, %d pull requests,\n"+
-				"%d comments, %d discussions, %d releases, %d stars, %d gists\n\n"+
+				"%d projects (%d cards), %d comments, %d discussions, %d releases, %d stars, %d gists\n\n"+
 				"Sign in as %s (username %s) with the --password value.\n",
 				rep.Users, rep.Orgs, rep.Repos, rep.Commits, rep.Issues, rep.Pulls,
-				rep.Comments, rep.Discussions, rep.Releases, rep.Stars, rep.Gists,
+				rep.Projects, rep.Cards, rep.Comments, rep.Discussions, rep.Releases, rep.Stars, rep.Gists,
 				seed.AdminEmail, seed.AdminUsername)
 			return nil
 		},

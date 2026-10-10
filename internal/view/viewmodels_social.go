@@ -175,6 +175,9 @@ type ProjectDetailData struct {
 	Columns   []service.KanbanColumnView
 	CanWrite  bool
 	CanManage bool
+	// Labels and People feed the card modal's checkbox lists; loaded only for writers.
+	Labels []model.Label
+	People []model.CardUser
 }
 
 type WikiPageData struct {

@@ -13,7 +13,7 @@
 
 # Milestone 1 — Core Platform (Phases 0–15.3) ✅ COMPLETE
 
-_All of Phases 0–15.3 shipped, and the closing pass (a security and coverage review in October 2026) is finished. Migrations now run through 113; 054 onward is work outside the phase plan, the largest pieces of which are listed under [Shipped outside the phase plan](#shipped-outside-the-phase-plan)._
+_All of Phases 0–15.3 shipped, and the closing pass (a security and coverage review in October 2026) is finished. Migrations now run through 116; 054 onward is work outside the phase plan, the largest pieces of which are listed under [Shipped outside the phase plan](#shipped-outside-the-phase-plan)._
 
 ---
 
@@ -1474,7 +1474,8 @@ CREATE INDEX idx_project_cards_pull   ON project_cards(pull_id);
 - `internal/model/project.go` — `Project`, `ProjectColumn`, `ProjectCard` structs; `ProjectCard` has helper fields `IssueTitle`, `IssueState`, `PullTitle`, `PullState` (populated via JOIN in store)
 - `internal/store/project_store.go` — `CreateProject`, `ListByRepo`, `GetProject`, `DeleteProject`; `CreateColumn`, `ListColumns`, `UpdateColumnPosition`, `DeleteColumn`; `CreateCard`, `ListCardsByColumn`, `MoveCard(ctx, cardID, newColumnID, newPosition)`, `DeleteCard`
 - `internal/service/project_service.go`
-- `internal/handler/project_handler.go` — `PageProjects`, `PageProjectDetail`, `CreateProject`, `DeleteProject`, `CreateColumn`, `DeleteColumn`, `CreateCard`, `MoveCard`, `DeleteCard`; HTMX-aware card move uses `hx-patch` with `column_id` + `position`
+- `internal/handler/project_page_handler.go` — `PageProjects`, `PageProjectDetail`
+- `internal/handler/project_handler.go` — `CreateProject`, `DeleteProject`, `CreateColumn`, `DeleteColumn`, `CreateCard`, `MoveCard`, `DeleteCard`; HTMX-aware card move uses `hx-patch` with `column_id` + `position`
 
 **Routes:**
 
@@ -1496,6 +1497,8 @@ DELETE     /api/repos/{owner}/{repo}/projects/{id}/cards/{cardID}   (authMW)
 - `pages/project_detail.html` — Kanban board: columns side by side, cards per column; drag-and-drop via HTMX + `hx-on:dragend` firing a `PATCH` to move card; no extra JS lib needed (native HTML5 drag events + HTMX `hx-trigger="dragend"`)
 
 **Page names to register:** `"projects"`, `"project_detail"`
+
+**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `116`), `#N` autolinks in descriptions, convert-to-issue and a card modal; see the card API in [api-reference](./api-reference.md#projects-kanban).
 
 **Wire up:**
 

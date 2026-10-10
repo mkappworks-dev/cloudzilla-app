@@ -36,7 +36,7 @@ type Options struct {
 }
 
 type Report struct {
-	Users, Orgs, Repos, Commits, Issues, Pulls, Comments, Discussions, Releases, Stars, Gists int
+	Users, Orgs, Repos, Commits, Issues, Pulls, Comments, Discussions, Releases, Stars, Gists, Projects, Cards int
 }
 
 type seeder struct {
@@ -82,6 +82,7 @@ func Run(ctx context.Context, svcs *service.Services, reposRoot string, opts Opt
 		{"repositories", s.seedRepos},
 		{"issues", s.seedIssues},
 		{"pull requests", s.seedPulls},
+		{"projects", s.seedProjects},
 		{"discussions", s.seedDiscussions},
 		{"releases", s.seedReleases},
 		{"stars and watches", s.seedSocial},
