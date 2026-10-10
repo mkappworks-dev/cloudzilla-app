@@ -121,7 +121,7 @@ A suspended user who signs in with correct credentials sees "This account is sus
 - `internal/db/migrations/` (new `users.suspended_at`)
 - `internal/model/user.go`, `internal/model/audit_log.go`
 - `internal/store/user_store.go` and `internal/store/user_store_auth.go`: `userColumns`, `SessionVersion`, new list, count, suspend, role, TOTP-reset and active-superadmin-lock queries
-- `internal/service/user_service.go` (`generateJWT`, `Authenticate`, `DeleteUser`), `sso_service.go` (`generateJWT`), `access_token_service.go` (`Validate`), `oauth_app_service.go` (`ResolveOAuthToken`), `ssh_key_service.go`, `deploy_key_service.go`, `email_service.go` (`wantsEmail`), a new admin user service
+- `internal/service/user_service.go` (`generateJWT`, `Authenticate`, `DeleteUser`), `sso_provision.go` (`generateJWT`), `access_token_service.go` (`Validate`), `oauth_app_service.go` (`ResolveOAuthToken`), `ssh_key_service.go`, `deploy_key_service.go`, `email_service.go` (`wantsEmail`), a new admin user service
 - `internal/middleware/auth.go` (`sessionLive`, the `SessionVersions` interface)
 - `internal/ssh/server.go`, `internal/handler/git_http.go` (`resolveGitUser`)
 - `internal/handler/page_auth_handler.go`, `auth_handler.go`, the LDAP, SAML and Google handlers, `totp_handler.go`, `page_settings_handler.go` (`DeleteAccount`), a new admin users handler
