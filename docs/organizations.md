@@ -77,20 +77,20 @@ Profile edits, repository-default changes, and deletes write audit entries (`org
 
 ## API Endpoints
 
-| Method | Path                                      | Auth     | Description                                                                                                   |
-| ------ | ----------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/orgs/`                              | Required | Create org (`name`, `display_name`, `description`)                                                            |
-| GET    | `/api/orgs/{org}`                         | —        | Get org by name, including profile fields and repository defaults                                             |
-| GET    | `/api/orgs/{org}/members`                 | —        | List org members                                                                                              |
-| POST   | `/api/orgs/{org}/members`                 | Required | Add member (`username`, `role`); owner only                                                                   |
-| DELETE | `/api/orgs/{org}/members/{username}`      | Required | Remove member; owner only, except a member may remove themselves; last owner blocked                          |
-| POST   | `/api/orgs/{org}/members/{username}/role` | Required | Change a member's role (`role`: `owner` or `member`); owner only; last owner cannot be demoted                |
-| POST   | `/api/orgs/{org}/repos`                   | Required | Create a repo under the org; owner only; omitted `private` falls back to `default_repo_visibility`            |
-| POST   | `/api/orgs/{org}/transfer`                | Required | Transfer org ownership (`new_owner`, optional `confirm_name` form fields); owner only; demotes self to member |
-| POST   | `/api/orgs/{org}/profile`                 | Required | Update profile fields (form post); owner only                                                                 |
-| POST   | `/api/orgs/{org}/repo-defaults`           | Required | Update repository defaults (form post); owner only                                                            |
+| Method | Path                                      | Auth       | Description                                                                                                                                                 |
+| ------ | ----------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/orgs/`                              | Required   | Create org (`name`, `display_name`, `description`)                                                                                                          |
+| GET    | `/api/orgs/{org}`                         | —          | Get org by name, including profile fields and repository defaults                                                                                           |
+| GET    | `/api/orgs/{org}/members`                 | —          | List org members                                                                                                                                            |
+| POST   | `/api/orgs/{org}/members`                 | Required   | Add member (`username`, `role`); owner only                                                                                                                 |
+| DELETE | `/api/orgs/{org}/members/{username}`      | Required   | Remove member; owner only, except a member may remove themselves; last owner blocked                                                                        |
+| POST   | `/api/orgs/{org}/members/{username}/role` | Required   | Change a member's role (`role`: `owner` or `member`); owner only; last owner cannot be demoted                                                              |
+| POST   | `/api/orgs/{org}/repos`                   | Required   | Create a repo under the org; owner only; omitted `private` falls back to `default_repo_visibility`                                                          |
+| POST   | `/api/orgs/{org}/transfer`                | Required   | Transfer org ownership (`new_owner`, optional `confirm_name` form fields); owner only; demotes self to member                                               |
+| POST   | `/api/orgs/{org}/profile`                 | Required   | Update profile fields (form post); owner only                                                                                                               |
+| POST   | `/api/orgs/{org}/repo-defaults`           | Required   | Update repository defaults (form post); owner only                                                                                                          |
 | POST   | `/api/admin/orgs/{org}/owners`            | Superadmin | Make a user an owner without being one (`username`); needs the admin's confirmation; see [access-control](./access-control.md#adding-an-organization-owner) |
-| POST   | `/api/orgs/{org}/delete`                  | Required | Delete the org (`confirm_name` form field); owner only; refused while the org owns repositories               |
+| POST   | `/api/orgs/{org}/delete`                  | Required   | Delete the org (`confirm_name` form field); owner only; refused while the org owns repositories                                                             |
 
 HTMX requests to add, remove, or change the role of a member respond with the `OrgMembers` fragment, which the settings page swaps into `#org-members-list`. See [api-reference.md](api-reference.md#organizations) for redirects and field validation.
 

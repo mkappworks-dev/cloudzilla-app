@@ -12,11 +12,11 @@ Each repository has a wiki of Markdown pages, stored as files in a bare git repo
 
 ## Access
 
-| Action                                  | Needs     | Refusal                                            |
-| --------------------------------------- | --------- | -------------------------------------------------- |
-| View a page                             | CanRead   | 404, so a private wiki is not revealed             |
-| Create, edit, rename, reorder           | CanWrite  | 403                                                |
-| Delete a page                           | CanManage | 403                                                |
+| Action                        | Needs     | Refusal                                |
+| ----------------------------- | --------- | -------------------------------------- |
+| View a page                   | CanRead   | 404, so a private wiki is not revealed |
+| Create, edit, rename, reorder | CanWrite  | 403                                    |
+| Delete a page                 | CanManage | 403                                    |
 
 The wiki can be turned off per repository with the **Wiki** feature toggle in repository settings (`repositories.allow_wiki`, migration 058). A disabled wiki answers 404 on every route above. It also answers 404 when a repository named `<repo>.wiki`, created before that suffix was reserved, holds the directory.
 
@@ -26,14 +26,14 @@ The wiki's disk use counts toward the owner's storage [quota](./configuration.md
 
 ## Routes
 
-| Method | Path                                      | Auth                 | Description                                                  |
-| ------ | ----------------------------------------- | -------------------- | ------------------------------------------------------------ |
-| GET    | `/{owner}/{repo}/wiki`                    | Optional             | Redirect to `Home`                                           |
-| GET    | `/{owner}/{repo}/wiki/new`                | Required, CanWrite   | New page form                                                |
-| GET    | `/{owner}/{repo}/wiki/{slug}`             | Optional             | A page                                                       |
-| GET    | `/{owner}/{repo}/wiki/{slug}/edit`        | Required, CanWrite   | Edit form                                                    |
-| POST   | `/api/repos/{owner}/{repo}/wiki/{slug}`   | Required, CanWrite   | Create or update: `content`, `message`, `new_slug`; 303 to the page |
-| POST   | `/api/repos/{owner}/{repo}/wiki/order`    | Required, CanWrite   | `order`: comma-separated slugs; 200                          |
-| DELETE | `/api/repos/{owner}/{repo}/wiki/{slug}`   | Required, CanManage  | Delete a page; HTMX gets 200, otherwise 303 to the wiki      |
+| Method | Path                                    | Auth                | Description                                                         |
+| ------ | --------------------------------------- | ------------------- | ------------------------------------------------------------------- |
+| GET    | `/{owner}/{repo}/wiki`                  | Optional            | Redirect to `Home`                                                  |
+| GET    | `/{owner}/{repo}/wiki/new`              | Required, CanWrite  | New page form                                                       |
+| GET    | `/{owner}/{repo}/wiki/{slug}`           | Optional            | A page                                                              |
+| GET    | `/{owner}/{repo}/wiki/{slug}/edit`      | Required, CanWrite  | Edit form                                                           |
+| POST   | `/api/repos/{owner}/{repo}/wiki/{slug}` | Required, CanWrite  | Create or update: `content`, `message`, `new_slug`; 303 to the page |
+| POST   | `/api/repos/{owner}/{repo}/wiki/order`  | Required, CanWrite  | `order`: comma-separated slugs; 200                                 |
+| DELETE | `/api/repos/{owner}/{repo}/wiki/{slug}` | Required, CanManage | Delete a page; HTMX gets 200, otherwise 303 to the wiki             |
 
 The `order` route sits before `{slug}`, so a page cannot be named `order` through the API.

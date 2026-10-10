@@ -4,55 +4,55 @@ Source of truth for the UI overhaul. Every per-phase page port translates mockup
 
 ## Token reference (CSS variables)
 
-| Mockup variable | shadcn variable in `tailwind/input.css` | Tailwind utility |
-|---|---|---|
-| `--bg` | `--background` | `bg-background` |
-| `--surface` | `--card` | `bg-card` |
-| `--elevated` | `--accent` | `bg-accent` |
-| `--border` | `--border` | `border-border` |
-| `--border-strong` | `--border-strong` (new — added in Task 3) | `border-border-strong` |
-| `--fg` | `--foreground` | `text-foreground` |
-| `--fg-2` | `--muted-foreground` | `text-muted-foreground` |
-| `--fg-3` | `--muted-foreground` at 70% opacity | `text-muted-foreground/70` |
-| `--focus` | `--ring` | `focus-visible:outline-ring` |
-| `--link` | `--primary` | `text-primary` |
-| `--success` | `--success` | `text-success`, `bg-success` |
-| `--warn` | `--warning` | `text-warning` |
-| `--danger` | `--destructive` | `text-destructive` |
+| Mockup variable   | shadcn variable in `tailwind/input.css`   | Tailwind utility             |
+| ----------------- | ----------------------------------------- | ---------------------------- |
+| `--bg`            | `--background`                            | `bg-background`              |
+| `--surface`       | `--card`                                  | `bg-card`                    |
+| `--elevated`      | `--accent`                                | `bg-accent`                  |
+| `--border`        | `--border`                                | `border-border`              |
+| `--border-strong` | `--border-strong` (new — added in Task 3) | `border-border-strong`       |
+| `--fg`            | `--foreground`                            | `text-foreground`            |
+| `--fg-2`          | `--muted-foreground`                      | `text-muted-foreground`      |
+| `--fg-3`          | `--muted-foreground` at 70% opacity       | `text-muted-foreground/70`   |
+| `--focus`         | `--ring`                                  | `focus-visible:outline-ring` |
+| `--link`          | `--primary`                               | `text-primary`               |
+| `--success`       | `--success`                               | `text-success`, `bg-success` |
+| `--warn`          | `--warning`                               | `text-warning`               |
+| `--danger`        | `--destructive`                           | `text-destructive`           |
 
 Utilities reach these variables through the `@theme inline` block in `tailwind/input.css`; a new token needs a `--color-*` entry there too.
 
 ## Utility classes
 
-| Mockup class | shadcn replacement | Notes |
-|---|---|---|
-| `mono` | `font-mono` | |
-| `fg2` | `text-muted-foreground` | |
-| `fg3` | `text-muted-foreground/70` | |
-| `b` (border container) | `border-border` | combine with `border` Tailwind utility |
-| `bs` (stronger border) | `border-border-strong` | requires the `--border-strong` token (Task 3) |
-| `surface` | `bg-card` | |
-| `elevated` | `bg-accent` | |
-| `hover-row` | `hover:bg-accent` | apply on table rows / list items |
-| `link` | `text-primary` | |
-| `tab-active` | `text-foreground border-foreground` | apply to active tab anchor |
-| `prose` | `prose` | Long-form Markdown (README, PR description). From `@tailwindcss/typography`, loaded with `@plugin` in `tailwind/input.css`; pair with `dark:prose-invert`. |
+| Mockup class           | shadcn replacement                  | Notes                                                                                                                                                      |
+| ---------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mono`                 | `font-mono`                         |                                                                                                                                                            |
+| `fg2`                  | `text-muted-foreground`             |                                                                                                                                                            |
+| `fg3`                  | `text-muted-foreground/70`          |                                                                                                                                                            |
+| `b` (border container) | `border-border`                     | combine with `border` Tailwind utility                                                                                                                     |
+| `bs` (stronger border) | `border-border-strong`              | requires the `--border-strong` token (Task 3)                                                                                                              |
+| `surface`              | `bg-card`                           |                                                                                                                                                            |
+| `elevated`             | `bg-accent`                         |                                                                                                                                                            |
+| `hover-row`            | `hover:bg-accent`                   | apply on table rows / list items                                                                                                                           |
+| `link`                 | `text-primary`                      |                                                                                                                                                            |
+| `tab-active`           | `text-foreground border-foreground` | apply to active tab anchor                                                                                                                                 |
+| `prose`                | `prose`                             | Long-form Markdown (README, PR description). From `@tailwindcss/typography`, loaded with `@plugin` in `tailwind/input.css`; pair with `dark:prose-invert`. |
 
 ## Tailwind v4 names
 
 The build runs Tailwind v4, which moved several scales down a step. Mockups and shadcn snippets written for v3 still use the old names; translate them:
 
-| v3 name | v4 name |
-|---|---|
-| `shadow-sm` | `shadow-xs` |
-| `shadow` | `shadow-sm` |
-| `rounded-sm` | `rounded-xs` |
-| `rounded` | `rounded-sm` |
-| `blur-sm`, `backdrop-blur-sm` | `blur-xs`, `backdrop-blur-xs` |
-| `outline-none` | `outline-hidden` (v4's `outline-none` only sets `outline-style: none`) |
-| `ring` | `ring-3` (a bare `ring` is 1px in v4) |
-| `flex-shrink-0`, `flex-grow` | `shrink-0`, `grow` |
-| `bg-opacity-50` and the other `*-opacity-*` utilities | an opacity modifier on the color, e.g. `bg-black/50` |
+| v3 name                                               | v4 name                                                                |
+| ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| `shadow-sm`                                           | `shadow-xs`                                                            |
+| `shadow`                                              | `shadow-sm`                                                            |
+| `rounded-sm`                                          | `rounded-xs`                                                           |
+| `rounded`                                             | `rounded-sm`                                                           |
+| `blur-sm`, `backdrop-blur-sm`                         | `blur-xs`, `backdrop-blur-xs`                                          |
+| `outline-none`                                        | `outline-hidden` (v4's `outline-none` only sets `outline-style: none`) |
+| `ring`                                                | `ring-3` (a bare `ring` is 1px in v4)                                  |
+| `flex-shrink-0`, `flex-grow`                          | `shrink-0`, `grow`                                                     |
+| `bg-opacity-50` and the other `*-opacity-*` utilities | an opacity modifier on the color, e.g. `bg-black/50`                   |
 
 `rounded-xs`, `rounded-md` and `rounded-lg` follow `--radius`; `rounded-sm` is a fixed 0.25rem.
 
@@ -62,24 +62,24 @@ The build runs Tailwind v4, which moved several scales down a step. Mockups and 
 
 These mockup classes correspond to components in `internal/view/components/`. Use the component, do not copy the class.
 
-| Mockup classes | Replace with component |
-|---|---|
-| `dropdown-wrap`, `dropdown-panel`, `dropdown-item`, `dropdown-divider`, `dropdown-header` | `components.DropdownMenu*` |
-| `avatar` | `components.Avatar` |
-| `badge`, `badge--open`, `badge--closed`, `badge--merged`, `badge--draft` | `components.Badge` (variant prop carries the state) |
-| `skip-link` (link element only) | already in layout |
+| Mockup classes                                                                            | Replace with component                              |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `dropdown-wrap`, `dropdown-panel`, `dropdown-item`, `dropdown-divider`, `dropdown-header` | `components.DropdownMenu*`                          |
+| `avatar`                                                                                  | `components.Avatar`                                 |
+| `badge`, `badge--open`, `badge--closed`, `badge--merged`, `badge--draft`                  | `components.Badge` (variant prop carries the state) |
+| `skip-link` (link element only)                                                           | already in layout                                   |
 
 ## Language chip classes (`lbl-*`)
 
 The mockup uses `.lbl` (base chip) and `.lbl-blue`, `.lbl-green`, `.lbl-amber`, `.lbl-purple` colour variants for language chips on gist rows. These are small inline pills (10px, 1px-7px padding, pill shape). Render them with inline Tailwind — no separate component, just a `<span>` with the classes below.
 
-| Mockup class | Tailwind replacement |
-|---|---|
-| `lbl` (base, no colour) | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground whitespace-nowrap` |
-| `lbl-blue` | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-primary/15 text-primary border-primary/30 whitespace-nowrap` |
-| `lbl-green` | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-success/15 text-success border-success/30 whitespace-nowrap` |
-| `lbl-amber` | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-warning/15 text-warning border-warning/30 whitespace-nowrap` |
-| `lbl-purple` | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)] whitespace-nowrap` |
+| Mockup class            | Tailwind replacement                                                                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lbl` (base, no colour) | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground whitespace-nowrap`                                     |
+| `lbl-blue`              | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-primary/15 text-primary border-primary/30 whitespace-nowrap`                                      |
+| `lbl-green`             | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-success/15 text-success border-success/30 whitespace-nowrap`                                      |
+| `lbl-amber`             | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-warning/15 text-warning border-warning/30 whitespace-nowrap`                                      |
+| `lbl-purple`            | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)] whitespace-nowrap` |
 
 In templ files, pass the correct Tailwind string through a helper (e.g. `gistLanguage(filenames)` returns `(label, chipClass string)`). Use `chipClass` as the class attribute on the `<span>`.
 
@@ -94,12 +94,14 @@ These classes are defined with `@utility` in `tailwind/input.css`, so variants w
 ## Inline `<style>` blocks
 
 **Inline `<style>` blocks in mockup HTML files do not survive the port.** Anything inside an inline `<style>` either:
+
 1. Translates to Tailwind utilities (via this map), or
 2. Gets promoted to `tailwind/input.css` (only `grid-bg` and the `heatmap-cell-*` scale qualify so far).
 
 ## Updating this map
 
 When a per-phase port discovers a mockup class missing from this map:
+
 1. Stop the port.
 2. Decide which case it is:
    - Has a clean shadcn equivalent → add row to the utility classes table.

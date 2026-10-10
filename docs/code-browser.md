@@ -2,18 +2,18 @@
 
 ## URL Patterns
 
-| View                    | Route                                     |
-| ----------------------- | ----------------------------------------- |
-| Root tree               | `/{owner}/{repo}/tree/{ref}`              |
-| Subtree                 | `/{owner}/{repo}/tree/{ref}/{path...}`    |
-| Blob                    | `/{owner}/{repo}/blob/{ref}/{path...}`    |
-| Blame                   | `/{owner}/{repo}/blame/{ref}/{path...}`   |
-| Raw file                | `/{owner}/{repo}/raw/{ref}/{path...}`     |
-| Commit log              | `/{owner}/{repo}/commits/{ref}`           |
-| Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}` |
-| Single commit diff      | `/{owner}/{repo}/commit/{sha}`            |
-| Branches & Tags         | `/{owner}/{repo}/refs`                    |
-| Edit file (GET/POST)    | `/{owner}/{repo}/edit/{branch}/{path...}` |
+| View                    | Route                                       |
+| ----------------------- | ------------------------------------------- |
+| Root tree               | `/{owner}/{repo}/tree/{ref}`                |
+| Subtree                 | `/{owner}/{repo}/tree/{ref}/{path...}`      |
+| Blob                    | `/{owner}/{repo}/blob/{ref}/{path...}`      |
+| Blame                   | `/{owner}/{repo}/blame/{ref}/{path...}`     |
+| Raw file                | `/{owner}/{repo}/raw/{ref}/{path...}`       |
+| Commit log              | `/{owner}/{repo}/commits/{ref}`             |
+| Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}`   |
+| Single commit diff      | `/{owner}/{repo}/commit/{sha}`              |
+| Branches & Tags         | `/{owner}/{repo}/refs`                      |
+| Edit file (GET/POST)    | `/{owner}/{repo}/edit/{branch}/{path...}`   |
 | Delete file (POST)      | `/{owner}/{repo}/delete/{branch}/{path...}` |
 
 `{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).

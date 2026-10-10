@@ -6,67 +6,67 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 
 ## Configuration Reference
 
-| Key                          | Default                                      | Env Override                    | Description                                     |
-| ---------------------------- | -------------------------------------------- | ------------------------------- | ----------------------------------------------- |
-| `server.port`                | `8080`                                       | `CZ_SERVER_PORT`                | HTTP listen port                                |
-| `server.host`                | `0.0.0.0`                                    | `CZ_SERVER_HOST`                | HTTP listen address                             |
-| `server.base_url`            | `http://localhost:8080`                      | `CZ_SERVER_BASE_URL`            | Public base URL (used for CORS, OAuth, emails, noreply commit addresses) |
-| `server.read_timeout`        | `15s`                                        | `CZ_SERVER_READ_TIMEOUT`        | HTTP read timeout                               |
-| `server.write_timeout`       | `15s`                                        | `CZ_SERVER_WRITE_TIMEOUT`       | HTTP write timeout                              |
-| `server.trusted_proxies`     | _(empty)_                                    | `CZ_SERVER_TRUSTED_PROXIES`     | Comma-separated reverse-proxy IPs/CIDRs whose `X-Forwarded-For` is believed |
-| `database.dsn`               | `postgres://cloudzilla:cloudzilla@...`       | `CZ_DATABASE_DSN`               | PostgreSQL connection string                    |
-| `database.max_open_conns`    | `10`                                         | `CZ_DATABASE_MAX_OPEN_CONNS`    | Max open DB connections                         |
-| `database.max_idle_conns`    | `5`                                          | `CZ_DATABASE_MAX_IDLE_CONNS`    | Max idle DB connections                         |
-| `auth.jwt_secret`            | `dev-only-do-not-use-in-production-...`      | `CZ_AUTH_JWT_SECRET`            | JWT signing secret -- **change in production**  |
-| `auth.jwt_expiry`            | `24h`                                        | `CZ_AUTH_JWT_EXPIRY`            | JWT token lifetime                              |
-| `auth.cookie_name`           | `cz_token`                                   | `CZ_AUTH_COOKIE_NAME`           | httpOnly cookie name                            |
-| `auth.cookie_secure`         | `false`                                      | `CZ_AUTH_COOKIE_SECURE`         | Set `Secure` flag on cookies (enable for HTTPS) |
-| `git.repos_root`             | `./git-repos`                                | `CZ_GIT_REPOS_ROOT`             | Bare git repo storage path                      |
-| `git.ssh_port`               | `2222`                                       | `CZ_GIT_SSH_PORT`               | SSH server port for git operations              |
-| `git.ssh_host_key`           | `./cloudzilla_host_key`                      | `CZ_GIT_SSH_HOST_KEY`           | SSH host key file (auto-generated if missing)   |
-| `oauth.google_client_id`     | `""`                                         | `CZ_OAUTH_GOOGLE_CLIENT_ID`     | Google OAuth client ID (empty = disabled)       |
-| `oauth.google_client_secret` | `""`                                         | `CZ_OAUTH_GOOGLE_CLIENT_SECRET` | Google OAuth client secret                      |
-| `oauth.google_redirect_url`  | `http://localhost:8080/auth/google/callback` | `CZ_OAUTH_GOOGLE_REDIRECT_URL`  | OAuth redirect URI (must match Google Console)  |
-| `smtp.host`                  | `""`                                         | `CZ_SMTP_HOST`                  | SMTP server host (empty = email disabled). Also enables email-verified signup, email verification and password reset emails. |
-| `smtp.port`                  | `587`                                        | `CZ_SMTP_PORT`                  | SMTP server port                                |
-| `smtp.username`              | `""`                                         | `CZ_SMTP_USERNAME`              | SMTP username                                   |
-| `smtp.password`              | `""`                                         | `CZ_SMTP_PASSWORD`              | SMTP password                                   |
-| `smtp.from`                  | `noreply@localhost`                          | `CZ_SMTP_FROM`                  | From address for outgoing email                 |
-| `smtp.tls`                   | `false`                                      | `CZ_SMTP_TLS`                   | Use TLS for SMTP connection                     |
-| `import.allow_local_networks`| `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`| Let repository imports reach loopback, private and link-local addresses |
-| `import.timeout`             | `30m`                                        | `CZ_IMPORT_TIMEOUT`             | Time limit for one repository import            |
-| `webhook.allow_local_networks`| `false`                                     | `CZ_WEBHOOK_ALLOW_LOCAL_NETWORKS`| Let webhooks be created for and delivered to loopback, private and link-local addresses |
-| `rate_limit.enabled`         | `true`                                       | `CZ_RATE_LIMIT_ENABLED`         | Rate-limit every request that isn't a static asset; see [Rate limits](#rate-limits) |
-| `rate_limit.window`          | `1h`                                         | `CZ_RATE_LIMIT_WINDOW`          | Length of the window each budget covers         |
-| `rate_limit.core.authenticated` | `5000`                                    | `CZ_RATE_LIMIT_CORE_AUTHENTICATED` | Pages and `/api/*` per signed-in bucket      |
-| `rate_limit.core.anonymous`  | `1000`                                       | `CZ_RATE_LIMIT_CORE_ANONYMOUS`  | Pages and `/api/*` per client IP                |
-| `rate_limit.git.authenticated` | `1000`                                     | `CZ_RATE_LIMIT_GIT_AUTHENTICATED` | Git-over-HTTP requests per signed-in bucket   |
-| `rate_limit.git.anonymous`   | `200`                                        | `CZ_RATE_LIMIT_GIT_ANONYMOUS`   | Git-over-HTTP requests per client IP            |
-| `rate_limit.archive.authenticated` | `100`                                  | `CZ_RATE_LIMIT_ARCHIVE_AUTHENTICATED` | Archive downloads per signed-in bucket    |
-| `rate_limit.archive.anonymous` | `20`                                       | `CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS` | Archive downloads per client IP               |
-| `rate_limit.search.authenticated` | `600`                                   | `CZ_RATE_LIMIT_SEARCH_AUTHENTICATED` | Searches per signed-in bucket              |
-| `rate_limit.search.anonymous` | `60`                                        | `CZ_RATE_LIMIT_SEARCH_ANONYMOUS` | Searches per client IP                         |
-| `quota.user.repos`           | `0`                                          | `CZ_QUOTA_USER_REPOS`           | Live repositories each user may own. `0` is unlimited; see [Quotas](#quotas) |
-| `quota.user.storage_bytes`   | `0`                                          | `CZ_QUOTA_USER_STORAGE_BYTES`   | Disk, in bytes, each user's repositories and wikis may use together |
-| `quota.org.repos`            | `0`                                          | `CZ_QUOTA_ORG_REPOS`            | Live repositories each organization may own    |
-| `quota.org.storage_bytes`    | `0`                                          | `CZ_QUOTA_ORG_STORAGE_BYTES`    | Disk, in bytes, each organization's repositories and wikis may use together |
-| `storage.backend`            | `local`                                      | `CZ_STORAGE_BACKEND`            | Where uploaded files such as avatars go: `local` or `s3`. See [storage](./storage.md) |
-| `storage.local.root`         | `./storage`                                  | `CZ_STORAGE_LOCAL_ROOT`         | Directory for the `local` backend               |
-| `storage.s3.endpoint`        | `""` (AWS)                                   | `CZ_STORAGE_S3_ENDPOINT`        | Endpoint URL of an S3-compatible server (R2, B2, Garage, versitygw) |
-| `storage.s3.region`          | `us-east-1`                                  | `CZ_STORAGE_S3_REGION`          | Bucket region (`auto` for R2)                   |
-| `storage.s3.bucket`          | `""`                                         | `CZ_STORAGE_S3_BUCKET`          | Bucket name; required for `s3`                  |
-| `storage.s3.access_key_id`   | `""`                                         | `CZ_STORAGE_S3_ACCESS_KEY_ID`   | Static key; empty uses the AWS default credential chain |
-| `storage.s3.secret_access_key` | `""`                                       | `CZ_STORAGE_S3_SECRET_ACCESS_KEY` | Static secret; set with `access_key_id` or not at all |
-| `storage.s3.path_style`      | `false`                                      | `CZ_STORAGE_S3_PATH_STYLE`      | Path-style URLs, needed by most self-hosted S3 servers |
-| `storage.s3.prefix`          | `""`                                         | `CZ_STORAGE_S3_PREFIX`          | Key prefix, so several instances can share a bucket |
-| `mirror.enabled`             | `true`                                       | `CZ_MIRROR_ENABLED`             | Sync pull mirrors and offer mirror options. When off, existing mirrors stay read-only |
-| `mirror.allow_local_networks`| `false`                                      | `CZ_MIRROR_ALLOW_LOCAL_NETWORKS`| Let pull mirrors reach loopback, private and link-local addresses |
-| `mirror.min_interval`        | `10m`                                        | `CZ_MIRROR_MIN_INTERVAL`        | Shortest sync interval a mirror may use         |
-| `mirror.default_interval`    | `8h`                                         | `CZ_MIRROR_DEFAULT_INTERVAL`    | Sync interval for new mirrors (at most `720h`)  |
-| `mirror.max_concurrent`      | `3`                                          | `CZ_MIRROR_MAX_CONCURRENT`      | Syncs running at once on each server instance   |
-| `mirror.timeout`             | `30m`                                        | `CZ_MIRROR_TIMEOUT`             | Time limit for one sync                         |
-| `security.secret_key`        | `""`                                         | `CZ_SECURITY_SECRET_KEY`        | Key that encrypts stored credentials, such as mirror tokens. At least 32 bytes; see [Secret key](#secret-key) |
-| `metrics.listen_addr`        | `""`                                         | `CZ_METRICS_LISTEN_ADDR`        | Address of a second listener that serves only `GET /metrics`, e.g. `127.0.0.1:9090`. Empty turns it off. See [Metrics](./deployment.md#metrics) |
+| Key                                | Default                                      | Env Override                          | Description                                                                                                                                     |
+| ---------------------------------- | -------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server.port`                      | `8080`                                       | `CZ_SERVER_PORT`                      | HTTP listen port                                                                                                                                |
+| `server.host`                      | `0.0.0.0`                                    | `CZ_SERVER_HOST`                      | HTTP listen address                                                                                                                             |
+| `server.base_url`                  | `http://localhost:8080`                      | `CZ_SERVER_BASE_URL`                  | Public base URL (used for CORS, OAuth, emails, noreply commit addresses)                                                                        |
+| `server.read_timeout`              | `15s`                                        | `CZ_SERVER_READ_TIMEOUT`              | HTTP read timeout                                                                                                                               |
+| `server.write_timeout`             | `15s`                                        | `CZ_SERVER_WRITE_TIMEOUT`             | HTTP write timeout                                                                                                                              |
+| `server.trusted_proxies`           | _(empty)_                                    | `CZ_SERVER_TRUSTED_PROXIES`           | Comma-separated reverse-proxy IPs/CIDRs whose `X-Forwarded-For` is believed                                                                     |
+| `database.dsn`                     | `postgres://cloudzilla:cloudzilla@...`       | `CZ_DATABASE_DSN`                     | PostgreSQL connection string                                                                                                                    |
+| `database.max_open_conns`          | `10`                                         | `CZ_DATABASE_MAX_OPEN_CONNS`          | Max open DB connections                                                                                                                         |
+| `database.max_idle_conns`          | `5`                                          | `CZ_DATABASE_MAX_IDLE_CONNS`          | Max idle DB connections                                                                                                                         |
+| `auth.jwt_secret`                  | `dev-only-do-not-use-in-production-...`      | `CZ_AUTH_JWT_SECRET`                  | JWT signing secret -- **change in production**                                                                                                  |
+| `auth.jwt_expiry`                  | `24h`                                        | `CZ_AUTH_JWT_EXPIRY`                  | JWT token lifetime                                                                                                                              |
+| `auth.cookie_name`                 | `cz_token`                                   | `CZ_AUTH_COOKIE_NAME`                 | httpOnly cookie name                                                                                                                            |
+| `auth.cookie_secure`               | `false`                                      | `CZ_AUTH_COOKIE_SECURE`               | Set `Secure` flag on cookies (enable for HTTPS)                                                                                                 |
+| `git.repos_root`                   | `./git-repos`                                | `CZ_GIT_REPOS_ROOT`                   | Bare git repo storage path                                                                                                                      |
+| `git.ssh_port`                     | `2222`                                       | `CZ_GIT_SSH_PORT`                     | SSH server port for git operations                                                                                                              |
+| `git.ssh_host_key`                 | `./cloudzilla_host_key`                      | `CZ_GIT_SSH_HOST_KEY`                 | SSH host key file (auto-generated if missing)                                                                                                   |
+| `oauth.google_client_id`           | `""`                                         | `CZ_OAUTH_GOOGLE_CLIENT_ID`           | Google OAuth client ID (empty = disabled)                                                                                                       |
+| `oauth.google_client_secret`       | `""`                                         | `CZ_OAUTH_GOOGLE_CLIENT_SECRET`       | Google OAuth client secret                                                                                                                      |
+| `oauth.google_redirect_url`        | `http://localhost:8080/auth/google/callback` | `CZ_OAUTH_GOOGLE_REDIRECT_URL`        | OAuth redirect URI (must match Google Console)                                                                                                  |
+| `smtp.host`                        | `""`                                         | `CZ_SMTP_HOST`                        | SMTP server host (empty = email disabled). Also enables email-verified signup, email verification and password reset emails.                    |
+| `smtp.port`                        | `587`                                        | `CZ_SMTP_PORT`                        | SMTP server port                                                                                                                                |
+| `smtp.username`                    | `""`                                         | `CZ_SMTP_USERNAME`                    | SMTP username                                                                                                                                   |
+| `smtp.password`                    | `""`                                         | `CZ_SMTP_PASSWORD`                    | SMTP password                                                                                                                                   |
+| `smtp.from`                        | `noreply@localhost`                          | `CZ_SMTP_FROM`                        | From address for outgoing email                                                                                                                 |
+| `smtp.tls`                         | `false`                                      | `CZ_SMTP_TLS`                         | Use TLS for SMTP connection                                                                                                                     |
+| `import.allow_local_networks`      | `false`                                      | `CZ_IMPORT_ALLOW_LOCAL_NETWORKS`      | Let repository imports reach loopback, private and link-local addresses                                                                         |
+| `import.timeout`                   | `30m`                                        | `CZ_IMPORT_TIMEOUT`                   | Time limit for one repository import                                                                                                            |
+| `webhook.allow_local_networks`     | `false`                                      | `CZ_WEBHOOK_ALLOW_LOCAL_NETWORKS`     | Let webhooks be created for and delivered to loopback, private and link-local addresses                                                         |
+| `rate_limit.enabled`               | `true`                                       | `CZ_RATE_LIMIT_ENABLED`               | Rate-limit every request that isn't a static asset; see [Rate limits](#rate-limits)                                                             |
+| `rate_limit.window`                | `1h`                                         | `CZ_RATE_LIMIT_WINDOW`                | Length of the window each budget covers                                                                                                         |
+| `rate_limit.core.authenticated`    | `5000`                                       | `CZ_RATE_LIMIT_CORE_AUTHENTICATED`    | Pages and `/api/*` per signed-in bucket                                                                                                         |
+| `rate_limit.core.anonymous`        | `1000`                                       | `CZ_RATE_LIMIT_CORE_ANONYMOUS`        | Pages and `/api/*` per client IP                                                                                                                |
+| `rate_limit.git.authenticated`     | `1000`                                       | `CZ_RATE_LIMIT_GIT_AUTHENTICATED`     | Git-over-HTTP requests per signed-in bucket                                                                                                     |
+| `rate_limit.git.anonymous`         | `200`                                        | `CZ_RATE_LIMIT_GIT_ANONYMOUS`         | Git-over-HTTP requests per client IP                                                                                                            |
+| `rate_limit.archive.authenticated` | `100`                                        | `CZ_RATE_LIMIT_ARCHIVE_AUTHENTICATED` | Archive downloads per signed-in bucket                                                                                                          |
+| `rate_limit.archive.anonymous`     | `20`                                         | `CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS`     | Archive downloads per client IP                                                                                                                 |
+| `rate_limit.search.authenticated`  | `600`                                        | `CZ_RATE_LIMIT_SEARCH_AUTHENTICATED`  | Searches per signed-in bucket                                                                                                                   |
+| `rate_limit.search.anonymous`      | `60`                                         | `CZ_RATE_LIMIT_SEARCH_ANONYMOUS`      | Searches per client IP                                                                                                                          |
+| `quota.user.repos`                 | `0`                                          | `CZ_QUOTA_USER_REPOS`                 | Live repositories each user may own. `0` is unlimited; see [Quotas](#quotas)                                                                    |
+| `quota.user.storage_bytes`         | `0`                                          | `CZ_QUOTA_USER_STORAGE_BYTES`         | Disk, in bytes, each user's repositories and wikis may use together                                                                             |
+| `quota.org.repos`                  | `0`                                          | `CZ_QUOTA_ORG_REPOS`                  | Live repositories each organization may own                                                                                                     |
+| `quota.org.storage_bytes`          | `0`                                          | `CZ_QUOTA_ORG_STORAGE_BYTES`          | Disk, in bytes, each organization's repositories and wikis may use together                                                                     |
+| `storage.backend`                  | `local`                                      | `CZ_STORAGE_BACKEND`                  | Where uploaded files such as avatars go: `local` or `s3`. See [storage](./storage.md)                                                           |
+| `storage.local.root`               | `./storage`                                  | `CZ_STORAGE_LOCAL_ROOT`               | Directory for the `local` backend                                                                                                               |
+| `storage.s3.endpoint`              | `""` (AWS)                                   | `CZ_STORAGE_S3_ENDPOINT`              | Endpoint URL of an S3-compatible server (R2, B2, Garage, versitygw)                                                                             |
+| `storage.s3.region`                | `us-east-1`                                  | `CZ_STORAGE_S3_REGION`                | Bucket region (`auto` for R2)                                                                                                                   |
+| `storage.s3.bucket`                | `""`                                         | `CZ_STORAGE_S3_BUCKET`                | Bucket name; required for `s3`                                                                                                                  |
+| `storage.s3.access_key_id`         | `""`                                         | `CZ_STORAGE_S3_ACCESS_KEY_ID`         | Static key; empty uses the AWS default credential chain                                                                                         |
+| `storage.s3.secret_access_key`     | `""`                                         | `CZ_STORAGE_S3_SECRET_ACCESS_KEY`     | Static secret; set with `access_key_id` or not at all                                                                                           |
+| `storage.s3.path_style`            | `false`                                      | `CZ_STORAGE_S3_PATH_STYLE`            | Path-style URLs, needed by most self-hosted S3 servers                                                                                          |
+| `storage.s3.prefix`                | `""`                                         | `CZ_STORAGE_S3_PREFIX`                | Key prefix, so several instances can share a bucket                                                                                             |
+| `mirror.enabled`                   | `true`                                       | `CZ_MIRROR_ENABLED`                   | Sync pull mirrors and offer mirror options. When off, existing mirrors stay read-only                                                           |
+| `mirror.allow_local_networks`      | `false`                                      | `CZ_MIRROR_ALLOW_LOCAL_NETWORKS`      | Let pull mirrors reach loopback, private and link-local addresses                                                                               |
+| `mirror.min_interval`              | `10m`                                        | `CZ_MIRROR_MIN_INTERVAL`              | Shortest sync interval a mirror may use                                                                                                         |
+| `mirror.default_interval`          | `8h`                                         | `CZ_MIRROR_DEFAULT_INTERVAL`          | Sync interval for new mirrors (at most `720h`)                                                                                                  |
+| `mirror.max_concurrent`            | `3`                                          | `CZ_MIRROR_MAX_CONCURRENT`            | Syncs running at once on each server instance                                                                                                   |
+| `mirror.timeout`                   | `30m`                                        | `CZ_MIRROR_TIMEOUT`                   | Time limit for one sync                                                                                                                         |
+| `security.secret_key`              | `""`                                         | `CZ_SECURITY_SECRET_KEY`              | Key that encrypts stored credentials, such as mirror tokens. At least 32 bytes; see [Secret key](#secret-key)                                   |
+| `metrics.listen_addr`              | `""`                                         | `CZ_METRICS_LISTEN_ADDR`              | Address of a second listener that serves only `GET /metrics`, e.g. `127.0.0.1:9090`. Empty turns it off. See [Metrics](./deployment.md#metrics) |
 
 ### Secret key
 
@@ -94,7 +94,7 @@ rate_limit:
   git:
     anonymous: 500
   archive:
-    anonymous: 0   # unlimited
+    anonymous: 0 # unlimited
 ```
 
 ### Quotas
@@ -103,7 +103,7 @@ Four limits, all off (`0`) by default, so upgrading changes nothing until you se
 
 - **Repositories.** An owner's live repositories, those not in the trash, so deleting one frees its slot at once. At the limit, an owner can't create, fork, import, generate from a template, restore, or be handed a repository by a transfer (checked when the transfer is offered and again when it is accepted). The refusal is `403` with `{"error":"repository quota reached (50 of 50)"}`.
 - **Storage.** The on-disk size of each live repository's git directory plus its wiki, summed. Gists don't count. A push is capped at the space left, and is refused like an oversized pack (`413` over HTTP, a message on stderr over SSH) naming the usage and the quota. A push that only deletes refs still goes through, so an owner at the limit can free space. Web file commits and wiki edits are refused at or over the quota; deleting a file or a wiki page is not.
-- **How size is kept.** `repositories.size_bytes` is measured at startup for any repository without one, and again in the background after a push, a web commit, a wiki change, an import, a mirror sync, a fork, a template creation, a restore, and `cz-admin gc`. Usage can lag a write by one measurement. Unpacked loose objects count at full size until `cloudzilla gc` prunes them.
+- **How size is kept.** `repositories.size_bytes` is measured at startup for any repository without one, and again in the background after a push, a web commit, a wiki change, an import, a mirror sync, a fork, a template creation, a restore, and `cz-admin gc`. Usage can lag a write by one measurement. Unpacked loose objects count at full size until `cz-admin gc` prunes them.
 - **Not exact.** A check and the create that follows aren't atomic, so creates racing each other can overshoot the repository limit by a few. A pack is capped at the space left when the push starts, so two simultaneous pushes can both fit and together pass the quota.
 
 User Settings and an organization's settings show one line, such as `Repositories 12 of 50 · Storage 1.2 GiB of 10 GiB`, naming only the limits that are set.
@@ -112,7 +112,7 @@ User Settings and an organization's settings show one line, such as `Repositorie
 quota:
   user:
     repos: 50
-    storage_bytes: 10737418240   # 10 GiB
+    storage_bytes: 10737418240 # 10 GiB
   org:
     repos: 200
 ```
@@ -208,12 +208,12 @@ Verification and password reset links point at `server.base_url`, so set it to t
 
 ### Persistent Data (Docker volumes)
 
-| What             | Volume               | Container Path                                             |
-| ---------------- | -------------------- | ---------------------------------------------------------- |
-| PostgreSQL data  | `postgres_data`      | (managed by PostgreSQL container)                          |
-| Git repositories | `cloudzilla_data`    | `/data/git-repos/`                                         |
-| Uploaded files   | `cloudzilla_data`    | `/data/storage/` (avatars; see [storage](./storage.md))    |
-| SSH host key     | `cloudzilla_data`    | `/data/cloudzilla_host_key` (auto-generated on first boot) |
+| What             | Volume            | Container Path                                             |
+| ---------------- | ----------------- | ---------------------------------------------------------- |
+| PostgreSQL data  | `postgres_data`   | (managed by PostgreSQL container)                          |
+| Git repositories | `cloudzilla_data` | `/data/git-repos/`                                         |
+| Uploaded files   | `cloudzilla_data` | `/data/storage/` (avatars; see [storage](./storage.md))    |
+| SSH host key     | `cloudzilla_data` | `/data/cloudzilla_host_key` (auto-generated on first boot) |
 
 ---
 
@@ -387,10 +387,10 @@ cz-admin backup --output /backups/cloudzilla.tar
 cz-admin backup --output - | zstd > cloudzilla.tar.zst
 ```
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--output` | (required) | Archive path, or `-` for stdout. The archive is built beside the path and renamed, so a failure leaves no partial file |
-| `--pg-dump` | `pg_dump` | `pg_dump` binary. Its major version must be at least the server's |
+| Flag        | Default    | Meaning                                                                                                                |
+| ----------- | ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `--output`  | (required) | Archive path, or `-` for stdout. The archive is built beside the path and renamed, so a failure leaves no partial file |
+| `--pg-dump` | `pg_dump`  | `pg_dump` binary. Its major version must be at least the server's                                                      |
 
 It fails before writing anything when `pg_dump` is missing or older than the server. The archive holds secrets: store it encrypted. See [Backup and restore](./deployment.md#backup-and-restore).
 
@@ -403,11 +403,11 @@ cz-admin restore --input /backups/cloudzilla.tar
 zstd -dc cloudzilla.tar.zst | cz-admin restore --input -
 ```
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--input` | (required) | Archive path, or `-` for stdin |
-| `--pg-restore` | `pg_restore` | `pg_restore` binary |
-| `--replace-host-key` | off | Overwrite a different SSH host key already in place |
+| Flag                 | Default      | Meaning                                             |
+| -------------------- | ------------ | --------------------------------------------------- |
+| `--input`            | (required)   | Archive path, or `-` for stdin                      |
+| `--pg-restore`       | `pg_restore` | `pg_restore` binary                                 |
+| `--replace-host-key` | off          | Overwrite a different SSH host key already in place |
 
 It refuses a database that already has tables, a non-empty `git.repos_root`, an unknown format version, an unsafe tar entry and a backup with a migration the binary lacks. Then it restores the database, extracts the repositories, writes the host key (mode 0600), applies newer migrations and prints repository rows without a directory and directories without a row. Sign-ins survive only with the same `auth.jwt_secret`. See [Backup and restore](./deployment.md#backup-and-restore).
 

@@ -99,16 +99,17 @@ A draft PR has `state = "open"` and `is_draft = true`. It is separate from close
 
 The pulls list page (`/{owner}/{repo}/pulls`) filters by `?state=` query param:
 
-| `?state=` | Shows                                           |
-| --------- | ----------------------------------------------- |
-| `open`    | Open PRs with `is_draft = false` (default)      |
-| `draft`   | Open PRs with `is_draft = true`                 |
-| `closed`  | Closed PRs                                      |
-| `merged`  | Merged PRs                                      |
+| `?state=` | Shows                                      |
+| --------- | ------------------------------------------ |
+| `open`    | Open PRs with `is_draft = false` (default) |
+| `draft`   | Open PRs with `is_draft = true`            |
+| `closed`  | Closed PRs                                 |
+| `merged`  | Merged PRs                                 |
 
 ### PR Detail Page
 
 When `is_draft = true`:
+
 - A yellow "Draft" badge appears next to the PR title
 - A yellow banner is shown: "This pull request is still a work in progress."
 - All merge strategy buttons are hidden

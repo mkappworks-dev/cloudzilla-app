@@ -4,19 +4,19 @@ In-app notifications for activity on issues, PRs and discussions you opened, @-m
 
 ## Notification Types
 
-| Type               | Triggered when                              |
-| ------------------ | ------------------------------------------- |
-| `issue_comment`    | Someone comments on an issue you opened     |
-| `pr_comment`       | Someone comments on a PR you opened         |
+| Type               | Triggered when                                                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `issue_comment`    | Someone comments on an issue you opened                                                               |
+| `pr_comment`       | Someone comments on a PR you opened                                                                   |
 | `issue_closed`     | Someone closes an issue you opened, by hand or with a closing keyword in a merged PR or pushed commit |
-| `issue_reopened`   | Someone reopens an issue you opened         |
-| `pr_merged`        | Someone merges a PR you opened              |
-| `pr_closed`        | Someone closes a PR you opened              |
-| `pr_review`        | Someone reviews a PR you opened             |
-| `mention`          | Someone @-mentions you in a comment         |
-| `discussion_reply` | Someone replies to a discussion you started |
-| `repo_transfer`    | Someone wants to transfer a repository to you; links to `/repos/transfers` |
-| `pr_opened`        | (type reserved; not currently auto-fired)   |
+| `issue_reopened`   | Someone reopens an issue you opened                                                                   |
+| `pr_merged`        | Someone merges a PR you opened                                                                        |
+| `pr_closed`        | Someone closes a PR you opened                                                                        |
+| `pr_review`        | Someone reviews a PR you opened                                                                       |
+| `mention`          | Someone @-mentions you in a comment                                                                   |
+| `discussion_reply` | Someone replies to a discussion you started                                                           |
+| `repo_transfer`    | Someone wants to transfer a repository to you; links to `/repos/transfers`                            |
+| `pr_opened`        | (type reserved; not currently auto-fired)                                                             |
 
 Notifications are never created when `actorID == authorID` (self-actions are silent). Every notification, watchers' copies included, is created only if its recipient can read the repo at that moment (`RepoService.CanRead`), so watching a repo or having opened the issue, PR or discussion stops counting once the user is removed as a collaborator, removed from the org or demoted from org owner. `CommentService` likewise records an @-mention only for users who can read the repo. The exception is `repo_transfer`: its recipient can't read a private repo until they accept it.
 
@@ -34,12 +34,12 @@ A failure to list muted users or subscribers is logged and the fan-out is skippe
 
 Taking part in a thread subscribes you to it through `ThreadSubscriptionService.AutoSubscribe`, which inserts only if you have no row: the first reason is kept and a mute is never undone.
 
-| Action | Service | Reason | Who |
-| ------ | ------- | ------ | --- |
-| Open an issue, PR or discussion | `IssueService.Create`, `PullService.Create`, `DiscussionService.Create` | `author` | the author |
-| Comment on an issue or PR, reply to a discussion | `CommentService.CreateForIssue` / `CreateForPull`, `DiscussionService.CreateReply` | `comment` | the commenter |
-| Submit a PR review | `PullReviewService.SubmitReview` | `review` | the reviewer |
-| Assign someone | `AssigneeService.AddToIssue` / `AddToPull` | `assign` | the assignee, not the actor |
+| Action                                           | Service                                                                            | Reason    | Who                         |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------- | --------- | --------------------------- |
+| Open an issue, PR or discussion                  | `IssueService.Create`, `PullService.Create`, `DiscussionService.Create`            | `author`  | the author                  |
+| Comment on an issue or PR, reply to a discussion | `CommentService.CreateForIssue` / `CreateForPull`, `DiscussionService.CreateReply` | `comment` | the commenter               |
+| Submit a PR review                               | `PullReviewService.SubmitReview`                                                   | `review`  | the reviewer                |
+| Assign someone                                   | `AssigneeService.AddToIssue` / `AddToPull`                                         | `assign`  | the assignee, not the actor |
 
 Each service gets the subscriber through `WithThreadSubscriptions`; without it nothing is recorded. A failed write is logged and the request still succeeds. Mentions subscribe through `NotifyMention` instead. Threads that existed before the feature get no rows.
 
@@ -72,13 +72,13 @@ Immediate email goes to the notification's direct recipient (the subject's autho
 
 ## Pages & API
 
-| Route / Endpoint                      | Auth     | Description                                   |
-| ------------------------------------- | -------- | --------------------------------------------- |
-| GET `/notifications`                  | Required | Inbox, 25 per page: `?filter=inbox\|unread\|read` (unknown means inbox), `?page=N` (clamped to the last page) |
-| PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware) |
-| POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)   |
-| GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                   |
-| POST `/api/notifications/done`        | Required | Mark the notifications in repeated form field `ids` as read (at most 100; other users' ids are ignored) |
+| Route / Endpoint                      | Auth     | Description                                                                                                                       |
+| ------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| GET `/notifications`                  | Required | Inbox, 25 per page: `?filter=inbox\|unread\|read` (unknown means inbox), `?page=N` (clamped to the last page)                     |
+| PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware)                                                                                     |
+| POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)                                                                                       |
+| GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                                                                                                       |
+| POST `/api/notifications/done`        | Required | Mark the notifications in repeated form field `ids` as read (at most 100; other users' ids are ignored)                           |
 | POST `/api/notifications/unsubscribe` | Required | Mute the thread behind each notification in `ids` and mark that thread's unread notifications read (other users' ids are ignored) |
 
 The mark-read and bulk endpoints take the same `?filter` and `?page`, and their HTMX responses swap `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.

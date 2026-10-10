@@ -6,21 +6,21 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 Every request except static assets counts against a budget per hour by default ([configuration](./configuration.md#rate-limits)). A signed-in user's browser sessions share one bucket, and all of their personal access tokens and OAuth-app tokens share another, so a busy CI token can't lock its owner out of the web UI. Requests without a valid credential count per IPv4 address or IPv6 /64, and so do requests made with a token bound to a signing key, so a leaked one can't spend its owner's budget. Each bucket has a separate budget for each resource:
 
-| Resource  | Requests                                                                       | Signed in | Anonymous |
-| --------- | ------------------------------------------------------------------------------ | --------- | --------- |
+| Resource  | Requests                                                                        | Signed in | Anonymous |
+| --------- | ------------------------------------------------------------------------------- | --------- | --------- |
 | `core`    | everything not listed below, including `POST /api/repos/{owner}/{repo}/archive` | 5000      | 1000      |
 | `git`     | `GET …/info/refs`, `POST …/git-upload-pack`, `POST …/git-receive-pack`          | 1000      | 200       |
-| `archive` | `GET /{owner}/{repo}/archive/…`                                                | 100       | 20        |
-| `search`  | `GET /search`, `GET /search/code`, `GET /search/suggest`                       | 600       | 60        |
+| `archive` | `GET /{owner}/{repo}/archive/…`                                                 | 100       | 20        |
+| `search`  | `GET /search`, `GET /search/code`, `GET /search/suggest`                        | 600       | 60        |
 
 Counted responses carry:
 
-| Header                  | Value                                         |
-| ----------------------- | --------------------------------------------- |
-| `X-RateLimit-Limit`     | The budget for this window                    |
-| `X-RateLimit-Remaining` | Requests left in this window                  |
-| `X-RateLimit-Reset`     | When the window resets, in Unix seconds       |
-| `X-RateLimit-Resource`  | `core`, `git`, `archive` or `search`          |
+| Header                  | Value                                   |
+| ----------------------- | --------------------------------------- |
+| `X-RateLimit-Limit`     | The budget for this window              |
+| `X-RateLimit-Remaining` | Requests left in this window            |
+| `X-RateLimit-Reset`     | When the window resets, in Unix seconds |
+| `X-RateLimit-Resource`  | `core`, `git`, `archive` or `search`    |
 
 Over budget, the response is `429` with `Retry-After` in seconds. `/api/*` answers `{"error":"rate limit exceeded"}`; git and pages answer plain text. An unlimited resource (budget `0`) sends no rate-limit headers. Sign-up and password login also have their own per-IP limits.
 
@@ -36,16 +36,16 @@ Git over HTTP answers `413` with `storage quota reached (X of Y)` for a push tha
 
 ## Auth
 
-| Method | Path                    | Auth | Description                                                                                                                                                                                                                    |
-| ------ | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/api/auth/login`       | --   | Login (JSON `email`, `password`); sets `cz_token` cookie and returns token in body. A user with TOTP on gets `401 {"error":"totp_required"}` and must use a PAT ([details](./access-control.md#two-factor-authentication)). A suspended account gets `403 {"error":"account_suspended"}` once its password checks out     |
-| POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`                                                                                                                                                                 |
-| GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                                                                                                                                                                                  |
+| Method | Path                    | Auth | Description                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------ | ----------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/auth/login`       | --   | Login (JSON `email`, `password`); sets `cz_token` cookie and returns token in body. A user with TOTP on gets `401 {"error":"totp_required"}` and must use a PAT ([details](./access-control.md#two-factor-authentication)). A suspended account gets `403 {"error":"account_suspended"}` once its password checks out                                                                                                |
+| POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`                                                                                                                                                                                                                                                                                                                                                       |
+| GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                                                                                                                                                                                                                                                                                                                                                                        |
 | GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/`; links an existing account only when both Google and the account have verified the email; re-renders login with 403 if Google hasn't verified the email, 409 if the matching account's email is unverified or it is linked to another Google account; redirects to `/auth/2fa` when TOTP is on ([details](./access-control.md#google-oauth-sign-in)) |
-| POST   | `/auth/ldap`            | --   | LDAP login (username + password; [SSO](./sso.md))                                                                                                                                                                                               |
-| GET    | `/auth/saml`            | --   | Initiate SAML SSO flow (redirects to IdP)                                                                                                                                                                                      |
-| POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                                                                                                                                                                                 |
-| GET    | `/auth/saml/metadata`   | --   | SAML SP metadata XML                                                                                                                                                                                                           |
+| POST   | `/auth/ldap`            | --   | LDAP login (username + password; [SSO](./sso.md))                                                                                                                                                                                                                                                                                                                                                                    |
+| GET    | `/auth/saml`            | --   | Initiate SAML SSO flow (redirects to IdP)                                                                                                                                                                                                                                                                                                                                                                            |
+| POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                                                                                                                                                                                                                                                                                                                                                                       |
+| GET    | `/auth/saml/metadata`   | --   | SAML SP metadata XML                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` finishes [connecting Google](#connected-accounts) to the signed-in account instead: it never signs in, and redirects to `/settings#connected-accounts`.
 
@@ -62,15 +62,15 @@ When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` fini
 
 `/device/token` answers `200 {"access_token", "token_type": "bearer", "scope"}` once the user has approved, exactly once. The token is a personal access token without an expiry, named `cz (<device_name>) · <date>` (`cz CLI · <date>` when no `device_name` was sent) in Settings → Access tokens. Everything else is `400 {"error": …}`:
 
-| `error`                  | When                                                                         |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| `authorization_pending`  | The user hasn't decided yet; keep polling                                    |
-| `slow_down`              | Polled before `interval` elapsed; the interval grows by 5 s for this code    |
-| `expired_token`          | 900 s passed                                                                 |
-| `access_denied`          | The user denied the login                                                    |
-| `invalid_grant`          | Unknown or already redeemed `device_code`                                    |
-| `unsupported_grant_type` | `grant_type` is anything but the device-code URN                             |
-| `invalid_request`        | `grant_type` or `device_code` missing, or an unreadable body                 |
+| `error`                  | When                                                                      |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `authorization_pending`  | The user hasn't decided yet; keep polling                                 |
+| `slow_down`              | Polled before `interval` elapsed; the interval grows by 5 s for this code |
+| `expired_token`          | 900 s passed                                                              |
+| `access_denied`          | The user denied the login                                                 |
+| `invalid_grant`          | Unknown or already redeemed `device_code`                                 |
+| `unsupported_grant_type` | `grant_type` is anything but the device-code URN                          |
+| `invalid_request`        | `grant_type` or `device_code` missing, or an unreadable body              |
 
 A failure on our side is `500 {"error":"server_error"}`; the cause is logged.
 
@@ -78,13 +78,13 @@ A failure on our side is `500 {"error":"server_error"}`; the cause is logged.
 
 These routes are HTML pages for people to use in a browser, not API. They need a session (a PAT or OAuth token gets `403`) and, on `POST`, the CSRF token. The flow, the cookie and the threat model are in [access control](./access-control.md#device-login).
 
-| Method | Path                    | Auth                | Description                                                                                                                                                                  |
-| ------ | ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/login/device`         | Optional session    | Code entry; signed-out users are redirected to `/login?next=/login/device`; a `user_code` query parameter is ignored                                                         |
-| POST   | `/login/device`         | Session             | `user_code`; `303` to `/login/device/confirm` with the `cz_device_code` cookie, or `400` with one generic message; 50 requests per hour per user, `429` beyond               |
-| GET    | `/login/device/confirm` | Session             | Shows the code, device, both IPs and scopes; needs the cookie, otherwise `303` to `/login/device`; `410` with the entry page when the cookie is valid but the request was answered or expired                                                                                      |
-| GET    | `/login/device/approve` | Session             | `303` to `/login/device/confirm`; where a Google/SAML sign-in returns after a failed approval                                                                                |
-| POST   | `/login/device/approve` | Session             | `action=approve\|deny`, `scope` repeated, and `password`, `code` or `email_code`; `403` and `429` as for `POST /oauth/authorize`; `400` when no valid scope remains; `410` (entry page, "expired or already answered") if the grant was answered or expired, including meanwhile |
+| Method | Path                    | Auth             | Description                                                                                                                                                                                                                                                                      |
+| ------ | ----------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/login/device`         | Optional session | Code entry; signed-out users are redirected to `/login?next=/login/device`; a `user_code` query parameter is ignored                                                                                                                                                             |
+| POST   | `/login/device`         | Session          | `user_code`; `303` to `/login/device/confirm` with the `cz_device_code` cookie, or `400` with one generic message; 50 requests per hour per user, `429` beyond                                                                                                                   |
+| GET    | `/login/device/confirm` | Session          | Shows the code, device, both IPs and scopes; needs the cookie, otherwise `303` to `/login/device`; `410` with the entry page when the cookie is valid but the request was answered or expired                                                                                    |
+| GET    | `/login/device/approve` | Session          | `303` to `/login/device/confirm`; where a Google/SAML sign-in returns after a failed approval                                                                                                                                                                                    |
+| POST   | `/login/device/approve` | Session          | `action=approve\|deny`, `scope` repeated, and `password`, `code` or `email_code`; `403` and `429` as for `POST /oauth/authorize`; `400` when no valid scope remains; `410` (entry page, "expired or already answered") if the grant was answered or expired, including meanwhile |
 
 ## Confirmed actions
 
@@ -124,16 +124,16 @@ For example, `printf 'username=bob&role=writer' > b; cz-signed POST /api/repos/a
 
 ## Two-Factor Authentication (TOTP)
 
-| Method | Path                     | Auth     | Description                                      |
-| ------ | ------------------------ | -------- | ------------------------------------------------ |
-| GET    | `/auth/2fa`              | --       | TOTP verification page (reads `cz_totp_pending`) |
-| POST   | `/auth/2fa/verify`       | --       | Verify TOTP code or backup code; five wrong ones in 15 minutes refuse even the right one for the rest of the window |
-| POST   | `/api/user/totp/enable`  | Required | Enable TOTP (`secret`, `code` from the new authenticator, and `password`); 303 to `/settings?profile_error=reauth_failed#security` on a wrong password |
-| POST   | `/api/user/totp/disable` | Required | Disable TOTP (`code` and `password`)             |
-| POST   | `/settings/confirm-code` | Required | Email a one-time `email_code` to an account with no password or 2FA ([confirming actions](./access-control.md#confirming-sensitive-actions)); one a minute and five an hour (429), 409 for accounts that confirm another way. HTMX gets the status text with a 200 |
-| POST   | `/settings/reauth/{provider}` | Required | `google` or `saml`: sign in there again to confirm a change (`return_to` form field). Redirects to the provider; its callback sets the one-time `cz_reauth` cookie and returns to `return_to` |
-| POST   | `/settings/password`     | Required | Change the password (`password`, `code` with 2FA, `new_password`, `new_password_confirm`); ends every session and sets a fresh cookie; 303 to `/settings?password_changed=1#password`, or `?password_error=<code>#password` |
-| POST   | `/settings/sessions/revoke` | Required | Sign out every other session: ends all session JWTs issued before and sets a fresh cookie for this browser; 303 to `/settings?sessions_revoked=1#sessions` |
+| Method | Path                          | Auth     | Description                                                                                                                                                                                                                                                        |
+| ------ | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/auth/2fa`                   | --       | TOTP verification page (reads `cz_totp_pending`)                                                                                                                                                                                                                   |
+| POST   | `/auth/2fa/verify`            | --       | Verify TOTP code or backup code; five wrong ones in 15 minutes refuse even the right one for the rest of the window                                                                                                                                                |
+| POST   | `/api/user/totp/enable`       | Required | Enable TOTP (`secret`, `code` from the new authenticator, and `password`); 303 to `/settings?profile_error=reauth_failed#security` on a wrong password                                                                                                             |
+| POST   | `/api/user/totp/disable`      | Required | Disable TOTP (`code` and `password`)                                                                                                                                                                                                                               |
+| POST   | `/settings/confirm-code`      | Required | Email a one-time `email_code` to an account with no password or 2FA ([confirming actions](./access-control.md#confirming-sensitive-actions)); one a minute and five an hour (429), 409 for accounts that confirm another way. HTMX gets the status text with a 200 |
+| POST   | `/settings/reauth/{provider}` | Required | `google` or `saml`: sign in there again to confirm a change (`return_to` form field). Redirects to the provider; its callback sets the one-time `cz_reauth` cookie and returns to `return_to`                                                                      |
+| POST   | `/settings/password`          | Required | Change the password (`password`, `code` with 2FA, `new_password`, `new_password_confirm`); ends every session and sets a fresh cookie; 303 to `/settings?password_changed=1#password`, or `?password_error=<code>#password`                                        |
+| POST   | `/settings/sessions/revoke`   | Required | Sign out every other session: ends all session JWTs issued before and sets a fresh cookie for this browser; 303 to `/settings?sessions_revoked=1#sessions`                                                                                                         |
 
 ## Connected Accounts
 
@@ -146,18 +146,18 @@ Browser form posts from Account settings. Both need the current `password`, plus
 
 ## SSH Keys
 
-| Method | Path                 | Auth     | Description                          |
-| ------ | -------------------- | -------- | ------------------------------------ |
-| GET    | `/api/user/keys`     | Required | List SSH keys for authenticated user |
+| Method | Path                 | Auth     | Description                                                                                                                                            |
+| ------ | -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/user/keys`     | Required | List SSH keys for authenticated user                                                                                                                   |
 | POST   | `/api/user/keys`     | Required | Add a new SSH public key (`title`, `public_key`, plus `password` and, with 2FA, `code`; form or JSON). 403 on a wrong confirmation, 429 when throttled |
-| DELETE | `/api/user/keys/:id` | Required | Delete an SSH key by ID              |
+| DELETE | `/api/user/keys/:id` | Required | Delete an SSH key by ID                                                                                                                                |
 
 ## Personal Access Tokens
 
-| Method | Path                   | Auth     | Description                                                                                                                                                        |
-| ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Method | Path                   | Auth     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write` and `repo:admin` — the last needs `signing_key`, `targets` and `expires_at` within 90 days — optional `expires_at`, optional `signing_key` (an SSH public key, hardware `sk-` keys included; see [signed requests](#signed-requests)), `targets` (`repo:admin` only: `owner/repo` or `org`, one per line or comma-separated, each one you administer), plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
-| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                 |
+| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`, or as the HTTP Basic password for git. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
 
@@ -165,8 +165,8 @@ Scopes are those of [OAuth apps](#oauth-apps), with the same meaning and the sam
 
 ## Commit Email Privacy
 
-| Method | Path              | Auth     | Description                                                                                             |
-| ------ | ----------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| Method | Path              | Auth     | Description                                                                                                  |
+| ------ | ----------------- | -------- | ------------------------------------------------------------------------------------------------------------ |
 | POST   | `/settings/email` | Required | Form: `keep_email_private=on` turns the setting on, omitting it turns it off. Redirects to `/settings#email` |
 
 Commits made through the web UI (new files, wiki edits, merge and squash merges, applied suggestions) are authored as `<username> <email>`, where the email comes from `UserService.CommitAuthor`:
@@ -178,21 +178,21 @@ Commits pushed over git keep whatever author the client set. Contributor stats r
 
 ## Email Verification
 
-| Method | Path                                   | Auth     | Description                                                                                                                                                  |
-| ------ | -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/settings/email/resend-verification`  | Required | Issue a new verification link for the account's address; the email goes out in the background. HTMX: 204, or JSON `error` with 429 (a link went to the user or the address in the last minute), 409 (already verified), 503 (no SMTP), 500. Form: 303 to `/settings#email`, or to `/settings?profile_error=<code>#email` on failure |
-| GET    | `/verify-email?token=…`                | --       | Check a link and show a confirm button naming the account; spends nothing. 410 when expired, 400 when invalid                                              |
-| POST   | `/verify-email`                        | --       | Form `token`: verify the address the link was sent to. 200 on success, 410 when expired, 400 when invalid or used                                          |
+| Method | Path                                  | Auth     | Description                                                                                                                                                                                                                                                                                                                         |
+| ------ | ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/settings/email/resend-verification` | Required | Issue a new verification link for the account's address; the email goes out in the background. HTMX: 204, or JSON `error` with 429 (a link went to the user or the address in the last minute), 409 (already verified), 503 (no SMTP), 500. Form: 303 to `/settings#email`, or to `/settings?profile_error=<code>#email` on failure |
+| GET    | `/verify-email?token=…`               | --       | Check a link and show a confirm button naming the account; spends nothing. 410 when expired, 400 when invalid                                                                                                                                                                                                                       |
+| POST   | `/verify-email`                       | --       | Form `token`: verify the address the link was sent to. 200 on success, 410 when expired, 400 when invalid or used                                                                                                                                                                                                                   |
 
 See [Email Verification](./access-control.md#email-verification).
 
 ## Deploy Keys
 
-| Method | Path                               | Auth      | Description                                         |
-| ------ | ---------------------------------- | --------- | --------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/keys`     | CanManage | List deploy keys for a repository                   |
+| Method | Path                               | Auth      | Description                                                                                                                                 |
+| ------ | ---------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/keys`     | CanManage | List deploy keys for a repository                                                                                                           |
 | POST   | `/api/repos/:owner/:repo/keys`     | CanManage | Add deploy key (`title`, `public_key`, `read_only`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled) |
-| DELETE | `/api/repos/:owner/:repo/keys/:id` | CanManage | Delete a deploy key by ID                           |
+| DELETE | `/api/repos/:owner/:repo/keys/:id` | CanManage | Delete a deploy key by ID                                                                                                                   |
 
 Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` key cannot push; a read-write key can. Each key is scoped to a single repository.
 
@@ -200,7 +200,7 @@ Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` 
 
 | Method | Path                                  | Auth     | Description                                                                                           |
 | ------ | ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| GET    | `/api/user`                           | Required | The caller's `{id, username}`; 401 without valid credentials; open to tokens with any read scope        |
+| GET    | `/api/user`                           | Required | The caller's `{id, username}`; 401 without valid credentials; open to tokens with any read scope      |
 | GET    | `/api/users/:username`                | --       | Get a user's public profile                                                                           |
 | GET    | `/api/users/:username/repos`          | --       | List user's repositories                                                                              |
 | POST   | `/api/users/:id/pinned-repos/:repoID` | Required | Pin a repo to the profile; idempotent; 422 past 6 pins; 404 if the repo is not readable by the caller |
@@ -212,21 +212,21 @@ Public user objects — returned by `GET /api/users/:username` and by `/api/repo
 
 ## Repositories
 
-| Method | Path                                | Auth     | Description                                                                         |
-| ------ | ----------------------------------- | -------- | ----------------------------------------------------------------------------------- |
-| GET    | `/api/repos/`                       | --       | List the repositories the caller can read; anonymous callers get public ones only   |
-| POST   | `/api/repos/`                       | Required | Create a repository (`name`, `description`, `private`, plus the init options below) |
-| GET    | `/api/repos/:owner/:repo`           | --       | Get repository details                                                              |
-| POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork the repository (see [Forks](#forks))                                           |
-| POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Transfer repo to a user or an org (`new_owner`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); an org target must be one you own. Another user must accept first (see [Repository Transfers](#repository-transfers)) |
-| DELETE | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Cancel the repo's pending transfer; 204, or 404 when none is pending                |
-| POST   | `/api/repos/:owner/:repo/restore`   | IsOwner  | Restore a soft-deleted repository                                                   |
-| POST   | `/api/repos/:owner/:repo/archive`   | IsOwner  | Archive a repository                                                                |
-| POST   | `/api/repos/:owner/:repo/unarchive` | IsOwner  | Unarchive a repository                                                              |
-| PATCH  | `/api/repos/:owner/:repo/template`  | IsOwner  | Toggle repository template flag                                                     |
-| PATCH  | `/api/repos/:owner/:repo`           | CanManage | Edit `description`, `website` and `license` (form fields); 204 with `HX-Refresh` |
-| POST   | `/api/repos/:owner/:repo/delete`    | IsOwner  | Soft-delete the repository; `restore` brings it back. Takes the [confirmation](#confirmed-actions). HTMX: 204 with `HX-Redirect` to `/:owner`; otherwise 303 |
-| POST   | `/api/repos/from-template`          | Required | Create a new repo from a template                                                   |
+| Method | Path                                | Auth      | Description                                                                                                                                                                                                                                                    |
+| ------ | ----------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/`                       | --        | List the repositories the caller can read; anonymous callers get public ones only                                                                                                                                                                              |
+| POST   | `/api/repos/`                       | Required  | Create a repository (`name`, `description`, `private`, plus the init options below)                                                                                                                                                                            |
+| GET    | `/api/repos/:owner/:repo`           | --        | Get repository details                                                                                                                                                                                                                                         |
+| POST   | `/api/repos/:owner/:repo/fork`      | Required  | Fork the repository (see [Forks](#forks))                                                                                                                                                                                                                      |
+| POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner   | Transfer repo to a user or an org (`new_owner`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); an org target must be one you own. Another user must accept first (see [Repository Transfers](#repository-transfers)) |
+| DELETE | `/api/repos/:owner/:repo/transfer`  | IsOwner   | Cancel the repo's pending transfer; 204, or 404 when none is pending                                                                                                                                                                                           |
+| POST   | `/api/repos/:owner/:repo/restore`   | IsOwner   | Restore a soft-deleted repository                                                                                                                                                                                                                              |
+| POST   | `/api/repos/:owner/:repo/archive`   | IsOwner   | Archive a repository                                                                                                                                                                                                                                           |
+| POST   | `/api/repos/:owner/:repo/unarchive` | IsOwner   | Unarchive a repository                                                                                                                                                                                                                                         |
+| PATCH  | `/api/repos/:owner/:repo/template`  | IsOwner   | Toggle repository template flag                                                                                                                                                                                                                                |
+| PATCH  | `/api/repos/:owner/:repo`           | CanManage | Edit `description`, `website` and `license` (form fields); 204 with `HX-Refresh`                                                                                                                                                                               |
+| POST   | `/api/repos/:owner/:repo/delete`    | IsOwner   | Soft-delete the repository; `restore` brings it back. Takes the [confirmation](#confirmed-actions). HTMX: 204 with `HX-Redirect` to `/:owner`; otherwise 303                                                                                                   |
+| POST   | `/api/repos/from-template`          | Required  | Create a new repo from a template                                                                                                                                                                                                                              |
 
 Repository creation (here and under `/api/orgs/:org/repos`) accepts optional init options that seed an initial commit: `add_readme` (bool), `gitignore` (`Go`, `Node`, `Python`, `Rust`, `Java`, `C++`, `Ruby`), and `license` (`mit`, `apache-2.0`, `gpl-3.0`, `bsd-3-clause`, `unlicense`). An unknown template name leaves the repository empty rather than failing the request.
 
@@ -236,10 +236,10 @@ A transfer into an organization you own, or into your own account (an org repo y
 
 ## Repository Imports
 
-| Method | Path                | Auth     | Description |
-| ------ | ------------------- | -------- | ----------- |
-| POST   | `/api/imports`      | Required | Start importing a Git repository (`clone_url`, `name`, optional `owner`, `description`, `private`, `auth_username` + `auth_token`, `mirror`, `mirror_interval`). Returns `202 {id, status, owner, name, status_url}` |
-| GET    | `/api/imports/:id`  | Required | The import's `status` (`queued`, `running`, `done`, `failed`), `progress` and `error`. 404 for an unknown, expired or someone else's import |
+| Method | Path               | Auth     | Description                                                                                                                                                                                                          |
+| ------ | ------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/imports`     | Required | Start importing a Git repository (`clone_url`, `name`, optional `owner`, `description`, `private`, `auth_username` + `auth_token`, `mirror`, `mirror_interval`). Returns `202 {id, status, owner, name, status_url}` |
+| GET    | `/api/imports/:id` | Required | The import's `status` (`queued`, `running`, `done`, `failed`), `progress` and `error`. 404 for an unknown, expired or someone else's import                                                                          |
 
 `clone_url` must be `http://` or `https://`, at most 2048 bytes, with no query string (422); credentials in it are refused too (422). `auth_username` and `auth_token` go together (422). `owner` defaults to the caller; another owner must be an organization the caller owns (403). A name already used under the owner is 422 `a repository with that name already exists`. A sixth import while five are queued or running is 429. Personal access tokens and OAuth-app tokens are refused on both `/api/imports` endpoints (403 `insufficient_scope`); use a session. The import's owner is in the request body, so a token limited to particular repositories or organizations could not be confined to them. `status_url` in the response is the HTML status page (`/repos/import/{id}`); API clients poll `GET /api/imports/{id}` for JSON. Imports run in the background; see [repo-import](./repo-import.md).
 
@@ -247,12 +247,12 @@ A transfer into an organization you own, or into your own account (an org repo y
 
 ## Repository Mirrors
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET    | `/api/repos/:owner/:repo/mirror`      | Manage | `{remote_url, auth_username, has_token, interval, next_sync_at, last_sync_at, last_success_at, last_error, consecutive_failures}`. Never the token |
+| Method | Path                                  | Auth   | Description                                                                                                                                                                  |
+| ------ | ------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/mirror`      | Manage | `{remote_url, auth_username, has_token, interval, next_sync_at, last_sync_at, last_success_at, last_error, consecutive_failures}`. Never the token                           |
 | PATCH  | `/api/repos/:owner/:repo/mirror`      | Manage | Change any of `remote_url`, `auth_username`, `auth_token`, `interval`; `clear_token: true` removes the token. An empty `auth_token` keeps the stored one. Returns the mirror |
-| DELETE | `/api/repos/:owner/:repo/mirror`      | Manage | Stop mirroring: the repository becomes writable and the token is deleted. 204, or 409 while a sync runs |
-| POST   | `/api/repos/:owner/:repo/mirror/sync` | Write  | Sync now. 202 `{status: "queued"}`, or 409 while mirroring is off or the mirror is archived |
+| DELETE | `/api/repos/:owner/:repo/mirror`      | Manage | Stop mirroring: the repository becomes writable and the token is deleted. 204, or 409 while a sync runs                                                                      |
+| POST   | `/api/repos/:owner/:repo/mirror/sync` | Write  | Sync now. 202 `{status: "queued"}`, or 409 while mirroring is off or the mirror is archived                                                                                  |
 
 A repository that isn't a mirror is 404. Invalid values are 422, with the same rules as on import. Scoped tokens need `repo:admin` for every mirror endpoint. A new URL, username or token makes the mirror sync at once; a new interval counts from the last sync. A pull mirror refuses pushes and every write to its branches, tags and default branch, and `POST …/pulls` into it is 422.
 
@@ -261,17 +261,28 @@ A repository that isn't a mirror is 404. Invalid values are 422, with the same r
 A transfer to another user moves nothing until they accept it. `POST /api/repos/:owner/:repo/transfer` answers `202` with the pending transfer, notifies the recipient (notification type `repo_transfer`, emailed like other notifications), and lists it on their `/repos/transfers` page, which also shows the repository's collaborators, who keep their access if it is accepted. A repository has at most one pending transfer: a new one replaces it, and so does any move of the repository. A transfer expires after 7 days (`service.RepoTransferTTL`), and lapses if the requester stops owning the repository.
 
 ```json
-{"id": 12, "repo_id": 40, "owner": "alice", "repo": "tools", "description": "", "private": true,
- "requester_id": 3, "requester": "alice", "recipient_id": 9, "recipient": "bob",
- "expires_at": "2026-10-08T12:00:00Z", "created_at": "2026-10-01T12:00:00Z"}
+{
+  "id": 12,
+  "repo_id": 40,
+  "owner": "alice",
+  "repo": "tools",
+  "description": "",
+  "private": true,
+  "requester_id": 3,
+  "requester": "alice",
+  "recipient_id": 9,
+  "recipient": "bob",
+  "expires_at": "2026-10-08T12:00:00Z",
+  "created_at": "2026-10-01T12:00:00Z"
+}
 ```
 
-| Method | Path                               | Auth     | Description                                                                                                         |
-| ------ | ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/user/transfers`              | Required | Transfers offered to you that you can still accept                                                                  |
+| Method | Path                               | Auth     | Description                                                                                                           |
+| ------ | ---------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/user/transfers`              | Required | Transfers offered to you that you can still accept                                                                    |
 | POST   | `/api/user/transfers/:id/accept`   | Required | Accept (`repo`: the `owner/repo` you were offered); 200 with the repository, now yours (`HX-Redirect` to it for HTMX) |
-| POST   | `/api/user/transfers/:id/decline`  | Required | Decline; 204 (`HX-Refresh` for HTMX)                                                                                |
-| DELETE | `/api/repos/:owner/:repo/transfer` | IsOwner  | Cancel your repository's pending transfer; 204 (`HX-Refresh` for HTMX)                                              |
+| POST   | `/api/user/transfers/:id/decline`  | Required | Decline; 204 (`HX-Refresh` for HTMX)                                                                                  |
+| DELETE | `/api/repos/:owner/:repo/transfer` | IsOwner  | Cancel your repository's pending transfer; 204 (`HX-Refresh` for HTMX)                                                |
 
 Accepting or declining a transfer that isn't yours, has ended or has expired returns 404 `repository transfer not found or expired`. Accepting returns 409 when `repo` no longer matches the repository's `owner/name`, so a repository renamed or moved after you saw it is never accepted under its new name. It also returns 409, and the transfer stays pending, when you already have a repository with that name or a `<name>.git` or `<name>.wiki.git` directory left on disk: free the name, then accept again. Those name checks run only on accept, since refusing the request would tell the requester whether you hold a private repository of that name.
 
@@ -287,21 +298,21 @@ Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` an
 
 ## Issues
 
-| Method | Path                                                  | Auth     | Description                              |
-| ------ | ----------------------------------------------------- | -------- | ---------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/issues/`                     | --       | List issues                              |
-| POST   | `/api/repos/:owner/:repo/issues/`                     | Required | Create an issue                          |
-| GET    | `/api/repos/:owner/:repo/issues/:number`              | --       | Get issue details                        |
-| PATCH  | `/api/repos/:owner/:repo/issues/:number`              | CanWrite | Update issue (open/close)                |
-| PATCH  | `/api/repos/:owner/:repo/issues/:number/pin`          | CanWrite | Pin or unpin an issue                    |
-| PATCH  | `/api/repos/:owner/:repo/issues/:number/lock`         | CanWrite | Lock or unlock an issue                  |
-| GET    | `/api/repos/:owner/:repo/issues/:number/comments`     | --       | List comments                            |
-| POST   | `/api/repos/:owner/:repo/issues/:number/comments`     | Required | Add a comment                            |
-| PATCH  | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Edit a comment body (author only)        |
-| DELETE | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Delete a comment (author or repo writer) |
-| POST   | `/api/repos/:owner/:repo/issues/:number/priority`     | CanWrite | Set `priority` (`P0`, `P1`, `P2`, `P3`; empty or `none` clears it); 400 for anything else |
-| POST   | `/api/repos/:owner/:repo/issues/:number/linked-pulls/:pullNumber` | CanWrite | Link a pull request to the issue; 404 when either does not exist |
-| DELETE | `/api/repos/:owner/:repo/issues/:number/linked-pulls/:pullNumber` | CanWrite | Unlink it |
+| Method | Path                                                              | Auth     | Description                                                                               |
+| ------ | ----------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/issues/`                                 | --       | List issues                                                                               |
+| POST   | `/api/repos/:owner/:repo/issues/`                                 | Required | Create an issue                                                                           |
+| GET    | `/api/repos/:owner/:repo/issues/:number`                          | --       | Get issue details                                                                         |
+| PATCH  | `/api/repos/:owner/:repo/issues/:number`                          | CanWrite | Update issue (open/close)                                                                 |
+| PATCH  | `/api/repos/:owner/:repo/issues/:number/pin`                      | CanWrite | Pin or unpin an issue                                                                     |
+| PATCH  | `/api/repos/:owner/:repo/issues/:number/lock`                     | CanWrite | Lock or unlock an issue                                                                   |
+| GET    | `/api/repos/:owner/:repo/issues/:number/comments`                 | --       | List comments                                                                             |
+| POST   | `/api/repos/:owner/:repo/issues/:number/comments`                 | Required | Add a comment                                                                             |
+| PATCH  | `/api/repos/:owner/:repo/issues/:number/comments/:id`             | Required | Edit a comment body (author only)                                                         |
+| DELETE | `/api/repos/:owner/:repo/issues/:number/comments/:id`             | Required | Delete a comment (author or repo writer)                                                  |
+| POST   | `/api/repos/:owner/:repo/issues/:number/priority`                 | CanWrite | Set `priority` (`P0`, `P1`, `P2`, `P3`; empty or `none` clears it); 400 for anything else |
+| POST   | `/api/repos/:owner/:repo/issues/:number/linked-pulls/:pullNumber` | CanWrite | Link a pull request to the issue; 404 when either does not exist                          |
+| DELETE | `/api/repos/:owner/:repo/issues/:number/linked-pulls/:pullNumber` | CanWrite | Unlink it                                                                                 |
 
 ## Labels
 
@@ -342,28 +353,28 @@ Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` an
 
 ### Thread subscriptions
 
-| Method | Path                                                              | Auth     | Description                                      |
-| ------ | ----------------------------------------------------------------- | -------- | ------------------------------------------------ |
-| PUT    | `/api/repos/:owner/:repo/issues/:number/subscription`             | Required | Subscribe to or mute an issue (HTMX-aware)       |
-| PUT    | `/api/repos/:owner/:repo/pulls/:number/subscription`              | Required | Subscribe to or mute a pull request (HTMX-aware) |
-| PUT    | `/api/repos/:owner/:repo/discussions/:number/subscription`        | Required | Subscribe to or mute a discussion (HTMX-aware)   |
+| Method | Path                                                       | Auth     | Description                                      |
+| ------ | ---------------------------------------------------------- | -------- | ------------------------------------------------ |
+| PUT    | `/api/repos/:owner/:repo/issues/:number/subscription`      | Required | Subscribe to or mute an issue (HTMX-aware)       |
+| PUT    | `/api/repos/:owner/:repo/pulls/:number/subscription`       | Required | Subscribe to or mute a pull request (HTMX-aware) |
+| PUT    | `/api/repos/:owner/:repo/discussions/:number/subscription` | Required | Subscribe to or mute a discussion (HTMX-aware)   |
 
 Body: `{"state": "subscribed" | "muted"}`, or the same `state` as a form field. `subscribed` writes a `manual` row, which replaces any mute; `muted` writes a mute even when the user only watches the repo. The repo watch is never changed. HTMX requests get the re-rendered sidebar Notifications section; others get `{"state", "reason"}`. Errors: 401 anonymous, 404 repo the caller can't read or missing thread, 422 any other `state`.
 
 ## Forks
 
-| Method | Path                           | Auth     | Description                     |
-| ------ | ------------------------------ | -------- | ------------------------------- |
-| POST   | `/api/repos/:owner/:repo/fork` | Required | Fork the repository; see below  |
+| Method | Path                           | Auth     | Description                    |
+| ------ | ------------------------------ | -------- | ------------------------------ |
+| POST   | `/api/repos/:owner/:repo/fork` | Required | Fork the repository; see below |
 
 The body is optional JSON (`Content-Type: application/json`); any other body forks with the defaults.
 
-| Field                 | Default           | Meaning                                                                 |
-| --------------------- | ----------------- | ----------------------------------------------------------------------- |
-| `owner`               | the caller        | The caller's username or an organization they own                       |
+| Field                 | Default           | Meaning                                                                  |
+| --------------------- | ----------------- | ------------------------------------------------------------------------ |
+| `owner`               | the caller        | The caller's username or an organization they own                        |
 | `name`                | the source's name | With no name, a taken one gets `-1`, `-2`, …; a named fork fails instead |
-| `description`         | the source's      | `""` clears it                                                          |
-| `default_branch_only` | `false`           | Copy only the default branch; tags are always copied                    |
+| `description`         | the source's      | `""` clears it                                                           |
+| `default_branch_only` | `false`           | Copy only the default branch; tags are always copied                     |
 
 A fork keeps the source's visibility. Malformed JSON is a 400 `invalid request body`, and a source the caller can't read is a 404. A fork can't land in the account or organization that owns the source (422 `a repository can't be forked into the account or organization that owns it`). An organization the caller doesn't own is a 403 (`you can fork only into your account or an organization you own`). A taken or invalid name is a 422, as for create.
 
@@ -373,25 +384,25 @@ A JSON request gets 201 `{"owner", "name", "url"}`. Other requests are redirecte
 
 ## Pull Requests
 
-| Method | Path                                    | Auth     | Description                                                                                                                                |
-| ------ | --------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/repos/:owner/:repo/pulls/`        | --       | List pull requests                                                                                                                         |
-| POST   | `/api/repos/:owner/:repo/pulls/`        | Required | Create a pull request                                                                                                                      |
-| GET    | `/api/repos/:owner/:repo/pulls/:number` | --       | Get PR details                                                                                                                             |
-| PATCH  | `/api/repos/:owner/:repo/pulls/:number` | CanWrite | Update PR state. `state=merged` merges using `merge_strategy` (`ff` default, `merge`, or `squash`); `state=closed` closes without merging. |
-| POST   | `/api/repos/:owner/:repo/pulls/:number/linked-issues/:issueNumber` | CanWrite | Link an issue the pull request closes; 404 when either does not exist |
-| DELETE | `/api/repos/:owner/:repo/pulls/:number/linked-issues/:issueNumber` | CanWrite | Unlink it |
-| POST   | `/api/repos/:owner/:repo/pulls/:number/reviewers` | CanWrite | Request a review from `username` (form); 400 when it is missing or unknown, 403 when that user cannot read the repository; 204 |
-| DELETE | `/api/repos/:owner/:repo/pulls/:number/reviewers?username=X` | CanWrite | Withdraw the request; 204 |
-| POST   | `/api/repos/:owner/:repo/pulls/:number/comments` | Required | Comment on the conversation (JSON `body`; an HTMX request sends it as a form field); 400 for a blank body |
-| PATCH  | `/api/repos/:owner/:repo/pulls/:number/comments/:commentID` | Required | Edit a comment body (author only) |
-| DELETE | `/api/repos/:owner/:repo/pulls/:number/comments/:commentID` | Required | Delete a comment (author or repo writer) |
+| Method | Path                                                               | Auth     | Description                                                                                                                                |
+| ------ | ------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/repos/:owner/:repo/pulls/`                                   | --       | List pull requests                                                                                                                         |
+| POST   | `/api/repos/:owner/:repo/pulls/`                                   | Required | Create a pull request                                                                                                                      |
+| GET    | `/api/repos/:owner/:repo/pulls/:number`                            | --       | Get PR details                                                                                                                             |
+| PATCH  | `/api/repos/:owner/:repo/pulls/:number`                            | CanWrite | Update PR state. `state=merged` merges using `merge_strategy` (`ff` default, `merge`, or `squash`); `state=closed` closes without merging. |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/linked-issues/:issueNumber` | CanWrite | Link an issue the pull request closes; 404 when either does not exist                                                                      |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/linked-issues/:issueNumber` | CanWrite | Unlink it                                                                                                                                  |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/reviewers`                  | CanWrite | Request a review from `username` (form); 400 when it is missing or unknown, 403 when that user cannot read the repository; 204             |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/reviewers?username=X`       | CanWrite | Withdraw the request; 204                                                                                                                  |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/comments`                   | Required | Comment on the conversation (JSON `body`; an HTMX request sends it as a form field); 400 for a blank body                                  |
+| PATCH  | `/api/repos/:owner/:repo/pulls/:number/comments/:commentID`        | Required | Edit a comment body (author only)                                                                                                          |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/comments/:commentID`        | Required | Delete a comment (author or repo writer)                                                                                                   |
 
 ## PR Reviews
 
-| Method | Path                                            | Auth     | Description                                                                                                           |
-| ------ | ----------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/pulls/:number/reviews` | Optional | List all reviews for a pull request                                                                                   |
+| Method | Path                                            | Auth     | Description                                                                                                                                                                  |
+| ------ | ----------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/pulls/:number/reviews` | Optional | List all reviews for a pull request                                                                                                                                          |
 | POST   | `/api/repos/:owner/:repo/pulls/:number/reviews` | Required | Submit or update a review (`state`, `body`); upserts per reviewer; `state=changes_requested` blocks all merge buttons until the reviewer changes it or deletes their account |
 
 Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
@@ -422,23 +433,23 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 
 ## Branch Protections
 
-| Method | Path                                               | Auth      | Description                                                                                                                  |
-| ------ | -------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/branches/protections`     | CanManage | List all branch protection rules for the repository                                                                          |
+| Method | Path                                               | Auth      | Description                                                                                                                                                        |
+| ------ | -------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/repos/:owner/:repo/branches/protections`     | CanManage | List all branch protection rules for the repository                                                                                                                |
 | POST   | `/api/repos/:owner/:repo/branches/protections`     | CanManage | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`, `require_pull_request`); a malformed glob such as `[` returns 422 |
-| PATCH  | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Update an existing rule (same fields as POST except `pattern`; a field left out is reset, so `require_pull_request` turns off) |
-| DELETE | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Delete a protection rule                                                                                                     |
+| PATCH  | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Update an existing rule (same fields as POST except `pattern`; a field left out is reset, so `require_pull_request` turns off)                                     |
+| DELETE | `/api/repos/:owner/:repo/branches/protections/:id` | CanManage | Delete a protection rule                                                                                                                                           |
 
 `require_pull_request` (default `false`) refuses every direct update of a matching branch, with no bypass for admins: a push (create, update or delete), a branch create or delete through the API, and a file created, edited, renamed or deleted from the browser. Changes reach the branch only by merging a pull request. The refusal is `422 pull request required by branch protection: rule "<pattern>"`; over git it is the per-ref status of the push ([git-transport](./git-transport.md#concurrent-ref-updates)).
 
 ## Branches & Tags
 
-| Method | Path                                      | Auth     | Description                                                                                                     |
-| ------ | ----------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| Method | Path                                      | Auth     | Description                                                                                                                                                   |
+| ------ | ----------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch; 422 under `require_pull_request`, or for a name `git check-ref-format` rejects) |
-| DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push` or `require_pull_request`)              |
-| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields; 422 for a name `git check-ref-format` rejects)                          |
-| DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                                                      |
+| DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push` or `require_pull_request`)                                                            |
+| POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields; 422 for a name `git check-ref-format` rejects)                                                                        |
+| DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                                                                                                    |
 
 All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.
 
@@ -453,16 +464,16 @@ Deleting a branch whose protection rule has `block_force_push` returns 422 `cann
 
 ## Releases
 
-| Method | Path                                      | Auth     | Description                                                                |
-| ------ | ----------------------------------------- | -------- | -------------------------------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/releases`        | --       | List releases                                                              |
-| POST   | `/api/repos/:owner/:repo/releases`        | CanWrite | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`); 422 for a tag name git rejects or one already released |
-| GET    | `/api/repos/:owner/:repo/releases/latest` | --       | Get the latest non-draft release                                           |
-| GET    | `/api/repos/:owner/:repo/releases/:id`    | --       | Get release by ID                                                          |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id`    | CanWrite | Update a release                                                           |
-| DELETE | `/api/repos/:owner/:repo/releases/:id`    | CanWrite | Delete a release; HTMX requests return `HX-Redirect` to the releases list  |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id/prerelease` | CanWrite | Set `is_prerelease` (`true`; anything else clears it) |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id/publish` | CanWrite | Publish a draft; 422 when it is already published |
+| Method | Path                                              | Auth     | Description                                                                                                                        |
+| ------ | ------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/releases`                | --       | List releases                                                                                                                      |
+| POST   | `/api/repos/:owner/:repo/releases`                | CanWrite | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`); 422 for a tag name git rejects or one already released |
+| GET    | `/api/repos/:owner/:repo/releases/latest`         | --       | Get the latest non-draft release                                                                                                   |
+| GET    | `/api/repos/:owner/:repo/releases/:id`            | --       | Get release by ID                                                                                                                  |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id`            | CanWrite | Update a release                                                                                                                   |
+| DELETE | `/api/repos/:owner/:repo/releases/:id`            | CanWrite | Delete a release; HTMX requests return `HX-Redirect` to the releases list                                                          |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id/prerelease` | CanWrite | Set `is_prerelease` (`true`; anything else clears it)                                                                              |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id/publish`    | CanWrite | Publish a draft; 422 when it is already published                                                                                  |
 
 ## Commit Statuses
 
@@ -490,20 +501,20 @@ The repository's Checks tab (`/{owner}/{repo}/checks`) lists the commits with re
 
 ## Projects (Kanban)
 
-| Method | Path                                                         | Auth     | Description                                                                                                                                                   |
-| ------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/repos/:owner/:repo/projects`                           | Required | Create a project board                                                                                                                                        |
-| DELETE | `/api/repos/:owner/:repo/projects/:id`                       | Required | Delete a project board                                                                                                                                        |
-| PATCH  | `/api/repos/:owner/:repo/projects/:id`                       | Required | Close or reopen a board (JSON `closed`); 200 with the board                                                                                                   |
-| POST   | `/api/repos/:owner/:repo/projects/:id/columns`               | Required | Create a column                                                                                                                                               |
-| DELETE | `/api/repos/:owner/:repo/projects/:id/columns/:colID`        | Required | Delete a column                                                                                                                                               |
-| GET    | `/api/repos/:owner/:repo/projects/:id/card-targets`          | Required | Search the repo's issues and PRs by title or number (`q`) for the card link picker; up to 8 results                                                           |
-| POST   | `/api/repos/:owner/:repo/projects/:id/cards`                 | Required | Create a card                                                                                                                                                 |
-| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`         | Required | Move a card between columns                                                                                                                                   |
-| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/details` | Required | Replace a card's title, description, due date, assignees, labels and link                                                                                     |
-| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/fields`  | Required | Change only the card fields named in the body; 200 with the card (below)                                                                                       |
+| Method | Path                                                         | Auth     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/projects`                           | Required | Create a project board                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| DELETE | `/api/repos/:owner/:repo/projects/:id`                       | Required | Delete a project board                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id`                       | Required | Close or reopen a board (JSON `closed`); 200 with the board                                                                                                                                                                                                                                                                                                                                                                                                               |
+| POST   | `/api/repos/:owner/:repo/projects/:id/columns`               | Required | Create a column                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| DELETE | `/api/repos/:owner/:repo/projects/:id/columns/:colID`        | Required | Delete a column                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| GET    | `/api/repos/:owner/:repo/projects/:id/card-targets`          | Required | Search the repo's issues and PRs by title or number (`q`) for the card link picker; up to 8 results                                                                                                                                                                                                                                                                                                                                                                       |
+| POST   | `/api/repos/:owner/:repo/projects/:id/cards`                 | Required | Create a card                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`         | Required | Move a card between columns                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/details` | Required | Replace a card's title, description, due date, assignees, labels and link                                                                                                                                                                                                                                                                                                                                                                                                 |
+| PATCH  | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/fields`  | Required | Change only the card fields named in the body; 200 with the card (below)                                                                                                                                                                                                                                                                                                                                                                                                  |
 | POST   | `/api/repos/:owner/:repo/projects/:id/cards/:cardID/convert` | Required | Turn an unlinked note card into a public issue; the issue gets copies of the card's title, description, labels and assignees, and the card keeps its own fields and gains the link (400 if the card is already linked; 404 `not found` when the repository has issues disabled, as for `POST .../issues`, with no issue created and the card untouched); responds with the card, whose `issue_id`, `issue_number`, `issue_title` and `issue_state` describe the new issue |
-| DELETE | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`         | Required | Delete a card                                                                                                                                                 |
+| DELETE | `/api/repos/:owner/:repo/projects/:id/cards/:cardID`         | Required | Delete a card                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 `POST .../cards` takes `column_id` plus the card fields; `PATCH .../cards/:cardID/details` takes the same fields without `column_id` and replaces all of them:
 `title`, `description`, `due_date` (`YYYY-MM-DD` or empty), `assignee_ids`, `label_ids`, and at most one of `issue_id`/`pull_id`.
@@ -513,26 +524,26 @@ A card needs a non-empty `title` unless it is a bare issue/PR link. Assignees mu
 
 ## Wiki
 
-| Method | Path                                 | Auth     | Description                  |
-| ------ | ------------------------------------ | -------- | ---------------------------- |
-| POST   | `/api/repos/:owner/:repo/wiki/:slug` | Required | Create or update a wiki page |
-| DELETE | `/api/repos/:owner/:repo/wiki/:slug` | Required | Delete a wiki page           |
+| Method | Path                                 | Auth     | Description                                                 |
+| ------ | ------------------------------------ | -------- | ----------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/wiki/:slug` | Required | Create or update a wiki page                                |
+| DELETE | `/api/repos/:owner/:repo/wiki/:slug` | Required | Delete a wiki page                                          |
 | POST   | `/api/repos/:owner/:repo/wiki/order` | Required | Set the sidebar order (`order`: comma-separated slugs); 200 |
 
 Slugs, access rules and conflicts are in [wiki](./wiki.md). Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that moves with the repository when it is deleted, restored, purged or transferred. Page content is Markdown. When a repository named `<repo>.wiki` from before that suffix was reserved holds the path, `<repo>`'s wiki pages return 404 and the directory stays with `<repo>.wiki`.
 
 ## Discussions
 
-| Method | Path                                                      | Auth     | Description                         |
-| ------ | --------------------------------------------------------- | -------- | ----------------------------------- |
-| POST   | `/api/repos/:owner/:repo/discussions`                     | Required | Create a discussion                 |
-| POST   | `/api/repos/:owner/:repo/discussions/:number/replies`     | Required | Reply to a discussion               |
-| PATCH  | `/api/repos/:owner/:repo/discussions/:number`             | Required | Mark a reply as the accepted answer |
-| DELETE | `/api/repos/:owner/:repo/discussions/:number/replies/:id` | Required | Delete a reply                      |
-| POST   | `/api/repos/:owner/:repo/discussions/:number/labels/:labelID` | CanWrite | Add a label to a discussion |
-| DELETE | `/api/repos/:owner/:repo/discussions/:number/labels/:labelID` | CanWrite | Remove it |
-| POST   | `/api/repos/:owner/:repo/discussions/:number/reactions` | Required | Toggle a reaction (`emoji`); answers the reaction bar HTML, 400 for an unsupported emoji |
-| POST   | `/api/repos/:owner/:repo/discussions/:number/replies/:id/reactions` | Required | Toggle a reaction on a reply |
+| Method | Path                                                                | Auth     | Description                                                                              |
+| ------ | ------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/discussions`                               | Required | Create a discussion                                                                      |
+| POST   | `/api/repos/:owner/:repo/discussions/:number/replies`               | Required | Reply to a discussion                                                                    |
+| PATCH  | `/api/repos/:owner/:repo/discussions/:number`                       | Required | Mark a reply as the accepted answer                                                      |
+| DELETE | `/api/repos/:owner/:repo/discussions/:number/replies/:id`           | Required | Delete a reply                                                                           |
+| POST   | `/api/repos/:owner/:repo/discussions/:number/labels/:labelID`       | CanWrite | Add a label to a discussion                                                              |
+| DELETE | `/api/repos/:owner/:repo/discussions/:number/labels/:labelID`       | CanWrite | Remove it                                                                                |
+| POST   | `/api/repos/:owner/:repo/discussions/:number/reactions`             | Required | Toggle a reaction (`emoji`); answers the reaction bar HTML, 400 for an unsupported emoji |
+| POST   | `/api/repos/:owner/:repo/discussions/:number/replies/:id/reactions` | Required | Toggle a reaction on a reply                                                             |
 
 ## Gists
 
@@ -545,70 +556,70 @@ Slugs, access rules and conflicts are in [wiki](./wiki.md). Wiki pages are store
 
 ## Search
 
-| Method | Path      | Auth     | Description                                                                                                                                        |
-| ------ | --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/search` | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `orgs`, `issues`, `pulls`, `users`). Each word in `q` matches as a prefix, so `bra` finds `brave`. Returns only repos, issues and PRs the viewer can read, never from soft-deleted repos. |
+| Method | Path              | Auth     | Description                                                                                                                                                                                                                                                                |
+| ------ | ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/search`         | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `orgs`, `issues`, `pulls`, `users`). Each word in `q` matches as a prefix, so `bra` finds `brave`. Returns only repos, issues and PRs the viewer can read, never from soft-deleted repos.       |
 | GET    | `/search/suggest` | Optional | HTML fragment for the topnav dropdown, not JSON: up to 4 repos, 3 users and 3 orgs whose names start with `q`. `q` shorter than 2 characters returns an empty fragment. Repos follow the same visibility rules as `/search`. Sent with `Cache-Control: private, no-store`. |
 
 ## Webhooks
 
-| Method | Path                                           | Auth      | Description                                |
-| ------ | ---------------------------------------------- | --------- | ------------------------------------------ |
-| GET    | `/api/repos/:owner/:repo/hooks/`               | --        | List webhooks for repository               |
+| Method | Path                                           | Auth      | Description                                                                                                                                                                                                |
+| ------ | ---------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/hooks/`               | --        | List webhooks for repository                                                                                                                                                                               |
 | POST   | `/api/repos/:owner/:repo/hooks/`               | CanManage | Create webhook (JSON `url`, `secret`, `events`, plus `password` and, with 2FA, `code`; 400 for a URL that isn't http(s) or resolves to a private address, 403 on a wrong confirmation, 429 when throttled) |
-| PATCH  | `/api/repos/:owner/:repo/hooks/:id`            | CanManage | Update webhook settings                    |
-| DELETE | `/api/repos/:owner/:repo/hooks/:id`            | CanManage | Delete webhook                             |
-| GET    | `/api/repos/:owner/:repo/hooks/:id/deliveries` | CanManage | List delivery history                      |
-| POST   | `/api/repos/:owner/:repo/hooks/:id/redeliver`  | CanManage | Redeliver a webhook event                  |
+| PATCH  | `/api/repos/:owner/:repo/hooks/:id`            | CanManage | Update webhook settings                                                                                                                                                                                    |
+| DELETE | `/api/repos/:owner/:repo/hooks/:id`            | CanManage | Delete webhook                                                                                                                                                                                             |
+| GET    | `/api/repos/:owner/:repo/hooks/:id/deliveries` | CanManage | List delivery history                                                                                                                                                                                      |
+| POST   | `/api/repos/:owner/:repo/hooks/:id/redeliver`  | CanManage | Redeliver a webhook event                                                                                                                                                                                  |
 
 Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signed with `X-Hub-Signature-256` when a secret is configured (GitHub-compatible HMAC-SHA256).
 
 ## Repository Collaborators
 
-| Method | Path                                              | Auth      | Description                           |
-| ------ | ------------------------------------------------- | --------- | ------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/collaborators`           | Optional  | List collaborators with usernames     |
+| Method | Path                                              | Auth      | Description                                                                                                                                                                                                                                                 |
+| ------ | ------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/collaborators`           | Optional  | List collaborators with usernames                                                                                                                                                                                                                           |
 | POST   | `/api/repos/:owner/:repo/collaborators`           | CanManage | Add collaborator or change their role (`username`, `role` of `reader`, `writer` or `admin`, else 400, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation or when a non-owner grants `admin` or changes an admin's role, 429 when throttled) |
-| DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | CanManage | Remove collaborator by user ID (403 when a non-owner removes an admin) |
+| DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | CanManage | Remove collaborator by user ID (403 when a non-owner removes an admin)                                                                                                                                                                                      |
 
 See [access-control.md](access-control.md) for the full permission model. `CanManage` requires owner, org owner, or `admin` collaborator role.
 
 ## Markdown image attachments
 
-| Method | Path                           | Auth     | Description |
-| ------ | ------------------------------ | -------- | ----------- |
-| POST   | `/:owner/:repo/attachments`    | Required | Upload an image as multipart field `file`: PNG, JPEG, GIF or WebP, at most 10 MB. Returns `{"url": "/attachments/<token>.<ext>", "markdown": "![name](/attachments/<token>.<ext>)"}`. 404 when the repo is unknown or the caller can't read it; 413 over 10 MB; 422 for anything else that isn't such an image |
-| GET    | `/attachments/:name`           | Optional | Serve the image if the caller can read its repo, with `Cache-Control: private, no-cache` and an `ETag` (304 on `If-None-Match`); 404 otherwise, including for an unknown or malformed name |
+| Method | Path                        | Auth     | Description                                                                                                                                                                                                                                                                                                    |
+| ------ | --------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/:owner/:repo/attachments` | Required | Upload an image as multipart field `file`: PNG, JPEG, GIF or WebP, at most 10 MB. Returns `{"url": "/attachments/<token>.<ext>", "markdown": "![name](/attachments/<token>.<ext>)"}`. 404 when the repo is unknown or the caller can't read it; 413 over 10 MB; 422 for anything else that isn't such an image |
+| GET    | `/attachments/:name`        | Optional | Serve the image if the caller can read its repo, with `Cache-Control: private, no-cache` and an `ETag` (304 on `If-None-Match`); 404 otherwise, including for an unknown or malformed name                                                                                                                     |
 
 See [storage](./storage.md#markdown-image-attachments).
 
 ## Avatars
 
-| Method | Path | Auth | Description |
-| ------ | ---- | ---- | ----------- |
-| POST   | `/settings/avatar`                   | Required | Upload the caller's avatar as multipart field `avatar`: PNG, JPEG, GIF or WebP, at most 2 MB and 4096 × 4096 px. Redirects (303) to `/settings`; 413 over 2 MB; 422 for anything else that isn't such an image |
-| POST   | `/settings/avatar/delete`            | Required | Remove the caller's avatar |
-| POST   | `/orgs/:org/settings/avatar`         | Required | Upload the org's avatar; owner only (403), 404 for an unknown org; writes `org.avatar.update` to the audit log |
-| POST   | `/orgs/:org/settings/avatar/delete`  | Required | Remove the org's avatar; owner only; writes `org.avatar.remove` |
-| GET    | `/avatars/:key`                      | --       | Serve a stored avatar with `Cache-Control: public, max-age=31536000, immutable` and an `ETag` (304 on `If-None-Match`); 404 for an unknown or malformed key |
+| Method | Path                                | Auth     | Description                                                                                                                                                                                                    |
+| ------ | ----------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/settings/avatar`                  | Required | Upload the caller's avatar as multipart field `avatar`: PNG, JPEG, GIF or WebP, at most 2 MB and 4096 × 4096 px. Redirects (303) to `/settings`; 413 over 2 MB; 422 for anything else that isn't such an image |
+| POST   | `/settings/avatar/delete`           | Required | Remove the caller's avatar                                                                                                                                                                                     |
+| POST   | `/orgs/:org/settings/avatar`        | Required | Upload the org's avatar; owner only (403), 404 for an unknown org; writes `org.avatar.update` to the audit log                                                                                                 |
+| POST   | `/orgs/:org/settings/avatar/delete` | Required | Remove the org's avatar; owner only; writes `org.avatar.remove`                                                                                                                                                |
+| GET    | `/avatars/:key`                     | --       | Serve a stored avatar with `Cache-Control: public, max-age=31536000, immutable` and an `ETag` (304 on `If-None-Match`); 404 for an unknown or malformed key                                                    |
 
 With `HX-Request: true`, upload errors come back as a message for the form's error slot instead of a 4xx. See [storage](./storage.md).
 
 ## Organizations
 
-| Method | Path                                    | Auth     | Description                                                                                                                         |
-| ------ | --------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/orgs/`                            | Required | Create organization (`name`, `display_name`, `description`); 422 when `name` is invalid or taken                                    |
-| GET    | `/api/orgs/:org`                        | --       | Get organization by name, including `website`, `location`, `contact_email`, `default_repo_visibility`, `default_branch_name`        |
-| GET    | `/api/orgs/:org/members`                | --       | List organization members                                                                                                           |
-| POST   | `/api/orgs/:org/members`                | Required | Add member (`username`, `role`); owner only; adding an owner also needs `password` and, with 2FA, `code`                             |
-| DELETE | `/api/orgs/:org/members/:username`      | Required | Remove member; owner only, except a member may remove themselves; last owner blocked                                                |
-| POST   | `/api/orgs/:org/members/:username/role` | Required | Change a member's role (`role` form field: `owner` or `member`); owner only; promoting to `owner` also needs `password` and, with 2FA, `code`; demoting the last owner is rejected |
-| POST   | `/api/orgs/:org/repos`                  | Required | Create a repository under the organization (same body as `POST /api/repos/`); owner only                                            |
+| Method | Path                                    | Auth     | Description                                                                                                                                                                                                     |
+| ------ | --------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/orgs/`                            | Required | Create organization (`name`, `display_name`, `description`); 422 when `name` is invalid or taken                                                                                                                |
+| GET    | `/api/orgs/:org`                        | --       | Get organization by name, including `website`, `location`, `contact_email`, `default_repo_visibility`, `default_branch_name`                                                                                    |
+| GET    | `/api/orgs/:org/members`                | --       | List organization members                                                                                                                                                                                       |
+| POST   | `/api/orgs/:org/members`                | Required | Add member (`username`, `role`); owner only; adding an owner also needs `password` and, with 2FA, `code`                                                                                                        |
+| DELETE | `/api/orgs/:org/members/:username`      | Required | Remove member; owner only, except a member may remove themselves; last owner blocked                                                                                                                            |
+| POST   | `/api/orgs/:org/members/:username/role` | Required | Change a member's role (`role` form field: `owner` or `member`); owner only; promoting to `owner` also needs `password` and, with 2FA, `code`; demoting the last owner is rejected                              |
+| POST   | `/api/orgs/:org/repos`                  | Required | Create a repository under the organization (same body as `POST /api/repos/`); owner only                                                                                                                        |
 | POST   | `/api/orgs/:org/transfer`               | Required | Transfer org ownership (`new_owner`, optional `confirm_name`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); owner only; demotes self to member; redirects to `/:org` |
-| POST   | `/api/orgs/:org/profile`                | Required | Update profile (`display_name`, `description`, `website`, `location`, `contact_email` form fields); owner only                      |
-| POST   | `/api/orgs/:org/repo-defaults`          | Required | Update repo defaults (`default_repo_visibility`, `default_branch_name` form fields); owner only                                     |
-| POST   | `/api/orgs/:org/delete`                 | Required | Delete the organization (`confirm_name`, plus `password` and, with 2FA, `code`); owner only; 422 while the org still owns repositories |
+| POST   | `/api/orgs/:org/profile`                | Required | Update profile (`display_name`, `description`, `website`, `location`, `contact_email` form fields); owner only                                                                                                  |
+| POST   | `/api/orgs/:org/repo-defaults`          | Required | Update repo defaults (`default_repo_visibility`, `default_branch_name` form fields); owner only                                                                                                                 |
+| POST   | `/api/orgs/:org/delete`                 | Required | Delete the organization (`confirm_name`, plus `password` and, with 2FA, `code`); owner only; 422 while the org still owns repositories                                                                          |
 
 Org avatars are uploaded outside `/api/orgs`, whose 1 MB body limit is smaller than an image; see [Avatars](#avatars).
 
@@ -626,12 +637,12 @@ The profile, repo-defaults, and delete endpoints are browser form posts: they re
 
 ## Notifications
 
-| Method | Path                              | Auth     | Description                        |
-| ------ | --------------------------------- | -------- | ---------------------------------- |
-| GET    | `/api/notifications/unread-count` | Required | Returns `{"count": N}`             |
-| PATCH  | `/api/notifications/:id`          | Required | Mark a single notification as read |
-| POST   | `/api/notifications/read-all`     | Required | Mark all notifications as read     |
-| POST   | `/api/notifications/done`         | Required | Mark the notifications in repeated form field `ids` as read |
+| Method | Path                              | Auth     | Description                                                                                                           |
+| ------ | --------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/notifications/unread-count` | Required | Returns `{"count": N}`                                                                                                |
+| PATCH  | `/api/notifications/:id`          | Required | Mark a single notification as read                                                                                    |
+| POST   | `/api/notifications/read-all`     | Required | Mark all notifications as read                                                                                        |
+| POST   | `/api/notifications/done`         | Required | Mark the notifications in repeated form field `ids` as read                                                           |
 | POST   | `/api/notifications/unsubscribe`  | Required | Mute the thread behind each notification in `ids` and mark its unread notifications read; the repo watch is unchanged |
 
 ## Saved Replies
@@ -645,14 +656,14 @@ The profile, repo-defaults, and delete endpoints are browser form posts: they re
 
 ## OAuth Apps
 
-| Method | Path                            | Auth     | Description                                |
-| ------ | ------------------------------- | -------- | ------------------------------------------ |
-| GET    | `/oauth/authorize`              | Optional | OAuth authorization page                   |
+| Method | Path                            | Auth     | Description                                                                   |
+| ------ | ------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| GET    | `/oauth/authorize`              | Optional | OAuth authorization page                                                      |
 | POST   | `/oauth/authorize`              | Required | Confirm authorization grant; approving needs `password` and, with 2FA, `code` |
-| POST   | `/oauth/token`                  | --       | Exchange auth code for access token        |
-| POST   | `/api/oauth/apps`               | Required | Register an OAuth application (HTMX-aware) |
-| DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application (HTMX-aware)   |
-| DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization (HTMX-aware) |
+| POST   | `/oauth/token`                  | --       | Exchange auth code for access token                                           |
+| POST   | `/api/oauth/apps`               | Required | Register an OAuth application (HTMX-aware)                                    |
+| DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application (HTMX-aware)                                      |
+| DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization (HTMX-aware)                                    |
 
 Registering an app returns `client_secret` once; only its bcrypt hash is stored. JSON callers get it in the body; HTMX form posts (`name`, `homepage_url`, `redirect_uri`, `description`) get the apps-list fragment with the secret revealed.
 
@@ -670,36 +681,36 @@ Registering an app returns `client_secret` once; only its bcrypt hash is stored.
 | 400    | `invalid_grant`          | Code unknown, expired, already redeemed, issued to another app, or `redirect_uri` doesn't match                               |
 | 500    | `server_error`           | Anything else; the cause is logged server-side                                                                                |
 
-| Scope          | Grants                                                                                         |
-| -------------- | ---------------------------------------------------------------------------------------------- |
-| `repo:read`    | Read repos, issues, pulls, releases, orgs and user profiles; git clone/fetch                   |
-| `repo:write`   | `repo:read`, plus repo content writes, creating repos, merging, git push                       |
-| `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                                   |
+| Scope          | Grants                                                                                               |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| `repo:read`    | Read repos, issues, pulls, releases, orgs and user profiles; git clone/fetch                         |
+| `repo:write`   | `repo:read`, plus repo content writes, creating repos, merging, git push                             |
+| `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                                         |
 | `pulls:write`  | Reads, plus writes under `/api/repos/:owner/:repo/pulls/**`, except merging and applying suggestions |
 
 A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed routes are open to OAuth tokens and PATs; account, admin and repo-administration endpoints and HTML pages never are. Route list: [access-control](./access-control.md#token-scopes).
 
 ## Instance Admin (superadmin only)
 
-| Method | Path                         | Auth       | Description                                               |
-| ------ | ---------------------------- | ---------- | --------------------------------------------------------- |
-| GET    | `/admin/settings`            | Superadmin | Admin panel: instance settings + invitation management    |
-| POST   | `/api/admin/settings`        | Superadmin | Toggle a setting (`key`, `value`, plus `password` and, with 2FA, `code`; HTMX-aware) |
-| POST   | `/api/admin/invitations`     | Superadmin | Create invitation (`email`, plus `password` and, with 2FA, `code`; HTMX-aware)        |
-| DELETE | `/api/admin/invitations/:id` | Superadmin | Delete an invitation (HTMX-aware)                         |
-| GET    | `/admin/users`               | Superadmin | Account list (`q` username or email prefix, `role` = `superadmin`/`user`, `status` = `active`/`suspended`, `page`; 50 per page) |
-| GET    | `/admin/users/:username`     | Superadmin | One account's details and actions; 404 for an unknown username or the ghost |
-| POST   | `/api/admin/users/:username/suspend` | Superadmin | Suspend (optional `reason`); ends the account's sessions. 409 if it would leave no active superadmin |
-| POST   | `/api/admin/users/:username/unsuspend` | Superadmin | Unsuspend; tokens and keys work again, sessions don't |
-| POST   | `/api/admin/users/:username/promote` | Superadmin | Make a superadmin; 409 while suspended |
-| POST   | `/api/admin/users/:username/demote` | Superadmin | Remove superadmin; 409 if it would leave no active superadmin |
-| POST   | `/api/admin/users/:username/reset-2fa` | Superadmin | Turn the account's 2FA off and mail it a notice |
-| POST   | `/api/admin/users/:username/revoke-credentials` | Superadmin | Delete the account's PATs, SSH keys and OAuth app authorizations, end its sessions, and mail it a notice |
+| Method | Path                                             | Auth       | Description                                                                                                                                                                                                                                                      |
+| ------ | ------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/admin/settings`                                | Superadmin | Admin panel: instance settings + invitation management                                                                                                                                                                                                           |
+| POST   | `/api/admin/settings`                            | Superadmin | Toggle a setting (`key`, `value`, plus `password` and, with 2FA, `code`; HTMX-aware)                                                                                                                                                                             |
+| POST   | `/api/admin/invitations`                         | Superadmin | Create invitation (`email`, plus `password` and, with 2FA, `code`; HTMX-aware)                                                                                                                                                                                   |
+| DELETE | `/api/admin/invitations/:id`                     | Superadmin | Delete an invitation (HTMX-aware)                                                                                                                                                                                                                                |
+| GET    | `/admin/users`                                   | Superadmin | Account list (`q` username or email prefix, `role` = `superadmin`/`user`, `status` = `active`/`suspended`, `page`; 50 per page)                                                                                                                                  |
+| GET    | `/admin/users/:username`                         | Superadmin | One account's details and actions; 404 for an unknown username or the ghost                                                                                                                                                                                      |
+| POST   | `/api/admin/users/:username/suspend`             | Superadmin | Suspend (optional `reason`); ends the account's sessions. 409 if it would leave no active superadmin                                                                                                                                                             |
+| POST   | `/api/admin/users/:username/unsuspend`           | Superadmin | Unsuspend; tokens and keys work again, sessions don't                                                                                                                                                                                                            |
+| POST   | `/api/admin/users/:username/promote`             | Superadmin | Make a superadmin; 409 while suspended                                                                                                                                                                                                                           |
+| POST   | `/api/admin/users/:username/demote`              | Superadmin | Remove superadmin; 409 if it would leave no active superadmin                                                                                                                                                                                                    |
+| POST   | `/api/admin/users/:username/reset-2fa`           | Superadmin | Turn the account's 2FA off and mail it a notice                                                                                                                                                                                                                  |
+| POST   | `/api/admin/users/:username/revoke-credentials`  | Superadmin | Delete the account's PATs, SSH keys and OAuth app authorizations, end its sessions, and mail it a notice                                                                                                                                                         |
 | POST   | `/api/admin/users/:username/password-reset-link` | Superadmin | Issue a 24-hour single-use password reset link, replacing any earlier one, and mail the account a notice without it. 200 with `{"link", "expires_at"}`, or for HTMX the shown-once panel; `Cache-Control: no-store`. 409 for a suspended or passwordless account |
-| POST   | `/api/admin/users/:username/delete` | Superadmin | Delete the account (`confirm_username` must equal it; 400 otherwise). 409 for a sole organization owner or the last active superadmin. HTMX: `HX-Redirect` to `/admin/users` |
-| POST   | `/api/admin/users/verify-email` | Superadmin | Mark a user's email verified (`username`, `email`, plus `password` and, with 2FA, `code`; `email` must be their current address, else 404; 400 when either is missing). HTMX: 204, form: 303 to `/admin/settings`; audit-logged |
-| POST   | `/api/admin/orgs/:org/owners` | Superadmin | Make `username` an owner of any organization (optional `from`: the admin user page to return to, plus `password` and, with 2FA, `code`). 404 for an unknown user or organization, 409 for a suspended user |
-| POST   | `/api/admin/sso/:provider/enabled` | Superadmin | Turn `ldap` or `saml` sign-in on or off (`enabled=true`, plus `password` and, with 2FA, `code`); 404 for another provider, 422 until the settings it needs are saved ([sso](./sso.md#settings)) |
+| POST   | `/api/admin/users/:username/delete`              | Superadmin | Delete the account (`confirm_username` must equal it; 400 otherwise). 409 for a sole organization owner or the last active superadmin. HTMX: `HX-Redirect` to `/admin/users`                                                                                     |
+| POST   | `/api/admin/users/verify-email`                  | Superadmin | Mark a user's email verified (`username`, `email`, plus `password` and, with 2FA, `code`; `email` must be their current address, else 404; 400 when either is missing). HTMX: 204, form: 303 to `/admin/settings`; audit-logged                                  |
+| POST   | `/api/admin/orgs/:org/owners`                    | Superadmin | Make `username` an owner of any organization (optional `from`: the admin user page to return to, plus `password` and, with 2FA, `code`). 404 for an unknown user or organization, 409 for a suspended user                                                       |
+| POST   | `/api/admin/sso/:provider/enabled`               | Superadmin | Turn `ldap` or `saml` sign-in on or off (`enabled=true`, plus `password` and, with 2FA, `code`); 404 for another provider, 422 until the settings it needs are saved ([sso](./sso.md#settings))                                                                  |
 
 The `/api/admin/users/:username/…` actions take `password` and, with 2FA, `code`, refuse the admin's own account with 403, and are audit-logged. HTMX requests get 204 with `HX-Refresh`, forms a 303 to the user page, except `password-reset-link`, which answers with the link. See [Managing accounts](./access-control.md#managing-accounts). A suspended account's personal access tokens and OAuth app tokens get `403 {"error":"account_suspended"}` on every endpoint.
 
@@ -724,24 +735,24 @@ The `/api/admin/users/:username/…` actions take `password` and, with 2FA, `cod
 
 ## HTMX Fragments
 
-| Method | Path                                              | Description                                  |
-| ------ | ------------------------------------------------- | -------------------------------------------- |
-| GET    | `/fragments/:owner/:repo/issues/:number/comments` | Returns rendered HTML fragment for HTMX swap |
-| POST   | `/api/markdown/preview` | Signed-in only. Renders the `body` form field as HTML for the editors' Preview tabs; a blank body returns a "Nothing to preview" paragraph |
+| Method | Path                                              | Description                                                                                                                                |
+| ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/fragments/:owner/:repo/issues/:number/comments` | Returns rendered HTML fragment for HTMX swap                                                                                               |
+| POST   | `/api/markdown/preview`                           | Signed-in only. Renders the `body` form field as HTML for the editors' Preview tabs; a blank body returns a "Nothing to preview" paragraph |
 
 ### Inline edit sections
 
 The issue, release and milestone pages edit their title, body and due date in place. Each section is a `GET` that returns its HTML (`?mode=edit` returns the form) and a `PATCH` that saves and returns the section again; they exist for the page's own HTMX requests rather than for API clients. A blank title is 400.
 
-| Method    | Path                                                | Auth             | Field         |
-| --------- | --------------------------------------------------- | ---------------- | ------------- |
-| GET/PATCH | `/api/repos/:owner/:repo/issues/:number/title`      | -- / CanWrite    | `title`       |
-| GET/PATCH | `/api/repos/:owner/:repo/issues/:number/body`       | -- / CanWrite    | `body`        |
-| GET/PATCH | `/api/repos/:owner/:repo/releases/:id/title`        | -- / CanWrite    | `name`        |
-| GET/PATCH | `/api/repos/:owner/:repo/releases/:id/body`         | -- / CanWrite    | `body`        |
-| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/title`  | -- / CanWrite    | `title`       |
-| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/body`   | -- / CanWrite    | `description` |
-| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/due`    | -- / CanWrite    | `due_date`    |
+| Method    | Path                                               | Auth          | Field         |
+| --------- | -------------------------------------------------- | ------------- | ------------- |
+| GET/PATCH | `/api/repos/:owner/:repo/issues/:number/title`     | -- / CanWrite | `title`       |
+| GET/PATCH | `/api/repos/:owner/:repo/issues/:number/body`      | -- / CanWrite | `body`        |
+| GET/PATCH | `/api/repos/:owner/:repo/releases/:id/title`       | -- / CanWrite | `name`        |
+| GET/PATCH | `/api/repos/:owner/:repo/releases/:id/body`        | -- / CanWrite | `body`        |
+| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/title` | -- / CanWrite | `title`       |
+| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/body`  | -- / CanWrite | `description` |
+| GET/PATCH | `/api/repos/:owner/:repo/milestones/:number/due`   | -- / CanWrite | `due_date`    |
 
 ## Auth Levels Reference
 

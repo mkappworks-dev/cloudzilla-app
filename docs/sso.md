@@ -6,10 +6,10 @@
 
 A provider turns on only when the settings sign-in needs are saved (`model.SSOSettingsReady`), and a save cannot clear one of them while the provider is on (`ErrSSOIncomplete`). Saving leaves the provider on or off; the switch on its card (`POST /api/admin/sso/{provider}/enabled`) changes that alone. Saving and switching both ask the superadmin to confirm with their password (and 2FA code), because whoever controls the directory or IdP can sign in as its users.
 
-| Provider | Required                                         | Optional                                  |
-| -------- | ------------------------------------------------ | ----------------------------------------- |
-| LDAP     | `host`, `bind_dn_tmpl`                           | `port` (389), `base_dn`, `use_tls`        |
-| SAML     | `entity_id`, `sso_url`, `acs_url`, `idp_cert`    | —                                         |
+| Provider | Required                                      | Optional                           |
+| -------- | --------------------------------------------- | ---------------------------------- |
+| LDAP     | `host`, `bind_dn_tmpl`                        | `port` (389), `base_dn`, `use_tls` |
+| SAML     | `entity_id`, `sso_url`, `acs_url`, `idp_cert` | —                                  |
 
 `bind_dn_tmpl` holds one `%s`, for example `uid=%s,ou=people,dc=example,dc=com`. `idp_cert` is the IdP's signing certificate, base64 with no PEM header. `acs_url` is Cloudzilla's own `/auth/saml/callback` URL as the IdP will reach it.
 
@@ -58,11 +58,11 @@ Both providers refuse when `allow_login` is off (`ErrLoginDisabled`), and a susp
 
 ## Routes
 
-| Method   | Path                                | Notes                                                           |
-| -------- | ----------------------------------- | --------------------------------------------------------------- |
-| GET/POST | `/admin/sso`                        | Settings page and save; superadmin                              |
+| Method   | Path                                | Notes                                                            |
+| -------- | ----------------------------------- | ---------------------------------------------------------------- |
+| GET/POST | `/admin/sso`                        | Settings page and save; superadmin                               |
 | POST     | `/api/admin/sso/{provider}/enabled` | `enabled=true\|false`; 422 until the required settings are saved |
 | POST     | `/auth/ldap`                        | `username`, `password`; rate-limited per IP                      |
-| GET      | `/auth/saml`                        | Redirect to the IdP                                             |
-| POST     | `/auth/saml/callback`               | Assertion consumer service                                      |
-| GET      | `/auth/saml/metadata`               | SP metadata XML                                                 |
+| GET      | `/auth/saml`                        | Redirect to the IdP                                              |
+| POST     | `/auth/saml/callback`               | Assertion consumer service                                       |
+| GET      | `/auth/saml/metadata`               | SP metadata XML                                                  |

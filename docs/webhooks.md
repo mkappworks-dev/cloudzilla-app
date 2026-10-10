@@ -22,12 +22,12 @@ Webhooks are dispatched fire-and-forget (`go s.Dispatch(...)`). Each delivery is
 
 All webhook endpoints are under `/api/repos/{owner}/{repo}/hooks`:
 
-| Method | Path                                              | Auth         | Description                                |
-| ------ | ------------------------------------------------- | ------------ | ------------------------------------------ |
-| GET    | `/api/repos/{owner}/{repo}/hooks/`                | —            | List webhooks for repo                     |
+| Method | Path                                              | Auth         | Description                                                       |
+| ------ | ------------------------------------------------- | ------------ | ----------------------------------------------------------------- |
+| GET    | `/api/repos/{owner}/{repo}/hooks/`                | —            | List webhooks for repo                                            |
 | POST   | `/api/repos/{owner}/{repo}/hooks/`                | Write access | Create webhook (`url`, `secret`, `events`); 400 for a refused URL |
-| DELETE | `/api/repos/{owner}/{repo}/hooks/{id}`            | Write access | Delete webhook                             |
-| GET    | `/api/repos/{owner}/{repo}/hooks/{id}/deliveries` | Write access | List delivery history                      |
+| DELETE | `/api/repos/{owner}/{repo}/hooks/{id}`            | Write access | Delete webhook                                                    |
+| GET    | `/api/repos/{owner}/{repo}/hooks/{id}/deliveries` | Write access | List delivery history                                             |
 
 HTMX requests for create/delete swap `fragment-webhooks-list` into `#webhooks-list`.
 

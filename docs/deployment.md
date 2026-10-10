@@ -21,7 +21,7 @@ Cloudzilla ships a multi-stage `Dockerfile` and `docker-compose.yml`.
 | Stage     | Base                 | Purpose                                                                                                                     |
 | --------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `builder` | `golang:1.27-alpine` | Downloads Tailwind CLI (arch-aware musl build), compiles CSS, builds both Go binaries with `CGO_ENABLED=0 -ldflags="-s -w"` |
-| runtime   | `alpine:3.24`        | Copies binaries; installs `ca-certificates tzdata postgresql18-client`; exposes 8080/2222; `HEALTHCHECK` on `/healthz`                          |
+| runtime   | `alpine:3.24`        | Copies binaries; installs `ca-certificates tzdata postgresql18-client`; exposes 8080/2222; `HEALTHCHECK` on `/healthz`      |
 
 ### Persistent volume (`/data`)
 
@@ -101,10 +101,10 @@ The SSH host key is auto-generated into the named volume on first boot — no ma
 
 Two unauthenticated endpoints on the main HTTP port answer probes. They're served ahead of all middleware, so they write no request log line, set no cookie, skip the `/setup` redirect and count against no rate limit. Both accept `GET` and `HEAD`, and send `Cache-Control: no-store`.
 
-| Endpoint   | Answers                                                                                          | Use it for                                                         |
-| ---------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `/healthz` | Liveness: `200 ok` whenever the process serves HTTP. Touches neither the database nor the disk. | Docker `HEALTHCHECK`, Kubernetes `livenessProbe`                   |
-| `/readyz`  | Readiness: `200` when every check passes, otherwise `503`.                                       | Load-balancer health checks, Kubernetes `readinessProbe`           |
+| Endpoint   | Answers                                                                                         | Use it for                                               |
+| ---------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `/healthz` | Liveness: `200 ok` whenever the process serves HTTP. Touches neither the database nor the disk. | Docker `HEALTHCHECK`, Kubernetes `livenessProbe`         |
+| `/readyz`  | Readiness: `200` when every check passes, otherwise `503`.                                      | Load-balancer health checks, Kubernetes `readinessProbe` |
 
 `/readyz` returns JSON such as `{"status":"fail","checks":{"database":"ok","migrations":"fail","storage":"ok"}}`. Each check is `ok`, `fail` or `skipped`, and all of them share a 3-second deadline:
 
@@ -127,13 +127,13 @@ Cloudzilla exposes Prometheus metrics on a separate listener, off by default. Se
 Under Docker Compose, set the address and leave the port out of `ports:`; Prometheus on the same Compose network reaches it as `cloudzilla:9090`:
 
 ```yaml
-  cloudzilla:
-    ports:
-      - "8080:8080"
-      - "2222:2222"
-      # no "9090:9090" here
-    environment:
-      CZ_METRICS_LISTEN_ADDR: ":9090"
+cloudzilla:
+  ports:
+    - "8080:8080"
+    - "2222:2222"
+    # no "9090:9090" here
+  environment:
+    CZ_METRICS_LISTEN_ADDR: ":9090"
 ```
 
 A Prometheus `scrape_config`:
@@ -145,20 +145,20 @@ scrape_configs:
       - targets: ["cloudzilla:9090"]
 ```
 
-| Metric | Type | Labels | Meaning |
-| ------ | ---- | ------ | ------- |
-| `cloudzilla_build_info` | gauge | `version` | Always 1 |
-| `cloudzilla_http_requests_total` | counter | `method`, `route`, `code` | Requests by chi route pattern (`unmatched` when routing found none); a method outside the standard verbs is `other`. `/healthz` and `/readyz` aren't counted |
-| `cloudzilla_http_request_duration_seconds` | histogram | `method`, `route` | Request duration, buckets from 5 ms to 60 s |
-| `cloudzilla_http_requests_in_flight` | gauge | | Requests being served |
-| `cloudzilla_git_operations_total` | counter | `transport` (`http`, `ssh`), `service` (`upload-pack`, `receive-pack`), `result` (`ok`, `error`) | Transport exchanges. One HTTP fetch can take several `upload-pack` POSTs, so this isn't a count of fetches |
-| `cloudzilla_git_bytes_total` | counter | `transport`, `service` | Bytes received (`receive-pack`) or sent (`upload-pack`) |
-| `cloudzilla_import_jobs` | gauge | `state` (`queued`, `running`) | Imports in memory, read at scrape time |
-| `cloudzilla_imports_total` | counter | `result` (`succeeded`, `failed`) | Finished imports |
-| `cloudzilla_webhook_deliveries_total` | counter | `attempt` (`first`, `retry`), `result` (`success`, `failure`) | Delivery attempts; a non-2xx response is a failure |
-| `cloudzilla_webhook_retries_due` | gauge | | Deliveries due for retry at the last 60-second retry tick |
-| `go_sql_*` | various | `db_name="cloudzilla"` | Connection pool: open, in-use and idle connections, wait count and wait time |
-| `go_*`, `process_*` | various | | Go runtime and process stats (`process_*` on Linux only) |
+| Metric                                     | Type      | Labels                                                                                           | Meaning                                                                                                                                                      |
+| ------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cloudzilla_build_info`                    | gauge     | `version`                                                                                        | Always 1                                                                                                                                                     |
+| `cloudzilla_http_requests_total`           | counter   | `method`, `route`, `code`                                                                        | Requests by chi route pattern (`unmatched` when routing found none); a method outside the standard verbs is `other`. `/healthz` and `/readyz` aren't counted |
+| `cloudzilla_http_request_duration_seconds` | histogram | `method`, `route`                                                                                | Request duration, buckets from 5 ms to 60 s                                                                                                                  |
+| `cloudzilla_http_requests_in_flight`       | gauge     |                                                                                                  | Requests being served                                                                                                                                        |
+| `cloudzilla_git_operations_total`          | counter   | `transport` (`http`, `ssh`), `service` (`upload-pack`, `receive-pack`), `result` (`ok`, `error`) | Transport exchanges. One HTTP fetch can take several `upload-pack` POSTs, so this isn't a count of fetches                                                   |
+| `cloudzilla_git_bytes_total`               | counter   | `transport`, `service`                                                                           | Bytes received (`receive-pack`) or sent (`upload-pack`)                                                                                                      |
+| `cloudzilla_import_jobs`                   | gauge     | `state` (`queued`, `running`)                                                                    | Imports in memory, read at scrape time                                                                                                                       |
+| `cloudzilla_imports_total`                 | counter   | `result` (`succeeded`, `failed`)                                                                 | Finished imports                                                                                                                                             |
+| `cloudzilla_webhook_deliveries_total`      | counter   | `attempt` (`first`, `retry`), `result` (`success`, `failure`)                                    | Delivery attempts; a non-2xx response is a failure                                                                                                           |
+| `cloudzilla_webhook_retries_due`           | gauge     |                                                                                                  | Deliveries due for retry at the last 60-second retry tick                                                                                                    |
+| `go_sql_*`                                 | various   | `db_name="cloudzilla"`                                                                           | Connection pool: open, in-use and idle connections, wait count and wait time                                                                                 |
+| `go_*`, `process_*`                        | various   |                                                                                                  | Go runtime and process stats (`process_*` on Linux only)                                                                                                     |
 
 ### Backup and restore
 

@@ -2,18 +2,18 @@
 
 ## Authentication Methods
 
-| Method                | Mechanism                                                                       | Where                         |
-| --------------------- | ------------------------------------------------------------------------------- | ----------------------------- |
-| Form login            | Email + password → JWT cookie (`cz_token`)                                      | `POST /login`                 |
-| API login             | Email + password → JWT in cookie + JSON body; `401 totp_required` if TOTP is on | `POST /api/auth/login`        |
-| Google OAuth          | OAuth 2.0 code flow → JWT cookie                                                | `GET /auth/google` → callback |
-| LDAP                  | Bind + search → JWT cookie                                                      | `POST /auth/ldap`             |
-| SAML SSO              | SP-initiated, ACS callback → JWT cookie                                         | `GET /auth/saml` → callback   |
-| Personal Access Token | `Authorization: Bearer <token>` header; HTTP Basic password for git             | Scoped API endpoints (below)  |
-| OAuth App Token       | `Authorization: Bearer <token>` header                                          | Scoped API endpoints (below)  |
-| SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys`                              | Git SSH transport             |
+| Method                | Mechanism                                                                                                              | Where                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Form login            | Email + password → JWT cookie (`cz_token`)                                                                             | `POST /login`                         |
+| API login             | Email + password → JWT in cookie + JSON body; `401 totp_required` if TOTP is on                                        | `POST /api/auth/login`                |
+| Google OAuth          | OAuth 2.0 code flow → JWT cookie                                                                                       | `GET /auth/google` → callback         |
+| LDAP                  | Bind + search → JWT cookie                                                                                             | `POST /auth/ldap`                     |
+| SAML SSO              | SP-initiated, ACS callback → JWT cookie                                                                                | `GET /auth/saml` → callback           |
+| Personal Access Token | `Authorization: Bearer <token>` header; HTTP Basic password for git                                                    | Scoped API endpoints (below)          |
+| OAuth App Token       | `Authorization: Bearer <token>` header                                                                                 | Scoped API endpoints (below)          |
+| SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys`                                                                     | Git SSH transport                     |
 | Device login          | `cz auth login`: code typed at `/login/device`, approved with the confirmation factors, token minted at the first poll | `/login/device`, `/api/auth/device/*` |
-| TOTP 2FA              | 6-digit code after any web sign-in                                              | `POST /auth/2fa/verify`       |
+| TOTP 2FA              | 6-digit code after any web sign-in                                                                                     | `POST /auth/2fa/verify`               |
 
 Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
 
@@ -124,18 +124,18 @@ The pages are session-only: `/login/device*` is not in the [scope allow-list](#t
 
 **Threat model**
 
-| Threat | Mitigation |
-| --- | --- |
-| Phishing: an attacker starts a flow and sends the victim the code | The confirm page shows the device name, IP and scopes; the password (and code) is asked again; the owner is mailed; the token is revocable and its last-used date visible. **A residual risk remains, as with GitHub's flow:** a user who types a code an attacker gave them, and then confirms with their own password, authorizes the attacker's device. Nothing on our side can tell the two terminals apart; the mitigations only make it noticeable and reversible. |
-| Guessing a user code | Needs sign-in, and only `POST /login/device` (50 per hour per user) hands out a usable cookie: the cookie is signed and bound to the user, so the confirm and approve routes can't be used to probe codes, and the shared-browser case is covered by the user binding. About 34 bits against a few live codes. |
-| Polling brute force or a leaked `device_code` | 256-bit value, hash-only storage, interval enforcement, token returned once. A leaked code is useless until a user approves, and an approved grant is consumed by the first poll. |
-| Replay or double redemption | Conditional `UPDATE`s; dead states are terminal. |
-| Scope escalation to `repo:admin` | Rejected at code request and dropped at approval. |
-| A link that carries the code (phishing, history, logs) | None exists; the user types the code after reading it from their own terminal. |
-| Spoofed device name | Shown as unverified, capped, stripped of control characters, escaped on the page and in the email. |
-| A cross-site `POST` to `/api/auth/device/code` uses up one IP's grant budget | The endpoint is CSRF-exempt, so a page can make a visitor's browser spend that IP's 5 live grants or 20 requests an hour, for up to an hour. Low value; accepted. |
-| The code cookie planted from a sibling subdomain | The cookie is HMAC-signed and bound to a user id, so a planted value can't be forged, and one the attacker signed in with their own account carries their own id and is refused for anyone else. At most it replays the attacker's own code. Approving still needs the confirmation, and the page shows the code, the device and both IPs. |
-| The IP caps use different keys | The live-grant cap counts the exact IP, while the request limiter groups IPv6 addresses by /64. |
+| Threat                                                                       | Mitigation                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Phishing: an attacker starts a flow and sends the victim the code            | The confirm page shows the device name, IP and scopes; the password (and code) is asked again; the owner is mailed; the token is revocable and its last-used date visible. **A residual risk remains, as with GitHub's flow:** a user who types a code an attacker gave them, and then confirms with their own password, authorizes the attacker's device. Nothing on our side can tell the two terminals apart; the mitigations only make it noticeable and reversible. |
+| Guessing a user code                                                         | Needs sign-in, and only `POST /login/device` (50 per hour per user) hands out a usable cookie: the cookie is signed and bound to the user, so the confirm and approve routes can't be used to probe codes, and the shared-browser case is covered by the user binding. About 34 bits against a few live codes.                                                                                                                                                           |
+| Polling brute force or a leaked `device_code`                                | 256-bit value, hash-only storage, interval enforcement, token returned once. A leaked code is useless until a user approves, and an approved grant is consumed by the first poll.                                                                                                                                                                                                                                                                                        |
+| Replay or double redemption                                                  | Conditional `UPDATE`s; dead states are terminal.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Scope escalation to `repo:admin`                                             | Rejected at code request and dropped at approval.                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| A link that carries the code (phishing, history, logs)                       | None exists; the user types the code after reading it from their own terminal.                                                                                                                                                                                                                                                                                                                                                                                           |
+| Spoofed device name                                                          | Shown as unverified, capped, stripped of control characters, escaped on the page and in the email.                                                                                                                                                                                                                                                                                                                                                                       |
+| A cross-site `POST` to `/api/auth/device/code` uses up one IP's grant budget | The endpoint is CSRF-exempt, so a page can make a visitor's browser spend that IP's 5 live grants or 20 requests an hour, for up to an hour. Low value; accepted.                                                                                                                                                                                                                                                                                                        |
+| The code cookie planted from a sibling subdomain                             | The cookie is HMAC-signed and bound to a user id, so a planted value can't be forged, and one the attacker signed in with their own account carries their own id and is refused for anyone else. At most it replays the attacker's own code. Approving still needs the confirmation, and the page shows the code, the device and both IPs.                                                                                                                               |
+| The IP caps use different keys                                               | The live-grant cap counts the exact IP, while the request limiter groups IPv6 addresses by /64.                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Changing the password
 
@@ -212,12 +212,12 @@ Open routes:
 - `GET /api/user` (exactly this path: `{id, username}` of the token's owner; every `/api/user/*` route stays closed), `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
 - Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
 
-| Scope          | Admits on the open routes                                                                                |
-| -------------- | -------------------------------------------------------------------------------------------------------- |
-| `repo:read`    | `GET`/`HEAD`; git clone/fetch                                                                            |
-| `repo:write`   | Everything, including creating repos, merging, applying suggestions, and git push                        |
-| `issues:write` | Reads, plus writes under `.../issues/**`                                                                 |
-| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, and applying a suggestion |
+| Scope          | Admits on the open routes                                                                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repo:read`    | `GET`/`HEAD`; git clone/fetch                                                                                                                                                                             |
+| `repo:write`   | Everything, including creating repos, merging, applying suggestions, and git push                                                                                                                         |
+| `issues:write` | Reads, plus writes under `.../issues/**`                                                                                                                                                                  |
+| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, and applying a suggestion                                                                                                  |
 | `repo:admin`   | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else |
 
 The same allow-list holds personal access tokens created with scopes, on `authMW` and `optAuthMW`; git's Basic-auth path, which neither sees, checks the scopes itself (`middleware.PATAllowsGit`): fetching needs a read scope and pushing `repo:write`.
@@ -248,10 +248,10 @@ PATs get the same open routes and scopes as OAuth-app tokens; being first-party 
 
 ### Instance Roles
 
-| Role         | Permissions                                                                                                     |
-| ------------ | --------------------------------------------------------------------------------------------------------------- |
+| Role         | Permissions                                                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `superadmin` | Everything. Manages instance settings, SSO, invitations, accounts, audit log. The first is assigned at `/setup`; others are made at `/admin/users`. There is always at least one active superadmin (see [Managing accounts](#managing-accounts)). |
-| `user`       | Normal account. Access governed by org/repo permissions and instance settings.                                  |
+| `user`       | Normal account. Access governed by org/repo permissions and instance settings.                                                                                                                                                                    |
 
 ### Organization Roles
 
@@ -487,16 +487,16 @@ As on GitHub, a deleted account's issues, pull requests, comments, reviews, disc
 
 Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin's [confirmation](#confirming-sensitive-actions), refuses the admin's own account (`ErrAdminSelf`; use Settings), and writes an audit entry with the admin as actor and the account as target. `password-reset-link` answers with the link and `delete` redirects to the list; the rest reload the page:
 
-| Action | Effect | Also refused when | Audit action |
-| --- | --- | --- | --- |
-| `suspend` (optional `reason`) | Sets `suspended_at` and bumps `session_version` in one `UPDATE`, so unsuspending doesn't revive old sessions. The dialog names organizations the user solely owns | It would leave no active superadmin | `admin.user.suspend` (reason) |
-| `unsuspend` | Clears `suspended_at`. Tokens, keys and app grants work again; sessions don't | — | `admin.user.unsuspend` |
-| `promote` | `is_superadmin = TRUE` | The account is suspended (`ErrUserSuspended`) | `admin.user.promote` |
-| `demote` | `is_superadmin = FALSE` | It would leave no active superadmin | `admin.user.demote` |
-| `reset-2fa` | Clears the TOTP secret, flag and backup codes; mails a security notice. Sessions stay signed in. `cz-admin reset-2fa` does the same for any account, including the operator's own (see [Two-factor authentication](#two-factor-authentication)) | — | `admin.user.2fa_reset` |
-| `revoke-credentials` | Deletes the account's PATs, SSH keys and OAuth app authorizations and bumps `session_version`; mails a security notice. Deploy keys and OAuth apps it owns stay | — | `admin.user.credentials_revoke` (counts) |
-| `password-reset-link` | `PasswordResetService.IssueLink` with `issued_by = admin`: a 24-hour [reset link](#resetting-a-forgotten-password) that replaces any outstanding one. The response is the link, shown once (htmx swaps it into the page; otherwise JSON `{link, expires_at}`), with `Cache-Control: no-store`. Mails a security notice without the link. The audit entry is written before the response, and a failed write shows no link | The account is suspended (`ErrUserSuspended`) or has no password (`ErrPasswordResetNoPassword`), both 409 | `user.password.reset_link` (`issued_by`), the same action the CLI writes |
-| `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion) | The account solely owns an organization (an admin can [add another owner](#adding-an-organization-owner)); it would leave no active superadmin | `admin.user.delete` (email) |
+| Action                        | Effect                                                                                                                                                                                                                                                                                                                                                                                                                    | Also refused when                                                                                                                              | Audit action                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `suspend` (optional `reason`) | Sets `suspended_at` and bumps `session_version` in one `UPDATE`, so unsuspending doesn't revive old sessions. The dialog names organizations the user solely owns                                                                                                                                                                                                                                                         | It would leave no active superadmin                                                                                                            | `admin.user.suspend` (reason)                                            |
+| `unsuspend`                   | Clears `suspended_at`. Tokens, keys and app grants work again; sessions don't                                                                                                                                                                                                                                                                                                                                             | —                                                                                                                                              | `admin.user.unsuspend`                                                   |
+| `promote`                     | `is_superadmin = TRUE`                                                                                                                                                                                                                                                                                                                                                                                                    | The account is suspended (`ErrUserSuspended`)                                                                                                  | `admin.user.promote`                                                     |
+| `demote`                      | `is_superadmin = FALSE`                                                                                                                                                                                                                                                                                                                                                                                                   | It would leave no active superadmin                                                                                                            | `admin.user.demote`                                                      |
+| `reset-2fa`                   | Clears the TOTP secret, flag and backup codes; mails a security notice. Sessions stay signed in. `cz-admin reset-2fa` does the same for any account, including the operator's own (see [Two-factor authentication](#two-factor-authentication))                                                                                                                                                                           | —                                                                                                                                              | `admin.user.2fa_reset`                                                   |
+| `revoke-credentials`          | Deletes the account's PATs, SSH keys and OAuth app authorizations and bumps `session_version`; mails a security notice. Deploy keys and OAuth apps it owns stay                                                                                                                                                                                                                                                           | —                                                                                                                                              | `admin.user.credentials_revoke` (counts)                                 |
+| `password-reset-link`         | `PasswordResetService.IssueLink` with `issued_by = admin`: a 24-hour [reset link](#resetting-a-forgotten-password) that replaces any outstanding one. The response is the link, shown once (htmx swaps it into the page; otherwise JSON `{link, expires_at}`), with `Cache-Control: no-store`. Mails a security notice without the link. The audit entry is written before the response, and a failed write shows no link | The account is suspended (`ErrUserSuspended`) or has no password (`ErrPasswordResetNoPassword`), both 409                                      | `user.password.reset_link` (`issued_by`), the same action the CLI writes |
+| `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion)                                                                                                                                                                                                                                                                                                                                               | The account solely owns an organization (an admin can [add another owner](#adding-an-organization-owner)); it would leave no active superadmin | `admin.user.delete` (email)                                              |
 
 An **active superadmin** is `is_superadmin AND suspended_at IS NULL`, excluding the ghost. Refusing the admin's own account keeps one admin alone from removing the last one; for concurrent actions, suspend, demote and account deletion each lock every active superadmin row (`SELECT … FOR NO KEY UPDATE`, ordered by id, before any other row lock) and re-count in the same transaction (`keepActiveSuperadmin`), so of two admins removing each other, the second fails with `ErrLastSuperadmin`.
 
@@ -510,16 +510,16 @@ Org permission checks look only at `org_members`, so a superadmin has no overrid
 
 `users.suspended_at` (migration 103) is set while an account is suspended. Who did it, and why, are in the audit log. A suspended account loses every way in:
 
-| Way in | Where it's refused |
-| --- | --- |
-| Web session (cookie or bearer JWT) | `UserStore.SessionState` excludes suspended users, so `sessionLive` drops the session on its next request |
-| Password, Google, LDAP, SAML and TOTP sign-in | `UserService.generateJWT` and `SSOService.generateJWT`, where every session is minted, return `ErrAccountSuspended` |
-| Personal access token, API | `AccessTokenService.Validate`; `servePAT` answers `403 {"error":"account_suspended"}` on `authMW` and `optAuthMW` alike, never anonymous |
-| Personal access token, git HTTP | `resolveGitUser` answers `403`, not `401`, so git keeps the stored credential |
-| OAuth app token | `OAuthAppService.ResolveOAuthToken`; `serveOAuth` answers as for a PAT |
-| SSH user key | `SSHKeyService.AuthenticatePublicKey`; the handshake fails |
-| SSH deploy key | `sessionHandler` refuses a deploy key on a personal repo whose owner is suspended. `deploy_keys` records no creator, so keys on org repos keep working |
-| Password reset | `PasswordResetService.Request` mails nothing, `IssueLink` returns `ErrUserSuspended`, and `passwordResetUsable` makes any outstanding link invalid, so nobody can set a password to use after unsuspension |
+| Way in                                        | Where it's refused                                                                                                                                                                                         |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web session (cookie or bearer JWT)            | `UserStore.SessionState` excludes suspended users, so `sessionLive` drops the session on its next request                                                                                                  |
+| Password, Google, LDAP, SAML and TOTP sign-in | `UserService.generateJWT` and `SSOService.generateJWT`, where every session is minted, return `ErrAccountSuspended`                                                                                        |
+| Personal access token, API                    | `AccessTokenService.Validate`; `servePAT` answers `403 {"error":"account_suspended"}` on `authMW` and `optAuthMW` alike, never anonymous                                                                   |
+| Personal access token, git HTTP               | `resolveGitUser` answers `403`, not `401`, so git keeps the stored credential                                                                                                                              |
+| OAuth app token                               | `OAuthAppService.ResolveOAuthToken`; `serveOAuth` answers as for a PAT                                                                                                                                     |
+| SSH user key                                  | `SSHKeyService.AuthenticatePublicKey`; the handshake fails                                                                                                                                                 |
+| SSH deploy key                                | `sessionHandler` refuses a deploy key on a personal repo whose owner is suspended. `deploy_keys` records no creator, so keys on org repos keep working                                                     |
+| Password reset                                | `PasswordResetService.Request` mails nothing, `IssueLink` returns `ErrUserSuspended`, and `passwordResetUsable` makes any outstanding link invalid, so nobody can set a password to use after unsuspension |
 
 The suspension message, "This account is suspended. Contact your administrator.", appears only once the password (or provider) has checked out, so it doesn't tell a stranger the account exists. `POST /api/auth/login` answers `403 {"error":"account_suspended"}`.
 
@@ -531,21 +531,21 @@ Nothing changes for other users: the profile, repositories, issues and comments 
 
 ### Instance / Admin Endpoints
 
-| Method   | Path                                | Auth                  | AuthZ           | Handler                         |
-| -------- | ----------------------------------- | --------------------- | --------------- | ------------------------------- |
-| GET      | `/admin/settings`                   | authMW + superadminMW | Superadmin only | PageAdminSettings               |
-| GET      | `/admin/users`                      | authMW + superadminMW | Superadmin only | PageAdminUsers                  |
-| GET      | `/admin/users/{username}`           | authMW + superadminMW | Superadmin only | PageAdminUser                   |
-| GET      | `/admin/audit-log`                  | authMW + superadminMW | Superadmin only | PageAuditLog                    |
-| GET/POST | `/admin/sso`                        | authMW + superadminMW | Superadmin only | PageSSOSettings / SaveSSOConfig |
-| POST     | `/api/admin/settings`               | authMW + superadminMW | Superadmin only | UpdateSiteSetting               |
-| POST     | `/api/admin/invitations`            | authMW + superadminMW | Superadmin only | CreateInvitation                |
-| DELETE   | `/api/admin/invitations/{id}`       | authMW + superadminMW | Superadmin only | DeleteInvitation                |
-| POST     | `/api/admin/users/verify-email`     | authMW + superadminMW | Superadmin only | AdminVerifyEmail                |
+| Method   | Path                                                                                                                                    | Auth                  | AuthZ                                     | Handler                                                                                                                                              |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET      | `/admin/settings`                                                                                                                       | authMW + superadminMW | Superadmin only                           | PageAdminSettings                                                                                                                                    |
+| GET      | `/admin/users`                                                                                                                          | authMW + superadminMW | Superadmin only                           | PageAdminUsers                                                                                                                                       |
+| GET      | `/admin/users/{username}`                                                                                                               | authMW + superadminMW | Superadmin only                           | PageAdminUser                                                                                                                                        |
+| GET      | `/admin/audit-log`                                                                                                                      | authMW + superadminMW | Superadmin only                           | PageAuditLog                                                                                                                                         |
+| GET/POST | `/admin/sso`                                                                                                                            | authMW + superadminMW | Superadmin only                           | PageSSOSettings / SaveSSOConfig                                                                                                                      |
+| POST     | `/api/admin/settings`                                                                                                                   | authMW + superadminMW | Superadmin only                           | UpdateSiteSetting                                                                                                                                    |
+| POST     | `/api/admin/invitations`                                                                                                                | authMW + superadminMW | Superadmin only                           | CreateInvitation                                                                                                                                     |
+| DELETE   | `/api/admin/invitations/{id}`                                                                                                           | authMW + superadminMW | Superadmin only                           | DeleteInvitation                                                                                                                                     |
+| POST     | `/api/admin/users/verify-email`                                                                                                         | authMW + superadminMW | Superadmin only                           | AdminVerifyEmail                                                                                                                                     |
 | POST     | `/api/admin/users/{username}/suspend`, `/unsuspend`, `/promote`, `/demote`, `/reset-2fa`, `/revoke-credentials`, `/password-reset-link` | authMW + superadminMW | Superadmin only, not on their own account | AdminSuspendUser, AdminUnsuspendUser, AdminPromoteUser, AdminDemoteUser, AdminResetUserTOTP, AdminRevokeUserCredentials, AdminIssuePasswordResetLink |
-| POST     | `/api/admin/users/{username}/delete` | authMW + superadminMW | Superadmin only, not on their own account | AdminDeleteUser |
-| POST     | `/api/admin/orgs/{org}/owners` | authMW + superadminMW | Superadmin only, with confirmation | AdminAddOrgOwner |
-| POST     | `/api/admin/sso/{provider}/enabled` | authMW + superadminMW | Superadmin only | SetSSOEnabled                   |
+| POST     | `/api/admin/users/{username}/delete`                                                                                                    | authMW + superadminMW | Superadmin only, not on their own account | AdminDeleteUser                                                                                                                                      |
+| POST     | `/api/admin/orgs/{org}/owners`                                                                                                          | authMW + superadminMW | Superadmin only, with confirmation        | AdminAddOrgOwner                                                                                                                                     |
+| POST     | `/api/admin/sso/{provider}/enabled`                                                                                                     | authMW + superadminMW | Superadmin only                           | SetSSOEnabled                                                                                                                                        |
 
 ### Authentication Endpoints (No Auth Required)
 
@@ -571,52 +571,52 @@ Nothing changes for other users: the profile, repositories, issues and comments 
 
 ### User-Scoped Endpoints (Own Data Only)
 
-| Method                | Path                                             | Auth   | AuthZ                                                                          | Handler                    |
-| --------------------- | ------------------------------------------------ | ------ | ------------------------------------------------------------------------------ | -------------------------- |
-| GET                   | `/settings`                                      | authMW | Own user                                                                       | PageSettings               |
-| GET                   | `/login/device`                                  | optAuthMW | Signed-out users are redirected to `/login?next=/login/device`; `user_code` in the query is ignored | PageDeviceEntry            |
-| POST                  | `/login/device`                                  | authMW | Own user; 50 requests an hour per user, `429` beyond                           | DeviceLookup               |
-| GET                   | `/login/device/confirm`                          | authMW | Own user; needs the `cz_device_code` cookie                                    | PageDeviceConfirm          |
-| POST                  | `/login/device/approve`                          | authMW | Own user; approving needs password / TOTP code / email code (`403`, `429`), denying needs nothing | DeviceApprove |
-| POST                  | `/settings/profile`                              | authMW | Own user; password + TOTP code to change the email                             | UpdateProfile              |
-| POST                  | `/settings/profile-readme`                       | authMW | Own user                                                                       | UpdateProfileReadme        |
-| POST                  | `/settings/notifications`                        | authMW | Own user                                                                       | UpdateNotificationSettings |
-| POST                  | `/settings/email`                                | authMW | Own user                                                                       | UpdateEmailSettings        |
-| POST                  | `/settings/email/resend-verification`            | authMW | Own user; one link a minute                                                    | ResendVerificationEmail    |
-| POST                  | `/settings/delete-account`                       | authMW | Own user                                                                       | DeleteAccount              |
-| POST                  | `/settings/sessions/revoke`                      | authMW | Own user                                                                       | RevokeSessions             |
-| POST                  | `/settings/password`                             | authMW | Own user; current password + TOTP code; refused without a password             | ChangePassword             |
-| POST                  | `/settings/connected-accounts/google`            | authMW | Own user; password + TOTP code re-auth                                         | ConnectGoogle              |
-| POST                  | `/settings/connected-accounts/google/disconnect` | authMW | Own user; password + TOTP code re-auth; refused without a password             | DisconnectGoogle           |
-| POST                  | `/settings/security/setup`                       | authMW | Own user                                                                       | SetupTOTP                  |
-| POST                  | `/api/user/totp/enable`                          | authMW | Own user (claims.UserID); password                                             | EnableTOTP                 |
-| POST                  | `/api/user/totp/disable`                         | authMW | Own user (claims.UserID); password + TOTP code                                 | DisableTOTP                |
-| GET/POST/DELETE       | `/api/user/keys`                                 | authMW | Own user (claims.UserID); POST needs password + TOTP code                      | SSH key CRUD               |
-| POST/DELETE           | `/api/user/tokens`                               | authMW | Own user (claims.UserID); POST needs password + TOTP code                      | Token create/revoke        |
-| GET/POST/PATCH/DELETE | `/api/user/replies`                              | authMW | Own user (claims.UserID)                                                       | Saved reply CRUD           |
-| POST/DELETE           | `/api/users/{id}/pinned-repos/{repoID}`          | authMW | Own user (`{id}` = claims.UserID, else 403); POST needs repo read access (404) | PinRepo / UnpinRepo        |
-| GET                   | `/repos/transfers`                               | authMW | Own user: transfers offered to claims.UserID                                   | PageRepoTransfers          |
-| GET                   | `/api/user/transfers`                            | authMW | Own user: transfers offered to claims.UserID                                   | ListRepoTransfers          |
-| POST                  | `/api/user/transfers/{id}/accept`, `.../decline` | authMW | Transfer's recipient (service; 404 otherwise); accept also needs the requester to still own the repo | AcceptRepoTransfer / DeclineRepoTransfer |
-| POST/DELETE           | `/api/oauth/apps`                                | authMW | Own user (claims.UserID)                                                       | OAuth app CRUD             |
-| DELETE                | `/api/oauth/authorizations/{id}`                 | authMW | Own user (claims.UserID)                                                       | RevokeOAuthAuthorization   |
-| POST/PATCH/DELETE     | `/api/gists`                                     | authMW | Own gist (service checks)                                                      | Gist CRUD                  |
+| Method                | Path                                             | Auth      | AuthZ                                                                                                | Handler                                  |
+| --------------------- | ------------------------------------------------ | --------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| GET                   | `/settings`                                      | authMW    | Own user                                                                                             | PageSettings                             |
+| GET                   | `/login/device`                                  | optAuthMW | Signed-out users are redirected to `/login?next=/login/device`; `user_code` in the query is ignored  | PageDeviceEntry                          |
+| POST                  | `/login/device`                                  | authMW    | Own user; 50 requests an hour per user, `429` beyond                                                 | DeviceLookup                             |
+| GET                   | `/login/device/confirm`                          | authMW    | Own user; needs the `cz_device_code` cookie                                                          | PageDeviceConfirm                        |
+| POST                  | `/login/device/approve`                          | authMW    | Own user; approving needs password / TOTP code / email code (`403`, `429`), denying needs nothing    | DeviceApprove                            |
+| POST                  | `/settings/profile`                              | authMW    | Own user; password + TOTP code to change the email                                                   | UpdateProfile                            |
+| POST                  | `/settings/profile-readme`                       | authMW    | Own user                                                                                             | UpdateProfileReadme                      |
+| POST                  | `/settings/notifications`                        | authMW    | Own user                                                                                             | UpdateNotificationSettings               |
+| POST                  | `/settings/email`                                | authMW    | Own user                                                                                             | UpdateEmailSettings                      |
+| POST                  | `/settings/email/resend-verification`            | authMW    | Own user; one link a minute                                                                          | ResendVerificationEmail                  |
+| POST                  | `/settings/delete-account`                       | authMW    | Own user                                                                                             | DeleteAccount                            |
+| POST                  | `/settings/sessions/revoke`                      | authMW    | Own user                                                                                             | RevokeSessions                           |
+| POST                  | `/settings/password`                             | authMW    | Own user; current password + TOTP code; refused without a password                                   | ChangePassword                           |
+| POST                  | `/settings/connected-accounts/google`            | authMW    | Own user; password + TOTP code re-auth                                                               | ConnectGoogle                            |
+| POST                  | `/settings/connected-accounts/google/disconnect` | authMW    | Own user; password + TOTP code re-auth; refused without a password                                   | DisconnectGoogle                         |
+| POST                  | `/settings/security/setup`                       | authMW    | Own user                                                                                             | SetupTOTP                                |
+| POST                  | `/api/user/totp/enable`                          | authMW    | Own user (claims.UserID); password                                                                   | EnableTOTP                               |
+| POST                  | `/api/user/totp/disable`                         | authMW    | Own user (claims.UserID); password + TOTP code                                                       | DisableTOTP                              |
+| GET/POST/DELETE       | `/api/user/keys`                                 | authMW    | Own user (claims.UserID); POST needs password + TOTP code                                            | SSH key CRUD                             |
+| POST/DELETE           | `/api/user/tokens`                               | authMW    | Own user (claims.UserID); POST needs password + TOTP code                                            | Token create/revoke                      |
+| GET/POST/PATCH/DELETE | `/api/user/replies`                              | authMW    | Own user (claims.UserID)                                                                             | Saved reply CRUD                         |
+| POST/DELETE           | `/api/users/{id}/pinned-repos/{repoID}`          | authMW    | Own user (`{id}` = claims.UserID, else 403); POST needs repo read access (404)                       | PinRepo / UnpinRepo                      |
+| GET                   | `/repos/transfers`                               | authMW    | Own user: transfers offered to claims.UserID                                                         | PageRepoTransfers                        |
+| GET                   | `/api/user/transfers`                            | authMW    | Own user: transfers offered to claims.UserID                                                         | ListRepoTransfers                        |
+| POST                  | `/api/user/transfers/{id}/accept`, `.../decline` | authMW    | Transfer's recipient (service; 404 otherwise); accept also needs the requester to still own the repo | AcceptRepoTransfer / DeclineRepoTransfer |
+| POST/DELETE           | `/api/oauth/apps`                                | authMW    | Own user (claims.UserID)                                                                             | OAuth app CRUD                           |
+| DELETE                | `/api/oauth/authorizations/{id}`                 | authMW    | Own user (claims.UserID)                                                                             | RevokeOAuthAuthorization                 |
+| POST/PATCH/DELETE     | `/api/gists`                                     | authMW    | Own gist (service checks)                                                                            | Gist CRUD                                |
 
 ### Organization Endpoints
 
-| Method | Path                                      | Auth      | AuthZ                        | Handler               |
-| ------ | ----------------------------------------- | --------- | ---------------------------- | --------------------- |
-| GET    | `/api/orgs/{org}`                         | optAuthMW | Public                       | GetOrg                |
-| GET    | `/api/orgs/{org}/members`                 | optAuthMW | Public                       | ListOrgMembers        |
-| POST   | `/api/orgs`                               | authMW    | Any authenticated user       | CreateOrg             |
-| POST   | `/api/orgs/{org}/members`                 | authMW    | Org owner (service); password + TOTP code to add an owner | AddOrgMember |
-| DELETE | `/api/orgs/{org}/members/{username}`      | authMW    | Org owner, or self (service) | RemoveOrgMember       |
-| POST   | `/api/orgs/{org}/members/{username}/role` | authMW    | Org owner (service); password + TOTP code to promote to owner | UpdateOrgMemberRole |
-| POST   | `/api/orgs/{org}/repos`                   | authMW    | Org owner (service)          | CreateOrgRepo         |
-| POST   | `/api/orgs/{org}/transfer`                | authMW    | Org owner (handler and service); password + TOTP code | TransferOrg |
-| POST   | `/api/orgs/{org}/profile`                 | authMW    | Org owner (service)          | UpdateOrgProfile      |
-| POST   | `/api/orgs/{org}/repo-defaults`           | authMW    | Org owner (service)          | UpdateOrgRepoDefaults |
-| POST   | `/api/orgs/{org}/delete`                  | authMW    | Org owner (service)          | DeleteOrg             |
+| Method | Path                                      | Auth      | AuthZ                                                         | Handler               |
+| ------ | ----------------------------------------- | --------- | ------------------------------------------------------------- | --------------------- |
+| GET    | `/api/orgs/{org}`                         | optAuthMW | Public                                                        | GetOrg                |
+| GET    | `/api/orgs/{org}/members`                 | optAuthMW | Public                                                        | ListOrgMembers        |
+| POST   | `/api/orgs`                               | authMW    | Any authenticated user                                        | CreateOrg             |
+| POST   | `/api/orgs/{org}/members`                 | authMW    | Org owner (service); password + TOTP code to add an owner     | AddOrgMember          |
+| DELETE | `/api/orgs/{org}/members/{username}`      | authMW    | Org owner, or self (service)                                  | RemoveOrgMember       |
+| POST   | `/api/orgs/{org}/members/{username}/role` | authMW    | Org owner (service); password + TOTP code to promote to owner | UpdateOrgMemberRole   |
+| POST   | `/api/orgs/{org}/repos`                   | authMW    | Org owner (service)                                           | CreateOrgRepo         |
+| POST   | `/api/orgs/{org}/transfer`                | authMW    | Org owner (handler and service); password + TOTP code         | TransferOrg           |
+| POST   | `/api/orgs/{org}/profile`                 | authMW    | Org owner (service)                                           | UpdateOrgProfile      |
+| POST   | `/api/orgs/{org}/repo-defaults`           | authMW    | Org owner (service)                                           | UpdateOrgRepoDefaults |
+| POST   | `/api/orgs/{org}/delete`                  | authMW    | Org owner (service)                                           | DeleteOrg             |
 
 ### Repository Endpoints — Read
 
@@ -699,45 +699,45 @@ Every row checks `readableRepoJSON` first.
 
 Every `/api/repos` row checks `readableRepoJSON` first.
 
-| Method            | Path                                                     | Auth   | AuthZ Check                                   | Handler                                   |
-| ----------------- | -------------------------------------------------------- | ------ | --------------------------------------------- | ----------------------------------------- |
-| PATCH             | `/api/repos/{owner}/{repo}`                              | authMW | CanManage (service)                           | UpdateRepo                                |
-| PATCH             | `.../issues/{number}/pin`                                | authMW | CanManage (service)                           | PinIssue                                  |
-| PATCH             | `.../issues/{number}/lock`                               | authMW | CanManage (service)                           | LockIssue                                 |
-| POST/PATCH/DELETE | `.../branches/protections`                               | authMW | CanManage (handler)                           | BranchProtection CRUD                     |
-| POST/PATCH/DELETE | `.../hooks` (+ `/deliveries`, `/redeliver`)              | authMW | CanManage (handler); POST needs password + TOTP code | Webhook CRUD                       |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/collaborators`                | authMW | CanManage (handler); POST needs password + TOTP code | Collaborator CRUD                  |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/keys`                         | authMW | CanManage (handler); POST needs password + TOTP code | DeployKey CRUD                     |
-| PUT               | `/api/repos/{owner}/{repo}/topics`                       | authMW | CanManage (handler)                           | SetTopics                                 |
-| POST              | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler); password + TOTP code       | TransferRepo                              |
-| DELETE            | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler and service)                 | CancelRepoTransfer                        |
-| POST              | `/api/repos/{owner}/{repo}/archive`                      | authMW | IsOwner (service)                             | ArchiveRepo                               |
-| POST              | `/api/repos/{owner}/{repo}/unarchive`                    | authMW | IsOwner (service)                             | UnarchiveRepo                             |
-| POST              | `/api/repos/{owner}/{repo}/delete`                       | authMW | IsOwner (service)                             | DeleteRepo                                |
-| POST              | `/api/repos/{owner}/{repo}/restore`                      | authMW | OwnerID + superadmin (service); 404 otherwise | RestoreRepo                               |
-| PATCH             | `/api/repos/{owner}/{repo}/template`                     | authMW | IsOwner (service)                             | SetRepoTemplate                           |
-| DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`                  | authMW | CanManage (handler)                           | DeleteWikiPage                            |
-| GET               | `/{owner}/{repo}/settings`                               | authMW | readableRepo + CanManage                      | PageRepoSettings                          |
-| POST              | `/{owner}/{repo}/settings/{general,features,visibility}` | authMW | readableRepo + CanManage (service)            | UpdateRepoGeneral / Features / Visibility |
+| Method            | Path                                                     | Auth   | AuthZ Check                                          | Handler                                   |
+| ----------------- | -------------------------------------------------------- | ------ | ---------------------------------------------------- | ----------------------------------------- |
+| PATCH             | `/api/repos/{owner}/{repo}`                              | authMW | CanManage (service)                                  | UpdateRepo                                |
+| PATCH             | `.../issues/{number}/pin`                                | authMW | CanManage (service)                                  | PinIssue                                  |
+| PATCH             | `.../issues/{number}/lock`                               | authMW | CanManage (service)                                  | LockIssue                                 |
+| POST/PATCH/DELETE | `.../branches/protections`                               | authMW | CanManage (handler)                                  | BranchProtection CRUD                     |
+| POST/PATCH/DELETE | `.../hooks` (+ `/deliveries`, `/redeliver`)              | authMW | CanManage (handler); POST needs password + TOTP code | Webhook CRUD                              |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/collaborators`                | authMW | CanManage (handler); POST needs password + TOTP code | Collaborator CRUD                         |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/keys`                         | authMW | CanManage (handler); POST needs password + TOTP code | DeployKey CRUD                            |
+| PUT               | `/api/repos/{owner}/{repo}/topics`                       | authMW | CanManage (handler)                                  | SetTopics                                 |
+| POST              | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler); password + TOTP code              | TransferRepo                              |
+| DELETE            | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler and service)                        | CancelRepoTransfer                        |
+| POST              | `/api/repos/{owner}/{repo}/archive`                      | authMW | IsOwner (service)                                    | ArchiveRepo                               |
+| POST              | `/api/repos/{owner}/{repo}/unarchive`                    | authMW | IsOwner (service)                                    | UnarchiveRepo                             |
+| POST              | `/api/repos/{owner}/{repo}/delete`                       | authMW | IsOwner (service)                                    | DeleteRepo                                |
+| POST              | `/api/repos/{owner}/{repo}/restore`                      | authMW | OwnerID + superadmin (service); 404 otherwise        | RestoreRepo                               |
+| PATCH             | `/api/repos/{owner}/{repo}/template`                     | authMW | IsOwner (service)                                    | SetRepoTemplate                           |
+| DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`                  | authMW | CanManage (handler)                                  | DeleteWikiPage                            |
+| GET               | `/{owner}/{repo}/settings`                               | authMW | readableRepo + CanManage                             | PageRepoSettings                          |
+| POST              | `/{owner}/{repo}/settings/{general,features,visibility}` | authMW | readableRepo + CanManage (service)                   | UpdateRepoGeneral / Features / Visibility |
 
 ### Repository Endpoints — Service-Layer Auth (Project Board)
 
 `CreateProject` checks `readableRepoJSON`; the other rows resolve the project through `projectIDInRepo` (readable repo that owns the project, else 404) before the service check.
 
-| Method | Path                                | Auth   | AuthZ Check         | Handler → Service |
-| ------ | ----------------------------------- | ------ | ------------------- | ----------------- |
-| POST   | `.../projects`                      | authMW | CanWrite (service)  | CreateProject     |
-| PATCH  | `.../projects/{id}`                 | authMW | CanWrite (service)  | UpdateProject     |
-| DELETE | `.../projects/{id}`                 | authMW | CanManage (service) | DeleteProject     |
-| POST   | `.../projects/{id}/columns`         | authMW | CanWrite (service)  | CreateColumn      |
-| DELETE | `.../projects/{id}/columns/{colID}` | authMW | CanWrite (service)  | DeleteColumn      |
-| GET    | `.../projects/{id}/card-targets`    | authMW | CanWrite (service)  | SearchCardTargets |
-| POST   | `.../projects/{id}/cards`           | authMW | CanWrite (service)  | CreateCard        |
-| PATCH  | `.../projects/{id}/cards/{cardID}`  | authMW | CanWrite (service)  | MoveCard          |
-| PATCH  | `.../projects/{id}/cards/{cardID}/details` | authMW | CanWrite (service) | UpdateCardDetails |
-| PATCH  | `.../projects/{id}/cards/{cardID}/fields` | authMW | CanWrite (service) | UpdateCardFields |
-| POST   | `.../projects/{id}/cards/{cardID}/convert` | authMW | CanWrite, then `allow_issues` (service; 404 `not found` when issues are off, as `CreateIssue`) | ConvertCard |
-| DELETE | `.../projects/{id}/cards/{cardID}`  | authMW | CanWrite (service)  | DeleteCard        |
+| Method | Path                                       | Auth   | AuthZ Check                                                                                    | Handler → Service |
+| ------ | ------------------------------------------ | ------ | ---------------------------------------------------------------------------------------------- | ----------------- |
+| POST   | `.../projects`                             | authMW | CanWrite (service)                                                                             | CreateProject     |
+| PATCH  | `.../projects/{id}`                        | authMW | CanWrite (service)                                                                             | UpdateProject     |
+| DELETE | `.../projects/{id}`                        | authMW | CanManage (service)                                                                            | DeleteProject     |
+| POST   | `.../projects/{id}/columns`                | authMW | CanWrite (service)                                                                             | CreateColumn      |
+| DELETE | `.../projects/{id}/columns/{colID}`        | authMW | CanWrite (service)                                                                             | DeleteColumn      |
+| GET    | `.../projects/{id}/card-targets`           | authMW | CanWrite (service)                                                                             | SearchCardTargets |
+| POST   | `.../projects/{id}/cards`                  | authMW | CanWrite (service)                                                                             | CreateCard        |
+| PATCH  | `.../projects/{id}/cards/{cardID}`         | authMW | CanWrite (service)                                                                             | MoveCard          |
+| PATCH  | `.../projects/{id}/cards/{cardID}/details` | authMW | CanWrite (service)                                                                             | UpdateCardDetails |
+| PATCH  | `.../projects/{id}/cards/{cardID}/fields`  | authMW | CanWrite (service)                                                                             | UpdateCardFields  |
+| POST   | `.../projects/{id}/cards/{cardID}/convert` | authMW | CanWrite, then `allow_issues` (service; 404 `not found` when issues are off, as `CreateIssue`) | ConvertCard       |
+| DELETE | `.../projects/{id}/cards/{cardID}`         | authMW | CanWrite (service)                                                                             | DeleteCard        |
 
 ### Git Transport
 
@@ -760,20 +760,20 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 
 ## Security Measures
 
-| Measure            | Implementation                                                                   |
-| ------------------ | -------------------------------------------------------------------------------- |
-| CORS               | Origin restricted to `config.Server.BaseURL`; `localhost:3000` added in dev only |
-| CSRF               | Double-submit cookie; the layout puts the token in `hx-headers:inherited`        |
-| Body size limit    | 26 MB on any form body, before CSRF parses it; 1 MB on all `/api/*` routes       |
-| JWT secret warning | Log warning at startup if default secret is still set                            |
-| Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set |
-| Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
-| Web commit paths   | No `.git` component (any case, NTFS or HFS+ alias); at most 4096 bytes           |
-| SSRF protection    | Webhooks and imports dial only vetted public addresses; webhooks follow no redirects |
+| Measure            | Implementation                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CORS               | Origin restricted to `config.Server.BaseURL`; `localhost:3000` added in dev only                                                                                   |
+| CSRF               | Double-submit cookie; the layout puts the token in `hx-headers:inherited`                                                                                          |
+| Body size limit    | 26 MB on any form body, before CSRF parses it; 1 MB on all `/api/*` routes                                                                                         |
+| JWT secret warning | Log warning at startup if default secret is still set                                                                                                              |
+| Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set                                                                                   |
+| Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex                                                                                   |
+| Web commit paths   | No `.git` component (any case, NTFS or HFS+ alias); at most 4096 bytes                                                                                             |
+| SSRF protection    | Webhooks and imports dial only vetted public addresses; webhooks follow no redirects                                                                               |
 | Branch protection  | A push that violates a rule is refused per ref, before the ref is written; `require_pull_request` also refuses browser commits and branch deletes, admins included |
-| Password storage   | bcrypt hashed                                                                    |
-| TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                        |
-| PAT                | `crypto/rand` generated, SHA-256-hashed for storage, limited to its scopes       |
-| Email verification | 32 `crypto/rand` bytes, SHA-256 at rest, single use, 24 h, one link a minute     |
-| Password reset     | 32 `crypto/rand` bytes, SHA-256 at rest, single use, 1 h, one email per 5 min    |
-| SQL injection      | All queries use parameterized placeholders (`$1`, `$2`, ...)                     |
+| Password storage   | bcrypt hashed                                                                                                                                                      |
+| TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                                                                                                          |
+| PAT                | `crypto/rand` generated, SHA-256-hashed for storage, limited to its scopes                                                                                         |
+| Email verification | 32 `crypto/rand` bytes, SHA-256 at rest, single use, 24 h, one link a minute                                                                                       |
+| Password reset     | 32 `crypto/rand` bytes, SHA-256 at rest, single use, 1 h, one email per 5 min                                                                                      |
+| SQL injection      | All queries use parameterized placeholders (`$1`, `$2`, ...)                                                                                                       |

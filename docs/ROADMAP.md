@@ -2395,93 +2395,93 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 
 ## Roadmap Summary
 
-| Phase | Feature                              | Status     | Migration(s) |
-| ----- | ------------------------------------ | ---------- | ------------ |
-| 0.1   | Core Platform                        | ✅ Done    | 001–007      |
-| 0.2   | OAuth & Organizations                | ✅ Done    | 008–010      |
-| 0.3   | Webhooks, Notifs, Admin              | ✅ Done    | 011–015      |
-| 1.1   | Labels                               | ✅ Done    | 016          |
-| 1.2   | Assignees                            | ✅ Done    | 017          |
-| 1.3   | Stars                                | ✅ Done    | 018          |
-| 2     | Repository Fork                      | ✅ Done    | 019          |
-| 3.1   | Releases                             | ✅ Done    | 020          |
-| 3.2   | Commit Status API                    | ✅ Done    | 021          |
-| 3.3   | Milestones                           | ✅ Done    | 022          |
-| 4.1   | PR Reviews                           | ✅ Done    | 023          |
-| 4.2   | PR Line Comments                     | ✅ Done    | 024          |
-| 4.3   | Search                               | ✅ Done    | 025          |
-| 5.1   | Personal Access Tokens               | ✅ Done    | 027          |
-| 5.2   | Deploy Keys                          | ✅ Done    | 028          |
-| 5.3   | Draft Pull Requests                  | ✅ Done    | 029          |
-| 6.1   | Protected Branches                   | ✅ Done    | 030          |
-| 6.2   | CODEOWNERS Support                   | ✅ Done    | —            |
-| 6.3   | Code Review Suggestions              | ✅ Done    | 031          |
-| 7.1   | Auto-merge                           | ✅ Done    | 032          |
-| 7.2   | Issue & PR Templates                 | ✅ Done    | —            |
-| 7.3   | Comment Reactions                    | ✅ Done    | 033          |
-| 8.1   | Two-Factor Auth (TOTP)               | ✅ Done    | 034          |
-| 8.2   | Audit Log                            | ✅ Done    | 035          |
-| 8.3   | LDAP / SAML SSO                      | ✅ Done    | 106          |
-| 9.1   | Project Boards / Kanban              | ✅ Done    | 036          |
-| 9.2   | Wiki                                 | ✅ Done    | —            |
-| 9.3   | Issue Pinning & Locking              | ✅ Done    | 038          |
-| 10.1  | Repository Insights & Stats          | ✅ Done    | —            |
-| 10.2  | @Mentions in Comments                | ✅ Done    | 039          |
-| 10.3  | Saved Replies                        | ✅ Done    | 040          |
-| 11.1  | Email Notifications                  | ✅ Done    | 041          |
-| 11.2  | OAuth Apps / Third-party Clients     | ✅ Done    | 042          |
-| 11.3  | Webhook Improvements (retry, filter) | ✅ Done    | 043          |
-| 12.1  | Watching                             | ✅ Done    | 044          |
-| 12.2  | Activity Feed                        | ✅ Done    | 045          |
-| 12.3  | Discussions                          | ✅ Done    | 046          |
-| 13.1  | Gists                                | ✅ Done    | 047          |
-| 13.2  | Profile README                       | ✅ Done    | —            |
-| 13.3  | Repository Topics / Tags             | ✅ Done    | 048          |
-| 14.1  | Private Issues                       | ✅ Done    | 049          |
-| 14.2  | Archive & Templates                  | ✅ Done    | 050          |
-| 14.3  | Repository Soft-delete & Recovery    | ✅ Done    | 051          |
-| 15.1  | Advanced Code Search                 | ✅ Done    | 052          |
-| 15.2  | Explore / Trending                   | ✅ Done    | —            |
-| 15.3  | Dependency Graph                     | ✅ Done    | 053          |
-| 16.1  | Container Registry (Docker)          | ⬜ Planned | 114          |
-| 16.2  | Generic Package Registry             | ⬜ Planned | 115          |
-| 16.3  | Release Asset Enhancements           | ⬜ Planned | —            |
-| 17.1  | Git LFS Support                      | ⬜ Planned | 116          |
-| 17.2  | Signed Commit Verification (GPG/SSH) | ⬜ Planned | —            |
-| 17.3  | Secret Scanning                      | ⬜ Planned | 117          |
-| 18.1  | CI/CD Pipeline Runner (basic)        | ⬜ Planned | 118          |
-| 18.2  | Pipeline YAML Config & UI            | ⬜ Planned | 119          |
-| 18.3  | CI Status Dashboard                  | ⬜ Planned | —            |
-| 19.1  | LDAP / SAML Improvements             | ⬜ Planned | —            |
-| 19.2  | IP Allowlisting & Access Policies    | ⬜ Planned | 120          |
-| 19.3  | API Rate Limiting & Quotas           | ✅ Done    | 110          |
+| Phase | Feature                                               | Status     | Migration(s) |
+| ----- | ----------------------------------------------------- | ---------- | ------------ |
+| 0.1   | Core Platform                                         | ✅ Done    | 001–007      |
+| 0.2   | OAuth & Organizations                                 | ✅ Done    | 008–010      |
+| 0.3   | Webhooks, Notifs, Admin                               | ✅ Done    | 011–015      |
+| 1.1   | Labels                                                | ✅ Done    | 016          |
+| 1.2   | Assignees                                             | ✅ Done    | 017          |
+| 1.3   | Stars                                                 | ✅ Done    | 018          |
+| 2     | Repository Fork                                       | ✅ Done    | 019          |
+| 3.1   | Releases                                              | ✅ Done    | 020          |
+| 3.2   | Commit Status API                                     | ✅ Done    | 021          |
+| 3.3   | Milestones                                            | ✅ Done    | 022          |
+| 4.1   | PR Reviews                                            | ✅ Done    | 023          |
+| 4.2   | PR Line Comments                                      | ✅ Done    | 024          |
+| 4.3   | Search                                                | ✅ Done    | 025          |
+| 5.1   | Personal Access Tokens                                | ✅ Done    | 027          |
+| 5.2   | Deploy Keys                                           | ✅ Done    | 028          |
+| 5.3   | Draft Pull Requests                                   | ✅ Done    | 029          |
+| 6.1   | Protected Branches                                    | ✅ Done    | 030          |
+| 6.2   | CODEOWNERS Support                                    | ✅ Done    | —            |
+| 6.3   | Code Review Suggestions                               | ✅ Done    | 031          |
+| 7.1   | Auto-merge                                            | ✅ Done    | 032          |
+| 7.2   | Issue & PR Templates                                  | ✅ Done    | —            |
+| 7.3   | Comment Reactions                                     | ✅ Done    | 033          |
+| 8.1   | Two-Factor Auth (TOTP)                                | ✅ Done    | 034          |
+| 8.2   | Audit Log                                             | ✅ Done    | 035          |
+| 8.3   | LDAP / SAML SSO                                       | ✅ Done    | 106          |
+| 9.1   | Project Boards / Kanban                               | ✅ Done    | 036          |
+| 9.2   | Wiki                                                  | ✅ Done    | —            |
+| 9.3   | Issue Pinning & Locking                               | ✅ Done    | 038          |
+| 10.1  | Repository Insights & Stats                           | ✅ Done    | —            |
+| 10.2  | @Mentions in Comments                                 | ✅ Done    | 039          |
+| 10.3  | Saved Replies                                         | ✅ Done    | 040          |
+| 11.1  | Email Notifications                                   | ✅ Done    | 041          |
+| 11.2  | OAuth Apps / Third-party Clients                      | ✅ Done    | 042          |
+| 11.3  | Webhook Improvements (retry, filter)                  | ✅ Done    | 043          |
+| 12.1  | Watching                                              | ✅ Done    | 044          |
+| 12.2  | Activity Feed                                         | ✅ Done    | 045          |
+| 12.3  | Discussions                                           | ✅ Done    | 046          |
+| 13.1  | Gists                                                 | ✅ Done    | 047          |
+| 13.2  | Profile README                                        | ✅ Done    | —            |
+| 13.3  | Repository Topics / Tags                              | ✅ Done    | 048          |
+| 14.1  | Private Issues                                        | ✅ Done    | 049          |
+| 14.2  | Archive & Templates                                   | ✅ Done    | 050          |
+| 14.3  | Repository Soft-delete & Recovery                     | ✅ Done    | 051          |
+| 15.1  | Advanced Code Search                                  | ✅ Done    | 052          |
+| 15.2  | Explore / Trending                                    | ✅ Done    | —            |
+| 15.3  | Dependency Graph                                      | ✅ Done    | 053          |
+| 16.1  | Container Registry (Docker)                           | ⬜ Planned | 114          |
+| 16.2  | Generic Package Registry                              | ⬜ Planned | 115          |
+| 16.3  | Release Asset Enhancements                            | ⬜ Planned | —            |
+| 17.1  | Git LFS Support                                       | ⬜ Planned | 116          |
+| 17.2  | Signed Commit Verification (GPG/SSH)                  | ⬜ Planned | —            |
+| 17.3  | Secret Scanning                                       | ⬜ Planned | 117          |
+| 18.1  | CI/CD Pipeline Runner (basic)                         | ⬜ Planned | 118          |
+| 18.2  | Pipeline YAML Config & UI                             | ⬜ Planned | 119          |
+| 18.3  | CI Status Dashboard                                   | ⬜ Planned | —            |
+| 19.1  | LDAP / SAML Improvements                              | ⬜ Planned | —            |
+| 19.2  | IP Allowlisting & Access Policies                     | ⬜ Planned | 120          |
+| 19.3  | API Rate Limiting & Quotas                            | ✅ Done    | 110          |
 | 20.1  | S3/GCS Storage Backend (avatars and attachments done) | 🚧 Partial | 104, 109     |
-| 20.2  | Instance Clustering / HA             | ⬜ Planned | —            |
-| 20.3  | GraphQL API v2                       | ⬜ Planned | —            |
+| 20.2  | Instance Clustering / HA                              | ⬜ Planned | —            |
+| 20.3  | GraphQL API v2                                        | ⬜ Planned | —            |
 
 Milestone 2 migration numbers are provisional: take the next free number when the work starts.
 
 ### Shipped outside the phase plan
 
-| Feature                                                  | PR   | Migration(s) |
-| -------------------------------------------------------- | ---- | ------------ |
-| Email verification and Google account linking            | #73  | 091–092      |
-| Organizations own repositories                           | #80  | 085          |
-| Repository transfer with recipient acceptance            | #97  | 099          |
-| Repository import from another Git host                  | #136 | —            |
-| Syntax highlighting with per-user code themes            | #150 | 101          |
-| Closing keywords in issues                               | #174 | 102          |
-| Password reset by email, with a CLI fallback             | #175 | 105          |
-| Account management and suspension (`/admin/users`)       | #176 | 103          |
-| Pull mirrors with scheduled sync                         | #181 | 107          |
-| `cz-admin reset-2fa`                                     | #182 | —            |
-| Admin-issued password reset links                        | #183 | —            |
-| Prometheus metrics on a separate listener                | #184 | —            |
-| Require a pull request on protected branches             | #189 | 108          |
-| Backup and restore                                       | #192 | —            |
-| `cz` remote CLI client                                   | #199 | —            |
-| Device-code login for `cz auth login`                    | #207, #214, #216 | 111 |
-| Notifications inbox with subject titles                  | #213 | 112          |
+| Feature                                            | PR               | Migration(s) |
+| -------------------------------------------------- | ---------------- | ------------ |
+| Email verification and Google account linking      | #73              | 091–092      |
+| Organizations own repositories                     | #80              | 085          |
+| Repository transfer with recipient acceptance      | #97              | 099          |
+| Repository import from another Git host            | #136             | —            |
+| Syntax highlighting with per-user code themes      | #150             | 101          |
+| Closing keywords in issues                         | #174             | 102          |
+| Password reset by email, with a CLI fallback       | #175             | 105          |
+| Account management and suspension (`/admin/users`) | #176             | 103          |
+| Pull mirrors with scheduled sync                   | #181             | 107          |
+| `cz-admin reset-2fa`                               | #182             | —            |
+| Admin-issued password reset links                  | #183             | —            |
+| Prometheus metrics on a separate listener          | #184             | —            |
+| Require a pull request on protected branches       | #189             | 108          |
+| Backup and restore                                 | #192             | —            |
+| `cz` remote CLI client                             | #199             | —            |
+| Device-code login for `cz auth login`              | #207, #214, #216 | 111          |
+| Notifications inbox with subject titles            | #213             | 112          |
 
 **Critical files touched by every phase:**
 
