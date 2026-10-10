@@ -66,12 +66,8 @@ var pullInvolvementEvents = `
                       WHERE c.pull_id = p.id AND m.user_id = $1))
       AND ` + readableBy("r", "$1")
 
-// ListForFeed returns the user's personalised feed: watched/owned repos plus involved issues and PRs.
-func (s *EventStore) ListForFeed(ctx context.Context, userID int64, page, pageSize int) ([]model.Event, error) {
-	offset := (page - 1) * pageSize
-	if offset < 0 {
-		offset = 0
-	}
+// ListForFeed returns limit rows of the user's personalised feed from offset: watched/owned repos plus involved issues and PRs.
+func (s *EventStore) ListForFeed(ctx context.Context, userID int64, limit, offset int) ([]model.Event, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT e.id, e.actor_id, e.actor_name, e.repo_id, e.repo_name, e.owner_name, e.event_type, e.payload, e.created_at
 		 FROM events e
@@ -87,7 +83,7 @@ func (s *EventStore) ListForFeed(ctx context.Context, userID int64, page, pageSi
 		 OR e.id IN (`+pullInvolvementEvents+`)
 		 ORDER BY e.created_at DESC
 		 LIMIT $2 OFFSET $3`,
-		userID, pageSize, offset,
+		userID, limit, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("event list for feed: %w", err)
@@ -138,13 +134,9 @@ func (s *EventStore) ListByActor(ctx context.Context, actorID int64, page, pageS
 	return scanEvents(rows)
 }
 
-// ListWatching returns paginated events from repos the user watches (non-ignoring),
+// ListWatching returns limit events from offset in repos the user watches (non-ignoring),
 // excluding private repos the user cannot access.
-func (s *EventStore) ListWatching(ctx context.Context, userID int64, page, pageSize int) ([]model.Event, error) {
-	offset := (page - 1) * pageSize
-	if offset < 0 {
-		offset = 0
-	}
+func (s *EventStore) ListWatching(ctx context.Context, userID int64, limit, offset int) ([]model.Event, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT e.id, e.actor_id, e.actor_name, e.repo_id, e.repo_name, e.owner_name, e.event_type, e.payload, e.created_at
 		 FROM events e
@@ -156,7 +148,7 @@ func (s *EventStore) ListWatching(ctx context.Context, userID int64, page, pageS
 		 )
 		 ORDER BY e.created_at DESC
 		 LIMIT $2 OFFSET $3`,
-		userID, pageSize, offset,
+		userID, limit, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("event list watching: %w", err)
@@ -165,17 +157,13 @@ func (s *EventStore) ListWatching(ctx context.Context, userID int64, page, pageS
 	return scanEvents(rows)
 }
 
-// ListOwnActivity returns paginated events the user performed, across all repos.
-func (s *EventStore) ListOwnActivity(ctx context.Context, userID int64, page, pageSize int) ([]model.Event, error) {
-	offset := (page - 1) * pageSize
-	if offset < 0 {
-		offset = 0
-	}
+// ListOwnActivity returns limit events from offset that the user performed, across all repos.
+func (s *EventStore) ListOwnActivity(ctx context.Context, userID int64, limit, offset int) ([]model.Event, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, actor_id, actor_name, repo_id, repo_name, owner_name, event_type, payload, created_at
 		 FROM events WHERE actor_id = $1
 		 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
-		userID, pageSize, offset,
+		userID, limit, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("event list own activity: %w", err)

@@ -82,7 +82,7 @@ func TestEventStore_FeedExcludesUnreadablePrivateRepos(t *testing.T) {
 	mkInvolvementEvent(privateWithPerm, "privperm")
 	mkInvolvementEvent(public, "pub")
 
-	events, err := es.ListForFeed(ctx, aliceID, 1, 50)
+	events, err := es.ListForFeed(ctx, aliceID, 50, 0)
 	if err != nil {
 		t.Fatalf("ListForFeed: %v", err)
 	}

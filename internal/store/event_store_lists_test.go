@@ -80,7 +80,7 @@ func TestEventStore_RecordDefaultsPayloadAndRepo(t *testing.T) {
 	f := newEventFixture(t)
 	ctx := context.Background()
 	id := f.record(t, f.aliceID, nil, model.EventPush, 0)
-	evs, err := f.es.ListOwnActivity(ctx, f.aliceID, 1, 10)
+	evs, err := f.es.ListOwnActivity(ctx, f.aliceID, 10, 0)
 	if err != nil || len(evs) != 1 || evs[0].ID != id {
 		t.Fatalf("ListOwnActivity = %+v, %v", evs, err)
 	}
@@ -138,7 +138,7 @@ func TestEventStore_ListByActorHidesPrivateRepoEvents(t *testing.T) {
 	if err != nil || !sameIDs(eventIDs(got), []int64{pub, noRepo}) {
 		t.Errorf("ListByActor = %v, %v; want public and repo-less events only", eventIDs(got), err)
 	}
-	own, _ := f.es.ListOwnActivity(ctx, f.aliceID, 1, 10)
+	own, _ := f.es.ListOwnActivity(ctx, f.aliceID, 10, 0)
 	if len(own) != 3 {
 		t.Errorf("ListOwnActivity = %d events, want all 3 including private", len(own))
 	}
@@ -163,24 +163,24 @@ func TestEventStore_WatchingAndFeedScopes(t *testing.T) {
 	testutil.Exec(t, f.db, `INSERT INTO watches (user_id, repo_id, level) VALUES ($1, $2, 'watching')`, f.aliceID, f.bobPrivate)
 	testutil.Exec(t, f.db, `INSERT INTO watches (user_id, repo_id, level) VALUES ($1, $2, 'ignoring')`, f.aliceID, f.alicePub)
 
-	watching, err := f.es.ListWatching(ctx, f.aliceID, 1, 10)
+	watching, err := f.es.ListWatching(ctx, f.aliceID, 10, 0)
 	if err != nil || !sameIDs(eventIDs(watching), []int64{watched}) {
 		t.Errorf("ListWatching = %v, %v; want only the readable watched repo", eventIDs(watching), err)
 	}
-	if p, _ := f.es.ListWatching(ctx, f.aliceID, 0, 10); len(p) != 1 {
+	if p, _ := f.es.ListWatching(ctx, f.aliceID, 10, 0); len(p) != 1 {
 		t.Errorf("ListWatching page 0 = %d, want 1", len(p))
 	}
 
 	// "ignoring" removes a repo from the watched half, yet owned repos still feed the user;
 	// here alicePub is both ignored and owned, so ownership wins.
-	feed, err := f.es.ListForFeed(ctx, f.aliceID, 1, 10)
+	feed, err := f.es.ListForFeed(ctx, f.aliceID, 10, 0)
 	if err != nil || !sameIDs(eventIDs(feed), []int64{owned, ignored, watched}) {
 		t.Errorf("ListForFeed = %v, %v; want [owned ignored watched]", eventIDs(feed), err)
 	}
-	if p, _ := f.es.ListForFeed(ctx, f.aliceID, 0, 1); !sameIDs(eventIDs(p), []int64{owned}) {
+	if p, _ := f.es.ListForFeed(ctx, f.aliceID, 1, 0); !sameIDs(eventIDs(p), []int64{owned}) {
 		t.Errorf("ListForFeed page 0 = %v", eventIDs(p))
 	}
-	if p, _ := f.es.ListForFeed(ctx, f.aliceID, 2, 1); !sameIDs(eventIDs(p), []int64{ignored}) {
+	if p, _ := f.es.ListForFeed(ctx, f.aliceID, 1, 1); !sameIDs(eventIDs(p), []int64{ignored}) {
 		t.Errorf("ListForFeed page 2 = %v", eventIDs(p))
 	}
 
@@ -202,7 +202,7 @@ func TestEventStore_FeedIncludesInvolvedIssueOnUnwatchedRepo(t *testing.T) {
 	involved := f.recordWithPayload(t, f.bobID, f.bobPub, model.EventIssueOpened, `{"number":7}`)
 	f.recordWithPayload(t, f.bobID, f.bobPub, model.EventIssueOpened, `{"number":8}`)
 
-	feed, err := f.es.ListForFeed(ctx, f.aliceID, 1, 10)
+	feed, err := f.es.ListForFeed(ctx, f.aliceID, 10, 0)
 	if err != nil || !sameIDs(eventIDs(feed), []int64{involved}) {
 		t.Errorf("ListForFeed = %v, %v; want only the authored issue's event", eventIDs(feed), err)
 	}
