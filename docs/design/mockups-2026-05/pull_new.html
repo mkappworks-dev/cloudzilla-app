@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New pull request · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--success:#4ade80;--danger:#f87171;--danger-bg:rgba(248,113,113,0.12);--accent:#a78bfa;--accent-bg:rgba(167,139,250,0.12); }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--success:#15803d;--danger:#b91c1c;--danger-bg:rgba(185,28,28,0.10);--accent:#6d28d9;--accent-bg:rgba(109,40,217,0.10); }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:9999px;font-size:11px;font-weight:500;border:1px solid var(--border)}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .md-preview h1,.md-preview h2,.md-preview h3{font-weight:600;margin:16px 0 8px}
+  .md-preview h1{font-size:20px}.md-preview h2{font-size:17px}.md-preview h3{font-size:15px}
+  .md-preview p{margin:8px 0}.md-preview ul,.md-preview ol{margin:8px 0;padding-left:22px}
+  .md-preview ul{list-style:disc}.md-preview ol{list-style:decimal}.md-preview li{margin:2px 0}
+  .md-preview blockquote{border-left:2px solid var(--border-strong);padding-left:12px;color:var(--fg-2);margin:8px 0}
+  .md-preview pre{background:var(--elevated);border:1px solid var(--border);border-radius:6px;padding:12px;overflow-x:auto;margin:8px 0;font-size:12px}
+  .md-preview a{color:var(--focus)}.md-preview a:hover{text-decoration:underline}
+  .md-preview > :first-child{margin-top:0}.md-preview > :last-child{margin-bottom:0}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .meta-menu{max-height:340px;overflow-y:auto}
+  .meta-menu .check{visibility:hidden;flex:none}
+  .meta-menu [aria-checked="true"] .check{visibility:visible}
+  .meta-dot{width:9px;height:9px;border-radius:9px;flex:none}
+  [data-entry].off,[data-empty].off{display:none}
+  html.light [style*="color:#052e16"]{color:#fff !important}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<div id="cz-header" data-repo-tab="pulls"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6" aria-labelledby="new-title">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="pulls.html" class="hover:underline">Pull requests</a>
+      <span aria-hidden="true">·</span>
+      Compare
+    </p>
+    <h1 id="new-title" class="text-2xl font-semibold tracking-tight">Open a pull request</h1>
+    <p class="mt-1 text-[13px] fg2">Choose a base and head branch — Cloudzilla will compare and let you create the request.</p>
+  </section>
+
+  <div class="grid lg:grid-cols-[1fr_280px] gap-8">
+  <div class="min-w-0">
+  <section class="b border rounded-md surface p-6 space-y-5">
+    <!-- Branch picker row -->
+    <fieldset class="b border rounded-md surface p-4">
+      <legend class="px-2 mono text-[11px] fg3 uppercase tracking-wider">Compare</legend>
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[10rem] space-y-1.5">
+          <label for="base_branch" class="block text-[12px] font-medium fg2">Base branch <span class="fg3">(target)</span></label>
+          <div class="relative">
+            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
+            <select id="base_branch" name="base_branch" required class="h-9 w-full b border rounded-md bg-transparent pl-8 pr-3 text-sm mono">
+              <option selected>main</option>
+              <option>release-0.2</option>
+            </select>
+          </div>
+        </div>
+        <span class="fg3 pb-2" aria-hidden="true">←</span>
+        <div class="flex-1 min-w-[10rem] space-y-1.5">
+          <label for="head_branch" class="block text-[12px] font-medium fg2">Head branch <span class="fg3">(yours)</span></label>
+          <div class="relative">
+            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
+            <select id="head_branch" name="head_branch" required class="h-9 w-full b border rounded-md bg-transparent pl-8 pr-3 text-sm mono">
+              <option>tech/ui-design-system-foundation</option>
+              <option>feat/code-search-streaming</option>
+              <option>main</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <p class="mt-3 text-[12px] fg3">Comparing <span class="mono">tech/ui-design-system-foundation</span> → <span class="mono">main</span> · <strong class="text-current">18 commits</strong>, <span style="color:var(--success)">+1,149</span> / <span style="color:#f87171">−513</span>.</p>
+    </fieldset>
+
+    <form class="space-y-5">
+      <div class="space-y-1.5">
+        <label for="title" class="block text-sm font-medium">Title</label>
+        <input id="title" name="title" type="text" required placeholder="Summary of changes" class="flex h-9 w-full rounded-md b border bg-transparent px-3 py-1 text-sm placeholder:fg3" />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium">Description</label>
+        <!-- MarkdownEditor (rendered by markdown-editor.js) -->
+        <div data-markdown-editor data-rows="12" data-placeholder="What does this change, and why? Reference any related issues with #number."><textarea>## Summary
+
+Replaces the legacy layout with the new **design-system foundation**:
+
+- unified spacing and color tokens
+- new `layout.Base` shell
+- dark / light theme toggle
+
+Closes #312. See `internal/view/layout/` for the new components.</textarea></div>
+        <p class="text-[11px] fg3">Markdown supported <span aria-hidden="true">·</span> Type <code class="mono px-1 py-0.5 elevated b border rounded">/template</code> to scaffold the PR template.</p>
+      </div>
+
+      <div class="pt-2 flex items-center gap-3">
+        <button type="submit" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5" style="background:var(--success);color:#052e16">Create pull request</button>
+        <button type="button" class="h-9 px-3 b border rounded-md text-sm fg2 hover:elevated">Save as draft</button>
+        <a href="pulls.html" class="text-sm fg2 hover:underline ml-auto">Cancel</a>
+      </div>
+    </form>
+  </section>
+  </div>
+
+  <aside class="space-y-6" aria-label="Pull request metadata">
+
+    <!-- Reviewers -->
+    <section id="meta-reviewers" aria-labelledby="reviewers-heading">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="reviewers-heading" class="text-[12px] font-medium fg2">Reviewers</h2>
+        <div class="dropdown-wrap">
+          <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Request reviewers">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Request reviewers">
+            <p class="dropdown-header">Request reviewers</p>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="malith" class="dropdown-item">
+              <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+              <span class="flex-1">@malith</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="yumi" class="dropdown-item">
+              <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">YM</span>
+              <span class="flex-1">@yumi</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="daisy" class="dropdown-item">
+              <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">DK</span>
+              <span class="flex-1">@daisy</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="dropdown-divider"></div>
+            <a href="settings.html#collaborators" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="11" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              <span>Invite a collaborator</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <ul class="space-y-1.5">
+        <li data-entry="malith" class="off flex items-center gap-2 text-[13px]">
+          <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+          <a href="#" class="hover:underline">@malith</a>
+          <span class="ml-auto fg3 text-[10px] mono">Pending</span>
+        </li>
+        <li data-entry="yumi" class="flex items-center gap-2 text-[13px]">
+          <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">YM</span>
+          <a href="#" class="hover:underline">@yumi</a>
+          <span class="ml-auto fg3 text-[10px] mono">Pending</span>
+        </li>
+        <li data-entry="daisy" class="flex items-center gap-2 text-[13px]">
+          <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">DK</span>
+          <a href="#" class="hover:underline">@daisy</a>
+          <span class="ml-auto fg3 text-[10px] mono">Pending</span>
+        </li>
+      </ul>
+      <p data-empty class="off text-[13px] fg3">No reviewers requested.</p>
+      <p class="mt-2 text-[12px] fg3">Suggested from the files changed.</p>
+    </section>
+
+    <!-- Labels -->
+    <section id="meta-labels" aria-labelledby="labels-heading" class="b border-t pt-5">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="labels-heading" class="text-[12px] font-medium fg2">Labels</h2>
+        <div class="dropdown-wrap">
+          <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Edit labels">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Edit labels">
+            <p class="dropdown-header">Apply labels</p>
+            <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="ui" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--accent)" aria-hidden="true"></span>
+              <span class="flex-1">ui</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="frontend" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--focus)" aria-hidden="true"></span>
+              <span class="flex-1">frontend</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="needs-review" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--danger)" aria-hidden="true"></span>
+              <span class="flex-1">needs-review</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="enhancement" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--success)" aria-hidden="true"></span>
+              <span class="flex-1">enhancement</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="documentation" class="dropdown-item">
+              <span class="meta-dot" style="background:var(--accent)" aria-hidden="true"></span>
+              <span class="flex-1">documentation</span>
+              <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="dropdown-divider"></div>
+            <a href="settings.html#labels" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              <span>Create a new label</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <ul class="flex flex-wrap gap-1.5">
+        <li data-entry="ui"><span class="badge" style="background:var(--accent-bg);color:var(--accent);border-color:color-mix(in srgb, var(--accent) 30%, transparent)">ui</span></li>
+        <li data-entry="frontend"><span class="badge" style="background:rgba(110,168,254,0.12);color:var(--focus);border-color:color-mix(in srgb, var(--focus) 30%, transparent)">frontend</span></li>
+        <li data-entry="needs-review"><span class="badge" style="background:var(--danger-bg);color:var(--danger);border-color:color-mix(in srgb, var(--danger) 30%, transparent)">needs-review</span></li>
+        <li data-entry="enhancement" class="off"><span class="badge" style="background:rgba(74,222,128,0.12);color:var(--success);border-color:color-mix(in srgb, var(--success) 30%, transparent)">enhancement</span></li>
+        <li data-entry="documentation" class="off"><span class="badge" style="background:var(--accent-bg);color:var(--accent);border-color:color-mix(in srgb, var(--accent) 30%, transparent)">documentation</span></li>
+      </ul>
+      <p data-empty class="off text-[13px] fg3">No labels.</p>
+    </section>
+
+  </aside>
+  </div>
+</main>
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>/* sidebar metadata menus: live toggle */
+  (function(){
+    function syncEmpty(section){
+      var placeholder = section.querySelector('[data-empty]');
+      if (!placeholder) return;
+      var anyVisible = Array.prototype.some.call(
+        section.querySelectorAll('[data-entry]'),
+        function(en){ return !en.classList.contains('off'); }
+      );
+      placeholder.classList.toggle('off', anyVisible);
+    }
+    document.querySelectorAll('.meta-menu').forEach(function(panel){
+      var section = panel.closest('section');
+      if (!section) return;
+      panel.addEventListener('click', function(e){
+        var item = e.target.closest('[data-key]');
+        if (!item || !panel.contains(item)) return;
+        var key = item.getAttribute('data-key');
+        if (item.getAttribute('role') === 'menuitemradio'){
+          panel.querySelectorAll('[data-key]').forEach(function(it){
+            it.setAttribute('aria-checked', String(it === item));
+          });
+          section.querySelectorAll('[data-entry]').forEach(function(en){
+            en.classList.toggle('off', en.getAttribute('data-entry') !== key);
+          });
+        } else {
+          var on = item.getAttribute('aria-checked') !== 'true';
+          item.setAttribute('aria-checked', String(on));
+          var entry = section.querySelector('[data-entry="' + key + '"]');
+          if (entry) entry.classList.toggle('off', !on);
+        }
+        syncEmpty(section);
+      });
+      syncEmpty(section);
+    });
+  })();
+</script>
+<script src="markdown-editor.js"></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>internal/view/pages — mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #000; --surface: #0a0a0a; --elevated: #1a1a1a;
+    --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+    --fg: #ededed; --fg-2: #b4b4b4; --fg-3: #8c8c8c;
+    --focus: #6ea8fe; --link: #93c5fd;
+    --success: #4ade80; --warn: #fbbf24; --danger: #f87171;
+  }
+  html.light {
+    --bg: #fff; --surface: #fafafa; --elevated: #ededed;
+    --border: rgba(0,0,0,0.10); --border-strong: rgba(0,0,0,0.18);
+    --fg: #0a0a0a; --fg-2: #444; --fg-3: #5e5e5e;
+    --focus: #1d4ed8; --link: #1d4ed8;
+    --success: #15803d; --warn: #b45309; --danger: #b91c1c;
+  }
+  body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--fg); font-feature-settings: "ss01", "ss02", "cv11"; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+  .surface { background: var(--surface); }
+  .elevated { background: var(--elevated); }
+  .b { border-color: var(--border); }
+  .bs { border-color: var(--border-strong); }
+  .fg2 { color: var(--fg-2); }
+  .fg3 { color: var(--fg-3); }
+  .link { color: var(--link); }
+  .hover-row:hover { background: var(--elevated); }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .skip-link { position:absolute; left:8px; top:-40px; z-index:100; padding:8px 12px; background:var(--fg); color:var(--bg); border-radius:6px; font-weight:500; font-size:13px; transition: top 120ms; }
+  .skip-link:focus { top:8px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  input:focus-visible, [contenteditable]:focus-visible { outline-offset: 0; }
+  .tab-active { color: var(--fg); border-bottom-color: var(--fg); }
+  .avatar { background: var(--elevated); border: 1px solid var(--border); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+  @media (forced-colors: active) { .b, .bs { border-color: CanvasText !important; } :focus-visible { outline: 2px solid Highlight !important; } }
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .ide-row{font-size:12.5px;cursor:pointer;color:var(--fg-2);line-height:1.5}
+  .ide-row:hover{color:var(--fg)}
+  .ide-row-active{background:var(--elevated);color:var(--fg);font-weight:500}
+  .ide-chevron{transition:transform 120ms}
+  .ide-chevron.rotate-90{transform:rotate(90deg)}
+  html.light aside[aria-label="Repository file tree"]{border-color:rgba(0,0,0,0.07) !important}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- TOP NAV (condensed; see repo.html for the full chrome) -->
+<div id="cz-header" data-repo-tab="code"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <!-- Eyebrow + breadcrumb header -->
+  <section class="mb-6" aria-labelledby="tree-title">
+    <h1 id="tree-title" class="text-xl tracking-tight font-medium flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
+      <a href="repo.html" class="hover:underline fg2">cloudzilla</a>
+      <span class="fg3" aria-hidden="true">/</span>
+      <a href="#" class="hover:underline fg2">internal</a>
+      <span class="fg3" aria-hidden="true">/</span>
+      <a href="#" class="hover:underline fg2">view</a>
+      <span class="fg3" aria-hidden="true">/</span>
+      <a href="#" class="hover:underline fg2">pages</a>
+      <span class="fg3" aria-hidden="true">/</span>
+      <span class="hover:underline font-semibold mono">blob.templ</span>
+    </h1>
+    <div class="flex flex-wrap items-center gap-2 text-[12px] fg2">
+      <button type="button" class="h-7 px-2.5 b border rounded-md hover:elevated inline-flex items-center gap-1.5" aria-haspopup="menu" aria-expanded="false" aria-label="Switch branch or tag, current: main">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
+        <span class="font-medium text-current">main</span>
+        <svg class="fg3" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <span aria-hidden="true">·</span>
+      <a href="#" class="hover:text-current">internal/view/pages/blob.templ</a>
+    </div>
+  </section>
+
+  <!-- IDE-style: file tree sidebar + main file listing -->
+  <div class="grid grid-cols-[260px_1fr] gap-4">
+
+    <!-- LEFT: file tree sidebar -->
+    <aside class="rounded-md surface sticky top-4 self-start max-h-[calc(100vh-2rem)] flex flex-col" style="border:1px solid rgba(255,255,255,0.07)" aria-label="Repository file tree">
+      <header class="px-3 py-2 b border-b flex items-center gap-2 elevated shrink-0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        <span class="text-[12px] font-medium">Files</span>
+        <div class="ml-auto flex items-center gap-1">
+          <button type="button" class="h-6 w-6 grid place-items-center rounded hover:elevated" title="Collapse all" aria-label="Collapse all">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><path d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <button type="button" class="h-6 w-6 grid place-items-center rounded hover:elevated" title="Refresh" aria-label="Refresh tree">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="px-2 py-1.5 b border-b shrink-0">
+        <input type="search" placeholder="Filter files…" class="w-full h-7 px-2 text-[12px] bg-transparent b border rounded placeholder:fg3 focus:bs focus:outline-none" />
+      </div>
+      <ol class="overflow-y-auto py-1 text-[12.5px] flex-1" role="tree">
+        <!-- Tree styles inline via class .ide-row + .ide-chevron + .ide-icon -->
+
+        <li>
+          <button type="button" class="ide-row w-full flex items-center gap-1 px-2 py-1 hover:elevated rounded text-left" aria-expanded="true" style="padding-left:8px">
+            <svg class="ide-chevron rotate-90 fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            <span class="truncate">.github</span>
+          </button>
+          <ol class="ml-2 b border-l">
+            <li><a href="#" class="ide-row flex items-center gap-1 pl-7 py-1 fg2 hover:elevated hover:text-current rounded"><svg class="fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">workflows/ci.yml</span></a></li>
+          </ol>
+        </li>
+
+        <li>
+          <button type="button" class="ide-row w-full flex items-center gap-1 px-2 py-1 hover:elevated rounded text-left" aria-expanded="false" style="padding-left:8px">
+            <svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            <span class="truncate">cmd</span>
+          </button>
+        </li>
+
+        <li>
+          <button type="button" class="ide-row w-full flex items-center gap-1 px-2 py-1 hover:elevated rounded text-left" aria-expanded="false" style="padding-left:8px">
+            <svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            <span class="truncate">docs</span>
+          </button>
+        </li>
+
+        <li>
+          <button type="button" class="ide-row w-full flex items-center gap-1 px-2 py-1 hover:elevated rounded text-left" aria-expanded="true" style="padding-left:8px">
+            <svg class="ide-chevron rotate-90 fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            <span class="truncate">internal</span>
+          </button>
+          <ol class="ml-2 b border-l">
+            <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:24px" aria-expanded="false"><svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">config</span></button></li>
+            <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:24px" aria-expanded="false"><svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">db</span></button></li>
+            <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:24px" aria-expanded="false"><svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">handler</span></button></li>
+            <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:24px" aria-expanded="false"><svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">model</span></button></li>
+            <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:24px" aria-expanded="false"><svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">router</span></button></li>
+            <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:24px" aria-expanded="false"><svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">service</span></button></li>
+            <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:24px" aria-expanded="false"><svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">store</span></button></li>
+            <li>
+              <button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:24px" aria-expanded="true">
+                <svg class="ide-chevron rotate-90 fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                <svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+                <span class="truncate">view</span>
+              </button>
+              <ol class="ml-2 b border-l">
+                <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:40px"><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">fragments</span></button></li>
+                <li><button type="button" class="ide-row w-full flex items-center gap-1 py-1 hover:elevated rounded text-left" style="padding-left:40px"><svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span class="truncate">layout</span></button></li>
+                <li>
+                  <button type="button" class="ide-row ide-row-active w-full flex items-center gap-1 py-0.5 rounded text-left" style="padding-left:40px" aria-current="true">
+                    <svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+                    <span class="truncate font-medium">pages</span>
+                  </button>
+                  <ol class="ml-2 b border-l">
+                    <li><a href="#" class="ide-row flex items-center gap-1 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:56px"><svg class="fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">blob.templ</span></a></li>
+                    <li><a href="#" class="ide-row flex items-center gap-1 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:56px"><svg class="fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">blame.templ</span></a></li>
+                    <li><a href="#" class="ide-row flex items-center gap-1 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:56px"><svg class="fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">tree.templ</span></a></li>
+                    <li><a href="#" class="ide-row flex items-center gap-1 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:56px"><svg class="fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">project_detail.templ</span></a></li>
+                    <li><a href="#" class="ide-row flex items-center gap-1 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:56px"><svg class="fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">pull_detail.templ</span></a></li>
+                    <li><a href="#" class="ide-row flex items-center gap-1 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:56px"><svg class="fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">home.templ</span></a></li>
+                  </ol>
+                </li>
+              </ol>
+            </li>
+          </ol>
+        </li>
+
+        <li>
+          <button type="button" class="ide-row w-full flex items-center gap-1 px-2 py-1 hover:elevated rounded text-left" aria-expanded="false" style="padding-left:8px">
+            <svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            <span class="truncate">migrations</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="ide-row w-full flex items-center gap-1 px-2 py-1 hover:elevated rounded text-left" aria-expanded="false" style="padding-left:8px">
+            <svg class="ide-chevron fg3 shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <svg class="shrink-0 fg3" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            <span class="truncate">tailwind</span>
+          </button>
+        </li>
+
+        <li class="b border-t mt-1 pt-1">
+          <a href="#" class="ide-row flex items-center gap-1 px-2 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:8px"><svg class="fg3 shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">.gitignore</span></a>
+        </li>
+        <li>
+          <a href="#" class="ide-row flex items-center gap-1 px-2 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:8px"><svg class="fg3 shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">CLAUDE.md</span></a>
+        </li>
+        <li>
+          <a href="#" class="ide-row flex items-center gap-1 px-2 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:8px"><svg class="fg3 shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">Dockerfile</span></a>
+        </li>
+        <li>
+          <a href="#" class="ide-row flex items-center gap-1 px-2 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:8px"><svg class="fg3 shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">LICENSE</span></a>
+        </li>
+        <li>
+          <a href="#" class="ide-row flex items-center gap-1 px-2 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:8px"><svg class="fg3 shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">README.md</span></a>
+        </li>
+        <li>
+          <a href="#" class="ide-row flex items-center gap-1 px-2 py-1 fg2 hover:elevated hover:text-current rounded" style="padding-left:8px"><svg class="fg3 shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate mono">go.mod</span></a>
+        </li>
+
+      </ol>
+    </aside>
+
+  <!-- RIGHT: file listing for current dir -->
+  <section class="b border rounded-md surface overflow-hidden min-w-0" aria-labelledby="file-heading">
+    <h2 id="file-heading" class="sr-only">Viewing blob.templ</h2>
+
+    <!-- Viewer header: file path + actions -->
+    <header class="px-4 py-2 b border-b flex items-center gap-3 elevated">
+      <svg class="fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="mono text-[12.5px] font-medium">blob.templ</span>
+      <span class="text-[11px] fg3">·</span>
+      <span class="text-[11px] fg3">52 lines</span>
+      <span class="text-[11px] fg3">·</span>
+      <span class="text-[11px] fg3">1.4 KB</span>
+      <span class="text-[11px] fg3">·</span>
+      <span class="text-[11px] fg3 inline-flex items-center gap-1"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 2L2 22h20L12 2z"/></svg>Templ</span>
+      <div class="ml-auto flex items-center gap-1">
+        <a href="blame.html" class="h-7 px-2.5 b border rounded-md hover:elevated text-[12px] fg2 inline-flex items-center gap-1.5">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4z"/></svg>
+          Blame
+        </a>
+        <a href="blob.html" class="h-7 px-2.5 b border rounded-md hover:elevated text-[12px] fg2 inline-flex items-center gap-1.5" title="Open the raw file in its own page">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Raw
+        </a>
+        <button type="button" class="h-7 w-7 grid place-items-center b border rounded-md hover:elevated" aria-label="Copy file content" title="Copy">
+          <svg class="fg3" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+        <a href="#" class="h-7 px-2.5 b border rounded-md hover:elevated text-[12px] fg2 inline-flex items-center gap-1.5">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </a>
+      </div>
+    </header>
+
+    <!-- Sub-header: latest commit on this file -->
+    <div class="px-4 py-2 b border-b flex items-center gap-3 text-[12px]" style="background:var(--surface)">
+      <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium flex-shrink-0" aria-hidden="true">MK</span>
+      <a href="#" class="font-medium hover:underline truncate">malith</a>
+      <a href="#" class="fg2 hover:underline truncate flex-1 min-w-0">tech: port blob viewer to design system</a>
+      <a href="#" class="mono fg2 hover:underline flex-shrink-0">a1b2c3d</a>
+      <span class="fg3 flex-shrink-0"><time datetime="2026-05-13T11:00">2 hours ago</time></span>
+    </div>
+
+    <!-- Code body -->
+    <div class="overflow-x-auto" style="background: var(--surface);">
+      <table class="w-full mono text-[12.5px] leading-[1.6]">
+        <caption class="sr-only">Contents of blob.templ</caption>
+        <tbody>
+          <tr id="L1" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L1" class="hover:text-current">1</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">package pages</td></tr>
+          <tr id="L2" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L2" class="hover:text-current">2</a></td><td class="pl-4 pr-4 py-0 whitespace-pre"> </td></tr>
+          <tr id="L3" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L3" class="hover:text-current">3</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">import (</td></tr>
+          <tr id="L4" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L4" class="hover:text-current">4</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    "context"</td></tr>
+          <tr id="L5" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L5" class="hover:text-current">5</a></td><td class="pl-4 pr-4 py-0 whitespace-pre"> </td></tr>
+          <tr id="L6" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L6" class="hover:text-current">6</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    "github.com/a-h/templ"</td></tr>
+          <tr id="L7" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L7" class="hover:text-current">7</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    "github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"</td></tr>
+          <tr id="L8" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L8" class="hover:text-current">8</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">)</td></tr>
+          <tr id="L9" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L9" class="hover:text-current">9</a></td><td class="pl-4 pr-4 py-0 whitespace-pre"> </td></tr>
+          <tr id="L10" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L10" class="hover:text-current">10</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">// BlobData is the data passed to the blob template.</td></tr>
+          <tr id="L11" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L11" class="hover:text-current">11</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">type BlobData struct {</td></tr>
+          <tr id="L12" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L12" class="hover:text-current">12</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    Owner    string</td></tr>
+          <tr id="L13" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L13" class="hover:text-current">13</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    RepoName string</td></tr>
+          <tr id="L14" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L14" class="hover:text-current">14</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    Path     string</td></tr>
+          <tr id="L15" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L15" class="hover:text-current">15</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    Lines    []model.Line</td></tr>
+          <tr id="L16" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L16" class="hover:text-current">16</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">}</td></tr>
+          <tr id="L17" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L17" class="hover:text-current">17</a></td><td class="pl-4 pr-4 py-0 whitespace-pre"> </td></tr>
+          <tr id="L18" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L18" class="hover:text-current">18</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">templ blob(data BlobData) {</td></tr>
+          <tr id="L19" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L19" class="hover:text-current">19</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    @layout.Base(data.Owner+"/"+data.RepoName, 0, nil) {</td></tr>
+          <tr id="L20" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L20" class="hover:text-current">20</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">        &lt;section class="b border rounded-md surface overflow-hidden"&gt;</td></tr>
+          <tr id="L21" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L21" class="hover:text-current">21</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">            &lt;header class="px-4 py-2 b border-b elevated"&gt;</td></tr>
+          <tr id="L22" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L22" class="hover:text-current">22</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                &lt;h2 class="mono text-[13px] font-medium"&gt;{ data.Path }&lt;/h2&gt;</td></tr>
+          <tr id="L23" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L23" class="hover:text-current">23</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">            &lt;/header&gt;</td></tr>
+          <tr id="L24" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L24" class="hover:text-current">24</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">            &lt;table class="w-full mono text-[12.5px]"&gt;</td></tr>
+          <tr id="L25" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L25" class="hover:text-current">25</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                for _, line := range data.Lines {</td></tr>
+          <tr id="L26" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L26" class="hover:text-current">26</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                    &lt;tr id={ "L" + strconv.Itoa(line.Number) } class="ln hover:elevated"&gt;</td></tr>
+          <tr id="L27" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L27" class="hover:text-current">27</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                        &lt;td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"&gt;</td></tr>
+          <tr id="L28" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L28" class="hover:text-current">28</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                            &lt;a href={ "#L" + strconv.Itoa(line.Number) } class="hover:text-current"&gt;</td></tr>
+          <tr id="L29" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L29" class="hover:text-current">29</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                                { strconv.Itoa(line.Number) }</td></tr>
+          <tr id="L30" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L30" class="hover:text-current">30</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                            &lt;/a&gt;</td></tr>
+          <tr id="L31" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L31" class="hover:text-current">31</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                        &lt;/td&gt;</td></tr>
+          <tr id="L32" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L32" class="hover:text-current">32</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                        &lt;td class="pl-4 pr-4 py-0 whitespace-pre"&gt;</td></tr>
+          <tr id="L33" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L33" class="hover:text-current">33</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                            { line.Content }</td></tr>
+          <tr id="L34" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L34" class="hover:text-current">34</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                        &lt;/td&gt;</td></tr>
+          <tr id="L35" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L35" class="hover:text-current">35</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                    &lt;/tr&gt;</td></tr>
+          <tr id="L36" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L36" class="hover:text-current">36</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">                }</td></tr>
+          <tr id="L37" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L37" class="hover:text-current">37</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">            &lt;/table&gt;</td></tr>
+          <tr id="L38" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L38" class="hover:text-current">38</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">        &lt;/section&gt;</td></tr>
+          <tr id="L39" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L39" class="hover:text-current">39</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">    }</td></tr>
+          <tr id="L40" class="ln hover:elevated"><td class="select-none fg3 pr-4 pl-4 py-0 text-right w-12 align-top b border-r"><a href="#L40" class="hover:text-current">40</a></td><td class="pl-4 pr-4 py-0 whitespace-pre">}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  </div>
+
+  <p class="mt-4 text-[12px] fg3">Click a file in the tree to view it here. Use <a href="blob.html" class="link hover:underline">Raw</a> to open the file in its own page.</p>
+</main>
+
+<script>
+  // IDE file-tree expand/collapse
+  document.querySelectorAll('aside[aria-label="Repository file tree"] button.ide-row').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      var expanded = btn.getAttribute('aria-expanded');
+      if (expanded === null) return;
+      var open = expanded === 'true';
+      btn.setAttribute('aria-expanded', String(!open));
+      var chev = btn.querySelector('.ide-chevron');
+      if (chev) chev.classList.toggle('rotate-90', !open);
+      var nested = btn.parentElement.querySelector(':scope > ol');
+      if (nested) nested.style.display = open ? 'none' : '';
+    });
+  });
+</script>
+
+<script>
+  const html = document.documentElement;
+  const KEY = 'cz-theme';
+  const saved = localStorage.getItem(KEY);
+  if (saved === 'light' || (!saved && window.matchMedia('(prefers-color-scheme: light)').matches)) html.classList.add('light');
+  function syncThemeUI() {
+    const isLight = html.classList.contains('light');
+    document.querySelectorAll('.dark-only').forEach(el => el.classList.toggle('hidden', isLight));
+    document.querySelectorAll('.light-only').forEach(el => el.classList.toggle('hidden', !isLight));
+    const t = document.getElementById('theme-toggle');
+    if (t) { t.setAttribute('aria-pressed', String(isLight)); t.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme'); }
+  }
+  function toggleTheme() { html.classList.toggle('light'); localStorage.setItem(KEY, html.classList.contains('light') ? 'light' : 'dark'); syncThemeUI(); }
+  syncThemeUI();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+</body>
+</html>

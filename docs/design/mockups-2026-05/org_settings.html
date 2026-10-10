@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>stitch-labs · settings — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171;--merged:#c084fc; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c;--merged:#7e22ce; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.bs{border-color:var(--border-strong)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}.link{color:var(--link)}
+  .divide-y.b > * + *{border-top-color:var(--border)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .lbl{font-size:10px;padding:1px 7px;border-radius:9999px;border:1px solid var(--border);background:var(--elevated);color:var(--fg-2);line-height:1.4;white-space:nowrap}
+  .lbl-blue{background:rgba(110,168,254,0.15);color:#93c5fd;border-color:rgba(110,168,254,0.30)}
+  .lbl-green{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .lbl-purple{background:rgba(192,132,252,0.15);color:#c084fc;border-color:rgba(192,132,252,0.30)}
+  .lbl-amber{background:rgba(251,191,36,0.15);color:var(--warn);border-color:rgba(251,191,36,0.30)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  label.field{display:block;font-size:12px;font-weight:500;color:var(--fg-2);margin-bottom:6px}
+  input.txt,textarea.txt,select.txt{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--fg);font-family:inherit}
+  input.txt:focus,textarea.txt:focus,select.txt:focus{outline:none;border-color:var(--focus)}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;text-decoration:none}
+  .nav-item:hover{background:var(--elevated);color:var(--fg)}
+  .nav-item-active{background:var(--elevated);color:var(--fg);font-weight:500}
+  .toggle{position:relative;display:inline-flex;height:20px;width:36px;flex-shrink:0;align-items:center}
+  .toggle input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .toggle .track{position:absolute;inset:0;border-radius:9999px;border:1px solid var(--border);background:var(--elevated);transition:background-color 120ms,border-color 120ms}
+  .toggle input:checked + .track{background:var(--success);border-color:transparent}
+  .toggle .knob{position:absolute;left:2px;height:14px;width:14px;border-radius:9999px;background:var(--bg);transition:transform 120ms}
+  .toggle input:checked ~ .knob{transform:translateX(16px)}
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<header class="b border-b" role="banner">
+  <div class="max-w-[1400px] mx-auto px-6 h-12 flex items-center gap-3">
+    <a href="home.html" class="flex items-center" aria-label="Cloudzilla, home">
+      <svg width="22" height="22" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="22" cy="36" r="9"/><circle cx="32" cy="28" r="11"/><circle cx="44" cy="36" r="9"/><rect x="22" y="36" width="22" height="9" rx="4.5"/></svg>
+    </a>
+    <svg class="fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true" focusable="false"><path d="M16 4L8 20"/></svg>
+    <div class="dropdown-wrap">
+      <button type="button" data-menu class="flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:elevated text-sm" aria-haspopup="menu" aria-expanded="false" aria-label="Switch account or organization, current: stitch-labs">
+        <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">S</span>
+        <span class="font-medium">stitch-labs</span>
+        <svg class="fg3" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <div class="dropdown-panel hidden" role="menu" aria-label="Switch account or organization">
+        <p class="dropdown-header">Account / orgs</p>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">M</span>
+          <span class="flex-1">mkappworks</span>
+          <span class="text-[10px] fg3">Personal</span>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">A</span>
+          <span class="flex-1">acme-corp</span>
+          <span class="text-[10px] fg3">Member</span>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item dropdown-item-active">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">S</span>
+          <span class="flex-1">stitch-labs</span>
+          <span class="text-[10px] fg3">Owner</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">O</span>
+          <span class="flex-1">openforge</span>
+          <span class="text-[10px] fg3">Collaborator</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <a href="new_organization.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New organization</span>
+        </a>
+        <a href="organizations.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M3 21h18M3 7h18M5 21V7l7-4 7 4v14"/></svg>
+          <span>Your organizations</span>
+        </a>
+      </div>
+    </div>
+    <nav aria-label="Account" class="ml-auto flex items-center gap-1">
+      <form action="#" method="GET" class="hidden md:block">
+        <label for="topnav-search" class="sr-only">Search Cloudzilla</label>
+        <div class="relative">
+          <input id="topnav-search" name="q" type="search" placeholder="Search stitch-labs…" class="w-56 h-7 pl-7 pr-10 text-[13px] surface b border rounded-md placeholder:fg3 focus:bs focus:bg-transparent" />
+          <svg class="absolute left-2 top-1.5 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <kbd class="mono absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] leading-none px-1.5 py-1 elevated b border rounded fg3" aria-hidden="true">⌘K</kbd>
+        </div>
+      </form>
+      <a href="#" class="relative h-7 w-7 grid place-items-center fg2 hover:text-current rounded-md" aria-label="Notifications (3 unread)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg>
+        <span class="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 grid place-items-center text-[9px] font-medium rounded-full leading-none" style="background:var(--danger);color:#fff;box-shadow:0 0 0 2px var(--bg);">3</span>
+      </a>
+      <button type="button" id="theme-toggle" onclick="toggleTheme()" class="text-sm fg2 hover:text-current px-2.5 h-7 inline-flex items-center gap-1.5 b border rounded-md" aria-pressed="false" aria-label="Switch to light theme">
+        <svg class="dark-only" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="light-only hidden" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <div class="dropdown-wrap">
+        <button type="button" class="avatar h-7 w-7 rounded-full grid place-items-center text-xs font-medium ml-1" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="User menu for Malith Kuruppu">MK</button>
+        <div class="dropdown-panel dropdown-right hidden" role="menu" aria-label="User menu">
+          <div class="px-2.5 py-2">
+            <p class="text-[12px] fg3">Signed in as</p>
+            <p class="text-[13px] font-medium">malith</p>
+          </div>
+          <div class="dropdown-divider"></div>
+          <a href="profile.html" role="menuitem" class="dropdown-item">Your profile</a>
+          <a href="organizations.html" role="menuitem" class="dropdown-item">Your organizations</a>
+          <div class="dropdown-divider"></div>
+          <a href="account_settings.html" role="menuitem" class="dropdown-item">Account settings</a>
+          <a href="auth.html" role="menuitem" class="dropdown-item" style="color:var(--danger)">Sign out</a>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-8 flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0">
+      <p class="mono text-[11px] fg3 uppercase tracking-wider mb-1 inline-flex items-center gap-2">
+        <a href="organizations.html" class="hover:text-current">Organizations</a>
+        <span class="opacity-40" aria-hidden="true">/</span>
+        <a href="org_profile.html" class="hover:text-current">stitch-labs</a>
+        <span class="opacity-40" aria-hidden="true">/</span>
+        <span class="text-[var(--fg)]">Manage</span>
+      </p>
+      <h1 class="text-2xl font-semibold tracking-tight">Manage stitch-labs</h1>
+      <p class="mt-1 text-[13px] fg2">Members, teams, repository defaults, webhooks, and danger zone.</p>
+    </div>
+    <a href="org_profile.html" class="h-9 px-4 text-sm rounded-md b border hover:elevated inline-flex items-center gap-1.5">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      Back to organization
+    </a>
+  </section>
+
+  <div class="grid grid-cols-12 gap-8">
+
+    <aside class="col-span-3" aria-label="Settings sections">
+      <nav class="sticky top-4 flex flex-col gap-0.5">
+        <a href="#general" class="nav-item nav-item-active" aria-current="true">General</a>
+        <a href="#members" class="nav-item">Members <span class="ml-auto mono text-[11px] fg3">9</span></a>
+        <a href="#teams" class="nav-item">Teams <span class="ml-auto mono text-[11px] fg3">3</span></a>
+        <a href="#repo-defaults" class="nav-item">Repository defaults</a>
+        <a href="#webhooks" class="nav-item">Webhooks <span class="ml-auto mono text-[11px] fg3">2</span></a>
+        <a href="#audit" class="nav-item">Audit log</a>
+        <p class="mono text-[10px] fg3 uppercase tracking-wider mt-4 mb-1 px-2.5">Danger zone</p>
+        <a href="#transfer" class="nav-item" style="color:var(--danger)">Transfer ownership</a>
+        <a href="#archive" class="nav-item" style="color:var(--danger)">Archive</a>
+        <a href="#delete" class="nav-item" style="color:var(--danger)">Delete organization</a>
+      </nav>
+    </aside>
+
+    <div class="col-span-9 space-y-10">
+
+      <section id="general" class="b border rounded-lg surface p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">General</h2>
+        <p class="text-[12.5px] fg3 mb-6">How stitch-labs appears across Cloudzilla.</p>
+
+        <div class="flex items-start gap-4 mb-5">
+          <div class="avatar h-16 w-16 rounded grid place-items-center text-xl font-semibold shrink-0">S</div>
+          <div class="space-y-2">
+            <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated">Upload new picture</button>
+            <p class="text-[11.5px] fg3">Square PNG or JPG, max 2 MB.</p>
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <label class="field" for="org-name">Display name</label>
+            <input id="org-name" class="txt" type="text" value="Stitch Labs" />
+          </div>
+          <div>
+            <label class="field" for="org-slug">URL slug</label>
+            <div class="flex items-center gap-2">
+              <span class="text-[13px] fg3 mono">cloudzilla.dev/</span>
+              <input id="org-slug" class="txt mono" type="text" value="stitch-labs" />
+            </div>
+            <p class="mt-1 text-[11.5px] fg3">Renaming sets up redirects from the old slug for 30 days.</p>
+          </div>
+          <div>
+            <label class="field" for="org-desc">Description</label>
+            <textarea id="org-desc" class="txt" rows="3">Tiny tools and quiet experiments. We ship the things bigger labs file as tickets.</textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="field" for="org-url">Website</label>
+              <input id="org-url" class="txt mono" type="url" value="https://stitch.dev" />
+            </div>
+            <div>
+              <label class="field" for="org-loc">Location</label>
+              <input id="org-loc" class="txt" type="text" value="Berlin · Remote" />
+            </div>
+          </div>
+          <div>
+            <label class="field" for="org-email">Contact email</label>
+            <input id="org-email" class="txt mono" type="email" value="hello@stitch.dev" />
+            <p class="mt-1 text-[11.5px] fg3">Shown on the public org profile.</p>
+          </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+          <button type="button" class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+          <button type="button" data-toast-on-click="Organization saved" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Save changes</button>
+        </div>
+      </section>
+
+      <section id="members" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold tracking-tight mb-1">Members</h2>
+            <p class="text-[12.5px] fg3">9 people. Owners can manage everything; members can create and contribute to repos.</p>
+          </div>
+          <button type="button" data-open-dialog="invite-member-dialog" class="h-9 px-4 text-sm rounded-md font-medium inline-flex items-center gap-1.5 shrink-0" style="background:var(--fg);color:var(--bg)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Invite member
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2 mb-3">
+          <div class="relative flex-1">
+            <input type="search" placeholder="Filter by name or @handle…" class="txt pl-8" />
+            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          </div>
+          <select class="txt" style="width:160px">
+            <option>All roles</option>
+            <option>Owners (2)</option>
+            <option>Members (7)</option>
+          </select>
+        </div>
+
+        <ul class="divide-y b">
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-9 w-9 rounded-full grid place-items-center text-[11px] font-medium shrink-0">MK</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <a href="profile.html" class="text-[13.5px] font-medium hover:underline">Malith Kuruppu</a>
+                <span class="lbl">You</span>
+              </div>
+              <p class="text-[12px] fg3 mono">@malith · last active 5h ago</p>
+            </div>
+            <select class="txt" style="width:130px">
+              <option>Owner</option>
+              <option>Member</option>
+            </select>
+            <button type="button" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated fg2" disabled title="You can't remove yourself">Remove</button>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-9 w-9 rounded-full grid place-items-center text-[11px] font-medium shrink-0">EL</span>
+            <div class="min-w-0 flex-1">
+              <a href="#" class="text-[13.5px] font-medium hover:underline">Elena Vasquez</a>
+              <p class="text-[12px] fg3 mono">@elena · last active yesterday</p>
+            </div>
+            <select class="txt" style="width:130px">
+              <option selected>Owner</option>
+              <option>Member</option>
+            </select>
+            <button type="button" data-confirm-trigger data-confirm-title="Remove Elena from stitch-labs?" data-confirm-msg="They'll lose access to all org repos immediately. Their public contributions are preserved." data-confirm-label="Remove" data-confirm-danger data-toast-on-confirm="Member removed" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated" style="color:var(--danger)">Remove</button>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-9 w-9 rounded-full grid place-items-center text-[11px] font-medium shrink-0">RP</span>
+            <div class="min-w-0 flex-1">
+              <a href="#" class="text-[13.5px] font-medium hover:underline">Rohan Patel</a>
+              <p class="text-[12px] fg3 mono">@rohan · last active 3d ago</p>
+            </div>
+            <select class="txt" style="width:130px">
+              <option>Owner</option>
+              <option selected>Member</option>
+            </select>
+            <button type="button" data-confirm-trigger data-confirm-title="Remove Rohan from stitch-labs?" data-confirm-msg="They'll lose access to all org repos immediately. Their public contributions are preserved." data-confirm-label="Remove" data-confirm-danger data-toast-on-confirm="Member removed" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated" style="color:var(--danger)">Remove</button>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-9 w-9 rounded-full grid place-items-center text-[11px] font-medium shrink-0">SK</span>
+            <div class="min-w-0 flex-1">
+              <a href="#" class="text-[13.5px] font-medium hover:underline">Sara Kim</a>
+              <p class="text-[12px] fg3 mono">@sara · last active 1w ago</p>
+            </div>
+            <select class="txt" style="width:130px">
+              <option>Owner</option>
+              <option selected>Member</option>
+            </select>
+            <button type="button" data-confirm-trigger data-confirm-title="Remove Sara from stitch-labs?" data-confirm-msg="They'll lose access to all org repos immediately. Their public contributions are preserved." data-confirm-label="Remove" data-confirm-danger data-toast-on-confirm="Member removed" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated" style="color:var(--danger)">Remove</button>
+          </li>
+          <li class="py-3 flex items-center gap-3 opacity-70">
+            <span class="avatar h-9 w-9 rounded-full grid place-items-center text-[11px] font-medium shrink-0">?</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium mono">jeff@morton.dev</p>
+              <p class="text-[12px] fg3">Invited <time datetime="2026-05-20">3d ago</time> · pending acceptance</p>
+            </div>
+            <span class="lbl lbl-amber">Pending</span>
+            <button type="button" data-toast-on-click="Invitation resent" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated fg2">Resend</button>
+            <button type="button" data-toast-on-click="Invitation cancelled" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated" style="color:var(--danger)">Cancel</button>
+          </li>
+        </ul>
+        <div class="mt-4 flex items-center justify-between text-[12px] fg3">
+          <span>Showing 5 of 9 members</span>
+          <a href="#" class="link hover:underline">View all →</a>
+        </div>
+      </section>
+
+      <section id="teams" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold tracking-tight mb-1">Teams</h2>
+            <p class="text-[12.5px] fg3">Group members and grant batch access to repositories.</p>
+          </div>
+          <button type="button" data-open-dialog="new-team-dialog" class="h-9 px-4 text-sm rounded-md font-medium inline-flex items-center gap-1.5 shrink-0" style="background:var(--fg);color:var(--bg)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            New team
+          </button>
+        </div>
+
+        <ul class="divide-y b">
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-9 w-9 rounded grid place-items-center text-[11px] font-medium shrink-0">C</span>
+            <div class="min-w-0 flex-1">
+              <a href="#" class="text-[13.5px] font-medium hover:underline">core</a>
+              <p class="text-[12px] fg3">5 members · admin access to 7 repos</p>
+            </div>
+            <button type="button" class="h-8 px-3 text-[12px] rounded-md b border hover:elevated fg2">Manage</button>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-9 w-9 rounded grid place-items-center text-[11px] font-medium shrink-0">D</span>
+            <div class="min-w-0 flex-1">
+              <a href="#" class="text-[13.5px] font-medium hover:underline">design</a>
+              <p class="text-[12px] fg3">3 members · write access to 4 repos</p>
+            </div>
+            <button type="button" class="h-8 px-3 text-[12px] rounded-md b border hover:elevated fg2">Manage</button>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <span class="avatar h-9 w-9 rounded grid place-items-center text-[11px] font-medium shrink-0">O</span>
+            <div class="min-w-0 flex-1">
+              <a href="#" class="text-[13.5px] font-medium hover:underline">oncall</a>
+              <p class="text-[12px] fg3">4 members · triage access to 9 repos</p>
+            </div>
+            <button type="button" class="h-8 px-3 text-[12px] rounded-md b border hover:elevated fg2">Manage</button>
+          </li>
+        </ul>
+      </section>
+
+      <section id="repo-defaults" class="b border rounded-lg surface p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">Repository defaults</h2>
+        <p class="text-[12.5px] fg3 mb-6">Applied to new repositories created under stitch-labs.</p>
+
+        <div class="space-y-5">
+          <div>
+            <label class="field" for="def-visibility">Default visibility</label>
+            <select id="def-visibility" class="txt">
+              <option selected>Private</option>
+              <option>Public</option>
+              <option>Internal — visible to org members</option>
+            </select>
+          </div>
+          <div>
+            <label class="field" for="def-branch">Default branch name</label>
+            <input id="def-branch" class="txt mono" type="text" value="main" />
+          </div>
+          <div>
+            <label class="field">Member repository creation</label>
+            <ul class="space-y-2 mt-2 text-[13px]">
+              <li class="flex items-center gap-2"><input type="radio" name="repo-create" id="rc-all" checked /><label for="rc-all">Members can create public, internal, and private repos</label></li>
+              <li class="flex items-center gap-2"><input type="radio" name="repo-create" id="rc-priv" /><label for="rc-priv">Members can create internal and private only</label></li>
+              <li class="flex items-center gap-2"><input type="radio" name="repo-create" id="rc-none" /><label for="rc-none">Only owners can create repositories</label></li>
+            </ul>
+          </div>
+          <ul class="divide-y b">
+            <li class="py-3 flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">Require signed commits</p>
+                <p class="mt-0.5 text-[12.5px] fg3">Reject pushes containing unsigned commits.</p>
+              </div>
+              <label class="toggle"><input type="checkbox" /><span class="track"></span><span class="knob"></span></label>
+            </li>
+            <li class="py-3 flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">Delete branches on merge</p>
+                <p class="mt-0.5 text-[12.5px] fg3">Auto-delete head branches after a PR is merged.</p>
+              </div>
+              <label class="toggle"><input type="checkbox" checked /><span class="track"></span><span class="knob"></span></label>
+            </li>
+            <li class="py-3 flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-[13.5px] font-medium">Allow forking of private repos</p>
+                <p class="mt-0.5 text-[12.5px] fg3">When off, members can't fork private repos to personal accounts.</p>
+              </div>
+              <label class="toggle"><input type="checkbox" /><span class="track"></span><span class="knob"></span></label>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+          <button type="button" class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+          <button type="button" data-toast-on-click="Defaults saved" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Save changes</button>
+        </div>
+      </section>
+
+      <section id="webhooks" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold tracking-tight mb-1">Webhooks</h2>
+            <p class="text-[12.5px] fg3">Receive HTTP POSTs for org-wide events. Signed with HMAC-SHA256.</p>
+          </div>
+          <button type="button" class="h-9 px-4 text-sm rounded-md font-medium inline-flex items-center gap-1.5 shrink-0" style="background:var(--fg);color:var(--bg)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Add webhook
+          </button>
+        </div>
+
+        <ul class="divide-y b">
+          <li class="py-3 flex items-center gap-3">
+            <span class="h-2 w-2 rounded-full shrink-0" style="background:var(--success)" aria-label="Active"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium mono truncate">https://hooks.stitch.dev/cloudzilla</p>
+              <p class="text-[12px] fg3">Events: <span class="mono">push, pull_request, release</span> · last delivery 2h ago · 200</p>
+            </div>
+            <button type="button" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated fg2">Edit</button>
+            <button type="button" data-confirm-trigger data-confirm-title="Delete this webhook?" data-confirm-msg="Cloudzilla will stop posting events to this URL." data-confirm-label="Delete" data-confirm-danger data-toast-on-confirm="Webhook deleted" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated" style="color:var(--danger)">Delete</button>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <span class="h-2 w-2 rounded-full shrink-0" style="background:var(--warn)" aria-label="Failing"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium mono truncate">https://discord.com/api/webhooks/…</p>
+              <p class="text-[12px] fg3">Events: <span class="mono">release</span> · last delivery failed (502) <time datetime="2026-05-22">yesterday</time></p>
+            </div>
+            <button type="button" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated fg2">Edit</button>
+            <button type="button" data-confirm-trigger data-confirm-title="Delete this webhook?" data-confirm-msg="Cloudzilla will stop posting events to this URL." data-confirm-label="Delete" data-confirm-danger data-toast-on-confirm="Webhook deleted" class="h-8 px-2.5 text-[12px] rounded-md b border hover:elevated" style="color:var(--danger)">Delete</button>
+          </li>
+        </ul>
+      </section>
+
+      <section id="audit" class="b border rounded-lg surface p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">Audit log</h2>
+        <p class="text-[12.5px] fg3 mb-6">Recent admin actions. Retained for 90 days.</p>
+
+        <ul class="divide-y b font-mono text-[12px]">
+          <li class="py-2.5 flex items-center gap-3">
+            <time datetime="2026-05-23T09:14" class="fg3 shrink-0 w-32">2026-05-23 09:14</time>
+            <span class="lbl lbl-blue shrink-0">member.invite</span>
+            <span class="truncate"><span class="fg2">@malith</span> invited <span class="fg2">jeff@morton.dev</span></span>
+          </li>
+          <li class="py-2.5 flex items-center gap-3">
+            <time datetime="2026-05-22T18:02" class="fg3 shrink-0 w-32">2026-05-22 18:02</time>
+            <span class="lbl lbl-purple shrink-0">team.create</span>
+            <span class="truncate"><span class="fg2">@elena</span> created team <span class="fg2">oncall</span></span>
+          </li>
+          <li class="py-2.5 flex items-center gap-3">
+            <time datetime="2026-05-20T11:45" class="fg3 shrink-0 w-32">2026-05-20 11:45</time>
+            <span class="lbl lbl-amber shrink-0">webhook.update</span>
+            <span class="truncate"><span class="fg2">@malith</span> updated webhook <span class="fg2">hooks.stitch.dev/cloudzilla</span></span>
+          </li>
+          <li class="py-2.5 flex items-center gap-3">
+            <time datetime="2026-05-18T22:30" class="fg3 shrink-0 w-32">2026-05-18 22:30</time>
+            <span class="lbl lbl-green shrink-0">repo.transfer</span>
+            <span class="truncate">Transferred <span class="fg2">openforge/proto</span> → <span class="fg2">stitch-labs/proto</span></span>
+          </li>
+        </ul>
+        <a href="#" class="mt-4 inline-block text-[12.5px] link hover:underline">View full audit log →</a>
+      </section>
+
+      <section id="danger" class="b border rounded-lg surface p-6" style="border-color:rgba(248,113,113,0.30)">
+        <h2 class="text-base font-semibold tracking-tight mb-1" style="color:var(--danger)">Danger zone</h2>
+        <p class="text-[12.5px] fg3 mb-6">Irreversible operations that affect everyone in the org.</p>
+
+        <ul class="divide-y b">
+          <li id="transfer" class="py-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Transfer ownership</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Hand over stitch-labs to another user. You'll be downgraded to Member.</p>
+            </div>
+            <button type="button" data-open-dialog="transfer-org-dialog" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated shrink-0">Transfer</button>
+          </li>
+          <li id="archive" class="py-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Archive organization</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Make all repos read-only. Members keep access; pushes and new issues are blocked.</p>
+            </div>
+            <button type="button" data-confirm-trigger data-confirm-title="Archive stitch-labs?" data-confirm-msg="All 14 repos become read-only. You can unarchive later from this page." data-confirm-label="Archive" data-confirm-danger data-toast-on-confirm="Organization archived" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated shrink-0" style="color:var(--danger)">Archive</button>
+          </li>
+          <li id="delete" class="py-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Delete organization</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Permanently removes 14 repositories, 3 teams, all issues, PRs, releases, and history.</p>
+            </div>
+            <button type="button" data-open-dialog="delete-org-dialog" class="h-8 px-3 text-[13px] rounded-md font-medium shrink-0" style="background:var(--danger);color:#1a0000">Delete organization</button>
+          </li>
+        </ul>
+      </section>
+
+    </div>
+
+  </div>
+</main>
+
+<dialog id="invite-member-dialog" class="rounded-lg surface bs border p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" aria-labelledby="invite-member-title">
+  <form data-toast-on-submit="Invitation sent" data-close-on-submit class="contents">
+    <div class="p-5 b border-b">
+      <h2 id="invite-member-title" class="text-base font-semibold leading-tight">Invite member to stitch-labs</h2>
+      <p class="mt-1 text-[12.5px] fg3">By email or @handle. They'll get an invite link valid for 7 days.</p>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="field" for="invite-who">Email or @handle</label>
+        <input id="invite-who" required class="txt mono" type="text" placeholder="alex@stitch.dev or @alex" />
+      </div>
+      <div>
+        <label class="field" for="invite-role">Role</label>
+        <select id="invite-role" class="txt">
+          <option selected>Member</option>
+          <option>Owner</option>
+        </select>
+      </div>
+      <div>
+        <label class="field" for="invite-team">Add to team (optional)</label>
+        <select id="invite-team" class="txt">
+          <option value="">None</option>
+          <option>core</option>
+          <option>design</option>
+          <option>oncall</option>
+        </select>
+      </div>
+    </div>
+    <div class="p-4 b border-t flex items-center justify-end gap-2 surface">
+      <button type="button" data-close-dialog class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+      <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Send invitation</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="new-team-dialog" class="rounded-lg surface bs border p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" aria-labelledby="new-team-title">
+  <form data-toast-on-submit="Team created" data-close-on-submit class="contents">
+    <div class="p-5 b border-b">
+      <h2 id="new-team-title" class="text-base font-semibold leading-tight">Create a new team</h2>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="field" for="team-name">Name</label>
+        <input id="team-name" required class="txt mono" type="text" placeholder="platform" />
+      </div>
+      <div>
+        <label class="field" for="team-desc">Description</label>
+        <textarea id="team-desc" class="txt" rows="2" placeholder="What this team owns"></textarea>
+      </div>
+      <div>
+        <label class="field" for="team-visibility">Visibility</label>
+        <select id="team-visibility" class="txt">
+          <option>Visible to all members</option>
+          <option>Secret — visible only to team members</option>
+        </select>
+      </div>
+    </div>
+    <div class="p-4 b border-t flex items-center justify-end gap-2 surface">
+      <button type="button" data-close-dialog class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+      <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Create team</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="transfer-org-dialog" class="rounded-lg surface bs border p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" aria-labelledby="transfer-org-title">
+  <form data-toast-on-submit="Transfer initiated" data-close-on-submit class="contents">
+    <div class="p-5 b border-b">
+      <h2 id="transfer-org-title" class="text-base font-semibold leading-tight" style="color:var(--danger)">Transfer stitch-labs</h2>
+      <p class="mt-1 text-[12.5px] fg3">The new owner must accept within 7 days. You'll be downgraded to Member on acceptance.</p>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="field" for="transfer-to">New owner @handle</label>
+        <input id="transfer-to" required class="txt mono" type="text" placeholder="@username" />
+      </div>
+      <div>
+        <label class="field" for="transfer-confirm">Type <span class="mono fg2">stitch-labs</span> to confirm</label>
+        <input id="transfer-confirm" required pattern="stitch-labs" class="txt mono" type="text" />
+      </div>
+    </div>
+    <div class="p-4 b border-t flex items-center justify-end gap-2 surface">
+      <button type="button" data-close-dialog class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+      <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--danger);color:#1a0000">Initiate transfer</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="delete-org-dialog" class="rounded-lg surface bs border p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" aria-labelledby="delete-org-title">
+  <form data-toast-on-submit="Organization deleted" data-close-on-submit class="contents">
+    <div class="p-5 b border-b">
+      <h2 id="delete-org-title" class="text-base font-semibold leading-tight" style="color:var(--danger)">Delete stitch-labs</h2>
+      <p class="mt-1 text-[12.5px] fg3">This removes 14 repositories, 3 teams, 47 issues, 28 PRs, and all history. It cannot be undone.</p>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="field" for="delete-confirm">Type <span class="mono fg2">stitch-labs</span> to confirm</label>
+        <input id="delete-confirm" required pattern="stitch-labs" class="txt mono" type="text" autocomplete="off" />
+      </div>
+      <label class="flex items-start gap-2 text-[12.5px] fg2">
+        <input type="checkbox" required class="mt-0.5" />
+        <span>I understand this is permanent and cannot be recovered, even by support.</span>
+      </label>
+    </div>
+    <div class="p-4 b border-t flex items-center justify-end gap-2 surface">
+      <button type="button" data-close-dialog class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+      <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--danger);color:#1a0000">Delete organization permanently</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="cz-confirm-dialog" class="rounded-lg surface bs border p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" aria-labelledby="cz-confirm-title">
+  <div class="p-5">
+    <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="cz-confirm-msg" class="text-[13px] fg2"></p>
+  </div>
+  <div class="p-4 b border-t flex items-center justify-end gap-2 surface">
+    <button type="button" data-close-dialog class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+    <button type="button" id="cz-confirm-ok" class="h-9 px-4 text-sm rounded-md font-medium">Confirm</button>
+  </div>
+</dialog>
+
+<div id="toast-host" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none"></div>
+
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>
+  // Dialog open/close
+  document.querySelectorAll('[data-open-dialog]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var d = document.getElementById(btn.getAttribute('data-open-dialog'));
+      if (d && d.showModal) d.showModal();
+    });
+  });
+  document.querySelectorAll('[data-close-dialog]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var d = btn.closest('dialog'); if (d) d.close();
+    });
+  });
+
+  // Toasts
+  function toast(msg){
+    var host = document.getElementById('toast-host'); if (!host) return;
+    var el = document.createElement('div');
+    el.className = 'pointer-events-auto px-3 py-2 rounded-md b border bs text-[13px] surface shadow-lg';
+    el.textContent = msg; host.appendChild(el);
+    setTimeout(function(){ el.style.transition='opacity 200ms'; el.style.opacity='0'; setTimeout(function(){el.remove();},220); }, 1800);
+  }
+  document.querySelectorAll('[data-toast-on-click]').forEach(function(btn){
+    btn.addEventListener('click', function(){ toast(btn.getAttribute('data-toast-on-click')); });
+  });
+  document.querySelectorAll('form[data-toast-on-submit]').forEach(function(form){
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      toast(form.getAttribute('data-toast-on-submit'));
+      if (form.hasAttribute('data-close-on-submit')) { var d=form.closest('dialog'); if (d) d.close(); }
+    });
+  });
+
+  // Generic confirm dialog
+  (function(){
+    var dlg = document.getElementById('cz-confirm-dialog');
+    if (!dlg) return;
+    var titleEl = document.getElementById('cz-confirm-title');
+    var msgEl = document.getElementById('cz-confirm-msg');
+    var okBtn = document.getElementById('cz-confirm-ok');
+    var currentTrigger = null;
+    document.addEventListener('click', function(e){
+      var trigger = e.target.closest('[data-confirm-trigger]');
+      if (!trigger) return;
+      currentTrigger = trigger;
+      titleEl.textContent = trigger.getAttribute('data-confirm-title') || 'Are you sure?';
+      msgEl.textContent   = trigger.getAttribute('data-confirm-msg')   || '';
+      okBtn.textContent   = trigger.getAttribute('data-confirm-label') || 'Confirm';
+      if (trigger.hasAttribute('data-confirm-danger')){
+        okBtn.style.background = 'var(--danger)'; okBtn.style.color = '#1a0000';
+      } else {
+        okBtn.style.background = 'var(--fg)'; okBtn.style.color = 'var(--bg)';
+      }
+      dlg.showModal();
+    });
+    okBtn.addEventListener('click', function(){
+      var msg = currentTrigger && currentTrigger.getAttribute('data-toast-on-confirm');
+      dlg.close();
+      if (msg) toast(msg);
+    });
+  })();
+</script>
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+</body>
+</html>

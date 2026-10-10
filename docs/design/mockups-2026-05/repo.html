@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #000;
+    --surface: #0a0a0a;
+    --elevated: #1a1a1a;
+    --border: rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.18);
+    --fg: #ededed;
+    --fg-2: #b4b4b4;
+    --fg-3: #8c8c8c;
+    --focus: #6ea8fe;
+    --link: #93c5fd;
+    --success: #4ade80;
+    --warn: #fbbf24;
+    --danger: #f87171;
+  }
+  html.light {
+    --bg: #fff;
+    --surface: #fafafa;
+    --elevated: #ededed;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.18);
+    --fg: #0a0a0a;
+    --fg-2: #444;
+    --fg-3: #5e5e5e;
+    --focus: #1d4ed8;
+    --link: #1d4ed8;
+    --success: #15803d;
+    --warn: #b45309;
+    --danger: #b91c1c;
+  }
+  body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--fg); font-feature-settings: "ss01", "ss02", "cv11"; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+  .surface { background: var(--surface); }
+  .elevated { background: var(--elevated); }
+  .b { border-color: var(--border); }
+  .bs { border-color: var(--border-strong); }
+  .fg2 { color: var(--fg-2); }
+  .fg3 { color: var(--fg-3); }
+  .link { color: var(--link); }
+  .hover-row:hover { background: var(--elevated); }
+
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .skip-link { position:absolute; left:8px; top:-40px; z-index:100; padding:8px 12px; background:var(--fg); color:var(--bg); border-radius:6px; font-weight:500; font-size:13px; transition: top 120ms; }
+  .skip-link:focus { top:8px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  input:focus-visible, [contenteditable]:focus-visible { outline-offset: 0; }
+  .tab-active { color: var(--fg); border-bottom-color: var(--fg); }
+  .avatar { background: var(--elevated); border: 1px solid var(--border); }
+
+  /* prose for README — minimal, readable */
+  .prose { color: var(--fg-2); font-size: 14px; line-height: 1.7; }
+  .prose h1 { color: var(--fg); font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 12px; }
+  .prose h2 { color: var(--fg); font-size: 18px; font-weight: 600; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .prose h3 { color: var(--fg); font-size: 15px; font-weight: 600; margin: 20px 0 8px; }
+  .prose p { margin: 0 0 12px; }
+  .prose a { color: var(--link); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .prose code { font-family: 'Geist Mono', monospace; font-size: 12.5px; background: var(--elevated); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
+  .prose pre { font-family: 'Geist Mono', monospace; font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px; overflow-x: auto; margin: 0 0 16px; }
+  .prose pre code { background: transparent; border: 0; padding: 0; }
+  .prose ul { padding-left: 22px; margin: 0 0 12px; }
+  .prose li { margin: 4px 0; }
+  .prose img { max-width: 100%; border-radius: 6px; }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+  /* Windows HCM */
+  @media (forced-colors: active) {
+    .b, .bs { border-color: CanvasText !important; }
+    :focus-visible { outline: 2px solid Highlight !important; }
+  }
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .modal-overlay.hidden{display:none}
+  .modal-box{background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+  .clone-tab{flex:1;padding:5px 10px;border-radius:5px;font-size:12px;color:var(--fg-3);background:transparent;border:0;cursor:pointer;font-family:inherit}
+  .clone-tab:hover{color:var(--fg-2)}
+  .clone-tab-active{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,0.25)}
+  .copy-btn .copy-check{display:none}
+  .copy-btn.copied .copy-icon{display:none}
+  .copy-btn.copied .copy-check{display:block}
+  .copy-btn.copied{color:var(--success)}
+
+  /* Activity heatmap — 13 weeks × 7 days, filled column-first */
+  .heatmap{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:3px;height:150px}
+  .heat{border-radius:2px;background:var(--elevated)}
+  .heat-1{background:rgba(74,222,128,0.28)}
+  .heat-2{background:rgba(74,222,128,0.52)}
+  .heat-3{background:rgba(74,222,128,0.76)}
+  .heat-4{background:var(--success)}
+  html.light .heat-1{background:#aceebb}
+  html.light .heat-2{background:#4ac26b}
+  html.light .heat-3{background:#2da44e}
+  html.light .heat-4{background:#116329}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- TOP NAV -->
+<div id="cz-header" data-repo-tab="code"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <!-- Repo header -->
+  <section class="flex flex-wrap items-start justify-between gap-4 mb-5" aria-labelledby="repo-title">
+    <div class="min-w-0">
+      <h1 id="repo-title" class="text-xl tracking-tight font-medium flex flex-wrap items-center gap-x-2 gap-y-1">
+        <a href="#" class="fg2 hover:underline">mkappworks</a>
+        <span class="fg3" aria-hidden="true">/</span>
+        <a href="repo.html" class="font-semibold hover:underline">cloudzilla</a>
+        <span class="ml-0.5 inline-flex items-center text-[10px] px-1.5 py-0.5 elevated b border rounded fg2">Public</span>
+      </h1>
+      <p class="mt-1.5 text-[13px] fg2">Self-hosted Git forge built in Go with Templ and HTMX. Issues, pull requests, code review, and CI integration — without the bloat.</p>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex items-center gap-1.5" role="group" aria-label="Repository actions">
+      <div class="flex b border rounded-md overflow-hidden">
+        <button type="button" class="h-8 px-3 text-[13px] hover:elevated inline-flex items-center gap-1.5" aria-pressed="false">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Watch
+        </button>
+        <span class="b border-l h-8 inline-flex items-center px-3 text-[13px] mono">42</span>
+      </div>
+      <div class="flex b border rounded-md overflow-hidden">
+        <button type="button" class="h-8 px-3 text-[13px] hover:elevated inline-flex items-center gap-1.5" aria-pressed="false">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Star
+        </button>
+        <span class="b border-l h-8 inline-flex items-center px-3 text-[13px] mono">142</span>
+      </div>
+      <div class="flex b border rounded-md overflow-hidden">
+        <button type="button" class="h-8 px-3 text-[13px] hover:elevated inline-flex items-center gap-1.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="21" r="3"/><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"/></svg>
+          Fork
+        </button>
+        <span class="b border-l h-8 inline-flex items-center px-3 text-[13px] mono">23</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Two-column -->
+  <div class="grid lg:grid-cols-[1fr_320px] gap-8">
+
+    <!-- LEFT — Code -->
+    <div>
+
+      <!-- Branch + actions row -->
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <div class="dropdown-wrap">
+          <button type="button" data-menu class="h-8 px-3 text-[13px] b border rounded-md hover:elevated inline-flex items-center gap-1.5" aria-haspopup="menu" aria-expanded="false" aria-label="Switch branch or tag, current: main">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
+            <span class="font-medium">main</span>
+            <svg class="fg3" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+          </button>
+          <div class="dropdown-panel hidden" role="menu" aria-label="Switch branches and tags" style="min-width:300px">
+            <div class="px-1.5 pb-1.5">
+              <label for="branch-filter" class="sr-only">Find a branch or tag</label>
+              <input id="branch-filter" type="search" placeholder="Find a branch or tag…" data-filter="#branch-list" class="w-full h-7 px-2.5 text-[12px] surface b border rounded-md placeholder:fg3 focus:bs focus:bg-transparent" />
+            </div>
+            <div id="branch-list">
+              <p class="dropdown-header">Branches</p>
+              <a href="repo.html" role="menuitem" data-filter-name="main" class="dropdown-item dropdown-item-active">
+                <span class="flex-1 mono text-[12px]">main</span>
+                <span class="text-[10px] fg3">default</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+              </a>
+              <a href="repo.html" role="menuitem" data-filter-name="feat/ui-overhaul-phase-4-tracker" class="dropdown-item"><span class="flex-1 mono text-[12px]">feat/ui-overhaul-phase-4-tracker</span></a>
+              <a href="repo.html" role="menuitem" data-filter-name="feat/phase-15.3-dependency-graph" class="dropdown-item"><span class="flex-1 mono text-[12px]">feat/phase-15.3-dependency-graph</span></a>
+              <a href="repo.html" role="menuitem" data-filter-name="fix/ssh-auth-timeout" class="dropdown-item"><span class="flex-1 mono text-[12px]">fix/ssh-auth-timeout</span></a>
+              <p class="dropdown-header">Tags</p>
+              <a href="repo.html" role="menuitem" data-filter-name="v0.2.0" class="dropdown-item"><span class="flex-1 mono text-[12px]">v0.2.0</span></a>
+              <a href="repo.html" role="menuitem" data-filter-name="v0.1.0" class="dropdown-item"><span class="flex-1 mono text-[12px]">v0.1.0</span></a>
+              <p data-filter-empty class="hidden px-2.5 py-3 text-[12px] fg3 text-center">No branches or tags match</p>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a href="commits.html" role="menuitem" class="dropdown-item">View all branches</a>
+          </div>
+        </div>
+        <span class="text-[11px] fg3"><a href="commits.html" class="hover:underline">17 branches</a> <span aria-hidden="true">·</span> <a href="releases.html" class="hover:underline">8 tags</a></span>
+
+        <div class="ml-auto flex items-center gap-1.5">
+          <div class="relative">
+            <label for="file-finder" class="sr-only">Go to file</label>
+            <input id="file-finder" type="search" placeholder="Go to file" data-filter="#file-rows" class="w-48 h-8 pl-3 pr-12 text-[13px] surface b border rounded-md placeholder:fg3 focus:bs focus:bg-transparent" />
+            <kbd class="mono absolute right-2 top-1.5 text-[10px] px-1.5 py-0.5 elevated b border rounded fg3" aria-hidden="true">T</kbd>
+          </div>
+          <div class="dropdown-wrap">
+            <button type="button" data-menu class="h-8 px-3 text-[13px] b border rounded-md hover:elevated inline-flex items-center gap-1.5" aria-haspopup="menu" aria-expanded="false">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>
+              Add file
+              <svg class="fg3" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="dropdown-panel dropdown-right hidden" role="menu" aria-label="Add file">
+              <a href="newfile.html" role="menuitem" class="dropdown-item">
+                <svg class="fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                Create new file
+              </a>
+              <a href="#" role="menuitem" class="dropdown-item">
+                <svg class="fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload files
+              </a>
+            </div>
+          </div>
+          <div class="dropdown-wrap">
+            <button type="button" data-menu class="h-8 px-3 text-[13px] bg-white text-black rounded-md hover:bg-zinc-200 font-medium inline-flex items-center gap-1.5" aria-haspopup="dialog" aria-expanded="false">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Clone
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+            </button>
+            <div class="dropdown-panel dropdown-right hidden" role="dialog" aria-label="Clone this repository" style="min-width:340px;padding:12px">
+              <div class="flex items-center gap-0.5 mb-2.5 p-0.5 elevated b border rounded-md" role="tablist" aria-label="Clone protocol">
+                <button type="button" role="tab" data-clone-tab="https" aria-selected="true" class="clone-tab clone-tab-active">HTTPS</button>
+                <button type="button" role="tab" data-clone-tab="ssh" aria-selected="false" class="clone-tab">SSH</button>
+              </div>
+              <label for="clone-url" class="sr-only">Clone URL</label>
+              <div class="flex items-center gap-1.5">
+                <input id="clone-url" type="text" readonly value="https://cloudzilla.dev/mkappworks/cloudzilla.git" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] mono surface b border rounded-md fg2 focus:bs" />
+                <button type="button" class="copy-btn h-8 w-8 grid place-items-center b border rounded-md hover:elevated flex-shrink-0" data-copy="#clone-url" aria-label="Copy clone URL">
+                  <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  <svg class="copy-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+              </div>
+              <p class="text-[11px] fg3 mt-2">Use Git or checkout with the web URL.</p>
+              <div class="dropdown-divider"></div>
+              <a href="#" class="dropdown-item">
+                <svg class="fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download ZIP
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File tree (real table) -->
+      <section class="b border rounded-md surface overflow-hidden" aria-labelledby="files-heading">
+        <h2 id="files-heading" class="sr-only">Files at main</h2>
+
+        <!-- Latest commit summary header row -->
+        <div class="px-4 py-2.5 b border-b flex items-center gap-3 elevated">
+          <span class="avatar h-5 w-5 rounded-full grid place-items-center text-[10px] font-medium flex-shrink-0" aria-hidden="true">MK</span>
+          <a href="contributors.html" class="text-[13px] font-medium hover:underline truncate">malith</a>
+          <a href="commits.html" class="text-[13px] fg2 hover:underline truncate flex-1 min-w-0">feat: add publish step to promote draft releases to published</a>
+          <a href="commits.html" class="mono text-[12px] fg2 hover:underline flex-shrink-0">420b44b</a>
+          <span class="text-[12px] fg3 flex-shrink-0"><time datetime="2026-05-13T11:00">2 hours ago</time></span>
+          <a href="commits.html" class="text-[12px] mono fg2 hover:underline flex-shrink-0">412 commits<span class="sr-only"> in history</span></a>
+        </div>
+
+        <table class="w-full text-left">
+          <caption class="sr-only">Repository files at main, sorted alphabetically with directories first</caption>
+          <colgroup>
+            <col style="width: 28px" />
+            <col />
+            <col style="width: 50%" />
+            <col style="width: 120px" />
+          </colgroup>
+          <thead class="sr-only">
+            <tr><th scope="col">Type</th><th scope="col">Name</th><th scope="col">Last commit</th><th scope="col">Updated</th></tr>
+          </thead>
+          <tbody id="file-rows">
+            <tr class="b border-b hover-row" data-filter-name=".github">
+              <td class="px-4 py-2"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="tree.html" class="text-[13px] hover:underline">.github</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">ci: add release-please workflow</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-05-09">4d</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="cmd">
+              <td class="px-4 py-2"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="tree.html" class="text-[13px] hover:underline">cmd</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">feat: add publish step to promote draft releases</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-05-13T11:00">2h</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="docs">
+              <td class="px-4 py-2"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="tree.html" class="text-[13px] hover:underline">docs</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">docs: update htmx-patterns.md with new examples</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-05-11">2d</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="internal">
+              <td class="px-4 py-2"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="tree.html" class="text-[13px] hover:underline">internal</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">feat: add publish step to promote draft releases</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-05-13T11:00">2h</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="migrations">
+              <td class="px-4 py-2"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="tree.html" class="text-[13px] hover:underline">migrations</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">feat: phase 15.3 dependency graph</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-04-29">2w</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="tailwind">
+              <td class="px-4 py-2"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="tree.html" class="text-[13px] hover:underline">tailwind</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">chore: bump tailwind config to v3.4</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-04-22">3w</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name=".gitignore">
+              <td class="px-4 py-2"><svg class="fg3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false" role="img"><title>File</title><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="blob.html" class="text-[13px] hover:underline">.gitignore</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">chore: ignore dist and node_modules</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-03-04">2mo</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="CLAUDE.md">
+              <td class="px-4 py-2"><svg class="fg3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false" role="img"><title>File</title><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="blob.html" class="text-[13px] hover:underline">CLAUDE.md</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">docs: update CLAUDE.md after phase 15.3</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-05-08">5d</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="Dockerfile">
+              <td class="px-4 py-2"><svg class="fg3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false" role="img"><title>File</title><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="blob.html" class="text-[13px] hover:underline">Dockerfile</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">feat: multi-stage build, strip debug symbols</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-04-15">4w</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="LICENSE">
+              <td class="px-4 py-2"><svg class="fg3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false" role="img"><title>File</title><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="blob.html" class="text-[13px] hover:underline">LICENSE</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">chore: switch to BSL 1.1</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-04-08">5w</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="Makefile">
+              <td class="px-4 py-2"><svg class="fg3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false" role="img"><title>File</title><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="blob.html" class="text-[13px] hover:underline">Makefile</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">build: add download-htmx target</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-05-07">6d</time></td>
+            </tr>
+            <tr class="b border-b hover-row" data-filter-name="README.md">
+              <td class="px-4 py-2"><svg style="color: var(--success);" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false" role="img"><title>README file</title><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8" fill="none" stroke="var(--bg)" stroke-width="1.5"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="blob.html" class="text-[13px] hover:underline font-medium">README.md</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">docs: refresh README with phase 15 features</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-05-12">1d</time></td>
+            </tr>
+            <tr class="hover-row" data-filter-name="go.mod">
+              <td class="px-4 py-2"><svg class="fg3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false" role="img"><title>File</title><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></td>
+              <th scope="row" class="px-4 py-2 font-normal"><a href="blob.html" class="text-[13px] hover:underline">go.mod</a></th>
+              <td class="px-4 py-2 text-[12px] fg2 truncate"><a href="commits.html" class="hover:underline">fix: update dependencies for compatibility and security</a></td>
+              <td class="px-4 py-2 text-[12px] fg2 text-right mono"><time datetime="2026-05-05">1w</time></td>
+            </tr>
+            <tr data-filter-empty class="hidden">
+              <td colspan="4" class="px-4 py-6 text-center text-[12px] fg3">No files match your search.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- README -->
+      <article class="mt-6 b border rounded-md surface" aria-labelledby="readme-heading">
+        <header class="px-5 py-3 b border-b flex items-center gap-2 elevated">
+          <svg class="fg2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <h2 id="readme-heading" class="text-[13px] font-medium">README.md</h2>
+          <a href="#" class="ml-auto text-[12px] fg2 hover:text-current inline-flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </a>
+        </header>
+        <div class="prose px-7 py-6">
+          <h1>Cloudzilla</h1>
+          <p>A self-hosted Git forge built in Go with Templ and HTMX. Issues, pull requests, code review, and CI integration — without the bloat.</p>
+
+          <p>
+            <span class="inline-flex items-center gap-1.5 text-[11px] mono px-2 py-0.5 elevated b border rounded fg2 not-prose mr-1.5"><span style="color: var(--success);" aria-hidden="true">●</span> v0.2.0</span>
+            <span class="inline-flex items-center gap-1.5 text-[11px] mono px-2 py-0.5 elevated b border rounded fg2 not-prose mr-1.5">Go 1.23+</span>
+            <span class="inline-flex items-center gap-1.5 text-[11px] mono px-2 py-0.5 elevated b border rounded fg2 not-prose">BSL 1.1</span>
+          </p>
+
+          <h2 id="quickstart">Quickstart</h2>
+          <pre><code>git clone https://cloudzilla.dev/mkappworks/cloudzilla.git
+cd cloudzilla
+make setup-tailwind
+make migrate
+make dev</code></pre>
+
+          <p>Open <a href="#">http://localhost:8080</a> and you'll land on the setup wizard.</p>
+
+          <h2 id="architecture">Architecture</h2>
+          <ul>
+            <li><strong>Backend</strong>: Go 1.23+, chi router, sqlx, go-git, cobra CLI</li>
+            <li><strong>Frontend</strong>: Templ (type-safe Go HTML), HTMX for partial updates, Tailwind CSS</li>
+            <li><strong>DB</strong>: PostgreSQL</li>
+            <li><strong>Git Transport</strong>: HTTP smart protocol + SSH server (both pure-Go, no <code>git</code> binary required)</li>
+          </ul>
+
+          <h3 id="layers">Project layers</h3>
+          <p>Strict separation: <code>Stores → Services → Handlers → View</code>. Handlers never call stores directly.</p>
+
+          <h2 id="status">Status</h2>
+          <p>
+            <span class="inline-flex items-center gap-1.5 text-[11px] mono px-2 py-0.5 elevated b border rounded not-prose mr-1.5" style="color: var(--success);">● Build passing</span>
+            <span class="inline-flex items-center gap-1.5 text-[11px] mono px-2 py-0.5 elevated b border rounded not-prose mr-1.5 fg2">87 commits / 7 days</span>
+            <span class="inline-flex items-center gap-1.5 text-[11px] mono px-2 py-0.5 elevated b border rounded not-prose fg2">142 ★</span>
+          </p>
+
+          <h2 id="contributing">Contributing</h2>
+          <p>See <a href="#">CONTRIBUTING.md</a> for the development workflow and CLAUDE.md guidelines. PRs welcome — check the roadmap in <a href="#">docs/roadmap.md</a> for in-flight work.</p>
+        </div>
+      </article>
+    </div>
+
+    <!-- RIGHT — Sidebar -->
+    <aside class="space-y-8" aria-label="Sidebar">
+
+      <!-- About -->
+      <section aria-labelledby="about-heading">
+        <h2 id="about-heading" class="text-[13px] font-medium mb-3 flex items-center justify-between">
+          <span>About</span>
+          <button type="button" data-modal-open="repo-edit-modal" class="fg3 hover:text-current" aria-haspopup="dialog" aria-label="Edit repository details">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </h2>
+
+        <p id="about-desc" class="text-[13px] fg2 mb-3 leading-relaxed">Self-hosted Git forge built in Go with Templ and HTMX. Issues, pull requests, code review, and CI integration — without the bloat.</p>
+
+        <ul id="about-topics" class="flex flex-wrap gap-1.5 mb-4" aria-label="Topics">
+          <li><a href="topic.html" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] b border fg2 hover:text-current hover:elevated">git</a></li>
+          <li><a href="topic.html" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] b border fg2 hover:text-current hover:elevated">go</a></li>
+          <li><a href="topic.html" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] b border fg2 hover:text-current hover:elevated">htmx</a></li>
+          <li><a href="topic.html" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] b border fg2 hover:text-current hover:elevated">self-hosted</a></li>
+        </ul>
+
+        <dl class="space-y-2 text-[12px]">
+          <div class="flex items-center gap-2">
+            <dt class="sr-only">Website</dt>
+            <svg class="fg3 flex-shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+            <dd><a id="about-site" href="https://cloudzilla.dev" class="link hover:underline">cloudzilla.dev</a></dd>
+          </div>
+          <div class="flex items-center gap-2">
+            <dt class="sr-only">License</dt>
+            <svg class="fg3 flex-shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+            <dd class="fg2">BSL 1.1 license</dd>
+          </div>
+          <div class="flex items-center gap-2">
+            <dt class="sr-only">Activity</dt>
+            <svg class="fg3 flex-shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <dd class="fg2">Active <span aria-hidden="true">·</span> last commit <time datetime="2026-05-13T11:00">2h ago</time></dd>
+          </div>
+        </dl>
+
+        <ul class="mt-4 space-y-2 text-[12px]">
+          <li><a href="#" class="flex items-center gap-2 fg2 hover:text-current">
+            <svg class="fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <strong class="text-current font-medium">142</strong> stars
+          </a></li>
+          <li><a href="#" class="flex items-center gap-2 fg2 hover:text-current">
+            <svg class="fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <strong class="text-current font-medium">42</strong> watching
+          </a></li>
+          <li><a href="#" class="flex items-center gap-2 fg2 hover:text-current">
+            <svg class="fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="21" r="3"/><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"/></svg>
+            <strong class="text-current font-medium">23</strong> forks
+          </a></li>
+        </ul>
+      </section>
+
+      <!-- Releases -->
+      <section aria-labelledby="releases-heading">
+        <h2 id="releases-heading" class="text-[13px] font-medium mb-3 flex items-center justify-between">
+          <span>Releases <span class="mono fg3 ml-0.5 text-[11px]" aria-label="3 published">3</span></span>
+        </h2>
+        <div class="b border rounded-md surface p-4">
+          <p class="text-[13px] font-medium flex items-center gap-2">
+            v0.2.0
+            <span class="text-[10px] px-1.5 py-0.5 rounded fg2" style="background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.25); color: var(--success);">Latest</span>
+          </p>
+          <p class="text-[12px] fg2 mt-1">Released <time datetime="2026-05-12">yesterday</time></p>
+          <p class="text-[12px] fg2 mt-2 leading-relaxed">Phase 15.3 — Dependency graph support, plus the auto-publish workflow for release-please.</p>
+        </div>
+        <a href="#" class="block text-[12px] fg2 hover:text-current mt-2">+ 2 more releases<span class="sr-only"> are available</span></a>
+      </section>
+
+      <!-- Languages -->
+      <section aria-labelledby="lang-heading">
+        <h2 id="lang-heading" class="text-[13px] font-medium mb-3">Languages</h2>
+        <div role="img" aria-label="Languages: Go 78.4%, Templ 12.1%, JavaScript 5.3%, CSS 3.2%, Other 1%" class="flex h-2 rounded-full overflow-hidden b border" style="background: var(--surface);">
+          <span style="width: 78.4%; background: #00ADD8;" aria-hidden="true"></span>
+          <span style="width: 12.1%; background: #6ea8fe;" aria-hidden="true"></span>
+          <span style="width: 5.3%; background: #f7df1e;" aria-hidden="true"></span>
+          <span style="width: 3.2%; background: #a855f7;" aria-hidden="true"></span>
+          <span style="width: 1%; background: var(--fg-3);" aria-hidden="true"></span>
+        </div>
+        <ul class="mt-3 grid grid-cols-2 gap-y-1.5 gap-x-3 text-[12px]" aria-hidden="true">
+          <li class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#00ADD8;"></span><span class="fg2">Go</span> <span class="mono fg3 ml-auto">78.4%</span></li>
+          <li class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#6ea8fe;"></span><span class="fg2">Templ</span> <span class="mono fg3 ml-auto">12.1%</span></li>
+          <li class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#f7df1e;"></span><span class="fg2">JavaScript</span> <span class="mono fg3 ml-auto">5.3%</span></li>
+          <li class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#a855f7;"></span><span class="fg2">CSS</span> <span class="mono fg3 ml-auto">3.2%</span></li>
+        </ul>
+      </section>
+
+      <!-- Contributors -->
+      <section aria-labelledby="contrib-heading">
+        <h2 id="contrib-heading" class="text-[13px] font-medium mb-3 flex items-center justify-between">
+          <span>Contributors <span class="mono fg3 ml-0.5 text-[11px]" aria-label="7 total">7</span></span>
+          <a href="#" class="text-[12px] fg2 hover:text-current">All</a>
+        </h2>
+        <ul class="flex flex-wrap gap-1.5">
+          <li><a href="#" class="avatar h-8 w-8 rounded-full grid place-items-center text-[11px] font-medium hover:bs" aria-label="Malith Kuruppu, 245 commits">MK</a></li>
+          <li><a href="#" class="avatar h-8 w-8 rounded-full grid place-items-center text-[11px] font-medium hover:bs" aria-label="Daisy K., 87 commits">DK</a></li>
+          <li><a href="#" class="avatar h-8 w-8 rounded-full grid place-items-center text-[11px] font-medium hover:bs" aria-label="Yumi M., 41 commits">YM</a></li>
+          <li><a href="#" class="avatar h-8 w-8 rounded-full grid place-items-center text-[11px] font-medium hover:bs" aria-label="Kiyo Y., 23 commits">KY</a></li>
+          <li><a href="#" class="avatar h-8 w-8 rounded-full grid place-items-center text-[11px] font-medium hover:bs" aria-label="Ren S., 14 commits">RS</a></li>
+          <li><a href="#" class="avatar h-8 w-8 rounded-full grid place-items-center text-[11px] font-medium hover:bs" aria-label="Aki H., 8 commits">AH</a></li>
+          <li><a href="#" class="avatar h-8 w-8 rounded-full grid place-items-center text-[11px] font-medium hover:bs" aria-label="Nina P., 4 commits">NP</a></li>
+        </ul>
+      </section>
+
+      <!-- Activity heatmap -->
+      <section aria-labelledby="activity-heading">
+        <h2 id="activity-heading" class="text-[13px] font-medium mb-1">Activity heatmap</h2>
+        <p class="text-[12px] fg3 mb-3">Past 90 days of commit activity</p>
+        <div class="b border rounded-md surface p-3.5">
+          <div class="flex justify-between text-[10px] fg3 mb-1.5" aria-hidden="true">
+            <span>Feb</span><span>Mar</span><span>Apr</span><span>May</span>
+          </div>
+          <div class="heatmap" role="img" aria-label="Commit activity over the past 90 days: 318 commits, most active in early May">
+            <span class="heat"></span><span class="heat heat-1"></span><span class="heat heat-2"></span><span class="heat heat-1"></span><span class="heat heat-2"></span><span class="heat"></span><span class="heat"></span>
+            <span class="heat"></span><span class="heat heat-2"></span><span class="heat heat-3"></span><span class="heat heat-2"></span><span class="heat heat-1"></span><span class="heat heat-1"></span><span class="heat"></span>
+            <span class="heat heat-1"></span><span class="heat heat-2"></span><span class="heat heat-1"></span><span class="heat heat-3"></span><span class="heat heat-2"></span><span class="heat"></span><span class="heat"></span>
+            <span class="heat"></span><span class="heat heat-1"></span><span class="heat heat-2"></span><span class="heat heat-2"></span><span class="heat heat-1"></span><span class="heat"></span><span class="heat heat-1"></span>
+            <span class="heat"></span><span class="heat heat-3"></span><span class="heat heat-4"></span><span class="heat heat-2"></span><span class="heat heat-3"></span><span class="heat heat-1"></span><span class="heat"></span>
+            <span class="heat"></span><span class="heat heat-2"></span><span class="heat heat-1"></span><span class="heat heat-2"></span><span class="heat heat-2"></span><span class="heat"></span><span class="heat"></span>
+            <span class="heat heat-1"></span><span class="heat heat-1"></span><span class="heat heat-3"></span><span class="heat heat-2"></span><span class="heat heat-1"></span><span class="heat"></span><span class="heat"></span>
+            <span class="heat"></span><span class="heat heat-2"></span><span class="heat heat-2"></span><span class="heat heat-4"></span><span class="heat heat-3"></span><span class="heat heat-1"></span><span class="heat"></span>
+            <span class="heat"></span><span class="heat heat-1"></span><span class="heat heat-2"></span><span class="heat heat-1"></span><span class="heat heat-2"></span><span class="heat"></span><span class="heat heat-1"></span>
+            <span class="heat"></span><span class="heat heat-3"></span><span class="heat heat-3"></span><span class="heat heat-2"></span><span class="heat heat-4"></span><span class="heat heat-1"></span><span class="heat"></span>
+            <span class="heat heat-1"></span><span class="heat heat-2"></span><span class="heat heat-4"></span><span class="heat heat-3"></span><span class="heat heat-2"></span><span class="heat heat-1"></span><span class="heat"></span>
+            <span class="heat"></span><span class="heat heat-2"></span><span class="heat heat-3"></span><span class="heat heat-3"></span><span class="heat heat-4"></span><span class="heat heat-2"></span><span class="heat heat-1"></span>
+            <span class="heat"></span><span class="heat heat-3"></span><span class="heat heat-4"></span><span class="heat heat-4"></span><span class="heat heat-3"></span><span class="heat heat-2"></span><span class="heat"></span>
+          </div>
+          <div class="flex items-center justify-between mt-3 text-[10px] fg3">
+            <span><strong class="text-current font-medium">318</strong> commits</span>
+            <span class="flex items-center gap-1">
+              Less
+              <span class="heat" style="display:inline-block;width:10px;height:10px"></span>
+              <span class="heat heat-1" style="display:inline-block;width:10px;height:10px"></span>
+              <span class="heat heat-2" style="display:inline-block;width:10px;height:10px"></span>
+              <span class="heat heat-3" style="display:inline-block;width:10px;height:10px"></span>
+              <span class="heat heat-4" style="display:inline-block;width:10px;height:10px"></span>
+              More
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Insights -->
+      <section aria-labelledby="insights-heading">
+        <h2 id="insights-heading" class="text-[13px] font-medium mb-3">Insights</h2>
+        <ul class="b border rounded-md surface overflow-hidden text-[12px]">
+          <li class="b border-b">
+            <a href="commits.html" class="flex items-center gap-2.5 px-3.5 py-2.5 fg2 hover:text-current hover-row">
+              <svg class="fg3 flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/></svg>
+              <span>Commits</span>
+              <span class="mono fg3 ml-auto">412</span>
+              <svg class="fg3 flex-shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+          </li>
+          <li class="b border-b">
+            <a href="#" class="flex items-center gap-2.5 px-3.5 py-2.5 fg2 hover:text-current hover-row">
+              <svg class="fg3 flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span>Pulse</span>
+              <svg class="fg3 flex-shrink-0 ml-auto" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+          </li>
+          <li class="b border-b">
+            <a href="contributors.html" class="flex items-center gap-2.5 px-3.5 py-2.5 fg2 hover:text-current hover-row">
+              <svg class="fg3 flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              <span>Contributors</span>
+              <span class="mono fg3 ml-auto">7</span>
+              <svg class="fg3 flex-shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="flex items-center gap-2.5 px-3.5 py-2.5 fg2 hover:text-current hover-row">
+              <svg class="fg3 flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              <span>Dependencies</span>
+              <span class="mono fg3 ml-auto">34</span>
+              <svg class="fg3 flex-shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+          </li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="mt-20 pt-6 b border-t flex items-center justify-between text-[11px] fg2" role="contentinfo">
+    <p class="mono">cloudzilla / v0.3.0 <span aria-hidden="true">·</span> <span role="status"><span aria-hidden="true" style="color: var(--success);">●</span> all systems normal</span></p>
+    <nav aria-label="Footer">
+      <ul class="flex gap-4 list-none">
+        <li><a href="#" class="hover:text-current">Docs</a></li>
+        <li><a href="#" class="hover:text-current">API</a></li>
+        <li><a href="#" class="hover:text-current">Changelog</a></li>
+        <li><a href="#" class="hover:text-current">Status</a></li>
+      </ul>
+    </nav>
+  </footer>
+
+  <!-- Edit repository details modal -->
+  <div id="repo-edit-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="repo-edit-title">
+    <div class="modal-box">
+      <div class="flex items-center justify-between px-5 py-3.5 b border-b">
+        <h2 id="repo-edit-title" class="text-[14px] font-medium">Edit repository details</h2>
+        <button type="button" data-modal-close class="fg3 hover:text-current" aria-label="Close dialog">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="repo-edit-form" class="px-5 py-4 space-y-4">
+        <div>
+          <label for="edit-desc" class="block text-[12px] font-medium mb-1.5">Description</label>
+          <textarea id="edit-desc" rows="3" class="w-full px-3 py-2 text-[13px] surface b border rounded-md placeholder:fg3 focus:bs resize-none">Self-hosted Git forge built in Go with Templ and HTMX. Issues, pull requests, code review, and CI integration — without the bloat.</textarea>
+        </div>
+        <div>
+          <label for="edit-site" class="block text-[12px] font-medium mb-1.5">Website</label>
+          <input id="edit-site" type="text" value="cloudzilla.dev" class="w-full h-9 px-3 text-[13px] surface b border rounded-md placeholder:fg3 focus:bs" />
+        </div>
+        <div>
+          <label for="edit-topics" class="block text-[12px] font-medium mb-1.5">Topics</label>
+          <input id="edit-topics" type="text" placeholder="git, go, htmx, self-hosted" class="w-full h-9 px-3 text-[13px] surface b border rounded-md placeholder:fg3 focus:bs" />
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button type="button" data-modal-close class="h-8 px-3 text-[13px] b border rounded-md hover:elevated">Cancel</button>
+          <button type="submit" class="h-8 px-3 text-[13px] bg-white text-black rounded-md hover:bg-zinc-200 font-medium">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const html = document.documentElement;
+  const STORAGE_KEY = 'cz-theme';
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === 'light' || (!saved && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+    html.classList.add('light');
+  }
+  function syncThemeUI() {
+    const isLight = html.classList.contains('light');
+    document.querySelectorAll('.dark-only').forEach(el => el.classList.toggle('hidden', isLight));
+    document.querySelectorAll('.light-only').forEach(el => el.classList.toggle('hidden', !isLight));
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', String(isLight));
+      toggle.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme');
+    }
+  }
+  function toggleTheme() {
+    html.classList.toggle('light');
+    localStorage.setItem(STORAGE_KEY, html.classList.contains('light') ? 'light' : 'dark');
+    syncThemeUI();
+  }
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+      e.preventDefault();
+      toggleTheme();
+    }
+  });
+  syncThemeUI();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>/* INTERACTIONS_JS */
+  (function(){
+    /* Clone dropdown — protocol tabs */
+    var cloneUrls = {
+      https: 'https://cloudzilla.dev/mkappworks/cloudzilla.git',
+      ssh: 'git@cloudzilla.dev:mkappworks/cloudzilla.git'
+    };
+    var cloneInput = document.getElementById('clone-url');
+    document.querySelectorAll('[data-clone-tab]').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        var kind = tab.getAttribute('data-clone-tab');
+        document.querySelectorAll('[data-clone-tab]').forEach(function(t){
+          var on = t === tab;
+          t.classList.toggle('clone-tab-active', on);
+          t.setAttribute('aria-selected', String(on));
+        });
+        if (cloneInput) cloneInput.value = cloneUrls[kind];
+      });
+    });
+
+    /* Copy-to-clipboard buttons (with execCommand fallback for file://) */
+    function copyText(text){
+      if (navigator.clipboard && window.isSecureContext){
+        return navigator.clipboard.writeText(text);
+      }
+      return new Promise(function(resolve, reject){
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch(e){}
+        document.body.removeChild(ta);
+        ok ? resolve() : reject();
+      });
+    }
+    document.querySelectorAll('[data-copy]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var target = document.querySelector(btn.getAttribute('data-copy'));
+        if (!target) return;
+        copyText(target.value).then(function(){
+          btn.classList.add('copied');
+          setTimeout(function(){ btn.classList.remove('copied'); }, 1600);
+        }).catch(function(){});
+      });
+    });
+
+    /* Modal dialogs */
+    var lastFocused = null;
+    function openModal(id){
+      var m = document.getElementById(id);
+      if (!m) return;
+      lastFocused = document.activeElement;
+      m.classList.remove('hidden');
+      var first = m.querySelector('input, textarea, button');
+      if (first) first.focus();
+    }
+    function closeModal(m){
+      if (!m || m.classList.contains('hidden')) return;
+      m.classList.add('hidden');
+      if (lastFocused && lastFocused.focus) lastFocused.focus();
+    }
+    document.querySelectorAll('[data-modal-open]').forEach(function(btn){
+      btn.addEventListener('click', function(){ openModal(btn.getAttribute('data-modal-open')); });
+    });
+    document.querySelectorAll('.modal-overlay').forEach(function(m){
+      m.addEventListener('click', function(e){ if (e.target === m) closeModal(m); });
+      m.querySelectorAll('[data-modal-close]').forEach(function(b){
+        b.addEventListener('click', function(){ closeModal(m); });
+      });
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape'){
+        document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(closeModal);
+      }
+    });
+
+    /* Edit repo form — reflect saved values into the About panel */
+    var editForm = document.getElementById('repo-edit-form');
+    if (editForm){
+      editForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        var desc = (document.getElementById('edit-desc').value || '').trim();
+        var site = (document.getElementById('edit-site').value || '').trim();
+        var descEl = document.getElementById('about-desc');
+        if (descEl && desc) descEl.textContent = desc;
+        var siteEl = document.getElementById('about-site');
+        if (siteEl && site){
+          var clean = site.replace(/^https?:\/\//, '');
+          siteEl.textContent = clean;
+          siteEl.href = 'https://' + clean;
+        }
+        closeModal(document.getElementById('repo-edit-modal'));
+      });
+    }
+
+    /* List filtering — "Go to file" + branch finder */
+    document.querySelectorAll('[data-filter]').forEach(function(input){
+      var scope = document.querySelector(input.getAttribute('data-filter'));
+      if (!scope) return;
+      var items = scope.querySelectorAll('[data-filter-name]');
+      var empty = scope.querySelector('[data-filter-empty]');
+      input.addEventListener('input', function(){
+        var q = input.value.trim().toLowerCase();
+        var shown = 0;
+        items.forEach(function(it){
+          var hit = it.getAttribute('data-filter-name').toLowerCase().indexOf(q) !== -1;
+          it.classList.toggle('hidden', !hit);
+          if (hit) shown++;
+        });
+        if (empty) empty.classList.toggle('hidden', shown !== 0);
+      });
+    });
+
+    /* "t" focuses the Go-to-file input (GitHub-style shortcut) */
+    document.addEventListener('keydown', function(e){
+      if (e.key.toLowerCase() !== 't' || e.metaKey || e.ctrlKey || e.altKey) return;
+      var tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+      if (document.querySelector('.modal-overlay:not(.hidden)')) return;
+      var ff = document.getElementById('file-finder');
+      if (ff){ e.preventDefault(); ff.focus(); }
+    });
+  })();
+</script>
+</body>
+</html>

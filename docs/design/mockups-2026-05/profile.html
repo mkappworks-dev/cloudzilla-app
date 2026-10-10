@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>@malith — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171;--merged:#c084fc; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c;--merged:#7e22ce; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.bs{border-color:var(--border-strong)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}.link{color:var(--link)}
+  .divide-y.b > * + *{border-top-color:var(--border)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .hover-row:hover{background:var(--elevated)}
+  .lbl{font-size:10px;padding:1px 7px;border-radius:9999px;border:1px solid var(--border);background:var(--elevated);color:var(--fg-2);line-height:1.4;white-space:nowrap}
+  .lbl-blue{background:rgba(110,168,254,0.15);color:#93c5fd;border-color:rgba(110,168,254,0.30)}
+  .lbl-green{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .lbl-purple{background:rgba(192,132,252,0.15);color:#c084fc;border-color:rgba(192,132,252,0.30)}
+  .lbl-amber{background:rgba(251,191,36,0.15);color:var(--warn);border-color:rgba(251,191,36,0.30)}
+  .badge-success{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .row-card{position:relative;transition:padding-left 120ms}
+  .row-card::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--fg);opacity:0;transition:opacity 120ms;border-radius:2px}
+  .row-card:hover::before{opacity:1}
+  .row-card:hover{padding-left:18px}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  label.field{display:block;font-size:12px;font-weight:500;color:var(--fg-2);margin-bottom:6px}
+  input.txt,textarea.txt,select.txt{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--fg);font-family:inherit}
+  input.txt:focus,textarea.txt:focus,select.txt:focus{outline:none;border-color:var(--focus)}
+  /* Account Primary nav — filled-pill active tab */
+  nav[aria-label="Primary"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Primary"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Primary"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+  /* In-page profile tabs — aria-selected drives the visual */
+  [role="tab"] { color: var(--fg-2); text-decoration: none; }
+  [role="tab"]:hover { color: var(--fg); background: var(--elevated); }
+  [role="tab"][aria-selected="true"] { background: var(--elevated); color: var(--fg); font-weight: 500; }
+  /* Hidden tabpanels must stay hidden even when they carry display utilities (grid/flex/block). */
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<header class="b border-b" role="banner">
+  <div class="max-w-[1400px] mx-auto px-6 h-12 flex items-center gap-3">
+    <a href="home.html" class="flex items-center" aria-label="Cloudzilla, home">
+      <svg width="22" height="22" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="22" cy="36" r="9"/><circle cx="32" cy="28" r="11"/><circle cx="44" cy="36" r="9"/><rect x="22" y="36" width="22" height="9" rx="4.5"/></svg>
+    </a>
+    <svg class="fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true" focusable="false"><path d="M16 4L8 20"/></svg>
+    <div class="dropdown-wrap">
+      <button type="button" data-menu class="flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:elevated text-sm" aria-haspopup="menu" aria-expanded="false" aria-label="Switch account or organization, current: mkappworks">
+        <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">M</span>
+        <span class="font-medium">mkappworks</span>
+        <svg class="fg3" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <div class="dropdown-panel hidden" role="menu" aria-label="Switch account or organization">
+        <p class="dropdown-header">Account / orgs</p>
+        <button type="button" role="menuitem" class="dropdown-item dropdown-item-active">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">M</span>
+          <span class="flex-1">mkappworks</span>
+          <span class="text-[10px] fg3">Personal</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">A</span>
+          <span class="flex-1">acme-corp</span>
+          <span class="text-[10px] fg3">Member</span>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">S</span>
+          <span class="flex-1">stitch-labs</span>
+          <span class="text-[10px] fg3">Owner</span>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">O</span>
+          <span class="flex-1">openforge</span>
+          <span class="text-[10px] fg3">Collaborator</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <a href="new_organization.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New organization</span>
+        </a>
+        <a href="organizations.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M3 21h18M3 7h18M5 21V7l7-4 7 4v14"/></svg>
+          <span>Your organizations</span>
+        </a>
+      </div>
+    </div>
+    <nav aria-label="Account" class="ml-auto flex items-center gap-1">
+      <form action="#" method="GET" class="hidden md:block">
+        <label for="topnav-search" class="sr-only">Search Cloudzilla</label>
+        <div class="relative">
+          <input id="topnav-search" name="q" type="search" placeholder="Search…" class="w-56 h-7 pl-7 pr-10 text-[13px] surface b border rounded-md placeholder:fg3 focus:bs focus:bg-transparent" />
+          <svg class="absolute left-2 top-1.5 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <kbd class="mono absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] leading-none px-1.5 py-1 elevated b border rounded fg3" aria-hidden="true">⌘K</kbd>
+        </div>
+      </form>
+      <a href="#" class="relative h-7 w-7 grid place-items-center fg2 hover:text-current rounded-md" aria-label="Notifications (3 unread)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg>
+        <span class="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 grid place-items-center text-[9px] font-medium rounded-full leading-none" style="background:var(--danger);color:#fff;box-shadow:0 0 0 2px var(--bg);">3</span>
+      </a>
+      <button type="button" id="theme-toggle" onclick="toggleTheme()" class="text-sm fg2 hover:text-current px-2.5 h-7 inline-flex items-center gap-1.5 b border rounded-md" aria-pressed="false" aria-label="Switch to light theme">
+        <svg class="dark-only" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="light-only hidden" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <div class="dropdown-wrap">
+        <button type="button" class="avatar h-7 w-7 rounded-full grid place-items-center text-xs font-medium ml-1" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="User menu for Malith Kuruppu">MK</button>
+      <div class="dropdown-panel dropdown-right hidden" role="menu" aria-label="User menu">
+        <div class="px-2.5 py-2">
+          <p class="text-[12px] fg3">Signed in as</p>
+          <p class="text-[13px] font-medium">malith</p>
+        </div>
+        <div class="dropdown-divider"></div>
+        <a href="profile.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Your profile
+        </a>
+        <a href="stars.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Your stars
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="account_settings.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </a>
+        <a href="docs.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/></svg>
+          Docs
+        </a>
+        <a href="changelog.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Changelog
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="auth.html" role="menuitem" class="dropdown-item" style="color:var(--danger)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </a>
+      </div>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <header class="mb-8 flex flex-wrap items-start gap-6">
+    <div class="avatar h-24 w-24 rounded-full grid place-items-center text-3xl font-semibold shrink-0">MK</div>
+    <div class="min-w-0 flex-1">
+      <p class="mono text-[11px] fg3 uppercase tracking-wider mb-1">Profile</p>
+      <h1 class="text-2xl font-semibold tracking-tight">Malith Kuruppu</h1>
+      <p class="mono text-[13px] fg3">@malith</p>
+      <p class="mt-3 text-[14px] fg2 max-w-2xl">Building Cloudzilla — a self-hosted Git platform in Go, Templ, and HTMX. Tinkerer of small, sharp tools. Based in Colombo.</p>
+      <div class="mt-4 flex flex-wrap items-center gap-4 text-[13px] fg2">
+        <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M3 21h18M3 7h18M5 21V7l7-4 7 4v14"/></svg>@mkappworks</span>
+        <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Colombo, Sri Lanka</span>
+        <a href="#" class="inline-flex items-center gap-1.5 link hover:underline"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>cloudzilla.dev</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5 shrink-0">
+      <a href="account_settings.html" class="h-9 px-4 text-sm rounded-md b border hover:elevated inline-flex items-center">Edit profile</a>
+      <button type="button" class="h-9 px-4 text-sm rounded-md b border hover:elevated">Share</button>
+    </div>
+  </header>
+
+  <nav role="tablist" aria-label="Profile sections" class="flex flex-wrap items-center gap-1 text-sm mb-8 -mt-2">
+    <a id="tab-overview" role="tab" href="#overview" aria-selected="true" aria-controls="panel-overview" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5">Overview</a>
+    <a id="tab-repositories" role="tab" href="#repositories" aria-selected="false" aria-controls="panel-repositories" tabindex="-1" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5">Repositories <span class="mono text-[11px] fg3 ml-0.5" aria-label="14 total">14</span></a>
+    <a id="tab-stars" role="tab" href="#stars" aria-selected="false" aria-controls="panel-stars" tabindex="-1" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5">Stars <span class="mono text-[11px] fg3 ml-0.5" aria-label="186 starred">186</span></a>
+    <a id="tab-gists" role="tab" href="#gists" aria-selected="false" aria-controls="panel-gists" tabindex="-1" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5">Gists <span class="mono text-[11px] fg3 ml-0.5" aria-label="4 owned">4</span></a>
+  </nav>
+
+  <section role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" class="grid grid-cols-[1fr_240px] gap-8">
+
+    <div class="space-y-8 min-w-0">
+
+      <section aria-labelledby="readme-heading">
+        <div class="mb-3 flex items-center justify-between gap-3">
+          <h2 id="readme-heading" class="text-sm font-semibold tracking-tight inline-flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+            README
+            <span class="mono text-[10px] fg3 ml-1">malith/README.md</span>
+          </h2>
+          <a href="blob.html" class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[12px] font-medium border b hover:elevated">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>
+            Edit
+          </a>
+        </div>
+        <div class="b border rounded-md surface p-6 text-[13.5px] leading-relaxed fg2">
+          <h3 class="text-[var(--fg)] text-base font-semibold mb-2">👋 Hey, I'm Malith</h3>
+          <p>I build small, focused developer tools — mostly in Go. Right now I'm head-down on <a href="repo.html" class="link hover:underline">Cloudzilla</a>, a self-hosted Git forge designed for teams who want GitHub's UX without the GitHub footprint.</p>
+          <p class="mt-3">Outside of that, I write a fair amount of Templ, TypeScript, and bash — and occasionally rust when the situation calls for it.</p>
+          <p class="mt-4 text-[var(--fg)] text-sm font-medium">Currently</p>
+          <ul class="mt-1.5 list-disc pl-5 space-y-1">
+            <li>Shipping the Phase 9 profile and orgs UI for Cloudzilla</li>
+            <li>Exploring ingestion patterns for ClickHouse-backed event streams</li>
+          </ul>
+          <p class="mt-4 text-[var(--fg)] text-sm font-medium">Reach me</p>
+          <ul class="mt-1.5 list-disc pl-5 space-y-1">
+            <li><a href="#" class="link hover:underline">cloudzilla.dev</a> · <a href="#" class="link hover:underline">@mkappworks</a></li>
+            <li>DMs open for collaboration on Go infra tooling</li>
+          </ul>
+        </div>
+        <!-- Empty-state CTA (rendered in place of the README article when no profile README exists and viewer is the profile owner) -->
+        <details class="mt-3">
+          <summary class="text-[11px] fg3 cursor-pointer select-none">Preview empty state</summary>
+          <div class="mt-2 b border rounded-md surface p-6">
+            <h3 class="text-base font-semibold tracking-tight">Add a profile README</h3>
+            <p class="mt-2 text-[13px] fg2 max-w-prose">Tell visitors about yourself. We'll create a public repo named <span class="mono text-[var(--fg)]">malith</span> with a README.md you can edit anytime.</p>
+            <a href="new_repo.html?name=malith&visibility=public&init_readme=1" class="mt-3 inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-sm font-medium" style="background:var(--fg);color:var(--bg)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Create README repo
+            </a>
+          </div>
+        </details>
+      </section>
+
+      <section aria-labelledby="pinned">
+        <div class="mb-3 flex items-center justify-between gap-3">
+          <h2 id="pinned" class="text-sm font-semibold tracking-tight">Pinned repositories</h2>
+          <button type="button" onclick="document.getElementById('pin-modal').showModal()" class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[12px] font-medium border b hover:elevated">
+            Manage pins
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <a href="repo.html" class="row-card b border rounded-md surface p-4 hover:elevated">
+            <p class="text-[13px] font-medium">cloudzilla</p>
+            <p class="mt-1 text-[12.5px] fg3 line-clamp-2">Self-hosted Git platform in Go, Templ, and HTMX.</p>
+            <div class="mt-3 flex items-center gap-3 text-[11.5px] fg3">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#00ADD8"></span>Go</span>
+              <span class="inline-flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>142</span>
+              <span class="inline-flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="21" r="3"/><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"/></svg>23</span>
+            </div>
+          </a>
+          <a href="#" class="row-card b border rounded-md surface p-4 hover:elevated">
+            <p class="text-[13px] font-medium">ingest-pipeline</p>
+            <p class="mt-1 text-[12.5px] fg3 line-clamp-2">Kafka → ClickHouse event ingestion with replay support.</p>
+            <div class="mt-3 flex items-center gap-3 text-[11.5px] fg3">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#3178C6"></span>TypeScript</span>
+              <span class="inline-flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>8</span>
+            </div>
+          </a>
+          <a href="#" class="row-card b border rounded-md surface p-4 hover:elevated">
+            <p class="text-[13px] font-medium">go-service-starter</p>
+            <p class="mt-1 text-[12.5px] fg3 line-clamp-2">Scaffolding for new Go services — chi, sqlx, structured logs.</p>
+            <div class="mt-3 flex items-center gap-3 text-[11.5px] fg3">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#00ADD8"></span>Go</span>
+              <span class="lbl lbl-amber">Template</span>
+              <span class="inline-flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>67</span>
+            </div>
+          </a>
+          <a href="#" class="row-card b border rounded-md surface p-4 hover:elevated">
+            <p class="text-[13px] font-medium">dotfiles</p>
+            <p class="mt-1 text-[12.5px] fg3 line-clamp-2">Personal config — nvim, zsh, tmux, kitty.</p>
+            <div class="mt-3 flex items-center gap-3 text-[11.5px] fg3">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#89e051"></span>Shell</span>
+              <span class="inline-flex items-center gap-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>18</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <section aria-labelledby="contrib">
+        <h2 id="contrib" class="text-sm font-semibold tracking-tight mb-3">412 contributions in the last year</h2>
+        <div class="b border rounded-md surface p-4">
+          <div class="grid grid-cols-[repeat(52,minmax(0,1fr))] gap-[2px]">
+            <!-- 52 weeks × 7 days = 364 cells, generated --><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.4)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.5)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.6)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.7)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.8)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.0)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.1)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.2)" title="contributions"></div><div class="aspect-square rounded-[2px]" style="background:rgba(74,222,128,0.3)" title="contributions"></div>
+          </div>
+          <div class="mt-3 flex items-center justify-end gap-2 text-[11px] fg3">
+            <span>Less</span>
+            <span class="h-3 w-3 rounded-[2px]" style="background:rgba(74,222,128,0.10)"></span>
+            <span class="h-3 w-3 rounded-[2px]" style="background:rgba(74,222,128,0.35)"></span>
+            <span class="h-3 w-3 rounded-[2px]" style="background:rgba(74,222,128,0.55)"></span>
+            <span class="h-3 w-3 rounded-[2px]" style="background:rgba(74,222,128,0.75)"></span>
+            <span>More</span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="recent-activity">
+        <h2 id="recent-activity" class="text-sm font-semibold tracking-tight mb-3">Recent activity</h2>
+        <ol class="b border rounded-md surface divide-y b">
+          <li class="px-4 py-3 flex items-start gap-3 text-[13px]">
+            <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+            <div class="min-w-0 flex-1">
+              <p>Pushed <span class="mono">3 commits</span> to <a href="repo.html" class="hover:underline mono fg2">mkappworks/cloudzilla</a> · <a href="#" class="hover:underline mono fg2">main</a></p>
+              <p class="mt-0.5 text-[11.5px] fg3"><time datetime="2026-05-13T08:00">5h ago</time></p>
+            </div>
+          </li>
+          <li class="px-4 py-3 flex items-start gap-3 text-[13px]">
+            <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+            <div class="min-w-0 flex-1">
+              <p>Merged <a href="pr.html" class="link hover:underline mono">#318</a> in <a href="repo.html" class="hover:underline mono fg2">mkappworks/cloudzilla</a></p>
+              <p class="mt-0.5 text-[11.5px] fg3"><time datetime="2026-05-12T20:00">yesterday</time></p>
+            </div>
+          </li>
+          <li class="px-4 py-3 flex items-start gap-3 text-[13px]">
+            <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+            <div class="min-w-0 flex-1">
+              <p>Released <a href="releases.html" class="link hover:underline mono">v0.18.0</a> in <a href="repo.html" class="hover:underline mono fg2">mkappworks/cloudzilla</a></p>
+              <p class="mt-0.5 text-[11.5px] fg3"><time datetime="2026-05-10">3d ago</time></p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+    </div>
+
+    <aside class="space-y-6 text-[12.5px]">
+      <section>
+        <p class="fg3 mono uppercase tracking-wider text-[10px] mb-2">Organizations</p>
+        <div class="flex flex-wrap gap-1.5">
+          <a href="#" class="avatar h-9 w-9 rounded grid place-items-center text-[11px] font-medium hover:bs" title="acme-corp">A</a>
+          <a href="#" class="avatar h-9 w-9 rounded grid place-items-center text-[11px] font-medium hover:bs" title="stitch-labs">S</a>
+          <a href="#" class="avatar h-9 w-9 rounded grid place-items-center text-[11px] font-medium hover:bs" title="openforge">O</a>
+        </div>
+      </section>
+      <section>
+        <p class="fg3 mono uppercase tracking-wider text-[10px] mb-2">Top languages</p>
+        <ul class="space-y-1.5">
+          <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#00ADD8"></span><span class="flex-1">Go</span><span class="fg3 mono">62%</span></li>
+          <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#3178C6"></span><span class="flex-1">TypeScript</span><span class="fg3 mono">21%</span></li>
+          <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#89e051"></span><span class="flex-1">Shell</span><span class="fg3 mono">9%</span></li>
+          <li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#e34c26"></span><span class="flex-1">HTML</span><span class="fg3 mono">8%</span></li>
+        </ul>
+      </section>
+      <section>
+        <p class="fg3 mono uppercase tracking-wider text-[10px] mb-2">Member since</p>
+        <p><time datetime="2024-08-15">Aug 2024</time></p>
+      </section>
+    </aside>
+
+  </section>
+
+  <!-- Pin repositories modal — opened by the "Manage pins" button on the Pinned heading. -->
+  <dialog id="pin-modal" aria-labelledby="pin-modal-title" class="rounded-lg b border surface p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" style="color:var(--fg)">
+    <div class="flex flex-col gap-1 p-5 b border-b">
+      <h2 id="pin-modal-title" class="text-base font-semibold leading-tight">Pin repositories</h2>
+      <p class="text-[13px] fg3 leading-snug">Choose up to 6 repositories to feature on your profile. Pinned <span class="mono">2 / 6</span>.</p>
+    </div>
+    <div class="p-5 text-sm">
+      <ul class="divide-y b max-h-[400px] overflow-y-auto -mx-5">
+        <li class="px-5 py-2.5 flex items-center gap-3">
+          <svg class="shrink-0 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium leading-snug">cloudzilla</p>
+            <p class="text-[12px] fg3 line-clamp-1">Self-hosted Git platform in Go, Templ, and HTMX.</p>
+          </div>
+          <label class="shrink-0 inline-flex items-center cursor-pointer">
+            <input type="checkbox" checked class="h-4 w-4 cursor-pointer accent-blue-500 disabled:cursor-not-allowed disabled:opacity-50" aria-label="Pin cloudzilla"/>
+          </label>
+        </li>
+        <li class="px-5 py-2.5 flex items-center gap-3">
+          <svg class="shrink-0 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium leading-snug">ingest-pipeline</p>
+            <p class="text-[12px] fg3 line-clamp-1">Kafka → ClickHouse event ingestion with replay support.</p>
+          </div>
+          <label class="shrink-0 inline-flex items-center cursor-pointer">
+            <input type="checkbox" checked class="h-4 w-4 cursor-pointer accent-blue-500 disabled:cursor-not-allowed disabled:opacity-50" aria-label="Pin ingest-pipeline"/>
+          </label>
+        </li>
+        <li class="px-5 py-2.5 flex items-center gap-3">
+          <svg class="shrink-0 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium leading-snug">go-service-starter</p>
+            <p class="text-[12px] fg3 line-clamp-1">Scaffolding for new Go services — chi, sqlx, structured logs.</p>
+          </div>
+          <label class="shrink-0 inline-flex items-center cursor-pointer">
+            <input type="checkbox" class="h-4 w-4 cursor-pointer accent-blue-500 disabled:cursor-not-allowed disabled:opacity-50" aria-label="Pin go-service-starter"/>
+          </label>
+        </li>
+        <li class="px-5 py-2.5 flex items-center gap-3">
+          <svg class="shrink-0 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium leading-snug">scratch</p>
+            <p class="text-[12px] fg3 line-clamp-1">Private notes and experiments.</p>
+          </div>
+          <label class="shrink-0 inline-flex items-center cursor-pointer">
+            <input type="checkbox" class="h-4 w-4 cursor-pointer accent-blue-500 disabled:cursor-not-allowed disabled:opacity-50" aria-label="Pin scratch"/>
+          </label>
+        </li>
+      </ul>
+    </div>
+    <div class="flex items-center justify-between gap-2 p-5 b border-t">
+      <span class="text-[12px] fg3 mono">Pinned 2 / 6</span>
+      <form method="dialog" class="contents">
+        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium border b bg-transparent hover:elevated h-9 px-4">Close</button>
+      </form>
+    </div>
+  </dialog>
+
+  <section role="tabpanel" id="panel-repositories" aria-labelledby="tab-repositories" hidden>
+    <form action="#" method="GET" class="flex items-center gap-2 mb-4 flex-wrap">
+      <div class="relative flex-1 min-w-[240px]">
+        <label for="repo-filter" class="sr-only">Filter repositories</label>
+        <input id="repo-filter" type="search" placeholder="Filter by name…" class="w-full h-9 pl-8 pr-3 text-[13px] surface b border rounded-md placeholder:fg3 focus:outline-none focus:bs" />
+        <svg class="absolute left-2.5 top-2.5 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </div>
+      <select aria-label="Filter by type" class="h-9 surface b border rounded-md px-3 text-[13px]" style="width:auto"><option>All types</option><option>Sources</option><option>Forks</option><option>Templates</option></select>
+      <select aria-label="Filter by visibility" class="h-9 surface b border rounded-md px-3 text-[13px]" style="width:auto"><option>All visibility</option><option>Public</option><option>Private</option></select>
+    </form>
+    <div class="flex flex-wrap gap-1.5 mb-4" role="group" aria-label="Filter by language">
+      <button type="button" class="inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border border-transparent bg-[var(--fg)] text-[var(--bg)]">All</button>
+      <button type="button" class="inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border b fg2 hover:text-current">Go</button>
+      <button type="button" class="inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border b fg2 hover:text-current">TypeScript</button>
+      <button type="button" class="inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border b fg2 hover:text-current">Rust</button>
+      <button type="button" class="inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border b fg2 hover:text-current">Shell</button>
+    </div>
+    <ol class="b border rounded-md surface divide-y b overflow-hidden">
+      <li>
+        <a href="repo.html" class="row-card block px-4 py-3 hover:elevated">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg class="fg3 mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug">mkappworks/cloudzilla</p>
+              <span class="lbl lbl-green">Public</span>
+              <span class="lbl lbl-blue">Owner</span>
+            </div>
+          </div>
+          <div class="pl-[27px] flex items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 text-[12px] fg2 flex-wrap"><span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#00ADD8"></span>Go</span><span class="opacity-50">·</span>Updated <time datetime="2026-05-13">2h ago</time></div>
+            <div class="flex items-center gap-3 text-[12px] fg2 shrink-0"><span class="inline-flex items-center gap-1">★ 142</span><span class="inline-flex items-center gap-1">⑂ 23</span></div>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="row-card block px-4 py-3 hover:elevated">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg class="fg3 mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug">mkappworks/ingest-pipeline</p>
+              <span class="lbl lbl-amber">Private</span>
+              <span class="lbl lbl-blue">Owner</span>
+            </div>
+          </div>
+          <div class="pl-[27px] flex items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 text-[12px] fg2 flex-wrap"><span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#dea584"></span>Rust</span><span class="opacity-50">·</span>Updated <time datetime="2026-05-12">1d ago</time></div>
+            <div class="flex items-center gap-3 text-[12px] fg2 shrink-0"><span class="inline-flex items-center gap-1">★ 8</span><span class="inline-flex items-center gap-1">⑂ 0</span></div>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="row-card block px-4 py-3 hover:elevated">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg class="fg3 mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug">mkappworks/go-service-starter</p>
+              <span class="lbl lbl-green">Public</span>
+              <span class="lbl lbl-amber">Template</span>
+              <span class="lbl lbl-blue">Owner</span>
+            </div>
+          </div>
+          <div class="pl-[27px] flex items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 text-[12px] fg2 flex-wrap"><span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#00ADD8"></span>Go</span><span class="opacity-50">·</span>Updated <time datetime="2026-04-29">2w ago</time></div>
+            <div class="flex items-center gap-3 text-[12px] fg2 shrink-0"><span class="inline-flex items-center gap-1">★ 67</span><span class="inline-flex items-center gap-1">⑂ 12</span></div>
+          </div>
+        </a>
+      </li>
+    </ol>
+    <nav class="mt-6 flex items-center justify-between text-[12px]" aria-label="Pagination">
+      <a href="#" class="h-8 px-3 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5" aria-disabled="true" tabindex="-1" style="opacity:0.5;pointer-events:none">← Newer</a>
+      <span class="fg3 mono">page 1 of 3</span>
+      <a href="#" class="h-8 px-3 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5">Older →</a>
+    </nav>
+  </section>
+
+  <section role="tabpanel" id="panel-stars" aria-labelledby="tab-stars" hidden>
+    <ol class="b border rounded-md surface divide-y b overflow-hidden">
+      <li>
+        <a href="#" class="row-card block px-4 py-3 hover:elevated group">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg class="fg3 mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug group-hover:underline">acme-corp/api</p>
+              <span class="lbl lbl-green">Public</span>
+            </div>
+          </div>
+          <p class="pl-[27px] text-[12.5px] fg3 line-clamp-2">REST + gRPC gateway with rate-limiting and request signing.</p>
+          <div class="pl-[27px] mt-1.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 text-[12px] fg2 flex-wrap">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#00ADD8"></span>Go</span>
+              <span class="opacity-50" aria-hidden="true">·</span>
+              <span>Starred <time datetime="2026-05-01">3w ago</time></span>
+            </div>
+            <div class="flex items-center gap-3 text-[12px] fg2 shrink-0">
+              <span class="inline-flex items-center gap-1" title="1.2k stars">★ 1.2k</span>
+            </div>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="row-card block px-4 py-3 hover:elevated group">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg class="fg3 mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug group-hover:underline">htmx-org/htmx</p>
+              <span class="lbl lbl-green">Public</span>
+            </div>
+          </div>
+          <p class="pl-[27px] text-[12.5px] fg3 line-clamp-2">High power tools for HTML.</p>
+          <div class="pl-[27px] mt-1.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 text-[12px] fg2 flex-wrap">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#f1e05a"></span>JavaScript</span>
+              <span class="opacity-50" aria-hidden="true">·</span>
+              <span>Starred <time datetime="2026-03-12">2mo ago</time></span>
+            </div>
+            <div class="flex items-center gap-3 text-[12px] fg2 shrink-0">
+              <span class="inline-flex items-center gap-1" title="38.5k stars">★ 38.5k</span>
+            </div>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="row-card block px-4 py-3 hover:elevated group">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg class="fg3 mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug group-hover:underline">a-h/templ</p>
+              <span class="lbl lbl-green">Public</span>
+            </div>
+          </div>
+          <p class="pl-[27px] text-[12.5px] fg3 line-clamp-2">A language for writing HTML user interfaces in Go.</p>
+          <div class="pl-[27px] mt-1.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 text-[12px] fg2 flex-wrap">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#00ADD8"></span>Go</span>
+              <span class="opacity-50" aria-hidden="true">·</span>
+              <span>Starred <time datetime="2026-02-04">3mo ago</time></span>
+            </div>
+            <div class="flex items-center gap-3 text-[12px] fg2 shrink-0">
+              <span class="inline-flex items-center gap-1" title="9.8k stars">★ 9.8k</span>
+            </div>
+          </div>
+        </a>
+      </li>
+    </ol>
+    <nav class="mt-6 flex items-center justify-between text-[12px]" aria-label="Pagination">
+      <a href="#" class="h-8 px-3 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5" aria-disabled="true" tabindex="-1" style="opacity:0.5;pointer-events:none">← Newer</a>
+      <span class="fg3 mono">page 1 of 62</span>
+      <a href="#" class="h-8 px-3 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5">Older →</a>
+    </nav>
+  </section>
+
+  <section role="tabpanel" id="panel-gists" aria-labelledby="tab-gists" hidden>
+    <ol class="b border rounded-md surface divide-y b overflow-hidden">
+      <li>
+        <a href="#" class="row-card block px-4 py-3 hover:elevated group">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 fg2" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug group-hover:underline mono">git-fixup-rebase.sh</p>
+              <span class="lbl lbl-green">Public</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-3 pl-[27px]">
+            <div class="flex items-center gap-1.5 text-[12px] fg3 min-w-0 flex-wrap">
+              <span class="mono">b1d103fab1d2</span>
+              <span class="opacity-50" aria-hidden="true">·</span>
+              <time datetime="2026-05-08">5d ago</time>
+              <span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
+              <span class="lbl lbl-blue">Bash</span>
+            </div>
+            <div class="flex items-center gap-3 text-[12px] shrink-0">
+              <span class="fg3 inline-flex items-center gap-1" title="1 file"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>1</span>
+            </div>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="row-card block px-4 py-3 hover:elevated group">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 fg2" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug group-hover:underline mono">pg-locks.sql</p>
+              <span class="lbl lbl-green">Public</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-3 pl-[27px]">
+            <div class="flex items-center gap-1.5 text-[12px] fg3 min-w-0 flex-wrap">
+              <span class="mono">7a3f912ee401</span>
+              <span class="opacity-50" aria-hidden="true">·</span>
+              <time datetime="2026-04-22">3w ago</time>
+              <span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
+              <span class="lbl lbl-purple">SQL</span>
+            </div>
+            <div class="flex items-center gap-3 text-[12px] shrink-0">
+              <span class="fg3 inline-flex items-center gap-1" title="1 file"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>1</span>
+            </div>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a href="#" class="row-card block px-4 py-3 hover:elevated group">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 fg2" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug group-hover:underline mono">tailscale-ssh-snippet.json</p>
+              <span class="lbl lbl-amber">Secret</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-3 pl-[27px]">
+            <div class="flex items-center gap-1.5 text-[12px] fg3 min-w-0 flex-wrap">
+              <span class="mono">d8e2c4af90b1</span>
+              <span class="opacity-50" aria-hidden="true">·</span>
+              <time datetime="2026-03-15">2mo ago</time>
+              <span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
+              <span class="lbl lbl-amber">JSON</span>
+            </div>
+            <div class="flex items-center gap-3 text-[12px] shrink-0">
+              <span class="fg3 inline-flex items-center gap-1" title="2 files"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>2</span>
+            </div>
+          </div>
+        </a>
+      </li>
+    </ol>
+    <nav class="mt-6 flex items-center justify-between text-[12px]" aria-label="Pagination">
+      <a href="#" class="h-8 px-3 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5" aria-disabled="true" tabindex="-1" style="opacity:0.5;pointer-events:none">← Newer</a>
+      <span class="fg3 mono">page 1 of 1</span>
+      <a href="#" class="h-8 px-3 b border rounded-md hover:elevated fg2 inline-flex items-center gap-1.5" aria-disabled="true" tabindex="-1" style="opacity:0.5;pointer-events:none">Older →</a>
+    </nav>
+  </section>
+</main>
+
+<script>/* TABS_JS */
+  (function(){
+    var tablist = document.querySelector('[role="tablist"]');
+    if (!tablist) return;
+    var tabs = Array.prototype.slice.call(tablist.querySelectorAll('[role="tab"]'));
+    var panels = document.querySelectorAll('[role="tabpanel"]');
+    function activate(tab, focus){
+      tabs.forEach(function(t){
+        var isActive = t === tab;
+        t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        t.setAttribute('tabindex', isActive ? '0' : '-1');
+      });
+      var targetId = tab.getAttribute('aria-controls');
+      panels.forEach(function(p){ p.hidden = (p.id !== targetId); });
+      history.replaceState(null, '', '#' + tab.getAttribute('href').slice(1));
+      if (focus) tab.focus();
+    }
+    tabs.forEach(function(tab, idx){
+      tab.addEventListener('click', function(e){ e.preventDefault(); activate(tab, false); });
+      tab.addEventListener('keydown', function(e){
+        var next = null;
+        if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') next = tabs[0];
+        else if (e.key === 'End') next = tabs[tabs.length - 1];
+        if (next){ e.preventDefault(); activate(next, true); }
+      });
+    });
+    var hash = location.hash.replace('#','');
+    if (hash){
+      var initial = tabs.find(function(t){ return t.getAttribute('href') === '#' + hash; });
+      if (initial) activate(initial, false);
+    }
+  })();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+</body>
+</html>

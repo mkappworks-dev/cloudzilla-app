@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Docs — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}.link{color:var(--link)}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .doc-nav-item{display:block;padding:5px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;text-decoration:none}
+  .doc-nav-item:hover{background:var(--elevated);color:var(--fg)}
+  .doc-nav-item-active{background:var(--elevated);color:var(--fg);font-weight:500}
+  .prose{color:var(--fg-2);font-size:14px;line-height:1.7}
+  .prose h2{color:var(--fg);font-size:20px;font-weight:600;margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .prose h3{color:var(--fg);font-size:15px;font-weight:600;margin:24px 0 8px}
+  .prose p{margin:0 0 12px}
+  .prose code{font-family:'Geist Mono',monospace;font-size:12.5px;background:var(--elevated);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+  .prose pre{font-family:'Geist Mono',monospace;font-size:12.5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;overflow-x:auto;margin:0 0 16px}
+  .prose pre code{background:transparent;border:0;padding:0}
+  .prose a{color:var(--link);text-decoration:underline;text-underline-offset:3px}
+  .prose ul{padding-left:22px;margin:0 0 12px}
+  .prose li{margin:4px 0}
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<header class="b border-b" role="banner">
+  <div class="max-w-[1400px] mx-auto px-6 h-12 flex items-center gap-3">
+    <a href="home.html" class="flex items-center" aria-label="Cloudzilla, home">
+      <svg width="22" height="22" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="22" cy="36" r="9"/><circle cx="32" cy="28" r="11"/><circle cx="44" cy="36" r="9"/><rect x="22" y="36" width="22" height="9" rx="4.5"/></svg>
+    </a>
+    <svg class="fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M16 4L8 20"/></svg>
+    <span class="text-sm font-medium">Docs</span>
+    <nav aria-label="Account" class="ml-auto flex items-center gap-1">
+      <a href="docs.html" class="text-sm px-2.5 h-7 inline-flex items-center font-medium">Docs</a>
+      <a href="home.html" class="text-sm fg2 hover:text-current px-2.5 h-7 inline-flex items-center">Back to app →</a>
+    </nav>
+  </div>
+</header>
+
+<div class="max-w-[1280px] mx-auto px-6 pt-10 pb-20 grid grid-cols-[220px_1fr_220px] gap-10">
+
+  <aside aria-label="Documentation sections" class="sticky top-4 self-start">
+    <p class="mono text-[10px] fg3 uppercase tracking-wider mb-2 px-2">Getting started</p>
+    <nav class="flex flex-col gap-0.5 mb-6">
+      <a href="#install" class="doc-nav-item doc-nav-item-active">Install Cloudzilla</a>
+      <a href="#first-repo" class="doc-nav-item">Create your first repo</a>
+      <a href="#ssh" class="doc-nav-item">Set up SSH</a>
+    </nav>
+    <p class="mono text-[10px] fg3 uppercase tracking-wider mb-2 px-2">Reference</p>
+    <nav class="flex flex-col gap-0.5 mb-6">
+      <a href="#cli" class="doc-nav-item">CLI reference</a>
+      <a href="#api" class="doc-nav-item">REST API</a>
+      <a href="#webhooks" class="doc-nav-item">Webhooks</a>
+      <a href="#permissions" class="doc-nav-item">Permissions model</a>
+    </nav>
+    <p class="mono text-[10px] fg3 uppercase tracking-wider mb-2 px-2">Operate</p>
+    <nav class="flex flex-col gap-0.5">
+      <a href="#deploy" class="doc-nav-item">Deploy with Docker</a>
+      <a href="#upgrade" class="doc-nav-item">Upgrade procedure</a>
+      <a href="#backup" class="doc-nav-item">Backup &amp; restore</a>
+    </nav>
+  </aside>
+
+  <main class="prose max-w-none">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">Docs · Getting started</p>
+    <h1 class="text-3xl font-semibold tracking-tight text-[var(--fg)] mb-2">Install Cloudzilla</h1>
+    <p class="fg2">Cloudzilla is a self-hosted Git platform written in Go. This guide walks through getting a working instance running locally in under five minutes.</p>
+
+    <h2 id="install">Quickstart</h2>
+    <p>The fastest path is the official Docker image. It bundles the server, SSH transport, embedded migrations, and a PostgreSQL-ready binary.</p>
+    <pre><code>docker run -d \
+  -p 8080:8080 -p 2222:2222 \
+  -e CZ_DATABASE_DSN="postgres://..." \
+  -e CZ_AUTH_JWT_SECRET="$(openssl rand -hex 32)" \
+  -v $PWD/repos:/var/repos \
+  ghcr.io/cloudzilla/cloudzilla:latest</code></pre>
+    <p>Open <a href="#">http://localhost:8080</a> and you'll land on the setup wizard. The first user to complete setup becomes the instance superadmin.</p>
+
+    <h3 id="first-repo">Create your first repo</h3>
+    <p>From the dashboard, click <a href="new_repo.html">New repository</a> in the header. Pick an owner, a name, and a visibility — and you're done. Cloudzilla creates a bare repo on disk and gives you both an HTTPS and an SSH clone URL.</p>
+
+    <h3 id="ssh">Set up SSH</h3>
+    <p>Add your public key under <a href="account_settings.html">Account settings → SSH keys</a>. Cloudzilla speaks the smart-HTTP protocol on port 8080 and a pure-Go SSH server on port 2222 — no <code>git</code> binary required on the server.</p>
+    <pre><code># clone over SSH
+git clone ssh://git@your-host:2222/mkappworks/cloudzilla.git</code></pre>
+
+    <h2 id="cli">Architecture at a glance</h2>
+    <ul>
+      <li><strong>Backend:</strong> Go 1.23+, chi router, sqlx, go-git, cobra CLI</li>
+      <li><strong>Frontend:</strong> Templ (type-safe Go HTML), HTMX for partial updates, Tailwind CSS</li>
+      <li><strong>Database:</strong> PostgreSQL</li>
+      <li><strong>Layering:</strong> stores → services → handlers, strict separation</li>
+    </ul>
+    <p>The CLI ships as <code>cloudzilla-cli</code> alongside the server binary. Use it for migrations, admin user management, and one-off scripts.</p>
+
+    <h2 id="api">REST API</h2>
+    <p>Most product surfaces have a REST equivalent. Endpoints are documented under <code>/api/v1/*</code> with standard JSON responses. Authentication is via either the <code>cz_token</code> cookie (browser) or <code>Authorization: Bearer</code> header (API clients).</p>
+
+    <h2 id="webhooks">Webhooks</h2>
+    <p>Webhooks fire on <code>push</code>, <code>issues</code>, and <code>pull_request</code> events. Set the optional secret to sign payloads with HMAC-SHA256. See <a href="settings.html">Repository settings → Webhooks</a>.</p>
+  </main>
+
+  <aside class="sticky top-4 self-start text-[12.5px] fg3">
+    <p class="mono text-[10px] uppercase tracking-wider mb-2">On this page</p>
+    <ul class="space-y-1.5">
+      <li><a href="#install" class="hover:text-current">Quickstart</a></li>
+      <li><a href="#first-repo" class="hover:text-current">First repo</a></li>
+      <li><a href="#ssh" class="hover:text-current">SSH setup</a></li>
+      <li><a href="#cli" class="hover:text-current">Architecture</a></li>
+      <li><a href="#api" class="hover:text-current">REST API</a></li>
+      <li><a href="#webhooks" class="hover:text-current">Webhooks</a></li>
+    </ul>
+  </aside>
+
+</div>
+<script>
+  const s=localStorage.getItem('cz-theme');
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))document.documentElement.classList.add('light');
+</script>
+</body>
+</html>

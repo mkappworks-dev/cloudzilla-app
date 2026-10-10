@@ -29,6 +29,8 @@ Tailwind v4 utilities only. `tailwind/input.css` is the whole config: `@theme` m
 
 `space-y-*` and `divide-y` style every child but the last: keep a rendered element last (hidden inputs, `<script>` and `<dialog>` go first or outside), and use `flex flex-col gap-*` when rows toggle with `x-show`.
 
+A new design mock is an HTML file beside the spec it serves, in `.scratch/<date>-<slug>/`. `docs/design/` holds frozen archives only — nothing there tracks the shipped UI.
+
 ## Static assets
 
 `cmd/server/frontend/` is embedded and served by `internal/assets`. Templates reference a file as `assets.URL("/static/x.js")`, never as a literal path: the `?v=<content hash>` query is what lets browsers cache it for a year.
@@ -72,6 +74,7 @@ Read the matching doc before working in an area:
 - [webhooks](./docs/webhooks.md) — events, HMAC signing, fire-and-forget `Dispatch`
 - [notifications](./docs/notifications.md) — types; skipped when `actorID == authorID`
 - [ui-overhaul-class-map](./docs/ui-overhaul-class-map.md) — mockup → shadcn class map and Tailwind v3 → v4 names; the source of truth when porting UI
+- [design/mockups-2026-05](./docs/design/mockups-2026-05/README.md) — the archived May 2026 mockups; Tailwind v3 and frozen, so read them through the class map
 - [testing](./docs/testing.md) — what CI runs, why `backup` and `seed` are local-only, `make test-integration`
 - [ROADMAP](./docs/ROADMAP.md) — phase status
 

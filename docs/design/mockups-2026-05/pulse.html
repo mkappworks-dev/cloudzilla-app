@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171;--merged:#c084fc; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c;--merged:#7e22ce; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.divide-y.b > * + *{border-top-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6" aria-labelledby="pulse-title">
+    <h1 id="pulse-title" class="text-2xl font-semibold tracking-tight">Repository pulse <span class="fg3 font-normal text-base mono">last 30 days</span></h1>
+  </section>
+
+  <section aria-labelledby="stats-heading" class="mb-10">
+    <h2 id="stats-heading" class="sr-only">Activity counts</h2>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div class="b border rounded-md surface p-4">
+        <p class="mono text-[10px] fg3 uppercase tracking-wider">New issues</p>
+        <p class="mt-2 text-3xl font-semibold tabular-nums" style="color:var(--success)">14</p>
+      </div>
+      <div class="b border rounded-md surface p-4">
+        <p class="mono text-[10px] fg3 uppercase tracking-wider">Closed issues</p>
+        <p class="mt-2 text-3xl font-semibold tabular-nums" style="color:var(--danger)">9</p>
+      </div>
+      <div class="b border rounded-md surface p-4">
+        <p class="mono text-[10px] fg3 uppercase tracking-wider">New PRs</p>
+        <p class="mt-2 text-3xl font-semibold tabular-nums">21</p>
+      </div>
+      <div class="b border rounded-md surface p-4">
+        <p class="mono text-[10px] fg3 uppercase tracking-wider">Merged PRs</p>
+        <p class="mt-2 text-3xl font-semibold tabular-nums" style="color:var(--merged)">18</p>
+      </div>
+      <div class="b border rounded-md surface p-4">
+        <p class="mono text-[10px] fg3 uppercase tracking-wider">Commits</p>
+        <p class="mt-2 text-3xl font-semibold tabular-nums">87</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="b border rounded-md surface" aria-labelledby="top-contrib">
+    <header class="px-4 py-3 b border-b flex items-center justify-between">
+      <h2 id="top-contrib" class="text-[13px] font-medium">Top contributors</h2>
+      <a href="contributors.html" class="text-[12px] fg2 hover:text-current">View all →</a>
+    </header>
+    <ul class="divide-y b">
+      <li class="flex items-center gap-3 px-4 py-2.5">
+        <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium">MK</span>
+        <span class="flex-1 font-medium text-[13px]">Malith Kuruppu</span>
+        <span class="text-[12px] fg2 truncate hidden sm:inline">malith@cloudzilla.dev</span>
+        <span class="mono text-[12px] font-semibold w-20 text-right">42 commits</span>
+      </li>
+      <li class="flex items-center gap-3 px-4 py-2.5">
+        <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium">DK</span>
+        <span class="flex-1 font-medium text-[13px]">Daisy K.</span>
+        <span class="text-[12px] fg2 truncate hidden sm:inline">daisy@cloudzilla.dev</span>
+        <span class="mono text-[12px] font-semibold w-20 text-right">23 commits</span>
+      </li>
+      <li class="flex items-center gap-3 px-4 py-2.5">
+        <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium">YM</span>
+        <span class="flex-1 font-medium text-[13px]">Yumi M.</span>
+        <span class="text-[12px] fg2 truncate hidden sm:inline">yumi@cloudzilla.dev</span>
+        <span class="mono text-[12px] font-semibold w-20 text-right">14 commits</span>
+      </li>
+    </ul>
+  </section>
+</main>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+</body>
+</html>

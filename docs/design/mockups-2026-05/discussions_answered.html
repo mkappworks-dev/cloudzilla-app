@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Answered discussions · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.divide-y.b > * + *{border-top-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .chip{background:var(--elevated);border:1px solid var(--border);color:var(--fg-2);font-size:11px;padding:2px 8px;border-radius:9999px}
+  .chip-active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .lbl{font-size:10px;padding:1px 7px;border-radius:9999px;border:1px solid var(--border);background:var(--elevated);color:var(--fg-2);line-height:1.4;white-space:nowrap}
+  .lbl-blue{background:rgba(110,168,254,0.15);color:#93c5fd;border-color:rgba(110,168,254,0.30)}
+  .lbl-green{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .lbl-purple{background:rgba(192,132,252,0.15);color:#c084fc;border-color:rgba(192,132,252,0.30)}
+  .lbl-amber{background:rgba(251,191,36,0.15);color:var(--warn);border-color:rgba(251,191,36,0.30)}
+  .avatar-stack > *{box-shadow:0 0 0 2px var(--bg)}
+  .disc-card{position:relative;transition:padding-left 120ms}
+  .disc-card::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--fg);opacity:0;transition:opacity 120ms;border-radius:2px}
+  .disc-card:hover::before{opacity:1}
+  .disc-card:hover{padding-left:18px}
+  .answered-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--success);font-weight:500}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  html.light [style*="color:#052e16"]{color:#fff !important}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="discussions"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6 flex flex-wrap items-start justify-between gap-4" aria-labelledby="disc-title">
+    <div class="min-w-0">
+      <h1 id="disc-title" class="text-2xl font-semibold tracking-tight">Discussions</h1>
+      <p class="mt-1 text-[13px] fg2">Conversations, ideas, and questions about <span class="mono">cloudzilla</span>.</p>
+    </div>
+    <a href="#" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5" style="background:var(--success);color:#052e16">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      New discussion
+    </a>
+  </section>
+
+  <nav class="mb-4 flex items-center gap-2 flex-wrap" aria-label="Discussion categories">
+    <button type="button" class="chip chip-active">All <span class="mono ml-1 opacity-70">5</span></button>
+    <button type="button" class="chip">General <span class="mono ml-1 opacity-70">2</span></button>
+    <button type="button" class="chip">Q&amp;A <span class="mono ml-1 opacity-70">1</span></button>
+    <button type="button" class="chip">Ideas <span class="mono ml-1 opacity-70">1</span></button>
+    <button type="button" class="chip">Announcements <span class="mono ml-1 opacity-70">1</span></button>
+  </nav>
+
+  <nav class="mb-4 flex items-center gap-1 b border-b text-sm" aria-label="Discussion state">
+    <a href="discussions.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current">Open <span class="mono text-[11px] fg3 ml-0.5">4</span></a>
+    <a href="discussions_answered.html" class="px-3 py-2.5 border-b -mb-px tab-active font-medium" aria-current="page">Answered <span class="mono text-[11px] fg3 ml-0.5">1</span></a>
+    <a href="discussions_closed.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current">Closed <span class="mono text-[11px] fg3 ml-0.5">1</span></a>
+  </nav>
+
+  <section class="b border rounded-md surface overflow-hidden" aria-labelledby="disc-list">
+    <h2 id="disc-list" class="sr-only">Discussion threads</h2>
+    <ol class="divide-y b">
+
+      <li>
+        <a href="discussion_detail.html" class="disc-card block px-4 py-3 hover:elevated group">
+          <div class="flex items-start gap-3 mb-1.5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5" style="color:var(--success)" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+            <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+              <p class="text-[13.5px] font-medium leading-snug group-hover:underline">How do I configure deploy keys for read-only access?</p>
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-3 pl-[28px]">
+            <div class="flex items-center gap-1.5 text-[12px] fg3 min-w-0 flex-wrap">
+              <span class="mono">#39</span>
+              <span class="opacity-50" aria-hidden="true">·</span>
+              <span class="avatar h-4 w-4 rounded-full inline-flex items-center justify-center text-[8px] font-medium" aria-hidden="true">PR</span>
+              <span class="hover:text-current">priya</span>
+              <span class="opacity-50" aria-hidden="true">·</span>
+              answered <time datetime="2026-05-10T15:00">3d ago</time>
+              <span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
+              <span class="lbl lbl-blue">Q&amp;A</span>
+              <span class="lbl">auth</span>
+              <span class="lbl">ssh</span>
+            </div>
+            <div class="flex items-center gap-3 text-[12px] shrink-0">
+              <div class="flex avatar-stack -space-x-1.5" aria-label="4 participants">
+                <span class="avatar h-5 w-5 rounded-full inline-flex items-center justify-center text-[9px] font-medium" title="Jamie (answered)" style="box-shadow:0 0 0 2px var(--success), 0 0 0 4px var(--bg)">JM</span>
+                <span class="avatar h-5 w-5 rounded-full inline-flex items-center justify-center text-[9px] font-medium" title="Aki H.">AH</span>
+                <span class="avatar h-5 w-5 rounded-full inline-flex items-center justify-center text-[9px] font-medium fg3" title="+2 more">+2</span>
+              </div>
+              <span class="answered-badge" title="Answered by jamie">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                Answered
+              </span>
+              <span class="fg3 inline-flex items-center gap-1" title="12 replies">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                12
+              </span>
+            </div>
+          </div>
+        </a>
+      </li>
+
+    </ol>
+  </section>
+
+</main>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RFC: OpenTelemetry tracing · Discussions · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.divide-y.b > * + *{border-top-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .chip{background:var(--elevated);border:1px solid var(--border);color:var(--fg-2);font-size:11px;padding:2px 8px;border-radius:9999px}
+  .chip-active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .lbl{font-size:10px;padding:1px 7px;border-radius:9999px;border:1px solid var(--border);background:var(--elevated);color:var(--fg-2);line-height:1.4;white-space:nowrap}
+  .lbl-blue{background:rgba(110,168,254,0.15);color:#93c5fd;border-color:rgba(110,168,254,0.30)}
+  .lbl-green{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .lbl-purple{background:rgba(192,132,252,0.15);color:#c084fc;border-color:rgba(192,132,252,0.30)}
+  .lbl-amber{background:rgba(251,191,36,0.15);color:var(--warn);border-color:rgba(251,191,36,0.30)}
+  .avatar-stack > *{box-shadow:0 0 0 2px var(--bg)}
+  .disc-card{position:relative;transition:padding-left 120ms}
+  .disc-card::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--fg);opacity:0;transition:opacity 120ms;border-radius:2px}
+  .disc-card:hover::before{opacity:1}
+  .disc-card:hover{padding-left:18px}
+  .answered-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--success);font-weight:500}
+  .reply .answered-badge,.reply .answer-status,.reply .unmark-answer{display:none}
+  .reply.is-answer .mark-answer{display:none}
+  .reply.is-answer .answered-badge,.reply.is-answer .answer-status,.reply.is-answer .unmark-answer{display:inline-flex}
+  .reply.is-answer{border-color:rgba(74,222,128,0.45)}
+  .reply.is-answer > header{background:rgba(74,222,128,0.14);border-color:rgba(74,222,128,0.30)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .op-tint{background:#1e3a8a}
+  html.light .op-tint{background:rgba(147,197,253,0.18)}
+  .title-editing{background:var(--elevated);border-radius:6px;padding:0 6px;outline:1px solid var(--border-strong)}
+  .badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:9999px;font-size:11px;font-weight:500;border:1px solid var(--border)}
+  .meta-menu{max-height:340px;overflow-y:auto}
+  .meta-menu .check{visibility:hidden;flex:none}
+  .meta-menu [aria-checked="true"] .check{visibility:visible}
+  .meta-dot{width:9px;height:9px;border-radius:9px;flex:none}
+  [data-entry].off,[data-empty].off{display:none}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="discussions"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6 b border-b pb-6">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="discussions.html" class="hover:underline">Discussions</a>
+      <span aria-hidden="true">·</span>
+      <span aria-current="page">#42</span>
+    </p>
+    <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+      <h1 class="text-2xl font-semibold tracking-tight min-w-0">
+        <span id="title-text">RFC: Should we add OpenTelemetry tracing to the git transport layer?</span>
+        <span class="fg3 font-normal mono">#42</span>
+      </h1>
+      <button type="button" id="edit-title-btn" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated inline-flex items-center shrink-0">Edit</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-1.5 text-[13px] fg3">
+      <span class="avatar inline-flex items-center justify-center h-5 w-5 rounded-full text-[9px] font-medium">MK</span>
+      <strong class="text-[var(--fg)]">malith</strong> started this discussion
+      <time datetime="2026-05-12T09:00">yesterday</time>
+      <span class="opacity-50 mx-1" aria-hidden="true">·</span>
+      <span>8 replies</span>
+      <span class="opacity-50 mx-1" aria-hidden="true">·</span>
+      <span class="lbl lbl-green">Q&amp;A</span>
+      <span class="lbl lbl-blue">observability</span>
+      <span class="lbl">rfc</span>
+    </div>
+  </section>
+
+  <div class="grid lg:grid-cols-[1fr_280px] gap-8">
+
+    <div class="space-y-5 min-w-0">
+
+      <div id="answer-banner" class="b border rounded-md p-3 flex items-center gap-2.5 text-[13px]" style="background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.35)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--success)" aria-hidden="true" focusable="false"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span><strong class="text-[var(--fg)]">Answered</strong> — <a id="answer-banner-link" href="#reply-daisy" class="hover:underline" style="color:var(--link)"><span id="answer-banner-author">daisy</span>'s reply</a> was marked as the answer.</span>
+      </div>
+
+      <article class="b border rounded-md surface overflow-hidden">
+        <header class="px-4 py-2.5 b border-b flex items-center gap-2 text-[12.5px] op-tint">
+          <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium">MK</span>
+          <strong>malith</strong>
+          <span class="fg3">started the discussion</span>
+          <time class="fg3 ml-auto" datetime="2026-05-12T09:00">yesterday</time>
+          <button type="button" id="edit-desc-btn" class="inline-flex items-center gap-1 h-7 px-2 rounded-md b border hover:elevated text-[12px] fg2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
+        </header>
+        <div class="px-4 py-4">
+          <!-- MarkdownEditor edit form -->
+          <div id="desc-editor" class="hidden mb-3">
+            <div data-markdown-editor data-rows="12" data-placeholder="Edit the description…"><textarea>Our git transport layer — both the HTTP smart protocol and the SSH server — is entirely pure Go, which gives us a clean place to add instrumentation without shelling out to a `git` binary.
+
+I'd like opinions on wrapping `OpenTelemetry` spans around pack negotiation, ref advertisement, and the SSH auth handshake. Questions before anyone writes code:
+
+- Do we export to an OTLP collector, or keep traces in-process behind a debug flag?
+- Is the per-request span overhead acceptable on the hot push/fetch path?
+- Should this wait until after v1.0?
+
+Not committing to anything yet — looking for a steer.</textarea></div>
+            <div id="desc-actions" class="flex justify-end gap-2 mt-3">
+              <button type="button" id="desc-cancel" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated">Cancel</button>
+              <button type="button" id="desc-save" class="h-8 px-3 text-[13px] rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Save</button>
+            </div>
+          </div>
+          <div id="desc-rendered" class="text-[13px] fg2 leading-relaxed space-y-3">
+            <p>Our git transport layer — both the HTTP smart protocol and the SSH server — is entirely pure Go, which gives us a clean place to add instrumentation without shelling out to a <span class="mono">git</span> binary.</p>
+            <p>I'd like opinions on wrapping <span class="mono">OpenTelemetry</span> spans around pack negotiation, ref advertisement, and the SSH auth handshake. Questions before anyone writes code:</p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li>Do we export to an OTLP collector, or keep traces in-process behind a debug flag?</li>
+              <li>Is the per-request span overhead acceptable on the hot push/fetch path?</li>
+              <li>Should this wait until after v1.0?</li>
+            </ul>
+            <p>Not committing to anything yet — looking for a steer.</p>
+          </div>
+        </div>
+        <footer class="px-4 py-2 b border-t flex items-center gap-1.5">
+          <button type="button" class="inline-flex items-center gap-1 h-7 px-2 rounded-full b border hover:elevated text-[12px] fg2">👍 <span class="mono">6</span></button>
+          <button type="button" class="inline-flex items-center gap-1 h-7 px-2 rounded-full b border hover:elevated text-[12px] fg2">🎉 <span class="mono">2</span></button>
+        </footer>
+      </article>
+
+      <h2 class="mono text-[11px] fg3 uppercase tracking-wider pt-1">8 replies</h2>
+
+      <article id="reply-daisy" data-author="daisy" class="reply is-answer b border rounded-md surface overflow-hidden">
+        <header class="px-4 py-2.5 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium">DK</span>
+          <strong>daisy</strong>
+          <span class="answered-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Answer</span>
+          <span class="fg3">replied</span>
+          <time class="fg3 ml-auto" datetime="2026-05-12T11:30">22h ago</time>
+        </header>
+        <div class="px-4 py-4 text-[13px] fg2 leading-relaxed space-y-3">
+          <p>Strong +1 on keeping traces in-process behind a debug flag to start. An OTLP exporter is a config surface we'd have to support forever; a flag we can iterate on freely.</p>
+        </div>
+        <footer class="px-4 py-2 b border-t flex items-center gap-1.5">
+          <button type="button" class="inline-flex items-center gap-1 h-7 px-2 rounded-full b border hover:elevated text-[12px] fg2">👍 <span class="mono">4</span></button>
+          <button type="button" class="mark-answer ml-auto inline-flex items-center gap-1 h-7 px-2.5 rounded-md b border hover:elevated text-[12px] fg2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Mark as answer</button>
+          <span class="answer-status ml-auto inline-flex items-center gap-1 text-[11px] fg3"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Marked as answer by malith</span>
+          <button type="button" class="unmark-answer inline-flex items-center gap-1 h-7 px-2.5 rounded-md b border hover:elevated text-[12px] fg2">Unmark answer</button>
+        </footer>
+      </article>
+
+      <article id="reply-yumi" data-author="yumi" class="reply b border rounded-md surface overflow-hidden">
+        <header class="px-4 py-2.5 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium">YM</span>
+          <strong>yumi</strong>
+          <span class="answered-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Answer</span>
+          <span class="fg3">replied</span>
+          <time class="fg3 ml-auto" datetime="2026-05-12T14:00">19h ago</time>
+        </header>
+        <div class="px-4 py-4 text-[13px] fg2 leading-relaxed space-y-3">
+          <p>The overhead worry is real for fetch. Could we sample — trace 1 in N pack negotiations rather than every one? That keeps the hot path cheap and still surfaces the slow outliers.</p>
+        </div>
+        <footer class="px-4 py-2 b border-t flex items-center gap-1.5">
+          <button type="button" class="inline-flex items-center gap-1 h-7 px-2 rounded-full b border hover:elevated text-[12px] fg2">👍 <span class="mono">3</span></button>
+          <button type="button" class="mark-answer ml-auto inline-flex items-center gap-1 h-7 px-2.5 rounded-md b border hover:elevated text-[12px] fg2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Mark as answer</button>
+          <span class="answer-status ml-auto inline-flex items-center gap-1 text-[11px] fg3"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Marked as answer by malith</span>
+          <button type="button" class="unmark-answer inline-flex items-center gap-1 h-7 px-2.5 rounded-md b border hover:elevated text-[12px] fg2">Unmark answer</button>
+        </footer>
+      </article>
+
+      <article id="reply-malith" data-author="malith" class="reply b border rounded-md surface overflow-hidden">
+        <header class="px-4 py-2.5 b border-b elevated flex items-center gap-2 text-[12.5px]">
+          <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium">MK</span>
+          <strong>malith</strong>
+          <span class="answered-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Answer</span>
+          <span class="fg3">replied</span>
+          <time class="fg3 ml-auto" datetime="2026-05-13T08:00">5h ago</time>
+        </header>
+        <div class="px-4 py-4 text-[13px] fg2 leading-relaxed">
+          <p>Good steer, both. Plan: in-process spans behind a debug flag, with sampling on the fetch path. I'll write it up as a post-v1.0 item and link a tracking issue here.</p>
+        </div>
+        <footer class="px-4 py-2 b border-t flex items-center gap-1.5">
+          <button type="button" class="inline-flex items-center gap-1 h-7 px-2 rounded-full b border hover:elevated text-[12px] fg2">🎉 <span class="mono">5</span></button>
+          <button type="button" class="mark-answer ml-auto inline-flex items-center gap-1 h-7 px-2.5 rounded-md b border hover:elevated text-[12px] fg2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Mark as answer</button>
+          <span class="answer-status ml-auto inline-flex items-center gap-1 text-[11px] fg3"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>Marked as answer by malith</span>
+          <button type="button" class="unmark-answer inline-flex items-center gap-1 h-7 px-2.5 rounded-md b border hover:elevated text-[12px] fg2">Unmark answer</button>
+        </footer>
+      </article>
+
+      <!-- CommentEditor (rendered by comment-editor.js) -->
+      <div id="cz-comment-editor" data-avatar="MK" data-placeholder="Add to the discussion…" data-rows="5">
+        <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated font-medium">Close discussion</button>
+        <button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Comment</button>
+      </div>
+      <script src="markdown-editor.js"></script>
+      <script src="comment-editor.js"></script>
+
+    </div>
+
+    <aside class="space-y-6" aria-label="Discussion metadata">
+
+      <!-- Category -->
+      <section id="meta-category" aria-labelledby="category-heading">
+        <div class="flex items-center justify-between mb-2">
+          <h2 id="category-heading" class="text-[12px] font-medium fg2">Category</h2>
+          <div class="dropdown-wrap">
+            <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Change category">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Change category">
+              <p class="dropdown-header">Move to category</p>
+              <button type="button" role="menuitemradio" aria-checked="true" data-key="qa" class="dropdown-item">
+                <span class="meta-dot" style="background:var(--success)" aria-hidden="true"></span>
+                <span class="flex-1">Q&amp;A</span>
+                <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button type="button" role="menuitemradio" aria-checked="false" data-key="ideas" class="dropdown-item">
+                <span class="meta-dot" style="background:#6ea8fe" aria-hidden="true"></span>
+                <span class="flex-1">Ideas</span>
+                <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button type="button" role="menuitemradio" aria-checked="false" data-key="general" class="dropdown-item">
+                <span class="meta-dot" style="background:var(--fg-3)" aria-hidden="true"></span>
+                <span class="flex-1">General</span>
+                <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button type="button" role="menuitemradio" aria-checked="false" data-key="announce" class="dropdown-item">
+                <span class="meta-dot" style="background:#c084fc" aria-hidden="true"></span>
+                <span class="flex-1">Announcements</span>
+                <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div data-entry="qa"><span class="badge" style="background:rgba(74,222,128,0.12);color:var(--success);border-color:rgba(74,222,128,0.30)">Q&amp;A</span></div>
+        <div data-entry="ideas" class="off"><span class="badge" style="background:rgba(110,168,254,0.12);color:#93c5fd;border-color:rgba(110,168,254,0.30)">Ideas</span></div>
+        <div data-entry="general" class="off"><span class="badge" style="background:var(--elevated);color:var(--fg-2)">General</span></div>
+        <div data-entry="announce" class="off"><span class="badge" style="background:rgba(192,132,252,0.12);color:#c084fc;border-color:rgba(192,132,252,0.30)">Announcements</span></div>
+        <p data-empty class="off text-[13px] fg3">No category.</p>
+      </section>
+
+      <!-- Labels -->
+      <section id="meta-labels" aria-labelledby="labels-heading" class="b border-t pt-5">
+        <div class="flex items-center justify-between mb-2">
+          <h2 id="labels-heading" class="text-[12px] font-medium fg2">Labels</h2>
+          <div class="dropdown-wrap">
+            <button type="button" class="fg3 hover:text-current" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Edit labels">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <div class="dropdown-panel dropdown-right meta-menu hidden" role="menu" aria-label="Edit labels">
+              <p class="dropdown-header">Apply labels</p>
+              <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="observability" class="dropdown-item">
+                <span class="meta-dot" style="background:var(--focus)" aria-hidden="true"></span>
+                <span class="flex-1">observability</span>
+                <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button type="button" role="menuitemcheckbox" aria-checked="true" data-key="rfc" class="dropdown-item">
+                <span class="meta-dot" style="background:var(--fg-3)" aria-hidden="true"></span>
+                <span class="flex-1">rfc</span>
+                <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="performance" class="dropdown-item">
+                <span class="meta-dot" style="background:var(--success)" aria-hidden="true"></span>
+                <span class="flex-1">performance</span>
+                <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="security" class="dropdown-item">
+                <span class="meta-dot" style="background:var(--danger)" aria-hidden="true"></span>
+                <span class="flex-1">security</span>
+                <svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <div class="dropdown-divider"></div>
+              <a href="settings.html#labels" role="menuitem" class="dropdown-item">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                <span>Create a new label</span>
+              </a>
+            </div>
+          </div>
+        </div>
+        <ul class="flex flex-wrap gap-1.5">
+          <li data-entry="observability"><span class="badge" style="background:rgba(110,168,254,0.12);color:#93c5fd;border-color:rgba(110,168,254,0.30)">observability</span></li>
+          <li data-entry="rfc"><span class="badge" style="background:var(--elevated);color:var(--fg-2)">rfc</span></li>
+          <li data-entry="performance" class="off"><span class="badge" style="background:rgba(74,222,128,0.12);color:var(--success);border-color:rgba(74,222,128,0.30)">performance</span></li>
+          <li data-entry="security" class="off"><span class="badge" style="background:rgba(248,113,113,0.12);color:var(--danger);border-color:rgba(248,113,113,0.30)">security</span></li>
+        </ul>
+        <p data-empty class="off text-[13px] fg3">No labels.</p>
+      </section>
+
+      <!-- Participants -->
+      <section aria-labelledby="parts-heading" class="b border-t pt-5">
+        <h2 id="parts-heading" class="text-[12px] font-medium fg2 mb-2">8 participants</h2>
+        <ul class="flex flex-wrap gap-1.5">
+          <li><a href="#" class="avatar h-7 w-7 rounded-full grid place-items-center text-[10px] font-medium hover:bs" title="malith" aria-label="malith">MK</a></li>
+          <li><a href="#" class="avatar h-7 w-7 rounded-full grid place-items-center text-[10px] font-medium hover:bs" title="Daisy K." aria-label="Daisy K.">DK</a></li>
+          <li><a href="#" class="avatar h-7 w-7 rounded-full grid place-items-center text-[10px] font-medium hover:bs" title="Yumi M." aria-label="Yumi M.">YM</a></li>
+          <li><a href="#" class="avatar h-7 w-7 rounded-full grid place-items-center text-[10px] font-medium hover:bs" title="Aki H." aria-label="Aki H.">AH</a></li>
+          <li><span class="avatar h-7 w-7 rounded-full grid place-items-center text-[10px] font-medium fg3" title="+4 more">+4</span></li>
+        </ul>
+      </section>
+
+    </aside>
+
+  </div>
+
+</main>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>/* inline title + description editing */
+  (function(){
+    var titleBtn = document.getElementById('edit-title-btn');
+    var titleText = document.getElementById('title-text');
+    if (titleBtn && titleText){
+      titleBtn.addEventListener('click', function(){
+        var editing = titleText.isContentEditable;
+        titleText.contentEditable = editing ? 'false' : 'true';
+        titleText.classList.toggle('title-editing', !editing);
+        titleBtn.textContent = editing ? 'Edit' : 'Save';
+        if (!editing){
+          titleText.focus();
+          var r = document.createRange(); r.selectNodeContents(titleText);
+          var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        }
+      });
+    }
+    var descBtn = document.getElementById('edit-desc-btn');
+    var editor = document.getElementById('desc-editor');
+    var rendered = document.getElementById('desc-rendered');
+    if (!descBtn || !editor || !rendered) return;
+    function edit(on){
+      editor.classList.toggle('hidden', !on);
+      rendered.classList.toggle('hidden', on);
+      descBtn.classList.toggle('hidden', on);
+    }
+    descBtn.addEventListener('click', function(){ edit(true); });
+    document.getElementById('desc-cancel').addEventListener('click', function(){ edit(false); });
+    document.getElementById('desc-save').addEventListener('click', function(){ edit(false); });
+  })();
+</script>
+<script>/* sidebar metadata menus: live toggle */
+  (function(){
+    function syncEmpty(section){
+      var placeholder = section.querySelector('[data-empty]');
+      if (!placeholder) return;
+      var anyVisible = Array.prototype.some.call(
+        section.querySelectorAll('[data-entry]'),
+        function(en){ return !en.classList.contains('off'); }
+      );
+      placeholder.classList.toggle('off', anyVisible);
+    }
+    document.querySelectorAll('.meta-menu').forEach(function(panel){
+      var section = panel.closest('section');
+      if (!section) return;
+      panel.addEventListener('click', function(e){
+        var item = e.target.closest('[data-key]');
+        if (!item || !panel.contains(item)) return;
+        var key = item.getAttribute('data-key');
+        if (item.getAttribute('role') === 'menuitemradio'){
+          panel.querySelectorAll('[data-key]').forEach(function(it){
+            it.setAttribute('aria-checked', String(it === item));
+          });
+          section.querySelectorAll('[data-entry]').forEach(function(en){
+            en.classList.toggle('off', en.getAttribute('data-entry') !== key);
+          });
+        } else {
+          var on = item.getAttribute('aria-checked') !== 'true';
+          item.setAttribute('aria-checked', String(on));
+          var entry = section.querySelector('[data-entry="' + key + '"]');
+          if (entry) entry.classList.toggle('off', !on);
+        }
+        syncEmpty(section);
+      });
+      syncEmpty(section);
+    });
+  })();
+</script>
+<script>/* discussion: mark / unmark answer */
+  (function(){
+    var banner = document.getElementById('answer-banner');
+    var bannerLink = document.getElementById('answer-banner-link');
+    var bannerAuthor = document.getElementById('answer-banner-author');
+    var replies = Array.prototype.slice.call(document.querySelectorAll('.reply'));
+    if (!banner || !replies.length) return;
+    function setAnswer(article){
+      replies.forEach(function(r){ r.classList.toggle('is-answer', r === article); });
+      if (article){
+        bannerAuthor.textContent = article.getAttribute('data-author');
+        bannerLink.setAttribute('href', '#' + article.id);
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+    document.addEventListener('click', function(e){
+      var mark = e.target.closest('.mark-answer');
+      if (mark && mark.closest('.reply')){ setAnswer(mark.closest('.reply')); return; }
+      var unmark = e.target.closest('.unmark-answer');
+      if (unmark && unmark.closest('.reply')){ setAnswer(null); }
+    });
+  })();
+</script>
+</body>
+</html>

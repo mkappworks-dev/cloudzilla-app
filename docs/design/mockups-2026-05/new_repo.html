@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New repository · mkappworks — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171;--merged:#c084fc; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c;--merged:#7e22ce; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.bs{border-color:var(--border-strong)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}.link{color:var(--link)}
+  .divide-y.b > * + *{border-top-color:var(--border)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .badge-success{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .badge-danger{background:rgba(248,113,113,0.15);color:var(--danger);border-color:rgba(248,113,113,0.30)}
+  .lbl{font-size:10px;padding:1px 7px;border-radius:9999px;border:1px solid var(--border);background:var(--elevated);color:var(--fg-2);line-height:1.4;white-space:nowrap}
+  .lbl-blue{background:rgba(110,168,254,0.15);color:#93c5fd;border-color:rgba(110,168,254,0.30)}
+  .lbl-green{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .lbl-red{background:rgba(248,113,113,0.15);color:var(--danger);border-color:rgba(248,113,113,0.30)}
+  .lbl-amber{background:rgba(251,191,36,0.15);color:var(--warn);border-color:rgba(251,191,36,0.30)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  label.field{display:block;font-size:12px;font-weight:500;color:var(--fg-2);margin-bottom:6px}
+  input.txt,textarea.txt,select.txt,button.txt{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--fg);font-family:inherit}
+  input.txt:focus,textarea.txt:focus,select.txt:focus,button.txt:focus{outline:none;border-color:var(--focus)}
+  html.light [style*="color:#052e16"]{color:#fff !important}
+  /* Account Primary nav — filled-pill active tab */
+  nav[aria-label="Primary"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Primary"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Primary"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<header class="b border-b" role="banner">
+  <div class="max-w-[1400px] mx-auto px-6 h-12 flex items-center gap-3">
+    <a href="home.html" class="flex items-center" aria-label="Cloudzilla, home">
+      <svg width="22" height="22" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="22" cy="36" r="9"/><circle cx="32" cy="28" r="11"/><circle cx="44" cy="36" r="9"/><rect x="22" y="36" width="22" height="9" rx="4.5"/></svg>
+    </a>
+    <svg class="fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true" focusable="false"><path d="M16 4L8 20"/></svg>
+    <div class="dropdown-wrap">
+      <button type="button" data-menu class="flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:elevated text-sm" aria-haspopup="menu" aria-expanded="false" aria-label="Switch account or organization, current: mkappworks">
+        <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">M</span>
+        <span class="font-medium">mkappworks</span>
+        <svg class="fg3" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <div class="dropdown-panel hidden" role="menu" aria-label="Switch account or organization">
+        <p class="dropdown-header">Account / orgs</p>
+        <button type="button" role="menuitem" class="dropdown-item dropdown-item-active">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">M</span>
+          <span class="flex-1">mkappworks</span>
+          <span class="text-[10px] fg3">Personal</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">A</span>
+          <span class="flex-1">acme-corp</span>
+          <span class="text-[10px] fg3">Member</span>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">S</span>
+          <span class="flex-1">stitch-labs</span>
+          <span class="text-[10px] fg3">Owner</span>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">O</span>
+          <span class="flex-1">openforge</span>
+          <span class="text-[10px] fg3">Collaborator</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <a href="new_organization.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New organization</span>
+        </a>
+        <a href="organizations.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M3 21h18M3 7h18M5 21V7l7-4 7 4v14"/></svg>
+          <span>Your organizations</span>
+        </a>
+      </div>
+    </div>
+    <nav aria-label="Account" class="ml-auto flex items-center gap-1">
+      <form action="#" method="GET" class="hidden md:block">
+        <label for="topnav-search" class="sr-only">Search Cloudzilla</label>
+        <div class="relative">
+          <input id="topnav-search" name="q" type="search" placeholder="Search…" class="w-56 h-7 pl-7 pr-10 text-[13px] surface b border rounded-md placeholder:fg3 focus:bs focus:bg-transparent" />
+          <svg class="absolute left-2 top-1.5 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <kbd class="mono absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] leading-none px-1.5 py-1 elevated b border rounded fg3" aria-hidden="true">⌘K</kbd>
+        </div>
+      </form>
+      <a href="#" class="relative h-7 w-7 grid place-items-center fg2 hover:text-current rounded-md" aria-label="Notifications (3 unread)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg>
+        <span class="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 grid place-items-center text-[9px] font-medium rounded-full leading-none" style="background:var(--danger);color:#fff;box-shadow:0 0 0 2px var(--bg);">3</span>
+      </a>
+      <button type="button" id="theme-toggle" onclick="toggleTheme()" class="text-sm fg2 hover:text-current px-2.5 h-7 inline-flex items-center gap-1.5 b border rounded-md" aria-pressed="false" aria-label="Switch to light theme">
+        <svg class="dark-only" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="light-only hidden" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <div class="dropdown-wrap">
+        <button type="button" data-menu class="avatar h-7 w-7 rounded-full grid place-items-center text-xs font-medium ml-1" aria-haspopup="menu" aria-expanded="false" aria-label="User menu for Malith Kuruppu">MK</button>
+      <div class="dropdown-panel dropdown-right hidden" role="menu" aria-label="User menu">
+        <div class="px-2.5 py-2">
+          <p class="text-[12px] fg3">Signed in as</p>
+          <p class="text-[13px] font-medium">malith</p>
+        </div>
+        <div class="dropdown-divider"></div>
+        <a href="profile.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Your profile
+        </a>
+        <a href="stars.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Your stars
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="account_settings.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </a>
+        <a href="docs.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/></svg>
+          Docs
+        </a>
+        <a href="changelog.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Changelog
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="auth.html" role="menuitem" class="dropdown-item" style="color:var(--danger)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </a>
+      </div>
+      </div>
+    </nav>
+  </div>
+  <nav class="max-w-[1400px] mx-auto px-6 -mb-px flex items-center gap-1 text-sm overflow-x-auto" aria-label="Primary">
+    <a href="home.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Overview</a>
+    <a href="my_repositories.html" class="px-3 py-2.5 border-b border-transparent tab-active font-medium" aria-current="page">Repositories <span class="mono text-[11px] fg3 ml-0.5" aria-label="14 total">14</span></a>
+    <a href="gists.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Gists <span class="mono text-[11px] fg3 ml-0.5" aria-label="4 owned">4</span></a>
+    <a href="my_pulls.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Pull requests <span class="mono text-[11px] fg3 ml-0.5" aria-label="12 open">12</span></a>
+    <a href="my_issues.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Issues <span class="mono text-[11px] fg3 ml-0.5" aria-label="7 assigned">7</span></a>
+    <a href="attention.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Attention <span class="mono text-[11px] fg3 ml-0.5" aria-label="13 items">13</span></a>
+    <a href="activity.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Activity</a>
+    <a href="account_settings.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Settings</a>
+  </nav>
+</header>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6">
+    <h1 class="text-2xl font-semibold tracking-tight">New repository</h1>
+    <p class="mt-1 text-[13px] fg2">A repository contains all of your project's files, revision history, and collaborators.</p>
+  </section>
+
+  <div class="grid lg:grid-cols-[1fr_280px] gap-8">
+  <div class="min-w-0">
+
+  <form class="b border rounded-lg surface p-6 space-y-6">
+
+    <div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
+      <div>
+        <label class="field" for="repo-owner-btn">Owner *</label>
+        <div class="dropdown-wrap" style="display:block;width:100%">
+          <button id="repo-owner-btn" type="button" data-menu data-custom-select class="txt" style="display:flex;align-items:center;justify-content:space-between;text-align:left;cursor:pointer" aria-haspopup="listbox" aria-expanded="false">
+            <span data-current-label>mkappworks</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="fg3" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+          </button>
+          <div class="dropdown-panel hidden" role="listbox" style="left:0;right:0;min-width:0">
+            <button type="button" role="option" data-value="mkappworks" class="dropdown-item dropdown-item-active">mkappworks</button>
+            <button type="button" role="option" data-value="acme-corp" class="dropdown-item">acme-corp</button>
+            <button type="button" role="option" data-value="stitch-labs" class="dropdown-item">stitch-labs</button>
+            <button type="button" role="option" data-value="openforge" class="dropdown-item">openforge</button>
+          </div>
+        </div>
+      </div>
+      <span class="fg3 pb-2.5">/</span>
+      <div>
+        <label class="field" for="repo-name">Repository name *</label>
+        <input id="repo-name" class="txt mono" type="text" placeholder="my-new-repo" autofocus />
+      </div>
+    </div>
+    <p class="text-[12px] fg3 -mt-3">Great repository names are short and memorable. Need inspiration? <span class="mono">turbo-octo-meme</span>.</p>
+
+    <div>
+      <label class="field" for="repo-desc">Description <span class="fg3 font-normal">(optional)</span></label>
+      <textarea id="repo-desc" class="txt" rows="2" placeholder="A short description of your project"></textarea>
+    </div>
+
+    <fieldset>
+      <legend class="text-[12px] font-medium fg2 mb-2">Visibility</legend>
+      <label class="b border rounded-md p-3 flex items-start gap-3 mb-2 cursor-pointer hover:elevated">
+        <input type="radio" name="visibility" value="public" checked class="mt-0.5" />
+        <div>
+          <p class="text-[13.5px] font-medium inline-flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Public
+          </p>
+          <p class="mt-0.5 text-[12.5px] fg3">Anyone on the internet can see this repository. You choose who can commit.</p>
+        </div>
+      </label>
+      <label class="b border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:elevated">
+        <input type="radio" name="visibility" value="private" class="mt-0.5" />
+        <div>
+          <p class="text-[13.5px] font-medium inline-flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Private
+          </p>
+          <p class="mt-0.5 text-[12.5px] fg3">You choose who can see and commit to this repository.</p>
+        </div>
+      </label>
+    </fieldset>
+
+    <div class="space-y-3">
+      <p class="text-[12px] font-medium fg2">Initialize this repository with</p>
+      <label class="flex items-start gap-2 text-[13px]"><input type="checkbox" checked class="mt-0.5" /> <span>Add a README — describes your project at a glance.</span></label>
+      <div>
+        <label class="field" for="repo-gitignore">Add .gitignore <span class="fg3 font-normal">(optional)</span></label>
+        <select id="repo-gitignore" class="txt">
+          <option value="">None</option>
+          <option>Go</option>
+          <option>Node</option>
+          <option>Python</option>
+          <option>Rust</option>
+          <option>Java</option>
+          <option>C++</option>
+        </select>
+        <p class="mt-1 text-[12px] fg3">Choose which files Git should ignore, from a template.</p>
+      </div>
+      <div>
+        <label class="field" for="repo-license">Choose a license <span class="fg3 font-normal">(optional)</span></label>
+        <select id="repo-license" class="txt">
+          <option value="">None</option>
+          <option>MIT License</option>
+          <option>Apache License 2.0</option>
+          <option>GNU GPLv3</option>
+          <option>BSD 3-Clause "New" License</option>
+          <option>Mozilla Public License 2.0</option>
+          <option>The Unlicense</option>
+        </select>
+        <p class="mt-1 text-[12px] fg3">Sets the terms under which others may reuse your code.</p>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-2 pt-2 b border-t">
+      <a href="home.html" class="h-9 px-4 text-sm rounded-md b border hover:elevated inline-flex items-center">Cancel</a>
+      <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--success);color:#052e16">Create repository</button>
+    </div>
+  </form>
+  </div>
+
+  <aside class="space-y-6" aria-label="About repositories">
+
+    <section aria-labelledby="about-heading">
+      <h2 id="about-heading" class="text-[12px] font-medium fg2 mb-2">About repositories</h2>
+      <p class="text-[13px] fg3 leading-relaxed">A repository is the home for one project — its code, full revision history, issues, and pull requests. Start it empty, or seed it with a README, .gitignore, and license below.</p>
+    </section>
+
+    <section aria-labelledby="tips-heading" class="b border-t pt-5">
+      <h2 id="tips-heading" class="text-[12px] font-medium fg2 mb-2">Good to know</h2>
+      <ul class="space-y-2 text-[13px] fg3 leading-relaxed">
+        <li>Repository names must be unique within the owner account or organization.</li>
+        <li>Visibility can be switched between public and private later in repository settings.</li>
+        <li>Adding a README lets you clone a working copy right away — an empty repo only shows setup instructions.</li>
+        <li>A license sets the terms for how others may reuse your code; you can add one later too.</li>
+      </ul>
+    </section>
+
+  </aside>
+  </div>
+
+  <p class="mt-6 text-[12.5px] fg3 text-center">Want to import an existing repository instead? <a href="#" class="link hover:underline">Import a repository →</a></p>
+</main>
+
+<script>/* CUSTOM_SELECT_JS — closes panel + updates label on option click */
+  (function(){
+    document.querySelectorAll('[data-custom-select]').forEach(function(trigger){
+      var wrap = trigger.closest('.dropdown-wrap');
+      if (!wrap) return;
+      var panel = wrap.querySelector('.dropdown-panel');
+      var label = trigger.querySelector('[data-current-label]');
+      panel.querySelectorAll('[role="option"]').forEach(function(item){
+        item.addEventListener('click', function(){
+          if (label) label.textContent = item.textContent.trim();
+          panel.querySelectorAll('[role="option"]').forEach(function(o){ o.classList.remove('dropdown-item-active'); });
+          item.classList.add('dropdown-item-active');
+          panel.classList.add('hidden');
+          trigger.setAttribute('aria-expanded','false');
+        });
+      });
+    });
+  })();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Add OAuth scopes to access tokens · Pull request #341 · mkappworks/cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #000;
+    --surface: #0a0a0a;
+    --elevated: #1a1a1a;
+    --border: rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.18);
+    --fg: #ededed;
+    --fg-2: #b4b4b4;
+    --fg-3: #8c8c8c;
+    --focus: #6ea8fe;
+    --link: #93c5fd;
+    --success: #4ade80;
+    --success-bg: rgba(74,222,128,0.12);
+    --warn: #fbbf24;
+    --warn-bg: rgba(251,191,36,0.12);
+    --danger: #f87171;
+    --danger-bg: rgba(248,113,113,0.12);
+    --accent: #a78bfa;
+    --accent-bg: rgba(167,139,250,0.12);
+  }
+  html.light {
+    --bg: #fff;
+    --surface: #fafafa;
+    --elevated: #ededed;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.18);
+    --fg: #0a0a0a;
+    --fg-2: #444;
+    --fg-3: #5e5e5e;
+    --focus: #1d4ed8;
+    --link: #1d4ed8;
+    --success: #15803d;
+    --success-bg: rgba(21,128,61,0.10);
+    --warn: #b45309;
+    --warn-bg: rgba(180,83,9,0.10);
+    --danger: #b91c1c;
+    --danger-bg: rgba(185,28,28,0.10);
+    --accent: #6d28d9;
+    --accent-bg: rgba(109,40,217,0.10);
+  }
+  body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--fg); font-feature-settings: "ss01", "ss02", "cv11"; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+  .surface { background: var(--surface); }
+  .elevated { background: var(--elevated); }
+  .b { border-color: var(--border); } .divide-y.b > * + * { border-top-color: var(--border); }
+  .bs { border-color: var(--border-strong); }
+  .fg2 { color: var(--fg-2); }
+  .fg3 { color: var(--fg-3); }
+  .link { color: var(--link); }
+  .hover-row:hover { background: var(--elevated); }
+
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .skip-link { position:absolute; left:8px; top:-40px; z-index:100; padding:8px 12px; background:var(--fg); color:var(--bg); border-radius:6px; font-weight:500; font-size:13px; transition: top 120ms; }
+  .skip-link:focus { top:8px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  input:focus-visible, textarea:focus-visible, [contenteditable]:focus-visible { outline-offset: 0; }
+  .tab-active { color: var(--fg); border-bottom-color: var(--fg); }
+  .avatar { background: var(--elevated); border: 1px solid var(--border); }
+
+  /* Badge variants */
+  .badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; border: 1px solid var(--border); }
+  .badge--open { background: var(--success-bg); color: var(--success); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+  .badge--merged { background: var(--accent-bg); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .badge--closed { background: var(--danger-bg); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+  .badge--draft { background: var(--elevated); color: var(--fg-2); }
+
+  /* Timeline */
+  .timeline { position: relative; }
+  .timeline > li { position: relative; padding-left: 44px; }
+  .timeline > li::before {
+    content: ''; position: absolute; left: 19px; top: 0; bottom: -16px; width: 2px; background: var(--border);
+  }
+  .timeline > li:last-child::before { display: none; }
+  .timeline-icon {
+    position: absolute; left: 8px; top: 4px; height: 24px; width: 24px;
+    border-radius: 9999px; display: grid; place-items: center;
+    border: 2px solid var(--bg);
+    background: var(--elevated);
+    color: var(--fg-2);
+  }
+
+  /* prose */
+  .prose { color: var(--fg-2); font-size: 14px; line-height: 1.7; }
+  .prose p { margin: 0 0 12px; }
+  .prose p:last-child { margin: 0; }
+  .prose a { color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
+  .prose code { font-family: 'Geist Mono', monospace; font-size: 12.5px; background: var(--elevated); padding: 1.5px 5px; border-radius: 4px; border: 1px solid var(--border); color: var(--fg); }
+  .prose pre { font-family: 'Geist Mono', monospace; font-size: 12.5px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; overflow-x: auto; margin: 0 0 12px; }
+  .prose pre code { background: transparent; border: 0; padding: 0; }
+  .prose ul { padding-left: 20px; margin: 0 0 12px; }
+  .prose li { margin: 3px 0; }
+  .prose strong { color: var(--fg); font-weight: 600; }
+
+  /* Diff colors */
+  .diff-add { background: rgba(74,222,128,0.10); }
+  .diff-add::before { content: '+'; color: var(--success); margin-right: 8px; }
+  .diff-del { background: rgba(248,113,113,0.10); }
+  .diff-del::before { content: '-'; color: var(--danger); margin-right: 8px; }
+  .diff-line { padding: 1px 12px; font-family: 'Geist Mono', monospace; font-size: 12px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+  @media (forced-colors: active) {
+    .b, .bs { border-color: CanvasText !important; }
+    :focus-visible { outline: 2px solid Highlight !important; }
+    .badge { border-color: CanvasText !important; }
+  }
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .pr-title-editing { background:var(--elevated); border-radius:6px; padding:0 6px; outline:1px solid var(--border-strong); }
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+  /* PR views nav — filled-pill active tab */
+  nav[aria-label="Pull request views"] { padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Pull request views"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; margin-bottom: 0; }
+  nav[aria-label="Pull request views"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- TOP NAV -->
+<div id="cz-header" data-repo-tab="pulls"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <!-- PR header -->
+  <section class="mb-3 b border-b pb-3" aria-labelledby="pr-title">
+    <p class="mono text-[11px] fg3 uppercase tracking-wider mb-2">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="pulls.html" class="hover:underline">Pull requests</a>
+      <span aria-hidden="true">·</span>
+      <a href="pr.html" class="hover:underline">#341</a>
+    </p>
+    <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+      <h1 id="pr-title" class="text-2xl tracking-tight font-medium min-w-0">
+        <span id="pr-title-text">Add OAuth scopes to access tokens</span>
+        <span class="fg3 font-normal" aria-label="Pull request number 341">#341</span>
+      </h1>
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <button type="button" id="edit-pr-btn" class="h-8 px-3 text-[13px] b border rounded-md hover:elevated">Edit</button>
+        <div class="dropdown-wrap">
+          <button type="button" class="h-8 px-3 text-[13px] b border rounded-md hover:elevated inline-flex items-center gap-1.5" aria-haspopup="menu" aria-expanded="false" data-menu>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Code
+            <svg class="fg3" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+          </button>
+          <div class="dropdown-panel dropdown-right hidden" role="menu" aria-label="Check out this pull request" style="min-width:288px">
+            <p class="dropdown-header">Check out — daisy/oauth-scopes</p>
+            <pre class="mono text-[11px] fg2 m-1 p-2 rounded b border" style="background:var(--bg);white-space:pre;overflow-x:auto">git fetch origin
+git checkout daisy/oauth-scopes</pre>
+            <div class="dropdown-divider"></div>
+            <a href="#" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download .patch
+            </a>
+            <a href="#" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download .diff
+            </a>
+            <a href="blob.html" role="menuitem" class="dropdown-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Browse branch code
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="badge badge--open" role="status" aria-label="Pull request status: Open">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M6 8v8M6 18h6a6 6 0 006-6V8"/></svg>
+        Open
+      </span>
+      <p class="text-[13px] fg2">
+        <a href="#" class="link hover:underline">@daisy</a>
+        wants to merge <strong class="text-current font-medium">3 commits</strong> into
+        <span class="mono px-1.5 py-0.5 elevated b border rounded text-[12px]">main</span>
+        from
+        <span class="mono px-1.5 py-0.5 elevated b border rounded text-[12px]">daisy/oauth-scopes</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- Tabs -->
+  <nav class="b border-b mb-6 flex items-center gap-1 text-sm" aria-label="Pull request views">
+    <a href="pr.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current inline-flex items-center gap-2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      Conversation <span class="mono text-[11px] fg3" aria-label="8 events">8</span>
+    </a>
+    <a href="pr_commits.html" class="px-3 py-2.5 border-b -mb-px border-transparent tab-active font-medium inline-flex items-center gap-2" aria-current="page">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="M12 9v6"/></svg>
+      Commits <span class="mono text-[11px] fg3">3</span>
+    </a>
+    <a href="pr_checks.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current inline-flex items-center gap-2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 12h6M15 6L9 10M15 18l-6-4"/></svg>
+      Checks <span class="badge badge--open" style="height: 18px; padding: 0 6px; font-size: 10px;">✓ 6</span>
+    </a>
+    <a href="pr_files.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current inline-flex items-center gap-2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Files changed <span class="mono text-[11px] fg3">4</span>
+      <span class="text-[10px] font-medium mono ml-1" style="color: var(--success);">+142</span>
+      <span class="text-[10px] font-medium mono" style="color: var(--danger);">−18</span>
+    </a>
+  </nav>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6">
+    <p class="text-[12.5px] fg2">3 commits in this pull request, branching from <a href="commits.html" class="link hover:underline mono">main</a>.</p>
+  </section>
+
+  <section class="b border rounded-md surface overflow-hidden" aria-labelledby="pr-commits">
+    <h2 id="pr-commits" class="sr-only">Commits in this pull request</h2>
+
+    <p class="px-4 py-2 b border-b elevated text-[11.5px] mono fg3 uppercase tracking-wider">Commits on May 13, 2026</p>
+    <ol class="divide-y b">
+      <li class="px-4 py-3 flex items-center gap-3 hover:elevated">
+        <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+        <div class="min-w-0 flex-1">
+          <a href="#" class="text-[13.5px] font-medium hover:underline truncate">fix(ui): align pulls byline with mockup + replace wiki prompt with dialog</a>
+          <p class="text-[12px] fg3 mt-0.5"><span class="hover:text-current font-medium">malith</span> committed <time datetime="2026-05-13T11:00">2h ago</time></p>
+        </div>
+        <a href="#" class="text-[11.5px] mono fg2 hover:underline shrink-0">0cfa3e4</a>
+        <button type="button" class="h-7 w-7 rounded-md hover:elevated grid place-items-center" aria-label="Copy SHA">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+        <a href="tree.html" class="h-7 w-7 rounded-md hover:elevated grid place-items-center" aria-label="Browse files at this commit">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </a>
+      </li>
+      <li class="px-4 py-3 flex items-center gap-3 hover:elevated">
+        <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+        <div class="min-w-0 flex-1">
+          <a href="#" class="text-[13.5px] font-medium hover:underline truncate">fix(ui): tighten vertical density in pulls + gists rows</a>
+          <p class="text-[12px] fg3 mt-0.5"><span class="hover:text-current font-medium">malith</span> committed <time datetime="2026-05-13T10:00">3h ago</time></p>
+        </div>
+        <a href="#" class="text-[11.5px] mono fg2 hover:underline shrink-0">04992f6</a>
+        <button type="button" class="h-7 w-7 rounded-md hover:elevated grid place-items-center" aria-label="Copy SHA">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+        <a href="tree.html" class="h-7 w-7 rounded-md hover:elevated grid place-items-center" aria-label="Browse files at this commit">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </a>
+      </li>
+    </ol>
+
+    <p class="px-4 py-2 b border-b border-t elevated text-[11.5px] mono fg3 uppercase tracking-wider">Commits on May 12, 2026</p>
+    <ol class="divide-y b">
+      <li class="px-4 py-3 flex items-center gap-3 hover:elevated">
+        <span class="avatar h-6 w-6 rounded-full grid place-items-center text-[10px] font-medium" aria-hidden="true">MK</span>
+        <div class="min-w-0 flex-1">
+          <a href="#" class="text-[13.5px] font-medium hover:underline truncate">tech(ui): tier 9 — sweep legacy palette across fragments + base components</a>
+          <p class="text-[12px] fg3 mt-0.5"><span class="hover:text-current font-medium">malith</span> committed <time datetime="2026-05-12T18:00">yesterday</time></p>
+        </div>
+        <a href="#" class="text-[11.5px] mono fg2 hover:underline shrink-0">623cff3</a>
+        <button type="button" class="h-7 w-7 rounded-md hover:elevated grid place-items-center" aria-label="Copy SHA">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+        <a href="tree.html" class="h-7 w-7 rounded-md hover:elevated grid place-items-center" aria-label="Browse files at this commit">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </a>
+      </li>
+    </ol>
+  </section>
+
+</main>
+
+</main>
+
+<script>
+  const html = document.documentElement;
+  const STORAGE_KEY = 'cz-theme';
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === 'light' || (!saved && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+    html.classList.add('light');
+  }
+  function syncThemeUI() {
+    const isLight = html.classList.contains('light');
+    document.querySelectorAll('.dark-only').forEach(el => el.classList.toggle('hidden', isLight));
+    document.querySelectorAll('.light-only').forEach(el => el.classList.toggle('hidden', !isLight));
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', String(isLight));
+      toggle.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme');
+    }
+  }
+  function toggleTheme() {
+    html.classList.toggle('light');
+    localStorage.setItem(STORAGE_KEY, html.classList.contains('light') ? 'light' : 'dark');
+    syncThemeUI();
+  }
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+      e.preventDefault();
+      toggleTheme();
+    }
+  });
+  syncThemeUI();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+<script>/* PR header: inline title edit */
+  (function(){
+    var editBtn = document.getElementById('edit-pr-btn');
+    var titleText = document.getElementById('pr-title-text');
+    if (!editBtn || !titleText) return;
+    editBtn.addEventListener('click', function(){
+      if (titleText.isContentEditable){
+        titleText.contentEditable = 'false';
+        titleText.classList.remove('pr-title-editing');
+        editBtn.textContent = 'Edit';
+      } else {
+        titleText.contentEditable = 'true';
+        titleText.classList.add('pr-title-editing');
+        editBtn.textContent = 'Save';
+        titleText.focus();
+        var range = document.createRange();
+        range.selectNodeContents(titleText);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    });
+  })();
+</script>
+</body>
+</html>

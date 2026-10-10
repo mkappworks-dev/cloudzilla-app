@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Account settings · mkappworks — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171;--merged:#c084fc; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c;--merged:#7e22ce; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.bs{border-color:var(--border-strong)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}.link{color:var(--link)}
+  .divide-y.b > * + *{border-top-color:var(--border)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .hover-row:hover{background:var(--elevated)}
+  .lbl{font-size:10px;padding:1px 7px;border-radius:9999px;border:1px solid var(--border);background:var(--elevated);color:var(--fg-2);line-height:1.4;white-space:nowrap}
+  .lbl-blue{background:rgba(110,168,254,0.15);color:#93c5fd;border-color:rgba(110,168,254,0.30)}
+  .lbl-green{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .lbl-purple{background:rgba(192,132,252,0.15);color:#c084fc;border-color:rgba(192,132,252,0.30)}
+  .lbl-amber{background:rgba(251,191,36,0.15);color:var(--warn);border-color:rgba(251,191,36,0.30)}
+  .lbl-red{background:rgba(248,113,113,0.15);color:var(--danger);border-color:rgba(248,113,113,0.30)}
+  .badge-success{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .badge-danger{background:rgba(248,113,113,0.15);color:var(--danger);border-color:rgba(248,113,113,0.30)}
+  .badge-merged{background:rgba(192,132,252,0.15);color:var(--merged);border-color:rgba(192,132,252,0.30)}
+  .badge-draft{background:var(--elevated);color:var(--fg-3);border-color:transparent}
+  .ci-pass{color:var(--success)}
+  .ci-fail{color:var(--danger)}
+  .ci-pending{color:var(--warn)}
+  .avatar-stack > *{box-shadow:0 0 0 2px var(--bg)}
+  .row-card{position:relative;transition:padding-left 120ms}
+  .row-card::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--fg);opacity:0;transition:opacity 120ms;border-radius:2px}
+  .row-card:hover::before{opacity:1}
+  .row-card:hover{padding-left:18px}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px}
+  .nav-item:hover{background:var(--elevated);color:var(--fg)}
+  .nav-item-active{background:var(--elevated);color:var(--fg);font-weight:500}
+  label.field{display:block;font-size:12px;font-weight:500;color:var(--fg-2);margin-bottom:6px}
+  input.txt,textarea.txt,select.txt{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--fg);font-family:inherit}
+  input.txt:focus,textarea.txt:focus,select.txt:focus{outline:none;border-color:var(--focus)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  /* Account Primary nav — filled-pill active tab */
+  nav[aria-label="Primary"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Primary"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Primary"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<header class="b border-b" role="banner">
+  <div class="max-w-[1400px] mx-auto px-6 h-12 flex items-center gap-3">
+    <a href="home.html" class="flex items-center" aria-label="Cloudzilla, home">
+      <svg width="22" height="22" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="22" cy="36" r="9"/><circle cx="32" cy="28" r="11"/><circle cx="44" cy="36" r="9"/><rect x="22" y="36" width="22" height="9" rx="4.5"/></svg>
+    </a>
+    <svg class="fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true" focusable="false"><path d="M16 4L8 20"/></svg>
+    <div class="dropdown-wrap">
+      <button type="button" class="flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:elevated text-sm" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="Switch account or organization, current: mkappworks">
+      <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">M</span>
+      <span class="font-medium">mkappworks</span>
+      <svg class="fg3" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+    </button>
+      <div class="dropdown-panel hidden" role="menu" aria-label="Switch account or organization">
+        <p class="dropdown-header">Account / orgs</p>
+        <button type="button" role="menuitem" class="dropdown-item dropdown-item-active">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">M</span>
+          <span class="flex-1">mkappworks</span>
+          <span class="text-[10px] fg3">Personal</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">A</span>
+          <span class="flex-1">acme-corp</span>
+          <span class="text-[10px] fg3">Member</span>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">S</span>
+          <span class="flex-1">stitch-labs</span>
+          <span class="text-[10px] fg3">Owner</span>
+        </button>
+        <button type="button" role="menuitem" class="dropdown-item">
+          <span class="avatar h-5 w-5 rounded grid place-items-center text-[10px] font-medium" aria-hidden="true">O</span>
+          <span class="flex-1">openforge</span>
+          <span class="text-[10px] fg3">Collaborator</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <a href="new_organization.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fg3" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New organization</span>
+        </a>
+        <a href="organizations.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M3 21h18M3 7h18M5 21V7l7-4 7 4v14"/></svg>
+          <span>Your organizations</span>
+        </a>
+      </div>
+    </div>
+    <nav aria-label="Account" class="ml-auto flex items-center gap-1">
+      <form action="#" method="GET" class="hidden md:block">
+        <label for="topnav-search" class="sr-only">Search Cloudzilla</label>
+        <div class="relative">
+          <input id="topnav-search" name="q" type="search" placeholder="Search…" class="w-56 h-7 pl-7 pr-10 text-[13px] surface b border rounded-md placeholder:fg3 focus:bs focus:bg-transparent" />
+          <svg class="absolute left-2 top-1.5 fg3" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <kbd class="mono absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] leading-none px-1.5 py-1 elevated b border rounded fg3" aria-hidden="true">⌘K</kbd>
+        </div>
+      </form>
+      <a href="#" class="relative h-7 w-7 grid place-items-center fg2 hover:text-current rounded-md" aria-label="Notifications (3 unread)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg>
+        <span class="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 grid place-items-center text-[9px] font-medium rounded-full leading-none" style="background:var(--danger);color:#fff;box-shadow:0 0 0 2px var(--bg);">3</span>
+      </a>
+      <button type="button" id="theme-toggle" onclick="toggleTheme()" class="text-sm fg2 hover:text-current px-2.5 h-7 inline-flex items-center gap-1.5 b border rounded-md" aria-pressed="false" aria-label="Switch to light theme">
+        <svg class="dark-only" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="light-only hidden" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <div class="dropdown-wrap">
+        <button type="button" class="avatar h-7 w-7 rounded-full grid place-items-center text-xs font-medium ml-1" aria-haspopup="menu" aria-expanded="false" data-menu aria-label="User menu for Malith Kuruppu">MK</button>
+      <div class="dropdown-panel dropdown-right hidden" role="menu" aria-label="User menu">
+        <div class="px-2.5 py-2">
+          <p class="text-[12px] fg3">Signed in as</p>
+          <p class="text-[13px] font-medium">malith</p>
+        </div>
+        <div class="dropdown-divider"></div>
+        <a href="#" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Your profile
+        </a>
+        <a href="stars.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Your stars
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="account_settings.html" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </a>
+        <a href="#" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/></svg>
+          Docs
+        </a>
+        <a href="#" role="menuitem" class="dropdown-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg3" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Changelog
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="auth.html" role="menuitem" class="dropdown-item" style="color:var(--danger)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </a>
+      </div>
+      </div>
+    </nav>
+  </div>
+  <nav class="max-w-[1400px] mx-auto px-6 -mb-px flex items-center gap-1 text-sm overflow-x-auto" aria-label="Primary">
+    <a href="home.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Overview</a>
+    <a href="my_repositories.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Repositories <span class="mono text-[11px] fg3 ml-0.5" aria-label="14 total">14</span></a>
+    <a href="gists.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Gists <span class="mono text-[11px] fg3 ml-0.5" aria-label="4 owned">4</span></a>
+    <a href="my_pulls.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Pull requests <span class="mono text-[11px] fg3 ml-0.5" aria-label="12 open">12</span></a>
+    <a href="my_issues.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Issues <span class="mono text-[11px] fg3 ml-0.5" aria-label="7 assigned">7</span></a>
+    <a href="attention.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Attention <span class="mono text-[11px] fg3 ml-0.5" aria-label="13 items">13</span></a>
+    <a href="activity.html" class="px-3 py-2.5 border-b border-transparent fg2 hover:text-current">Activity</a>
+    <a href="account_settings.html" class="px-3 py-2.5 border-b border-transparent tab-active font-medium" aria-current="page">Settings</a>
+  </nav>
+</header>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-8">
+    <h1 class="text-2xl font-semibold tracking-tight">Account settings</h1>
+    <p class="mt-1 text-[13px] fg2">Profile, security, notifications, and personal access tokens.</p>
+  </section>
+
+  <div class="grid grid-cols-12 gap-8">
+
+    <aside class="col-span-3" aria-label="Settings sections">
+      <nav class="sticky top-4 flex flex-col gap-0.5">
+        <a href="#profile" class="nav-item nav-item-active" aria-current="true">Profile</a>
+        <a href="#security" class="nav-item">Security</a>
+        <a href="#ssh-keys" class="nav-item">SSH keys</a>
+        <a href="#tokens" class="nav-item">Access tokens</a>
+        <a href="#notifications" class="nav-item">Notifications</a>
+        <a href="#sessions" class="nav-item">Sessions</a>
+        <a href="#emails" class="nav-item">Emails</a>
+        <p class="mono text-[10px] fg3 uppercase tracking-wider mt-4 mb-1 px-2.5">Danger zone</p>
+        <a href="#delete" class="nav-item" style="color:var(--danger)">Delete account</a>
+      </nav>
+    </aside>
+
+    <div class="col-span-9 space-y-10">
+
+      <section id="profile" class="b border rounded-lg surface p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">Profile</h2>
+        <p class="text-[12.5px] fg3 mb-6">How others see you across Cloudzilla.</p>
+
+        <div class="flex items-start gap-4 mb-5">
+          <div class="avatar h-16 w-16 rounded-full grid place-items-center text-base font-semibold shrink-0">MK</div>
+          <div class="space-y-2">
+            <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated">Upload new picture</button>
+            <p class="text-[11.5px] fg3">PNG or JPG, max 2 MB.</p>
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <label class="field" for="acct-name">Name</label>
+            <input id="acct-name" class="txt" type="text" value="Malith Kuruppu" />
+          </div>
+          <div>
+            <label class="field" for="acct-username">Username</label>
+            <input id="acct-username" class="txt mono" type="text" value="malith" />
+            <p class="mt-1 text-[11.5px] fg3">Changing this will break links to your profile.</p>
+          </div>
+          <div>
+            <label class="field" for="acct-email">Email</label>
+            <input id="acct-email" class="txt mono" type="email" value="malith@cloudzilla.dev" />
+            <p class="mt-1 text-[11.5px] fg3">Used for sign-in and notifications.</p>
+          </div>
+          <div>
+            <label class="field" for="acct-bio">Bio</label>
+            <textarea id="acct-bio" class="txt" rows="3" placeholder="A short description of yourself"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="field" for="acct-company">Company</label>
+              <input id="acct-company" class="txt" type="text" placeholder="@mkappworks" />
+            </div>
+            <div>
+              <label class="field" for="acct-location">Location</label>
+              <input id="acct-location" class="txt" type="text" placeholder="Colombo, Sri Lanka" />
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+          <button type="button" class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+          <button type="button" data-toast-on-click="Profile saved" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Save profile</button>
+        </div>
+      </section>
+
+      <section id="security" class="b border rounded-lg surface p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">Security</h2>
+        <p class="text-[12.5px] fg3 mb-6">Password, two-factor authentication, and recovery.</p>
+
+        <ul class="divide-y b">
+          <li class="py-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Password</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Last changed <time datetime="2026-02-15">3 months ago</time>.</p>
+            </div>
+            <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated shrink-0">Change password</button>
+          </li>
+          <li class="py-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Two-factor authentication <span class="lbl lbl-green ml-2">Enabled</span></p>
+              <p class="mt-0.5 text-[12.5px] fg3">TOTP via authenticator app. 8 recovery codes remaining.</p>
+            </div>
+            <button type="button" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated shrink-0">Manage</button>
+          </li>
+        </ul>
+      </section>
+
+      <section id="ssh-keys" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold tracking-tight mb-1">SSH keys</h2>
+            <p class="text-[12.5px] fg3">Used for git push/pull over SSH on port 2222.</p>
+          </div>
+          <button type="button" data-open-dialog="add-ssh-key-dialog" class="h-9 px-4 text-sm rounded-md font-medium inline-flex items-center gap-1.5 shrink-0" style="background:var(--fg);color:var(--bg)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Add SSH key
+          </button>
+        </div>
+
+        <ul class="divide-y b">
+          <li class="py-3 flex items-center gap-3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg2" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium mono">SHA256:K9oM3PXc...nLqV</p>
+              <p class="text-[12px] fg3">Added <time datetime="2026-01-08">4 months ago</time> · last used today</p>
+            </div>
+            <span class="text-[11.5px] fg3 mono">ed25519</span>
+            <button type="button" data-confirm-trigger data-confirm-title="Remove this SSH key?" data-confirm-msg="The laptop key will immediately lose access. Any system using it for git operations will stop working." data-confirm-label="Remove" data-confirm-danger data-toast-on-confirm="SSH key removed" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)">Remove</button>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="fg2" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium mono">SHA256:8aL2Q1pR...zFmK</p>
+              <p class="text-[12px] fg3">Added <time datetime="2025-09-22">8 months ago</time> · last used 2 weeks ago</p>
+            </div>
+            <span class="text-[11.5px] fg3 mono">rsa-4096</span>
+            <button type="button" data-confirm-trigger data-confirm-title="Remove this SSH key?" data-confirm-msg="The desktop key will immediately lose access. Any system using it for git operations will stop working." data-confirm-label="Remove" data-confirm-danger data-toast-on-confirm="SSH key removed" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)">Remove</button>
+          </li>
+        </ul>
+      </section>
+
+      <section id="tokens" class="b border rounded-lg surface p-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold tracking-tight mb-1">Personal access tokens</h2>
+            <p class="text-[12.5px] fg3">For scripts and integrations that need to act on your behalf.</p>
+          </div>
+          <button type="button" data-open-dialog="generate-token-dialog" class="h-9 px-4 text-sm rounded-md font-medium inline-flex items-center gap-1.5 shrink-0" style="background:var(--fg);color:var(--bg)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Generate token
+          </button>
+        </div>
+
+        <ul class="divide-y b">
+          <li class="py-3 flex items-center gap-3">
+            <span class="h-2 w-2 rounded-full shrink-0" style="background:var(--success)" aria-label="Active"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium">deploy-bot</p>
+              <p class="text-[12px] fg3">scopes: <span class="mono">repo:read, repo:write</span> · expires <time datetime="2026-08-13">in 3 months</time></p>
+            </div>
+            <button type="button" data-confirm-trigger data-confirm-title="Revoke this token?" data-confirm-msg="The deploy-bot token will immediately lose access. Any script or integration using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast-on-confirm="Token revoked" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)">Revoke</button>
+          </li>
+          <li class="py-3 flex items-center gap-3">
+            <span class="h-2 w-2 rounded-full shrink-0" style="background:var(--success)" aria-label="Active"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium">ci-mirror</p>
+              <p class="text-[12px] fg3">scopes: <span class="mono">repo:read</span> · expires <time datetime="2026-12-31">in 7 months</time></p>
+            </div>
+            <button type="button" data-confirm-trigger data-confirm-title="Revoke this token?" data-confirm-msg="The ci-mirror token will immediately lose access. Any script or integration using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast-on-confirm="Token revoked" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated" style="color:var(--danger)">Revoke</button>
+          </li>
+        </ul>
+      </section>
+
+      <section id="notifications" class="b border rounded-lg surface p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">Notifications</h2>
+        <p class="text-[12.5px] fg3 mb-6">How and when you hear about activity. Changes save automatically.</p>
+
+        <ul class="divide-y b" data-auto-save-toast="Notification preferences saved">
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Pull requests where I'm requested as a reviewer</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Email me when someone requests my review.</p>
+            </div>
+            <label class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+              <input type="checkbox" checked class="peer sr-only" />
+              <span class="absolute inset-0 rounded-full b border peer-checked:border-transparent peer-checked:bg-[color:var(--success)] elevated transition-colors"></span>
+              <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full transition-transform peer-checked:translate-x-4" style="background:var(--bg)"></span>
+            </label>
+          </li>
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Issues assigned to me</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Email me when an issue is assigned to my account.</p>
+            </div>
+            <label class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+              <input type="checkbox" checked class="peer sr-only" />
+              <span class="absolute inset-0 rounded-full b border peer-checked:border-transparent peer-checked:bg-[color:var(--success)] elevated transition-colors"></span>
+              <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full transition-transform peer-checked:translate-x-4" style="background:var(--bg)"></span>
+            </label>
+          </li>
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Mentions in comments and discussions</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Email me when someone @-mentions me.</p>
+            </div>
+            <label class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+              <input type="checkbox" checked class="peer sr-only" />
+              <span class="absolute inset-0 rounded-full b border peer-checked:border-transparent peer-checked:bg-[color:var(--success)] elevated transition-colors"></span>
+              <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full transition-transform peer-checked:translate-x-4" style="background:var(--bg)"></span>
+            </label>
+          </li>
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Activity on repositories I watch</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Email summary of pushes, releases, and issues.</p>
+            </div>
+            <label class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+              <input type="checkbox" class="peer sr-only" />
+              <span class="absolute inset-0 rounded-full b border peer-checked:border-transparent peer-checked:bg-[color:var(--success)] elevated transition-colors"></span>
+              <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full transition-transform peer-checked:translate-x-4" style="background:var(--bg)"></span>
+            </label>
+          </li>
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Weekly digest of my work</p>
+              <p class="mt-0.5 text-[12.5px] fg3">A Monday morning summary of last week's activity.</p>
+            </div>
+            <label class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+              <input type="checkbox" class="peer sr-only" />
+              <span class="absolute inset-0 rounded-full b border peer-checked:border-transparent peer-checked:bg-[color:var(--success)] elevated transition-colors"></span>
+              <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full transition-transform peer-checked:translate-x-4" style="background:var(--bg)"></span>
+            </label>
+          </li>
+        </ul>
+      </section>
+
+      <section id="danger" class="b border rounded-lg surface p-6" style="border-color:rgba(248,113,113,0.30)">
+        <h2 class="text-base font-semibold tracking-tight mb-1" style="color:var(--danger)">Danger zone</h2>
+        <p class="text-[12.5px] fg3 mb-6">Irreversible. Make sure you've exported anything you want to keep.</p>
+
+        <ul class="divide-y b">
+          <li class="py-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Export your data</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Download everything you've created on Cloudzilla as a zip.</p>
+            </div>
+            <button type="button" data-toast-on-click="Export requested" class="h-8 px-3 text-[13px] rounded-md b border hover:elevated shrink-0">Request export</button>
+          </li>
+          <li id="delete" class="py-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[13.5px] font-medium">Delete account</p>
+              <p class="mt-0.5 text-[12.5px] fg3">Permanently remove your account, repositories, gists, and history.</p>
+            </div>
+            <button type="button" data-confirm-trigger data-confirm-title="Delete your account?" data-confirm-msg="This permanently removes your account, repositories, gists, and history. This cannot be undone." data-confirm-label="Delete account" data-confirm-danger data-toast-on-confirm="Account deleted" class="h-8 px-3 text-[13px] rounded-md font-medium shrink-0" style="background:var(--danger);color:#1a0000">Delete account</button>
+          </li>
+        </ul>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<dialog id="add-ssh-key-dialog" class="rounded-lg surface bs border p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" aria-labelledby="add-ssh-key-dialog-title">
+  <form data-toast-on-submit="SSH key added" data-close-on-submit class="contents">
+    <div class="flex flex-col gap-1 p-5 border-b b">
+      <h2 id="add-ssh-key-dialog-title" class="text-base font-semibold leading-tight">Add SSH key</h2>
+      <p class="text-[13px] fg2 leading-snug">A key gives any system holding the private half full git access to your repos.</p>
+    </div>
+    <div class="p-5 text-sm space-y-4">
+      <div>
+        <label class="field" for="dlg-key-title">Title</label>
+        <input id="dlg-key-title" class="txt" type="text" required placeholder="e.g. laptop" />
+      </div>
+      <div>
+        <label class="field" for="dlg-key-public">Public key</label>
+        <textarea id="dlg-key-public" class="txt mono" rows="5" required placeholder="ssh-ed25519 AAAA…"></textarea>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 p-5 border-t b">
+      <button type="button" data-dialog-close class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+      <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Add key</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="generate-token-dialog" class="rounded-lg surface bs border p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" aria-labelledby="generate-token-dialog-title">
+  <form data-toast-on-submit="Token generated" data-close-on-submit class="contents">
+    <div class="flex flex-col gap-1 p-5 border-b b">
+      <h2 id="generate-token-dialog-title" class="text-base font-semibold leading-tight">Generate personal access token</h2>
+      <p class="text-[13px] fg2 leading-snug">Treat tokens like passwords — they grant API and git access on your behalf.</p>
+    </div>
+    <div class="p-5 text-sm space-y-4">
+      <div>
+        <label class="field" for="dlg-token-name">Name</label>
+        <input id="dlg-token-name" class="txt" type="text" required placeholder="e.g. CI deploy" />
+      </div>
+      <fieldset>
+        <legend class="field">Scopes</legend>
+        <div class="space-y-1.5 text-[13px]">
+          <label class="flex items-center gap-2"><input type="checkbox" /> <span><strong class="mono">repo:read</strong> — read repositories, code, issues, PRs</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" /> <span><strong class="mono">repo:write</strong> — push to repositories</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" /> <span><strong class="mono">issues:write</strong> — create and update issues</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" /> <span><strong class="mono">pulls:write</strong> — create and update pull requests</span></label>
+        </div>
+      </fieldset>
+      <div>
+        <label class="field" for="dlg-token-expires">Expiration (optional)</label>
+        <input id="dlg-token-expires" class="txt" type="date" />
+        <p class="mt-1 text-[11px] fg3">Leave blank for a non-expiring token.</p>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 p-5 border-t b">
+      <button type="button" data-dialog-close class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+      <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Generate token</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="cz-confirm-dialog" class="rounded-lg surface bs border p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm" aria-labelledby="cz-confirm-title">
+  <div class="p-5">
+    <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="cz-confirm-msg" class="text-[13px] fg2 leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="cz-confirm-cancel" class="h-9 px-4 text-sm rounded-md b border hover:elevated">Cancel</button>
+      <button type="button" id="cz-confirm-ok" class="h-9 px-4 text-sm rounded-md font-medium" style="background:var(--fg);color:var(--bg)">Confirm</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast-root" aria-live="polite" aria-atomic="true" class="pointer-events-none fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2"></div>
+
+<script>
+  // Toast — fired via window.czToast(message). Auto-dismisses after 4s.
+  (function () {
+    var root = document.getElementById('toast-root');
+    if (!root) return;
+    var SVG_NS = 'http://www.w3.org/2000/svg';
+    function makeIcon(type) {
+      var svg = document.createElementNS(SVG_NS, 'svg');
+      svg.setAttribute('width', '14');
+      svg.setAttribute('height', '14');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2.5');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.style.color = type === 'error' ? 'var(--danger)' : 'var(--success)';
+      var path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', type === 'error' ? 'M18 6L6 18M6 6l12 12' : 'M20 6L9 17l-5-5');
+      svg.appendChild(path);
+      return svg;
+    }
+    window.czToast = function (message, type) {
+      if (!message) return;
+      var node = document.createElement('div');
+      node.setAttribute('role', 'status');
+      node.className = 'pointer-events-auto inline-flex items-center gap-2 rounded-lg bs border surface px-3.5 py-2.5 text-[13px]';
+      node.appendChild(makeIcon(type));
+      var span = document.createElement('span');
+      span.textContent = message;
+      node.appendChild(span);
+      root.appendChild(node);
+      setTimeout(function () { node.remove(); }, 4000);
+    };
+  })();
+
+  // Confirm dialog — triggered by [data-confirm-trigger]. Reads data-confirm-* attrs.
+  // On confirm, fires the toast named in data-toast-on-confirm.
+  (function () {
+    var dlg       = document.getElementById('cz-confirm-dialog');
+    var titleEl   = document.getElementById('cz-confirm-title');
+    var msgEl     = document.getElementById('cz-confirm-msg');
+    var okBtn     = document.getElementById('cz-confirm-ok');
+    var cancelBtn = document.getElementById('cz-confirm-cancel');
+    if (!dlg || typeof dlg.showModal !== 'function') return;
+    var pendingToast = null;
+
+    okBtn.addEventListener('click', function () {
+      var t = pendingToast; pendingToast = null;
+      dlg.close();
+      if (t) window.czToast(t);
+    });
+    cancelBtn.addEventListener('click', function () { pendingToast = null; dlg.close(); });
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) { pendingToast = null; dlg.close(); } });
+
+    document.body.addEventListener('click', function (e) {
+      var trigger = e.target.closest('[data-confirm-trigger]');
+      if (!trigger) return;
+      e.preventDefault();
+      titleEl.textContent = trigger.getAttribute('data-confirm-title') || 'Are you sure?';
+      msgEl.textContent   = trigger.getAttribute('data-confirm-msg')   || '';
+      okBtn.textContent   = trigger.getAttribute('data-confirm-label') || 'Confirm';
+      var danger = trigger.hasAttribute('data-confirm-danger');
+      okBtn.style.background = danger ? 'var(--danger)' : 'var(--fg)';
+      okBtn.style.color      = danger ? '#1a0000' : 'var(--bg)';
+      pendingToast = trigger.getAttribute('data-toast-on-confirm');
+      dlg.showModal();
+    });
+  })();
+
+  // Modal openers — [data-open-dialog="id"] opens dialog#id.
+  document.body.addEventListener('click', function (e) {
+    var trig = e.target.closest('[data-open-dialog]');
+    if (!trig) return;
+    var dlg = document.getElementById(trig.getAttribute('data-open-dialog'));
+    if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+  });
+  document.body.addEventListener('click', function (e) {
+    var c = e.target.closest('[data-dialog-close]');
+    if (!c) return;
+    var dlg = c.closest('dialog');
+    if (dlg) dlg.close();
+  });
+
+  // Mock-only: forms inside dialogs toast + close on submit (preventDefault).
+  document.body.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || !form.matches('form[data-toast-on-submit]')) return;
+    e.preventDefault();
+    var msg = form.getAttribute('data-toast-on-submit');
+    if (form.hasAttribute('data-close-on-submit')) {
+      var dlg = form.closest('dialog');
+      if (dlg) dlg.close();
+    }
+    form.reset();
+    if (msg) window.czToast(msg);
+  });
+
+  // Notification toggles auto-save: fire toast on any change inside the marked container.
+  document.body.addEventListener('change', function (e) {
+    var container = e.target.closest('[data-auto-save-toast]');
+    if (!container) return;
+    var msg = container.getAttribute('data-auto-save-toast');
+    if (msg) window.czToast(msg);
+  });
+
+  // Generic [data-toast-on-click] — Save Profile, Export, etc.
+  document.body.addEventListener('click', function (e) {
+    var trig = e.target.closest('[data-toast-on-click]');
+    if (!trig) return;
+    window.czToast(trig.getAttribute('data-toast-on-click'));
+  });
+</script>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+  <script>
+    (function(){
+      var items = document.querySelectorAll('.nav-item[href^="#"]');
+      var sections = Array.from(items).map(function(a){
+        var id = a.getAttribute('href').slice(1);
+        return { link: a, target: document.getElementById(id) };
+      }).filter(function(x){ return x.target; });
+      function setActive(link){
+        items.forEach(function(a){ a.classList.remove('nav-item-active'); a.removeAttribute('aria-current'); });
+        link.classList.add('nav-item-active');
+        link.setAttribute('aria-current','true');
+      }
+      sections.forEach(function(s){
+        s.link.addEventListener('click', function(e){
+          e.preventDefault();
+          s.target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', '#' + s.target.id);
+          setActive(s.link);
+        });
+      });
+      // scroll-spy: highlight item whose section is closest to top
+      var spy = function(){
+        var y = window.scrollY + 80;
+        var best = sections[0];
+        for (var i=0; i<sections.length; i++){
+          if (sections[i].target.offsetTop <= y) best = sections[i];
+        }
+        if (best) setActive(best.link);
+      };
+      window.addEventListener('scroll', spy, { passive: true });
+    })();
+  </script>
+</body>
+</html>

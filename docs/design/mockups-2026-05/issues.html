@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issues · mkappworks/cloudzilla — Cloudzilla</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#000;--surface:#0a0a0a;--elevated:#1a1a1a;--border:rgba(255,255,255,0.10);--border-strong:rgba(255,255,255,0.18);--fg:#ededed;--fg-2:#b4b4b4;--fg-3:#8c8c8c;--focus:#6ea8fe;--link:#93c5fd;--success:#4ade80;--warn:#fbbf24;--danger:#f87171; }
+  html.light { --bg:#fff;--surface:#fafafa;--elevated:#ededed;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);--fg:#0a0a0a;--fg-2:#444;--fg-3:#5e5e5e;--focus:#1d4ed8;--link:#1d4ed8;--success:#15803d;--warn:#b45309;--danger:#b91c1c; }
+  body { font-family:'Geist',ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);font-feature-settings:"ss01","ss02","cv11"; }
+  .mono{font-family:'Geist Mono',ui-monospace,monospace}.surface{background:var(--surface)}.elevated{background:var(--elevated)}
+  .b{border-color:var(--border)}.divide-y.b > * + *{border-top-color:var(--border)}.fg2{color:var(--fg-2)}.fg3{color:var(--fg-3)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip-link{position:absolute;left:8px;top:-40px;z-index:100;padding:8px 12px;background:var(--fg);color:var(--bg);border-radius:6px;font-weight:500;font-size:13px;transition:top 120ms}
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .tab-active{color:var(--fg);border-bottom-color:var(--fg)}
+  .avatar{background:var(--elevated);border:1px solid var(--border)}
+  .badge-success{background:rgba(74,222,128,0.15);color:var(--success);border-color:rgba(74,222,128,0.30)}
+  .badge-danger{background:rgba(248,113,113,0.15);color:var(--danger);border-color:rgba(248,113,113,0.30)}
+  .dropdown-wrap{position:relative;display:inline-block}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:240px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:50}
+  .dropdown-panel.dropdown-right{left:auto;right:0;min-width:220px}
+  .dropdown-panel.hidden{display:none}
+  .dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--fg-2);font-size:13px;width:100%;text-align:left;cursor:pointer;background:transparent;border:0;text-decoration:none;font-family:inherit}
+  .dropdown-item:hover{background:var(--elevated);color:var(--fg)}
+  .dropdown-item-active{background:var(--elevated);color:var(--fg)}
+  .dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+  .dropdown-header{padding:4px 10px 2px;font-size:10px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+  .btn-success{background:var(--success);color:#052e16}
+  html.light .btn-success{color:#fff}
+  .issue-card{position:relative;transition:padding-left 120ms}
+  .issue-card::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--fg);opacity:0;transition:opacity 120ms;border-radius:2px}
+  .issue-card:hover::before{opacity:1}
+  .issue-card:hover{padding-left:18px}
+  /* Repo subnav — filled-pill active tab */
+  nav[aria-label="Repository sections"] { margin-bottom: 0; padding-top: 6px; padding-bottom: 6px; }
+  nav[aria-label="Repository sections"] > a { padding-top: 6px; padding-bottom: 6px; border-bottom-width: 0; }
+  nav[aria-label="Repository sections"] > a[aria-current="page"] { background: var(--elevated); color: var(--fg); border-radius: 6px; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="issues"></div>
+<script src="nav.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
+
+  <section class="mb-6 flex flex-wrap items-start justify-between gap-4" aria-labelledby="issues-title">
+    <div class="min-w-0">
+      <h1 id="issues-title" class="text-2xl font-semibold tracking-tight">Issues</h1>
+    </div>
+    <a href="issue_new.html" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5 btn-success">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      New issue
+    </a>
+  </section>
+
+  <!-- Filter row + tab strip -->
+  <nav class="mb-4 flex items-center gap-1 b border-b text-sm" aria-label="Issue filters">
+    <a href="issues.html" class="px-3 py-2.5 border-b -mb-px tab-active font-medium" aria-current="page">Open <span class="mono text-[11px] fg3 ml-0.5">18</span></a>
+    <a href="issues_closed.html" class="px-3 py-2.5 border-b -mb-px border-transparent fg2 hover:text-current">Closed <span class="mono text-[11px] fg3 ml-0.5">142</span></a>
+    <div class="ml-auto flex items-center gap-1.5 pb-1.5">
+      <label for="filter-search" class="sr-only">Search issues</label>
+      <div class="relative">
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 fg3" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="filter-search" type="search" placeholder="Filter is:open" class="w-56 h-8 pl-8 pr-3 text-[13px] surface b border rounded-md placeholder:fg3" />
+      </div>
+      <button type="button" class="h-8 px-3 b border rounded-md hover:elevated text-[13px] fg2 inline-flex items-center gap-1.5">Labels <span class="mono text-[10px] fg3">9</span></button>
+      <a href="milestones.html" class="h-8 px-3 b border rounded-md hover:elevated text-[13px] fg2 inline-flex items-center gap-1.5">Milestones</a>
+    </div>
+  </nav>
+
+  <section aria-labelledby="pinned" class="mb-6">
+    <h2 id="pinned" class="mono text-[11px] fg3 uppercase tracking-wider mb-2">Pinned <span class="ml-1">2</span></h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <a href="#" class="b border rounded-md surface p-4 hover:bs hover:elevated transition">
+        <div class="flex items-start gap-2">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" class="shrink-0 mt-0.5" style="color:var(--warn)" aria-hidden="true"><path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.62l5.34-.78L10 1z"/></svg>
+          <div class="min-w-0">
+            <p class="text-[13px] font-semibold truncate">Roadmap: phases 16–20 prep</p>
+            <p class="mt-1 mono text-[11px] fg3">#1 · open</p>
+          </div>
+        </div>
+      </a>
+      <a href="#" class="b border rounded-md surface p-4 hover:bs hover:elevated transition">
+        <div class="flex items-start gap-2">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" class="shrink-0 mt-0.5" style="color:var(--warn)" aria-hidden="true"><path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.62l5.34-.78L10 1z"/></svg>
+          <div class="min-w-0">
+            <p class="text-[13px] font-semibold truncate">UI overhaul tracking issue</p>
+            <p class="mt-1 mono text-[11px] fg3">#42 · open</p>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="b border rounded-md surface overflow-hidden" aria-labelledby="issue-list">
+    <h2 id="issue-list" class="sr-only">Open issues</h2>
+    <ol class="divide-y b">
+      <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+        <div class="min-w-0 flex-1">
+          <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Profile slow query: pulls list with assignee join</a>
+          <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+            <span class="mono">#138</span>
+            <span aria-hidden="true">·</span>
+            <span>opened by <a href="#" class="hover:text-current">daisy</a></span>
+            <span aria-hidden="true">·</span>
+            <time datetime="2026-05-09">4 days ago</time>
+            <span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
+              <span class="px-2 py-0.5 rounded-full text-[11px] border" style="background:#3b82f633;color:#3b82f6;border-color:#3b82f655">performance</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] border" style="background:#a855f733;color:#a855f7;border-color:#a855f755">db</span>
+            </span>
+          </div>
+        </div>
+        <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+      </li>
+      <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+        <div class="min-w-0 flex-1">
+          <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">
+            <span class="inline-flex items-center mr-1" title="Private" style="color:var(--warn)" aria-label="Private">🔒</span>
+            Decide retention window for audit_log table
+          </a>
+          <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+            <span class="mono">#129</span>
+            <span aria-hidden="true">·</span>
+            <span>opened by <a href="#" class="hover:text-current">malith</a></span>
+            <span aria-hidden="true">·</span>
+            <time datetime="2026-05-04">1 week ago</time>
+          </div>
+        </div>
+        <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+      </li>
+      <li class="issue-card flex items-start gap-3 px-4 py-3 hover:elevated">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1" style="color:var(--success)" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+        <div class="min-w-0 flex-1">
+          <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Webhook retry queue stalls past 1k entries</a>
+          <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] fg3">
+            <span class="mono">#74</span>
+            <span aria-hidden="true">·</span>
+            <span>opened by <a href="#" class="hover:text-current">yumi</a></span>
+            <span aria-hidden="true">·</span>
+            <time datetime="2026-04-22">3 weeks ago</time>
+            <span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
+              <span class="px-2 py-0.5 rounded-full text-[11px] border" style="background:#ef444433;color:#ef4444;border-color:#ef444455">bug</span>
+            </span>
+          </div>
+        </div>
+        <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium badge-success shrink-0">open</span>
+      </li>
+    </ol>
+  </section>
+
+  <p class="mt-4 text-[12px] fg3">Filter syntax matches your usual shortcuts: <code class="mono px-1 py-0.5 elevated b border rounded">is:open</code>, <code class="mono px-1 py-0.5 elevated b border rounded">label:bug</code>, <code class="mono px-1 py-0.5 elevated b border rounded">milestone:v0.3</code>, <code class="mono px-1 py-0.5 elevated b border rounded">author:daisy</code>.</p>
+</main>
+
+<script>
+  const html=document.documentElement;const KEY='cz-theme';const s=localStorage.getItem(KEY);
+  if(s==='light'||(!s&&matchMedia('(prefers-color-scheme: light)').matches))html.classList.add('light');
+  function sync(){const L=html.classList.contains('light');document.querySelectorAll('.dark-only').forEach(e=>e.classList.toggle('hidden',L));document.querySelectorAll('.light-only').forEach(e=>e.classList.toggle('hidden',!L));}
+  function toggleTheme(){html.classList.toggle('light');localStorage.setItem(KEY,html.classList.contains('light')?'light':'dark');sync();}
+  sync();
+</script>
+<script>/* DROPDOWN_JS */
+  (function(){
+    function closeAll(){
+      document.querySelectorAll('.dropdown-panel').forEach(function(p){p.classList.add('hidden');});
+      document.querySelectorAll('[data-menu]').forEach(function(b){b.setAttribute('aria-expanded','false');});
+    }
+    document.querySelectorAll('[data-menu]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var wrap = btn.closest('.dropdown-wrap');
+        var panel = wrap && wrap.querySelector('.dropdown-panel');
+        if (!panel) return;
+        var wasOpen = !panel.classList.contains('hidden');
+        closeAll();
+        if (!wasOpen){ panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); }
+      });
+    });
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('.dropdown-panel') && !e.target.closest('[data-menu]')) closeAll();
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+  })();
+</script>
+</body>
+</html>
