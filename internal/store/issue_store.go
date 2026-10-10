@@ -50,6 +50,12 @@ func (s *IssueStore) Create(ctx context.Context, issue *model.Issue) error {
 	return nil
 }
 
+// DeleteByID removes an issue; its label, assignee and event rows cascade.
+func (s *IssueStore) DeleteByID(ctx context.Context, id int64) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM issues WHERE id = $1`, id)
+	return err
+}
+
 func (s *IssueStore) List(ctx context.Context, repoID int64) ([]model.Issue, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT i.id, i.repo_id, i.number, i.author_id,

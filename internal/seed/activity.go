@@ -71,7 +71,8 @@ func (s *seeder) seedIssues() error {
 			}
 			r.milestones = append(r.milestones, m)
 		}
-		if len(r.milestones) > 1 && chance(s.rng, 0.5) {
+		closedMilestone := len(r.milestones) > 1 && chance(s.rng, 0.5)
+		if closedMilestone {
 			if _, err := s.svcs.Milestone.Close(s.ctx, r.OwnerName, r.Name, r.milestones[0].Number, nil); err != nil {
 				return err
 			}
@@ -80,6 +81,12 @@ func (s *seeder) seedIssues() error {
 		for range int(r.weight*25) + s.rng.IntN(4) {
 			if err := s.seedIssue(r); err != nil {
 				return fmt.Errorf("%s/%s: %w", r.OwnerName, r.Name, err)
+			}
+		}
+		// The random assignment above can leave a closed milestone empty.
+		if closedMilestone && len(r.issues) > 0 {
+			if err := s.svcs.Milestone.SetIssue(s.ctx, r.issues[0].ID, &r.milestones[0].ID); err != nil {
+				return err
 			}
 		}
 	}
@@ -201,9 +208,15 @@ func (s *seeder) seedPull(r *seedRepo, f featureResult) error {
 		return err
 	}
 	s.report.Pulls++
+	r.pulls = append(r.pulls, pr)
 	s.event(author, r, model.EventPROpened, map[string]any{"number": pr.Number, "title": pr.Title})
 	if err := s.svcs.Assignee.AddToPull(s.ctx, r.OwnerName, r.Name, pr.Number, author.Username); err != nil {
 		return err
+	}
+	if len(r.milestones) > 0 && chance(s.rng, 0.25) {
+		if err := s.svcs.Milestone.SetPull(s.ctx, pr.ID, &pick(s.rng, r.milestones).ID); err != nil {
+			return err
+		}
 	}
 	if chance(s.rng, 0.6) {
 		if err := s.svcs.Label.AddToPull(s.ctx, r.OwnerName, r.Name, pr.Number, pick(s.rng, r.labels[:2]).ID); err != nil {
@@ -333,7 +346,7 @@ func (s *seeder) seedDiscussions() error {
 }
 
 func (s *seeder) seedReleases() error {
-	for _, r := range s.repos {
+	for n, r := range s.repos {
 		for i, t := range r.history.Tags {
 			notes := "## What's changed\n\n- " + strings.Join(t.Notes, "\n- ") + "\n"
 			pre := i == len(r.history.Tags)-1 && strings.HasPrefix(t.Name, "v0.") && chance(s.rng, 0.3)
@@ -345,6 +358,29 @@ func (s *seeder) seedReleases() error {
 			s.report.Releases++
 			s.event(author, r, model.EventReleasePublished, map[string]any{"tag": rel.TagName, "name": rel.Name})
 		}
+		// Random tags rarely yield a prerelease or a draft; the first repo always has both.
+		if n == 0 {
+			if err := s.seedUpcomingReleases(r); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *seeder) seedUpcomingReleases(r *seedRepo) error {
+	author := r.owners[0]
+	for _, u := range []struct {
+		tag, notes string
+		draft      bool
+	}{
+		{"v9.0.0-rc.1", "Release candidate for the next major version.", false},
+		{"v9.0.0", "Draft notes for the next major version.", true},
+	} {
+		if _, err := s.svcs.Release.Create(s.ctx, r.OwnerName, r.Name, u.tag, "", u.tag, u.notes, !u.draft, u.draft, author.ID); err != nil {
+			return fmt.Errorf("%s/%s %s: %w", r.OwnerName, r.Name, u.tag, err)
+		}
+		s.report.Releases++
 	}
 	return nil
 }

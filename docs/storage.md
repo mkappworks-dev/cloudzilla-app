@@ -129,6 +129,6 @@ Pasting or dropping an image into a markdown editor on a repo page uploads it to
 ### Cleanup
 
 - **Repo purge:** `RepoService.PurgeExpired` deletes a purged repo's objects and rows. A soft delete keeps them, so Restore loses nothing.
-- **Sweep:** `AttachmentService.Run` runs hourly (`attachment.sweep` in `main.go`). It deletes attachments whose repo no longer exists, which also covers org and user deletion, and uploads older than 24 hours (`AttachmentGrace`) that no stored markdown contains. It looks in issue, PR and discussion bodies, comments, reviews, line comments, replies, releases, milestones and saved replies. Removing an image from a comment, or deleting the comment, frees it at the next sweep after the grace period.
+- **Sweep:** `AttachmentService.Run` runs hourly (`attachment.sweep` in `main.go`). It deletes attachments whose repo no longer exists, which also covers org and user deletion, and uploads older than 24 hours (`AttachmentGrace`) that no stored markdown contains. It looks in issue, PR and discussion bodies, comments, reviews, line comments, replies, releases, milestones, saved replies and project card descriptions. Removing an image from a comment, or deleting the comment, frees it at the next sweep after the grace period.
 - **Cost accepted:** the reference check is a substring scan of those tables for each candidate, once an hour. A draft left unsaved for over 24 hours loses its uploads.
 - A failed object delete leaves the row, so the next sweep retries it.

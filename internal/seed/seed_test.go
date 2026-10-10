@@ -94,6 +94,57 @@ func TestRun_SeedsAFreshInstance(t *testing.T) {
 	}
 }
 
+func TestRun_SeedsEveryShapeTheUIRenders(t *testing.T) {
+	svcs, db, root := newInstance(t)
+	// Milestones scale with repo popularity, which is skewed low, so five repos rarely carry every shape.
+	rep, err := seed.Run(context.Background(), svcs, root, seed.Options{Users: 8, Orgs: 2, Repos: 14, Seed: 7, Now: testNow})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	for _, c := range []struct{ name, query string }{
+		{"issue open", `SELECT count(*) FROM issues WHERE state = 'open'`},
+		{"issue closed", `SELECT count(*) FROM issues WHERE state = 'closed'`},
+		{"pull open", `SELECT count(*) FROM pull_requests WHERE state = 'open' AND NOT is_draft`},
+		{"pull draft", `SELECT count(*) FROM pull_requests WHERE state = 'open' AND is_draft`},
+		{"pull merged", `SELECT count(*) FROM pull_requests WHERE state = 'merged'`},
+		{"pull closed", `SELECT count(*) FROM pull_requests WHERE state = 'closed'`},
+		{"pull in a milestone", `SELECT count(*) FROM pull_requests WHERE milestone_id IS NOT NULL`},
+		{"release published", `SELECT count(*) FROM releases WHERE NOT is_draft AND NOT is_prerelease`},
+		{"release prerelease", `SELECT count(*) FROM releases WHERE NOT is_draft AND is_prerelease`},
+		{"release draft", `SELECT count(*) FROM releases WHERE is_draft`},
+		{"open milestone with issues", `SELECT count(DISTINCT m.id) FROM milestones m JOIN issues i ON i.milestone_id = m.id WHERE m.state = 'open'`},
+		{"closed milestone with issues", `SELECT count(DISTINCT m.id) FROM milestones m JOIN issues i ON i.milestone_id = m.id WHERE m.state = 'closed'`},
+		{"milestone due in the past", `SELECT count(*) FROM milestones WHERE due_date < '2026-10-01'`},
+		{"milestone due in the future", `SELECT count(*) FROM milestones WHERE due_date > '2026-10-01'`},
+		{"issue with labels and assignee", `SELECT count(*) FROM issues i WHERE EXISTS (SELECT 1 FROM issue_labels l WHERE l.issue_id = i.id) AND EXISTS (SELECT 1 FROM issue_assignees a WHERE a.issue_id = i.id)`},
+		{"board with three columns", `SELECT count(*) FROM (SELECT project_id FROM project_columns GROUP BY project_id HAVING count(*) >= 3) b`},
+		{"closed board", `SELECT count(*) FROM projects WHERE closed_at IS NOT NULL`},
+		{"open board", `SELECT count(*) FROM projects WHERE closed_at IS NULL`},
+		{"note with description and due date", `SELECT count(*) FROM project_cards WHERE title <> '' AND note <> '' AND due_date IS NOT NULL AND issue_id IS NULL AND pull_id IS NULL`},
+		{"note with assignees and labels", `SELECT count(*) FROM project_cards c WHERE c.title <> '' AND EXISTS (SELECT 1 FROM card_assignees a WHERE a.card_id = c.id) AND EXISTS (SELECT 1 FROM card_labels l WHERE l.card_id = c.id)`},
+		{"titled note linked to an issue", `SELECT count(*) FROM project_cards WHERE title <> '' AND issue_id IS NOT NULL`},
+		{"plain issue card", `SELECT count(*) FROM project_cards WHERE title = '' AND issue_id IS NOT NULL`},
+		{"plain pull card", `SELECT count(*) FROM project_cards WHERE title = '' AND pull_id IS NOT NULL`},
+		{"overdue card", `SELECT count(*) FROM project_cards WHERE due_date < '2026-10-01'`},
+		{"card referencing a seeded issue", `SELECT count(*) FROM project_cards c JOIN project_columns pc ON pc.id = c.column_id JOIN projects p ON p.id = pc.project_id JOIN issues i ON i.repo_id = p.repo_id AND c.note LIKE '%#' || i.number || '%'`},
+	} {
+		if got := count(t, db, c.query); got == 0 {
+			t.Errorf("no %s", c.name)
+		}
+	}
+
+	if got := count(t, db, `SELECT count(*) FROM projects`); got != rep.Projects {
+		t.Errorf("projects = %d, report says %d", got, rep.Projects)
+	}
+	if got := count(t, db, `SELECT count(*) FROM project_cards`); got != rep.Cards {
+		t.Errorf("cards = %d, report says %d", got, rep.Cards)
+	}
+	if got := count(t, db, `SELECT count(*) FROM issues`); got != rep.Issues {
+		t.Errorf("issues = %d, report says %d: a converted card creates an issue the report must count", got, rep.Issues)
+	}
+}
+
 func TestRun_RefusesAnInstanceThatAlreadyHasAccounts(t *testing.T) {
 	svcs, db, root := newInstance(t)
 	ctx := context.Background()
@@ -126,30 +177,64 @@ func TestRun_RefusesANonEmptyReposRoot(t *testing.T) {
 }
 
 func TestRun_SameSeedBuildsTheSameWorld(t *testing.T) {
-	names := func() []string {
+	// Each query yields one stable-keyed line per row; database ids never appear.
+	fingerprints := map[string]string{
+		"repositories": `SELECT owner_name || '/' || name FROM repositories`,
+		"milestones":   `SELECT r.owner_name || '/' || r.name || ' ' || m.title || ' ' || m.state || ' ' || coalesce(m.due_date::text, '') FROM milestones m JOIN repositories r ON r.id = m.repo_id`,
+		"issues":       `SELECT r.owner_name || '/' || r.name || '#' || i.number || ' ' || i.state || ' ' || coalesce(m.title, '') FROM issues i JOIN repositories r ON r.id = i.repo_id LEFT JOIN milestones m ON m.id = i.milestone_id`,
+		"pulls":        `SELECT r.owner_name || '/' || r.name || '#' || p.number || ' ' || p.state || ' draft=' || p.is_draft || ' ' || coalesce(m.title, '') FROM pull_requests p JOIN repositories r ON r.id = p.repo_id LEFT JOIN milestones m ON m.id = p.milestone_id`,
+		"releases":     `SELECT r.owner_name || '/' || r.name || ' ' || e.tag_name || ' draft=' || e.is_draft || ' pre=' || e.is_prerelease FROM releases e JOIN repositories r ON r.id = e.repo_id`,
+		"projects":     `SELECT r.owner_name || '/' || r.name || ' ' || p.name || ' closed=' || (p.closed_at IS NOT NULL) FROM projects p JOIN repositories r ON r.id = p.repo_id`,
+		"cards": `SELECT r.owner_name || '/' || r.name || ' ' || p.name || ' [' || pc.name || '] ' || c.title || ' | ' || c.note || ' | due=' || coalesce(c.due_date::text, '') ||
+			' | ' || CASE WHEN i.id IS NOT NULL THEN 'issue#' || i.number WHEN pr.id IS NOT NULL THEN 'pull#' || pr.number ELSE 'note' END ||
+			' | @' || coalesce((SELECT string_agg(u.username, ',' ORDER BY u.username) FROM card_assignees a JOIN users u ON u.id = a.user_id WHERE a.card_id = c.id), '') ||
+			' | ' || coalesce((SELECT string_agg(l.name, ',' ORDER BY l.name) FROM card_labels cl JOIN labels l ON l.id = cl.label_id WHERE cl.card_id = c.id), '')
+			FROM project_cards c JOIN project_columns pc ON pc.id = c.column_id JOIN projects p ON p.id = pc.project_id
+			JOIN repositories r ON r.id = p.repo_id LEFT JOIN issues i ON i.id = c.issue_id LEFT JOIN pull_requests pr ON pr.id = c.pull_id`,
+	}
+	world := func() map[string][]string {
 		svcs, db, root := newInstance(t)
-		if _, err := seed.Run(context.Background(), svcs, root, smallWorld(9)); err != nil {
+		if _, err := seed.Run(context.Background(), svcs, root, seed.Options{Users: 8, Orgs: 2, Repos: 14, Seed: 9, Now: testNow}); err != nil {
 			t.Fatalf("Run: %v", err)
 		}
-		rows, err := db.Query(`SELECT owner_name || '/' || name FROM repositories ORDER BY id`)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer rows.Close()
-		var out []string
-		for rows.Next() {
-			var n string
-			if err := rows.Scan(&n); err != nil {
+		out := map[string][]string{}
+		for name, query := range fingerprints {
+			rows, err := db.Query(query)
+			if err != nil {
+				t.Fatalf("%s: %v", name, err)
+			}
+			for rows.Next() {
+				var line string
+				if err := rows.Scan(&line); err != nil {
+					t.Fatal(err)
+				}
+				out[name] = append(out[name], line)
+			}
+			if err := rows.Err(); err != nil {
 				t.Fatal(err)
 			}
-			out = append(out, n)
-		}
-		if err := rows.Err(); err != nil {
-			t.Fatal(err)
+			_ = rows.Close()
+			slices.Sort(out[name])
 		}
 		return out
 	}
-	if a, b := names(), names(); !slices.Equal(a, b) {
-		t.Errorf("repositories differ between runs:\n%v\n%v", a, b)
+	a, b := world(), world()
+	for name := range fingerprints {
+		if len(a[name]) == 0 {
+			t.Errorf("%s: empty fingerprint, the comparison proves nothing", name)
+		}
+		if slices.Equal(a[name], b[name]) {
+			continue
+		}
+		for _, line := range a[name] {
+			if !slices.Contains(b[name], line) {
+				t.Errorf("%s only in the first run: %s", name, line)
+			}
+		}
+		for _, line := range b[name] {
+			if !slices.Contains(a[name], line) {
+				t.Errorf("%s only in the second run: %s", name, line)
+			}
+		}
 	}
 }

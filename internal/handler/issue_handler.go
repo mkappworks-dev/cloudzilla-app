@@ -114,11 +114,16 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.announceIssueOpened(claims, repo, owner, repoName, issue)
+
+	writeJSON(w, http.StatusCreated, issue)
+}
+
+// announceIssueOpened fires the "issues" webhook and records the activity event, both off the request path.
+func (h *Handler) announceIssueOpened(claims middleware.Claims, repo *model.Repository, owner, repoName string, issue *model.Issue) {
 	go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload("opened", *repo, *issue))
 	repoID := repo.ID
 	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventIssueOpened, map[string]any{"number": issue.Number, "title": issue.Title})
-
-	writeJSON(w, http.StatusCreated, issue)
 }
 
 func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {

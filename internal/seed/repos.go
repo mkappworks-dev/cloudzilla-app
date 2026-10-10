@@ -25,6 +25,7 @@ type seedRepo struct {
 	labels       []*model.Label
 	milestones   []*model.Milestone
 	issues       []*model.Issue
+	pulls        []*model.PullRequest
 }
 
 func (r *seedRepo) canRead(p *person) bool {

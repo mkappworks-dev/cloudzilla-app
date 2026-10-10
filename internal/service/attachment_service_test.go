@@ -195,6 +195,24 @@ func TestAttachmentService_Sweep(t *testing.T) {
 		}
 	})
 
+	t.Run("keeps an old attachment a project card description references", func(t *testing.T) {
+		e := newAttachmentEnv(t)
+		a := e.upload(t, color.NRGBA{7, 0, 0, 255})
+		e.age(t, a, 48*time.Hour)
+		var columnID int64
+		if err := e.db.QueryRow(`WITH p AS (INSERT INTO projects (repo_id, name) VALUES ($1, 'b') RETURNING id)
+			INSERT INTO project_columns (project_id, name) SELECT id, 'c' FROM p RETURNING id`, e.repoID).Scan(&columnID); err != nil {
+			t.Fatal(err)
+		}
+		testutil.Exec(t, e.db, `INSERT INTO project_cards (column_id, title, note) VALUES ($1, 't', $2)`, columnID, "![x]("+a.URL()+")")
+		if _, err := e.svc.Sweep(ctx, grace); err != nil {
+			t.Fatal(err)
+		}
+		if !e.row(t, a) {
+			t.Error("an attachment referenced by a card description was swept")
+		}
+	})
+
 	t.Run("deletes it once the only reference is gone", func(t *testing.T) {
 		e := newAttachmentEnv(t)
 		a := e.upload(t, color.NRGBA{5, 0, 0, 255})
