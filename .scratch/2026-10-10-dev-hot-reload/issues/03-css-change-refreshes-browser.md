@@ -2,7 +2,7 @@
 
 Created: 2026-10-10
 Category: enhancement
-Status: ready-for-agent
+Status: wontfix
 Blocked by: 01, 02
 
 ## Problem
@@ -40,3 +40,11 @@ a full page reload is enough — no Go rebuild and no restart.
 - [ ] A `.templ` edit that changes both markup and classes either refreshes once or is
       documented as refreshing twice — not left as an unexplained flicker
 - [ ] CONTRIBUTING.md notes which changes skip the Go rebuild
+
+## Comments
+
+Claude, 2026-10-11: superseded by ticket 04. This ticket existed to add a second watcher purely
+so a Tailwind rebuild would refresh the browser. In ticket 04 the dev server watches
+`cmd/server/frontend` itself and pushes the reload down its own channel, so the extra watcher,
+the `--notify-proxy` call and the double-refresh question this ticket raised all disappear with
+it rather than being solved separately.

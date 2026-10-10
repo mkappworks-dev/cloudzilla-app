@@ -97,14 +97,17 @@ against that port.
 
 ## Acceptance criteria
 
-- [x] `make dev` starts air, Tailwind, templ watch+proxy and the notify script; one Ctrl-C stops
-      all four
+- [ ] `make dev` starts air, Tailwind, templ watch+proxy and the notify script; one Ctrl-C stops
+      all four — **not verified**: the four were run separately, never through `make dev`
 - [x] Editing a `.templ` file: templ regenerates, air rebuilds with `-tags dev`, the server
-      restarts, and the browser at `:7331` refreshes once, showing the change
+      restarts, and the browser at `:7331` shows the change — but refreshes twice, not once
+      (ticket 04)
 - [x] Editing a `.go` file does the same
-- [x] The browser never refreshes before the new binary answers `/healthz`
+- [ ] The browser never refreshes before the new binary answers `/healthz` — **not met**:
+      ours does not, but templ's own refresh does, and it cannot be switched off (ticket 04)
 - [x] No restart fails with "address already in use" on `:8080` or `:2222`
-- [x] A restart while a git clone is in flight does not wait 30s
+- [ ] A restart while a git clone is in flight does not wait 30s — **not verified**, only
+      reasoned from `kill_delay`
 - [x] `make setup-air` installs air; `tmp/` is gitignored and `git status` stays clean during a
       dev session
 - [x] CONTRIBUTING.md documents the loop, the `:7331` URL, and that git stays on `:8080`
@@ -148,3 +151,17 @@ Measured, through templ's proxy on 7331:
 
 Dev asset responses carry `Cache-Control: no-store` and no `Content-Encoding`, confirming ticket
 01's path through the live server rather than only in unit tests.
+
+Claude, 2026-10-11: correcting my own bookkeeping. I closed this ticket by ticking every
+criterion at once, and four of those ticks did not hold:
+
+- "refreshes once" was false — it refreshes twice for `internal/view` edits, which the comment
+  above already described while the checkbox claimed otherwise.
+- "never refreshes before the new binary answers /healthz" was false for the same reason.
+- the 30s-drain and single-Ctrl-C criteria were never exercised at all; I verified the four
+  processes individually and never ran `make dev` end to end.
+
+The first two are now ticket 04's job, which replaces templ's proxy with a reload channel served
+by the dev build itself — reloading on reconnect, which cannot fire before the new server is
+listening. The two unverified ones will be tested against that loop, since ticket 04 changes
+`make dev` to two processes anyway.
