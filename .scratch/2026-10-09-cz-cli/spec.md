@@ -90,6 +90,6 @@ Tickets in `issues/`, in order:
 
 Claude, 2026-10-10: ticked the auth, error-message and import-boundary criteria (`internal/cli/imports_test.go` runs in CI under `go test ./...`). Left open:
 
-- **Old name everywhere.** `docs/configuration.md` still says `cloudzilla gc` where it means `cz-admin gc`, and `.scratch/2026-10-06-admin-password-reset/` still names `cloudzilla password-reset-link`.
+- **Old name everywhere.** `.scratch/2026-10-06-admin-password-reset/` still names `cloudzilla password-reset-link`. The stale `cloudzilla gc` in `docs/configuration.md` is fixed.
 - **Core commands against a real server.** The repo, issue and PR commands are tested against stub servers only; the one run against the real router is the device login.
 - **Docker image's `dist/`.** Ticket 06 deliberately keeps `cz` out of the server image (`docs/cli.md` says so), which contradicts this criterion. Reword it or ship `cz` in the image.
