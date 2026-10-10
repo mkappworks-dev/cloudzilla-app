@@ -23,6 +23,12 @@ import (
 // bare repos under ReposRoot, so this mirrors that exactly.
 func newTestRepoWithCommits(t *testing.T, owner, name string, times []time.Time) *CodeService {
 	t.Helper()
+	return newTestRepoWithCommitsBy(t, owner, name, "tester@example.com", times)
+}
+
+// newTestRepoWithCommitsBy is newTestRepoWithCommits with every commit authored by email.
+func newTestRepoWithCommitsBy(t *testing.T, owner, name, email string, times []time.Time) *CodeService {
+	t.Helper()
 	root := t.TempDir()
 
 	bareDir := filepath.Join(root, owner, name+".git")
@@ -52,7 +58,7 @@ func newTestRepoWithCommits(t *testing.T, owner, name string, times []time.Time)
 		if _, err := wt.Add("f.txt"); err != nil {
 			t.Fatalf("add: %v", err)
 		}
-		sig := &gitobj.Signature{Name: "Tester", Email: "tester@example.com", When: when}
+		sig := &gitobj.Signature{Name: "Tester", Email: email, When: when}
 		if _, err := wt.Commit("commit "+strconv.Itoa(i), &gogit.CommitOptions{Author: sig, Committer: sig}); err != nil {
 			t.Fatalf("commit: %v", err)
 		}
