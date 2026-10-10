@@ -26,7 +26,7 @@ What's in the code today (checked on `origin/main` at 4d1e48d7, 2026-10-06):
 - **Opening a PR needs only read access** (`PullService.Create` checks `CanRead`). Editing a PR's title or body needs write access.
 - **Issue visibility:** an issue can be `private`, visible to its author and to the repo's owners, admins and writers (`issueVisibleTo`).
 
-- **Link readers assume one repo.** `PullStore.ListLinkedToIssue` (the issue sidebar) filters both the PR and the issue to the issue's repo and takes no viewer. `IssueStore.ListLinkedToPull` (the PR sidebar) filters by `issueVisibleTo` but not by whether the viewer can read the issue's repo. The unlink endpoints resolve the other side by number in the current repo. Manual links are also written by the new-issue form (`linked_pulls`, `page_issue_handler.go`) and the seed.
+- **Link readers assume one repo.** `PullStore.ListLinkedToIssue` (the issue sidebar) filters both the PR and the issue to the issue's repo and takes no viewer. `IssueStore.ListLinkedToPull` (the PR sidebar) filters by `issueVisibleTo` but not by whether the viewer can read the issue's repo. The unlink endpoints resolve the other side by number in the current repo. Manual links are also written by the new-issue form (`linked_pulls`, `issue_page_handler.go`) and the seed.
 - **Token targets:** a `repo:admin` personal access token can be limited to some repos and orgs (`Claims.Targets`, migration 098), enforced on `/api/repos/...` routes by `middleware.TargetAllows`.
 
 ## Decisions
@@ -167,7 +167,7 @@ One migration, the next free number at commit time (102 today):
 ## Relevant files
 
 - `internal/handler/pull_handler.go`: `CreatePull`, `UpdatePull` (title, body, merge branches), `tryAutoMerge`
-- `internal/handler/pull_linked_issue_handler.go`, `internal/handler/issue_meta_handler.go`, `internal/handler/page_issue_handler.go`: link sidebars and the new-issue form
+- `internal/handler/pull_linked_issue_handler.go`, `internal/handler/issue_meta_handler.go`, `internal/handler/issue_page_handler.go`: link sidebars and the new-issue form
 - `internal/handler/issue_handler.go`: `UpdateIssue` (manual close/reopen side effects)
 - `internal/handler/commit_status_handler.go`, `internal/handler/pull_review_handler.go`: auto-merge triggers
 - `internal/handler/git_http.go`, `internal/ssh/server.go`: post-receive goroutines, the pusher's identity

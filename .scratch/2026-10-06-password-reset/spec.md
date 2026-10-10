@@ -158,7 +158,7 @@ Items marked (Qn) follow the answer to that open question (see Comments).
 - `internal/service/user_service.go` — `MinPasswordLen`, `MaxPasswordBytes`, `hashPassword`
 - `internal/handler/signup_handler.go` — `requestSignup`, `validEmail`; new `internal/handler/password_reset_handler.go`
 - `internal/handler/email_verification_handler.go` — `renderVerifyEmail` headers, audit precedent
-- `internal/handler/page_auth_handler.go` — `PageLogin`, `PageLoginSubmit`, `signIn`
+- `internal/handler/auth_page_handler.go` — `PageLogin`, `PageLoginSubmit`, `signIn`
 - `internal/view/pages/login.templ`, `internal/view/viewmodels_auth.go` — link and `LoginData` flag; new forgot/reset pages
 - `internal/model/audit_log.go` — new action constants
 - `internal/router/router.go` — routes and rate limits
