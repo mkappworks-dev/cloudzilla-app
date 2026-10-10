@@ -1,0 +1,87 @@
+# Make `make dev` rebuild, restart and refresh on save
+
+Created: 2026-10-10
+Category: enhancement
+Status: ready-for-agent
+Blocked by: 01
+
+## Problem
+
+`make dev` runs `go run ./cmd/server/.` once, so the `templ generate --watch` beside it produces
+`_templ.go` files that nothing compiles. Saving a template or a handler changes nothing in the
+browser until a manual Ctrl-C and `make dev`.
+
+## Scope
+
+**`.air.toml`** — checked in at the repo root, watching Go files only:
+
+```toml
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "CGO_ENABLED=0 go build -tags dev -o ./tmp/cloudzilla ./cmd/server/."
+  bin = "./tmp/cloudzilla"
+  include_ext = ["go"]
+  exclude_dir = ["tmp", "dist", "git-repos", "storage", "mockups", "docs", ".scratch", ".worktrees"]
+  exclude_regex = ["_test\\.go$"]
+  delay = 100
+  send_interrupt = true
+  kill_delay = "2s"
+```
+
+Two of those values are load-bearing:
+
+- `CGO_ENABLED=0` drops a view-page rebuild from 6.1s to 4.2s by using Go's internal linker
+  instead of clang. It is the cheapest win in this spec and costs nothing in dev.
+- `send_interrupt` + `kill_delay = "2s"` matter because of the graceful shutdown at
+  `cmd/server/main.go:98`. SIGINT is what releases `:8080` and `:2222` — a hard kill would risk
+  the next bind — but `srv.Shutdown` then waits up to 30s for in-flight requests, and a git
+  clone over HTTP is exactly such a request. The listeners close first, so the ports are free
+  immediately and the SIGKILL 2s later only abandons a transfer that no longer matters in dev.
+
+**`scripts/dev-notify-proxy.sh`** — refresh the browser when the *new* binary is listening, not
+when the file changed. templ's own discussions report the race in the documented setup: air has
+not finished rebuilding when the proxy's reload event has already gone out. Polling the existing
+`/healthz` probe removes it, since `probeMux` answers it before auth or setup middleware:
+
+```sh
+# Notify templ's proxy on each down→up transition, so a reload never beats the new binary.
+up=1
+while :; do
+  if curl -fsS -o /dev/null "http://127.0.0.1:${CZ_SERVER_PORT:-8080}/healthz"; then
+    [ "$up" = 0 ] && ~/go/bin/templ generate --notify-proxy
+    up=1
+  else
+    up=0
+  fi
+  sleep 0.2
+done
+```
+
+**`Makefile`** — `dev` keeps its prerequisites and its `trap 'kill 0' SIGINT` wrapper, and runs
+four children: `air`, the Tailwind watch, `templ generate --watch --proxy` (with no `--cmd`, as
+air owns the binary), and the notify script. Add a `setup-air` target mirroring `setup-templ`.
+
+**Browsing moves to `:7331`** — templ's proxy fronts the app on `:8080` and injects the reload
+script. This is safe here because `server.base_url` is unset in `config.yaml` and is only read
+for emails, API payloads, the device-flow URI and CORS — never for page navigation, so nothing
+redirects you back to `:8080` and out of the proxy. Two things stay on `:8080`: git clone/push
+(no reason to stream packfiles through the proxy) and any Google OAuth callback registered
+against that port.
+
+**`.gitignore`** — add `tmp/`.
+
+## Acceptance criteria
+
+- [ ] `make dev` starts air, Tailwind, templ watch+proxy and the notify script; one Ctrl-C stops
+      all four
+- [ ] Editing a `.templ` file: templ regenerates, air rebuilds with `-tags dev`, the server
+      restarts, and the browser at `:7331` refreshes once, showing the change
+- [ ] Editing a `.go` file does the same
+- [ ] The browser never refreshes before the new binary answers `/healthz`
+- [ ] No restart fails with "address already in use" on `:8080` or `:2222`
+- [ ] A restart while a git clone is in flight does not wait 30s
+- [ ] `make setup-air` installs air; `tmp/` is gitignored and `git status` stays clean during a
+      dev session
+- [ ] CONTRIBUTING.md documents the loop, the `:7331` URL, and that git stays on `:8080`

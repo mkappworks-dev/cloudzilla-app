@@ -20,9 +20,11 @@ import (
 )
 
 // Set is a frontend tree with each file's content hash, keyed by URL path.
+// A dev Set leaves files nil and resolves the tree on every call instead.
 type Set struct {
 	fsys  fs.FS
 	files map[string]*file
+	dev   bool
 }
 
 type file struct {
@@ -35,8 +37,12 @@ type file struct {
 
 var compressible = map[string]bool{".css": true, ".js": true, ".svg": true}
 
-// New hashes every file in fsys, whose root is served at the URL root.
+// New hashes every file in fsys, whose root is served at the URL root. A dev
+// build gets a dev Set instead, so an asset edit needs no rebuild.
 func New(fsys fs.FS) (*Set, error) {
+	if devMode {
+		return NewDev(fsys), nil
+	}
 	s := &Set{fsys: fsys, files: map[string]*file{}}
 	err := fs.WalkDir(fsys, ".", func(name string, d fs.DirEntry, err error) error {
 		switch {
@@ -60,6 +66,20 @@ func New(fsys fs.FS) (*Set, error) {
 	return s, nil
 }
 
+// NewDev returns a Set that resolves every file when it is asked for, so an
+// edit under the served tree needs no restart. Exported for the tests, which
+// are an external package; the dev build tag is what reaches it in a binary.
+func NewDev(fsys fs.FS) *Set {
+	return &Set{fsys: fsys, dev: true}
+}
+
+// devName resolves a URL path against fsys, where an fs name carries no
+// leading slash and no "..", so a traversal attempt is simply not valid.
+func devName(urlPath string) (string, bool) {
+	name := strings.TrimPrefix(urlPath, "/")
+	return name, fs.ValidPath(name)
+}
+
 func hashFile(fsys fs.FS, name string) (string, error) {
 	f, err := fsys.Open(name)
 	if err != nil {
@@ -76,6 +96,20 @@ func hashFile(fsys fs.FS, name string) (string, error) {
 // URL returns urlPath with its content hash as the query, or urlPath alone
 // when s has no such file.
 func (s *Set) URL(urlPath string) string {
+	if s.dev {
+		// Hashed on every render rather than stamped from mtime, whose
+		// resolution varies by filesystem: two same-size edits in one second
+		// would otherwise keep serving the first.
+		name, ok := devName(urlPath)
+		if !ok {
+			return urlPath
+		}
+		hash, err := hashFile(s.fsys, name)
+		if err != nil {
+			return urlPath
+		}
+		return urlPath + "?v=" + hash
+	}
 	if f, ok := s.files[urlPath]; ok {
 		return urlPath + "?v=" + f.hash
 	}
@@ -86,6 +120,10 @@ func (s *Set) URL(urlPath string) string {
 // current hash may cache it for good; any other is told to revalidate, so an
 // instance that is mid-upgrade can't pin the wrong bytes under a new URL.
 func (s *Set) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if s.dev {
+		s.serveDev(w, r)
+		return
+	}
 	f, ok := s.files[r.URL.Path]
 	if !ok {
 		http.NotFound(w, r)
@@ -112,6 +150,24 @@ func (s *Set) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	h.Set("ETag", `"`+f.hash+`"`)
 	http.ServeFileFS(w, r, s.fsys, f.name)
+}
+
+// serveDev serves the file as it is on disk right now. It sends no validators
+// and no gzip: the release path's immutable hashed URL and its per-file gzip
+// sync.Once would both pin one edit for the rest of the session.
+func (s *Set) serveDev(w http.ResponseWriter, r *http.Request) {
+	name, ok := devName(r.URL.Path)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	info, err := fs.Stat(s.fsys, name)
+	if err != nil || info.IsDir() {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	http.ServeFileFS(w, r, s.fsys, name)
 }
 
 // gzipped returns f compressed, or nil when gzip doesn't shrink it. It runs on

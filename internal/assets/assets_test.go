@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,8 +21,13 @@ var appJS = strings.Repeat("console.log('cloudzilla');\n", 100)
 // The first 16 hex digits of sha256(appJS).
 const appJSHash = "ad71a82d6e3c3fec"
 
+// newSet builds the hashing Set the release build serves from. Under the dev
+// tag New answers with a dev Set instead, so those cases have nothing to say.
 func newSet(t *testing.T) *assets.Set {
 	t.Helper()
+	if newIsDev {
+		t.Skip("New returns a dev Set under the dev build tag")
+	}
 	set, err := assets.New(fstest.MapFS{"static/app.js": {Data: []byte(appJS)}})
 	if err != nil {
 		t.Fatalf("assets.New: %v", err)
@@ -137,6 +144,100 @@ func TestServeHTTP_RangeOfGzipBody(t *testing.T) {
 func TestServeHTTP_ServesOnlyFiles(t *testing.T) {
 	set := newSet(t)
 	for _, target := range []string{"/static/missing.js", "/static/", "/static"} {
+		if rr := get(set, target, nil); rr.Code != http.StatusNotFound {
+			t.Errorf("GET %s: status %d, want 404", target, rr.Code)
+		}
+	}
+}
+
+// A dev Set reads the working tree, so every answer has to come from the file
+// as it is now. A real temp dir, not fstest.MapFS, because these cases turn on
+// writes that land after the Set exists.
+
+func newDevSet(t *testing.T) (*assets.Set, string) {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "static"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	writeFile(t, dir, "static/app.js", appJS)
+	return assets.NewDev(os.DirFS(dir)), dir
+}
+
+func writeFile(t *testing.T, dir, name, body string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+		t.Fatalf("write %s: %v", name, err)
+	}
+}
+
+// The dev build tag is the only thing that puts a dev Set into a binary, and
+// the cases above reach NewDev directly, so this is what covers the wiring.
+func TestNew_FollowsTheBuildTag(t *testing.T) {
+	dir := t.TempDir()
+	set, err := assets.New(os.DirFS(dir))
+	if err != nil {
+		t.Fatalf("assets.New: %v", err)
+	}
+	writeFile(t, dir, "late.css", "body{color:red}")
+
+	served := get(set, "/late.css", nil).Code == http.StatusOK
+	if served != newIsDev {
+		t.Errorf("New serves a file created after the walk = %v, want %v", served, newIsDev)
+	}
+}
+
+func TestNewDev_URLFollowsTheFileOnDisk(t *testing.T) {
+	set, dir := newDevSet(t)
+	before := set.URL("/static/app.js")
+	if want := "/static/app.js?v=" + appJSHash; before != want {
+		t.Fatalf("URL = %q, want %q", before, want)
+	}
+	writeFile(t, dir, "static/app.js", appJS+"console.log('edited');\n")
+	if after := set.URL("/static/app.js"); after == before {
+		t.Errorf("URL = %q after an edit, want a different hash", after)
+	}
+}
+
+func TestNewDev_URLOfAMissingFileIsUnchanged(t *testing.T) {
+	set, _ := newDevSet(t)
+	if got := set.URL("/static/missing.js"); got != "/static/missing.js" {
+		t.Errorf("URL = %q, want the path unchanged", got)
+	}
+}
+
+func TestNewDev_ServesAFileCreatedAfterTheSet(t *testing.T) {
+	set, dir := newDevSet(t)
+	writeFile(t, dir, "static/late.css", "body{color:red}")
+	rr := get(set, "/static/late.css", nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /static/late.css: status %d, want 200", rr.Code)
+	}
+	if got, want := rr.Body.String(), "body{color:red}"; got != want {
+		t.Errorf("body = %q, want %q", got, want)
+	}
+}
+
+// Both release behaviours would pin the previous edit for the rest of the
+// session: the hashed URL is cached immutable, and the gzip body is memoized
+// per file in a sync.Once.
+func TestNewDev_NeverCachesAndNeverGzips(t *testing.T) {
+	set, _ := newDevSet(t)
+	rr := get(set, "/static/app.js", map[string]string{"Accept-Encoding": "gzip"})
+	if got := rr.Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("Cache-Control = %q, want no-store", got)
+	}
+	if got := rr.Header().Get("Content-Encoding"); got != "" {
+		t.Errorf("Content-Encoding = %q, want none", got)
+	}
+	if rr.Body.String() != appJS {
+		t.Errorf("body is not the file on disk")
+	}
+}
+
+func TestNewDev_ServesOnlyFiles(t *testing.T) {
+	set, _ := newDevSet(t)
+	for _, target := range []string{"/static/missing.js", "/static/", "/static", "/../secret"} {
 		if rr := get(set, target, nil); rr.Code != http.StatusNotFound {
 			t.Errorf("GET %s: status %d, want 404", target, rr.Code)
 		}
