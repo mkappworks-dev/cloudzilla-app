@@ -53,6 +53,37 @@ func (e *projBoardEnv) convertableCard(t *testing.T, db *sql.DB) (projectID, car
 	return p.ID, card.ID
 }
 
+func TestProjectService_ConvertCardToIssue_KeepsTheCardsOwnFields(t *testing.T) {
+	e := newProjBoardEnv(t)
+	ctx := context.Background()
+	db := testutil.OpenTestDB(t)
+	projectID, cardID := e.convertableCard(t, db)
+	before := snapshotCard(t, db, cardID)
+
+	_, issue, err := e.svc.ConvertCardToIssue(ctx, projectID, cardID, e.ownerID)
+	if err != nil {
+		t.Fatalf("ConvertCardToIssue: %v", err)
+	}
+	want := before
+	want.issueID = sql.NullInt64{Int64: issue.ID, Valid: true}
+	if after := snapshotCard(t, db, cardID); after != want {
+		t.Errorf("card after convert = %+v, want %+v", after, want)
+	}
+
+	var title, body, labels, assignees string
+	err = db.QueryRowContext(ctx, `SELECT i.title, i.body,
+		COALESCE((SELECT string_agg(label_id::text, ',' ORDER BY label_id) FROM issue_labels WHERE issue_id = i.id), ''),
+		COALESCE((SELECT string_agg(user_id::text, ',' ORDER BY user_id) FROM issue_assignees WHERE issue_id = i.id), '')
+		FROM issues i WHERE i.id = $1`, issue.ID).Scan(&title, &body, &labels, &assignees)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if title != before.title || body != before.note || labels != before.labels || assignees != before.assignees {
+		t.Errorf("issue = %q %q labels %q assignees %q, want the card's %q %q %q %q",
+			title, body, labels, assignees, before.title, before.note, before.labels, before.assignees)
+	}
+}
+
 func TestProjectService_ConvertCardToIssue_RollsBackWhenLinkFails(t *testing.T) {
 	e := newProjBoardEnv(t)
 	ctx := context.Background()
@@ -141,6 +172,9 @@ func TestProjectService_ConvertCardToIssue_ConcurrentConvertsCreateOneIssue(t *t
 	var n int
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM issues WHERE repo_id = $1`, e.repoID).Scan(&n); err != nil || n != 1 {
 		t.Errorf("issues = %d (%v), want 1", n, err)
+	}
+	if got := snapshotCard(t, db, card.ID); got.title != "race me" || !got.issueID.Valid {
+		t.Errorf("card after the race = %+v, want it titled and linked", got)
 	}
 }
 

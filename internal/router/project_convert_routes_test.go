@@ -74,8 +74,8 @@ func TestProjects_ConvertCard(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.IssueID == nil || got.Title != "" || got.Note != "" {
-		t.Fatalf("response card = %s", rr.Body.String())
+	if got.IssueID == nil || got.Title != "Ship it" || got.Note != "the body" {
+		t.Fatalf("response card = %s, want it linked and still titled", rr.Body.String())
 	}
 	var due string
 	if err := e.db.QueryRow(`SELECT due_date::text FROM project_cards WHERE id = $1`, card).Scan(&due); err != nil || due != "2030-01-02" {
@@ -91,8 +91,11 @@ func TestProjects_ConvertCard(t *testing.T) {
 	if n := e.count(t, `SELECT COUNT(*) FROM issue_assignees WHERE issue_id = $1 AND user_id = $2`, *got.IssueID, e.writer.id); n != 1 {
 		t.Errorf("issue assignee rows = %d, want 1", n)
 	}
-	if n := e.count(t, `SELECT (SELECT COUNT(*) FROM card_assignees WHERE card_id = $1) + (SELECT COUNT(*) FROM card_labels WHERE card_id = $1)`, card); n != 0 {
-		t.Errorf("card join rows = %d, want 0", n)
+	if n := e.count(t, `SELECT COUNT(*) FROM card_assignees WHERE card_id = $1 AND user_id = $2`, card, e.writer.id); n != 1 {
+		t.Errorf("card assignee rows = %d, want the card to keep its own", n)
+	}
+	if n := e.count(t, `SELECT COUNT(*) FROM card_labels WHERE card_id = $1 AND label_id = $2`, card, label); n != 1 {
+		t.Errorf("card label rows = %d, want the card to keep its own", n)
 	}
 	wantStatus(t, convert(e.writer.token, p, card), http.StatusBadRequest)
 }

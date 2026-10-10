@@ -306,9 +306,9 @@ func (s *ProjectStore) SetCardDetails(ctx context.Context, cardID, projectID int
 	return tx.Commit()
 }
 
-// LinkNoteCardToIssue turns an unlinked titled card into a bare link to issueID, clearing its
-// title, note, assignees and labels and keeping the due date. It reports ErrCardNotLinkable
-// when the card is gone or was linked first, so concurrent converts can't both win.
+// LinkNoteCardToIssue links an unlinked titled card to issueID and changes nothing else on it.
+// It reports ErrCardNotLinkable when the card is gone or was linked first, so concurrent
+// converts can't both win.
 func (s *ProjectStore) LinkNoteCardToIssue(ctx context.Context, cardID, projectID, issueID int64) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -317,7 +317,7 @@ func (s *ProjectStore) LinkNoteCardToIssue(ctx context.Context, cardID, projectI
 	defer tx.Rollback()
 
 	res, err := tx.ExecContext(ctx,
-		`UPDATE project_cards SET title = '', note = '', issue_id = $3
+		`UPDATE project_cards SET issue_id = $3
 		 WHERE id = $1 AND issue_id IS NULL AND pull_id IS NULL AND title <> ''
 		   AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
 		cardID, projectID, issueID)
@@ -328,12 +328,6 @@ func (s *ProjectStore) LinkNoteCardToIssue(ctx context.Context, cardID, projectI
 		return err
 	} else if n == 0 {
 		return ErrCardNotLinkable
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM card_assignees WHERE card_id = $1`, cardID); err != nil {
-		return err
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM card_labels WHERE card_id = $1`, cardID); err != nil {
-		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("%w: %w", ErrLinkCommit, err)

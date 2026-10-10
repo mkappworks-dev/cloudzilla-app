@@ -172,7 +172,10 @@ func TestListColumnsWithCardsExpanded_ConvertedCardKeepsLabelsAndAssignees(t *te
 		t.Fatal(err)
 	}
 	c := cols[0].Cards[0]
-	if c.Kind != "issue" || len(c.Labels) != 1 || c.Labels[0].ID != labelID || len(c.Assignees) != 1 || c.Assignees[0].ID != e.writerID {
-		t.Errorf("converted card = %+v, want the issue's label and assignee", c)
+	if c.Kind != "note" || c.Title != "convert me" || c.LinkKind != "issue" || c.LinkNumber == 0 {
+		t.Errorf("converted card = %+v, want a titled card linked to the new issue", c)
+	}
+	if len(c.Labels) != 1 || c.Labels[0].ID != labelID || len(c.Assignees) != 1 || c.Assignees[0].ID != e.writerID {
+		t.Errorf("converted card = %+v, want its own label and assignee", c)
 	}
 }

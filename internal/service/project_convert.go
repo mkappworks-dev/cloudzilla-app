@@ -21,7 +21,7 @@ func (s *ProjectService) WithConvertDeps(issues *IssueService, issueStore *store
 }
 
 // ConvertCardToIssue creates a public issue from a note card and links the card to it. The
-// issue takes over the card's description, labels and assignees; the due date stays on the card.
+// issue gets copies of the card's description, labels and assignees; the card keeps its own fields.
 // The returned issue lets the caller announce it like any other newly opened issue.
 func (s *ProjectService) ConvertCardToIssue(ctx context.Context, projectID, cardID, userID int64) (*model.ProjectCard, *model.Issue, error) {
 	repo, err := s.repoForProject(ctx, projectID)
