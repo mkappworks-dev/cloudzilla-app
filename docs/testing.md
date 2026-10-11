@@ -9,6 +9,8 @@ Integration leaves out only the database tests of `internal/backup` and `interna
 
 The `cz-admin` `backup`, `restore` and `seed` command tests do run in Integration: they use stand-in `pg_dump` and `pg_restore` scripts, a scratch database and a three-user seed, and add about 8 s.
 
+Neither job passes a build tag, so **nothing under `//go:build dev` is ever compiled in CI** — the dev loop's disk-served assets, `/_dev/` routes and layout hook included. A change that breaks only the dev build passes both jobs. Run `go build -tags dev ./...` and `go test -tags dev ./internal/assets/` locally when you touch any of it; see [dev-loop](./dev-loop.md).
+
 ## Running everything locally
 
 ```bash
