@@ -15,6 +15,19 @@ import (
 // templ replaces a string given to an on*/hx-on* attribute with a comment
 // instead of failing, so a handler passed as a plain string disappears silently.
 func TestEventHandlerAttributes_SurviveSanitization(t *testing.T) {
+	repoSettings := func(mutate ...func(*view.RepoSettingsData)) string {
+		d := view.RepoSettingsData{
+			Repo: model.Repository{Name: "r"}, Owner: "alice", RepoName: "r",
+			IsOwner: true, CanManage: true,
+		}
+		for _, m := range mutate {
+			m(&d)
+		}
+		return render(t, pages.RepoSettings(d))
+	}
+	orgSettings := render(t, pages.OrgSettings(view.OrgSettingsData{
+		Org: model.Organization{ID: 1, Name: "acme"}, MemberCount: 1,
+	}))
 	signedIn := view.BasePage{CurrentUser: &middleware.Claims{UserID: 1, Username: "alice"}}
 	for _, tc := range []struct{ name, page, handler string }{
 		{
@@ -145,6 +158,68 @@ func TestEventHandlerAttributes_SurviveSanitization(t *testing.T) {
 			"admin user delete toast",
 			render(t, pages.AdminUser(view.AdminUserData{BasePage: signedIn, Detail: service.AdminUserDetail{User: model.User{ID: 2, Username: "bob"}}})),
 			"Account deleted",
+		},
+		{
+			"repo settings deploy key dialog",
+			repoSettings(),
+			"document.getElementById('deploy-key-dialog').showModal()",
+		},
+		{
+			"repo settings label dialog",
+			repoSettings(),
+			"document.getElementById('label-dialog').showModal()",
+		},
+		{
+			"repo settings protection rule dialog",
+			repoSettings(),
+			"document.getElementById('protection-rule-dialog').showModal()",
+		},
+		{
+			"repo settings webhook dialog",
+			repoSettings(),
+			"document.getElementById('webhook-dialog').showModal()",
+		},
+		{
+			"repo settings cancel transfer toast",
+			repoSettings(func(d *view.RepoSettingsData) {
+				d.PendingTransfer = &model.RepoTransfer{ID: 1, RecipientName: "bob"}
+			}),
+			"Transfer cancelled",
+		},
+		{
+			"repo settings stop mirroring toast",
+			repoSettings(func(d *view.RepoSettingsData) { d.Mirror = &view.MirrorSettings{} }),
+			"Mirroring stopped",
+		},
+		{
+			"org settings invite dialog",
+			orgSettings,
+			"document.getElementById('invite-member-dialog').showModal()",
+		},
+		{
+			"org settings transfer dialog",
+			orgSettings,
+			"document.getElementById('transfer-org-dialog').showModal()",
+		},
+		{
+			"org settings delete dialog",
+			orgSettings,
+			"document.getElementById('delete-org-dialog').showModal()",
+		},
+		{
+			"org settings transfer toast",
+			orgSettings,
+			"Organization transferred",
+		},
+		{
+			"org settings delete toast",
+			orgSettings,
+			"Organization deleted",
+		},
+		{
+			"settings code theme select",
+			render(t, pages.Settings(view.SettingsData{User: model.User{ID: 1, Username: "alice"}})),
+			"document.documentElement.dataset.codeDark = this.value",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
