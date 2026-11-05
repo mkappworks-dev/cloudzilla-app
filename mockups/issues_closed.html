@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Closed issues · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="issues"></div>
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20">
+  <div class="space-y-6">
+
+    <section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="issues-title">
+      <div class="min-w-0">
+        <h1 id="issues-title" class="text-2xl font-semibold tracking-tight">Issues</h1>
+      </div>
+      <a href="issue_new.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 text-sm bg-success text-success-foreground hover:bg-success/90">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+        New issue
+      </a>
+    </section>
+
+    <form onsubmit="return false">
+      <nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Issue filters">
+        <a href="issues.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">
+          Open
+          <span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label="18 open">18</span>
+        </a>
+        <a href="issues_closed.html" class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5" aria-current="page">
+          Closed
+          <span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label="142 closed">142</span>
+        </a>
+        <div class="ml-auto flex items-center gap-1.5 pb-1.5">
+          <label for="filter-search" class="sr-only">Search issues</label>
+          <div class="relative">
+            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+            <input id="filter-search" type="search" name="q" placeholder="Filter is:closed" class="w-56 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+          </div>
+          <div class="relative">
+            <select name="label" aria-label="Filter by label" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+              <option value="">Labels 6</option>
+              <option value="bug">bug</option><option value="performance">performance</option><option value="db">db</option><option value="docs">docs</option><option value="enhancement">enhancement</option><option value="ui">ui</option>
+            </select>
+            <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+          </div>
+          <div class="relative">
+            <select name="milestone" aria-label="Filter by milestone" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+              <option value="">Milestones</option>
+              <option value="1">v0.3 — UI overhaul</option>
+              <option value="2">v0.4 — Mirrors &amp; imports</option>
+            </select>
+            <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+          </div>
+          <div class="relative">
+            <select name="sort" aria-label="Sort issues" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+              <option value="newest" selected>Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="recently-updated">Recently updated</option>
+            </select>
+            <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+          </div>
+          <button type="submit" class="h-8 px-3 text-[13px] bg-accent text-accent-foreground border border-border rounded-md hover:bg-accent/80">Apply</button>
+        </div>
+      </nav>
+    </form>
+
+    <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="issue-list">
+      <h2 id="issue-list" class="sr-only">closed issues</h2>
+      <ol class="divide-y divide-border">
+        <li>
+          <a href="issue_detail_closed.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline">SSH server drops connection on large pack negotiation</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#131</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">yu</span>
+                <span>yumi</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>3 days ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background:#ef444433;color:#ef4444;border-color:#ef444455">bug</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="8 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 8</span></div>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="issue_detail_closed.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline">Migrate notification fan-out to a background worker</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#125</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">ma</span>
+                <span>malith</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>5 days ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background:#3b82f633;color:#3b82f6;border-color:#3b82f655">performance</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="4 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 4</span></div>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="issue_detail_closed.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline">Tailwind purge misses fragment templates</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#118</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">da</span>
+                <span>daisy</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>1 week ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background:#ef444433;color:#ef4444;border-color:#ef444455">bug</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background:#f59e0b33;color:#f59e0b;border-color:#f59e0b55">ui</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="5 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 5</span></div>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="issue_detail_closed.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline">Add squash-merge strategy to PR merge</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#97</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">ma</span>
+                <span>malith</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>2 weeks ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background:#06b6d433;color:#06b6d4;border-color:#06b6d455">enhancement</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="11 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 11</span></div>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="issue_detail_closed.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline">Flaky test: TestSSHAuthPublicKey</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#88</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">pr</span>
+                <span>priya</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>3 weeks ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background:#ef444433;color:#ef4444;border-color:#ef444455">bug</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="2 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 2</span></div>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="issue_detail_closed.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline">Document webhook HMAC signing</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#70</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">da</span>
+                <span>daisy</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>4 weeks ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background:#22c55e33;color:#22c55e;border-color:#22c55e55">docs</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"></div>
+            </div>
+          </a>
+        </li>
+      </ol>
+    </section>
+
+    <p class="text-[12px] text-muted-foreground">
+      Filter syntax: <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">is:open</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">label:bug</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">milestone:v0.3</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">author:daisy</code>.
+    </p>
+
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+</body>
+</html>

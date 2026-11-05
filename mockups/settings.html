@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>mkappworks/cloudzilla — Settings — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="settings"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-6">
+  <div id="archived-banner" role="status" class="hidden items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+    <svg class="h-4 w-4 shrink-0 text-warning" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+    <span class="text-warning">This repository has been archived and is read-only.</span>
+  </div>
+  <section aria-labelledby="settings-title">
+    <h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Repository settings</h1>
+  </section>
+  <div class="grid grid-cols-12 gap-8">
+    <aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
+      <div class="lg:sticky lg:top-4">
+        <nav aria-label="Settings sections" class="w-56 flex-none">
+          <ul class="space-y-1">
+<li><a href="#general" aria-current="page" class="block px-3 py-1.5 rounded-sm text-sm font-medium bg-accent text-foreground">General</a></li>
+<li><a href="#access" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Access</a></li>
+<li><a href="#collaborators" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Collaborators</a></li>
+<li><a href="#deploy-keys" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Deploy keys</a></li>
+<li><a href="#labels" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Labels</a></li>
+<li><a href="#branches" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Branch protection</a></li>
+<li><a href="#webhooks" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Webhooks</a></li>
+<li><a href="#template" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Template</a></li>
+<li role="presentation" aria-hidden="true"><p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-destructive">Danger zone</p></li>
+<li><a href="#archive" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Archive</a></li>
+<li><a href="#transfer" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Transfer Ownership</a></li>
+<li><a href="#delete" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Delete repository</a></li>
+          </ul>
+        </nav>
+      </div>
+    </aside>
+    <div class="col-span-12 lg:col-span-9 space-y-8">
+      <section id="general" class="scroll-mt-6">
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-base font-semibold tracking-tight">General</h2>
+    <p class="text-[12px] text-muted-foreground">Basic information visible across the repository.</p>
+  </div>
+  <div class="p-5">
+    <form class="space-y-5" onsubmit="return false">
+      <div class="space-y-1.5">
+        <label for="repo-name" class="block text-sm font-medium">Repository name</label>
+        <input id="repo-name" type="text" value="cloudzilla" readonly class="h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-sm text-muted-foreground" />
+        <p class="text-xs text-muted-foreground">Renaming from settings is not yet available.</p>
+      </div>
+      <div class="space-y-1.5">
+        <label for="repo-description" class="block text-sm font-medium">Description</label>
+        <textarea id="repo-description" name="description" rows="2" placeholder="Short description of this repository" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring">Self-hosted git forge written in Go with a server-rendered UI.</textarea>
+      </div>
+      <div class="space-y-1.5">
+        <label for="repo-website" class="block text-sm font-medium">Homepage URL</label>
+        <input id="repo-website" type="url" name="website" value="https://cloudzilla.example.com" placeholder="https://example.com" class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="repo-default-branch" class="block text-sm font-medium">Default branch</label>
+        <input id="repo-default-branch" type="text" name="default_branch" value="main" class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring disabled:text-muted-foreground" />
+      </div>
+      <div class="flex justify-end">
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+      </section>
+      <section id="access" class="scroll-mt-6">
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-base font-semibold tracking-tight">Access</h2>
+    <p class="text-[12px] text-muted-foreground">Control which features are enabled for this repository.</p>
+  </div>
+  <div class="p-5">
+    <div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-foreground">Visibility</p>
+        <p class="text-xs text-muted-foreground mt-0.5" id="vis-text">This repository is public — anyone can view it.</p>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <span id="vis-badge"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Public</span></span>
+        <button type="button" id="vis-toggle" aria-pressed="true" aria-label="Repository visibility" class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-success bg-success transition-colors cursor-pointer">
+          <span id="vis-knob" class="absolute left-[18px] h-3.5 w-3.5 rounded-full bg-background transition-transform"></span>
+        </button>
+      </div>
+    </div>
+    <form onsubmit="return false">
+        <label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-foreground">Issues</span>
+            <span class="block text-xs text-muted-foreground mt-0.5">Let people open and track issues.</span>
+          </span>
+          <span class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+            <input type="checkbox" name="allow_issues" checked class="peer sr-only" />
+            <span class="absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success"></span>
+            <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4"></span>
+          </span>
+        </label>
+        <label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-foreground">Discussions</span>
+            <span class="block text-xs text-muted-foreground mt-0.5">Enable the Discussions tab for Q&amp;A and announcements.</span>
+          </span>
+          <span class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+            <input type="checkbox" name="allow_discussions" checked class="peer sr-only" />
+            <span class="absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success"></span>
+            <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4"></span>
+          </span>
+        </label>
+        <label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-foreground">Projects</span>
+            <span class="block text-xs text-muted-foreground mt-0.5">Enable project boards for planning work.</span>
+          </span>
+          <span class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+            <input type="checkbox" name="allow_projects" checked class="peer sr-only" />
+            <span class="absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success"></span>
+            <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4"></span>
+          </span>
+        </label>
+        <label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-foreground">Wiki</span>
+            <span class="block text-xs text-muted-foreground mt-0.5">Enable the wiki for long-form documentation.</span>
+          </span>
+          <span class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+            <input type="checkbox" name="allow_wiki" checked class="peer sr-only" />
+            <span class="absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success"></span>
+            <span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4"></span>
+          </span>
+        </label>
+      <div class="flex justify-end pt-4">
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+      </section>
+<div id="collaborators" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-base font-semibold tracking-tight">Collaborators</h2>
+    <p class="text-[12px] text-muted-foreground">People with access to this repository.</p>
+  </div>
+  <div class="p-5">
+    <div id="repo-collaborators" class="space-y-2">
+      <form class="flex flex-wrap items-end gap-3 mb-4" onsubmit="return false">
+        <label for="collab-username" class="sr-only">Username</label>
+        <input id="collab-username" type="text" name="username" placeholder="Username" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+        <label for="collab-role" class="sr-only">Role</label>
+        <select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">
+          <option value="reader">Reader</option>
+          <option value="writer">Writer</option>
+          <option value="admin">Admin</option>
+        </select>
+        <div class="min-w-0">
+          <label for="collab-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+          <input id="collab-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+        </div>
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add</button>
+      </form>
+      <ul class="divide-y divide-border rounded-md border border-border">
+        <li class="px-4 py-3 flex items-center gap-3">
+          <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="mkappworks">M</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-foreground">mkappworks</p>
+            <p class="text-xs text-muted-foreground capitalize">Owner</p>
+          </div>
+          
+        </li>
+        <li class="px-4 py-3 flex items-center gap-3">
+          <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="daisy">D</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-foreground">daisy</p>
+            <p class="text-xs text-muted-foreground capitalize">admin</p>
+          </div>
+          <button type="button" data-remove="li" data-confirm-title="Remove daisy from this repository?" data-confirm="daisy will lose access to cloudzilla. You can add them back later." data-confirm-label="Remove" data-confirm-danger data-toast="Collaborator removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </li>
+        <li class="px-4 py-3 flex items-center gap-3">
+          <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="rchen">R</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-foreground">rchen</p>
+            <p class="text-xs text-muted-foreground capitalize">writer</p>
+          </div>
+          <button type="button" data-remove="li" data-confirm-title="Remove rchen from this repository?" data-confirm="rchen will lose access to cloudzilla. You can add them back later." data-confirm-label="Remove" data-confirm-danger data-toast="Collaborator removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </li>
+        <li class="px-4 py-3 flex items-center gap-3">
+          <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="priya">P</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-foreground">priya</p>
+            <p class="text-xs text-muted-foreground capitalize">reader</p>
+          </div>
+          <button type="button" data-remove="li" data-confirm-title="Remove priya from this repository?" data-confirm="priya will lose access to cloudzilla. You can add them back later." data-confirm-label="Remove" data-confirm-danger data-toast="Collaborator removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div id="deploy-keys" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <div class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <h2 class="text-base font-semibold tracking-tight">Deploy Keys</h2>
+        <p class="text-[12px] text-muted-foreground">SSH keys that grant CI/CD pipelines access to this repository.</p>
+      </div>
+      <button type="button" onclick="document.getElementById('deploy-key-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add deploy key</button>
+    </div>
+  </div>
+  <div class="p-5">
+    <div id="deploy-keys-list">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-muted-foreground border-b border-border">
+            <th class="pb-2 font-medium">Title</th>
+            <th class="pb-2 font-medium">Fingerprint</th>
+            <th class="pb-2 font-medium">Access</th>
+            <th class="pb-2 font-medium">Last used</th>
+            <th class="pb-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+            <tr>
+              <td class="py-3 font-medium text-foreground">CI server</td>
+              <td class="py-3 font-mono text-muted-foreground text-xs">SHA256:q3Zt0b8mKJk2r9yH1pXoP4Vw7uE5nL6cA0dGfS2tBxY</td>
+              <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-warning/15 text-warning border-warning/30">Read-only</span></td>
+              <td class="py-3 text-muted-foreground text-xs">Oct 30, 2026</td>
+              <td class="py-3 text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke this deploy key?" data-confirm="The CI server key will immediately lose access. Any pipeline using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast="Deploy key revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
+            </tr>
+            <tr>
+              <td class="py-3 font-medium text-foreground">Deploy bot</td>
+              <td class="py-3 font-mono text-muted-foreground text-xs">SHA256:Hn4yWl2T8dQvR1sKc9mZxE6pUa3jFo5bN7gYiC0eVtM</td>
+              <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Read-write</span></td>
+              <td class="py-3 text-muted-foreground text-xs">Never</td>
+              <td class="py-3 text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke this deploy key?" data-confirm="The Deploy bot key will immediately lose access. Any pipeline using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast="Deploy key revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div id="labels" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <div class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <h2 class="text-base font-semibold tracking-tight">Labels</h2>
+        <p class="text-[12px] text-muted-foreground">Categorize issues and pull requests.</p>
+      </div>
+      <button type="button" onclick="document.getElementById('label-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">New label</button>
+    </div>
+  </div>
+  <div class="p-5">
+    <div id="repo-labels" class="space-y-2">
+        <div class="flex items-center justify-between rounded-md border border-border p-3">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-4 h-4 rounded-full inline-block border border-border shrink-0" style="background-color: #d73a4a" aria-hidden="true"></span>
+            <span class="text-sm font-medium text-foreground">bug</span>
+            <span class="text-xs text-muted-foreground ml-2 truncate">Something isn't working</span>
+          </div>
+          <button type="button" data-remove="div.rounded-md" data-confirm-title="Remove this label?" data-confirm="The bug label will be removed from every issue and pull request that uses it." data-confirm-label="Remove" data-confirm-danger data-toast="Label removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </div>
+        <div class="flex items-center justify-between rounded-md border border-border p-3">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-4 h-4 rounded-full inline-block border border-border shrink-0" style="background-color: #a2eeef" aria-hidden="true"></span>
+            <span class="text-sm font-medium text-foreground">enhancement</span>
+            <span class="text-xs text-muted-foreground ml-2 truncate">New feature or request</span>
+          </div>
+          <button type="button" data-remove="div.rounded-md" data-confirm-title="Remove this label?" data-confirm="The enhancement label will be removed from every issue and pull request that uses it." data-confirm-label="Remove" data-confirm-danger data-toast="Label removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </div>
+        <div class="flex items-center justify-between rounded-md border border-border p-3">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-4 h-4 rounded-full inline-block border border-border shrink-0" style="background-color: #0075ca" aria-hidden="true"></span>
+            <span class="text-sm font-medium text-foreground">documentation</span>
+            <span class="text-xs text-muted-foreground ml-2 truncate">Improvements or additions to documentation</span>
+          </div>
+          <button type="button" data-remove="div.rounded-md" data-confirm-title="Remove this label?" data-confirm="The documentation label will be removed from every issue and pull request that uses it." data-confirm-label="Remove" data-confirm-danger data-toast="Label removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </div>
+        <div class="flex items-center justify-between rounded-md border border-border p-3">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-4 h-4 rounded-full inline-block border border-border shrink-0" style="background-color: #7057ff" aria-hidden="true"></span>
+            <span class="text-sm font-medium text-foreground">good first issue</span>
+            <span class="text-xs text-muted-foreground ml-2 truncate">Good for newcomers</span>
+          </div>
+          <button type="button" data-remove="div.rounded-md" data-confirm-title="Remove this label?" data-confirm="The good first issue label will be removed from every issue and pull request that uses it." data-confirm-label="Remove" data-confirm-danger data-toast="Label removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </div>
+    </div>
+  </div>
+</div>
+<div id="branches" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <div class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <h2 class="text-base font-semibold tracking-tight">Branch Protection</h2>
+        <p class="text-[12px] text-muted-foreground">Protect branches by requiring reviews, status checks, or blocking force pushes.</p>
+      </div>
+      <button type="button" onclick="document.getElementById('protection-rule-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add rule</button>
+    </div>
+  </div>
+  <div class="p-5">
+    <div id="branch-protections" class="space-y-2">
+        <div class="flex items-center justify-between rounded-md border border-border p-3 gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-mono text-sm font-medium text-foreground">main</span>
+              <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Pull request required</span><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Force push blocked</span>
+            </div>
+            <p class="text-xs text-muted-foreground mt-1">1 required review <span aria-hidden="true"> · </span>Status checks: ci/build, ci/test</p>
+          </div>
+          <button type="button" data-remove="div.rounded-md" data-confirm-title="Remove this protection rule?" data-confirm="The main branch will no longer require pull requests or reviews, or block force pushes." data-confirm-label="Remove" data-confirm-danger data-toast="Branch protection removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </div>
+        <div class="flex items-center justify-between rounded-md border border-border p-3 gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-mono text-sm font-medium text-foreground">release/*</span>
+              <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Force push blocked</span>
+            </div>
+            <p class="text-xs text-muted-foreground mt-1">2 required reviews </p>
+          </div>
+          <button type="button" data-remove="div.rounded-md" data-confirm-title="Remove this protection rule?" data-confirm="The release/* branch will no longer require pull requests or reviews, or block force pushes." data-confirm-label="Remove" data-confirm-danger data-toast="Branch protection removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+        </div>
+    </div>
+  </div>
+</div>
+<div id="webhooks" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <div class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <h2 class="text-base font-semibold tracking-tight">Webhooks</h2>
+        <p class="text-[12px] text-muted-foreground">Send HTTP requests to external services when events occur in this repository.</p>
+      </div>
+      <button type="button" onclick="document.getElementById('webhook-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add webhook</button>
+    </div>
+  </div>
+  <div class="p-5">
+    <div id="webhooks-list" class="space-y-2">
+        <div>
+          <div class="rounded-md border border-border p-4 flex justify-between items-start">
+            <div class="min-w-0 flex-1">
+              <p class="font-medium text-sm font-mono break-all text-foreground">https://ci.example.com/hooks/cloudzilla</p>
+              <p class="text-xs text-muted-foreground mt-1">
+                Events:
+                <button type="button" data-toggle="events-form-1" class="text-foreground hover:underline ml-1">push,pull_request (edit)</button>
+              </p>
+              <div id="events-form-1" class="hidden mt-2">
+                <form class="space-y-1" onsubmit="return false">
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="push" value="1" checked class="rounded-sm border-input accent-foreground" /> push</label>
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="issues" value="1" class="rounded-sm border-input accent-foreground" /> issues</label>
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="pull_request" value="1" checked class="rounded-sm border-input accent-foreground" /> pull_request</label>
+                  <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px] mt-2">Save</button>
+                </form>
+              </div>
+              <p class="text-xs mt-1 text-success">Active</p>
+            </div>
+            <div class="flex gap-2 ml-4 shrink-0">
+              <button type="button" data-deliveries="webhook-deliveries-1" data-hook="https://ci.example.com/hooks/cloudzilla" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Deliveries</button>
+              <button type="button" data-remove="#webhooks-list > div" data-confirm-title="Remove this webhook?" data-confirm="cloudzilla will stop sending events to https://ci.example.com/hooks/cloudzilla." data-confirm-label="Remove" data-confirm-danger data-toast="Webhook removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+            </div>
+          </div>
+          <div id="webhook-deliveries-1"></div>
+        </div>
+        <div>
+          <div class="rounded-md border border-border p-4 flex justify-between items-start">
+            <div class="min-w-0 flex-1">
+              <p class="font-medium text-sm font-mono break-all text-foreground">https://chat.example.com/integrations/git</p>
+              <p class="text-xs text-muted-foreground mt-1">
+                Events:
+                <button type="button" data-toggle="events-form-2" class="text-foreground hover:underline ml-1">push,issues,pull_request (edit)</button>
+              </p>
+              <div id="events-form-2" class="hidden mt-2">
+                <form class="space-y-1" onsubmit="return false">
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="push" value="1" checked class="rounded-sm border-input accent-foreground" /> push</label>
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="issues" value="1" checked class="rounded-sm border-input accent-foreground" /> issues</label>
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="pull_request" value="1" checked class="rounded-sm border-input accent-foreground" /> pull_request</label>
+                  <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px] mt-2">Save</button>
+                </form>
+              </div>
+              <p class="text-xs mt-1 text-muted-foreground">Inactive</p>
+            </div>
+            <div class="flex gap-2 ml-4 shrink-0">
+              <button type="button" data-deliveries="webhook-deliveries-2" data-hook="https://chat.example.com/integrations/git" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Deliveries</button>
+              <button type="button" data-remove="#webhooks-list > div" data-confirm-title="Remove this webhook?" data-confirm="cloudzilla will stop sending events to https://chat.example.com/integrations/git." data-confirm-label="Remove" data-confirm-danger data-toast="Webhook removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+            </div>
+          </div>
+          <div id="webhook-deliveries-2"></div>
+        </div>
+    </div>
+  </div>
+</div>
+<div id="template" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-base font-semibold tracking-tight">Template Repository</h2>
+  </div>
+  <div class="p-5">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm font-medium text-foreground">Template repository</p>
+        <p class="text-xs text-muted-foreground mt-0.5">Allow other users to create new repositories with the same directory structure and files.</p>
+      </div>
+      <input type="checkbox" aria-label="Template repository" class="rounded-sm border-input accent-foreground h-4 w-4" />
+    </div>
+  </div>
+</div>
+<div id="archive" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground border-destructive/40">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 id="archive-title" class="text-base font-semibold tracking-tight text-destructive">Archive this repository</h2>
+    <p id="archive-desc" class="text-[12px] text-muted-foreground">Make the repository read-only and hide it from active views. You can unarchive it later.</p>
+  </div>
+  <div class="p-5">
+    <div class="flex justify-end">
+      <button type="button" id="archive-btn" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 text-[13px]">Archive</button>
+    </div>
+  </div>
+</div>
+<div id="transfer" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground border-destructive/40">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
+    <p class="text-[12px] text-muted-foreground">Transfer this repository to another user, who has 7 days to accept it, or at once to an organization you own. You keep owner access only if the new owner is you or an organization you own.</p>
+  </div>
+  <div class="p-5">
+    <form onsubmit="return false">
+      <div class="flex flex-wrap items-end gap-3">
+        <label for="transfer-new-owner" class="sr-only">New owner: user or organization name</label>
+        <input id="transfer-new-owner" type="text" name="new_owner" placeholder="User or organization name" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+        <div class="min-w-0">
+            <label for="transfer-repo-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+            <input id="transfer-repo-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          </div>
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-4 text-sm">Transfer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="delete" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground border-destructive/40">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-base font-semibold tracking-tight text-destructive">Delete this repository</h2>
+    <p class="text-[12px] text-muted-foreground">Permanently remove this repository and all its data. This cannot be undone.</p>
+  </div>
+  <div class="p-5">
+    <form class="flex flex-wrap items-end justify-end gap-3" onsubmit="return false">
+      <div class="min-w-0">
+            <label for="delete-repo-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+            <input id="delete-repo-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          </div>
+      <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-4 text-sm">Delete repository</button>
+    </form>
+  </div>
+</div>
+    </div>
+  </div>
+</div>
+
+<dialog id="deploy-key-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="deploy-key-dialog-title">
+  <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="deploy-key-dialog-title" class="text-base font-semibold leading-tight">Add deploy key</h2>
+  </div>
+  <div class="p-5 text-sm">
+    <form id="deploy-key-form" class="space-y-4" onsubmit="return false">
+      <div class="space-y-1.5">
+        <label for="deploy-key-title" class="block text-xs font-medium">Title</label>
+        <input id="deploy-key-title" type="text" name="title" placeholder="e.g., CI server" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="deploy-key-public" class="block text-xs font-medium">Public Key</label>
+        <textarea id="deploy-key-public" name="public_key" placeholder="ssh-ed25519 AAAA..." rows="3" required class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono text-xs"></textarea>
+      </div>
+      <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+        <input type="checkbox" name="read_only" value="true" checked class="rounded-sm border-input accent-foreground" />
+        Read-only (uncheck to allow push access)
+      </label>
+      <div class="min-w-0">
+            <label for="deploy-key-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+            <input id="deploy-key-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          </div>
+    </form>
+  </div>
+  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    <button type="submit" form="deploy-key-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Deploy Key</button>
+  </div>
+</dialog>
+
+<dialog id="label-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="label-dialog-title">
+  <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="label-dialog-title" class="text-base font-semibold leading-tight">New label</h2>
+  </div>
+  <div class="p-5 text-sm">
+    <form id="label-form" class="space-y-4" onsubmit="return false">
+      <div class="space-y-1.5">
+        <label for="label-name" class="block text-xs font-medium">Name</label>
+        <input id="label-name" type="text" name="name" placeholder="bug, enhancement…" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="label-color" class="block text-xs font-medium">Color</label>
+        <input id="label-color" type="color" name="color" value="#e5e5e5" class="w-12 h-9 rounded-md border border-input cursor-pointer bg-transparent" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="label-description" class="block text-xs font-medium">Description (optional)</label>
+        <input id="label-description" type="text" name="description" placeholder="Short description" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+    </form>
+  </div>
+  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    <button type="submit" form="label-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Create label</button>
+  </div>
+</dialog>
+
+<dialog id="protection-rule-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="protection-rule-dialog-title">
+  <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="protection-rule-dialog-title" class="text-base font-semibold leading-tight">Add rule</h2>
+  </div>
+  <div class="p-5 text-sm">
+    <form id="protection-rule-form" class="space-y-4" onsubmit="return false">
+      <div class="space-y-1.5">
+        <label for="bp-pattern" class="block text-xs font-medium">Branch Pattern</label>
+        <input id="bp-pattern" type="text" name="pattern" placeholder="e.g., main or release/*" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="bp-review-count" class="block text-xs font-medium">Required Approvals</label>
+        <input id="bp-review-count" type="number" name="require_review_count" value="0" min="0" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="bp-status-checks" class="block text-xs font-medium">Required Status Checks (comma-separated)</label>
+        <input id="bp-status-checks" type="text" name="require_status_checks" placeholder="e.g., ci/build,ci/test" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+        <input type="checkbox" name="block_force_push" value="true" checked class="rounded-sm border-input accent-foreground" />
+        Block force pushes
+      </label>
+      <label class="flex items-start gap-2 text-sm text-foreground cursor-pointer">
+        <input type="checkbox" name="require_pull_request" value="true" class="mt-0.5 rounded-sm border-input accent-foreground" />
+        <span>
+          Require a pull request
+          <span class="block text-xs text-muted-foreground">Refuses pushes, branch deletes and edits made in the browser; changes land only by merging a pull request.</span>
+        </span>
+      </label>
+    </form>
+  </div>
+  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    <button type="submit" form="protection-rule-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Rule</button>
+  </div>
+</dialog>
+
+<dialog id="webhook-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="webhook-dialog-title">
+  <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="webhook-dialog-title" class="text-base font-semibold leading-tight">Add webhook</h2>
+  </div>
+  <div class="p-5 text-sm">
+    <form id="webhook-form" class="space-y-4" onsubmit="return false">
+      <div class="space-y-1.5">
+        <label for="webhook-url" class="block text-xs font-medium">Payload URL</label>
+        <input id="webhook-url" type="url" name="url" placeholder="https://example.com/webhook" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="webhook-secret" class="block text-xs font-medium">Secret</label>
+        <input id="webhook-secret" type="text" name="secret" placeholder="Optional HMAC secret" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="webhook-events" class="block text-xs font-medium">Events (comma-separated)</label>
+        <input id="webhook-events" type="text" name="events" value="push,issues,pull_request" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="min-w-0">
+            <label for="webhook-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+            <input id="webhook-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          </div>
+    </form>
+  </div>
+  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    <button type="submit" form="webhook-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Webhook</button>
+  </div>
+</dialog>
+
+<dialog id="make-public-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="make-public-dialog-title">
+  <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="make-public-dialog-title" class="text-base font-semibold leading-tight">Make this repository public?</h2>
+      <p class="text-[13px] text-muted-foreground leading-snug">Anyone on the internet will be able to view and clone cloudzilla, including its history.</p>
+  </div>
+  <div class="p-5 text-sm">
+    <form id="make-public-form" onsubmit="return false">
+      <div class="min-w-0">
+            <label for="make-public-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+            <input id="make-public-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          </div>
+    </form>
+  </div>
+  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    <button type="submit" form="make-public-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Make public</button>
+  </div>
+</dialog>
+</main>
+
+<dialog id="cz-confirm-dialog" aria-labelledby="cz-confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="p-5">
+    <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="cz-confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="cz-confirm-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Confirm</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  var vis = { isPublic: true };
+  var toggle = document.getElementById('vis-toggle');
+  var knob = document.getElementById('vis-knob');
+  var text = document.getElementById('vis-text');
+  var badgeBox = document.getElementById('vis-badge');
+  var PUBLIC_BADGE = badgeBox.innerHTML;
+  var PRIVATE_BADGE = PUBLIC_BADGE.replace('bg-success/15 text-success border-success/30', 'bg-secondary text-secondary-foreground border-transparent').replace('Public', 'Private');
+  function render() {
+    toggle.setAttribute('aria-pressed', vis.isPublic ? 'true' : 'false');
+    toggle.className = 'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors cursor-pointer ' +
+      (vis.isPublic ? 'border-success bg-success' : 'border-border bg-muted');
+    knob.className = 'absolute h-3.5 w-3.5 rounded-full transition-transform ' +
+      (vis.isPublic ? 'left-[18px] bg-background' : 'left-0.5 bg-muted-foreground');
+    text.textContent = vis.isPublic ? 'This repository is public — anyone can view it.' : 'This repository is private — only collaborators can see it.';
+    badgeBox.innerHTML = vis.isPublic ? PUBLIC_BADGE : PRIVATE_BADGE;
+  }
+  toggle.addEventListener('click', function () {
+    if (vis.isPublic) { vis.isPublic = false; render(); } else { document.getElementById('make-public-dialog').showModal(); }
+  });
+  document.getElementById('make-public-form').addEventListener('submit', function () {
+    vis.isPublic = true; render(); document.getElementById('make-public-dialog').close();
+  });
+
+
+  var confirmDlg = document.getElementById('cz-confirm-dialog');
+  var confirmOk = document.getElementById('cz-confirm-ok');
+  var OK_BASE = 'inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 ';
+  var confirmDone = null;
+  function czConfirm(b, done) {
+    document.getElementById('cz-confirm-title').textContent = b.dataset.confirmTitle || 'Are you sure?';
+    document.getElementById('cz-confirm-msg').textContent = b.dataset.confirm || '';
+    confirmOk.textContent = b.dataset.confirmLabel || 'Confirm';
+    confirmOk.className = OK_BASE + (b.hasAttribute('data-confirm-danger')
+      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+      : 'bg-primary text-primary-foreground hover:bg-primary/90');
+    confirmDone = done;
+    confirmDlg.returnValue = '';
+    confirmDlg.showModal();
+  }
+  confirmOk.addEventListener('click', function () { confirmDlg.close('confirm'); });
+  document.getElementById('cz-confirm-cancel').addEventListener('click', function () { confirmDlg.close('cancel'); });
+  confirmDlg.addEventListener('click', function (e) { if (e.target === confirmDlg) confirmDlg.close('cancel'); });
+  confirmDlg.addEventListener('close', function () {
+    var f = confirmDone; confirmDone = null;
+    if (f && confirmDlg.returnValue === 'confirm') f();
+  });
+
+  var EMPTY = {
+    'repo-labels': '<p class="text-sm text-muted-foreground">No labels defined yet.</p>',
+    'branch-protections': '<p class="text-sm text-muted-foreground">No branch protection rules yet.</p>',
+    'webhooks-list': '<p class="text-sm text-muted-foreground">No webhooks configured.</p>',
+    'deploy-keys-list': '<div class="text-center py-6 border border-dashed border-border rounded-md bg-muted/30"><p class="text-sm text-muted-foreground">No deploy keys yet.</p></div>',
+  };
+  document.querySelectorAll('[data-remove]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      czConfirm(b, function () {
+        var row = b.closest(b.dataset.remove);
+        var host = row.closest('#repo-labels, #branch-protections, #webhooks-list, #deploy-keys-list');
+        row.remove();
+        if (host && !host.querySelector('[data-remove]')) host.innerHTML = EMPTY[host.id];
+        czToast(b.dataset.toast);
+      });
+    });
+  });
+
+  var DELIVERIES = {
+    'webhook-deliveries-1': [
+      ['push', 200, 1, '', 'Nov 5, 2026 09:14:02 UTC'],
+      ['pull_request', 200, 1, '', 'Nov 4, 2026 16:47:31 UTC'],
+      ['push', 502, 3, 'Post "https://ci.example.com/hooks/cloudzilla": 502 Bad Gateway', 'Nov 3, 2026 11:20:09 UTC'],
+    ],
+    'webhook-deliveries-2': [],
+  };
+  function delivery(d) {
+    var ok = d[1] >= 200 && d[1] < 300;
+    return '<div class="border border-border rounded-lg p-3 text-sm"><div class="flex justify-between items-start gap-3">' +
+      '<div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap">' +
+      '<span class="font-mono text-xs bg-muted px-1.5 py-0.5 rounded-sm">' + d[0] + '</span>' +
+      '<span class="text-xs px-1.5 py-0.5 rounded-sm ' + (ok ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive') + '">HTTP ' + d[1] + '</span>' +
+      (d[2] > 1 ? '<span class="text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded-sm">Attempt ' + d[2] + '</span>' : '') +
+      '</div>' + (d[3] ? '<p class="text-destructive text-xs mt-1 font-mono">' + d[3].replace(/"/g, '&quot;') + '</p>' : '') +
+      '<p class="text-muted-foreground text-xs mt-1">' + d[4] + '</p></div>' +
+      '<button type="button" data-redeliver class="text-xs text-foreground hover:underline shrink-0">Redeliver</button></div></div>';
+  }
+  document.querySelectorAll('[data-deliveries]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.dataset.deliveries;
+      var rows = DELIVERIES[id] || [];
+      document.getElementById(id).outerHTML = '<div id="' + id + '" class="space-y-2 mt-3">' +
+        (rows.length ? rows.map(delivery).join('') : '<p class="text-muted-foreground text-sm">No deliveries yet.</p>') + '</div>';
+    });
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-redeliver]')) czToast('Redelivery queued');
+  });
+
+  var archived = false;
+  var archiveBtn = document.getElementById('archive-btn');
+  var ARCHIVE_DANGER = 'bg-destructive text-destructive-foreground hover:bg-destructive/90';
+  var ARCHIVE_OK = 'bg-success text-success-foreground hover:bg-success/90';
+  archiveBtn.addEventListener('click', function () {
+    var was = archived;
+    archiveBtn.dataset.confirmTitle = was ? 'Unarchive this repository?' : 'Archive this repository?';
+    archiveBtn.dataset.confirm = was ? 'Push access will be restored and cloudzilla will return to active views.' : 'cloudzilla will become read-only and hidden from active views. You can unarchive it later.';
+    archiveBtn.dataset.confirmLabel = was ? 'Unarchive' : 'Archive';
+    if (was) archiveBtn.removeAttribute('data-confirm-danger'); else archiveBtn.setAttribute('data-confirm-danger', 'true');
+    czConfirm(archiveBtn, function () {
+      archived = !was;
+      var banner = document.getElementById('archived-banner');
+      banner.classList.toggle('hidden', !archived);
+      banner.classList.toggle('flex', archived);
+      document.getElementById('archive-title').textContent = archived ? 'Unarchive this repository' : 'Archive this repository';
+      document.getElementById('archive-desc').textContent = archived
+        ? 'Restore push access and return the repository to active views.'
+        : 'Make the repository read-only and hide it from active views. You can unarchive it later.';
+      archiveBtn.textContent = archived ? 'Unarchive' : 'Archive';
+      archiveBtn.className = archiveBtn.className.replace(archived ? ARCHIVE_DANGER : ARCHIVE_OK, archived ? ARCHIVE_OK : ARCHIVE_DANGER);
+      czToast(archived ? 'Repository archived' : 'Repository unarchived');
+    });
+  });
+
+  var tpl = document.querySelector('input[aria-label="Template repository"]');
+  tpl.addEventListener('change', function () {
+    if (!tpl.checked) { czToast('Repository is no longer a template'); return; }
+    tpl.checked = false;
+    tpl.dataset.confirmTitle = 'Make this a template repository?';
+    tpl.dataset.confirm = 'Anyone will be able to create new repositories with the same directory structure and files as cloudzilla.';
+    tpl.dataset.confirmLabel = 'Make template';
+    czConfirm(tpl, function () { tpl.checked = true; czToast('Repository is now a template'); });
+  });
+
+  document.querySelectorAll('[data-toggle]').forEach(function (b) {
+    b.addEventListener('click', function () { document.getElementById(b.dataset.toggle).classList.toggle('hidden'); });
+  });
+
+  var nav = document.querySelector('nav[aria-label="Settings sections"]');
+  var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
+  var targets = links.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })
+    .filter(function (t) { return t.el; });
+  function update() {
+    var active = targets[0];
+    targets.forEach(function (t) { if (t.el.getBoundingClientRect().top <= 120) active = t; });
+    links.forEach(function (l) {
+      var on = l === active.link;
+      if (l.classList.contains('text-destructive')) return;
+      l.classList.toggle('bg-accent', on);
+      l.classList.toggle('text-foreground', on);
+      l.classList.toggle('font-medium', on);
+      l.classList.toggle('text-muted-foreground', !on);
+    });
+  }
+  update();
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update, { passive: true });
+})();
+</script>
+</body>
+</html>

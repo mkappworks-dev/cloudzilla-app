@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Organizations — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-8">
+
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Account</p>
+      <h1 class="text-2xl font-semibold tracking-tight">Your organizations</h1>
+    </div>
+    <a href="new_organization.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px]"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg> New organization</a>
+  </div>
+
+  <ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
+      <li class="flex items-center gap-4 px-4 py-3.5">
+        <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-10 w-10 text-sm" role="img" aria-label="mkappworks">M</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <a href="profile.html" class="text-sm font-medium hover:underline">mkappworks</a>
+            <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Personal</span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-0.5">Your personal account</p>
+        </div>
+        <div class="shrink-0">
+          
+        </div>
+      </li>
+      <li class="flex items-center gap-4 px-4 py-3.5">
+        <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-10 w-10 text-sm" role="img" aria-label="acme-corp">A</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <a href="org_profile.html" class="text-sm font-medium hover:underline">acme-corp</a>
+            <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Member</span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-0.5">Acme Corporation · 47 members</p>
+        </div>
+        <div class="shrink-0">
+          <button type="button" data-leave data-confirm-title="Leave this organization?" data-confirm="You will lose access to all repositories in acme-corp." data-confirm-label="Leave" data-confirm-danger data-toast="Left organization" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Leave</button>
+        </div>
+      </li>
+      <li class="flex items-center gap-4 px-4 py-3.5">
+        <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-10 w-10 text-sm" role="img" aria-label="stitch-labs">S</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <a href="org_profile.html" class="text-sm font-medium hover:underline">stitch-labs</a>
+            <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Owner</span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-0.5">Stitch Labs · 9 members</p>
+        </div>
+        <div class="shrink-0">
+          <a href="org_settings.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Manage</a>
+        </div>
+      </li>
+      <li class="flex items-center gap-4 px-4 py-3.5">
+        <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-10 w-10 text-sm" role="img" aria-label="openforge">O</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <a href="org_profile.html" class="text-sm font-medium hover:underline">openforge</a>
+            <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Member</span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-0.5">28 members</p>
+        </div>
+        <div class="shrink-0">
+          <button type="button" data-leave data-confirm-title="Leave this organization?" data-confirm="You will lose access to all repositories in openforge." data-confirm-label="Leave" data-confirm-danger data-toast="Left organization" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Leave</button>
+        </div>
+      </li>
+  </ul>
+</div>
+</main>
+
+<dialog id="cz-confirm-dialog" aria-labelledby="cz-confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="p-5">
+    <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="cz-confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="cz-confirm-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Confirm</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  var dlg = document.getElementById('cz-confirm-dialog');
+  var ok = document.getElementById('cz-confirm-ok');
+  var done = null;
+  function czConfirm(b, cb) {
+    document.getElementById('cz-confirm-title').textContent = b.dataset.confirmTitle || 'Are you sure?';
+    document.getElementById('cz-confirm-msg').textContent = b.dataset.confirm || '';
+    ok.textContent = b.dataset.confirmLabel || 'Confirm';
+    ok.className = 'inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 ' + (b.hasAttribute('data-confirm-danger')
+      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
+    done = cb;
+    dlg.returnValue = '';
+    dlg.showModal();
+  }
+  ok.addEventListener('click', function () { dlg.close('confirm'); });
+  document.getElementById('cz-confirm-cancel').addEventListener('click', function () { dlg.close('cancel'); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close('cancel'); });
+  dlg.addEventListener('close', function () {
+    var f = done; done = null;
+    if (f && dlg.returnValue === 'confirm') f();
+  });
+
+  document.querySelectorAll('[data-leave]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      czConfirm(b, function () {
+        b.closest('li').remove();
+        czToast(b.dataset.toast);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

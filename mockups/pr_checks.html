@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Checks · Add OAuth scopes to access tokens · PR #341 · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="pull_requests"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div>
+    <section class="mb-3 border-b border-border pb-3" aria-labelledby="pull-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="repo.html" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="pulls.html" class="hover:underline">Pull requests</a>
+        <span aria-hidden="true">·</span>
+        <span aria-current="page">#341</span>
+      </p>
+      <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+        <h1 id="pull-title" class="text-2xl tracking-tight font-medium min-w-0">
+          <span id="pr-title-text">Add OAuth scopes to access tokens</span>
+          <span class="text-muted-foreground font-normal" aria-label="Pull request number 341">#341</span>
+        </h1>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" id="edit-pr-btn" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Edit</button>
+          <div class="relative inline-block" data-dropdown>
+            <button type="button" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5" aria-haspopup="menu" aria-expanded="false">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+              Code
+              <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[16rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm">
+              <div class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">Check out — daisy/oauth-scopes</div>
+              <pre class="font-mono text-[11px] text-muted-foreground m-1 p-2 rounded-sm border border-border bg-muted overflow-x-auto whitespace-pre" onclick="event.stopPropagation()">git fetch origin
+git checkout daisy/oauth-scopes</pre>
+              <div role="separator" class="my-1 h-px bg-border"></div>
+              <a href="tree.html" role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden whitespace-nowrap">Browse branch code</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+        <p class="text-[13px] text-muted-foreground">
+          <a href="profile.html" class="text-primary hover:underline">@daisy</a>
+          wants to merge
+          <strong class="text-foreground font-medium">3 commits</strong>
+          into
+          <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">main</span>
+          from
+          <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">daisy/oauth-scopes</span>
+        </p>
+      </div>
+    </section>
+    <nav class="border-b border-border mb-6 py-1.5 flex flex-wrap items-center gap-1 text-sm" aria-label="Pull request views">
+      <a href="pr.html" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+        Conversation
+        <span class="font-mono text-[11px] text-muted-foreground">6</span>
+      </a>
+      <a href="pr_commits.html" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="M12 9v6"></path></svg>
+        Commits
+        <span class="font-mono text-[11px] text-muted-foreground">3</span>
+      </a>
+      <a href="pr_checks.html" class="px-3 py-1.5 rounded-md bg-accent text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap" aria-current="page">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M9 12h6M15 6L9 10M15 18l-6-4"></path></svg>
+        Checks
+        <span class="inline-flex items-center gap-1 h-[18px] px-1.5 rounded-full text-[10px] font-medium bg-success/15 text-success">✓ 6</span>
+      </a>
+      <a href="pr_files.html" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        Files changed
+        <span class="font-mono text-[11px] text-muted-foreground">4</span>
+        <span class="font-mono text-[10px] font-medium text-success">+41</span>
+        <span class="font-mono text-[10px] font-medium text-destructive">−5</span>
+      </a>
+    </nav>
+    <section class="mb-6">
+      <div class="flex items-center gap-2 border rounded-md px-4 py-3 border-success/40 bg-success/10">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-success" aria-hidden="true"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+        <p class="text-[13px] font-medium">All checks have passed</p>
+        <p class="text-[12.5px] text-muted-foreground">· 6 successful checks</p>
+        <p class="ml-auto text-[12.5px] text-muted-foreground font-mono">on commit 9c8e2a4</p>
+      </div>
+    </section>
+    <section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Status checks">
+      <ol class="divide-y divide-border">
+        <li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium font-mono">ci/build</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">Build passed in 1m 42s</p>
+          </div>
+          <a href="https://ci.example.com/runs/1201" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium font-mono">ci/test</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">412 tests passed</p>
+          </div>
+          <a href="https://ci.example.com/runs/1202" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium font-mono">ci/lint</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">golangci-lint: no issues</p>
+          </div>
+          <a href="https://ci.example.com/runs/1203" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium font-mono">ci/vet</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">go vet clean</p>
+          </div>
+          <a href="https://ci.example.com/runs/1204" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium font-mono">ci/migrations</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">Migrations apply cleanly on a fresh database</p>
+          </div>
+          <a href="https://ci.example.com/runs/1205" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium font-mono">security/govulncheck</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">No known vulnerabilities</p>
+          </div>
+          <a href="https://ci.example.com/runs/1206" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+      </ol>
+    </section>
+    <p class="mt-4 text-[12.5px] text-muted-foreground">
+      <a href="actions.html" class="hover:text-foreground">View all checks →</a>
+    </p>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+<script>
+  (function () {
+    var btn = document.getElementById('edit-pr-btn');
+    var txt = document.getElementById('pr-title-text');
+    var original = txt.textContent;
+    var editing = ['rounded-sm', 'bg-muted', 'px-1', 'outline-solid', 'outline-1', 'outline-border'];
+    btn.addEventListener('click', function () {
+      if (txt.isContentEditable) {
+        var next = txt.textContent.trim();
+        txt.contentEditable = 'false';
+        txt.classList.remove.apply(txt.classList, editing);
+        btn.textContent = 'Edit';
+        if (next) original = next; else txt.textContent = original;
+      } else {
+        txt.contentEditable = 'true';
+        txt.classList.add.apply(txt.classList, editing);
+        btn.textContent = 'Save';
+        txt.focus();
+      }
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pull requests — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased flex flex-col">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-account-tab="pulls"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="space-y-5">
+    <section class="mb-6">
+      <h1 class="text-2xl font-semibold tracking-tight">Pull requests</h1>
+      <p class="mt-1 text-[13px] text-muted-foreground">Across every repository you own or collaborate on.</p>
+    </section>
+
+    <nav aria-label="PR filter" class="flex items-center gap-1 border-b border-border text-sm" id="tabs">
+      <a href="#created" data-filter="created" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Created by you <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">5</span></a>
+      <a href="#assigned" data-filter="assigned" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Assigned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">3</span></a>
+      <a href="#review_requested" data-filter="review_requested" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Review requests <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">4</span></a>
+      <a href="#mentioned" data-filter="mentioned" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Mentioned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">1</span></a>
+      <span class="ml-auto inline-flex items-center">
+        <a href="#open" data-state="open" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Open <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">12</span></a>
+        <a href="#closed" data-state="closed" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Closed <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">38</span></a>
+      </span>
+    </nav>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="relative flex-1 min-w-[240px]">
+        <label for="pr-filter" class="sr-only">Filter pull requests</label>
+        <input id="pr-filter" type="search" placeholder="Filter pull requests…" autocomplete="off" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
+        <svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+      </div>
+      <div class="relative" data-dropdown>
+        <button type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Sort pull requests" class="h-9 px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center gap-1.5">
+          <span id="sort-label">Sort: newest</span>
+          <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+        </button>
+        <div role="menu" aria-label="Sort pull requests" id="sort-menu" class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"></div>
+      </div>
+    </div>
+
+    <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="mypr-list">
+      <h2 id="mypr-list" class="sr-only">Your pull requests</h2>
+      <ol class="divide-y divide-border" id="rows"></ol>
+    </section>
+    <div id="empty" hidden class="bg-background border border-border rounded-lg p-8 text-center"><p class="text-muted-foreground"></p></div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+
+<script>
+(function () {
+  var PRS = [
+    { repo: 'mkappworks/cloudzilla', n: 341, t: 'Add OAuth scopes to access tokens', state: 'open', f: ['created', 'review_requested'], when: '2h ago', labels: [['feature', '#22c55e'], ['api', '#3b82f6']], ci: [4, 4], rev: ['DA', 'YU'], c: 6, k: 3 },
+    { repo: 'acme-corp/api', n: 319, t: 'Rate-limit middleware', state: 'open', f: ['review_requested'], when: '1d ago', labels: [['security', '#ef4444']], ci: [2, 3], rev: ['KI'], c: 11, k: 2 },
+    { repo: 'mkappworks/ingest-pipeline', n: 87, t: 'Replay window UI', state: 'open', f: ['assigned', 'created'], when: '3d ago', labels: [], ci: [1, 1], rev: [], c: 2, k: 1 },
+    { repo: 'acme-corp/api', n: 327, t: 'Audit log filters', state: 'open', f: ['review_requested', 'mentioned'], when: '4d ago', labels: [['feature', '#22c55e']], ci: [3, 3], rev: ['DA', 'YU', 'KI', 'MK'], c: 4, k: 4 },
+    { repo: 'mkappworks/cloudzilla', n: 338, t: 'Cache avatar lookups per request', state: 'merged', f: ['created'], when: '12m ago', labels: [], ci: [0, 0], rev: ['DA'], c: 3, k: 5 },
+    { repo: 'openforge/runner', n: 54, t: 'Drop deprecated sandbox flag', state: 'closed', f: ['assigned'], when: '2w ago', labels: [], ci: [0, 0], rev: [], c: 0, k: 6 }
+  ];
+  var ICON = {
+    open: '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path></svg>',
+    merged: '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-[hsl(270_70%_70%)]" aria-hidden="true"><path d="M5 3.254V3.25v.005a.75.75 0 110-.005v.004zm.45 1.9a2.25 2.25 0 10-1.95.218v5.256a2.25 2.25 0 101.5 0V7.123A5.735 5.735 0 009.25 9h1.378a2.251 2.251 0 100-1.5H9.25a4.25 4.25 0 01-3.8-2.346zM12.75 9a.75.75 0 100-1.5.75.75 0 000 1.5zm-8.5 4.5a.75.75 0 100-1.5.75.75 0 000 1.5z"></path></svg>',
+    closed: '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><path d="M3.25 1A2.25 2.25 0 014 5.372v5.256a2.251 2.251 0 11-1.5 0V5.372A2.251 2.251 0 013.25 1zm9.5 14a2.25 2.25 0 110-4.5 2.25 2.25 0 010 4.5zM2.5 3.25a.75.75 0 101.5 0 .75.75 0 00-1.5 0zM3.25 12a.75.75 0 100 1.5.75.75 0 000-1.5zm9.5 0a.75.75 0 100 1.5.75.75 0 000-1.5zm1.28-9.53a.75.75 0 010 1.06l-1.97 1.97 1.97 1.97a.75.75 0 11-1.06 1.06l-1.97-1.97-1.97 1.97a.75.75 0 01-1.06-1.06l1.97-1.97-1.97-1.97a.75.75 0 011.06-1.06l1.97 1.97 1.97-1.97a.75.75 0 011.06 0z"></path></svg>'
+  };
+  var BADGE = {
+    open: ['bg-success/15 text-success border-success/30', 'Open'],
+    merged: ['bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)]', 'Merged'],
+    closed: ['bg-destructive/15 text-destructive border-destructive/30', 'Closed']
+  };
+  var SORTS = [['newest', 'Sort: newest'], ['oldest', 'Oldest'], ['updated', 'Recently updated'], ['comments', 'Most commented']];
+  var filter = 'created', state = 'open', sort = 'newest';
+
+  function row(p) {
+    var ci = p.ci[1] ? (p.ci[0] === p.ci[1]
+      ? '<span class="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full border text-success border-success/30 bg-success/10" title="CI checks"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>'
+      : '<span class="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full border text-muted-foreground border-border bg-accent" title="CI checks"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 110 16A8 8 0 010 8zm0 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM7 4a1 1 0 012 0v4a1 1 0 01-2 0V4zm1 8a1 1 0 110-2 1 1 0 010 2z"></path></svg>') + p.ci[0] + '/' + p.ci[1] + '</span>' : '';
+    var rev = p.rev.length ? '<span class="inline-flex items-center -space-x-1.5" aria-label="Reviewers">' + p.rev.slice(0, 3).map(function (r) {
+      return '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full border border-background bg-muted text-[9px] font-semibold text-muted-foreground uppercase select-none">' + r + '</span>';
+    }).join('') + (p.rev.length > 3 ? '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full border border-background bg-muted text-[9px] font-semibold text-muted-foreground select-none">+' + (p.rev.length - 3) + '</span>' : '') + '</span>' : '';
+    var labels = p.labels.length ? '<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>' + p.labels.map(function (l) {
+      return '<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border whitespace-nowrap" style="background:' + l[1] + '22;color:' + l[1] + ';border-color:' + l[1] + '55">' + l[0] + '</span>';
+    }).join('') : '';
+    var comments = p.c ? '<span class="text-muted-foreground inline-flex items-center gap-1 text-[12px]"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>' + p.c + '</span>' : '';
+    return '<li><a href="pr.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[\'\'] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">' +
+      '<div class="flex items-start gap-3 mb-1.5">' + ICON[p.state] + '<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap"><span class="font-mono text-[12px] text-muted-foreground">' + p.repo + '</span><span class="opacity-50" aria-hidden="true">·</span><p class="text-[13.5px] font-medium leading-snug group-hover:underline">' + p.t +
+      '</p><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium ' + BADGE[p.state][0] + '">' + BADGE[p.state][1] + '</span></div></div>' +
+      '<div class="flex items-center justify-between gap-3 pl-[27px]"><div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap"><span class="font-mono">#' + p.n + '</span><span class="opacity-50" aria-hidden="true">·</span><time>' + p.when + '</time>' + labels +
+      '</div><div class="flex items-center gap-2 shrink-0">' + ci + rev + comments + '</div></div></a></li>';
+  }
+  function menuItem(s) {
+    var active = s[0] === sort;
+    return '<a href="#" role="menuitem" data-sort="' + s[0] + '" class="flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent hover:text-foreground ' + (active ? 'text-foreground font-medium' : 'text-muted-foreground') + '">' + s[1] +
+      (active ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '') + '</a>';
+  }
+  var ON = 'px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5';
+  var OFF = 'px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5';
+  function render() {
+    var q = document.getElementById('pr-filter').value.toLowerCase();
+    var rows = PRS.filter(function (p) {
+      var isOpen = p.state === 'open';
+      return p.f.indexOf(filter) >= 0 && (state === 'open' ? isOpen : !isOpen) && (p.repo + ' ' + p.t).toLowerCase().indexOf(q) >= 0;
+    });
+    if (sort === 'comments') rows.sort(function (a, b) { return b.c - a.c; });
+    if (sort === 'oldest') rows.sort(function (a, b) { return b.k - a.k; });
+    document.getElementById('rows').innerHTML = rows.map(row).join('');
+    document.getElementById('rows').parentNode.hidden = !rows.length;
+    var empty = document.getElementById('empty');
+    empty.hidden = rows.length > 0;
+    empty.firstElementChild.textContent = 'No ' + state + ' pull requests.';
+    document.querySelectorAll('#tabs a').forEach(function (a) {
+      var on = a.dataset.filter ? a.dataset.filter === filter : a.dataset.state === state;
+      a.className = on ? ON : OFF;
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    document.getElementById('sort-label').textContent = SORTS.filter(function (s) { return s[0] === sort; })[0][1];
+    document.getElementById('sort-menu').innerHTML = '<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>' + SORTS.map(menuItem).join('');
+  }
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault();
+    if (a.dataset.filter) filter = a.dataset.filter; else state = a.dataset.state;
+    render();
+  });
+  document.getElementById('sort-menu').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault(); sort = a.dataset.sort; render();
+  });
+  document.getElementById('pr-filter').addEventListener('input', render);
+  render();
+})();
+</script>
+
+</body>
+</html>

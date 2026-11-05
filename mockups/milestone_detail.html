@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Milestone 2: Public beta · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="milestones"></div>
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20">
+  <div class="space-y-6">
+    <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="milestones.html" class="hover:underline">Milestones</a>
+      <span aria-hidden="true">·</span>
+      <span aria-current="page">Milestone 2: Public beta</span>
+    </p>
+    <div class="space-y-2">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <h1 id="ms-title-text" class="text-2xl font-semibold tracking-tight min-w-0">Milestone 2: Public beta</h1>
+        <form id="ms-title-form" hidden class="flex flex-1 items-center gap-2 min-w-0">
+          <input type="text" id="ms-title-input" value="Milestone 2: Public beta" required aria-label="Milestone title" class="flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+          <button type="submit" class="h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">Save</button>
+          <button type="button" id="ms-title-cancel" class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-muted shrink-0">Cancel</button>
+        </form>
+        <button type="button" id="ms-title-edit" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted inline-flex items-center shrink-0">Edit</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <span id="ms-state-badge" class="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-medium bg-success/15 text-success border border-success/30">
+          Open
+        </span>
+        <p class="text-[13px] text-muted-foreground">
+          Due by <strong class="text-foreground"><time id="ms-due-header">Jun 30, 2026</time></strong>
+        </p>
+      </div>
+    </div>
+    <div class="grid lg:grid-cols-[1fr_280px] gap-8">
+      <div class="min-w-0 space-y-5">
+        <section id="milestone-body-card" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Milestone description">
+          <header class="px-4 py-2.5 border-b border-border bg-muted/50 flex items-center gap-2 text-[12.5px]">
+            <strong class="text-foreground">Description</strong>
+            <button type="button" id="desc-edit" class="ml-auto inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border hover:bg-muted text-[12px] text-muted-foreground">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              Edit
+            </button>
+          </header>
+          <div id="desc-rendered" class="px-4 py-4 prose prose-sm dark:prose-invert max-w-none">
+            <p>Open the product to external testers. This milestone covers the invite-code sign-up path, a friendlier onboarding experience and the feedback loop we need to triage beta reports.</p>
+          <p>Exit criteria:</p>
+          <ul>
+            <li>Invite-code sign-up is rate limited and observable.</li>
+            <li>Onboarding walkthrough covers the empty-repo state.</li>
+            <li>Feedback widget wired to <a href="issue_detail.html">#42</a>.</li>
+          </ul>
+          </div>
+          <form id="desc-form" hidden class="px-4 py-4">
+            <div class="md-editor" data-md-editor>
+        <div class="flex items-center gap-2 border-b border-border px-3">
+          <div role="tablist" aria-label="Editor mode" class="flex">
+            <button type="button" role="tab" data-md-tab="write" aria-selected="true" class="px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px">Write</button>
+            <button type="button" role="tab" data-md-tab="preview" aria-selected="false" class="px-3 py-2 text-[13px] border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px">Preview</button>
+          </div>
+          <div class="ml-auto flex items-center gap-0.5 text-muted-foreground" aria-label="Formatting">
+          <button type="button" data-md-action="bold" aria-label="Bold" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6zM6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"></path></svg>
+          </button>
+          <button type="button" data-md-action="italic" aria-label="Italic" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></svg>
+          </button>
+          <button type="button" data-md-action="code" aria-label="Code" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          </button>
+          <button type="button" data-md-action="link" aria-label="Insert link" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 007.07 0l3-3a5 5 0 00-7.07-7.07l-1 1"></path><path d="M14 11a5 5 0 00-7.07 0l-3 3a5 5 0 007.07 7.07l1-1"></path></svg>
+          </button>
+          </div>
+        </div>
+        <div data-md-pane="write">
+          <label for="milestone-body" class="sr-only">Describe what this milestone delivers. Markdown supported.</label>
+          <textarea id="milestone-body" name="description" rows="10" placeholder="Describe what this milestone delivers. Markdown supported." style="height:244px" class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground">Open the product to external testers. This milestone covers the invite-code sign-up path, a friendlier onboarding experience and the feedback loop we need to triage beta reports.
+
+Exit criteria:
+
+- Invite-code sign-up is rate limited and observable.
+- Onboarding walkthrough covers the empty-repo state.
+- Feedback widget wired to #42.</textarea>
+        </div>
+        <div data-md-pane="preview" style="height:244px" class="hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"><p class="text-muted-foreground">Nothing to preview.</p></div>
+      </div>
+            <div class="flex justify-end gap-2 mt-3">
+              <button type="button" id="desc-cancel" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted">Cancel</button>
+              <button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Issues and pull requests in this milestone">
+          <nav class="flex items-center gap-1 border-b border-border px-2 text-sm" aria-label="Milestone items">
+            <button type="button" data-tab="issues" class="px-3 py-2.5 -mb-px border-b-2 border-foreground font-medium text-foreground">
+              Issues <span class="font-mono text-[11px] text-muted-foreground ml-0.5">11</span>
+            </button>
+            <button type="button" data-tab="pulls" class="px-3 py-2.5 -mb-px border-b-2 border-transparent text-muted-foreground hover:text-foreground">
+              Pull requests <span class="font-mono text-[11px] text-muted-foreground ml-0.5">5</span>
+            </button>
+            <div class="ml-auto flex items-center py-1.5">
+              <div class="inline-flex border border-border rounded-md overflow-hidden text-[12px]" role="group" aria-label="Filter by state">
+                <button type="button" data-state="open" class="px-2.5 py-1 bg-muted text-foreground">
+                  Open <span class="font-mono text-muted-foreground" data-count="open">6</span>
+                </button>
+                <button type="button" data-state="closed" class="px-2.5 py-1 text-muted-foreground hover:text-foreground border-l border-border">
+                  Closed <span class="font-mono text-muted-foreground" data-count="closed">5</span>
+                </button>
+              </div>
+            </div>
+          </nav>
+      <div data-panel="issues-open">
+        <ol class="divide-y divide-border">
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Public sign-up flow rejects invite codes with trailing whitespace</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#201</span>
+              <span aria-hidden="true">·</span>
+              <span>by daisy</span>
+              <span aria-hidden="true">·</span>
+              <time>May 10, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Onboarding walkthrough: empty repo state has no call to action</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#203</span>
+              <span aria-hidden="true">·</span>
+              <span>by yumi</span>
+              <span aria-hidden="true">·</span>
+              <time>May 9, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Rate-limit signups per IP to slow automated abuse</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#207</span>
+              <span aria-hidden="true">·</span>
+              <span>by malith</span>
+              <span aria-hidden="true">·</span>
+              <time>May 8, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Invite-code emails render with a broken layout in Outlook</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#209</span>
+              <span aria-hidden="true">·</span>
+              <span>by priya</span>
+              <span aria-hidden="true">·</span>
+              <time>May 6, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Beta feedback widget overlaps the footer on small screens</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#212</span>
+              <span aria-hidden="true">·</span>
+              <span>by daisy</span>
+              <span aria-hidden="true">·</span>
+              <time>May 4, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail.html" class="text-[13px] font-medium hover:underline">Expired invite codes return a 500 instead of a friendly error</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#215</span>
+              <span aria-hidden="true">·</span>
+              <span>by yumi</span>
+              <span aria-hidden="true">·</span>
+              <time>May 2, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        </ol>
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border">
+          <span class="text-[12px] text-muted-foreground">
+            Showing <span class="font-mono">1–6</span> of <span class="font-mono">6</span>
+          </span>
+        </div>
+      </div>
+      <div data-panel="issues-closed" hidden>
+        <ol class="divide-y divide-border">
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline">Decide invite-code length and entropy</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#150</span>
+              <span aria-hidden="true">·</span>
+              <span>by malith</span>
+              <span aria-hidden="true">·</span>
+              <time>Apr 20, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-border shrink-0">closed</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline">Wire the feedback widget to issue #42</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#153</span>
+              <span aria-hidden="true">·</span>
+              <span>by daisy</span>
+              <span aria-hidden="true">·</span>
+              <time>Apr 18, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-border shrink-0">closed</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline">Draft the public beta announcement copy</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#158</span>
+              <span aria-hidden="true">·</span>
+              <span>by priya</span>
+              <span aria-hidden="true">·</span>
+              <time>Apr 15, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-border shrink-0">closed</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline">Choose the invite-code rate-limit thresholds</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#160</span>
+              <span aria-hidden="true">·</span>
+              <span>by malith</span>
+              <span aria-hidden="true">·</span>
+              <time>Apr 12, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-border shrink-0">closed</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <a href="issue_detail_closed.html" class="text-[13px] font-medium hover:underline">Scope the public beta milestone</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#166</span>
+              <span aria-hidden="true">·</span>
+              <span>by malith</span>
+              <span aria-hidden="true">·</span>
+              <time>Apr 2, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-border shrink-0">closed</span>
+        </li>
+        </ol>
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border">
+          <span class="text-[12px] text-muted-foreground">
+            Showing <span class="font-mono">1–5</span> of <span class="font-mono">5</span>
+          </span>
+        </div>
+      </div>
+      <div data-panel="pulls-open" hidden>
+        <ol class="divide-y divide-border">
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1 text-success" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 01-9 9"></path></svg>
+          <div class="min-w-0 flex-1">
+            <a href="pr.html" class="text-[13px] font-medium hover:underline">Add invite-code sign-up endpoint</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#221</span>
+              <span aria-hidden="true">·</span>
+              <span>by malith</span>
+              <span aria-hidden="true">·</span>
+              <time>May 11, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1 text-success" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 01-9 9"></path></svg>
+          <div class="min-w-0 flex-1">
+            <a href="pr.html" class="text-[13px] font-medium hover:underline">Empty-state CTA component for onboarding</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#224</span>
+              <span aria-hidden="true">·</span>
+              <span>by yumi</span>
+              <span aria-hidden="true">·</span>
+              <time>May 10, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1 text-success" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 01-9 9"></path></svg>
+          <div class="min-w-0 flex-1">
+            <a href="pr.html" class="text-[13px] font-medium hover:underline">Per-IP rate limiter middleware</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#226</span>
+              <span aria-hidden="true">·</span>
+              <span>by daisy</span>
+              <span aria-hidden="true">·</span>
+              <time>May 8, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+        </li>
+        </ol>
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border">
+          <span class="text-[12px] text-muted-foreground">
+            Showing <span class="font-mono">1–3</span> of <span class="font-mono">3</span>
+          </span>
+        </div>
+      </div>
+      <div data-panel="pulls-closed" hidden>
+        <ol class="divide-y divide-border">
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1 text-violet-400" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 01-9 9"></path></svg>
+          <div class="min-w-0 flex-1">
+            <a href="pr.html" class="text-[13px] font-medium hover:underline">Onboarding walkthrough scaffold</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#198</span>
+              <span aria-hidden="true">·</span>
+              <span>by yumi</span>
+              <span aria-hidden="true">·</span>
+              <time>Apr 28, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-violet-400/10 text-violet-400 border-violet-400/30 shrink-0">merged</span>
+        </li>
+        <li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 01-9 9"></path></svg>
+          <div class="min-w-0 flex-1">
+            <a href="pr.html" class="text-[13px] font-medium hover:underline">Invite-code email template</a>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+              <span class="font-mono">#199</span>
+              <span aria-hidden="true">·</span>
+              <span>by priya</span>
+              <span aria-hidden="true">·</span>
+              <time>Apr 26, 2026</time>
+            </div>
+          </div>
+          <span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-border shrink-0">closed</span>
+        </li>
+        </ol>
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border">
+          <span class="text-[12px] text-muted-foreground">
+            Showing <span class="font-mono">1–2</span> of <span class="font-mono">2</span>
+          </span>
+        </div>
+      </div>
+        </section>
+      </div>
+
+      <aside class="space-y-6" aria-label="Milestone details">
+        <section aria-labelledby="ms-progress">
+          <h2 id="ms-progress" class="text-[12px] font-medium text-muted-foreground mb-2">Progress</h2>
+          <div class="mt-2">
+            <div class="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <span>5 / 11 issues closed</span>
+            </div>
+            <div class="w-full bg-muted rounded-full h-1.5">
+              <div class="bg-success h-1.5 rounded-full" style="width: 45%"></div>
+            </div>
+          </div>
+          <p class="mt-2 text-[20px] font-semibold tracking-tight">
+            45%<span class="text-[13px] text-muted-foreground font-normal ml-1.5">complete</span>
+          </p>
+          <ul class="mt-2 space-y-1 text-[12px] text-muted-foreground">
+            <li>5 closed · 6 open issues</li>
+            <li>2 closed · 3 open pull requests</li>
+          </ul>
+        </section>
+        <div class="border-t border-border pt-5">
+          <section id="milestone-due-section" aria-labelledby="ms-due-heading">
+            <div class="flex items-center justify-between mb-2">
+              <h2 id="ms-due-heading" class="text-[12px] font-medium text-muted-foreground">Due date</h2>
+              <button type="button" id="due-edit" aria-label="Edit due date" class="text-muted-foreground hover:text-foreground">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+            </div>
+            <p id="due-view" class="text-[13px]"><time>Jun 30, 2026</time></p>
+            <form id="due-form" hidden class="space-y-2">
+              <input type="date" id="due-input" name="due_date" value="2026-06-30" class="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+              <div class="flex justify-end gap-2">
+                <button type="button" id="due-cancel" class="h-7 px-2.5 text-[12px] rounded-md border border-border hover:bg-muted">Cancel</button>
+                <button type="submit" class="h-7 px-2.5 text-[12px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
+              </div>
+              <p class="text-[11px] text-muted-foreground">Leave blank for an open-ended milestone.</p>
+            </form>
+          </section>
+        </div>
+        <section aria-labelledby="ms-details" class="border-t border-border pt-5">
+          <h2 id="ms-details" class="text-[12px] font-medium text-muted-foreground mb-2">Details</h2>
+          <dl class="space-y-1.5 text-[12px]">
+            <div class="flex justify-between gap-2">
+              <dt class="text-muted-foreground">Created</dt>
+              <dd>Apr 19, 2026</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+              <dt class="text-muted-foreground">Updated</dt>
+              <dd>May 11, 2026</dd>
+            </div>
+            <div id="ms-closed-row" hidden class="flex justify-between gap-2">
+              <dt class="text-muted-foreground">Closed</dt>
+              <dd>May 13, 2026</dd>
+            </div>
+          </dl>
+        </section>
+        <section aria-labelledby="ms-manage" class="border-t border-border pt-5">
+          <h2 id="ms-manage" class="text-[12px] font-medium text-muted-foreground mb-2">Manage</h2>
+          <div class="space-y-1.5">
+            <button type="button" id="ms-toggle" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground">
+              <span id="ms-toggle-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              <span id="ms-toggle-label">Close milestone</span>
+            </button>
+            <button type="button" onclick="document.getElementById('ms-delete-dialog').showModal()" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path></svg>
+              <span>Delete milestone</span>
+            </button>
+          </div>
+          <p class="mt-2 text-[11px] text-muted-foreground leading-relaxed">Deleting a milestone unassigns it from all issues and pull requests. This cannot be undone.</p>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+<dialog id="ms-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="ms-delete-dialog-title">
+  <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="ms-delete-dialog-title" class="text-base font-semibold leading-tight">Delete this milestone?</h2>
+    <p class="text-[13px] text-muted-foreground leading-snug">Delete <strong class="text-foreground">Milestone 2: Public beta</strong>. It will be unassigned from all issues and pull requests. This cannot be undone.</p>
+  </div>
+  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <form method="dialog" class="contents">
+      <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    </form>
+    <button type="button" onclick="location.href='milestones.html'" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete milestone</button>
+  </div>
+</dialog>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+<script>
+(function () {
+  var ON = ['border-foreground', 'text-foreground', 'font-medium'];
+  var OFF = ['border-transparent', 'text-muted-foreground', 'hover:text-foreground'];
+  function mode(ed, m) {
+    ed.querySelectorAll('[data-md-tab]').forEach(function (t) {
+      var on = t.dataset.mdTab === m;
+      ON.forEach(function (c) { t.classList.toggle(c, on); });
+      OFF.forEach(function (c) { t.classList.toggle(c, !on); });
+      t.setAttribute('aria-selected', String(on));
+    });
+    var ta = ed.querySelector('textarea');
+    var pv = ed.querySelector('[data-md-pane="preview"]');
+    ed.querySelector('[data-md-pane="write"]').classList.toggle('hidden', m !== 'write');
+    pv.classList.toggle('hidden', m !== 'preview');
+    if (m === 'preview') pv.textContent = ta.value.trim() || 'Nothing to preview.';
+  }
+  var PAIRS = { bold: ['**', '**'], italic: ['*', '*'], code: ['`', '`'], link: ['[', '](url)'] };
+  document.addEventListener('click', function (e) {
+    var tab = e.target.closest('[data-md-tab]');
+    if (tab) return mode(tab.closest('[data-md-editor]'), tab.dataset.mdTab);
+    var act = e.target.closest('[data-md-action]');
+    if (!act) return;
+    var ta = act.closest('[data-md-editor]').querySelector('textarea');
+    var p = PAIRS[act.dataset.mdAction], s = ta.selectionStart, en = ta.selectionEnd;
+    ta.setRangeText(p[0] + ta.value.slice(s, en) + p[1], s, en, 'end');
+    ta.focus();
+  });
+})();
+</script>
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function swap(viewEls, formEl, on) {
+    viewEls.forEach(function (el) { el.hidden = on; });
+    formEl.hidden = !on;
+  }
+  var tv = [$('ms-title-text'), $('ms-title-edit')];
+  $('ms-title-edit').addEventListener('click', function () { swap(tv, $('ms-title-form'), true); $('ms-title-input').focus(); });
+  $('ms-title-cancel').addEventListener('click', function () { swap(tv, $('ms-title-form'), false); });
+  $('ms-title-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('ms-title-text').textContent = $('ms-title-input').value;
+    swap(tv, $('ms-title-form'), false);
+  });
+  var dv = [$('desc-rendered'), $('desc-edit')];
+  $('desc-edit').addEventListener('click', function () { swap(dv, $('desc-form'), true); });
+  $('desc-cancel').addEventListener('click', function () { swap(dv, $('desc-form'), false); });
+  $('desc-form').addEventListener('submit', function (e) { e.preventDefault(); swap(dv, $('desc-form'), false); });
+  var uv = [$('due-view'), $('due-edit')];
+  $('due-edit').addEventListener('click', function () { swap(uv, $('due-form'), true); });
+  $('due-cancel').addEventListener('click', function () { swap(uv, $('due-form'), false); });
+  $('due-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('due-input').value;
+    var text = v ? new Date(v + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    $('due-view').innerHTML = text ? '<time>' + text + '</time>' : '<span class="text-muted-foreground">No due date</span>';
+    $('ms-due-header').textContent = text || 'no due date';
+    swap(uv, $('due-form'), false);
+  });
+
+  var TAB_ON = ['border-foreground', 'font-medium', 'text-foreground'];
+  var TAB_OFF = ['border-transparent', 'text-muted-foreground', 'hover:text-foreground'];
+  var ST_ON = ['bg-muted', 'text-foreground'];
+  var ST_OFF = ['text-muted-foreground', 'hover:text-foreground'];
+  var tab = 'issues', state = 'open';
+  var counts = { issues: { open: 6, closed: 5 }, pulls: { open: 3, closed: 2 } };
+  function paint(els, on, off, active) {
+    on.forEach(function (c) { els.classList.toggle(c, active); });
+    off.forEach(function (c) { els.classList.toggle(c, !active); });
+  }
+  function render() {
+    document.querySelectorAll('[data-tab]').forEach(function (b) { paint(b, TAB_ON, TAB_OFF, b.dataset.tab === tab); });
+    document.querySelectorAll('[data-state]').forEach(function (b) { paint(b, ST_ON, ST_OFF, b.dataset.state === state); });
+    document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.dataset.panel !== tab + '-' + state; });
+    document.querySelector('[data-count="open"]').textContent = counts[tab].open;
+    document.querySelector('[data-count="closed"]').textContent = counts[tab].closed;
+  }
+  document.querySelectorAll('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { tab = b.dataset.tab; render(); }); });
+  document.querySelectorAll('[data-state]').forEach(function (b) { b.addEventListener('click', function () { state = b.dataset.state; render(); }); });
+
+  var isOpen = true;
+  var CLOSE_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  var REOPEN_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 0115-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 01-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>';
+  $('ms-toggle').addEventListener('click', function () {
+    isOpen = !isOpen;
+    $('ms-toggle-label').textContent = isOpen ? 'Close milestone' : 'Reopen milestone';
+    $('ms-toggle-icon').innerHTML = isOpen ? CLOSE_ICON : REOPEN_ICON;
+    $('ms-closed-row').hidden = isOpen;
+    var b = $('ms-state-badge');
+    b.textContent = isOpen ? 'Open' : 'Closed';
+    b.className = 'inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-medium border ' +
+      (isOpen ? 'bg-success/15 text-success border-success/30' : 'bg-muted text-muted-foreground border-border');
+  });
+})();
+</script>
+</body>
+</html>

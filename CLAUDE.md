@@ -38,8 +38,8 @@ outside `internal/view/` need their own `@source`.
 `space-y-*` and `divide-y` style every child but the last: keep a rendered element last (hidden inputs, `<script>` and
 `<dialog>` go first or outside), and use `flex flex-col gap-*` when rows toggle with `x-show`.
 
-A new design mock is an HTML file beside the spec it serves, in `.scratch/<date>-<slug>/`. `docs/design/` holds frozen
-archives only — nothing there tracks the shipped UI.
+A new design mock is an HTML file beside the spec it serves, in `.scratch/<date>-<slug>/`. `mockups/` holds the standing
+mocks of the shipped pages (`make mockups`); change a page's mock in the same PR as the page.
 
 ## Static assets
 
@@ -98,8 +98,8 @@ Read the matching doc before working in an area:
 - [notifications](./docs/notifications.md) — types; skipped when `actorID == authorID`
 - [ui-overhaul-class-map](./docs/ui-overhaul-class-map.md) — mockup → shadcn class map and Tailwind v3 → v4 names; the
   source of truth when porting UI
-- [design/mockups-2026-05](./docs/design/mockups-2026-05/README.md) — the archived May 2026 mockups; Tailwind v3 and
-  frozen, so read them through the class map
+- [mockups](./mockups/README.md) — static Tailwind v4 mocks of the shipped pages, the `make mockups` server, and
+  [COVERAGE](./mockups/COVERAGE.md) of pages with no mock
 - [testing](./docs/testing.md) — what CI runs, why `backup` and `seed` are local-only, `make test-integration`
 - [dev-loop](./docs/dev-loop.md) — the `dev` build tag, disk-served assets, `internal/devreload`, air's config; what CI
   does not compile

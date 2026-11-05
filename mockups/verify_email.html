@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Verify email — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-anon></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="max-w-md mx-auto mt-16 rounded-md border border-border bg-card p-6">
+    <div id="pending">
+      <div class="text-center mb-6">
+      <a href="index.html" class="inline-flex" aria-label="Cloudzilla home"><svg width="36" height="36" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="22" cy="36" r="9"></circle><circle cx="32" cy="28" r="11"></circle><circle cx="44" cy="36" r="9"></circle><rect x="22" y="36" width="22" height="9" rx="4.5"></rect></svg></a>
+      <p class="mt-4 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Email verification</p>
+      <h1 class="mt-1 text-xl font-semibold tracking-tight">Verify your email address</h1>
+      
+    </div>
+      <p class="mb-4 text-[13px] text-muted-foreground text-center">
+        Confirm that <span class="font-mono text-foreground">alice@example.test</span> belongs to the Cloudzilla account
+        <span class="font-medium text-foreground">alice</span>. If you didn't create or change that account, close this page.
+      </p>
+      <form id="form">
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm w-full">Verify email address</button>
+      </form>
+    </div>
+    <div id="verified" hidden>
+      <div class="text-center mb-6">
+      <a href="index.html" class="inline-flex" aria-label="Cloudzilla home"><svg width="36" height="36" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="22" cy="36" r="9"></circle><circle cx="32" cy="28" r="11"></circle><circle cx="44" cy="36" r="9"></circle><rect x="22" y="36" width="22" height="9" rx="4.5"></rect></svg></a>
+      <p class="mt-4 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Email verification</p>
+      <h1 class="mt-1 text-xl font-semibold tracking-tight">Email verified</h1>
+      <p class="mt-2 text-[13px] text-muted-foreground">Your email address is verified.</p>
+    </div>
+      <a href="login.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm w-full">Sign in</a>
+    </div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  document.getElementById('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    document.getElementById('pending').hidden = true;
+    document.getElementById('verified').hidden = false;
+  });
+})();
+</script>
+<script src="shell.js"></script>
+</body>
+</html>

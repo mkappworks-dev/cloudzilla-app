@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Closed discussions · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="discussions"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20">
+
+  <div class="space-y-6">
+    <section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="disc-title">
+      <div class="min-w-0">
+        <h1 id="disc-title" class="text-2xl font-semibold tracking-tight">Discussions</h1>
+      </div>
+      <a href="discussion_new.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+        New discussion
+      </a>
+    </section>
+    <nav class="flex items-center gap-2 flex-wrap" aria-label="Discussion categories">
+      <a href="discussions_closed.html" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors bg-foreground text-background border-foreground">
+        All
+        <span class="font-mono opacity-70">6</span>
+      </a>
+      <a href="discussions_closed.html" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors bg-muted text-muted-foreground border-border hover:text-foreground">
+        General
+        <span class="font-mono opacity-70">2</span>
+      </a>
+      <a href="discussions_closed.html" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors bg-muted text-muted-foreground border-border hover:text-foreground">
+        Q&amp;A
+        <span class="font-mono opacity-70">2</span>
+      </a>
+      <a href="discussions_closed.html" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors bg-muted text-muted-foreground border-border hover:text-foreground">
+        Ideas
+        <span class="font-mono opacity-70">0</span>
+      </a>
+      <a href="discussions_closed.html" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors bg-muted text-muted-foreground border-border hover:text-foreground">
+        Announcements
+        <span class="font-mono opacity-70">1</span>
+      </a>
+    </nav>
+    <nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Discussion state">
+      <a href="discussions.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">
+        Open
+        <span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label="4 open">4</span>
+      </a>
+      <a href="discussions_answered.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">
+        Answered
+        <span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label="2 answered">2</span>
+      </a>
+      <a href="discussions_closed.html" aria-current="page" class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5">
+        Closed
+        <span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label="1 closed">1</span>
+      </a>
+    </nav>
+    <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="disc-list">
+      <h2 id="disc-list" class="sr-only">Discussion threads</h2>
+      <ol class="divide-y divide-border">
+        <li>
+          <a href="discussion_detail_locked.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-muted/50 hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline">Should we drop Go 1.22 support in the next minor release?</p>
+              <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">Locked</span>
+              </div>
+            </div>
+            <div class="pl-[28px] flex items-center justify-between gap-3">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground flex-wrap min-w-0">
+                <span class="font-mono">#31</span>
+                <span aria-hidden="true">·</span>
+                <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">KY</span>
+                <span>kiyo</span>
+                <span aria-hidden="true">·</span>
+                <time>3w ago</time>
+                <span aria-hidden="true">·</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border border-border bg-muted text-muted-foreground">General</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #4ade8033; color: #4ade80; border-color: #4ade8055">tooling</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] shrink-0">
+                <div class="flex -space-x-1.5" aria-label="3 participants">
+                <span class="rounded-full ring-2 ring-card inline-block"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">KY</span></span>
+                <span class="rounded-full ring-2 ring-card inline-block"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">MK</span></span>
+                <span class="rounded-full ring-2 ring-card inline-block"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">DK</span></span>
+                </div>
+                <span class="text-muted-foreground inline-flex items-center gap-1" title="2 replies">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path></svg>
+                  2
+                </span>
+              </div>
+            </div>
+          </a>
+        </li>
+      </ol>
+    </section>
+  </div>
+
+</main>
+
+<div id="cz-footer"></div>
+</body>
+</html>

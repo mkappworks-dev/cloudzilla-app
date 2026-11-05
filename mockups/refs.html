@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Branches &amp; Tags · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="space-y-6">
+    <section aria-labelledby="refs-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="repo.html" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        Branches
+      </p>
+      <h1 id="refs-title" class="text-2xl font-semibold tracking-tight">Branches &amp; tags</h1>
+    </section>
+
+    <div class="rounded-md border border-border bg-card">
+      <div class="px-4 py-3 border-b border-border">
+        <h2 class="font-semibold text-foreground">Branches</h2>
+      </div>
+      <div id="branches-list"></div>
+      <div class="px-4 py-4 border-t border-border bg-muted/40">
+        <form data-create="branch" class="flex flex-wrap gap-2 items-end">
+          <div>
+            <label for="new-branch-name" class="block text-xs font-medium text-muted-foreground mb-1">Branch name</label>
+            <input id="new-branch-name" name="name" placeholder="new-branch-name" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground" />
+          </div>
+          <div>
+            <label for="new-branch-from" class="block text-xs font-medium text-muted-foreground mb-1">From ref</label>
+            <input id="new-branch-from" name="from" value="main" placeholder="branch, tag, or SHA" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground" />
+          </div>
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px]">Create Branch</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="rounded-md border border-border bg-card">
+      <div class="px-4 py-3 border-b border-border">
+        <h2 class="font-semibold text-foreground">Tags</h2>
+      </div>
+      <div id="tags-list"></div>
+      <div class="px-4 py-4 border-t border-border bg-muted/40">
+        <form data-create="tag" class="flex flex-wrap gap-2 items-end">
+          <div>
+            <label for="new-tag-name" class="block text-xs font-medium text-muted-foreground mb-1">Tag name</label>
+            <input id="new-tag-name" name="name" placeholder="v1.0.0" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground" />
+          </div>
+          <div>
+            <label for="new-tag-from" class="block text-xs font-medium text-muted-foreground mb-1">From ref</label>
+            <input id="new-tag-from" name="from" value="main" placeholder="branch, tag, or SHA" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground" />
+          </div>
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px]">Create Tag</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+
+<script src="shell.js"></script>
+<script>
+(function () {
+  var DEFAULT_BADGE = '<span class="shrink-0"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">default</span></span>';
+  var DELETE_CLASS = 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]';
+  var DATA = {
+    branch: [
+      { name: 'main', hash: '420b44b', def: true },
+      { name: 'feat/phase-12.3-discussions', hash: '9f3c1ae' },
+      { name: 'fix/contributor-stats-sha-dedup', hash: '5d82e07' }
+    ],
+    tag: [
+      { name: 'v0.2.0', hash: '420b44b' },
+      { name: 'v0.1.0', hash: '1c7a9d3' }
+    ]
+  };
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function rowHTML(kind, r) {
+    return '<div data-row class="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b border-border last:border-b-0">' +
+      '<div class="flex items-center gap-2 min-w-0">' +
+      '<a href="tree.html" class="font-mono text-sm text-foreground hover:underline truncate">' + esc(r.name) + '</a>' +
+      (r.def ? DEFAULT_BADGE : '') +
+      '<span class="text-xs text-muted-foreground font-mono shrink-0">' + r.hash + '</span></div>' +
+      '<div class="flex items-center gap-3 ml-4 shrink-0">' +
+      '<a href="commits.html" class="text-xs text-muted-foreground hover:text-foreground">commits</a>' +
+      (r.def ? '' : '<button type="button" data-delete="' + esc(r.name) + '" aria-label="Delete ' + kind + ' ' + esc(r.name) + '" class="' + DELETE_CLASS + '">Delete</button>') +
+      '</div></div>';
+  }
+  var PLURAL = { branch: 'branches', tag: 'tags' };
+  function render(kind) {
+    var list = document.getElementById(PLURAL[kind] + '-list');
+    list.innerHTML = DATA[kind].length
+      ? DATA[kind].map(function (r) { return rowHTML(kind, r); }).join('')
+      : '<div class="px-4 py-8 text-center text-muted-foreground text-sm">No ' + PLURAL[kind] + ' yet.</div>';
+  }
+  render('branch');
+  render('tag');
+
+  document.querySelectorAll('[data-create]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var kind = form.dataset.create;
+      var name = form.elements.name.value.trim();
+      if (!name) return;
+      if (DATA[kind].some(function (r) { return r.name === name; })) {
+        window.czToast('A ' + kind + ' named ' + name + ' already exists.');
+        return;
+      }
+      DATA[kind].push({ name: name, hash: Math.random().toString(16).slice(2, 9).padEnd(7, '0') });
+      render(kind);
+      form.elements.name.value = '';
+      window.czToast('Created ' + kind + ' ' + name + '.');
+    });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-delete]');
+    if (!b) return;
+    var kind = b.closest('#tags-list') ? 'tag' : 'branch';
+    var name = b.dataset.delete;
+    if (!confirm("Delete " + kind + " '" + name + "'?")) return;
+    DATA[kind] = DATA[kind].filter(function (r) { return r.name !== name; });
+    render(kind);
+    window.czToast('Deleted ' + kind + ' ' + name + '.');
+  });
+})();
+</script>
+</body>
+</html>

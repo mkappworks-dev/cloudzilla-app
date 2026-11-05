@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Create account — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-anon></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6">
+    <div class="text-center mb-6">
+      <a href="index.html" class="inline-flex" aria-label="Cloudzilla home"><svg width="36" height="36" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="22" cy="36" r="9"></circle><circle cx="32" cy="28" r="11"></circle><circle cx="44" cy="36" r="9"></circle><rect x="22" y="36" width="22" height="9" rx="4.5"></rect></svg></a>
+      <p class="mt-4 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Cloudzilla</p>
+      <h1 class="mt-1 text-xl font-semibold tracking-tight">Create your account</h1>
+      
+    </div>
+    <div id="error" hidden class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert"></div>
+    <form id="form" class="space-y-4">
+      <div class="space-y-1.5"><label for="username" class="block text-sm font-medium">Username</label><input type="text" id="username" name="username" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" /></div>
+      <div class="space-y-1.5"><label for="email" class="block text-sm font-medium">Email</label><input type="email" id="email" name="email" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" /></div>
+      <div class="space-y-1.5"><label for="password" class="block text-sm font-medium">Password</label><div class="relative"><input type="password" id="password" name="password" required minlength="8" class="h-9 w-full border border-border rounded-md pl-3 pr-10 text-foreground [&::-ms-reveal]:hidden bg-transparent text-sm shadow-xs focus:outline-solid focus:border-input" /><button type="button" aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg></button></div></div>
+      <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm w-full">Create account</button>
+    </form>
+    <p class="mt-5 text-center text-[12px] text-muted-foreground">
+      Already have an account?
+      <a href="login.html" class="text-foreground hover:underline">Sign in</a>
+    </p>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  document.getElementById('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    location.href = 'verify_email.html';
+  });
+})();
+</script>
+<script src="shell.js"></script>
+</body>
+</html>

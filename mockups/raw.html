@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>router.go (raw)</title>
+</head>
+<body style="margin:0;background:#fff;color:#000">
+<pre style="margin:8px;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.4;white-space:pre-wrap">package router
+ 
+import (
+	"net/http"
+ 
+	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
+)
+ 
+// New returns a chi router with all Cloudzilla routes registered.
+func New(h *handler.Handlers) http.Handler {
+	r := chi.NewRouter()
+ 
+	r.Get("/", h.Home)
+	r.Get("/explore", h.Explore)
+ 
+	r.Route("/{owner}/{repo}", func(r chi.Router) {
+		r.Get("/", h.PageRepo)
+		r.Get("/tree/*", h.PageTree)
+		r.Get("/blob/*", h.PageBlob)
+		r.Get("/blame/*", h.PageBlame)
+		r.Get("/commits/*", h.PageCommits)
+		r.Get("/pulse", h.PagePulse)
+	})
+ 
+	return r
+}
+</pre>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Go retry helper with jitter — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-5">
+
+  <section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="gist-title">
+    <div class="min-w-0">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="gists.html" class="hover:underline">Gists</a>
+        <span aria-hidden="true">·</span>
+        a3f9c1d27b8e
+      </p>
+      <h1 id="gist-title" class="text-xl font-semibold tracking-tight">Go retry helper with jitter</h1>
+      <div class="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+        <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="mkappworks">M</span>
+        <a href="profile.html" class="hover:text-foreground font-medium">mkappworks</a>
+        <span aria-hidden="true">·</span>
+        <time datetime="2026-11-03T10:00:00Z">Nov 3, 2026</time>
+        <span aria-hidden="true">·</span>
+        <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Public</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <a href="gist_edit.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Edit</a>
+      <button type="button" onclick="if (confirm('Delete this gist?')) window.location.href = 'gists.html'" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Delete</button>
+    </div>
+  </section>
+
+  <article class="space-y-4">
+    <section class="rounded-md border border-border bg-card overflow-hidden">
+      <header class="px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-3">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <h2 class="font-mono text-[13px] font-medium">retry.go</h2>
+        <span class="ml-auto font-mono text-[11px] text-muted-foreground/70">25 lines · 0.5 KB</span>
+      </header>
+      <pre class="hl px-4 py-3 font-mono text-[12.5px] leading-[1.6] overflow-x-auto"><code>package retry
+
+import (
+	"context"
+	"math/rand"
+	"time"
+)
+
+// Do calls fn until it succeeds, the attempts run out, or ctx is done.
+func Do(ctx context.Context, attempts int, base time.Duration, fn func() error) error {
+	var err error
+	for i := 0; i &lt; attempts; i++ {
+		if err = fn(); err == nil {
+			return nil
+		}
+		jitter := time.Duration(rand.Int63n(int64(base)))
+		select {
+		case &lt;-ctx.Done():
+			return ctx.Err()
+		case &lt;-time.After(base&lt;&lt;i + jitter):
+		}
+	}
+	return err
+}
+</code></pre>
+    </section>
+    <section class="rounded-md border border-border bg-card overflow-hidden">
+      <header class="px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-3">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <h2 class="font-mono text-[13px] font-medium">retry_test.go</h2>
+        <span class="ml-auto font-mono text-[11px] text-muted-foreground/70">20 lines · 0.3 KB</span>
+      </header>
+      <pre class="hl px-4 py-3 font-mono text-[12.5px] leading-[1.6] overflow-x-auto"><code>package retry_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+)
+
+func TestDoGivesUp(t *testing.T) {
+	calls := 0
+	err := Do(context.Background(), 3, time.Millisecond, func() error {
+		calls++
+		return errors.New("boom")
+	})
+	if err == nil || calls != 3 {
+		t.Fatalf("calls=%d err=%v", calls, err)
+	}
+}
+</code></pre>
+    </section>
+  </article>
+</div>
+</main>
+
+<div id="cz-footer"></div>
+</body>
+</html>
