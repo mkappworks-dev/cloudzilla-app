@@ -213,6 +213,7 @@ func TestWatch_AnAssetWriteBroadcastsOneReload(t *testing.T) {
 		t.Fatal(err)
 	}
 	hub := devreload.New("instance-abc")
+	hub.SetDebounce(500 * time.Millisecond)
 	srv := serve(t, hub)
 	s := subscribe(t, srv.URL+"/_dev/reload")
 	s.await(t, "hello", 2*time.Second)

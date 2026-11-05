@@ -15,7 +15,7 @@ import (
 )
 
 // debounce coalesces the several filesystem events one Tailwind build emits.
-const debounce = 100 * time.Millisecond
+const defaultDebounce = 100 * time.Millisecond
 
 // keepalive keeps intermediaries from closing an idle stream.
 const keepalive = 20 * time.Second
@@ -30,6 +30,7 @@ type Hub struct {
 	instanceID string
 	closed     chan struct{}
 	closeOnce  sync.Once
+	debounce   time.Duration
 
 	mu   sync.Mutex
 	subs map[chan struct{}]struct{}
@@ -39,6 +40,7 @@ func New(instanceID string) *Hub {
 	return &Hub{
 		instanceID: instanceID,
 		closed:     make(chan struct{}),
+		debounce:   defaultDebounce,
 		subs:       map[chan struct{}]struct{}{},
 	}
 }
@@ -163,7 +165,7 @@ func (h *Hub) Watch(stop <-chan struct{}, dir string) error {
 			if pending != nil {
 				pending.Stop()
 			}
-			pending = time.AfterFunc(debounce, func() {
+			pending = time.AfterFunc(h.debounce, func() {
 				select {
 				case fired <- struct{}{}:
 				default:
