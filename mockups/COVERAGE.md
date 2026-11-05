@@ -52,12 +52,8 @@ Mocks show the happy path. These real states are not drawn:
 
 ## Differences found in the real app
 
-Seen while porting, not fixed here:
+Seen while porting, not fixed:
 
-- `components/dependency_group.templ` uses `pill-dev` and `pill-prod`, which are defined nowhere, so the prod/dev pills
-  render uncoloured.
-- `release_detail.templ` wraps its content in a second `max-w-[1400px] px-6 pt-8 pb-20` container inside the layout's
-  `<main>`, which double-pads the page. The mock reproduces it.
 - A closed discussion has no UI: no banner, no Reopen, no "closed this" event. Only the locked state exists.
 
 ## Controls that are mocked or not wired
