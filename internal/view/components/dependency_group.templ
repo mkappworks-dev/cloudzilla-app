@@ -29,9 +29,9 @@ templ DependencyGroup(d DependencyGroupData) {
 						<td class="px-4 py-2 text-xs text-muted-foreground font-mono">{ r.Version }</td>
 						<td class="px-4 py-2">
 							if r.IsDev {
-								<span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium pill-dev">dev</span>
+								<span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-transparent">dev</span>
 							} else {
-								<span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium pill-prod">prod</span>
+								<span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">prod</span>
 							}
 						</td>
 					</tr>

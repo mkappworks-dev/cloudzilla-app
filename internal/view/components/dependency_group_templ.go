@@ -129,12 +129,12 @@ func DependencyGroup(d DependencyGroupData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if r.IsDev {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<span class=\"inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium pill-dev\">dev</span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<span class=\"inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-transparent\">dev</span>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium pill-prod\">prod</span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30\">prod</span>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
