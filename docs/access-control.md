@@ -15,19 +15,24 @@
 | Device login          | `cz auth login`: code typed at `/login/device`, approved with the confirmation factors, token minted at the first poll | `/login/device`, `/api/auth/device/*` |
 | TOTP 2FA              | 6-digit code after any web sign-in                                                                                     | `POST /auth/2fa/verify`               |
 
-Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
+Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and
+the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
 
-A superadmin sets LDAP and SAML up at `/admin/sso`. Saving a provider's settings leaves it on or off; the switch on its card (`POST /api/admin/sso/{provider}/enabled`) turns it on or off on its own. It won't turn on until the settings sign-in needs are saved (`model.SSOSettingsReady`: LDAP needs a host and bind DN template; SAML an entity ID, IdP SSO URL, ACS URL and certificate), and a save can't clear one of them while the provider is on (`ErrSSOIncomplete`).
+A superadmin sets LDAP and SAML up at `/admin/sso`. Saving a provider's settings leaves it on or off; the switch on its
+card (`POST /api/admin/sso/{provider}/enabled`) turns it on or off on its own. It won't turn on until the settings
+sign-in needs are saved (`model.SSOSettingsReady`: LDAP needs a host and bind DN template; SAML an entity ID, IdP SSO
+URL, ACS URL and certificate), and a save can't clear one of them while the provider is on (`ErrSSOIncomplete`).
 
 Usernames and organization names follow one rule and share one case-insensitive namespace; see [Usernames](#usernames).
 
-Repository names (`service.ValidateName`) use letters, digits, `.`, `-` and `_` and start with a letter or digit. New repositories can't end in `.wiki`; see [api-reference](./api-reference.md) for repositories named that way before the reservation.
+Repository names (`service.ValidateName`) use letters, digits, `.`, `-` and `_` and start with a letter or digit. New
+repositories can't end in `.wiki`; see [api-reference](./api-reference.md) for repositories named that way before the
+reservation.
 
 ### Return path after sign-in
 
-A signed-out HTML request is redirected to `/login?next=<request URI>`. Every
-sign-in route redirects to `next` on success, once `safeNextPath` accepts it:
-it must be a rooted same-site path, and it may not start with `//` or `/\` or
+A signed-out HTML request is redirected to `/login?next=<request URI>`. Every sign-in route redirects to `next` on
+success, once `safeNextPath` accepts it: it must be a rooted same-site path, and it may not start with `//` or `/\` or
 contain control characters. Anything else goes to `/`.
 
 | Flow     | How `next` survives                                               |
@@ -40,87 +45,201 @@ contain control characters. Anything else goes to `/`.
 
 ### Two-factor authentication
 
-TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDAP, Google and SAML routes all end in `signIn` (`auth_page_handler.go`). For a user with TOTP on, it sets a five-minute `cz_totp_pending` cookie and redirects to `/auth/2fa` instead of issuing `cz_token`; `VerifyTOTP` starts the session once a code or backup code checks out. Every web session starts in `startSession`, which records the `login` audit event.
+TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDAP, Google and SAML routes all end in
+`signIn` (`auth_page_handler.go`). For a user with TOTP on, it sets a five-minute `cz_totp_pending` cookie and redirects
+to `/auth/2fa` instead of issuing `cz_token`; `VerifyTOTP` starts the session once a code or backup code checks out.
+Every web session starts in `startSession`, which records the `login` audit event.
 
-`VerifyTOTP` checks the code with `ReauthService.CheckSecondFactor`, which draws on the per-user failure limit of [confirmations](#confirming-sensitive-actions). After five wrong codes or backup codes in 15 minutes, the page refuses even the right code for the rest of the window, so a stolen password can't guess its way past 2FA.
+`VerifyTOTP` checks the code with `ReauthService.CheckSecondFactor`, which draws on the per-user failure limit of
+[confirmations](#confirming-sensitive-actions). After five wrong codes or backup codes in 15 minutes, the page refuses
+even the right code for the rest of the window, so a stolen password can't guess its way past 2FA.
 
-Turning TOTP on needs the password as well as a code from the new authenticator: a code enrolled from a stolen session would lock the owner out at their next sign-in. Turning it off needs the password and a current code. Both mail the account a notice.
+Turning TOTP on needs the password as well as a code from the new authenticator: a code enrolled from a stolen session
+would lock the owner out at their next sign-in. Turning it off needs the password and a current code. Both mail the
+account a notice.
 
-**Lost authenticator.** A superadmin turns 2FA off for another account with `reset-2fa` under [Managing accounts](#managing-accounts). A sole superadmin, who can't use that on their own account, recovers from the server instead:
+**Lost authenticator.** A superadmin turns 2FA off for another account with `reset-2fa` under
+[Managing accounts](#managing-accounts). A sole superadmin, who can't use that on their own account, recovers from the
+server instead:
 
-1. `cz-admin reset-2fa <username>` turns 2FA off ([CLI reference](./configuration.md#cz-admin-reset-2fa)). It writes `admin.user.2fa_reset` with no actor ID and the actor name `cz-admin`, and mails the security notice.
-2. If the password is lost too, `cz-admin password-reset-link <username>` prints a link (see [Resetting a forgotten password](#resetting-a-forgotten-password)). Neither command bumps `session_version`, so the link survives the reset in either order.
-3. Sign in, turn 2FA back on from Settings, and, if the old device might be in someone else's hands, use **Sign out other sessions** (see [Ending sessions](#ending-sessions)).
+1. `cz-admin reset-2fa <username>` turns 2FA off ([CLI reference](./configuration.md#cz-admin-reset-2fa)). It writes
+   `admin.user.2fa_reset` with no actor ID and the actor name `cz-admin`, and mails the security notice.
+2. If the password is lost too, `cz-admin password-reset-link <username>` prints a link (see
+   [Resetting a forgotten password](#resetting-a-forgotten-password)). Neither command bumps `session_version`, so the
+   link survives the reset in either order.
+3. Sign in, turn 2FA back on from Settings, and, if the old device might be in someone else's hands, use **Sign out
+   other sessions** (see [Ending sessions](#ending-sessions)).
 
-Google and SAML users get the prompt too, even when the IdP enforces its own MFA. Cloudzilla can't tell whether it did: it neither requests nor checks a SAML `AuthnContext`, and Google's userinfo doesn't say. Because TOTP is opt-in, only users who enrolled are asked, so a user whose IdP already handles MFA can leave it off. Gitea and GitLab make the same default, with a per-provider bypass that Cloudzilla doesn't have yet.
+Google and SAML users get the prompt too, even when the IdP enforces its own MFA. Cloudzilla can't tell whether it did:
+it neither requests nor checks a SAML `AuthnContext`, and Google's userinfo doesn't say. Because TOTP is opt-in, only
+users who enrolled are asked, so a user whose IdP already handles MFA can leave it off. Gitea and GitLab make the same
+default, with a per-provider bypass that Cloudzilla doesn't have yet.
 
-`POST /api/auth/login` has no second step. After the password and `AllowLogin` checks, it refuses a user with TOTP on with `401 {"error":"totp_required"}`: no `cz_token`, no token in the body, and no `login` event. API clients of such users authenticate with a personal access token instead. The endpoint accepts no TOTP code on purpose: a code field would add a second place to guess codes while giving nothing a PAT doesn't.
+`POST /api/auth/login` has no second step. After the password and `AllowLogin` checks, it refuses a user with TOTP on
+with `401 {"error":"totp_required"}`: no `cz_token`, no token in the body, and no `login` event. API clients of such
+users authenticate with a personal access token instead. The endpoint accepts no TOTP code on purpose: a code field
+would add a second place to guess codes while giving nothing a PAT doesn't.
 
 ### Confirming sensitive actions
 
-A session is a bearer credential, so anything that adds a way in that outlives it needs the account's own factors as well, whether the way in is for the session's holder or for someone they name. `ReauthService.Confirm` checks a `password` form field when the account has a password, and a `code` field (the TOTP code) when 2FA is on. An account with neither confirms with `email_code`, a code emailed to it. It applies to:
+A session is a bearer credential, so anything that adds a way in that outlives it needs the account's own factors as
+well, whether the way in is for the session's holder or for someone they name. `ReauthService.Confirm` checks a
+`password` form field when the account has a password, and a `code` field (the TOTP code) when 2FA is on. An account
+with neither confirms with `email_code`, a code emailed to it. It applies to:
 
 - changing the email address on `/settings/profile` (other profile fields save without it);
-- changing the password, and turning 2FA on or off (see [Two-factor authentication](#two-factor-authentication) and [Changing the password](#changing-the-password));
+- changing the password, and turning 2FA on or off (see [Two-factor authentication](#two-factor-authentication) and
+  [Changing the password](#changing-the-password));
 - creating a personal access token (`POST /api/user/tokens`);
 - adding an SSH key (`POST /api/user/keys`, form or JSON);
 - approving an OAuth app on the consent page (`POST /oauth/authorize` with `action=approve`; denying needs nothing);
-- approving a device login on `/login/device/confirm` (`POST /login/device/approve` with `action=approve`; denying needs nothing);
+- approving a device login on `/login/device/confirm` (`POST /login/device/approve` with `action=approve`; denying needs
+  nothing);
 - connecting or disconnecting Google, which also refuse accounts without a password (`ConfirmWithPassword`);
-- adding a repository collaborator, deploy key or webhook (form fields, or `password` and `code` in the webhook JSON body);
-- transferring a repository or an organization (requesting it; the user who accepts a repository needs nothing more, since they gain it rather than give it away);
-- making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting an owner need nothing, since members get no repository until they're added to it. The owner check runs first, so a non-owner's request doesn't spend an attempt;
+- adding a repository collaborator, deploy key or webhook (form fields, or `password` and `code` in the webhook JSON
+  body);
+- transferring a repository or an organization (requesting it; the user who accepts a repository needs nothing more,
+  since they gain it rather than give it away);
+- making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting
+  an owner need nothing, since members get no repository until they're added to it. The owner check runs first, so a
+  non-owner's request doesn't spend an attempt;
 - making a private repository public (making one private needs nothing);
 - deleting a repository, an organization or the account;
-- superadmin changes: site settings, invitations, manual email verification, the LDAP and SAML configuration, including turning a provider on or off, every [account action](#managing-accounts) and [adding an organization owner](#adding-an-organization-owner).
+- superadmin changes: site settings, invitations, manual email verification, the LDAP and SAML configuration, including
+  turning a provider on or off, every [account action](#managing-accounts) and
+  [adding an organization owner](#adding-an-organization-owner).
 
 Editing a webhook's events needs nothing: it can't point the webhook somewhere new.
 
 **Accounts without a password or 2FA** (created by Google, LDAP or SAML sign-up) confirm with what they sign in with:
 
 - An **LDAP** account types its directory password, checked by binding as the DN it signs in with.
-- A **Google** or **SAML** account chooses **Confirm with Google** (or single sign-on): `POST /settings/reauth/{provider}` sends it to sign in there again, with `max_age=0` for Google and `ForceAuthn` for SAML. The state is single-use, lasts 5 minutes and is bound to the account (`oauth_states` purpose `reauth`, migration 096); for Google it must also come back to the browser that holds the `oauth_reauth_state` cookie. The callback checks that the provider signed in this same account (the Google ID, or the SAML user), never signs anyone in, and leaves a one-time code in an HttpOnly `cz_reauth` cookie. The next confirmed action in that browser uses it up; it lasts 10 minutes. The SAML response arrives as a cross-site POST without the session, so the code goes to whichever browser the IdP authenticated as the account.
-- When the instance can send email, any of these accounts except LDAP can also choose **Email me a code** (`POST /settings/confirm-code`). Codes go out at most once a minute and five times an hour, and the email warns the owner that someone asked.
+- A **Google** or **SAML** account chooses **Confirm with Google** (or single sign-on):
+  `POST /settings/reauth/{provider}` sends it to sign in there again, with `max_age=0` for Google and `ForceAuthn` for
+  SAML. The state is single-use, lasts 5 minutes and is bound to the account (`oauth_states` purpose `reauth`, migration
+  096); for Google it must also come back to the browser that holds the `oauth_reauth_state` cookie. The callback checks
+  that the provider signed in this same account (the Google ID, or the SAML user), never signs anyone in, and leaves a
+  one-time code in an HttpOnly `cz_reauth` cookie. The next confirmed action in that browser uses it up; it lasts 10
+  minutes. The SAML response arrives as a cross-site POST without the session, so the code goes to whichever browser the
+  IdP authenticated as the account.
+- When the instance can send email, any of these accounts except LDAP can also choose **Email me a code**
+  (`POST /settings/confirm-code`). Codes go out at most once a minute and five times an hour, and the email warns the
+  owner that someone asked.
 
-Codes, emailed or from a sign-in, are six digits, stored only as a bcrypt hash (`users.reauth_code_*`), work once, and count wrong guesses against the same failure limit. A stolen session can't read the mailbox or sign in as the owner at the provider. An account left with none of these, because the instance turned off its sign-in provider and has no email, is refused (`reauth_unavailable`) rather than let through. Accounts without a password are also kept out of Google linking by email (see [Google OAuth Sign-in](#google-oauth-sign-in)).
+Codes, emailed or from a sign-in, are six digits, stored only as a bcrypt hash (`users.reauth_code_*`), work once, and
+count wrong guesses against the same failure limit. A stolen session can't read the mailbox or sign in as the owner at
+the provider. An account left with none of these, because the instance turned off its sign-in provider and has no email,
+is refused (`reauth_unavailable`) rather than let through. Accounts without a password are also kept out of Google
+linking by email (see [Google OAuth Sign-in](#google-oauth-sign-in)).
 
-**Personal access tokens** are held to the scopes they were created with ([scopes](#oauth-app-scopes)). Only a token created with **`repo:admin`** reaches, and skips the confirmation for, for administering repositories and organizations: collaborators, deploy keys, webhooks, org owners, transfers and deletion (`confirmGrant`). OAuth apps can't be granted `repo:admin`, and it admits only those routes, never the account's own settings, so such a token can't add a password, key or token. Other tokens can't reach these routes at all, and a session JWT sent as a bearer token confirms like a browser.
+**Personal access tokens** are held to the scopes they were created with ([scopes](#oauth-app-scopes)). Only a token
+created with **`repo:admin`** reaches, and skips the confirmation for, for administering repositories and organizations:
+collaborators, deploy keys, webhooks, org owners, transfers and deletion (`confirmGrant`). OAuth apps can't be granted
+`repo:admin`, and it admits only those routes, never the account's own settings, so such a token can't add a password,
+key or token. Other tokens can't reach these routes at all, and a session JWT sent as a bearer token confirms like a
+browser.
 
-A `repo:admin` token is **bound to a signing key**, given when it's created: an SSH public key, either Ed25519, ECDSA or RSA of 2048 bits or more, or a hardware key (`sk-ssh-ed25519`, `sk-ecdsa-sha2-nistp256`) that never leaves its security key. Every request with the token must be signed with the private key, so whoever copies the token string, from a log, a CI variable or a commit, can't use it. As in OpenSSH, a hardware key's signature must show it was touched, unless the key was given with the `no-touch-required` option (for unattended use). Creating a `repo:admin` token takes the password, an expiry within 90 days, and at least one **target**: a repository you manage (`owner/repo`) or an organization you own (`org`). Each use mails the owner the request it made. Any token can be bound to a key the same way; a bound token can't be used for git, which can't sign. See [signed requests](./api-reference.md#signed-requests) for the format.
+A `repo:admin` token is **bound to a signing key**, given when it's created: an SSH public key, either Ed25519, ECDSA or
+RSA of 2048 bits or more, or a hardware key (`sk-ssh-ed25519`, `sk-ecdsa-sha2-nistp256`) that never leaves its security
+key. Every request with the token must be signed with the private key, so whoever copies the token string, from a log, a
+CI variable or a commit, can't use it. As in OpenSSH, a hardware key's signature must show it was touched, unless the
+key was given with the `no-touch-required` option (for unattended use). Creating a `repo:admin` token takes the
+password, an expiry within 90 days, and at least one **target**: a repository you manage (`owner/repo`) or an
+organization you own (`org`). Each use mails the owner the request it made. Any token can be bound to a key the same
+way; a bound token can't be used for git, which can't sign. See [signed requests](./api-reference.md#signed-requests)
+for the format.
 
-A token's targets (`access_tokens.targets`, migration 098) limit every request it makes that names a repository or organization (`middleware.TargetAllows`): `/api/repos/{owner}/{repo}/…` must match a repository target or an organization target named `owner`, and `/api/orgs/{org}/…` must match an organization target. Anything else gets `403 {"error":"this token isn't allowed for that repository or organization"}`. An organization covers its settings and every repository it owns, including ones added later. Targets are checked to exist and to be the creator's to administer when the token is made; a repository that doesn't exist and one that isn't yours are refused alike, and a target that's renamed or transferred later no longer matches. The fork API checks one more thing: the path names only the source, so the handler also checks the owner named in the request body against the token's organization targets (the caller's own account always passes).
+A token's targets (`access_tokens.targets`, migration 098) limit every request it makes that names a repository or
+organization (`middleware.TargetAllows`): `/api/repos/{owner}/{repo}/…` must match a repository target or an
+organization target named `owner`, and `/api/orgs/{org}/…` must match an organization target. Anything else gets
+`403 {"error":"this token isn't allowed for that repository or organization"}`. An organization covers its settings and
+every repository it owns, including ones added later. Targets are checked to exist and to be the creator's to administer
+when the token is made; a repository that doesn't exist and one that isn't yours are refused alike, and a target that's
+renamed or transferred later no longer matches. The fork API checks one more thing: the path names only the source, so
+the handler also checks the owner named in the request body against the token's organization targets (the caller's own
+account always passes).
 
-`authMW` and `optAuthMW` check a bound token's signature (`AccessTokenService.VerifySignedRequest`) before anything else uses it, and fail closed when the validator can't check one. The signature covers the method, path and query, a Unix timestamp within 5 minutes of the server's clock, a nonce, and the body's SHA-256. Each nonce is kept for 10 minutes (`access_token_nonces`, migration 097), so a captured request can't be sent again. An auth middleware that finds claims already set by an outer one passes the request on rather than checking it twice; routes under `optAuthMW` that add `authMW` would otherwise find their nonce spent.
+`authMW` and `optAuthMW` check a bound token's signature (`AccessTokenService.VerifySignedRequest`) before anything else
+uses it, and fail closed when the validator can't check one. The signature covers the method, path and query, a Unix
+timestamp within 5 minutes of the server's clock, a nonce, and the body's SHA-256. Each nonce is kept for 10 minutes
+(`access_token_nonces`, migration 097), so a captured request can't be sent again. An auth middleware that finds claims
+already set by an outer one passes the request on rather than checking it twice; routes under `optAuthMW` that add
+`authMW` would otherwise find their nonce spent.
 
-What's left is the machine that holds the private key. Whoever controls it can sign, but only within the token's targets; a hardware key keeps the key from being copied off it, and its touch requirement keeps it from being used unattended. Keep a software key out of the repository, separate from the token, and revoke the token if that machine is compromised.
+What's left is the machine that holds the private key. Whoever controls it can sign, but only within the token's
+targets; a hardware key keeps the key from being copied off it, and its touch requirement keeps it from being used
+unattended. Keep a software key out of the repository, separate from the token, and revoke the token if that machine is
+compromised.
 
-A wrong password or code gets `403`, or the form's own error: a `profile_error=reauth_failed` redirect on settings, or the error slot of a modal dialog (`HX-Retarget`), where a toast would sit behind the backdrop. Five failures within 15 minutes, counted per user across all of these actions and the `/auth/2fa` code page, block further attempts for the rest of the window with `429` (`reauth_throttled`). This stops a stolen session from guessing the password. The counts live on the user row (`reauth_failures`, `reauth_window_start`, migration 094), so every instance shares them. Each attempt is claimed with one conditional `UPDATE` before the password is checked, so concurrent guesses can't get past the limit, and a success gives its attempt back. The window runs from its first failure and doesn't slide.
+A wrong password or code gets `403`, or the form's own error: a `profile_error=reauth_failed` redirect on settings, or
+the error slot of a modal dialog (`HX-Retarget`), where a toast would sit behind the backdrop. Five failures within 15
+minutes, counted per user across all of these actions and the `/auth/2fa` code page, block further attempts for the rest
+of the window with `429` (`reauth_throttled`). This stops a stolen session from guessing the password. The counts live
+on the user row (`reauth_failures`, `reauth_window_start`, migration 094), so every instance shares them. Each attempt
+is claimed with one conditional `UPDATE` before the password is checked, so concurrent guesses can't get past the limit,
+and a success gives its attempt back. The window runs from its first failure and doesn't slide.
 
 ### Device login
 
-`cz auth login` gets its token through the device-code flow (RFC 8628, modelled on GitHub's). The JSON endpoints are in [the API reference](./api-reference.md#device-login); this section is the browser half and its safety rules.
+`cz auth login` gets its token through the device-code flow (RFC 8628, modelled on GitHub's). The JSON endpoints are in
+[the API reference](./api-reference.md#device-login); this section is the browser half and its safety rules.
 
 **Flow**
 
-1. The CLI asks `POST /api/auth/device/code` for a code and prints it. The URL it shows is `<base URL>/login/device`; no response or link carries the code.
-2. The user opens `/login/device` and types the code from their own terminal. A signed-out visitor is redirected to `/login?next=/login/device` and returns to the empty entry page. A `user_code` query parameter is ignored.
-3. `POST /login/device` (session and CSRF; field `user_code`) looks the code up. A match answers `303` to `/login/device/confirm` and sets the `cz_device_code` cookie. An unknown, expired or already answered code gets `400` with one generic message, so the page doesn't say which. Entry is limited to 50 requests an hour per user (`429` beyond), counted in process, so each instance of a multi-instance deployment counts alone.
-4. `GET /login/device/confirm` (session) needs the cookie, otherwise it answers `303` back to `/login/device`. It shows the code, the device name labelled unverified, the requester IP and how long ago it asked, the requested scopes as pre-ticked boxes, and the confirmation fields for the account's factors.
-5. `POST /login/device/approve` (session and CSRF) takes `action=approve|deny`, `scope` repeated, and the confirmation (`password`, `code` or `email_code`, or the `cz_reauth` cookie). The decision is one conditional `UPDATE` on a grant that is still pending and unexpired.
-6. The CLI's next poll to `POST /api/auth/device/token` mints the personal access token, once. The raw token never sits in the database.
+1. The CLI asks `POST /api/auth/device/code` for a code and prints it. The URL it shows is `<base URL>/login/device`; no
+   response or link carries the code.
+2. The user opens `/login/device` and types the code from their own terminal. A signed-out visitor is redirected to
+   `/login?next=/login/device` and returns to the empty entry page. A `user_code` query parameter is ignored.
+3. `POST /login/device` (session and CSRF; field `user_code`) looks the code up. A match answers `303` to
+   `/login/device/confirm` and sets the `cz_device_code` cookie. An unknown, expired or already answered code gets `400`
+   with one generic message, so the page doesn't say which. Entry is limited to 50 requests an hour per user (`429`
+   beyond), counted in process, so each instance of a multi-instance deployment counts alone.
+4. `GET /login/device/confirm` (session) needs the cookie, otherwise it answers `303` back to `/login/device`. It shows
+   the code, the device name labelled unverified, the requester IP and how long ago it asked, the requested scopes as
+   pre-ticked boxes, and the confirmation fields for the account's factors.
+5. `POST /login/device/approve` (session and CSRF) takes `action=approve|deny`, `scope` repeated, and the confirmation
+   (`password`, `code` or `email_code`, or the `cz_reauth` cookie). The decision is one conditional `UPDATE` on a grant
+   that is still pending and unexpired.
+6. The CLI's next poll to `POST /api/auth/device/token` mints the personal access token, once. The raw token never sits
+   in the database.
 
-The pages are session-only: `/login/device*` is not in the [scope allow-list](#token-scopes), so a PAT or OAuth token gets `403`. They are not in `middleware/setup.go`, since no user can approve before setup completes. Every page sends `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'` and `Cache-Control: no-store`. The device name is untrusted input: the service strips control characters and caps it at 40 characters, and Templ escapes it on the page and `html.EscapeString` escapes it in the email.
+The pages are session-only: `/login/device*` is not in the [scope allow-list](#token-scopes), so a PAT or OAuth token
+gets `403`. They are not in `middleware/setup.go`, since no user can approve before setup completes. Every page sends
+`X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'` and `Cache-Control: no-store`. The device
+name is untrusted input: the service strips control characters and caps it at 40 characters, and Templ escapes it on the
+page and `html.EscapeString` escapes it in the email.
 
-**The `cz_device_code` cookie** holds the user code between the entry and the confirm step, so a Google or SAML sign-in that interrupts the flow can return to the confirm page. It is HttpOnly, `SameSite=Lax`, `Secure` when `auth.cookie_secure` is on, `Path=/login/device`, and lives 15 minutes (the grant's lifetime). The code is never in a URL or a form field. The value is server-signed: `base64url(userID|userCode|expiry)` plus an HMAC-SHA256 over it, keyed from the JWT secret with a fixed domain-separation prefix, valid 15 minutes and bound to the signed-in user. A missing, forged, expired or foreign cookie behaves exactly like no cookie (cleared, `303` to `/login/device`), so the confirm and approve routes are no oracle for guessing codes, and a second user in the same browser can't use the first one's cookie. Only a cookie signed for this user whose grant is gone (answered, expired or denied elsewhere) is told so: `410` with the entry page and "That request expired or was already answered". The same `410` answers a decision that loses a race inside the lookup window. Every request looks the grant up again and requires it pending and unexpired, and the decision itself is atomic, so a replayed or stale cookie decides nothing. It is cleared on every outcome: a rejected code, a missing grant, approval, denial, and sign-out.
+**The `cz_device_code` cookie** holds the user code between the entry and the confirm step, so a Google or SAML sign-in
+that interrupts the flow can return to the confirm page. It is HttpOnly, `SameSite=Lax`, `Secure` when
+`auth.cookie_secure` is on, `Path=/login/device`, and lives 15 minutes (the grant's lifetime). The code is never in a
+URL or a form field. The value is server-signed: `base64url(userID|userCode|expiry)` plus an HMAC-SHA256 over it, keyed
+from the JWT secret with a fixed domain-separation prefix, valid 15 minutes and bound to the signed-in user. A missing,
+forged, expired or foreign cookie behaves exactly like no cookie (cleared, `303` to `/login/device`), so the confirm and
+approve routes are no oracle for guessing codes, and a second user in the same browser can't use the first one's cookie.
+Only a cookie signed for this user whose grant is gone (answered, expired or denied elsewhere) is told so: `410` with
+the entry page and "That request expired or was already answered". The same `410` answers a decision that loses a race
+inside the lookup window. Every request looks the grant up again and requires it pending and unexpired, and the decision
+itself is atomic, so a replayed or stale cookie decides nothing. It is cleared on every outcome: a rejected code, a
+missing grant, approval, denial, and sign-out.
 
 **Approving and scopes**
 
-- Approving needs the same confirmation as `POST /oauth/authorize` ([Confirming sensitive actions](#confirming-sensitive-actions)) and shares its limit: `403` for a wrong confirmation, `429` after five failures in 15 minutes. Denying needs none.
-- Scopes can be narrowed, never widened. Submitted scopes outside the request are dropped, so a forged `repo:admin` is ignored; `repo:admin` is refused at code request too. At least one must remain, otherwise `400`. That check runs before the confirmation, so it doesn't spend an attempt.
+- Approving needs the same confirmation as `POST /oauth/authorize`
+  ([Confirming sensitive actions](#confirming-sensitive-actions)) and shares its limit: `403` for a wrong confirmation,
+  `429` after five failures in 15 minutes. Denying needs none.
+- Scopes can be narrowed, never widened. Submitted scopes outside the request are dropped, so a forged `repo:admin` is
+  ignored; `repo:admin` is refused at code request too. At least one must remain, otherwise `400`. That check runs
+  before the confirmation, so it doesn't spend an attempt.
 - A failed confirmation re-renders the page with only the submitted scopes ticked.
-- A grant answered between the lookup and the decision gets `410`. A grant already answered before the POST clears the cookie and redirects `303` to `/login/device`. `GET /login/device/approve` (where a provider sign-in lands after a failed approval) redirects `303` to `/login/device/confirm`.
+- A grant answered between the lookup and the decision gets `410`. A grant already answered before the POST clears the
+  cookie and redirects `303` to `/login/device`. `GET /login/device/approve` (where a provider sign-in lands after a
+  failed approval) redirects `303` to `/login/device/confirm`.
 
-**Audit and notice.** `user.device.approve` and `user.device.deny` are recorded with the approving user as actor and `device`, `ip` and `scopes` as details. `POST /api/auth/device/token` records `user.token.create` at the first successful poll, with `source` `device login` and the token name. Approval also mails the account a security notice with the device name, IP and scopes. The token appears in Settings → Access tokens, with its last-used date, and can be revoked there.
+**Audit and notice.** `user.device.approve` and `user.device.deny` are recorded with the approving user as actor and
+`device`, `ip` and `scopes` as details. `POST /api/auth/device/token` records `user.token.create` at the first
+successful poll, with `source` `device login` and the token name. Approval also mails the account a security notice with
+the device name, IP and scopes. The token appears in Settings → Access tokens, with its last-used date, and can be
+revoked there.
 
 **Threat model**
 
@@ -139,31 +258,79 @@ The pages are session-only: `/login/device*` is not in the [scope allow-list](#t
 
 ### Changing the password
 
-Account settings → Security → **Change password** (`POST /settings/password`: `password`, `code` with 2FA, `new_password`, `new_password_confirm`). `UserService.ChangePassword` checks the length (8 characters to 72 bytes) before the confirmation, so a typo doesn't spend an attempt, then confirms with `ConfirmWithPassword`. One `UPDATE` swaps the hash and bumps `session_version`, matching the hash that was confirmed: of two changes racing on the same old password, only one goes through. Every session ends ([Ending sessions](#ending-sessions)) and the current browser gets a fresh cookie, so someone else who knew the old password is signed out. The handler writes `user.password.change` to the audit log, and the account is mailed a notice.
+Account settings → Security → **Change password** (`POST /settings/password`: `password`, `code` with 2FA,
+`new_password`, `new_password_confirm`). `UserService.ChangePassword` checks the length (8 characters to 72 bytes)
+before the confirmation, so a typo doesn't spend an attempt, then confirms with `ConfirmWithPassword`. One `UPDATE`
+swaps the hash and bumps `session_version`, matching the hash that was confirmed: of two changes racing on the same old
+password, only one goes through. Every session ends ([Ending sessions](#ending-sessions)) and the current browser gets a
+fresh cookie, so someone else who knew the old password is signed out. The handler writes `user.password.change` to the
+audit log, and the account is mailed a notice.
 
-Accounts without a password (created by Google, LDAP or SAML sign-up) can't set one here: nothing could confirm it, and a stolen session could otherwise add a password sign-in.
+Accounts without a password (created by Google, LDAP or SAML sign-up) can't set one here: nothing could confirm it, and
+a stolen session could otherwise add a password sign-in.
 
 ### Resetting a forgotten password
 
-`PasswordResetService` sets a new password from a single-use link. The routes sit under `/auth/`, a reserved owner name, so they can't shadow a user or org.
+`PasswordResetService` sets a new password from a single-use link. The routes sit under `/auth/`, a reserved owner name,
+so they can't shadow a user or org.
 
-**Asking for a link.** With SMTP on, `/login` shows **Forgot password?**, which leads to `GET /auth/password/forgot`. `POST` checks the address with `validEmail` and always renders the same "check your inbox" page. A background job (`concurrency.Go`) then looks the address up: an unknown address or a suspended account gets nothing, an account with a password gets a link (verified address or not), and an account without one gets a note naming how it signs in (Google, or single sign-on), never a link. Neither the response nor its timing shows whether an account exists. An account is mailed at most once per 5 minutes, enforced in the store's upsert so it holds across instances. The note counts too, and so does a failed delivery. While a link an admin issued is still usable, the form sends nothing, so it can't cancel that link. Without SMTP, `/login` has no link, and both forgot routes say to ask an administrator.
+**Asking for a link.** With SMTP on, `/login` shows **Forgot password?**, which leads to `GET /auth/password/forgot`.
+`POST` checks the address with `validEmail` and always renders the same "check your inbox" page. A background job
+(`concurrency.Go`) then looks the address up: an unknown address or a suspended account gets nothing, an account with a
+password gets a link (verified address or not), and an account without one gets a note naming how it signs in (Google,
+or single sign-on), never a link. Neither the response nor its timing shows whether an account exists. An account is
+mailed at most once per 5 minutes, enforced in the store's upsert so it holds across instances. The note counts too, and
+so does a failed delivery. While a link an admin issued is still usable, the form sends nothing, so it can't cancel that
+link. Without SMTP, `/login` has no link, and both forgot routes say to ask an administrator.
 
-**Links.** `<server.base_url>/auth/password/reset/<token>`, where the token is 32 `crypto/rand` bytes, base64url-encoded. `password_reset_tokens` (migration 105) keeps one row per account, so only the newest link works. The row holds the token's SHA-256, the address it was sent to, the account's `session_version` at issue, who issued it (`email`, `admin` or `cli`), `expires_at`, `used_at`, and `emailed_at` for the cooldown, which a manual link leaves alone. An emailed link lasts 1 hour. One from `IssueLink` (the CLI or the admin action) lasts 24 hours, skips the cooldown and replaces any outstanding link. A link works only while it is unused and unexpired, and the account isn't suspended and still has a password, the same email and the same `session_version`. So a password change, **Sign out other sessions**, an email change or another reset revokes it. Suspending bumps `session_version` too, so a link from before a suspension stays dead after unsuspending. `middleware.Logger` logs the route pattern, not the token.
+**Links.** `<server.base_url>/auth/password/reset/<token>`, where the token is 32 `crypto/rand` bytes,
+base64url-encoded. `password_reset_tokens` (migration 105) keeps one row per account, so only the newest link works. The
+row holds the token's SHA-256, the address it was sent to, the account's `session_version` at issue, who issued it
+(`email`, `admin` or `cli`), `expires_at`, `used_at`, and `emailed_at` for the cooldown, which a manual link leaves
+alone. An emailed link lasts 1 hour. One from `IssueLink` (the CLI or the admin action) lasts 24 hours, skips the
+cooldown and replaces any outstanding link. A link works only while it is unused and unexpired, and the account isn't
+suspended and still has a password, the same email and the same `session_version`. So a password change, **Sign out
+other sessions**, an email change or another reset revokes it. Suspending bumps `session_version` too, so a link from
+before a suspension stays dead after unsuspending. `middleware.Logger` logs the route pattern, not the token.
 
-**Resetting.** `GET /auth/password/reset/{token}` only checks the link, because mail scanners fetch links, and shows a form naming the account. `POST` checks, in order: that the confirmation matches and the length is 8 characters to 72 bytes; for a 2FA account, a TOTP or backup code (`ReauthService.CheckSecondFactor`, so wrong codes count against the per-user limit); then one transaction, with the user row locked first, re-checks the link, spends it, sets the hash, bumps `session_version`, and, for an emailed link only, sets `email_verified_at` if it was unset. Only the mailbox's owner could open an emailed link, but a link handed over by an admin proves nothing about the address. A failed check leaves the link usable, though a valid backup code is spent as soon as it is checked. Both respond with `Referrer-Policy: no-referrer` and `Cache-Control: no-store`. An expired link answers 410 and any other unusable one 400. Success redirects to `/login?reset=done`, signs nobody in, writes `user.password.reset` (`issued_by`) to the audit log, and mails the account a notice. Sign-in still asks 2FA accounts for a code. Personal access tokens, SSH keys and OAuth app grants keep working, and the notice says so and links to them.
+**Resetting.** `GET /auth/password/reset/{token}` only checks the link, because mail scanners fetch links, and shows a
+form naming the account. `POST` checks, in order: that the confirmation matches and the length is 8 characters to 72
+bytes; for a 2FA account, a TOTP or backup code (`ReauthService.CheckSecondFactor`, so wrong codes count against the
+per-user limit); then one transaction, with the user row locked first, re-checks the link, spends it, sets the hash,
+bumps `session_version`, and, for an emailed link only, sets `email_verified_at` if it was unset. Only the mailbox's
+owner could open an emailed link, but a link handed over by an admin proves nothing about the address. A failed check
+leaves the link usable, though a valid backup code is spent as soon as it is checked. Both respond with
+`Referrer-Policy: no-referrer` and `Cache-Control: no-store`. An expired link answers 410 and any other unusable
+one 400. Success redirects to `/login?reset=done`, signs nobody in, writes `user.password.reset` (`issued_by`) to the
+audit log, and mails the account a notice. Sign-in still asks 2FA accounts for a code. Personal access tokens, SSH keys
+and OAuth app grants keep working, and the notice says so and links to them.
 
-**Issued by an admin.** A superadmin can issue a link from `/admin/users/{username}` (see [Managing accounts](#managing-accounts)), with or without SMTP. The link is shown to the admin once and never emailed, since the action is for users whose mail doesn't reach them. With SMTP on, the account is emailed a notice that an administrator issued one, without the link. Refusals and the audit entry are under [Managing accounts](#managing-accounts); a 2FA account still needs its code to use the link.
+**Issued by an admin.** A superadmin can issue a link from `/admin/users/{username}` (see
+[Managing accounts](#managing-accounts)), with or without SMTP. The link is shown to the admin once and never emailed,
+since the action is for users whose mail doesn't reach them. With SMTP on, the account is emailed a notice that an
+administrator issued one, without the link. Refusals and the audit entry are under
+[Managing accounts](#managing-accounts); a 2FA account still needs its code to use the link.
 
-**From the CLI.** `cz-admin password-reset-link <username>` prints a 24-hour link to pass on by hand ([CLI reference](./configuration.md#cz-admin-password-reset-link)). It refuses accounts without a password and suspended accounts, and writes `user.password.reset_link` to the audit log with no actor ID and the actor name `cz-admin`.
+**From the CLI.** `cz-admin password-reset-link <username>` prints a 24-hour link to pass on by hand
+([CLI reference](./configuration.md#cz-admin-password-reset-link)). It refuses accounts without a password and suspended
+accounts, and writes `user.password.reset_link` to the audit log with no actor ID and the actor name `cz-admin`.
 
 Both `POST` routes are limited to 10 requests per client IP per 15 minutes, each with its own budget.
 
 ### Ending sessions
 
-Session JWTs are stateless, so each carries the user's `session_version` (claim `sv`, migration 093) from when it was issued. With `middleware.WithSessionStates`, which the router passes to `authMW` and `optAuthMW`, every JWT-authenticated request reads the user's current version and `is_superadmin`: one primary-key lookup (`UserStore.SessionState`). The request is refused (`authMW`) or treated as signed out (`optAuthMW`) when the version has moved on, the user no longer exists or is [suspended](#suspended-accounts). Otherwise the claims' `IsSuperadmin` is replaced with the stored one, so a promotion or demotion applies on the user's next request without signing them out. Tokens from before the claim existed read as version 0.
+Session JWTs are stateless, so each carries the user's `session_version` (claim `sv`, migration 093) from when it was
+issued. With `middleware.WithSessionStates`, which the router passes to `authMW` and `optAuthMW`, every
+JWT-authenticated request reads the user's current version and `is_superadmin`: one primary-key lookup
+(`UserStore.SessionState`). The request is refused (`authMW`) or treated as signed out (`optAuthMW`) when the version
+has moved on, the user no longer exists or is [suspended](#suspended-accounts). Otherwise the claims' `IsSuperadmin` is
+replaced with the stored one, so a promotion or demotion applies on the user's next request without signing them out.
+Tokens from before the claim existed read as version 0.
 
-Account settings → Sessions → **Sign out other sessions** (`POST /settings/sessions/revoke`) bumps the version, sets a fresh cookie for the current browser, and writes `user.sessions.revoke` to the audit log. Changing or resetting the password bumps it too. Personal access tokens, SSH keys and OAuth app grants are not sessions; they are revoked in their own sections.
+Account settings → Sessions → **Sign out other sessions** (`POST /settings/sessions/revoke`) bumps the version, sets a
+fresh cookie for the current browser, and writes `user.sessions.revoke` to the audit log. Changing or resetting the
+password bumps it too. Personal access tokens, SSH keys and OAuth app grants are not sessions; they are revoked in their
+own sections.
 
 ### JWT Claims
 
@@ -179,7 +346,9 @@ type Claims struct {
 }
 ```
 
-Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` is always true for JWT sessions, which are unscoped and keep the user's full access. Token claims (PATs and OAuth-app tokens) never carry `IsSuperadmin`; a PAT's also set `PAT` and its `TokenName`.
+Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` is always true for JWT sessions, which
+are unscoped and keep the user's full access. Token claims (PATs and OAuth-app tokens) never carry `IsSuperadmin`; a
+PAT's also set `PAT` and its `TokenName`.
 
 ### Middleware Chain
 
@@ -194,22 +363,38 @@ Request → RequestID → ClientIP → Recoverer → Logger → CORS
                            - apiBodyLimit (1 MB limit)
 ```
 
-- **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid. A token without a scope for the route gets 403 (see [Token Scopes](#token-scopes)).
-- **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil. A PAT or OAuth token is still refused with 403 on routes its scopes don't cover — it is never silently downgraded to anonymous.
+- **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth
+  tokens. Returns 401 if missing/invalid. A token without a scope for the route gets 403 (see
+  [Token Scopes](#token-scopes)).
+- **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil. A PAT or OAuth token is
+  still refused with 403 on routes its scopes don't cover — it is never silently downgraded to anonymous.
 - **superadminMW**: Requires `claims.IsSuperadmin == true`. Returns 403 otherwise.
-- **MaxFormBodySize**: Caps urlencoded and multipart bodies, the ones net/http's form parsing reads, at 26 MB (`handler.MaxNewFileBodyBytes`, sized for the New file upload). It has to be global: CSRF parses the form before routing and auth, and any `Authorization: Bearer` header makes CSRF skip that parse, leaving it to handlers that no auth middleware guards, such as `POST /login`. Git transport and JSON bodies pass through whole.
-- **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, `POST /oauth/token` (client-secret auth), and safe methods (GET/HEAD/OPTIONS). Without an `X-CSRF-Token` header it parses the form for a `csrf_token` field, and answers a body over MaxFormBodySize's cap with `413 request body is larger than 26 MB`.
+- **MaxFormBodySize**: Caps urlencoded and multipart bodies, the ones net/http's form parsing reads, at 26 MB
+  (`handler.MaxNewFileBodyBytes`, sized for the New file upload). It has to be global: CSRF parses the form before
+  routing and auth, and any `Authorization: Bearer` header makes CSRF skip that parse, leaving it to handlers that no
+  auth middleware guards, such as `POST /login`. Git transport and JSON bodies pass through whole.
+- **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, `POST /oauth/token` (client-secret auth),
+  and safe methods (GET/HEAD/OPTIONS). Without an `X-CSRF-Token` header it parses the form for a `csrf_token` field, and
+  answers a body over MaxFormBodySize's cap with `413 request body is larger than 26 MB`.
 
 ### Token Scopes
 
-A PAT or OAuth-app token acts as its user, but only on routes its scopes admit. Enforcement is a path allow-list in `internal/middleware/scope.go`, applied by both `authMW` and `optAuthMW`: a route it doesn't list — including any new route — is closed to tokens. Scopes only narrow access; the handler's own `CanRead`/`CanWrite`/`CanManage` checks against the user still apply.
+A PAT or OAuth-app token acts as its user, but only on routes its scopes admit. Enforcement is a path allow-list in
+`internal/middleware/scope.go`, applied by both `authMW` and `optAuthMW`: a route it doesn't list — including any new
+route — is closed to tokens. Scopes only narrow access; the handler's own `CanRead`/`CanWrite`/`CanManage` checks
+against the user still apply.
 
 Open routes:
 
-- `/api/repos` (list, create), `POST /api/repos/from-template`, `/api/repos/{owner}/{repo}` (read only — `PATCH` changes settings).
-- Content sub-resources of `/api/repos/{owner}/{repo}`: `issues`, `pulls`, `labels`, `milestones`, `releases`, `statuses`, `commits`, `branches` (not `branches/protections`), `tags`, `comments`, `stargazers`, `star`, `watch`, `fork`, `projects`, `wiki`, `discussions`. A few of these `GET`s return HTML fragments (e.g. the watch button, issue title/body sections) carrying the same data as the JSON.
+- `/api/repos` (list, create), `POST /api/repos/from-template`, `/api/repos/{owner}/{repo}` (read only — `PATCH` changes
+  settings).
+- Content sub-resources of `/api/repos/{owner}/{repo}`: `issues`, `pulls`, `labels`, `milestones`, `releases`,
+  `statuses`, `commits`, `branches` (not `branches/protections`), `tags`, `comments`, `stargazers`, `star`, `watch`,
+  `fork`, `projects`, `wiki`, `discussions`. A few of these `GET`s return HTML fragments (e.g. the watch button, issue
+  title/body sections) carrying the same data as the JSON.
 - `GET /api/orgs/{org}`, `GET /api/orgs/{org}/members`, `POST /api/orgs/{org}/repos`.
-- `GET /api/user` (exactly this path: `{id, username}` of the token's owner; every `/api/user/*` route stays closed), `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
+- `GET /api/user` (exactly this path: `{id, username}` of the token's owner; every `/api/user/*` route stays closed),
+  `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
 - Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
 
 | Scope          | Admits on the open routes                                                                                                                                                                                 |
@@ -220,21 +405,37 @@ Open routes:
 | `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, and applying a suggestion                                                                                                  |
 | `repo:admin`   | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else |
 
-The same allow-list holds personal access tokens created with scopes, on `authMW` and `optAuthMW`; git's Basic-auth path, which neither sees, checks the scopes itself (`middleware.PATAllowsGit`): fetching needs a read scope and pushing `repo:write`.
+The same allow-list holds personal access tokens created with scopes, on `authMW` and `optAuthMW`; git's Basic-auth
+path, which neither sees, checks the scopes itself (`middleware.PATAllowsGit`): fetching needs a read scope and pushing
+`repo:write`.
 
-Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks `claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the other's comments.
+Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks
+`claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require
+the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the
+other's comments.
 
-Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/settings/*` form posts (including connecting or disconnecting Google and `/settings/email/resend-verification`), `/verify-email` and `/auth/google/callback`; `/api/user/*` (SSH keys, PATs, TOTP, saved replies, accepting repository transfers), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
+Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's
+email, shown on their own profile, away from apps); `/settings/*` form posts (including connecting or disconnecting
+Google and `/settings/email/resend-verification`), `/verify-email` and `/auth/google/callback`; `/api/user/*` (SSH keys,
+PATs, TOTP, saved replies, accepting repository transfers), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`,
+`/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`,
+`archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
 
-A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope` attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`.
+A refused request gets `403` with `{"error":"insufficient_scope"}` and
+`WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope`
+attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`.
 
 #### Personal access tokens
 
-PATs get the same open routes and scopes as OAuth-app tokens; being first-party doesn't widen them. Account, admin and repo or org administration stay session-only, so a PAT can't mint PATs, add SSH keys or turn off TOTP.
+PATs get the same open routes and scopes as OAuth-app tokens; being first-party doesn't widen them. Account, admin and
+repo or org administration stay session-only, so a PAT can't mint PATs, add SSH keys or turn off TOTP.
 
 - `POST /api/user/tokens` needs at least one scope, all of them known; otherwise `400`.
-- git sends a PAT as the HTTP Basic password, which `authMW` and `optAuthMW` never see, so `resolveGitUser` (`internal/handler/git_http.go`) checks it against the same policy. A refusal is a plain-text `403` naming the missing scope, not `401`: on a `401`, git's credential helper erases the stored token.
-- Migration `090` gave every token without a known scope all four scopes, so tokens created without scopes kept git and content-API access but lost the routes above. Tokens that named scopes are held to them.
+- git sends a PAT as the HTTP Basic password, which `authMW` and `optAuthMW` never see, so `resolveGitUser`
+  (`internal/handler/git_http.go`) checks it against the same policy. A refusal is a plain-text `403` naming the missing
+  scope, not `401`: on a `401`, git's credential helper erases the stored token.
+- Migration `090` gave every token without a known scope all four scopes, so tokens created without scopes kept git and
+  content-API access but lost the routes above. Tokens that named scopes are held to them.
 
 ---
 
@@ -260,7 +461,9 @@ PATs get the same open routes and scopes as OAuth-app tokens; being first-party 
 | `owner`  |        Yes        |        Yes         |     Yes      |      Yes       |     Yes      |    Yes     |
 | `member` |        Yes        |   No (need role)   |      No      |       No       |      No      |     No     |
 
-Org members do not get implicit access to private repos. They must be added as explicit collaborators (`reader`/`writer`/`admin`) on each repo. Creating an org repo grants nothing either; see [Organization Repo Ownership](#organization-repo-ownership).
+Org members do not get implicit access to private repos. They must be added as explicit collaborators
+(`reader`/`writer`/`admin`) on each repo. Creating an org repo grants nothing either; see
+[Organization Repo Ownership](#organization-repo-ownership).
 
 ### Repository Roles
 
@@ -274,24 +477,42 @@ Org members do not get implicit access to private repos. They must be added as e
 | Repo owner               |      Yes      |      Yes       |     Yes      |            Yes             |          Yes           |   Yes    |  Yes   |
 | Org owner (org repos)    |      Yes      |      Yes       |     Yes      |            Yes             |          Yes           |   Yes    |  Yes   |
 
-**Manage** includes: adding, changing and removing `reader` and `writer` collaborators, branch protection, deploy keys, topics, wiki deletion, webhook CRUD, repo settings page access.
+**Manage** includes: adding, changing and removing `reader` and `writer` collaborators, branch protection, deploy keys,
+topics, wiki deletion, webhook CRUD, repo settings page access.
 
-**Grant / revoke `admin`** (owner-only, `IsOwner`): giving someone the `admin` role, changing an admin's role, and removing an admin. An admin collaborator who tries gets `403`; otherwise they could make a second account of theirs admin, which would keep managing the repo after their own removal or demotion. A collaborator's role must be `reader`, `writer` or `admin`, else `400`; the `permissions.role` column's CHECK admits the same three. `RepoService.AddCollaborator` and `RemoveCollaborator` enforce both.
+**Grant / revoke `admin`** (owner-only, `IsOwner`): giving someone the `admin` role, changing an admin's role, and
+removing an admin. An admin collaborator who tries gets `403`; otherwise they could make a second account of theirs
+admin, which would keep managing the repo after their own removal or demotion. A collaborator's role must be `reader`,
+`writer` or `admin`, else `400`; the `permissions.role` column's CHECK admits the same three.
+`RepoService.AddCollaborator` and `RemoveCollaborator` enforce both.
 
-**Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore. A transfer's `new_owner` names a user or an org, resolved user first like `/{owner}`; moving a repo into an org also requires owning that org.
+**Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore. A
+transfer's `new_owner` names a user or an org, resolved user first like `/{owner}`; moving a repo into an org also
+requires owning that org.
 
-A transfer into an org the requester owns, or into the requester's own account, happens at once. A transfer to any other user only offers the repo (`repo_transfers`, migration 099): it moves when that user accepts on `/repos/transfers` or `POST /api/user/transfers/{id}/accept`, so nobody can put a repo, its README or its collaborators into someone else's namespace (or claim a name there, such as the `<user>/<user>` profile README) without their consent. The offer lasts 7 days, and lapses once the requester no longer owns the repo (`RepoService.incomingTransfer` checks `IsOwner` on every read). The recipient sees the collaborators who keep their roles before accepting, and accepts the `owner/name` they were shown: a repo renamed or moved in between is refused (`ErrTransferChanged`). Accepting deletes the offer and updates the repo row in one transaction (`RepoTransferStore.Accept`), so a transfer cancelled or declined meanwhile moves nothing; any other owner change (`RepoStore.UpdateOwner`) ends the offer too.
+A transfer into an org the requester owns, or into the requester's own account, happens at once. A transfer to any other
+user only offers the repo (`repo_transfers`, migration 099): it moves when that user accepts on `/repos/transfers` or
+`POST /api/user/transfers/{id}/accept`, so nobody can put a repo, its README or its collaborators into someone else's
+namespace (or claim a name there, such as the `<user>/<user>` profile README) without their consent. The offer lasts 7
+days, and lapses once the requester no longer owns the repo (`RepoService.incomingTransfer` checks `IsOwner` on every
+read). The recipient sees the collaborators who keep their roles before accepting, and accepts the `owner/name` they
+were shown: a repo renamed or moved in between is refused (`ErrTransferChanged`). Accepting deletes the offer and
+updates the repo row in one transaction (`RepoTransferStore.Accept`), so a transfer cancelled or declined meanwhile
+moves nothing; any other owner change (`RepoStore.UpdateOwner`) ends the offer too.
 
 ### Organization Repo Ownership
 
-For org repos, `org_id` points to the org and `owner_id` is `NULL`. `created_by` names whoever created the repo but grants nothing, so a creator who leaves the org or is demoted to member keeps only their explicit repo role, if any. Access is determined by `org_members` and those roles:
+For org repos, `org_id` points to the org and `owner_id` is `NULL`. `created_by` names whoever created the repo but
+grants nothing, so a creator who leaves the org or is demoted to member keeps only their explicit repo role, if any.
+Access is determined by `org_members` and those roles:
 
 | Org Role | Create repos | Manage repos | Transfer repos | Delete repos | Appoint admins |
 | -------- | :----------: | :----------: | :------------: | :----------: | :------------: |
 | `owner`  |     Yes      |     Yes      |      Yes       |     Yes      |      Yes       |
 | `member` |      No      |      No      |       No       |      No      |       No       |
 
-Org owners can also appoint `admin` collaborators, who manage settings and `reader`/`writer` collaborators but can't appoint, demote or remove admins.
+Org owners can also appoint `admin` collaborators, who manage settings and `reader`/`writer` collaborators but can't
+appoint, demote or remove admins.
 
 ---
 
@@ -313,7 +534,14 @@ func (s *RepoService) CanManage(ctx, repo, userID int64) bool
 func (s *RepoService) IsOwner(ctx, repo, userID int64) bool
 ```
 
-`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo, issue, PR and code search, the notification email digest) use `readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`. Issue search also applies `issueVisibleTo` (`internal/store/issue_store.go`), the private-issue rule that issue pages, pinned issues, milestone issue lists and counts, a pull request's linked issues, and the repo's Issues tab count use: a private issue shows only to its author and to the users `CanWrite` lets in (the repo's owners and `writer` or `admin` collaborators). Search skips soft-deleted repos.
+`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three
+build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts,
+the activity feed, the attention inbox, repo, issue, PR and code search, the notification email digest) use `readableBy`
+and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`. Issue search also applies
+`issueVisibleTo` (`internal/store/issue_store.go`), the private-issue rule that issue pages, pinned issues, milestone
+issue lists and counts, a pull request's linked issues, and the repo's Issues tab count use: a private issue shows only
+to its author and to the users `CanWrite` lets in (the repo's owners and `writer` or `admin` collaborators). Search
+skips soft-deleted repos.
 
 ### Two-Layer Enforcement Pattern
 
@@ -337,30 +565,53 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-Some handlers delegate authorization to the service layer (e.g., ProjectService checks `CanWrite` internally with the passed `userID`).
+Some handlers delegate authorization to the service layer (e.g., ProjectService checks `CanWrite` internally with the
+passed `userID`).
 
 ### Private Repos Look Missing
 
-A 403 for a private repo, next to a 404 for a missing one, confirms that the private repo exists. So a caller who can't read a repo gets exactly the response a missing repo gets, and only readers ever see a 403:
+A 403 for a private repo, next to a 404 for a missing one, confirms that the private repo exists. So a caller who can't
+read a repo gets exactly the response a missing repo gets, and only readers ever see a 403:
 
-- Signed-in HTML repo pages load the repo with `h.readableRepo`, and pages an anonymous viewer can open with `h.readableRepoPage`. Both render the missing repo's 404 page, and run before a feature toggle's 404, which would otherwise differ. `TestRepoPageRoutes_PrivateRepo_LooksLikeMissingRepo` walks every route under `/{owner}/{repo}/`, git smart HTTP included, as an anonymous viewer and as a signed-in stranger, against a private repo holding one of each issue, pull request, milestone, release, discussion and project the routes name.
-- Every `/api/repos/{owner}/{repo}/…` and `/fragments/{owner}/{repo}/…` route starts with `h.readableRepoJSON`, which answers `404 {"error":"repo not found"}` in both cases. It runs before sub-resource lookups, body validation, and any `CanWrite`/`CanManage`/`IsOwner` check, including checks made in a service. `TestRepoAPI_PrivateRepoNonReader_LooksLikeMissingRepo` walks the router and holds every such route to this.
-- Project board routes also require the project to belong to the URL's repo (`h.projectIDInRepo`). The project services authorize against the project's own repo, so their 403 would otherwise confirm that another repo's project ID exists.
-- Line comment update, delete and apply-suggestion only act on a comment on the URL's pull request (`h.lineCommentOnURLPull`). Line comment IDs are global, so otherwise write access to one repo would reach another's comments, and `/apply` would commit its suggestion content.
-- `POST /api/repos/from-template` answers a private repo's ID with the same 404 as a missing ID, before checking that it is a template.
-- `GET /search/code?repo=owner/name` matches nothing when the viewer can't read that repo, exactly as when it doesn't exist (`h.searchableRepo`). Falling back to a search of every repo the viewer can read would tell the two apart. `TestCodeSearch_PrivateRepoFilter_LooksLikeMissingRepo` holds an anonymous viewer and a signed-in stranger to this.
-- `POST /api/repos/{owner}/{repo}/restore` targets a soft-deleted repo, which `readableRepoJSON` can't see. A caller who may not restore it gets the same 404 as when no deleted repo exists.
-- Git smart HTTP (`info/refs`, `git-upload-pack`, `git-receive-pack`) loads the repo with `h.gitReadableRepo`, after validating the path, the `service` parameter and a Basic PAT's scope. An anonymous caller gets a `401` challenge for a private repo and a missing one alike, because git asks for credentials only on a `401`; a signed-in non-reader gets `404 repository not found`. Over SSH, a non-reader gets `repository not found`. See [git-transport](./git-transport.md#responses).
+- Signed-in HTML repo pages load the repo with `h.readableRepo`, and pages an anonymous viewer can open with
+  `h.readableRepoPage`. Both render the missing repo's 404 page, and run before a feature toggle's 404, which would
+  otherwise differ. `TestRepoPageRoutes_PrivateRepo_LooksLikeMissingRepo` walks every route under `/{owner}/{repo}/`,
+  git smart HTTP included, as an anonymous viewer and as a signed-in stranger, against a private repo holding one of
+  each issue, pull request, milestone, release, discussion and project the routes name.
+- Every `/api/repos/{owner}/{repo}/…` and `/fragments/{owner}/{repo}/…` route starts with `h.readableRepoJSON`, which
+  answers `404 {"error":"repo not found"}` in both cases. It runs before sub-resource lookups, body validation, and any
+  `CanWrite`/`CanManage`/`IsOwner` check, including checks made in a service.
+  `TestRepoAPI_PrivateRepoNonReader_LooksLikeMissingRepo` walks the router and holds every such route to this.
+- Project board routes also require the project to belong to the URL's repo (`h.projectIDInRepo`). The project services
+  authorize against the project's own repo, so their 403 would otherwise confirm that another repo's project ID exists.
+- Line comment update, delete and apply-suggestion only act on a comment on the URL's pull request
+  (`h.lineCommentOnURLPull`). Line comment IDs are global, so otherwise write access to one repo would reach another's
+  comments, and `/apply` would commit its suggestion content.
+- `POST /api/repos/from-template` answers a private repo's ID with the same 404 as a missing ID, before checking that it
+  is a template.
+- `GET /search/code?repo=owner/name` matches nothing when the viewer can't read that repo, exactly as when it doesn't
+  exist (`h.searchableRepo`). Falling back to a search of every repo the viewer can read would tell the two apart.
+  `TestCodeSearch_PrivateRepoFilter_LooksLikeMissingRepo` holds an anonymous viewer and a signed-in stranger to this.
+- `POST /api/repos/{owner}/{repo}/restore` targets a soft-deleted repo, which `readableRepoJSON` can't see. A caller who
+  may not restore it gets the same 404 as when no deleted repo exists.
+- Git smart HTTP (`info/refs`, `git-upload-pack`, `git-receive-pack`) loads the repo with `h.gitReadableRepo`, after
+  validating the path, the `service` parameter and a Basic PAT's scope. An anonymous caller gets a `401` challenge for a
+  private repo and a missing one alike, because git asks for credentials only on a `401`; a signed-in non-reader gets
+  `404 repository not found`. Over SSH, a non-reader gets `repository not found`. See
+  [git-transport](./git-transport.md#responses).
 
 ---
 
 ## First-Run Wizard (`/setup`)
 
-When no users exist, **all routes redirect to `/setup`**. The first person to submit the form becomes superadmin. After any user exists, `/setup` permanently redirects to `/`.
+When no users exist, **all routes redirect to `/setup`**. The first person to submit the form becomes superadmin. After
+any user exists, `/setup` permanently redirects to `/`.
 
-`RequireSetup` middleware runs globally. Always passes `/setup`, `/static/`, `/invite/`, `/htmx.min.js`, and `/alpine.min.js` through unconditionally.
+`RequireSetup` middleware runs globally. Always passes `/setup`, `/static/`, `/invite/`, `/htmx.min.js`, and
+`/alpine.min.js` through unconditionally.
 
-`SiteSettingService.IsSetupComplete()` caches the result atomically via `sync/atomic.Bool` — once true it never re-queries the DB.
+`SiteSettingService.IsSetupComplete()` caches the result atomically via `sync/atomic.Bool` — once true it never
+re-queries the DB.
 
 ## Instance Settings (`site_settings` table)
 
@@ -376,116 +627,253 @@ Superadmin generates token link → shares manually. No SMTP required.
 1. Superadmin POSTs `email` to `/api/admin/invitations` → 32-byte hex token, 7-day expiry
 2. Admin panel displays `/invite/{token}` link for copying
 3. Recipient visits link → form with `email` pre-filled (read-only)
-4. On submit: one transaction claims the invite (`accepted_at`) and creates the user with `is_invited = TRUE`, JWT cookie set → redirect `/`
+4. On submit: one transaction claims the invite (`accepted_at`) and creates the user with `is_invited = TRUE`, JWT
+   cookie set → redirect `/`
 
 `is_invited` users always bypass `allow_registration` and `allow_login` checks.
 
-An invite is usable only while unaccepted, unexpired, and no account has its email (case-insensitive). Every other token, unknown ones included, gets the same generic "no longer valid" page without the invitation, because accepted invitations stay in the table and their email now belongs to a registered account.
+An invite is usable only while unaccepted, unexpired, and no account has its email (case-insensitive). Every other
+token, unknown ones included, gets the same generic "no longer valid" page without the invitation, because accepted
+invitations stay in the table and their email now belongs to a registered account.
 
 ## Self-Service Signup
 
-With `smtp.host` set, `/register` asks only for an email and always answers "Check your inbox", mailing in the background:
+With `smtp.host` set, `/register` asks only for an email and always answers "Check your inbox", mailing in the
+background:
 
-- New address: a single-use link to `/register/complete/{token}` (24 hours) where the owner picks a username and password. The account starts with its email verified, since only the address's owner could open the link.
+- New address: a single-use link to `/register/complete/{token}` (24 hours) where the owner picks a username and
+  password. The account starts with its email verified, since only the address's owner could open the link.
 - Address with an account: a "you already have an account — sign in" email.
 
-The response never reveals whether an address has an account. Links are stored as SHA-256 hashes in `signup_tokens` (one per address; a new request replaces it), and an address gets at most one email per 5 minutes. `POST /register` and `POST /register/complete/{token}` are also limited to 10 per client IP per 15 minutes, each route with its own budget. If sending fails, the address stays throttled for 5 minutes, so a retry within that window sends nothing. Closing `allow_registration` stops outstanding links.
+The response never reveals whether an address has an account. Links are stored as SHA-256 hashes in `signup_tokens` (one
+per address; a new request replaces it), and an address gets at most one email per 5 minutes. `POST /register` and
+`POST /register/complete/{token}` are also limited to 10 per client IP per 15 minutes, each route with its own budget.
+If sending fails, the address stays throttled for 5 minutes, so a retry within that window sends nothing. Closing
+`allow_registration` stops outstanding links.
 
-Without SMTP, `/register` is the classic username/email/password form, which still reveals whether an email is registered.
+Without SMTP, `/register` is the classic username/email/password form, which still reveals whether an email is
+registered.
 
 ## Google OAuth Sign-in
 
 `UserService.AuthenticateOAuth` resolves a Google login in this order:
 
 1. An account already linked to the Google ID (`oauth_provider`, `oauth_id`) signs in.
-2. Otherwise Google must report the email as verified (`verified_email` from the userinfo endpoint). If it doesn't, the callback re-renders the login page with a 403 and nothing is linked or created (`ErrOAuthEmailUnverified`).
-3. If an account has that email (compared case-insensitively), Google is linked to it only when both sides have proven the address. The link needs all of these:
-   - The account's email is verified (`users.email_verified_at`; see [Email Verification](#email-verification)). An unverified local address may belong to whoever registered, was invited with, or edited their profile to it first, so the callback re-renders the login page with a 409 and links nothing (`ErrOAuthAccountExists`). The owner signs in with their password and then either verifies the address or [connects Google](#connecting-google-to-an-existing-account) explicitly.
-   - The account isn't linked to a Google ID already. A second Google account for the same address gets a 409 (`ErrOAuthAlreadyLinked`) and the existing link stays.
-   - `allow_login` admits the account, as for a linked sign-in (superadmin, invited, or login enabled); otherwise `ErrLoginDisabled` and nothing is linked.
-   - The account has a password. Its email change is then [confirmed](#confirming-sensitive-actions), so a stolen session can't swap in an address it controls, verify it, and pull in its own Google account. Accounts created through LDAP or SAML have no password and get `ErrOAuthAccountExists`.
+2. Otherwise Google must report the email as verified (`verified_email` from the userinfo endpoint). If it doesn't, the
+   callback re-renders the login page with a 403 and nothing is linked or created (`ErrOAuthEmailUnverified`).
+3. If an account has that email (compared case-insensitively), Google is linked to it only when both sides have proven
+   the address. The link needs all of these:
+   - The account's email is verified (`users.email_verified_at`; see [Email Verification](#email-verification)). An
+     unverified local address may belong to whoever registered, was invited with, or edited their profile to it first,
+     so the callback re-renders the login page with a 409 and links nothing (`ErrOAuthAccountExists`). The owner signs
+     in with their password and then either verifies the address or
+     [connects Google](#connecting-google-to-an-existing-account) explicitly.
+   - The account isn't linked to a Google ID already. A second Google account for the same address gets a 409
+     (`ErrOAuthAlreadyLinked`) and the existing link stays.
+   - `allow_login` admits the account, as for a linked sign-in (superadmin, invited, or login enabled); otherwise
+     `ErrLoginDisabled` and nothing is linked.
+   - The account has a password. Its email change is then [confirmed](#confirming-sensitive-actions), so a stolen
+     session can't swap in an address it controls, verify it, and pull in its own Google account. Accounts created
+     through LDAP or SAML have no password and get `ErrOAuthAccountExists`.
 
-   The link is written only after every factor has passed. A link made before the TOTP prompt would outlast a failed or abandoned code, and could claim the account's one Google slot for whoever holds that Google account. Without TOTP, `signInLinking` links before starting the session. With TOTP, the pending link rides in the signed `cz_totp_pending` token, and `VerifyTOTP` links once the code checks out. `OAuthLinkService.LinkByVerifiedEmail` → `UserStore.LinkOAuthByVerifiedEmail` re-checks the email, its verification and the empty link in the `UPDATE` itself, so an email change or another link that lands in between wins. The sign-in then fails, because the Google identity was a first factor only by matching the address. Each link is audited as `user.oauth.connect` (with `"via": "verified_email"`) and emailed to the account, like an explicit connect.
+   The link is written only after every factor has passed. A link made before the TOTP prompt would outlast a failed or
+   abandoned code, and could claim the account's one Google slot for whoever holds that Google account. Without TOTP,
+   `signInLinking` links before starting the session. With TOTP, the pending link rides in the signed `cz_totp_pending`
+   token, and `VerifyTOTP` links once the code checks out. `OAuthLinkService.LinkByVerifiedEmail` →
+   `UserStore.LinkOAuthByVerifiedEmail` re-checks the email, its verification and the empty link in the `UPDATE` itself,
+   so an email change or another link that lands in between wins. The sign-in then fails, because the Google identity
+   was a first factor only by matching the address. Each link is audited as `user.oauth.connect` (with
+   `"via": "verified_email"`) and emailed to the account, like an explicit connect.
 
-4. Otherwise a new account is created, subject to `allow_registration`, linked to the Google ID, and starts with its email verified, since Google verified it.
+4. Otherwise a new account is created, subject to `allow_registration`, linked to the Google ID, and starts with its
+   email verified, since Google verified it.
 
-The callback refuses with 400 before any token exchange unless the `state` parameter equals a non-empty `oauth_state` (sign-in), `oauth_link_state` or `oauth_reauth_state` cookie. An empty cookie matching an empty `state` does not count, or a victim's browser could be signed in with an attacker's `code`.
+The callback refuses with 400 before any token exchange unless the `state` parameter equals a non-empty `oauth_state`
+(sign-in), `oauth_link_state` or `oauth_reauth_state` cookie. An empty cookie matching an empty `state` does not count,
+or a victim's browser could be signed in with an attacker's `code`.
 
 LDAP and SAML still never link on email, verified or not: only the IdP operator vouches for the address they assert.
 
 ## Email Verification
 
-`users.email_verified_at` (migration 091) is `NULL` until the address is proven. Accounts that existed before it start unverified. Google sign-ups and accounts created from a [signup link](#self-service-signup) start verified. Proving an address takes a single-use link sent to it, so it needs SMTP (`smtp.host`, see [configuration](./configuration.md#email-smtp)). Without SMTP, `EmailVerificationService.Available()` is false: no link is ever issued, Settings → Email shows a note instead of the resend button, and only a superadmin can mark an address verified.
+`users.email_verified_at` (migration 091) is `NULL` until the address is proven. Accounts that existed before it start
+unverified. Google sign-ups and accounts created from a [signup link](#self-service-signup) start verified. Proving an
+address takes a single-use link sent to it, so it needs SMTP (`smtp.host`, see
+[configuration](./configuration.md#email-smtp)). Without SMTP, `EmailVerificationService.Available()` is false: no link
+is ever issued, Settings → Email shows a note instead of the resend button, and only a superadmin can mark an address
+verified.
 
-**Links.** `<server.base_url>/verify-email?token=<token>`, where the token is 32 `crypto/rand` bytes, base64url-encoded. `email_verification_tokens` (migration 092) keeps only its SHA-256, with the user, the address it was sent to, `expires_at` (24 hours) and `used_at`. A link is issued when an invite is accepted (the admin supplied that address), on an email change, and when the user presses "Resend verification email" in Settings → Email (`POST /settings/email/resend-verification`). The classic registration form runs only without SMTP, so it issues none. The token is issued in the request, and the email goes out in the background so a slow SMTP server doesn't hold up the request. A delivery error is only logged and the token stays, since the server may have accepted the message before failing the session. The email and the confirm page name the account (username and address). An address's owner can then refuse to vouch for an account someone else registered with it, which would otherwise let that account take over their later Google sign-in. Settings → Email says whether a live link for the current address is out.
+**Links.** `<server.base_url>/verify-email?token=<token>`, where the token is 32 `crypto/rand` bytes, base64url-encoded.
+`email_verification_tokens` (migration 092) keeps only its SHA-256, with the user, the address it was sent to,
+`expires_at` (24 hours) and `used_at`. A link is issued when an invite is accepted (the admin supplied that address), on
+an email change, and when the user presses "Resend verification email" in Settings → Email
+(`POST /settings/email/resend-verification`). The classic registration form runs only without SMTP, so it issues none.
+The token is issued in the request, and the email goes out in the background so a slow SMTP server doesn't hold up the
+request. A delivery error is only logged and the token stays, since the server may have accepted the message before
+failing the session. The email and the confirm page name the account (username and address). An address's owner can then
+refuse to vouch for an account someone else registered with it, which would otherwise let that account take over their
+later Google sign-in. Settings → Email says whether a live link for the current address is out.
 
-**Rate limit.** One link a minute per user and per address (case-insensitive), counted across resends, invite acceptance and email changes. It is checked under a lock on the user row and an advisory lock on the address, so concurrent requests can't both pass. Spent and revoked rows stay until the user's next link replaces them. A deleted user's rows keep counting for the address (`user_id` is set to `NULL`). So neither changing the address repeatedly, nor recreating the account, nor moving the address to another account buys another email to it. A new link revokes older ones. When an email change lands within the minute, no link goes out; Settings shows none is pending, and the user resends after the minute.
+**Rate limit.** One link a minute per user and per address (case-insensitive), counted across resends, invite acceptance
+and email changes. It is checked under a lock on the user row and an advisory lock on the address, so concurrent
+requests can't both pass. Spent and revoked rows stay until the user's next link replaces them. A deleted user's rows
+keep counting for the address (`user_id` is set to `NULL`). So neither changing the address repeatedly, nor recreating
+the account, nor moving the address to another account buys another email to it. A new link revokes older ones. When an
+email change lands within the minute, no link goes out; Settings shows none is pending, and the user resends after the
+minute.
 
-**Verifying.** `GET /verify-email` only checks the token and shows a confirm button, because mail scanners fetch links; `POST /verify-email` (CSRF-protected, no session needed) spends it. Both respond with `Referrer-Policy: no-referrer` and `Cache-Control: no-store`. A link verifies the account it was issued to, whoever submits it, and only while that account's email is still the address it was sent to. Only a pending link shows the account; otherwise the page reports verified, expired (410) or invalid (400). Invalid covers unknown, malformed, used and revoked links, and links for an address the account no longer has. Success spends all of the user's outstanding links and writes `user.email.verify` (method `link`) to the audit log.
+**Verifying.** `GET /verify-email` only checks the token and shows a confirm button, because mail scanners fetch links;
+`POST /verify-email` (CSRF-protected, no session needed) spends it. Both respond with `Referrer-Policy: no-referrer` and
+`Cache-Control: no-store`. A link verifies the account it was issued to, whoever submits it, and only while that
+account's email is still the address it was sent to. Only a pending link shows the account; otherwise the page reports
+verified, expired (410) or invalid (400). Invalid covers unknown, malformed, used and revoked links, and links for an
+address the account no longer has. Success spends all of the user's outstanding links and writes `user.email.verify`
+(method `link`) to the audit log.
 
-**Email changes.** Changing the address needs the password and TOTP code ([Confirming sensitive actions](#confirming-sensitive-actions)). `UserService.UpdateProfile` clears `email_verified_at` and revokes outstanding links in the same transaction as the change. It then emails the old address that the change happened, naming the new one, and issues a link to the new address, subject to the rate limit. The handler writes `user.email.change` (from, to) to the audit log. Saving the profile with the same address needs no confirmation and keeps it verified.
+**Email changes.** Changing the address needs the password and TOTP code
+([Confirming sensitive actions](#confirming-sensitive-actions)). `UserService.UpdateProfile` clears `email_verified_at`
+and revokes outstanding links in the same transaction as the change. It then emails the old address that the change
+happened, naming the new one, and issues a link to the new address, subject to the rate limit. The handler writes
+`user.email.change` (from, to) to the audit log. Saving the profile with the same address needs no confirmation and
+keeps it verified.
 
-**Manual verification.** A superadmin enters a username and that user's current email under `/admin/settings` → Email verification (`POST /api/admin/users/verify-email`). Both must match the account, the email case-insensitively (404 otherwise), so an address changed since the admin checked it is not vouched for. It writes `user.email.verify` (method `admin`, with the email) to the audit log, with the admin as actor.
+**Manual verification.** A superadmin enters a username and that user's current email under `/admin/settings` → Email
+verification (`POST /api/admin/users/verify-email`). Both must match the account, the email case-insensitively (404
+otherwise), so an address changed since the admin checked it is not vouched for. It writes `user.email.verify` (method
+`admin`, with the email) to the audit log, with the admin as actor.
 
-A connected Google account is a sign-in that outlives the current session, so connecting one from settings needs the password and TOTP code, not just a session. A link made by verified email (step 3) needs no confirmation at sign-in, because both Google and the account proved the address. Every way to put a different address on the account is confirmed, and the link is emailed to the account and listed under Connected accounts, where it can be disconnected. Signing in with it still asks for the TOTP code (see [Two-factor authentication](#two-factor-authentication)).
+A connected Google account is a sign-in that outlives the current session, so connecting one from settings needs the
+password and TOTP code, not just a session. A link made by verified email (step 3) needs no confirmation at sign-in,
+because both Google and the account proved the address. Every way to put a different address on the account is
+confirmed, and the link is emailed to the account and listed under Connected accounts, where it can be disconnected.
+Signing in with it still asks for the TOTP code (see [Two-factor authentication](#two-factor-authentication)).
 
 ## Connecting Google to an Existing Account
 
-Account settings → Security → Connected accounts links a Google account to a signed-in account on request, instead of by matching emails. `OAuthLinkService` holds the rules; `ConnectGoogle`, `DisconnectGoogle` and the link mode of `GoogleOAuthCallback` call it.
+Account settings → Security → Connected accounts links a Google account to a signed-in account on request, instead of by
+matching emails. `OAuthLinkService` holds the rules; `ConnectGoogle`, `DisconnectGoogle` and the link mode of
+`GoogleOAuthCallback` call it.
 
 **Connect** (`POST /settings/connected-accounts/google`, form `password` and `code`):
 
-1. Refused unless `oauth.google_client_id` is set, and unless the password (plus the TOTP code, when TOTP is on; backup codes aren't accepted) is correct. A session alone is not enough, so a stolen session cannot plant a Google sign-in that outlives it. Accounts without a password (created by Google, LDAP or SAML sign-up) cannot re-authenticate, so they cannot connect.
-2. `BeginLink` stores a random 32-byte state for 5 minutes in `oauth_states` (migration 088), bound to the user and the purpose `link`. Only its SHA-256 is stored, and a newer connect replaces the user's pending one. The raw state goes into the `oauth_link_state` cookie (HttpOnly, `Path=/auth/google/callback`) and into Google's authorization URL, which asks Google to let the user pick an account (`prompt=select_account`). The redirect is a 303, so the browser does not re-post the password to Google.
+1. Refused unless `oauth.google_client_id` is set, and unless the password (plus the TOTP code, when TOTP is on; backup
+   codes aren't accepted) is correct. A session alone is not enough, so a stolen session cannot plant a Google sign-in
+   that outlives it. Accounts without a password (created by Google, LDAP or SAML sign-up) cannot re-authenticate, so
+   they cannot connect.
+2. `BeginLink` stores a random 32-byte state for 5 minutes in `oauth_states` (migration 088), bound to the user and the
+   purpose `link`. Only its SHA-256 is stored, and a newer connect replaces the user's pending one. The raw state goes
+   into the `oauth_link_state` cookie (HttpOnly, `Path=/auth/google/callback`) and into Google's authorization URL,
+   which asks Google to let the user pick an account (`prompt=select_account`). The redirect is a 303, so the browser
+   does not re-post the password to Google.
 
-**Callback, link mode**: `GoogleOAuthCallback` runs link mode only when the `oauth_link_state` cookie matches the `state` parameter; otherwise it runs the login flow above, unchanged. The route runs `optAuthMW` so link mode can read the session. Link mode clears the cookie, then:
+**Callback, link mode**: `GoogleOAuthCallback` runs link mode only when the `oauth_link_state` cookie matches the
+`state` parameter; otherwise it runs the login flow above, unchanged. The route runs `optAuthMW` so link mode can read
+the session. Link mode clears the cookie, then:
 
-1. `ConsumeLinkState` deletes the state before anything else can refuse, so every attempt spends it, and returns the `LinkGrant` that `Link` requires: a replay, an expired state, a state started by another account, or one that reaches a signed-out browser is refused and cannot be retried.
+1. `ConsumeLinkState` deletes the state before anything else can refuse, so every attempt spends it, and returns the
+   `LinkGrant` that `Link` requires: a replay, an expired state, a state started by another account, or one that reaches
+   a signed-out browser is refused and cannot be retried.
 2. The signed-in user must be the one who started the flow.
 3. Google must report `verified_email`, and its userinfo must carry an `id`.
-4. If that Google ID is linked to this account, nothing changes. If it is linked to another account, or this account is already linked to a different Google ID, the link is refused. The update only runs `WHERE oauth_provider = ''`, and `users_oauth_idx` refuses a Google ID another account took meanwhile.
-5. Link mode never creates an account or issues a session cookie. Errors return to `/settings?profile_error=google_…#connected-accounts`; success shows a one-time notice through the `cz_settings_notice` cookie.
+4. If that Google ID is linked to this account, nothing changes. If it is linked to another account, or this account is
+   already linked to a different Google ID, the link is refused. The update only runs `WHERE oauth_provider = ''`, and
+   `users_oauth_idx` refuses a Google ID another account took meanwhile.
+5. Link mode never creates an account or issues a session cookie. Errors return to
+   `/settings?profile_error=google_…#connected-accounts`; success shows a one-time notice through the
+   `cz_settings_notice` cookie.
 
-**Disconnect** (`POST /settings/connected-accounts/google/disconnect`, form `password` and `code`) needs the same re-authentication and clears `oauth_provider`/`oauth_id`. An account without a password is refused (`ErrReauthNoPassword`), and the store's update also requires a password, so the account's only sign-in is never removed.
+**Disconnect** (`POST /settings/connected-accounts/google/disconnect`, form `password` and `code`) needs the same
+re-authentication and clears `oauth_provider`/`oauth_id`. An account without a password is refused
+(`ErrReauthNoPassword`), and the store's update also requires a password, so the account's only sign-in is never
+removed.
 
-Both changes write an audit entry (`user.oauth.connect` with the Google ID and email, `user.oauth.disconnect` with the Google ID) and, when SMTP is configured, email the account a notice. The notice ignores notification preferences, since muting it would hide a takeover. Both routes need CSRF like any cookie-authenticated form post, and are closed to OAuth-app tokens.
+Both changes write an audit entry (`user.oauth.connect` with the Google ID and email, `user.oauth.disconnect` with the
+Google ID) and, when SMTP is configured, email the account a notice. The notice ignores notification preferences, since
+muting it would hide a takeover. Both routes need CSRF like any cookie-authenticated form post, and are closed to
+OAuth-app tokens.
 
 ## Usernames
 
-Usernames and organization names are repository path segments, so a new one must match `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively: `activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists healthz invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all readyz register repos search settings setup stars static topic unread-count verify-email` (`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters; LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
+Usernames and organization names are repository path segments, so a new one must match
+`^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively:
+`activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists healthz invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all readyz register repos search settings setup stars static topic unread-count verify-email`
+(`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from
+the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the
+username from the display name (falling back to the email's local part, then `user`) by dropping other characters;
+LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
 
-Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`), compared case-insensitively, so `Acme` can't be registered while org `acme` exists. Every user and organization insert checks this in the same statement (`ownerNameTakenCond` in `internal/store/user_store_create.go`) and refuses a taken name with `ErrUsernameTaken`, or `ErrOrgNameTaken` for `OrgService.Create`; Google OAuth moves on to the next numbered candidate (`2`, `3`, …) instead. Triggers from migration 080 also lock each exact name, so two concurrent creates of one name cannot both take it.
+Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`), compared case-insensitively, so
+`Acme` can't be registered while org `acme` exists. Every user and organization insert checks this in the same statement
+(`ownerNameTakenCond` in `internal/store/user_store_create.go`) and refuses a taken name with `ErrUsernameTaken`, or
+`ErrOrgNameTaken` for `OrgService.Create`; Google OAuth moves on to the next numbered candidate (`2`, `3`, …) instead.
+Triggers from migration 080 also lock each exact name, so two concurrent creates of one name cannot both take it.
 
 ## Account Deletion
 
-`POST /settings/delete-account` calls `UserService.DeleteUser`. In one transaction, `UserStore.DeleteWithOwnedRepos` deletes the user's personal repositories (soft-deleted ones included) and everything in them, drops the user's pending review requests, hands what the user wrote in repos they don't own, org repos included, to the [ghost user](#the-ghost-user), and deletes the user row, which cascades to gists, keys, tokens, stars, watches, reactions and activity. Org repos have no `owner_id`, so they stay with their org: their `created_by` becomes `NULL`, and a `deleted_by` naming the user passes to the ghost.
+`POST /settings/delete-account` calls `UserService.DeleteUser`. In one transaction, `UserStore.DeleteWithOwnedRepos`
+deletes the user's personal repositories (soft-deleted ones included) and everything in them, drops the user's pending
+review requests, hands what the user wrote in repos they don't own, org repos included, to the
+[ghost user](#the-ghost-user), and deletes the user row, which cascades to gists, keys, tokens, stars, watches,
+reactions and activity. Org repos have no `owner_id`, so they stay with their org: their `created_by` becomes `NULL`,
+and a `deleted_by` naming the user passes to the ghost.
 
-`DeleteUser` first refuses (`ErrSoleOrgOwner`, shown as `sole_org_owner`) while the user is the only owner of an organization, and (`ErrLastSuperadmin`, shown as `last_superadmin`) while they are the only active superadmin, before touching any directory; the transaction re-checks the latter under the lock described in [Managing accounts](#managing-accounts). The transaction checks again with every org the user belongs to locked, the lock that promoting, demoting or removing a member also takes. Around that transaction, `RepoService.DeleteWithOwner` handles the repo directories:
+`DeleteUser` first refuses (`ErrSoleOrgOwner`, shown as `sole_org_owner`) while the user is the only owner of an
+organization, and (`ErrLastSuperadmin`, shown as `last_superadmin`) while they are the only active superadmin, before
+touching any directory; the transaction re-checks the latter under the lock described in
+[Managing accounts](#managing-accounts). The transaction checks again with every org the user belongs to locked, the
+lock that promoting, demoting or removing a member also takes. Around that transaction, `RepoService.DeleteWithOwner`
+handles the repo directories:
 
 1. `DeleteWithOwner` renames each personal repo's `<name>.git` and `<name>.wiki.git` to `.deleted.<unix_ts>`.
-2. If the transaction fails (for example `ErrOwnedReposChanged`, when a repo was created or restored after step 1), it renames them back.
-3. Once the row is gone, it removes those directories and the copies of every personal repo the user had soft-deleted, which `PurgeExpired` can no longer find. A wiki that a soft delete from before wikis moved with their repo left at `<name>.wiki.git` goes too, unless another row still names it.
+2. If the transaction fails (for example `ErrOwnedReposChanged`, when a repo was created or restored after step 1), it
+   renames them back.
+3. Once the row is gone, it removes those directories and the copies of every personal repo the user had soft-deleted,
+   which `PurgeExpired` can no longer find. A wiki that a soft delete from before wikis moved with their repo left at
+   `<name>.wiki.git` goes too, unless another row still names it.
 
-The freed username can then be registered or taken as an org name. Repo creation refuses any name whose directory still exists, so nothing the old account left on disk is ever served under the new owner.
+The freed username can then be registered or taken as an org name. Repo creation refuses any name whose directory still
+exists, so nothing the old account left on disk is ever served under the new owner.
 
 ### The ghost user
 
-As on GitHub, a deleted account's issues, pull requests, comments, reviews, discussions and other contributions to repos it didn't own stay, credited to `ghost`. Migration 089 creates that user and an SQL function, `ghost_user_id()`, returning its ID; if an account named `ghost` already exists, the ghost takes the first free `ghost<n>` instead.
+As on GitHub, a deleted account's issues, pull requests, comments, reviews, discussions and other contributions to repos
+it didn't own stay, credited to `ghost`. Migration 089 creates that user and an SQL function, `ghost_user_id()`,
+returning its ID; if an account named `ghost` already exists, the ghost takes the first free `ghost<n>` instead.
 
-`ghostReassignments` in `internal/store/user_store_delete.go` lists the columns the delete moves to the ghost: every reference to `users(id)` with no `ON DELETE` action, which would otherwise block it. Usernames copied into those rows (`author_name`, `actor_name`) are rewritten too, so whoever registers the freed name isn't credited. A migration that adds such a reference must give it an `ON DELETE` action or add it to the list; `TestGhostReassignments_CoverEveryUserFKWithoutDeleteAction` fails until it does.
+`ghostReassignments` in `internal/store/user_store_delete.go` lists the columns the delete moves to the ghost: every
+reference to `users(id)` with no `ON DELETE` action, which would otherwise block it. Usernames copied into those rows
+(`author_name`, `actor_name`) are rewritten too, so whoever registers the freed name isn't credited. A migration that
+adds such a reference must give it an `ON DELETE` action or add it to the list;
+`TestGhostReassignments_CoverEveryUserFKWithoutDeleteAction` fails until it does.
 
-- **Sign-in:** the ghost has no password, OAuth or SSO identity, token or key, and email lookups skip it. Notification email is off.
-- **Lookups:** lookups by username, email or search prefix skip it (`notGhost`), so nobody can add it to an org, transfer a repo or org to it, add it as a collaborator, assign it, mention it or request its review. `/ghost` and `GET /api/users/ghost` return 404. Lookups by ID still load it for the content it holds.
-- **Setup:** `IsSetupComplete` counts accounts without it (`UserStore.CountAccounts`), so a fresh install still starts at `/setup`.
-- **Name:** `ghost` is a reserved owner name, and the row itself holds its name against case variants. A trigger refuses to delete the row.
-- **Reviews:** submitted reviews pass to the ghost and stay on the pull request, but count toward neither merge gate. `CountApprovals`, used by branch protection and by the count the pull request page shows, skips them, and a ghost's `changes_requested` doesn't block merging, since nobody could withdraw it. The one-review-per-reviewer index excludes the ghost, so it can hold several reviews on one pull.
-- **Invitations:** pending instance invitations the user sent stay valid, sent by `ghost`. Delete them from the admin page to revoke them.
+- **Sign-in:** the ghost has no password, OAuth or SSO identity, token or key, and email lookups skip it. Notification
+  email is off.
+- **Lookups:** lookups by username, email or search prefix skip it (`notGhost`), so nobody can add it to an org,
+  transfer a repo or org to it, add it as a collaborator, assign it, mention it or request its review. `/ghost` and
+  `GET /api/users/ghost` return 404. Lookups by ID still load it for the content it holds.
+- **Setup:** `IsSetupComplete` counts accounts without it (`UserStore.CountAccounts`), so a fresh install still starts
+  at `/setup`.
+- **Name:** `ghost` is a reserved owner name, and the row itself holds its name against case variants. A trigger refuses
+  to delete the row.
+- **Reviews:** submitted reviews pass to the ghost and stay on the pull request, but count toward neither merge gate.
+  `CountApprovals`, used by branch protection and by the count the pull request page shows, skips them, and a ghost's
+  `changes_requested` doesn't block merging, since nobody could withdraw it. The one-review-per-reviewer index excludes
+  the ghost, so it can hold several reviews on one pull.
+- **Invitations:** pending instance invitations the user sent stay valid, sent by `ghost`. Delete them from the admin
+  page to revoke them.
 
 ## Managing accounts
 
-`/admin/users` lists every account but the ghost, 50 a page, newest first. `q` matches a username or email prefix, ignoring case (`%` and `_` are literal); `role` (`superadmin`, `user`) and `status` (`active`, `suspended`) filter it. `/admin/users/{username}` shows one account (email and verification, role, status, 2FA, sign-in methods, created date, last web sign-in from the latest `login` audit entry, organizations it solely owns) and its actions. An unknown username or the ghost is a 404.
+`/admin/users` lists every account but the ghost, 50 a page, newest first. `q` matches a username or email prefix,
+ignoring case (`%` and `_` are literal); `role` (`superadmin`, `user`) and `status` (`active`, `suspended`) filter it.
+`/admin/users/{username}` shows one account (email and verification, role, status, 2FA, sign-in methods, created date,
+last web sign-in from the latest `login` audit entry, organizations it solely owns) and its actions. An unknown username
+or the ghost is a 404.
 
-Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin's [confirmation](#confirming-sensitive-actions), refuses the admin's own account (`ErrAdminSelf`; use Settings), and writes an audit entry with the admin as actor and the account as target. `password-reset-link` answers with the link and `delete` redirects to the list; the rest reload the page:
+Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin's
+[confirmation](#confirming-sensitive-actions), refuses the admin's own account (`ErrAdminSelf`; use Settings), and
+writes an audit entry with the admin as actor and the account as target. `password-reset-link` answers with the link and
+`delete` redirects to the list; the rest reload the page:
 
 | Action                        | Effect                                                                                                                                                                                                                                                                                                                                                                                                                    | Also refused when                                                                                                                              | Audit action                                                             |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -498,17 +886,30 @@ Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin'
 | `password-reset-link`         | `PasswordResetService.IssueLink` with `issued_by = admin`: a 24-hour [reset link](#resetting-a-forgotten-password) that replaces any outstanding one. The response is the link, shown once (htmx swaps it into the page; otherwise JSON `{link, expires_at}`), with `Cache-Control: no-store`. Mails a security notice without the link. The audit entry is written before the response, and a failed write shows no link | The account is suspended (`ErrUserSuspended`) or has no password (`ErrPasswordResetNoPassword`), both 409                                      | `user.password.reset_link` (`issued_by`), the same action the CLI writes |
 | `delete` (`confirm_username`) | `UserService.DeleteUser`, as for [self-service deletion](#account-deletion)                                                                                                                                                                                                                                                                                                                                               | The account solely owns an organization (an admin can [add another owner](#adding-an-organization-owner)); it would leave no active superadmin | `admin.user.delete` (email)                                              |
 
-An **active superadmin** is `is_superadmin AND suspended_at IS NULL`, excluding the ghost. Refusing the admin's own account keeps one admin alone from removing the last one; for concurrent actions, suspend, demote and account deletion each lock every active superadmin row (`SELECT … FOR NO KEY UPDATE`, ordered by id, before any other row lock) and re-count in the same transaction (`keepActiveSuperadmin`), so of two admins removing each other, the second fails with `ErrLastSuperadmin`.
+An **active superadmin** is `is_superadmin AND suspended_at IS NULL`, excluding the ghost. Refusing the admin's own
+account keeps one admin alone from removing the last one; for concurrent actions, suspend, demote and account deletion
+each lock every active superadmin row (`SELECT … FOR NO KEY UPDATE`, ordered by id, before any other row lock) and
+re-count in the same transaction (`keepActiveSuperadmin`), so of two admins removing each other, the second fails with
+`ErrLastSuperadmin`.
 
 ### Adding an organization owner
 
-Org permission checks look only at `org_members`, so a superadmin has no override over an organization. When an org's only owner is suspended, nobody can manage it, and an admin can't delete that owner (`ErrSoleOrgOwner`). The admin user page lists such orgs under "Sole owner of", each with a field for a new owner's username (`POST /api/admin/orgs/{org}/owners`: `username`, optional `from`, the user page to return to). It needs the admin's [confirmation](#confirming-sensitive-actions) and writes `admin.org.owner_add` (target the org, `username` in the metadata).
+Org permission checks look only at `org_members`, so a superadmin has no override over an organization. When an org's
+only owner is suspended, nobody can manage it, and an admin can't delete that owner (`ErrSoleOrgOwner`). The admin user
+page lists such orgs under "Sole owner of", each with a field for a new owner's username
+(`POST /api/admin/orgs/{org}/owners`: `username`, optional `from`, the user page to return to). It needs the admin's
+[confirmation](#confirming-sensitive-actions) and writes `admin.org.owner_add` (target the org, `username` in the
+metadata).
 
-`OrgService.AdminAddOwner` promotes a member or adds a non-member as owner; for an existing owner it changes nothing. The ghost is a 404 and a suspended account `ErrUserSuspended` (409), since a suspended owner couldn't manage anything. The superadmin doesn't become a member unless they name themselves. It can't remove or demote an owner: the new owner does that, or the admin deletes the account once the org has another owner.
+`OrgService.AdminAddOwner` promotes a member or adds a non-member as owner; for an existing owner it changes nothing.
+The ghost is a 404 and a suspended account `ErrUserSuspended` (409), since a suspended owner couldn't manage anything.
+The superadmin doesn't become a member unless they name themselves. It can't remove or demote an owner: the new owner
+does that, or the admin deletes the account once the org has another owner.
 
 ## Suspended accounts
 
-`users.suspended_at` (migration 103) is set while an account is suspended. Who did it, and why, are in the audit log. A suspended account loses every way in:
+`users.suspended_at` (migration 103) is set while an account is suspended. Who did it, and why, are in the audit log. A
+suspended account loses every way in:
 
 | Way in                                        | Where it's refused                                                                                                                                                                                         |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -521,9 +922,14 @@ Org permission checks look only at `org_members`, so a superadmin has no overrid
 | SSH deploy key                                | `sessionHandler` refuses a deploy key on a personal repo whose owner is suspended. `deploy_keys` records no creator, so keys on org repos keep working                                                     |
 | Password reset                                | `PasswordResetService.Request` mails nothing, `IssueLink` returns `ErrUserSuspended`, and `passwordResetUsable` makes any outstanding link invalid, so nobody can set a password to use after unsuspension |
 
-The suspension message, "This account is suspended. Contact your administrator.", appears only once the password (or provider) has checked out, so it doesn't tell a stranger the account exists. `POST /api/auth/login` answers `403 {"error":"account_suspended"}`.
+The suspension message, "This account is suspended. Contact your administrator.", appears only once the password (or
+provider) has checked out, so it doesn't tell a stranger the account exists. `POST /api/auth/login` answers
+`403 {"error":"account_suspended"}`.
 
-Nothing changes for other users: the profile, repositories, issues and comments stay, and collaborators keep their access to the account's repositories. Superadmins see a "Suspended" badge on the profile. `wantsEmail` skips suspended accounts, so they get no notification mail, immediate or digest; security notices still go out. OAuth apps the account owns keep serving the users who authorized them.
+Nothing changes for other users: the profile, repositories, issues and comments stay, and collaborators keep their
+access to the account's repositories. Superadmins see a "Suspended" badge on the profile. `wantsEmail` skips suspended
+accounts, so they get no notification mail, immediate or digest; security notices still go out. OAuth apps the account
+owns keep serving the users who authorized them.
 
 ---
 
@@ -620,7 +1026,8 @@ Nothing changes for other users: the profile, repositories, issues and comments 
 
 ### Repository Endpoints — Read
 
-`readableRepoJSON` answers a repo the caller can't read with the missing repo's 404 (see [Private Repos Look Missing](#private-repos-look-missing)).
+`readableRepoJSON` answers a repo the caller can't read with the missing repo's 404 (see
+[Private Repos Look Missing](#private-repos-look-missing)).
 
 | Method   | Path                                                                                             | Auth      | AuthZ                               | Handler                                                                   |
 | -------- | ------------------------------------------------------------------------------------------------ | --------- | ----------------------------------- | ------------------------------------------------------------------------- |
@@ -722,7 +1129,8 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 
 ### Repository Endpoints — Service-Layer Auth (Project Board)
 
-`CreateProject` checks `readableRepoJSON`; the other rows resolve the project through `projectIDInRepo` (readable repo that owns the project, else 404) before the service check.
+`CreateProject` checks `readableRepoJSON`; the other rows resolve the project through `projectIDInRepo` (readable repo
+that owns the project, else 404) before the service check.
 
 | Method | Path                                       | Auth   | AuthZ Check                                                                                    | Handler → Service |
 | ------ | ------------------------------------------ | ------ | ---------------------------------------------------------------------------------------------- | ----------------- |

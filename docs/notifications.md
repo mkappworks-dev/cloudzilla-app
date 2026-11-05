@@ -1,6 +1,7 @@
 # Notifications
 
-In-app notifications for activity on issues, PRs and discussions you opened, @-mentions of you, and repositories you watch, with optional email delivery (see [Email](#email)).
+In-app notifications for activity on issues, PRs and discussions you opened, @-mentions of you, and repositories you
+watch, with optional email delivery (see [Email](#email)).
 
 ## Notification Types
 
@@ -18,21 +19,32 @@ In-app notifications for activity on issues, PRs and discussions you opened, @-m
 | `repo_transfer`    | Someone wants to transfer a repository to you; links to `/repos/transfers`                            |
 | `pr_opened`        | (type reserved; not currently auto-fired)                                                             |
 
-Notifications are never created when `actorID == authorID` (self-actions are silent). Every notification, watchers' copies included, is created only if its recipient can read the repo at that moment (`RepoService.CanRead`), so watching a repo or having opened the issue, PR or discussion stops counting once the user is removed as a collaborator, removed from the org or demoted from org owner. `CommentService` likewise records an @-mention only for users who can read the repo. The exception is `repo_transfer`: its recipient can't read a private repo until they accept it.
+Notifications are never created when `actorID == authorID` (self-actions are silent). Every notification, watchers'
+copies included, is created only if its recipient can read the repo at that moment (`RepoService.CanRead`), so watching
+a repo or having opened the issue, PR or discussion stops counting once the user is removed as a collaborator, removed
+from the org or demoted from org owner. `CommentService` likewise records an @-mention only for users who can read the
+repo. The exception is `repo_transfer`: its recipient can't read a private repo until they accept it.
 
 ## Who is notified
 
-Comments, reviews, state changes and discussion replies go through `NotificationService.notifyThread`. The recipients are the thread's author, its `subscribed` rows (see `ThreadSubscriptionService`) and, except for discussion replies, the repo's non-ignoring watchers. It drops the actor, users with a `muted` row on the thread, and anyone who can't read the repo. A subscriber needn't watch the repo, and an `ignoring` watcher who subscribed to the thread is still notified. An author with no row, such as one on a thread that predates subscriptions, is still notified; a muted author is not.
+Comments, reviews, state changes and discussion replies go through `NotificationService.notifyThread`. The recipients
+are the thread's author, its `subscribed` rows (see `ThreadSubscriptionService`) and, except for discussion replies, the
+repo's non-ignoring watchers. It drops the actor, users with a `muted` row on the thread, and anyone who can't read the
+repo. A subscriber needn't watch the repo, and an `ignoring` watcher who subscribed to the thread is still notified. An
+author with no row, such as one on a thread that predates subscriptions, is still notified; a muted author is not.
 
 Discussion replies never reached watchers, so they still don't: author and subscribers only.
 
-`NotifyMention` ignores a mute. After creating the notification it calls `SubscribeOnMention`, which flips the row to `subscribed`. A mention for a user who can't read the repo creates neither.
+`NotifyMention` ignores a mute. After creating the notification it calls `SubscribeOnMention`, which flips the row to
+`subscribed`. A mention for a user who can't read the repo creates neither.
 
-A failure to list muted users or subscribers is logged and the fan-out is skipped, rather than notifying someone who muted the thread.
+A failure to list muted users or subscribers is logged and the fan-out is skipped, rather than notifying someone who
+muted the thread.
 
 ## Auto-subscribe
 
-Taking part in a thread subscribes you to it through `ThreadSubscriptionService.AutoSubscribe`, which inserts only if you have no row: the first reason is kept and a mute is never undone.
+Taking part in a thread subscribes you to it through `ThreadSubscriptionService.AutoSubscribe`, which inserts only if
+you have no row: the first reason is kept and a mute is never undone.
 
 | Action                                           | Service                                                                            | Reason    | Who                         |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------- | --------- | --------------------------- |
@@ -41,19 +53,30 @@ Taking part in a thread subscribes you to it through `ThreadSubscriptionService.
 | Submit a PR review                               | `PullReviewService.SubmitReview`                                                   | `review`  | the reviewer                |
 | Assign someone                                   | `AssigneeService.AddToIssue` / `AddToPull`                                         | `assign`  | the assignee, not the actor |
 
-Each service gets the subscriber through `WithThreadSubscriptions`; without it nothing is recorded. A failed write is logged and the request still succeeds. Mentions subscribe through `NotifyMention` instead. Threads that existed before the feature get no rows.
+Each service gets the subscriber through `WithThreadSubscriptions`; without it nothing is recorded. A failed write is
+logged and the request still succeeds. Mentions subscribe through `NotifyMention` instead. Threads that existed before
+the feature get no rows.
 
 ## Sidebar control
 
-The issue, PR and discussion sidebars show a Notifications section to logged-in viewers (`fragments.ThreadSubscription`, built from `view.ThreadSubscriptionData`). It shows `ThreadSubscriptionService.Status`: a Subscribe or Unsubscribe button, a "Muted" pill and a reason line. The button calls `PUT .../{issues|pulls|discussions}/{number}/subscription` (`setThreadSubscription`), which calls `Set` and swaps the section in place. Subscribe writes `subscribed/manual`; Unsubscribe writes `muted`, even for a user who only watches the repo. The control never touches the repo watch, which is only changed from the repo page's Watch control.
+The issue, PR and discussion sidebars show a Notifications section to logged-in viewers (`fragments.ThreadSubscription`,
+built from `view.ThreadSubscriptionData`). It shows `ThreadSubscriptionService.Status`: a Subscribe or Unsubscribe
+button, a "Muted" pill and a reason line. The button calls `PUT .../{issues|pulls|discussions}/{number}/subscription`
+(`setThreadSubscription`), which calls `Set` and swaps the section in place. Subscribe writes `subscribed/manual`;
+Unsubscribe writes `muted`, even for a user who only watches the repo. The control never touches the repo watch, which
+is only changed from the repo page's Watch control.
 
 ## Thread kind
 
-`notifications.subject_kind` is `issue`, `pull` or `discussion`: the kind of thread `subject_id` numbers, since the number alone doesn't say. Every `Notify*` call sets it except `NotifyRepoTransfer`, which leaves it NULL. Migration 115 backfilled older rows from `type`, and mentions from the section of `subject_url`; a mention whose URL names no section stays NULL. `model.Notification.SubjectKind` is empty for NULL.
+`notifications.subject_kind` is `issue`, `pull` or `discussion`: the kind of thread `subject_id` numbers, since the
+number alone doesn't say. Every `Notify*` call sets it except `NotifyRepoTransfer`, which leaves it NULL. Migration 115
+backfilled older rows from `type`, and mentions from the section of `subject_url`; a mention whose URL names no section
+stays NULL. `model.Notification.SubjectKind` is empty for NULL.
 
 ## Email
 
-Sent only when SMTP is configured. Users set these on `/settings#notifications` (saved by POST `/settings/notifications`); they never affect in-app notifications.
+Sent only when SMTP is configured. Users set these on `/settings#notifications` (saved by POST
+`/settings/notifications`); they never affect in-app notifications.
 
 | `users` column        | Effect                                                                                                                          |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -62,13 +85,23 @@ Sent only when SMTP is configured. Users set these on `/settings#notifications` 
 | `notify_mention`      | Off suppresses email for `mention`                                                                                              |
 | `notify_pr_review`    | Off suppresses email for `pr_review`                                                                                            |
 
-`wantsEmail(user, type, digestMode)` in `internal/service/email_service.go` decides per notification, and says no for a [suspended account](./access-control.md#suspended-accounts): `EmailService.SendNotification` calls it with `immediate`, and `NotificationService.ListUnreadForDigest` calls it with the digest mode. The digest job (`runEmailDigest` in `cmd/server/main.go`) first narrows users with `UserService.ListUsersForDigest`, whose SQL repeats the master-switch and digest-mode check.
+`wantsEmail(user, type, digestMode)` in `internal/service/email_service.go` decides per notification, and says no for a
+[suspended account](./access-control.md#suspended-accounts): `EmailService.SendNotification` calls it with `immediate`,
+and `NotificationService.ListUnreadForDigest` calls it with the digest mode. The digest job (`runEmailDigest` in
+`cmd/server/main.go`) first narrows users with `UserService.ListUsersForDigest`, whose SQL repeats the master-switch and
+digest-mode check.
 
-Immediate email goes to the notification's direct recipient (the subject's author, or the mentioned user) and to users with a `subscribed` row on the thread. Watchers without a row get in-app copies of issue/PR notifications; those are never emailed immediately, but digests draw from all unread notifications, so daily/weekly users also get watched-repo activity, and `notify_pr_review` filters watched-repo reviews there too. The digest re-checks read access (`NotificationStore.ListUnreadReadable`, with `readableBy`) and leaves out notifications on repos the user can no longer read, keeping a `repo_transfer` notification while its transfer is still offered to the user.
+Immediate email goes to the notification's direct recipient (the subject's author, or the mentioned user) and to users
+with a `subscribed` row on the thread. Watchers without a row get in-app copies of issue/PR notifications; those are
+never emailed immediately, but digests draw from all unread notifications, so daily/weekly users also get watched-repo
+activity, and `notify_pr_review` filters watched-repo reviews there too. The digest re-checks read access
+(`NotificationStore.ListUnreadReadable`, with `readableBy`) and leaves out notifications on repos the user can no longer
+read, keeping a `repo_transfer` notification while its transfer is still offered to the user.
 
 ## Unread Count in Navbar
 
-`basePage()` calls `NotificationService.CountUnread` on every page render and passes the count as `BasePage.UnreadNotifCount`. Templates show a badge next to the Notifications link.
+`basePage()` calls `NotificationService.CountUnread` on every page render and passes the count as
+`BasePage.UnreadNotifCount`. Templates show a badge next to the Notifications link.
 
 ## Pages & API
 
@@ -81,15 +114,26 @@ Immediate email goes to the notification's direct recipient (the subject's autho
 | POST `/api/notifications/done`        | Required | Mark the notifications in repeated form field `ids` as read (at most 100; other users' ids are ignored)                           |
 | POST `/api/notifications/unsubscribe` | Required | Mute the thread behind each notification in `ids` and mark that thread's unread notifications read (other users' ids are ignored) |
 
-The mark-read and bulk endpoints take the same `?filter` and `?page`, and their HTMX responses swap `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
+The mark-read and bulk endpoints take the same `?filter` and `?page`, and their HTMX responses swap
+`pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
 
-Each row has a checkbox, the actor's avatar and, on hover or focus, Done and Unsubscribe buttons; ticking rows swaps the list header for a bulk bar. Unsubscribe mutes the notification's thread (`NotificationService.MuteThreads`) and never touches the repo watch, which only the repo page's Watch control changes. It writes one `muted` row per distinct thread among the caller's own selected notifications, using `subject_kind` and `subject_id`, then marks every unread notification on those threads read, selected or not, so they leave the unread filter and the email digest; a muted thread creates no new ones. Done marks only the selected rows read. Every row has the button (tooltip "Unsubscribe: mute this thread. Repo watch unchanged."), but it is disabled on `repo_transfer` rows and on rows with no `subject_kind`, which name no thread. Unmuting is the thread sidebar's Subscribe button. Done is mark-read: the row stays in the inbox and moves to the Read filter.
+Each row has a checkbox, the actor's avatar and, on hover or focus, Done and Unsubscribe buttons; ticking rows swaps the
+list header for a bulk bar. Unsubscribe mutes the notification's thread (`NotificationService.MuteThreads`) and never
+touches the repo watch, which only the repo page's Watch control changes. It writes one `muted` row per distinct thread
+among the caller's own selected notifications, using `subject_kind` and `subject_id`, then marks every unread
+notification on those threads read, selected or not, so they leave the unread filter and the email digest; a muted
+thread creates no new ones. Done marks only the selected rows read. Every row has the button (tooltip "Unsubscribe: mute
+this thread. Repo watch unchanged."), but it is disabled on `repo_transfer` rows and on rows with no `subject_kind`,
+which name no thread. Unmuting is the thread sidebar's Subscribe button. Done is mark-read: the row stays in the inbox
+and moves to the Read filter.
 
-Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text beside it; mentions, repo transfers and rows created before migration 112 have no title and show only the action text.
+Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text
+beside it; mentions, repo transfers and rows created before migration 112 have no title and show only the action text.
 
 ## NotificationService (`internal/service/notification_service.go`)
 
-- `ListPage(ctx, userID, filter, page)` → `(NotificationPage, error)` — one page plus the inbox/unread/read counts the sidebar shows
+- `ListPage(ctx, userID, filter, page)` → `(NotificationPage, error)` — one page plus the inbox/unread/read counts the
+  sidebar shows
 - `List(ctx, userID)` → `([]Notification, error)` — newest 50
 - `ListUnreadForDigest(ctx, u, mode)` → `([]Notification, error)`
 - `MarkReadMany(ctx, userID, ids)` → `error` — ids that aren't the user's are ignored
@@ -99,12 +143,19 @@ Rows are grouped under their repo within a page. A row shows `subject_title` whe
 - `MarkAllRead(ctx, userID)` → `error`
 - `NotifyIssueComment(ctx, repo, issue, actorID, actorName)` — call from `CreateIssueComment` handler
 - `NotifyPRComment(ctx, repo, pr, actorID, actorName)` — call from `CreatePullComment` handler
-- `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler; `IssueCloser` calls it for each issue a closing keyword closes, with the merger or pusher as actor
+- `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler; `IssueCloser` calls
+  it for each issue a closing keyword closes, with the merger or pusher as actor
 - `NotifyPRStateChange(ctx, repo, pr, actorID, actorName)` — call from `UpdatePull` handler
 - `NotifyPRReview(ctx, repo, pr, actorID, actorName)` — call from `SubmitReview` handler
-- `NotifyDiscussionReply(ctx, repo, discussion, actorID, actorName)` — call from `CreateReply` handler; author and subscribers only
+- `NotifyDiscussionReply(ctx, repo, discussion, actorID, actorName)` — call from `CreateReply` handler; author and
+  subscribers only
 - `WithThreadSubscriptions(svc)` — builder; without it no thread rows are consulted
-- `NotifyMention(ctx, repo, actorID, actorName, mentionedUserID, kind, subjectNumber, subjectURL)` — called by `CommentService` for each readable @-mention in a new issue/PR comment; `kind` is `model.ThreadKindIssue` or `ThreadKindPull`
-- `NotifyRepoTransfer(ctx, transfer)` — call from `TransferRepo` handler when the transfer awaits its recipient; `SubjectID` is the transfer ID. It skips the `CanRead` check, since the recipient can't read a private repo until they accept
+- `NotifyMention(ctx, repo, actorID, actorName, mentionedUserID, kind, subjectNumber, subjectURL)` — called by
+  `CommentService` for each readable @-mention in a new issue/PR comment; `kind` is `model.ThreadKindIssue` or
+  `ThreadKindPull`
+- `NotifyRepoTransfer(ctx, transfer)` — call from `TransferRepo` handler when the transfer awaits its recipient;
+  `SubjectID` is the transfer ID. It skips the `CanRead` check, since the recipient can't read a private repo until they
+  accept
 
-Handlers run the `Notify*` calls in a goroutine with `context.WithoutCancel(r.Context())`: net/http cancels the request context as soon as the handler returns, which would abort the inserts and the email.
+Handlers run the `Notify*` calls in a goroutine with `context.WithoutCancel(r.Context())`: net/http cancels the request
+context as soon as the handler returns, which would abort the inserts and the email.

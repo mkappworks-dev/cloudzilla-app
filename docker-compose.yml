@@ -45,7 +45,8 @@ services:
     image: versity/versitygw:latest
     profiles: ["s3"]
     # The posix backend serves each top-level directory as a bucket.
-    entrypoint: ["/bin/sh", "-c", "mkdir -p /data/cloudzilla && exec versitygw --port :7070 posix /data"]
+    entrypoint:
+      ["/bin/sh", "-c", "mkdir -p /data/cloudzilla && exec versitygw --port :7070 posix /data"]
     environment:
       ROOT_ACCESS_KEY: cloudzilla-dev
       ROOT_SECRET_KEY: cloudzilla-dev-secret

@@ -3,7 +3,8 @@
 **Cross-cutting rules (all phases):**
 
 - No new Go dependencies needed
-- Notification extension pattern: add const to `model/notification.go`, add `NotifyX` method to `notification_service.go` matching existing pattern
+- Notification extension pattern: add const to `model/notification.go`, add `NotifyX` method to
+  `notification_service.go` matching existing pattern
 - Webhook extension: add event string + `XPayload()` method to `webhook_service.go`; no schema change
 - PostgreSQL: `$N` placeholders, `RETURNING id`, `sql.NullInt64` for nullable FK columns (pattern from `repo_store.go`)
 - Batch SQL `IN (...)`: build placeholder list with `strings.Join` and numbered `$N` params
@@ -13,7 +14,9 @@
 
 # Milestone 1 — Core Platform (Phases 0–15.3) ✅ COMPLETE
 
-_All of Phases 0–15.3 shipped, and the closing pass (a security and coverage review in October 2026) is finished. Migrations now run through 116; 054 onward is work outside the phase plan, the largest pieces of which are listed under [Shipped outside the phase plan](#shipped-outside-the-phase-plan)._
+_All of Phases 0–15.3 shipped, and the closing pass (a security and coverage review in October 2026) is finished.
+Migrations now run through 116; 054 onward is work outside the phase plan, the largest pieces of which are listed under
+[Shipped outside the phase plan](#shipped-outside-the-phase-plan)._
 
 ---
 
@@ -42,13 +45,16 @@ CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email    ON users(email);
 ```
 
-**Model:** `internal/model/user.go` — `User{ID, Username, Email, PasswordHash, Bio, AvatarURL, CreatedAt, UpdatedAt}`. `Authenticate(password)` compares bcrypt hash.
+**Model:** `internal/model/user.go` — `User{ID, Username, Email, PasswordHash, Bio, AvatarURL, CreatedAt, UpdatedAt}`.
+`Authenticate(password)` compares bcrypt hash.
 
 **Store:** `internal/store/user_store.go` — `Create`, `GetByID`, `GetByUsername`, `GetByEmail`, `Update`, `List`.
 
-**Service:** `internal/service/user_service.go` — `Create` (validates uniqueness, hashes password); `Authenticate` (fetches by username/email, compares hash, returns JWT); `Update`.
+**Service:** `internal/service/user_service.go` — `Create` (validates uniqueness, hashes password); `Authenticate`
+(fetches by username/email, compares hash, returns JWT); `Update`.
 
-**Handler:** `internal/handler/auth_handler.go` — `Register` (form POST), `Login` (form POST + API JSON), `Logout`. Sets `cz_token` httpOnly cookie on login.
+**Handler:** `internal/handler/auth_handler.go` — `Register` (form POST), `Login` (form POST + API JSON), `Logout`. Sets
+`cz_token` httpOnly cookie on login.
 
 ---
 
@@ -71,11 +77,14 @@ CREATE INDEX idx_repos_owner ON repositories(owner_id);
 
 **Model:** `internal/model/repository.go` — `Repository{ID, OwnerID, Name, Description, Private, DefaultBranch}`.
 
-**Store:** `internal/store/repo_store.go` — `Create`, `GetByOwnerAndName`, `ListByOwner`, `Update`, `Delete`. Bare git repo created on disk via `go-git.PlainInit()`.
+**Store:** `internal/store/repo_store.go` — `Create`, `GetByOwnerAndName`, `ListByOwner`, `Update`, `Delete`. Bare git
+repo created on disk via `go-git.PlainInit()`.
 
-**Service:** `internal/service/repo_service_create.go` — `Create` (validates name, inits bare repo); `repo_service_access.go` — `CanRead`, `CanWrite`, `CanManage`; `TransferRepo`.
+**Service:** `internal/service/repo_service_create.go` — `Create` (validates name, inits bare repo);
+`repo_service_access.go` — `CanRead`, `CanWrite`, `CanManage`; `TransferRepo`.
 
-**Git HTTP:** `internal/handler/git_handler.go` — `InfoRefs`, `UploadPack`, `ReceivePack`. Implements Git smart HTTP protocol via `go-git`. Auth: Basic or JWT cookie.
+**Git HTTP:** `internal/handler/git_handler.go` — `InfoRefs`, `UploadPack`, `ReceivePack`. Implements Git smart HTTP
+protocol via `go-git`. Auth: Basic or JWT cookie.
 
 ---
 
@@ -101,11 +110,13 @@ CREATE INDEX idx_issues_state ON issues(state);
 
 **Model:** `internal/model/issue.go`.
 
-**Store:** `internal/store/issue_store.go` — `Create`, `GetByNumber`, `ListByRepo(state, page)`, `Update`, `Delete`, `NextNumber`.
+**Store:** `internal/store/issue_store.go` — `Create`, `GetByNumber`, `ListByRepo(state, page)`, `Update`, `Delete`,
+`NextNumber`.
 
 **Service:** `internal/service/issue_service.go`.
 
-**Handler:** `internal/handler/issue_handler.go` — `PageIssues`, `PageIssueDetail`, `CreateIssue`, `UpdateIssue` (open/close toggle via HTMX), `DeleteIssue`.
+**Handler:** `internal/handler/issue_handler.go` — `PageIssues`, `PageIssueDetail`, `CreateIssue`, `UpdateIssue`
+(open/close toggle via HTMX), `DeleteIssue`.
 
 **Routes:**
 
@@ -143,7 +154,8 @@ CREATE INDEX idx_prs_state ON pull_requests(state);
 
 **Store:** `internal/store/pull_store.go` — `Create`, `GetByNumber`, `ListByRepo`, `Update`, `NextNumber`.
 
-**Service:** `internal/service/pull_service.go` — `Create`; `SetState` (open/close/merge); merge strategies wired here (see Phase 2+).
+**Service:** `internal/service/pull_service.go` — `Create`; `SetState` (open/close/merge); merge strategies wired here
+(see Phase 2+).
 
 **Handler:** `internal/handler/pull_handler.go` — `PagePulls`, `PagePullDetail`, `CreatePull`, `UpdatePull`.
 
@@ -179,9 +191,11 @@ CREATE INDEX idx_comments_issue ON comments(issue_id);
 CREATE INDEX idx_comments_pull  ON comments(pull_id);
 ```
 
-Single `comments` table serves both issue and PR comments. `body` rendered as markdown via `markdown.Render` in templates.
+Single `comments` table serves both issue and PR comments. `body` rendered as markdown via `markdown.Render` in
+templates.
 
-**Handler:** `internal/handler/comment_handler.go` — `CreateIssueComment`, `CreatePRComment`, `UpdateComment`, `DeleteComment`.
+**Handler:** `internal/handler/comment_handler.go` — `CreateIssueComment`, `CreatePRComment`, `UpdateComment`,
+`DeleteComment`.
 
 ---
 
@@ -198,13 +212,16 @@ CREATE TABLE permissions (
 );
 ```
 
-Roles: `reader` (read private repos), `writer` (push), `admin` (write + manage collaborators, settings, branch protection, deploy keys).
+Roles: `reader` (read private repos), `writer` (push), `admin` (write + manage collaborators, settings, branch
+protection, deploy keys).
 
-**Store:** `internal/store/permission_store.go` — `Set`, `Get`, `ListByRepo` (`ListPermissionsWithUsername` via JOIN), `Delete`.
+**Store:** `internal/store/permission_store.go` — `Set`, `Get`, `ListByRepo` (`ListPermissionsWithUsername` via JOIN),
+`Delete`.
 
 **Service:** `internal/service/permission_service.go`.
 
-**Handler:** `internal/handler/settings_handler.go` — collaborator CRUD; HTMX-aware; renders `fragment-repo-collaborators`.
+**Handler:** `internal/handler/settings_handler.go` — collaborator CRUD; HTMX-aware; renders
+`fragment-repo-collaborators`.
 
 ---
 
@@ -224,7 +241,8 @@ CREATE INDEX idx_ssh_keys_fingerprint ON ssh_keys(fingerprint);
 
 MD5 fingerprint computed at insert time; used for fast SSH handshake lookup.
 
-**SSH server:** `internal/ssh/` — `gliderlabs/ssh`-based server on port 2222; dispatches `git-upload-pack` / `git-receive-pack` after public key auth via fingerprint lookup.
+**SSH server:** `internal/ssh/` — `gliderlabs/ssh`-based server on port 2222; dispatches `git-upload-pack` /
+`git-receive-pack` after public key auth via fingerprint lookup.
 
 ---
 
@@ -241,7 +259,8 @@ CREATE UNIQUE INDEX users_oauth_idx ON users(oauth_provider, oauth_id)
     WHERE oauth_provider != '';
 ```
 
-**Flow:** `GET /auth/google` → OAuth2 redirect → `GET /auth/google/callback` → exchange code → fetch userinfo → upsert user (link by `oauth_id`, or by email, or create new) → set `cz_token` cookie.
+**Flow:** `GET /auth/google` → OAuth2 redirect → `GET /auth/google/callback` → exchange code → fetch userinfo → upsert
+user (link by `oauth_id`, or by email, or create new) → set `cz_token` cookie.
 
 **Handler:** `internal/handler/auth_handler.go` — `GoogleOAuth`, `GoogleOAuthCallback`.
 
@@ -269,7 +288,8 @@ CREATE TABLE org_members (
 );
 ```
 
-**Service:** `internal/service/org_service.go` — `Create` (auto-adds creator as owner); `AddMember`, `RemoveMember` (blocks removing last owner); `IsOwner`, `IsMember`; `CreateRepo`; `TransferOrg`.
+**Service:** `internal/service/org_service.go` — `Create` (auto-adds creator as owner); `AddMember`, `RemoveMember`
+(blocks removing last owner); `IsOwner`, `IsMember`; `CreateRepo`; `TransferOrg`.
 
 **Handler:** `internal/handler/org_handler.go` — `PageOrg`, `PageOrgSettings`; org CRUD + member management.
 
@@ -297,7 +317,8 @@ CREATE INDEX idx_repos_owner_name ON repositories(owner_name);
 CREATE INDEX idx_repos_org        ON repositories(org_id);
 ```
 
-`owner_name` is a denormalized column updated on ownership transfer; enables URL pattern `/{owner}/{repo}` without a JOIN.
+`owner_name` is a denormalized column updated on ownership transfer; enables URL pattern `/{owner}/{repo}` without a
+JOIN.
 
 ---
 
@@ -330,9 +351,11 @@ CREATE TABLE webhook_deliveries (
 );
 ```
 
-Fire-and-forget delivery via `go s.Dispatch(...)`. HMAC-SHA256 signature in `X-Hub-Signature-256` header when secret is set. Supported events: `push`, `issues`, `pull_request`.
+Fire-and-forget delivery via `go s.Dispatch(...)`. HMAC-SHA256 signature in `X-Hub-Signature-256` header when secret is
+set. Supported events: `push`, `issues`, `pull_request`.
 
-**Service:** `internal/service/webhook_service.go` — `Create`, `ListByRepo`, `Delete`, `ListDeliveries`, `Dispatch`, `PushPayload`, `IssuePayload`, `PullPayload`.
+**Service:** `internal/service/webhook_service.go` — `Create`, `ListByRepo`, `Delete`, `ListDeliveries`, `Dispatch`,
+`PushPayload`, `IssuePayload`, `PullPayload`.
 
 ---
 
@@ -362,7 +385,8 @@ CREATE INDEX idx_notifications_user_read ON notifications(user_id, read);
 
 Self-actions (`actorID == authorID`) never produce notifications. Unread count shown in navbar badge via `basePage()`.
 
-**Service:** `internal/service/notification_service.go` — `List`, `CountUnread`, `MarkRead`, `MarkAllRead`, `NotifyIssueComment`, `NotifyPRComment`, `NotifyIssueStateChange`, `NotifyPRStateChange`.
+**Service:** `internal/service/notification_service.go` — `List`, `CountUnread`, `MarkRead`, `MarkAllRead`,
+`NotifyIssueComment`, `NotifyPRComment`, `NotifyIssueStateChange`, `NotifyPRStateChange`.
 
 ---
 
@@ -372,7 +396,8 @@ Self-actions (`actorID == authorID`) never produce notifications. Unread count s
 ALTER TABLE users ADD COLUMN is_superadmin BOOLEAN NOT NULL DEFAULT FALSE;
 ```
 
-First user created via `/setup` wizard gets `is_superadmin = TRUE`. Superadmins bypass `allow_login` checks and can access `/admin/settings`.
+First user created via `/setup` wizard gets `is_superadmin = TRUE`. Superadmins bypass `allow_login` checks and can
+access `/admin/settings`.
 
 ---
 
@@ -384,9 +409,11 @@ INSERT INTO site_settings VALUES ('allow_registration', 'true') ON CONFLICT DO N
 INSERT INTO site_settings VALUES ('allow_login',        'true') ON CONFLICT DO NOTHING;
 ```
 
-`SiteSettingService` caches values in a `sync.RWMutex`-protected map. `IsSetupComplete()` cached via `sync/atomic.Bool` — never re-queries once true.
+`SiteSettingService` caches values in a `sync.RWMutex`-protected map. `IsSetupComplete()` cached via `sync/atomic.Bool`
+— never re-queries once true.
 
-**Setup wizard:** `GET /setup` — only accessible when no users exist (enforced by `RequireSetup` middleware). Creates first superadmin account.
+**Setup wizard:** `GET /setup` — only accessible when no users exist (enforced by `RequireSetup` middleware). Creates
+first superadmin account.
 
 ---
 
@@ -405,7 +432,8 @@ CREATE TABLE invitations (
 ALTER TABLE users ADD COLUMN is_invited BOOLEAN NOT NULL DEFAULT FALSE;
 ```
 
-32-byte hex token; 7-day expiry. Invited users bypass `allow_registration` + `allow_login` locks. Superadmin creates invites via `/admin/settings`; shares `/invite/{token}` link manually — no SMTP required.
+32-byte hex token; 7-day expiry. Invited users bypass `allow_registration` + `allow_login` locks. Superadmin creates
+invites via `/admin/settings`; shares `/invite/{token}` link manually — no SMTP required.
 
 ---
 
@@ -418,9 +446,14 @@ ALTER TABLE users ADD COLUMN is_invited BOOLEAN NOT NULL DEFAULT FALSE;
 **Files:**
 
 - `internal/model/label.go` — `Label{ID, RepoID, Name, Color, Description, CreatedAt}`
-- `internal/store/label_store.go` — `Create`, `ListByRepo`, `GetByID`, `Delete`, `AddToIssue`, `RemoveFromIssue`, `ListByIssue`, `AddToPull`, `RemoveFromPull`, `ListByPull`, `ListByIssueIDs` (batch), `ListByPullIDs` (batch), `scanLabels` helper
-- `internal/service/label_service.go` — `NewLabelService(labels, repos, issues, pulls)`. Methods: `Create`, `ListByRepo`, `Delete`, `AddToIssue`, `RemoveFromIssue`, `GetForIssue`, `AddToPull`, `RemoveFromPull`, `GetForPull`, `BatchForIssues`, `BatchForPulls`
-- `internal/handler/label_handler.go` — `ListLabels`, `CreateLabel`, `DeleteLabel`, `AddIssueLabel`, `RemoveIssueLabel`, `AddPullLabel`, `RemovePullLabel`, `renderIssueLabelFragment`, `renderPullLabelFragment`
+- `internal/store/label_store.go` — `Create`, `ListByRepo`, `GetByID`, `Delete`, `AddToIssue`, `RemoveFromIssue`,
+  `ListByIssue`, `AddToPull`, `RemoveFromPull`, `ListByPull`, `ListByIssueIDs` (batch), `ListByPullIDs` (batch),
+  `scanLabels` helper
+- `internal/service/label_service.go` — `NewLabelService(labels, repos, issues, pulls)`. Methods: `Create`,
+  `ListByRepo`, `Delete`, `AddToIssue`, `RemoveFromIssue`, `GetForIssue`, `AddToPull`, `RemoveFromPull`, `GetForPull`,
+  `BatchForIssues`, `BatchForPulls`
+- `internal/handler/label_handler.go` — `ListLabels`, `CreateLabel`, `DeleteLabel`, `AddIssueLabel`, `RemoveIssueLabel`,
+  `AddPullLabel`, `RemovePullLabel`, `renderIssueLabelFragment`, `renderPullLabelFragment`
 
 **Routes:**
 
@@ -454,9 +487,12 @@ POST/DELETE /api/repos/{owner}/{repo}/pulls/{number}/labels/{labelID}
 
 **Files:**
 
-- `internal/store/assignee_store.go` — `AddToIssue`, `RemoveFromIssue`, `ListByIssue`, `AddToPull`, `RemoveFromPull`, `ListByPull`, `scanUsers` helper (scans all user fields including `is_superadmin`, `is_invited`)
-- `internal/service/assignee_service.go` — `NewAssigneeService(assignees, repos, issues, pulls, users)`. Methods: `AddToIssue`, `RemoveFromIssue`, `GetForIssue`, `AddToPull`, `RemoveFromPull`, `GetForPull`
-- `internal/handler/assignee_handler.go` — `AddIssueAssignee`, `RemoveIssueAssignee`, `AddPullAssignee`, `RemovePullAssignee`. Uses `assigneeUsername(r)` for POST body, `assigneeUsernameDelete(r)` for DELETE query param
+- `internal/store/assignee_store.go` — `AddToIssue`, `RemoveFromIssue`, `ListByIssue`, `AddToPull`, `RemoveFromPull`,
+  `ListByPull`, `scanUsers` helper (scans all user fields including `is_superadmin`, `is_invited`)
+- `internal/service/assignee_service.go` — `NewAssigneeService(assignees, repos, issues, pulls, users)`. Methods:
+  `AddToIssue`, `RemoveFromIssue`, `GetForIssue`, `AddToPull`, `RemoveFromPull`, `GetForPull`
+- `internal/handler/assignee_handler.go` — `AddIssueAssignee`, `RemoveIssueAssignee`, `AddPullAssignee`,
+  `RemovePullAssignee`. Uses `assigneeUsername(r)` for POST body, `assigneeUsernameDelete(r)` for DELETE query param
 
 **Routes:**
 
@@ -482,9 +518,12 @@ POST/DELETE /api/repos/{owner}/{repo}/pulls/{number}/assignees
 
 **Files:**
 
-- `internal/store/star_store.go` — `Star`, `Unstar`, `CountByRepo`, `IsStarred`, `ListByUser`, `ListStargazers`. Uses `sql.NullInt64` for `org_id` in `scanRepos` helper.
-- `internal/service/star_service.go` — `NewStarService(stars, repos, users)`. Methods: `Star`, `Unstar`, `GetStarCount`, `IsStarred`, `ListStargazers`, `ListByUser`
-- `internal/handler/star_handler.go` — `StarRepo`, `UnstarRepo`, `ListStargazers`, `PageUserStars`, `renderStarButtonFragment`; `star_page_handler.go` — `PageStargazers`
+- `internal/store/star_store.go` — `Star`, `Unstar`, `CountByRepo`, `IsStarred`, `ListByUser`, `ListStargazers`. Uses
+  `sql.NullInt64` for `org_id` in `scanRepos` helper.
+- `internal/service/star_service.go` — `NewStarService(stars, repos, users)`. Methods: `Star`, `Unstar`, `GetStarCount`,
+  `IsStarred`, `ListStargazers`, `ListByUser`
+- `internal/handler/star_handler.go` — `StarRepo`, `UnstarRepo`, `ListStargazers`, `PageUserStars`,
+  `renderStarButtonFragment`; `star_page_handler.go` — `PageStargazers`
 
 **Routes:**
 
@@ -495,7 +534,8 @@ GET         /{owner}/{repo}/stargazers             page
 GET         /{owner}/stars                         page
 ```
 
-Note: `/{owner}/stars` is registered **before** `/{owner}/{repo}` in `router.go` so the literal segment `stars` wins over the wildcard.
+Note: `/{owner}/stars` is registered **before** `/{owner}/{repo}` in `router.go` so the literal segment `stars` wins
+over the wildcard.
 
 **Templates:**
 
@@ -526,11 +566,13 @@ ALTER TABLE repositories
 CREATE INDEX idx_repos_fork_of ON repositories(fork_of_id);
 ```
 
-**Model changes (`internal/model/repository.go`):** add `IsFork bool`, `ForkOfID *int64`, `ForkOfOwner string`, `ForkOfName string`, `ForkCount int`.
+**Model changes (`internal/model/repository.go`):** add `IsFork bool`, `ForkOfID *int64`, `ForkOfOwner string`,
+`ForkOfName string`, `ForkCount int`.
 
 **Store changes (`internal/store/repo_store.go`):**
 
-- Add `Fork(ctx, orig *model.Repository, newOwnerID int64, newOwnerName string) (*model.Repository, error)` — INSERT with `is_fork=true`, `fork_of_id`
+- Add `Fork(ctx, orig *model.Repository, newOwnerID int64, newOwnerName string) (*model.Repository, error)` — INSERT
+  with `is_fork=true`, `fork_of_id`
 - Add `IncrementForkCount(ctx, repoID int64) error`
 - Add `DecrementForkCount(ctx, repoID int64) error`
 - Add `ListForks(ctx, repoID int64) ([]model.Repository, error)`
@@ -541,7 +583,8 @@ CREATE INDEX idx_repos_fork_of ON repositories(fork_of_id);
   1. Fetch & validate original repo (must be readable by actor)
   2. Check no name collision under new owner (auto-suffix `-1` if needed)
   3. Create DB record via `store.Fork`
-  4. Git-level: `filepath.Walk` copy the bare repo directory from `ReposRoot/originalOwner/originalName.git` → `ReposRoot/newOwner/repoName.git`
+  4. Git-level: `filepath.Walk` copy the bare repo directory from `ReposRoot/originalOwner/originalName.git` →
+     `ReposRoot/newOwner/repoName.git`
   5. Call `IncrementForkCount` on original
 
 **New handler (`internal/handler/fork_handler.go`):**
@@ -594,10 +637,12 @@ CREATE TABLE releases (
 
 **Files:**
 
-- `internal/model/release.go` — `Release{ID, RepoID, TagName, Name, Body, IsPrerelease, IsDraft, AuthorID, CreatedAt, UpdatedAt, PublishedAt}`
+- `internal/model/release.go` —
+  `Release{ID, RepoID, TagName, Name, Body, IsPrerelease, IsDraft, AuthorID, CreatedAt, UpdatedAt, PublishedAt}`
 - `internal/store/release_store.go` — `Create`, `ListByRepo`, `GetByTag`, `GetLatest`, `Update`, `Delete`
 - `internal/service/release_service.go` — validates tag exists via `CodeService.ListRefs`
-- `internal/handler/release_handler.go` — `CreateRelease`, `UpdateRelease`, `DeleteRelease`; `release_page_handler.go` — `PageReleases`, `PageReleaseDetail`
+- `internal/handler/release_handler.go` — `CreateRelease`, `UpdateRelease`, `DeleteRelease`; `release_page_handler.go` —
+  `PageReleases`, `PageReleaseDetail`
 
 **Routes:**
 
@@ -609,7 +654,8 @@ GET/PATCH/DELETE /api/repos/{owner}/{repo}/releases/{id}    (authMW)
 GET        /api/repos/{owner}/{repo}/releases/latest
 ```
 
-**Templates:** `pages/releases.html`, `pages/release_detail.html`. Add releases card to `pages/repo.html` grid (showing latest tag). Bodies rendered via `markdown.Render`.
+**Templates:** `pages/releases.html`, `pages/release_detail.html`. Add releases card to `pages/repo.html` grid (showing
+latest tag). Bodies rendered via `markdown.Render`.
 
 **Page names to register:** `"releases"`, `"release_detail"`
 
@@ -643,8 +689,10 @@ CREATE INDEX idx_commit_statuses_repo_sha ON commit_statuses(repo_id, sha);
 
 **Files:**
 
-- `internal/model/commit_status.go` — `CommitStatus` struct + `CommitStatusState` type constants (`pending`, `success`, `failure`, `error`)
-- `internal/store/commit_status_store.go` — `Upsert` (via `ON CONFLICT DO UPDATE`), `ListBySHA`, `GetCombined` (aggregates to worst state)
+- `internal/model/commit_status.go` — `CommitStatus` struct + `CommitStatusState` type constants (`pending`, `success`,
+  `failure`, `error`)
+- `internal/store/commit_status_store.go` — `Upsert` (via `ON CONFLICT DO UPDATE`), `ListBySHA`, `GetCombined`
+  (aggregates to worst state)
 - `internal/service/commit_status_service.go`
 - `internal/handler/commit_status_handler.go`
 
@@ -659,8 +707,10 @@ GET  /api/repos/{owner}/{repo}/commits/{sha}/status    (optAuthMW)
 **Template changes (no new pages):**
 
 - `pages/commit.html`: status bar below commit message; extend `CommitData` with `Statuses []model.CommitStatus`
-- `pages/pull_detail.html`: combined status of head branch's latest commit; extend `PullDetailData` with `HeadStatuses []model.CommitStatus`
-- `repo_page_handler.go` `PageCommit` and `pull_detail_page_handler.go` `PagePullDetail`: call `CommitStatusService.List`
+- `pages/pull_detail.html`: combined status of head branch's latest commit; extend `PullDetailData` with
+  `HeadStatuses []model.CommitStatus`
+- `repo_page_handler.go` `PageCommit` and `pull_detail_page_handler.go` `PagePullDetail`: call
+  `CommitStatusService.List`
 
 **Wire up:**
 
@@ -690,10 +740,14 @@ ALTER TABLE pull_requests ADD COLUMN IF NOT EXISTS milestone_id BIGINT REFERENCE
 
 **Files:**
 
-- `internal/model/milestone.go` — `Milestone{ID, RepoID, Number, Title, Description, State, DueDate, ClosedAt, OpenCount, ClosedCount}` (`OpenCount`/`ClosedCount` populated via JOIN)
-- `internal/store/milestone_store.go` — `Create`, `ListByRepo`, `GetByNumber`, `Update`, `Delete`, `IncrementOpenCount`, `IncrementClosedCount`
+- `internal/model/milestone.go` —
+  `Milestone{ID, RepoID, Number, Title, Description, State, DueDate, ClosedAt, OpenCount, ClosedCount}`
+  (`OpenCount`/`ClosedCount` populated via JOIN)
+- `internal/store/milestone_store.go` — `Create`, `ListByRepo`, `GetByNumber`, `Update`, `Delete`, `IncrementOpenCount`,
+  `IncrementClosedCount`
 - `internal/service/milestone_service.go`
-- `internal/handler/milestone_api_handler.go` (JSON API), `internal/handler/milestone_page_handler.go` (pages and fragments)
+- `internal/handler/milestone_api_handler.go` (JSON API), `internal/handler/milestone_page_handler.go` (pages and
+  fragments)
 
 **Model changes:**
 
@@ -750,8 +804,10 @@ CREATE TABLE pull_reviews (
 **Files:**
 
 - `internal/model/pull_review.go` — `PullReview` struct + `PRReviewState` type constants
-- `internal/store/pull_review_store.go` — `Upsert` (via ON CONFLICT), `ListByPull`, `CountApprovals`, `HasChangesRequested`
-- `internal/service/pull_review_service.go` — `SubmitReview` (validates reviewer ≠ PR author); `CanMerge` (blocks if any `changes_requested`)
+- `internal/store/pull_review_store.go` — `Upsert` (via ON CONFLICT), `ListByPull`, `CountApprovals`,
+  `HasChangesRequested`
+- `internal/service/pull_review_service.go` — `SubmitReview` (validates reviewer ≠ PR author); `CanMerge` (blocks if any
+  `changes_requested`)
 - `internal/handler/pull_review_handler.go`
 
 **Routes:**
@@ -762,7 +818,8 @@ GET/POST /api/repos/{owner}/{repo}/pulls/{number}/reviews  (POST: authMW)
 
 **Template changes:**
 
-- `fragments/pr_reviews.html` — `fragment-pr-reviews` — reviewer list with status badges + review submission form (textarea + radio: approved / request changes / comment)
+- `fragments/pr_reviews.html` — `fragment-pr-reviews` — reviewer list with status badges + review submission form
+  (textarea + radio: approved / request changes / comment)
 - `pages/pull_detail.html`: add reviews section; gate merge buttons behind `CanMerge`
 - `pull_handler.go` `UpdatePull`: call `PullReviewService.CanMerge` before executing merge; return 422 if blocked
 
@@ -770,7 +827,8 @@ GET/POST /api/repos/{owner}/{repo}/pulls/{number}/reviews  (POST: authMW)
 
 - `PullDetailData.Reviews []model.PullReview`, `CanMerge bool`, `MergeBlockReason string`
 
-**Notification:** add `NotifPRReview` notification type; `NotificationService.NotifyPRReview` fires on review submission.
+**Notification:** add `NotifPRReview` notification type; `NotificationService.NotifyPRReview` fires on review
+submission.
 
 **Wire up:**
 
@@ -814,8 +872,10 @@ DELETE   /api/repos/{owner}/{repo}/pulls/{number}/line_comments/{id}      (authM
 
 **Template changes:**
 
-- `pages/pull_detail.html` diff table: add `data-path` + `data-line` attrs to diff rows; "+" click target reveals inline comment form; comments injected as table rows between diff lines
-- Viewmodel: add `LineComments map[string][]RenderedLineComment` to `PullDetailData` (keyed by `path`, pre-rendered body HTML)
+- `pages/pull_detail.html` diff table: add `data-path` + `data-line` attrs to diff rows; "+" click target reveals inline
+  comment form; comments injected as table rows between diff lines
+- Viewmodel: add `LineComments map[string][]RenderedLineComment` to `PullDetailData` (keyed by `path`, pre-rendered body
+  HTML)
 - `pull_detail_page_handler.go` `PagePullDetail`: call `PullLineCommentService.ListByPull`, group by path
 
 **Wire up:**
@@ -839,8 +899,10 @@ CREATE INDEX IF NOT EXISTS idx_users_username_lower ON users(lower(username));
 
 **Files:**
 
-- `internal/store/search_store.go` — `SearchRepos` (with private-visibility filter), `SearchIssues`, `SearchPulls`, `SearchUsers`
-- `internal/service/search_service.go` — runs 4 queries in parallel via `errgroup`; returns `SearchResults{Repos, Issues, Pulls, Users}`
+- `internal/store/search_store.go` — `SearchRepos` (with private-visibility filter), `SearchIssues`, `SearchPulls`,
+  `SearchUsers`
+- `internal/service/search_service.go` — runs 4 queries in parallel via `errgroup`; returns
+  `SearchResults{Repos, Issues, Pulls, Users}`
 - `internal/handler/search_page_handler.go` — `PageSearch`
 
 **Route:**
@@ -892,20 +954,27 @@ CREATE INDEX idx_access_tokens_user   ON access_tokens(user_id);
 CREATE INDEX idx_access_tokens_hash   ON access_tokens(token_hash);
 ```
 
-Raw token format: `czp_<32-byte hex>` (prefix `czp_` for Cloudzilla PAT). Only the raw token is shown once at creation time; only its SHA-256 hash is stored.
+Raw token format: `czp_<32-byte hex>` (prefix `czp_` for Cloudzilla PAT). Only the raw token is shown once at creation
+time; only its SHA-256 hash is stored.
 
 **Scopes:** `repo:read`, `repo:write`, `issues:write`, `pulls:write`, `admin` (reserved for future)
 
 **Files:**
 
-- `internal/model/access_token.go` — `AccessToken{ID, UserID, Name, TokenHash, LastEight, Scopes, LastUsedAt, ExpiresAt, CreatedAt}`
+- `internal/model/access_token.go` —
+  `AccessToken{ID, UserID, Name, TokenHash, LastEight, Scopes, LastUsedAt, ExpiresAt, CreatedAt}`
 - `internal/store/access_token_store.go` — `Create`, `ListByUser`, `GetByHash`, `UpdateLastUsed`, `Delete`
-- `internal/service/access_token_service.go` — `Generate(ctx, userID, name, scopes, expiresAt)` → `(rawToken string, token *AccessToken, error)`; `Validate(ctx, rawToken)` → `(*AccessToken, *model.User, error)`; `List`, `Delete`
-- `internal/handler/access_token_handler.go` — `PageTokens`, `CreateToken`, `DeleteToken`; `PageTokens` passes newly-created raw token via query param (one-time display via `?new_token=...` after redirect)
+- `internal/service/access_token_service.go` — `Generate(ctx, userID, name, scopes, expiresAt)` →
+  `(rawToken string, token *AccessToken, error)`; `Validate(ctx, rawToken)` → `(*AccessToken, *model.User, error)`;
+  `List`, `Delete`
+- `internal/handler/access_token_handler.go` — `PageTokens`, `CreateToken`, `DeleteToken`; `PageTokens` passes
+  newly-created raw token via query param (one-time display via `?new_token=...` after redirect)
 
 **Auth middleware extension (`internal/middleware/auth.go`):**
 
-Check `Authorization: Bearer czp_*` prefix first; if matched, call `AccessTokenService.Validate` instead of JWT decode. Populate `context` with user claims the same way JWT does. Update `last_used_at` asynchronously (`go service.UpdateLastUsed(...)`).
+Check `Authorization: Bearer czp_*` prefix first; if matched, call `AccessTokenService.Validate` instead of JWT decode.
+Populate `context` with user claims the same way JWT does. Update `last_used_at` asynchronously
+(`go service.UpdateLastUsed(...)`).
 
 **Routes:**
 
@@ -917,7 +986,8 @@ DELETE /api/user/tokens/{id}        (authMW)   — revoke PAT
 
 **Templates:**
 
-- `pages/tokens.html` — token list (name, scopes, last used, expiry, revoke button) + create form (name, scope checkboxes, optional expiry date)
+- `pages/tokens.html` — token list (name, scopes, last used, expiry, revoke button) + create form (name, scope
+  checkboxes, optional expiry date)
 - One-time raw token displayed in a highlighted box when `?new_token=...` present in URL
 
 **Navbar:** add "Settings" link to user dropdown leading to `/settings/tokens`.
@@ -955,14 +1025,19 @@ CREATE INDEX idx_deploy_keys_fingerprint ON deploy_keys(fingerprint);
 
 **Files:**
 
-- `internal/model/deploy_key.go` — `DeployKey{ID, RepoID, Title, Fingerprint, PublicKey, ReadOnly, LastUsedAt, CreatedAt}`
+- `internal/model/deploy_key.go` —
+  `DeployKey{ID, RepoID, Title, Fingerprint, PublicKey, ReadOnly, LastUsedAt, CreatedAt}`
 - `internal/store/deploy_key_store.go` — `Create`, `ListByRepo`, `GetByFingerprint`, `UpdateLastUsed`, `Delete`
-- `internal/service/deploy_key_service.go` — `Add(ctx, repoID, managerID, title, publicKey, readOnly)` (validates key format, computes MD5 fingerprint, checks uniqueness across `deploy_keys` + `ssh_keys`); `List`, `Delete`
-- `internal/handler/deploy_key_handler.go` — `ListDeployKeys`, `AddDeployKey`, `DeleteDeployKey`; HTMX-aware; renders `fragment-deploy-keys`
+- `internal/service/deploy_key_service.go` — `Add(ctx, repoID, managerID, title, publicKey, readOnly)` (validates key
+  format, computes MD5 fingerprint, checks uniqueness across `deploy_keys` + `ssh_keys`); `List`, `Delete`
+- `internal/handler/deploy_key_handler.go` — `ListDeployKeys`, `AddDeployKey`, `DeleteDeployKey`; HTMX-aware; renders
+  `fragment-deploy-keys`
 
 **SSH auth change (`internal/ssh/`):**
 
-During SSH public key lookup, check `deploy_keys` table in addition to `ssh_keys`. If a deploy key is found, populate context with `deployKeyID` + associated `repoID`. In `git-upload-pack` and `git-receive-pack` dispatch: if `deployKeyID` is set, enforce that the accessed repo matches the key's `repo_id`; block `receive-pack` for `read_only = TRUE` keys.
+During SSH public key lookup, check `deploy_keys` table in addition to `ssh_keys`. If a deploy key is found, populate
+context with `deployKeyID` + associated `repoID`. In `git-upload-pack` and `git-receive-pack` dispatch: if `deployKeyID`
+is set, enforce that the accessed repo matches the key's `repo_id`; block `receive-pack` for `read_only = TRUE` keys.
 
 **Routes:**
 
@@ -998,7 +1073,8 @@ ALTER TABLE pull_requests
 **Service change (`internal/service/pull_service.go`):**
 
 - `CreatePull`: accept `is_draft` flag; draft PRs are excluded from review-requirement checks until converted.
-- `SetDraft(ctx, pullID, userID, isDraft bool) error` — toggle; only PR author or repo manager can toggle. Sets `draft_at` on first draft.
+- `SetDraft(ctx, pullID, userID, isDraft bool) error` — toggle; only PR author or repo manager can toggle. Sets
+  `draft_at` on first draft.
 - `CanMerge`: always return false (with reason `"draft"`) when `IsDraft == true`.
 
 **Handler change (`internal/handler/pull_handler.go`):**
@@ -1009,7 +1085,8 @@ ALTER TABLE pull_requests
 **Template changes:**
 
 - `pages/pulls.html`: show "Draft" badge on draft PRs in the list; add "Drafts" filter tab alongside Open/Closed.
-- `pages/pull_detail.html`: show yellow "Draft" banner; replace merge buttons with "Convert to ready for review" button (HTMX PATCH with `is_draft=false`); hide review request form for drafts.
+- `pages/pull_detail.html`: show yellow "Draft" banner; replace merge buttons with "Convert to ready for review" button
+  (HTMX PATCH with `is_draft=false`); hide review request form for drafts.
 - `fragments/pull_detail.html`: update `fragment-pull-detail` to reflect draft state.
 
 **Viewmodel:** add `IsDraft bool` to `PullDetailData` and `PullsData` item.
@@ -1042,12 +1119,19 @@ CREATE TABLE branch_protections (
 
 **Files:**
 
-- `internal/model/branch_protection.go` — `BranchProtection{ID, RepoID, Pattern, RequireReviewCount, RequireStatusChecks, BlockForcePush}`
-- `internal/store/branch_protection_store.go` — `Create`, `ListByRepo`, `GetByRepoAndPattern`, `Update`, `Delete`, `MatchForBranch(ctx, repoID, branchName)` (returns first matching rule or nil)
-- `internal/service/branch_protection_service.go` — `Create`, `List`, `Update`, `Delete`; `CheckPush(ctx, repo, branchName, pusherID)` → `error` (returns sentinel `ErrForcePushBlocked`, and `ErrPushRequiresPR` for a rule with `require_pull_request`); `CheckMerge(ctx, repo, pr, actorID)` → `error` (returns `ErrInsufficientReviews`, `ErrStatusCheckFailed`)
+- `internal/model/branch_protection.go` —
+  `BranchProtection{ID, RepoID, Pattern, RequireReviewCount, RequireStatusChecks, BlockForcePush}`
+- `internal/store/branch_protection_store.go` — `Create`, `ListByRepo`, `GetByRepoAndPattern`, `Update`, `Delete`,
+  `MatchForBranch(ctx, repoID, branchName)` (returns first matching rule or nil)
+- `internal/service/branch_protection_service.go` — `Create`, `List`, `Update`, `Delete`;
+  `CheckPush(ctx, repo, branchName, pusherID)` → `error` (returns sentinel `ErrForcePushBlocked`, and
+  `ErrPushRequiresPR` for a rule with `require_pull_request`); `CheckMerge(ctx, repo, pr, actorID)` → `error` (returns
+  `ErrInsufficientReviews`, `ErrStatusCheckFailed`)
 - `internal/handler/branch_protection_handler.go` — CRUD handlers; HTMX-aware; renders `fragment-branch-protections`
 
-**Pattern matching:** Simple glob — `*` matches any single path segment, `**` is not needed. `fnmatch`-style: `main` matches exactly, `release/*` matches `release/v1.0`. Implement as `strings.HasPrefix` / `filepath.Match` (stdlib, no new deps).
+**Pattern matching:** Simple glob — `*` matches any single path segment, `**` is not needed. `fnmatch`-style: `main`
+matches exactly, `release/*` matches `release/v1.0`. Implement as `strings.HasPrefix` / `filepath.Match` (stdlib, no new
+deps).
 
 **Routes:**
 
@@ -1058,13 +1142,15 @@ PATCH/DELETE /api/repos/{owner}/{repo}/branches/protections/{id}     (authMW + C
 
 **Integration:**
 
-- SSH `git-receive-pack`: call `BranchProtectionService.CheckPush` after auth; return git-protocol error message on block
+- SSH `git-receive-pack`: call `BranchProtectionService.CheckPush` after auth; return git-protocol error message on
+  block
 - HTTP `git-receive-pack` handler: same check
 - `UpdatePull` merge handler: call `BranchProtectionService.CheckMerge` before dispatching merge; return 422 on block
 
 **Template changes:**
 
-- `pages/repo_settings.html`: new "Branch Protection" section; HTMX form to add/edit/delete rules; swaps `fragment-branch-protections` into `#branch-protections`
+- `pages/repo_settings.html`: new "Branch Protection" section; HTMX form to add/edit/delete rules; swaps
+  `fragment-branch-protections` into `#branch-protections`
 - `fragments/branch_protections.html` — `fragment-branch-protections`
 
 **Wire up:**
@@ -1091,12 +1177,17 @@ docs/   @bob
 
 **`CodeService` additions:**
 
-- `GetCodeOwners(owner, repo, defaultBranch string) ([]CodeOwnerRule, error)` — reads `CODEOWNERS` or `.github/CODEOWNERS`; parses lines into `{Pattern string, Owners []string}`. Returns empty slice (not error) if file absent.
-- `MatchCodeOwners(rules []CodeOwnerRule, changedFiles []string) ([]string, error)` — returns de-duped owner usernames whose patterns match any changed file. Uses `filepath.Match` for glob matching.
+- `GetCodeOwners(owner, repo, defaultBranch string) ([]CodeOwnerRule, error)` — reads `CODEOWNERS` or
+  `.github/CODEOWNERS`; parses lines into `{Pattern string, Owners []string}`. Returns empty slice (not error) if file
+  absent.
+- `MatchCodeOwners(rules []CodeOwnerRule, changedFiles []string) ([]string, error)` — returns de-duped owner usernames
+  whose patterns match any changed file. Uses `filepath.Match` for glob matching.
 
 **Service change (`internal/service/pull_service.go`):**
 
-- `CreatePull`: after creation, call `CodeService.GetCodeOwners` + `CodeService.MatchCodeOwners` on the PR's changed files (from `CodeService.GetPullDiff`). For each matched username that exists in DB, call `AssigneeService.AddToPull` automatically.
+- `CreatePull`: after creation, call `CodeService.GetCodeOwners` + `CodeService.MatchCodeOwners` on the PR's changed
+  files (from `CodeService.GetPullDiff`). For each matched username that exists in DB, call `AssigneeService.AddToPull`
+  automatically.
 
 **Template change (`pages/pull_detail.html`):** Assignees added via CODEOWNERS show a "code owner" tooltip badge.
 
@@ -1116,20 +1207,25 @@ ALTER TABLE pull_line_comments
     ADD COLUMN IF NOT EXISTS suggestion_body TEXT NOT NULL DEFAULT '';
 ```
 
-**Convention (GitHub-compatible):** A line comment body containing a fenced code block tagged ` ```suggestion ` sets `is_suggestion = TRUE` and `suggestion_body` = the block content.
+**Convention (GitHub-compatible):** A line comment body containing a fenced code block tagged ` ```suggestion ` sets
+`is_suggestion = TRUE` and `suggestion_body` = the block content.
 
 **Parse logic (`internal/service/pull_line_comment_service.go`):**
 
-`Create`: after saving, if body contains ` ```suggestion\n...\n``` `, extract `suggestion_body` and set `is_suggestion = TRUE` (regex or simple string scan — no new deps).
+`Create`: after saving, if body contains ` ```suggestion\n...\n``` `, extract `suggestion_body` and set
+`is_suggestion = TRUE` (regex or simple string scan — no new deps).
 
 **Apply suggestion flow:**
 
 1. Button click → `POST /api/repos/{owner}/{repo}/pulls/{number}/line_comments/{id}/apply` (authMW + write)
-2. `ApplySuggestion` handler: fetch comment, verify `is_suggestion`, read current file blob at `head_sha`, replace lines `[line..line+suggestion_lines-1]` with `suggestion_body`, commit directly to head branch (signed as the applier), return `HX-Redirect` to updated PR diff.
+2. `ApplySuggestion` handler: fetch comment, verify `is_suggestion`, read current file blob at `head_sha`, replace lines
+   `[line..line+suggestion_lines-1]` with `suggestion_body`, commit directly to head branch (signed as the applier),
+   return `HX-Redirect` to updated PR diff.
 
 **`CodeService` addition:**
 
-- `ApplySuggestion(owner, repo, branch, path string, startLine, endLine int, replacement, authorName, authorEmail, commitMsg string) error` — reads blob, replaces line range, writes new tree + commit, updates branch ref.
+- `ApplySuggestion(owner, repo, branch, path string, startLine, endLine int, replacement, authorName, authorEmail, commitMsg string) error`
+  — reads blob, replaces line range, writes new tree + commit, updates branch ref.
 
 **Handler:** `internal/handler/pull_line_comment_handler.go` — add `ApplySuggestion`.
 
@@ -1164,14 +1260,18 @@ ALTER TABLE pull_requests
 
 **Service change (`internal/service/pull_service.go`):**
 
-- `EnableAutoMerge(ctx, pullID, userID, strategy string) error` — sets `auto_merge_enabled = TRUE`, `auto_merge_strategy`; requires write access.
+- `EnableAutoMerge(ctx, pullID, userID, strategy string) error` — sets `auto_merge_enabled = TRUE`,
+  `auto_merge_strategy`; requires write access.
 - `DisableAutoMerge(ctx, pullID, userID) error`.
-- `TryAutoMerge(ctx, repo *model.Repository, pullID int64)` — called (as goroutine) whenever a review is submitted or a commit status changes; calls `CanMerge`; if true, dispatches the chosen merge strategy. Must be idempotent (check `auto_merge_enabled` and `state == "open"` first).
+- `TryAutoMerge(ctx, repo *model.Repository, pullID int64)` — called (as goroutine) whenever a review is submitted or a
+  commit status changes; calls `CanMerge`; if true, dispatches the chosen merge strategy. Must be idempotent (check
+  `auto_merge_enabled` and `state == "open"` first).
 
 **Trigger points:**
 
 - `pull_review_handler.go` `SubmitReview`: after saving review, call `go services.Pull.TryAutoMerge(...)`.
-- `commit_status_handler.go` `CreateStatus`: after upserting status, call `go services.Pull.TryAutoMerge(...)` for any open PRs whose `head_sha` matches.
+- `commit_status_handler.go` `CreateStatus`: after upserting status, call `go services.Pull.TryAutoMerge(...)` for any
+  open PRs whose `head_sha` matches.
 
 **Handler change:**
 
@@ -1179,7 +1279,8 @@ ALTER TABLE pull_requests
 
 **Template changes:**
 
-- `pages/pull_detail.html`: "Enable auto-merge" dropdown button (select strategy, then confirm) shown when PR is open + not draft + no blocking reviews; shows "Auto-merge enabled" badge when active; "Disable" link to cancel.
+- `pages/pull_detail.html`: "Enable auto-merge" dropdown button (select strategy, then confirm) shown when PR is open +
+  not draft + no blocking reviews; shows "Auto-merge enabled" badge when active; "Disable" link to cancel.
 
 **Viewmodel:** add `AutoMergeEnabled bool`, `AutoMergeStrategy string` to `PullDetailData`.
 
@@ -1197,12 +1298,15 @@ _Zero-migration — reads template files from the repository via `CodeService`._
 
 **`CodeService` additions:**
 
-- `GetIssueTemplates(owner, repo, defaultBranch string) ([]IssueTemplate, error)` — reads `.github/ISSUE_TEMPLATE/` tree; falls back to single `.github/ISSUE_TEMPLATE.md`; returns `[]IssueTemplate{Name, Body}`.
-- `GetPRTemplate(owner, repo, defaultBranch string) (string, error)` — reads `.github/PULL_REQUEST_TEMPLATE.md`; returns raw markdown or `""`.
+- `GetIssueTemplates(owner, repo, defaultBranch string) ([]IssueTemplate, error)` — reads `.github/ISSUE_TEMPLATE/`
+  tree; falls back to single `.github/ISSUE_TEMPLATE.md`; returns `[]IssueTemplate{Name, Body}`.
+- `GetPRTemplate(owner, repo, defaultBranch string) (string, error)` — reads `.github/PULL_REQUEST_TEMPLATE.md`; returns
+  raw markdown or `""`.
 
 **Handler changes:**
 
-- `PageNewIssue` (new page handler): calls `GetIssueTemplates`; if multiple, renders template chooser; if single, pre-fills body textarea.
+- `PageNewIssue` (new page handler): calls `GetIssueTemplates`; if multiple, renders template chooser; if single,
+  pre-fills body textarea.
 - `PageNewPull` (new page handler): calls `GetPRTemplate`; pre-fills body textarea with template.
 
 **Routes:**
@@ -1241,10 +1345,13 @@ CREATE INDEX idx_reactions_comment ON reactions(comment_id);
 
 **Files:**
 
-- `internal/model/reaction.go` — `Reaction{ID, UserID, CommentID, Emoji, CreatedAt}`; `ReactionSummary{Emoji, Count, UserReacted bool}`
-- `internal/store/reaction_store.go` — `Toggle(ctx, userID, commentID, emoji)` → `(added bool, error)` (INSERT ON CONFLICT DO DELETE pattern); `ListByComment(ctx, commentID, callerID)` → `[]ReactionSummary`
+- `internal/model/reaction.go` — `Reaction{ID, UserID, CommentID, Emoji, CreatedAt}`;
+  `ReactionSummary{Emoji, Count, UserReacted bool}`
+- `internal/store/reaction_store.go` — `Toggle(ctx, userID, commentID, emoji)` → `(added bool, error)` (INSERT ON
+  CONFLICT DO DELETE pattern); `ListByComment(ctx, commentID, callerID)` → `[]ReactionSummary`
 - `internal/service/reaction_service.go` — `Toggle`, `List`
-- `internal/handler/reaction_handler.go` — `ToggleReaction` (POST/DELETE, HTMX-aware, swaps `fragment-reactions` into `#reactions-{commentID}`)
+- `internal/handler/reaction_handler.go` — `ToggleReaction` (POST/DELETE, HTMX-aware, swaps `fragment-reactions` into
+  `#reactions-{commentID}`)
 
 **Routes:**
 
@@ -1261,7 +1368,8 @@ POST   /api/repos/{owner}/{repo}/comments/{id}/reactions   (authMW)  — toggle 
 
 ## Phase 8 — Two-Factor Auth (TOTP), Audit Log, LDAP / SAML SSO ✅ IMPLEMENTED
 
-_Instance security hardening: strong authentication, accountability, and enterprise identity integration. Implemented as 8.1 (migration 034), 8.2 (035) and 8.3 (106)._
+_Instance security hardening: strong authentication, accountability, and enterprise identity integration. Implemented as
+8.1 (migration 034), 8.2 (035) and 8.3 (106)._
 
 ### 8.1 Two-Factor Authentication (TOTP)
 
@@ -1276,12 +1384,18 @@ ALTER TABLE users
     ADD COLUMN IF NOT EXISTS totp_backup_codes TEXT[];    -- hashed backup codes (bcrypt)
 ```
 
-**TOTP library:** use `crypto/hmac` + `encoding/base32` from stdlib to implement RFC 6238 TOTP directly — no new dependency. Algorithm: `HOTP(secret, T)` where `T = floor(unix_ts / 30)`, HMAC-SHA1, 6-digit code.
+**TOTP library:** use `crypto/hmac` + `encoding/base32` from stdlib to implement RFC 6238 TOTP directly — no new
+dependency. Algorithm: `HOTP(secret, T)` where `T = floor(unix_ts / 30)`, HMAC-SHA1, 6-digit code.
 
 **Files:**
 
-- `internal/service/totp_service.go` — `Generate() (secret, otpAuthURL string, qrPNG []byte)` (QR encoded as base64 data URL using `image/png` + `encoding/base64`); `Verify(secret, code string) bool`; `Enable(ctx, userID, secret, code string) error` (verifies code before storing); `Disable(ctx, userID, code string) error`; `GenerateBackupCodes() ([]string, error)` (10 codes, 8 chars each, hashed with `bcrypt`)
-- `internal/handler/totp_handler.go` — `EnableTOTP`, `DisableTOTP`, `VerifyTOTP` (second step of login); `totp_page_handler.go` — `PageTOTPSetup`
+- `internal/service/totp_service.go` — `Generate() (secret, otpAuthURL string, qrPNG []byte)` (QR encoded as base64 data
+  URL using `image/png` + `encoding/base64`); `Verify(secret, code string) bool`;
+  `Enable(ctx, userID, secret, code string) error` (verifies code before storing);
+  `Disable(ctx, userID, code string) error`; `GenerateBackupCodes() ([]string, error)` (10 codes, 8 chars each, hashed
+  with `bcrypt`)
+- `internal/handler/totp_handler.go` — `EnableTOTP`, `DisableTOTP`, `VerifyTOTP` (second step of login);
+  `totp_page_handler.go` — `PageTOTPSetup`
 
 **Login flow change (`internal/handler/auth_handler.go`):**
 
@@ -1302,7 +1416,8 @@ POST     /api/user/totp/disable        (authMW)
 
 **Templates:**
 
-- `pages/security.html` — 2FA setup: QR code image + manual secret + verification input; backup codes display (shown once after enable)
+- `pages/security.html` — 2FA setup: QR code image + manual secret + verification input; backup codes display (shown
+  once after enable)
 - `pages/totp_verify.html` — 6-digit code entry page shown mid-login
 
 **Page names to register:** `"security"`, `"totp_verify"`
@@ -1338,13 +1453,19 @@ CREATE INDEX idx_audit_log_actor   ON audit_log(actor_id, created_at DESC);
 CREATE INDEX idx_audit_log_created ON audit_log(created_at DESC);
 ```
 
-**Actions logged:** `user.login`, `user.login_failed`, `user.logout`, `user.register`, `repo.create`, `repo.delete`, `repo.transfer`, `repo.archive`, `permission.add`, `permission.remove`, `org.create`, `org.transfer`, `invite.create`, `invite.accept`, `settings.update`, `admin.impersonate`
+**Actions logged:** `user.login`, `user.login_failed`, `user.logout`, `user.register`, `repo.create`, `repo.delete`,
+`repo.transfer`, `repo.archive`, `permission.add`, `permission.remove`, `org.create`, `org.transfer`, `invite.create`,
+`invite.accept`, `settings.update`, `admin.impersonate`
 
 **Files:**
 
-- `internal/model/audit_log.go` — `AuditEntry{ID, ActorID, ActorName, Action, TargetType, TargetID, TargetName, IPAddress, UserAgent, Metadata, CreatedAt}`
-- `internal/store/audit_log_store.go` — `Create`, `List(ctx, filters AuditFilter, page, pageSize)`; `AuditFilter{ActorID, Action, TargetType, Since, Until}`
-- `internal/service/audit_service.go` — `Record(ctx, r *http.Request, actorID int64, actorName, action, targetType string, targetID int64, targetName string, metadata map[string]any)` (fire-and-forget `go`)
+- `internal/model/audit_log.go` —
+  `AuditEntry{ID, ActorID, ActorName, Action, TargetType, TargetID, TargetName, IPAddress, UserAgent, Metadata, CreatedAt}`
+- `internal/store/audit_log_store.go` — `Create`, `List(ctx, filters AuditFilter, page, pageSize)`;
+  `AuditFilter{ActorID, Action, TargetType, Since, Until}`
+- `internal/service/audit_service.go` —
+  `Record(ctx, r *http.Request, actorID int64, actorName, action, targetType string, targetID int64, targetName string, metadata map[string]any)`
+  (fire-and-forget `go`)
 - `internal/handler/audit_page_handler.go` — `PageAuditLog` (superadmin only)
 
 **Routes:**
@@ -1364,7 +1485,8 @@ GET /admin/audit    (authMW + superadmin)   page
 - `stores.go`: add `AuditLog *AuditLogStore`
 - `services.go`: add `AuditLog *AuditLogService`
 - `router.go`: register route + page name
-- Call `go services.AuditLog.Record(...)` in: `Login`, `Register`, `GoogleOAuthCallback`, `CreateRepo`, `DeleteRepo`, `TransferRepo`, `AddCollaborator`, `RemoveCollaborator`, `UpdateSiteSettings`, `CreateInvitation`
+- Call `go services.AuditLog.Record(...)` in: `Login`, `Register`, `GoogleOAuthCallback`, `CreateRepo`, `DeleteRepo`,
+  `TransferRepo`, `AddCollaborator`, `RemoveCollaborator`, `UpdateSiteSettings`, `CreateInvitation`
 
 ---
 
@@ -1389,16 +1511,21 @@ ALTER TABLE users
     ADD CONSTRAINT uq_users_sso UNIQUE (sso_provider, sso_id);
 ```
 
-**LDAP flow:** simple bind as the DN built from `bind_dn_tmpl` (no search step) → upsert user: an `sso_id` match signs in, an existing email is refused rather than linked, otherwise a new user. Config keys: `host`, `port`, `base_dn`, `bind_dn_tmpl`, `use_tls`. See [sso](./sso.md).
+**LDAP flow:** simple bind as the DN built from `bind_dn_tmpl` (no search step) → upsert user: an `sso_id` match signs
+in, an existing email is refused rather than linked, otherwise a new user. Config keys: `host`, `port`, `base_dn`,
+`bind_dn_tmpl`, `use_tls`. See [sso](./sso.md).
 
-**SAML flow:** SP-initiated redirect → identity provider → ACS `POST /auth/saml/callback` → verify the assertion signature → upsert user. The signature is checked with `goxmldsig` (see the Phase 20 waiver below) and the claims are parsed from the verified assertion with `encoding/xml`; SP metadata served at `GET /auth/saml/metadata`.
+**SAML flow:** SP-initiated redirect → identity provider → ACS `POST /auth/saml/callback` → verify the assertion
+signature → upsert user. The signature is checked with `goxmldsig` (see the Phase 20 waiver below) and the claims are
+parsed from the verified assertion with `encoding/xml`; SP metadata served at `GET /auth/saml/metadata`.
 
 **Files:**
 
 - `internal/service/sso_service.go` — `GetConfig(ctx, provider)`, `SetConfig(ctx, provider, config, enabled)`
 - `internal/service/sso_ldap.go` — `AuthenticateLDAP(ctx, username, password)`
 - `internal/service/sso_saml.go` — `HandleSAMLCallback(ctx, samlResponse)`
-- `internal/handler/sso_handler.go` — `SaveSSOConfig`, `InitiateSAML`, `SAMLCallback`, `SAMLMetadata`; `sso_page_handler.go` — `PageSSOSettings` (superadmin)
+- `internal/handler/sso_handler.go` — `SaveSSOConfig`, `InitiateSAML`, `SAMLCallback`, `SAMLMetadata`;
+  `sso_page_handler.go` — `PageSSOSettings` (superadmin)
 
 **Routes:**
 
@@ -1414,7 +1541,8 @@ POST     /auth/ldap              — LDAP credential login (form: username, pass
 **Templates:**
 
 - Extend `pages/login.html` to show "Sign in with SSO" button when LDAP or SAML is enabled.
-- `pages/sso_settings.html` — provider toggle + config form per provider (LDAP fields / SAML entity ID + IdP metadata URL).
+- `pages/sso_settings.html` — provider toggle + config form per provider (LDAP fields / SAML entity ID + IdP metadata
+  URL).
 
 **Page names to register:** `"sso_settings"`
 
@@ -1471,11 +1599,15 @@ CREATE INDEX idx_project_cards_pull   ON project_cards(pull_id);
 
 **Files:**
 
-- `internal/model/project.go` — `Project`, `ProjectColumn`, `ProjectCard` structs; `ProjectCard` has helper fields `IssueTitle`, `IssueState`, `PullTitle`, `PullState` (populated via JOIN in store)
-- `internal/store/project_store.go` — `CreateProject`, `ListByRepo`, `GetProject`, `DeleteProject`; `CreateColumn`, `ListColumns`, `UpdateColumnPosition`, `DeleteColumn`; `CreateCard`, `ListCardsByColumn`, `MoveCard(ctx, cardID, newColumnID, newPosition)`, `DeleteCard`
+- `internal/model/project.go` — `Project`, `ProjectColumn`, `ProjectCard` structs; `ProjectCard` has helper fields
+  `IssueTitle`, `IssueState`, `PullTitle`, `PullState` (populated via JOIN in store)
+- `internal/store/project_store.go` — `CreateProject`, `ListByRepo`, `GetProject`, `DeleteProject`; `CreateColumn`,
+  `ListColumns`, `UpdateColumnPosition`, `DeleteColumn`; `CreateCard`, `ListCardsByColumn`,
+  `MoveCard(ctx, cardID, newColumnID, newPosition)`, `DeleteCard`
 - `internal/service/project_service.go`
 - `internal/handler/project_page_handler.go` — `PageProjects`, `PageProjectDetail`
-- `internal/handler/project_handler.go` — `CreateProject`, `DeleteProject`, `CreateColumn`, `DeleteColumn`, `CreateCard`, `MoveCard`, `DeleteCard`; HTMX-aware card move uses `hx-patch` with `column_id` + `position`
+- `internal/handler/project_handler.go` — `CreateProject`, `DeleteProject`, `CreateColumn`, `DeleteColumn`,
+  `CreateCard`, `MoveCard`, `DeleteCard`; HTMX-aware card move uses `hx-patch` with `column_id` + `position`
 
 **Routes:**
 
@@ -1494,11 +1626,15 @@ DELETE     /api/repos/{owner}/{repo}/projects/{id}/cards/{cardID}   (authMW)
 **Templates:**
 
 - `pages/projects.html` — list of boards for the repo
-- `pages/project_detail.html` — Kanban board: columns side by side, cards per column; drag-and-drop via HTMX + `hx-on:dragend` firing a `PATCH` to move card; no extra JS lib needed (native HTML5 drag events + HTMX `hx-trigger="dragend"`)
+- `pages/project_detail.html` — Kanban board: columns side by side, cards per column; drag-and-drop via HTMX +
+  `hx-on:dragend` firing a `PATCH` to move card; no extra JS lib needed (native HTML5 drag events + HTMX
+  `hx-trigger="dragend"`)
 
 **Page names to register:** `"projects"`, `"project_detail"`
 
-**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `116`), `#N` autolinks in descriptions, convert-to-issue and a card modal; see the card API in [api-reference](./api-reference.md#projects-kanban).
+**Later:** cards gained a title, description, due date, assignees, labels and an issue/PR link (migration `116`), `#N`
+autolinks in descriptions, convert-to-issue and a card modal; see the card API in
+[api-reference](./api-reference.md#projects-kanban).
 
 **Wire up:**
 
@@ -1512,18 +1648,24 @@ DELETE     /api/repos/{owner}/{repo}/projects/{id}/cards/{cardID}   (authMW)
 
 _Per-repository wiki backed by a bare git repo on disk._
 
-**No migration needed.** Wiki content lives in a separate bare git repo at `<ReposRoot>/<owner>/<repo>.wiki.git`. Created on first wiki page save. See [wiki](./wiki.md).
+**No migration needed.** Wiki content lives in a separate bare git repo at `<ReposRoot>/<owner>/<repo>.wiki.git`.
+Created on first wiki page save. See [wiki](./wiki.md).
 
 **`CodeService` additions:**
 
-- `WikiPageList(owner, repo string)` → `([]string, error)` — reads root tree of default branch, returns `.md` filenames (stripped of extension)
-- `WikiPageGet(owner, repo, slug string)` → `(string, bool, error)` — reads `<slug>.md` blob, returns raw markdown and found=true; returns `("", false, nil)` if absent
-- `WikiPageSave(owner, repo, slug, content, authorName, authorEmail, message string)` → `error` — creates or updates `<slug>.md` in wiki repo; commits directly to `main` branch (creates branch if first commit)
+- `WikiPageList(owner, repo string)` → `([]string, error)` — reads root tree of default branch, returns `.md` filenames
+  (stripped of extension)
+- `WikiPageGet(owner, repo, slug string)` → `(string, bool, error)` — reads `<slug>.md` blob, returns raw markdown and
+  found=true; returns `("", false, nil)` if absent
+- `WikiPageSave(owner, repo, slug, content, authorName, authorEmail, message string)` → `error` — creates or updates
+  `<slug>.md` in wiki repo; commits directly to `main` branch (creates branch if first commit)
 - `WikiPageDelete(owner, repo, slug string)` → `error`
 
-Wiki repo path helper: `filepath.Join(cfg.ReposRoot, owner, repo+".wiki.git")`. Init with `go-git PlainInit(path, true)` on first save.
+Wiki repo path helper: `filepath.Join(cfg.ReposRoot, owner, repo+".wiki.git")`. Init with `go-git PlainInit(path, true)`
+on first save.
 
-**Handler:** `internal/handler/wiki_handler.go` — `CreateOrUpdateWikiPage`, `DeleteWikiPage`; `wiki_page_handler.go` — `PageWikiHome` (redirects to `Home` page or shows page list), `PageWikiPage`, `PageWikiEdit`
+**Handler:** `internal/handler/wiki_handler.go` — `CreateOrUpdateWikiPage`, `DeleteWikiPage`; `wiki_page_handler.go` —
+`PageWikiHome` (redirects to `Home` page or shows page list), `PageWikiPage`, `PageWikiEdit`
 
 **Routes:**
 
@@ -1560,7 +1702,8 @@ CREATE INDEX idx_issues_pinned ON issues(repo_id, is_pinned) WHERE is_pinned = T
 
 **Service changes (`internal/service/issue_service.go`):**
 
-- `PinIssue(ctx, issueID, repoID, userID) error` — CanManage required; checks that fewer than 3 issues are already pinned in the repo; sets `is_pinned = TRUE`.
+- `PinIssue(ctx, issueID, repoID, userID) error` — CanManage required; checks that fewer than 3 issues are already
+  pinned in the repo; sets `is_pinned = TRUE`.
 - `UnpinIssue(ctx, issueID, repoID, userID) error`.
 - `LockIssue(ctx, issueID, repoID, userID) error` — CanManage required; sets `is_locked = TRUE`, `locked_at = NOW()`.
 - `UnlockIssue(ctx, issueID, repoID, userID) error`.
@@ -1576,7 +1719,8 @@ PATCH /api/repos/{owner}/{repo}/issues/{number}/lock   (authMW + CanManage)
 **Template changes:**
 
 - `pages/issues.html`: pinned issues rendered in a separate "Pinned" section at the top of the list.
-- `pages/issue_detail.html`: show "Locked" banner; hide comment form for non-maintainers when locked; show "Unpin" / "Unlock" buttons in the issue sidebar for maintainers.
+- `pages/issue_detail.html`: show "Locked" banner; hide comment form for non-maintainers when locked; show "Unpin" /
+  "Unlock" buttons in the issue sidebar for maintainers.
 
 ---
 
@@ -1590,9 +1734,12 @@ _Zero-migration — derives data from git history and existing tables._
 
 **`CodeService` additions:**
 
-- `GetContributors(owner, repo string)` → `([]ContributorStat, error)` — walks all commits, aggregates `{Name, Email, Commits, Additions, Deletions}` per author; top 100 by commit count
-- `GetCommitActivity(owner, repo string)` → `([]WeeklyActivity, error)` — returns last 52 weeks of `{Week (Unix ts), Total, Days [7]int}` commit counts
-- `GetCodeFrequency(owner, repo string)` → `([]CodeFrequencyWeek, error)` — weekly `{Week, Additions, Deletions}` for last 52 weeks (walks diffs)
+- `GetContributors(owner, repo string)` → `([]ContributorStat, error)` — walks all commits, aggregates
+  `{Name, Email, Commits, Additions, Deletions}` per author; top 100 by commit count
+- `GetCommitActivity(owner, repo string)` → `([]WeeklyActivity, error)` — returns last 52 weeks of
+  `{Week (Unix ts), Total, Days [7]int}` commit counts
+- `GetCodeFrequency(owner, repo string)` → `([]CodeFrequencyWeek, error)` — weekly `{Week, Additions, Deletions}` for
+  last 52 weeks (walks diffs)
 
 **Handler:** `internal/handler/insights_page_handler.go` — `PageInsights`, `PageContributors`, `PagePulse`
 
@@ -1605,8 +1752,10 @@ GET /{owner}/{repo}/graphs/contributors          page
 
 **Templates:**
 
-- `pages/pulse.html` — summary: new issues, closed issues, new PRs, merged PRs, open PRs, commits in last 30 days; contributor avatars; no charts (prose + counts)
-- `pages/contributors.html` — table of contributors sorted by commit count with bars rendered as inline `<div>` width percentage (pure CSS, no JS)
+- `pages/pulse.html` — summary: new issues, closed issues, new PRs, merged PRs, open PRs, commits in last 30 days;
+  contributor avatars; no charts (prose + counts)
+- `pages/contributors.html` — table of contributors sorted by commit count with bars rendered as inline `<div>` width
+  percentage (pure CSS, no JS)
 
 **Page names to register:** `"pulse"`, `"contributors"`
 
@@ -1633,15 +1782,20 @@ CREATE INDEX idx_mentions_user ON mentions(user_id);
 
 **Parse logic (`internal/service/comment_service.go`):**
 
-After saving a comment body, scan for `@username` tokens using a simple regex (`@[A-Za-z0-9_-]+`). For each unique match, look up the user by username; if found and user differs from author, insert a `mentions` row and call `NotificationService.NotifyMention(ctx, repo, issue/pr, actorID, actorName, mentionedUserID)`.
+After saving a comment body, scan for `@username` tokens using a simple regex (`@[A-Za-z0-9_-]+`). For each unique
+match, look up the user by username; if found and user differs from author, insert a `mentions` row and call
+`NotificationService.NotifyMention(ctx, repo, issue/pr, actorID, actorName, mentionedUserID)`.
 
-**Notification type:** add `NotifMention` const to `model/notification.go`; add `NotifyMention` to `notification_service.go`.
+**Notification type:** add `NotifMention` const to `model/notification.go`; add `NotifyMention` to
+`notification_service.go`.
 
 **Template changes:**
 
-- Render `@username` tokens in comment bodies as links to `/{username}` (via a `renderMentions` template helper or server-side text transformation before passing to template).
+- Render `@username` tokens in comment bodies as links to `/{username}` (via a `renderMentions` template helper or
+  server-side text transformation before passing to template).
 
-**No new store or service files required** — mention lookup and notification are inline in the existing comment create path.
+**No new store or service files required** — mention lookup and notification are inline in the existing comment create
+path.
 
 ---
 
@@ -1668,7 +1822,8 @@ CREATE INDEX idx_saved_replies_user ON saved_replies(user_id);
 - `internal/model/saved_reply.go` — `SavedReply{ID, UserID, Title, Body, CreatedAt, UpdatedAt}`
 - `internal/store/saved_reply_store.go` — `Create`, `ListByUser`, `GetByID`, `Update`, `Delete`
 - `internal/service/saved_reply_service.go` — `Create`, `List`, `Update`, `Delete`
-- `internal/handler/saved_reply_handler.go` — `PageSavedReplies`, `CreateSavedReply`, `UpdateSavedReply`, `DeleteSavedReply`, `ListSavedRepliesFragment`
+- `internal/handler/saved_reply_handler.go` — `PageSavedReplies`, `CreateSavedReply`, `UpdateSavedReply`,
+  `DeleteSavedReply`, `ListSavedRepliesFragment`
 
 **Routes:**
 
@@ -1684,7 +1839,8 @@ GET    /api/user/replies                 (authMW)   — list (HTMX fragment for 
 
 - `pages/saved_replies.html` — list + inline edit form; HTMX swaps `fragment-saved-replies` into `#saved-replies`
 - `fragments/saved_replies.html` — `fragment-saved-replies`
-- Extend comment textareas with a small "Saved replies" picker button (`hx-get` to load `fragment-saved-replies` into a dropdown, then `hx-on:click` fills textarea)
+- Extend comment textareas with a small "Saved replies" picker button (`hx-get` to load `fragment-saved-replies` into a
+  dropdown, then `hx-on:click` fills textarea)
 
 **Page names to register:** `"saved_replies"`
 
@@ -1726,16 +1882,22 @@ type SMTPConfig struct {
 }
 ```
 
-Viper keys: `smtp.host`, `smtp.port`, `smtp.username`, `smtp.password`, `smtp.from`, `smtp.tls`. When `smtp.host` is empty, email sending is silently skipped.
+Viper keys: `smtp.host`, `smtp.port`, `smtp.username`, `smtp.password`, `smtp.from`, `smtp.tls`. When `smtp.host` is
+empty, email sending is silently skipped.
 
 **Files:**
 
-- `internal/service/email_service.go` — `Send(to, subject, htmlBody string) error` (uses `net/smtp`; builds `MIME` multipart message with plain-text fallback); `SendNotification(ctx, userID int64, notif *model.Notification)` — checks user's `email_notifications` preference before sending; renders subject/body from notification type
+- `internal/service/email_service.go` — `Send(to, subject, htmlBody string) error` (uses `net/smtp`; builds `MIME`
+  multipart message with plain-text fallback); `SendNotification(ctx, userID int64, notif *model.Notification)` — checks
+  user's `email_notifications` preference before sending; renders subject/body from notification type
 - `internal/handler/settings_handler.go` — `PageEmailSettings`, `UpdateEmailSettings`
 
-**Integration:** Extend each `NotificationService.NotifyX` method to call `go services.Email.SendNotification(...)` after creating the DB notification record.
+**Integration:** Extend each `NotificationService.NotifyX` method to call `go services.Email.SendNotification(...)`
+after creating the DB notification record.
 
-**Daily/weekly digest:** `CronService` (or a goroutine started in `cmd/server/main.go`) runs at 08:00 UTC; calls `NotificationService.ListUnread` for each user with `email_digest=daily|weekly`; batches into one email; marks notifications as emailed.
+**Daily/weekly digest:** `CronService` (or a goroutine started in `cmd/server/main.go`) runs at 08:00 UTC; calls
+`NotificationService.ListUnread` for each user with `email_digest=daily|weekly`; batches into one email; marks
+notifications as emailed.
 
 **Routes:**
 
@@ -1793,9 +1955,12 @@ CREATE TABLE oauth_authorizations (
 **Files:**
 
 - `internal/model/oauth_app.go` — `OAuthApp`, `OAuthAuthorization`
-- `internal/store/oauth_app_store.go` — `CreateApp`, `GetByClientID`, `ListByOwner`, `DeleteApp`; `CreateAuthorization`, `ExchangeCode`, `GetByToken`, `RevokeAuthorization`
-- `internal/service/oauth_app_service.go` — `CreateApp`, `Authorize(ctx, appID, userID, scopes)`, `ExchangeCode(ctx, clientID, secret, code)`, `RevokeAccess`
-- `internal/handler/oauth_handler.go` — `PageAuthorize`, `ConfirmAuthorize`, `TokenEndpoint`, `PageOAuthApps`, `CreateApp`, `DeleteApp`
+- `internal/store/oauth_app_store.go` — `CreateApp`, `GetByClientID`, `ListByOwner`, `DeleteApp`; `CreateAuthorization`,
+  `ExchangeCode`, `GetByToken`, `RevokeAuthorization`
+- `internal/service/oauth_app_service.go` — `CreateApp`, `Authorize(ctx, appID, userID, scopes)`,
+  `ExchangeCode(ctx, clientID, secret, code)`, `RevokeAccess`
+- `internal/handler/oauth_handler.go` — `PageAuthorize`, `ConfirmAuthorize`, `TokenEndpoint`, `PageOAuthApps`,
+  `CreateApp`, `DeleteApp`
 
 **Routes:**
 
@@ -1829,10 +1994,13 @@ ALTER TABLE webhook_deliveries
 
 **Retry logic (`internal/service/webhook_service.go`):**
 
-- `Dispatch`: on non-2xx response or network error, set `next_retry_at = NOW() + backoff(attempt_count)` (backoff: 1 min, 5 min, 30 min, 2 h, 8 h — capped at 5 retries).
-- Add `RetryPending(ctx)` — queries `webhook_deliveries WHERE next_retry_at <= NOW() AND attempt_count <= 5`; re-dispatches each; called from a background goroutine every 60 seconds.
+- `Dispatch`: on non-2xx response or network error, set `next_retry_at = NOW() + backoff(attempt_count)` (backoff: 1
+  min, 5 min, 30 min, 2 h, 8 h — capped at 5 retries).
+- Add `RetryPending(ctx)` — queries `webhook_deliveries WHERE next_retry_at <= NOW() AND attempt_count <= 5`;
+  re-dispatches each; called from a background goroutine every 60 seconds.
 
-**Per-event filtering:** `webhooks.events` column already exists as `TEXT[]`. The `Dispatch` method already checks event membership. Add UI to edit event subscriptions for existing hooks.
+**Per-event filtering:** `webhooks.events` column already exists as `TEXT[]`. The `Dispatch` method already checks event
+membership. Add UI to edit event subscriptions for existing hooks.
 
 **New routes:**
 
@@ -1841,7 +2009,8 @@ PATCH /api/repos/{owner}/{repo}/hooks/{id}    (authMW + write)   — update even
 POST  /api/repos/{owner}/{repo}/hooks/{id}/redeliver (authMW + write) — manually redeliver a delivery
 ```
 
-**Template change (`pages/repo_settings.html`):** Show retry status in delivery history; add "Redeliver" button per delivery; add event filter checkboxes to the webhook edit form.
+**Template change (`pages/repo_settings.html`):** Show retry status in delivery history; add "Redeliver" button per
+delivery; add event filter checkboxes to the webhook edit form.
 
 ---
 
@@ -1866,7 +2035,10 @@ CREATE INDEX idx_watches_repo ON watches(repo_id);
 CREATE INDEX idx_watches_user ON watches(user_id);
 ```
 
-Users can watch a repo at three levels: `watching` (all events), `releases_only` (new releases only), or `ignoring` (suppress all notifications). The watch button appears next to the star button on repo pages. `NotificationService.NotifyX` methods fan out notifications to all watchers at the appropriate level. Watch/unwatch via `PUT/DELETE /api/repos/{owner}/{repo}/watch` (authMW); HTMX swaps `fragment-watch-button`.
+Users can watch a repo at three levels: `watching` (all events), `releases_only` (new releases only), or `ignoring`
+(suppress all notifications). The watch button appears next to the star button on repo pages.
+`NotificationService.NotifyX` methods fan out notifications to all watchers at the appropriate level. Watch/unwatch via
+`PUT/DELETE /api/repos/{owner}/{repo}/watch` (authMW); HTMX swaps `fragment-watch-button`.
 
 ---
 
@@ -1890,7 +2062,11 @@ CREATE INDEX idx_events_actor ON events(actor_id, created_at DESC);
 CREATE INDEX idx_events_repo  ON events(repo_id,  created_at DESC);
 ```
 
-Event types: `push`, `issue_opened`, `issue_closed`, `pr_opened`, `pr_merged`, `pr_closed`, `fork`, `star`, `release_published`, `member_added`. `EventService.Record(...)` is called fire-and-forget (`go`) at each action point. `GET /feed` (authMW) renders a personal timeline of events from repos the user watches or owns. Public per-user activity is shown on the profile page. When a logged-in user hits `/`, redirect to `/feed`; unauthenticated users see the current landing page.
+Event types: `push`, `issue_opened`, `issue_closed`, `pr_opened`, `pr_merged`, `pr_closed`, `fork`, `star`,
+`release_published`, `member_added`. `EventService.Record(...)` is called fire-and-forget (`go`) at each action point.
+`GET /feed` (authMW) renders a personal timeline of events from repos the user watches or owns. Public per-user activity
+is shown on the profile page. When a logged-in user hits `/`, redirect to `/feed`; unauthenticated users see the current
+landing page.
 
 ---
 
@@ -1940,7 +2116,9 @@ CREATE INDEX idx_discussions_repo ON discussions(repo_id, created_at DESC);
 CREATE INDEX idx_discussion_replies_discussion ON discussion_replies(discussion_id);
 ```
 
-Discussions provide a categorised threaded Q&A forum per repo. Maintainers can mark a reply as the accepted answer. Notification type `NotifDiscussionReply` fires when someone replies to your discussion. Routes follow the pattern `/{owner}/{repo}/discussions` and `/api/repos/{owner}/{repo}/discussions/...`; reply submission is HTMX-aware.
+Discussions provide a categorised threaded Q&A forum per repo. Maintainers can mark a reply as the accepted answer.
+Notification type `NotifDiscussionReply` fires when someone replies to your discussion. Routes follow the pattern
+`/{owner}/{repo}/discussions` and `/api/repos/{owner}/{repo}/discussions/...`; reply submission is HTMX-aware.
 
 ---
 
@@ -1972,7 +2150,9 @@ CREATE TABLE gist_files (
 CREATE INDEX idx_gists_owner ON gists(owner_id, created_at DESC);
 ```
 
-Gist content is stored in DB (not git-backed), max 10 files per gist, 1 MB per file. Routes: `GET /gists` (explore), `GET/POST /gists/new`, `GET /gists/{id}`, `GET /gists/{id}/edit`, `GET /{owner}/gists`, and API endpoints. A "Add file" HTMX button fetches `fragment-gist-file-row` to add filename+textarea pairs dynamically.
+Gist content is stored in DB (not git-backed), max 10 files per gist, 1 MB per file. Routes: `GET /gists` (explore),
+`GET/POST /gists/new`, `GET /gists/{id}`, `GET /gists/{id}/edit`, `GET /{owner}/gists`, and API endpoints. A "Add file"
+HTMX button fetches `fragment-gist-file-row` to add filename+textarea pairs dynamically.
 
 ---
 
@@ -1980,7 +2160,10 @@ Gist content is stored in DB (not git-backed), max 10 files per gist, 1 MB per f
 
 _Zero-migration — reads from an existing special-named public repo._
 
-If a user named `alice` owns a public repo named `alice` with a `README.md` at the root of the default branch, that file is rendered as Markdown HTML on the `/{alice}` profile page. `CodeService.GetProfileReadme(ownerName, repoName, defaultBranch)` returns pre-rendered HTML or empty string. `PageUser` calls this and sets `UserData.ProfileReadme`. Template renders it above the repo list when non-empty.
+If a user named `alice` owns a public repo named `alice` with a `README.md` at the root of the default branch, that file
+is rendered as Markdown HTML on the `/{alice}` profile page.
+`CodeService.GetProfileReadme(ownerName, repoName, defaultBranch)` returns pre-rendered HTML or empty string. `PageUser`
+calls this and sets `UserData.ProfileReadme`. Template renders it above the repo list when non-empty.
 
 ---
 
@@ -2001,7 +2184,10 @@ CREATE TABLE repo_topics (
 CREATE INDEX idx_repo_topics_topic ON repo_topics(topic_id);
 ```
 
-Repo owners can tag their repositories with short lowercase topic strings (e.g. `go`, `web`, `devops`). Topics are displayed as clickable pills on repo pages and link to a `GET /topic/{name}` explore page listing all public repos with that topic. API: `PUT /api/repos/{owner}/{repo}/topics` (JSON array of strings, authMW + CanManage). HTMX swaps `fragment-repo-topics` into `#repo-topics`.
+Repo owners can tag their repositories with short lowercase topic strings (e.g. `go`, `web`, `devops`). Topics are
+displayed as clickable pills on repo pages and link to a `GET /topic/{name}` explore page listing all public repos with
+that topic. API: `PUT /api/repos/{owner}/{repo}/topics` (JSON array of strings, authMW + CanManage). HTMX swaps
+`fragment-repo-topics` into `#repo-topics`.
 
 ---
 
@@ -2020,7 +2206,10 @@ ALTER TABLE issues
 CREATE INDEX idx_issues_visibility ON issues(repo_id, visibility);
 ```
 
-Private issues are visible only to the repo owner, collaborators with `writer`/`admin` role, and the issue author. All `ListByRepo` and `GetByNumber` store queries gain a `visibleToUserID *int64` parameter; when the caller lacks access the row is treated as not found. A "Private issue" checkbox appears on the new-issue form when the caller has write access. Private issues show a lock badge in lists and a "Private" header badge on detail pages.
+Private issues are visible only to the repo owner, collaborators with `writer`/`admin` role, and the issue author. All
+`ListByRepo` and `GetByNumber` store queries gain a `visibleToUserID *int64` parameter; when the caller lacks access the
+row is treated as not found. A "Private issue" checkbox appears on the new-issue form when the caller has write access.
+Private issues show a lock badge in lists and a "Private" header badge on detail pages.
 
 ---
 
@@ -2036,7 +2225,10 @@ ALTER TABLE repositories
 CREATE INDEX idx_repos_template ON repositories(is_template) WHERE is_template = TRUE;
 ```
 
-**Archive:** `RepoService.Archive/Unarchive` (IsOwner). Archived repos block all pushes with "repository is archived". UI shows a yellow banner and hides write-action buttons. **Templates:** `RepoService.SetTemplate` (IsOwner) marks a repo as a template. `CreateFromTemplate` copies the bare git directory and inserts a new `repositories` row. `PageNewRepo` shows a template selector dropdown.
+**Archive:** `RepoService.Archive/Unarchive` (IsOwner). Archived repos block all pushes with "repository is archived".
+UI shows a yellow banner and hides write-action buttons. **Templates:** `RepoService.SetTemplate` (IsOwner) marks a repo
+as a template. `CreateFromTemplate` copies the bare git directory and inserts a new `repositories` row. `PageNewRepo`
+shows a template selector dropdown.
 
 ---
 
@@ -2051,7 +2243,11 @@ ALTER TABLE repositories
 CREATE INDEX idx_repos_deleted ON repositories(deleted_at) WHERE deleted_at IS NOT NULL;
 ```
 
-Instead of a hard `DELETE`, `RepoService.Delete` sets `deleted_at = NOW()` and renames the on-disk bare repo to `<name>.git.deleted.<unix_ts>`. A 30-day recovery window allows superadmins or the original owner to restore: `POST /{owner}/{repo}/restore` renames the directory back and clears `deleted_at`. After 30 days a background cleanup goroutine permanently removes soft-deleted repos. All `ListByOwner` and repo lookup queries add `WHERE deleted_at IS NULL`.
+Instead of a hard `DELETE`, `RepoService.Delete` sets `deleted_at = NOW()` and renames the on-disk bare repo to
+`<name>.git.deleted.<unix_ts>`. A 30-day recovery window allows superadmins or the original owner to restore:
+`POST /{owner}/{repo}/restore` renames the directory back and clears `deleted_at`. After 30 days a background cleanup
+goroutine permanently removes soft-deleted repos. All `ListByOwner` and repo lookup queries add
+`WHERE deleted_at IS NULL`.
 
 ---
 
@@ -2077,7 +2273,9 @@ CREATE TABLE code_search_index (
 CREATE INDEX idx_code_search_tsv ON code_search_index USING GIN(tsv);
 ```
 
-An `IndexService.IndexRepo(ctx, repo)` method walks all blobs on the default branch and upserts rows. Indexing is triggered fire-and-forget after every push. `GET /search/code?q=...&repo=...&lang=...` returns paginated results using PostgreSQL full-text search. Complements the existing Phase 4.3 keyword search which covers issues/PRs/repos only.
+An `IndexService.IndexRepo(ctx, repo)` method walks all blobs on the default branch and upserts rows. Indexing is
+triggered fire-and-forget after every push. `GET /search/code?q=...&repo=...&lang=...` returns paginated results using
+PostgreSQL full-text search. Complements the existing Phase 4.3 keyword search which covers issues/PRs/repos only.
 
 ---
 
@@ -2085,7 +2283,9 @@ An `IndexService.IndexRepo(ctx, repo)` method walks all blobs on the default bra
 
 _Zero-migration — aggregates from existing tables._
 
-`ExploreStore.TrendingRepos(ctx, since, limit)` counts stars gained since `since` per public repo. `GET /explore?tab=trending|newest|forked&period=daily|weekly|monthly` (optAuthMW) renders tab bar with repo cards showing star count, fork count, and language. Period selector pills control the trending window. No new tables needed.
+`ExploreStore.TrendingRepos(ctx, since, limit)` counts stars gained since `since` per public repo.
+`GET /explore?tab=trending|newest|forked&period=daily|weekly|monthly` (optAuthMW) renders tab bar with repo cards
+showing star count, fork count, and language. Period selector pills control the trending window. No new tables needed.
 
 ---
 
@@ -2106,11 +2306,19 @@ CREATE TABLE repo_dependencies (
 );
 ```
 
-After each push, a `DependencyService.ParseAndStore(ctx, repo)` goroutine reads manifest files (`go.mod`, `package.json`, `requirements.txt`, `Cargo.toml`) from the default branch tip and upserts rows. `GET /{owner}/{repo}/network/dependencies` renders a table of parsed dependencies. No external package-registry API calls needed; purely local parsing.
+After each push, a `DependencyService.ParseAndStore(ctx, repo)` goroutine reads manifest files (`go.mod`,
+`package.json`, `requirements.txt`, `Cargo.toml`) from the default branch tip and upserts rows.
+`GET /{owner}/{repo}/network/dependencies` renders a table of parsed dependencies. No external package-registry API
+calls needed; purely local parsing.
 
 ---
 
-> **Milestone 1 closed (October 2026):** All Phases 0–15.3 are code-complete and the correctness fixes from the closing review have landed: branch and tag names are checked against `git check-ref-format` (#225), malformed branch-protection patterns are refused with 422 (#224), an empty `oauth_state` cookie is refused in the Google callback (#222), and project boards drop cross-repo cards and hide private issue titles (#223). Follow-ups that are not blockers (splitting large files, SAML canonicalization, remaining test gaps) are tracked in `.scratch/2026-10-09-milestone-1-closing/`, not here.
+> **Milestone 1 closed (October 2026):** All Phases 0–15.3 are code-complete and the correctness fixes from the closing
+> review have landed: branch and tag names are checked against `git check-ref-format` (#225), malformed
+> branch-protection patterns are refused with 422 (#224), an empty `oauth_state` cookie is refused in the Google
+> callback (#222), and project boards drop cross-repo cards and hide private issue titles (#223). Follow-ups that are
+> not blockers (splitting large files, SAML canonicalization, remaining test gaps) are tracked in
+> `.scratch/2026-10-09-milestone-1-closing/`, not here.
 
 ---
 
@@ -2142,7 +2350,10 @@ CREATE TABLE container_images (
 );
 ```
 
-Implements the OCI Distribution Specification v1.1 API (`/v2/...`) for push and pull. Blob storage is on-disk under `<ReposRoot>/../registry/blobs/sha256/`. Authentication uses the existing JWT/PAT bearer tokens. `GET /{owner}/{repo}/packages/container` lists images and tags. Container images pushed via `docker push` are stored and served without any external registry.
+Implements the OCI Distribution Specification v1.1 API (`/v2/...`) for push and pull. Blob storage is on-disk under
+`<ReposRoot>/../registry/blobs/sha256/`. Authentication uses the existing JWT/PAT bearer tokens.
+`GET /{owner}/{repo}/packages/container` lists images and tags. Container images pushed via `docker push` are stored and
+served without any external registry.
 
 ---
 
@@ -2166,7 +2377,11 @@ CREATE TABLE packages (
 );
 ```
 
-Supports generic file uploads for any package type. Provides upload (`PUT /api/packages/{owner}/{repo}/{name}/{version}/{filename}`) and download (`GET /packages/{owner}/{repo}/{name}/{version}/{filename}`) endpoints. Package files stored on disk under `<ReposRoot>/../packages/`. `GET /{owner}/{repo}/packages` lists all packages. Future sub-phases can add type-specific protocol support (npm registry proxy, PyPI simple API, etc.).
+Supports generic file uploads for any package type. Provides upload
+(`PUT /api/packages/{owner}/{repo}/{name}/{version}/{filename}`) and download
+(`GET /packages/{owner}/{repo}/{name}/{version}/{filename}`) endpoints. Package files stored on disk under
+`<ReposRoot>/../packages/`. `GET /{owner}/{repo}/packages` lists all packages. Future sub-phases can add type-specific
+protocol support (npm registry proxy, PyPI simple API, etc.).
 
 ---
 
@@ -2174,7 +2389,11 @@ Supports generic file uploads for any package type. Provides upload (`PUT /api/p
 
 _Zero-migration for core enhancements; extends the existing `release_assets` table._
 
-Adds checksum verification (`sha256` column on `release_assets`), download count tracking (`download_count BIGINT DEFAULT 0`), and a direct `GET /{owner}/{repo}/releases/latest` redirect. Release pages show total download counts per asset. Asset deletion via `DELETE /api/repos/{owner}/{repo}/releases/{id}/assets/{assetID}` already in Phase 3.1 routes; this phase adds the checksum + download-count columns and updates the upload handler to compute SHA-256 at upload time.
+Adds checksum verification (`sha256` column on `release_assets`), download count tracking
+(`download_count BIGINT DEFAULT 0`), and a direct `GET /{owner}/{repo}/releases/latest` redirect. Release pages show
+total download counts per asset. Asset deletion via `DELETE /api/repos/{owner}/{repo}/releases/{id}/assets/{assetID}`
+already in Phase 3.1 routes; this phase adds the checksum + download-count columns and updates the upload handler to
+compute SHA-256 at upload time.
 
 ---
 
@@ -2197,7 +2416,10 @@ CREATE TABLE lfs_objects (
 );
 ```
 
-Implements the Git LFS Batch API (`POST /{owner}/{repo}.git/info/lfs/objects/batch`) and transfer endpoints (`GET/PUT /{owner}/{repo}.git/lfs/objects/{oid}`). LFS objects stored on disk under `<ReposRoot>/../lfs/`. Auth follows the same Basic/JWT rules as git HTTP. Standard `git lfs` clients work without modification. No new Go dependencies — uses stdlib `crypto/sha256` for OID verification.
+Implements the Git LFS Batch API (`POST /{owner}/{repo}.git/info/lfs/objects/batch`) and transfer endpoints
+(`GET/PUT /{owner}/{repo}.git/lfs/objects/{oid}`). LFS objects stored on disk under `<ReposRoot>/../lfs/`. Auth follows
+the same Basic/JWT rules as git HTTP. Standard `git lfs` clients work without modification. No new Go dependencies —
+uses stdlib `crypto/sha256` for OID verification.
 
 ---
 
@@ -2210,7 +2432,11 @@ ALTER TABLE repositories
     ADD COLUMN IF NOT EXISTS verify_commits BOOLEAN NOT NULL DEFAULT FALSE;
 ```
 
-On commit display, the server attempts to verify the commit signature using the committer's stored SSH keys (already in `ssh_keys` table) or a stored GPG public key (`gpg_keys` table added in a companion migration). Verified commits show a green "Verified" badge on tree, blame, and commit pages. `CodeService.GetCommit` is extended to return `SignatureStatus` (`verified`, `unverified`, `unsigned`). GPG key management mirrors SSH key management via `GET/POST/DELETE /api/user/gpg_keys`.
+On commit display, the server attempts to verify the commit signature using the committer's stored SSH keys (already in
+`ssh_keys` table) or a stored GPG public key (`gpg_keys` table added in a companion migration). Verified commits show a
+green "Verified" badge on tree, blame, and commit pages. `CodeService.GetCommit` is extended to return `SignatureStatus`
+(`verified`, `unverified`, `unsigned`). GPG key management mirrors SSH key management via
+`GET/POST/DELETE /api/user/gpg_keys`.
 
 ---
 
@@ -2233,7 +2459,10 @@ CREATE TABLE secret_scan_alerts (
 CREATE INDEX idx_secret_alerts_repo ON secret_scan_alerts(repo_id, state);
 ```
 
-After each push, `SecretScanService.ScanCommit(ctx, repo, commit)` walks changed blobs and applies a set of regexp patterns for common secret types (AWS keys, private keys, JWT secrets, generic API key patterns). Findings are stored as alerts and surfaced in a `GET /{owner}/{repo}/security/secrets` page (write access required). Repo owners receive a notification for each new finding. Patterns are defined as a static slice in the service — no external database needed.
+After each push, `SecretScanService.ScanCommit(ctx, repo, commit)` walks changed blobs and applies a set of regexp
+patterns for common secret types (AWS keys, private keys, JWT secrets, generic API key patterns). Findings are stored as
+alerts and surfaced in a `GET /{owner}/{repo}/security/secrets` page (write access required). Repo owners receive a
+notification for each new finding. Patterns are defined as a static slice in the service — no external database needed.
 
 ---
 
@@ -2269,7 +2498,10 @@ CREATE TABLE pipeline_jobs (
 );
 ```
 
-On push, `PipelineService.TriggerForCommit(ctx, repo, sha, branch)` is called fire-and-forget. The runner reads `.cloudzilla-ci.yml` from the commit tree, spawns jobs as goroutines (exec via `os/exec`, sandboxed to a temp directory), streams log output to `pipeline_jobs.log_output`, and updates statuses. The commit status API (Phase 3.2) is updated with pass/fail results automatically.
+On push, `PipelineService.TriggerForCommit(ctx, repo, sha, branch)` is called fire-and-forget. The runner reads
+`.cloudzilla-ci.yml` from the commit tree, spawns jobs as goroutines (exec via `os/exec`, sandboxed to a temp
+directory), streams log output to `pipeline_jobs.log_output`, and updates statuses. The commit status API (Phase 3.2) is
+updated with pass/fail results automatically.
 
 ---
 
@@ -2287,7 +2519,11 @@ CREATE TABLE pipeline_configs (
 );
 ```
 
-The YAML schema supports `jobs:` with `name`, `runs-on` (host only in v1), `steps:` (each with `name`, `run` shell command), and `env:` key-value pairs. A `PipelineConfigService.Parse(yamlContent string)` function validates the schema using `encoding/yaml` (no new dep; already stdlib-compatible via `gopkg.in/yaml.v3` which is used by Viper). The repo settings page gains a "CI/CD" section to enable/disable pipelines and view the YAML schema reference. `GET /{owner}/{repo}/actions` lists pipeline runs.
+The YAML schema supports `jobs:` with `name`, `runs-on` (host only in v1), `steps:` (each with `name`, `run` shell
+command), and `env:` key-value pairs. A `PipelineConfigService.Parse(yamlContent string)` function validates the schema
+using `encoding/yaml` (no new dep; already stdlib-compatible via `gopkg.in/yaml.v3` which is used by Viper). The repo
+settings page gains a "CI/CD" section to enable/disable pipelines and view the YAML schema reference.
+`GET /{owner}/{repo}/actions` lists pipeline runs.
 
 ---
 
@@ -2295,7 +2531,10 @@ The YAML schema supports `jobs:` with `name`, `runs-on` (host only in v1), `step
 
 _Zero-migration — reads from existing `pipelines` and `pipeline_jobs` tables._
 
-`GET /{owner}/{repo}/actions` renders a paginated list of pipeline runs with status badges, branch names, commit SHAs, and durations. `GET /{owner}/{repo}/actions/{id}` shows the detailed job log (streamed via HTMX `hx-trigger="every 2s"` polling while status is `running`). Branch and status filters supported via query params. The commit list, PR detail, and tree pages show a status indicator badge linking to the most recent pipeline run for that commit SHA.
+`GET /{owner}/{repo}/actions` renders a paginated list of pipeline runs with status badges, branch names, commit SHAs,
+and durations. `GET /{owner}/{repo}/actions/{id}` shows the detailed job log (streamed via HTMX `hx-trigger="every 2s"`
+polling while status is `running`). Branch and status filters supported via query params. The commit list, PR detail,
+and tree pages show a status indicator badge linking to the most recent pipeline run for that commit SHA.
 
 ---
 
@@ -2307,7 +2546,11 @@ _Enterprise hardening: richer SSO, network-level access control, and abuse preve
 
 _Zero-migration — extends the `sso_configs` JSONB config from Phase 8.3._
 
-Adds LDAP group-to-role mapping: a config field `group_map` specifies which LDAP groups map to `superadmin` or `user` instance roles. SAML improvements: support encrypted assertions, configurable NameID format, and IdP-initiated login (unsolicited responses). A "Test connection" button (`POST /admin/sso/test`) validates LDAP bind or fetches SAML metadata without saving. Adds a `sync_interval_minutes` config key to periodically re-sync LDAP group memberships in the background.
+Adds LDAP group-to-role mapping: a config field `group_map` specifies which LDAP groups map to `superadmin` or `user`
+instance roles. SAML improvements: support encrypted assertions, configurable NameID format, and IdP-initiated login
+(unsolicited responses). A "Test connection" button (`POST /admin/sso/test`) validates LDAP bind or fetches SAML
+metadata without saving. Adds a `sync_interval_minutes` config key to periodically re-sync LDAP group memberships in the
+background.
 
 ---
 
@@ -2325,17 +2568,32 @@ CREATE TABLE ip_allowlists (
 );
 ```
 
-When any rows exist in `ip_allowlists` with `enabled = TRUE`, a middleware (`middleware/ip_allowlist.go`) blocks all requests from IPs not matching any CIDR. Superadmins manage the list via `GET/POST/DELETE /admin/access-policies`. The middleware always passes the superadmin's own IP through to prevent lockout. CIDR matching uses `net.ParseCIDR` + `cidr.Contains(ip)` from stdlib.
+When any rows exist in `ip_allowlists` with `enabled = TRUE`, a middleware (`middleware/ip_allowlist.go`) blocks all
+requests from IPs not matching any CIDR. Superadmins manage the list via `GET/POST/DELETE /admin/access-policies`. The
+middleware always passes the superadmin's own IP through to prevent lockout. CIDR matching uses `net.ParseCIDR` +
+`cidr.Contains(ip)` from stdlib.
 
 ---
 
 ### Phase 19.3 — API Rate Limiting & Quotas
 
-_Done in two PRs; the design is in [`.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md`](../.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md). Limits come from config and `CZ_*` variables, not an admin page or a `rate_limit_config` table, and use a fixed window rather than `golang.org/x/time/rate`._
+_Done in two PRs; the design is in
+[`.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md`](../.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md).
+Limits come from config and
+`CZ_\*`variables, not an admin page or a`rate*limit_config`table, and use a fixed window rather than`golang.org/x/time/rate`.*
 
-**Rate limits** (no migration): `middleware.APIRateLimit` counts every request that isn't a static asset against a per-subject budget for one of four resources (`core`, `git`, `archive`, `search`). Signed-in users get a `web` and a `token` bucket; everything else counts per client IP. Counted responses carry `X-RateLimit-*` headers and a refusal is `429` with `Retry-After`. See [configuration](./configuration.md#rate-limits) and the [API reference](./api-reference.md#rate-limits).
+**Rate limits** (no migration): `middleware.APIRateLimit` counts every request that isn't a static asset against a
+per-subject budget for one of four resources (`core`, `git`, `archive`, `search`). Signed-in users get a `web` and a
+`token` bucket; everything else counts per client IP. Counted responses carry `X-RateLimit-*` headers and a refusal is
+`429` with `Retry-After`. See [configuration](./configuration.md#rate-limits) and the
+[API reference](./api-reference.md#rate-limits).
 
-**Quotas** (`110_repo_size_bytes.sql`): `quota.user.*` and `quota.org.*` cap an owner's live repositories and the disk their git and wiki directories use. Both are off (`0`) by default and the same for every owner, and a superadmin's personal account is exempt. `QuotaService` refuses a new repository at the count, caps each push at the space left (a delete-only push still goes through), and refuses web commits and wiki edits at or over the storage quota. `repositories.size_bytes` is backfilled at startup and re-measured after writes and `cz-admin gc`. Settings and org settings show the usage. See [configuration](./configuration.md#quotas).
+**Quotas** (`110_repo_size_bytes.sql`): `quota.user.*` and `quota.org.*` cap an owner's live repositories and the disk
+their git and wiki directories use. Both are off (`0`) by default and the same for every owner, and a superadmin's
+personal account is exempt. `QuotaService` refuses a new repository at the count, caps each push at the space left (a
+delete-only push still goes through), and refuses web commits and wiki edits at or over the storage quota.
+`repositories.size_bytes` is backfilled at startup and re-measured after writes and `cz-admin gc`. Settings and org
+settings show the usage. See [configuration](./configuration.md#quotas).
 
 ---
 
@@ -2358,13 +2616,27 @@ type Backend interface {
 }
 ```
 
-**First consumer (2026-10-06): avatars.** `internal/storage` ships with `LocalBackend` and `S3Backend` (aws-sdk-go-v2, so AWS, R2, B2, Garage and versitygw all work), and user and org avatars are stored through it (migration 104 adds `avatar_key`). The "no new Go dependencies" rule is waived for this phase: it adds aws-sdk-go-v2 and `golang.org/x/image`. Layout and backup notes are in [storage](./storage.md). **Second consumer (2026-10-08): markdown image attachments**, served through the repo's read check (migration 109). Still to come: GCS, git repos and the other consumers below, and `migrate-storage`.
+**First consumer (2026-10-06): avatars.** `internal/storage` ships with `LocalBackend` and `S3Backend` (aws-sdk-go-v2,
+so AWS, R2, B2, Garage and versitygw all work), and user and org avatars are stored through it (migration 104 adds
+`avatar_key`). The "no new Go dependencies" rule is waived for this phase: it adds aws-sdk-go-v2 and
+`golang.org/x/image`. Layout and backup notes are in [storage](./storage.md). **Second consumer (2026-10-08): markdown
+image attachments**, served through the repo's read check (migration 109). Still to come: GCS, git repos and the other
+consumers below, and `migrate-storage`.
 
-**Second consumer: markdown image attachments** (migration 109), through the same `Backend`. See [`storage.md`](./storage.md).
+**Second consumer: markdown image attachments** (migration 109), through the same `Backend`. See
+[`storage.md`](./storage.md).
 
-**Second waiver (2026-10-10): SAML signature verification.** The same rule is waived for `github.com/russellhaering/goxmldsig` (v1.6.1 or later, with `github.com/beevik/etree` and `github.com/jonboulle/clockwork`), used only to verify the assertion signature: the in-house verifier rejected a real Keycloak response because it never applied exclusive C14N. Pin it at v1.6.1 or later, since v1.6.0 and earlier have advisories. See [sso](./sso.md).
+**Second waiver (2026-10-10): SAML signature verification.** The same rule is waived for
+`github.com/russellhaering/goxmldsig` (v1.6.1 or later, with `github.com/beevik/etree` and
+`github.com/jonboulle/clockwork`), used only to verify the assertion signature: the in-house verifier rejected a real
+Keycloak response because it never applied exclusive C14N. Pin it at v1.6.1 or later, since v1.6.0 and earlier have
+advisories. See [sso](./sso.md).
 
-Implementations: `LocalBackend` (current disk storage, default), `S3Backend` (AWS SDK v2 — new dependency when enabled), `GCSBackend` (Google Cloud Storage client — new dependency when enabled). All git repos, LFS objects, release assets, registry blobs, and package files are routed through the backend interface. Config: `storage.backend: local|s3|gcs`; backend-specific keys under `storage.s3.*` / `storage.gcs.*`. Migration from local to S3 is a one-time `cz-admin migrate-storage` command.
+Implementations: `LocalBackend` (current disk storage, default), `S3Backend` (AWS SDK v2 — new dependency when enabled),
+`GCSBackend` (Google Cloud Storage client — new dependency when enabled). All git repos, LFS objects, release assets,
+registry blobs, and package files are routed through the backend interface. Config: `storage.backend: local|s3|gcs`;
+backend-specific keys under `storage.s3.*` / `storage.gcs.*`. Migration from local to S3 is a one-time
+`cz-admin migrate-storage` command.
 
 ---
 
@@ -2381,7 +2653,11 @@ CREATE TABLE cluster_nodes (
 );
 ```
 
-Multiple Cloudzilla instances share the same PostgreSQL database and S3/GCS storage backend. Sticky sessions or a session token stored in PostgreSQL (`sessions` table) replace the stateless JWT-only approach for pages that need it. Background jobs (webhook retry, pipeline runner, secret scanning) use advisory locks (`SELECT pg_try_advisory_lock(...)`) to prevent duplicate execution across nodes. Node health endpoint: `GET /api/cluster/health`.
+Multiple Cloudzilla instances share the same PostgreSQL database and S3/GCS storage backend. Sticky sessions or a
+session token stored in PostgreSQL (`sessions` table) replace the stateless JWT-only approach for pages that need it.
+Background jobs (webhook retry, pipeline runner, secret scanning) use advisory locks
+(`SELECT pg_try_advisory_lock(...)`) to prevent duplicate execution across nodes. Node health endpoint:
+`GET /api/cluster/health`.
 
 ---
 
@@ -2389,7 +2665,12 @@ Multiple Cloudzilla instances share the same PostgreSQL database and S3/GCS stor
 
 _Zero-migration — GraphQL sits on top of existing services._
 
-Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over the existing service layer. Schema covers: `User`, `Repository`, `Issue`, `PullRequest`, `Comment`, `Release`, `Label`, `Milestone`, `Organization`. Resolvers call service methods — no store access bypassing the service layer. Built using `encoding/json` + a lightweight hand-rolled schema executor (no new GraphQL library required for v1 of the schema). Introspection enabled. Authentication via the same JWT/PAT bearer token as the REST API. A GraphQL Playground page at `GET /api/graphql/playground` (superadmin only).
+Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over the existing service layer. Schema
+covers: `User`, `Repository`, `Issue`, `PullRequest`, `Comment`, `Release`, `Label`, `Milestone`, `Organization`.
+Resolvers call service methods — no store access bypassing the service layer. Built using `encoding/json` + a
+lightweight hand-rolled schema executor (no new GraphQL library required for v1 of the schema). Introspection enabled.
+Authentication via the same JWT/PAT bearer token as the REST API. A GraphQL Playground page at
+`GET /api/graphql/playground` (superadmin only).
 
 ---
 
@@ -2486,9 +2767,11 @@ Milestone 2 migration numbers are provisional: take the next free number when th
 **Critical files touched by every phase:**
 
 - `internal/router/router.go` — register new routes + add page names to `pageNames`
-- `internal/view/viewmodels_*.go` — add data structs for new pages/fragments, and alias them in `internal/handler/view_aliases.go`
+- `internal/view/viewmodels_*.go` — add data structs for new pages/fragments, and alias them in
+  `internal/handler/view_aliases.go`
 - `internal/service/services.go` — wire new service into `Services` struct + `New()`
 - `internal/store/stores.go` — wire new store into `Stores` struct + `New()`
-- `internal/handler/<concern>_handler.go` or `<concern>_page_handler.go` — extend existing page handlers with new data fetches
+- `internal/handler/<concern>_handler.go` or `<concern>_page_handler.go` — extend existing page handlers with new data
+  fetches
 
 ---

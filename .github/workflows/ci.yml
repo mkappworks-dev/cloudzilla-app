@@ -31,6 +31,26 @@ jobs:
         with:
           version: v2.14.0
 
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Prettier
+        run: npm ci
+
+      - name: Check formatting of docs and config
+        run: npm run fmt:check
+
   vulncheck:
     name: Vulnerabilities
     runs-on: ubuntu-latest

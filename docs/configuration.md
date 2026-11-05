@@ -1,6 +1,7 @@
 # Configuration & CLI Reference
 
-Cloudzilla is configured via a YAML config file, environment variables, or a combination of both. Environment variables always override config file values.
+Cloudzilla is configured via a YAML config file, environment variables, or a combination of both. Environment variables
+always override config file values.
 
 ---
 
@@ -70,23 +71,37 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 
 ### Secret key
 
-`security.secret_key` encrypts secrets the server has to read back later. Each use gets its own key, derived with HKDF-SHA256, and values are sealed with AES-256-GCM. When it is unset, features that store such secrets refuse to store them and say which setting to set.
+`security.secret_key` encrypts secrets the server has to read back later. Each use gets its own key, derived with
+HKDF-SHA256, and values are sealed with AES-256-GCM. When it is unset, features that store such secrets refuse to store
+them and say which setting to set.
 
-Generate one with `openssl rand -base64 32`. The string is used as-is, at least 32 bytes. Keep it apart from `auth.jwt_secret`, so rotating the JWT secret never touches stored credentials. **Losing or changing the key makes every stored credential unreadable;** they then have to be entered again.
+Generate one with `openssl rand -base64 32`. The string is used as-is, at least 32 bytes. Keep it apart from
+`auth.jwt_secret`, so rotating the JWT secret never touches stored credentials. **Losing or changing the key makes every
+stored credential unreadable;** they then have to be entered again.
 
 ### Environment Variable Mapping
 
-All config keys can be overridden via environment variables using the `CZ_` prefix. Dots become underscores: `auth.jwt_secret` becomes `CZ_AUTH_JWT_SECRET`. Viper handles the mapping automatically.
+All config keys can be overridden via environment variables using the `CZ_` prefix. Dots become underscores:
+`auth.jwt_secret` becomes `CZ_AUTH_JWT_SECRET`. Viper handles the mapping automatically.
 
 ### Rate limits
 
 Each request counts against one resource's budget for its subject, per `rate_limit.window`:
 
-- **Resources.** `git` is `…/info/refs`, `…/git-upload-pack` and `…/git-receive-pack`: a clone, fetch or push is two requests. `archive` is `GET /{owner}/{repo}/archive/…`. `search` is `/search` and `/search/code`. `core` is everything else. Static assets (`/static/*`, `/htmx.min.js`, `/alpine.min.js`, `/favicon.ico`) and avatars (`/avatars/*`) aren't counted.
-- **Subjects.** A signed-in user has two buckets, each with the full `authenticated` budget: `web` for browser sessions, and `token` shared by all of their personal access tokens and OAuth-app tokens. Anything else, including a credential that doesn't verify and a token bound to a signing key (whose signature only the route can check), counts against the client's IPv4 address or IPv6 /64 with the `anonymous` budget.
+- **Resources.** `git` is `…/info/refs`, `…/git-upload-pack` and `…/git-receive-pack`: a clone, fetch or push is two
+  requests. `archive` is `GET /{owner}/{repo}/archive/…`. `search` is `/search` and `/search/code`. `core` is everything
+  else. Static assets (`/static/*`, `/htmx.min.js`, `/alpine.min.js`, `/favicon.ico`) and avatars (`/avatars/*`) aren't
+  counted.
+- **Subjects.** A signed-in user has two buckets, each with the full `authenticated` budget: `web` for browser sessions,
+  and `token` shared by all of their personal access tokens and OAuth-app tokens. Anything else, including a credential
+  that doesn't verify and a token bound to a signing key (whose signature only the route can check), counts against the
+  client's IPv4 address or IPv6 /64 with the `anonymous` budget.
 - `0` makes a budget unlimited. A negative budget, or a window that isn't positive, stops the server at startup.
 
-The per-IP limits on sign-up and password login (see [Deployment](./deployment.md#behind-a-reverse-proxy)) apply on top and can't be configured. Behind a proxy, set `server.trusted_proxies`, or every anonymous client shares the proxy's budget. Git over SSH isn't rate-limited. API clients see their budget in response headers; see [Rate limits](./api-reference.md#rate-limits).
+The per-IP limits on sign-up and password login (see [Deployment](./deployment.md#behind-a-reverse-proxy)) apply on top
+and can't be configured. Behind a proxy, set `server.trusted_proxies`, or every anonymous client shares the proxy's
+budget. Git over SSH isn't rate-limited. API clients see their budget in response headers; see
+[Rate limits](./api-reference.md#rate-limits).
 
 ```yaml
 rate_limit:
@@ -99,14 +114,28 @@ rate_limit:
 
 ### Quotas
 
-Four limits, all off (`0`) by default, so upgrading changes nothing until you set one. Every user gets the same quota and so does every organization; there are no per-owner overrides. A superadmin's personal account is exempt, but organizations are always subject to theirs. A negative value stops the server at startup.
+Four limits, all off (`0`) by default, so upgrading changes nothing until you set one. Every user gets the same quota
+and so does every organization; there are no per-owner overrides. A superadmin's personal account is exempt, but
+organizations are always subject to theirs. A negative value stops the server at startup.
 
-- **Repositories.** An owner's live repositories, those not in the trash, so deleting one frees its slot at once. At the limit, an owner can't create, fork, import, generate from a template, restore, or be handed a repository by a transfer (checked when the transfer is offered and again when it is accepted). The refusal is `403` with `{"error":"repository quota reached (50 of 50)"}`.
-- **Storage.** The on-disk size of each live repository's git directory plus its wiki, summed. Gists don't count. A push is capped at the space left, and is refused like an oversized pack (`413` over HTTP, a message on stderr over SSH) naming the usage and the quota. A push that only deletes refs still goes through, so an owner at the limit can free space. Web file commits and wiki edits are refused at or over the quota; deleting a file or a wiki page is not.
-- **How size is kept.** `repositories.size_bytes` is measured at startup for any repository without one, and again in the background after a push, a web commit, a wiki change, an import, a mirror sync, a fork, a template creation, a restore, and `cz-admin gc`. Usage can lag a write by one measurement. Unpacked loose objects count at full size until `cz-admin gc` prunes them.
-- **Not exact.** A check and the create that follows aren't atomic, so creates racing each other can overshoot the repository limit by a few. A pack is capped at the space left when the push starts, so two simultaneous pushes can both fit and together pass the quota.
+- **Repositories.** An owner's live repositories, those not in the trash, so deleting one frees its slot at once. At the
+  limit, an owner can't create, fork, import, generate from a template, restore, or be handed a repository by a transfer
+  (checked when the transfer is offered and again when it is accepted). The refusal is `403` with
+  `{"error":"repository quota reached (50 of 50)"}`.
+- **Storage.** The on-disk size of each live repository's git directory plus its wiki, summed. Gists don't count. A push
+  is capped at the space left, and is refused like an oversized pack (`413` over HTTP, a message on stderr over SSH)
+  naming the usage and the quota. A push that only deletes refs still goes through, so an owner at the limit can free
+  space. Web file commits and wiki edits are refused at or over the quota; deleting a file or a wiki page is not.
+- **How size is kept.** `repositories.size_bytes` is measured at startup for any repository without one, and again in
+  the background after a push, a web commit, a wiki change, an import, a mirror sync, a fork, a template creation, a
+  restore, and `cz-admin gc`. Usage can lag a write by one measurement. Unpacked loose objects count at full size until
+  `cz-admin gc` prunes them.
+- **Not exact.** A check and the create that follows aren't atomic, so creates racing each other can overshoot the
+  repository limit by a few. A pack is capped at the space left when the push starts, so two simultaneous pushes can
+  both fit and together pass the quota.
 
-User Settings and an organization's settings show one line, such as `Repositories 12 of 50 · Storage 1.2 GiB of 10 GiB`, naming only the limits that are set.
+User Settings and an organization's settings show one line, such as `Repositories 12 of 50 · Storage 1.2 GiB of 10 GiB`,
+naming only the limits that are set.
 
 ```yaml
 quota:
@@ -204,7 +233,11 @@ environment:
   CZ_SMTP_TLS: "true"
 ```
 
-Verification and password reset links point at `server.base_url`, so set it to the public URL. Without SMTP, nobody can reset a forgotten password from `/login`; a superadmin issues a link from `/admin/users/{username}` or prints one with [`cz-admin password-reset-link`](#cz-admin-password-reset-link). Without SMTP, addresses stay unverified, which keeps Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from `/admin/settings`. See [Email Verification](./access-control.md#email-verification).
+Verification and password reset links point at `server.base_url`, so set it to the public URL. Without SMTP, nobody can
+reset a forgotten password from `/login`; a superadmin issues a link from `/admin/users/{username}` or prints one with
+[`cz-admin password-reset-link`](#cz-admin-password-reset-link). Without SMTP, addresses stay unverified, which keeps
+Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from
+`/admin/settings`. See [Email Verification](./access-control.md#email-verification).
 
 ### Persistent Data (Docker volumes)
 
@@ -225,7 +258,9 @@ Verification and password reset links point at `server.base_url`, so set it to t
 make build
 ```
 
-Produces `dist/cloudzilla` (HTTP server), `dist/cz-admin` (the operator tool, which reads this config and the database) and `dist/cz` (the separate remote client for developers; see [cli](./cli.md)). No Node.js required -- the binary embeds all templates and compiled CSS.
+Produces `dist/cloudzilla` (HTTP server), `dist/cz-admin` (the operator tool, which reads this config and the database)
+and `dist/cz` (the separate remote client for developers; see [cli](./cli.md)). No Node.js required -- the binary embeds
+all templates and compiled CSS.
 
 ### 2. Copy to server
 
@@ -248,7 +283,8 @@ Write `/etc/cloudzilla/config.yaml` (see Production Config above).
 ssh-keygen -t ed25519 -f /etc/cloudzilla/ssh_host_key -N ""
 ```
 
-This key is stable -- clients store its fingerprint in `~/.ssh/known_hosts`. Replacing it later causes `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED` errors.
+This key is stable -- clients store its fingerprint in `~/.ssh/known_hosts`. Replacing it later causes
+`WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED` errors.
 
 ### 5. Run migrations
 
@@ -313,11 +349,15 @@ cz-admin migrate
 cz-admin migrate --config /etc/cloudzilla/config.yaml
 ```
 
-Migrations are embedded in the binary and run in order. Safe to run repeatedly -- already-applied migrations are skipped.
+Migrations are embedded in the binary and run in order. Safe to run repeatedly -- already-applied migrations are
+skipped.
 
 ### `cz-admin seed`
 
-Fill a fresh instance with test data for manual testing: a superadmin (`siteadmin`, `admin@example.test`), 100 users, 10 organizations and 150 repositories with a year of backdated git history, plus issues, milestones, pull requests, reviews, project boards with cards of every kind (one board closed), discussions, releases (including a prerelease and a draft), stars and gists. The default size takes under a minute.
+Fill a fresh instance with test data for manual testing: a superadmin (`siteadmin`, `admin@example.test`), 100 users, 10
+organizations and 150 repositories with a year of backdated git history, plus issues, milestones, pull requests,
+reviews, project boards with cards of every kind (one board closed), discussions, releases (including a prerelease and a
+draft), stars and gists. The default size takes under a minute.
 
 In development, seed the dev instance right after migrating it:
 
@@ -327,7 +367,9 @@ make seed
 make dev
 ```
 
-`make seed` reads `config.yaml` like `make dev` does, so it fills the dev database and writes the bare repositories to `./git-repos`, where the server reads them. It refuses to run unless the database has no accounts and `git.repos_root` is empty. To reseed, stop `make dev`, then recreate the database and empty `./git-repos`:
+`make seed` reads `config.yaml` like `make dev` does, so it fills the dev database and writes the bare repositories to
+`./git-repos`, where the server reads them. It refuses to run unless the database has no accounts and `git.repos_root`
+is empty. To reseed, stop `make dev`, then recreate the database and empty `./git-repos`:
 
 ```bash
 docker compose exec postgres dropdb -U cloudzilla --force cloudzilla
@@ -336,7 +378,8 @@ rm -rf git-repos
 make migrate && make seed
 ```
 
-To keep your dev data, seed a scratch database and repos root instead, and start the server from the same shell so it reads both. A server pointed at another `git.repos_root` lists the seeded repositories with no files, branches or tags.
+To keep your dev data, seed a scratch database and repos root instead, and start the server from the same shell so it
+reads both. A server pointed at another `git.repos_root` lists the seeded repositories with no files, branches or tags.
 
 ```bash
 docker compose exec postgres createdb -U cloudzilla cloudzilla_seed
@@ -346,7 +389,8 @@ make migrate && make seed
 make dev
 ```
 
-`make seed` uses the default size; for another, run `cz-admin seed` (or `go run ./cmd/cz-admin/. seed`) with the flags below. Run the server with the seed's `server.base_url`: commit authors use noreply addresses built from it.
+`make seed` uses the default size; for another, run `cz-admin seed` (or `go run ./cmd/cz-admin/. seed`) with the flags
+below. Run the server with the seed's `server.base_url`: commit authors use noreply addresses built from it.
 
 | Flag         | Default           | Meaning                                         |
 | ------------ | ----------------- | ----------------------------------------------- |
@@ -360,23 +404,35 @@ SMTP is switched off for the run, so the notifications it creates send no email.
 
 ### `cz-admin password-reset-link`
 
-Print a single-use link that lets a user choose a new password, for when the instance can't send email or the user can't receive it. It works for 24 hours and replaces any link the user already has.
+Print a single-use link that lets a user choose a new password, for when the instance can't send email or the user can't
+receive it. It works for 24 hours and replaces any link the user already has.
 
 ```bash
 cz-admin password-reset-link alice --config /etc/cloudzilla/config.yaml
 ```
 
-The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the command refuses them. It also refuses a suspended account: unsuspend it first. Unlike an emailed link, this one doesn't mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA account still needs its TOTP or backup code to use the link; if those are lost too, run [`reset-2fa`](#cz-admin-reset-2fa) first. See [Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
+The link is built from `server.base_url`. Accounts created through Google, LDAP or SAML sign-up have no password, so the
+command refuses them. It also refuses a suspended account: unsuspend it first. Unlike an emailed link, this one doesn't
+mark the user's email address verified. Each link is recorded as `user.password.reset_link` in the audit log. A 2FA
+account still needs its TOTP or backup code to use the link; if those are lost too, run
+[`reset-2fa`](#cz-admin-reset-2fa) first. See
+[Resetting a forgotten password](./access-control.md#resetting-a-forgotten-password).
 
 ### `cz-admin reset-2fa`
 
-Turn off two-factor authentication for a user who has lost their authenticator and backup codes, such as a sole superadmin with no other admin to reset it from `/admin/users`.
+Turn off two-factor authentication for a user who has lost their authenticator and backup codes, such as a sole
+superadmin with no other admin to reset it from `/admin/users`.
 
 ```bash
 cz-admin reset-2fa alice --config /etc/cloudzilla/config.yaml
 ```
 
-It clears the TOTP secret, flag and backup codes through the same code as the admin `reset-2fa` action, records `admin.user.2fa_reset` in the audit log with no actor ID and the actor name `cz-admin` (rows written before the rename show `cloudzilla-cli`), and mails the user the same security notice when SMTP is configured. A failed notice prints a warning but doesn't undo the reset. It doesn't sign the user out or touch their password, and doesn't revoke a password reset link already issued. For a user without 2FA, it says so and changes nothing. A suspended account is reset but stays suspended. See [Two-factor authentication](./access-control.md#two-factor-authentication).
+It clears the TOTP secret, flag and backup codes through the same code as the admin `reset-2fa` action, records
+`admin.user.2fa_reset` in the audit log with no actor ID and the actor name `cz-admin` (rows written before the rename
+show `cloudzilla-cli`), and mails the user the same security notice when SMTP is configured. A failed notice prints a
+warning but doesn't undo the reset. It doesn't sign the user out or touch their password, and doesn't revoke a password
+reset link already issued. For a user without 2FA, it says so and changes nothing. A suspended account is reset but
+stays suspended. See [Two-factor authentication](./access-control.md#two-factor-authentication).
 
 ### `cz-admin backup`
 
@@ -392,7 +448,8 @@ cz-admin backup --output - | zstd > cloudzilla.tar.zst
 | `--output`  | (required) | Archive path, or `-` for stdout. The archive is built beside the path and renamed, so a failure leaves no partial file |
 | `--pg-dump` | `pg_dump`  | `pg_dump` binary. Its major version must be at least the server's                                                      |
 
-It fails before writing anything when `pg_dump` is missing or older than the server. The archive holds secrets: store it encrypted. See [Backup and restore](./deployment.md#backup-and-restore).
+It fails before writing anything when `pg_dump` is missing or older than the server. The archive holds secrets: store it
+encrypted. See [Backup and restore](./deployment.md#backup-and-restore).
 
 ### `cz-admin restore`
 
@@ -409,7 +466,11 @@ zstd -dc cloudzilla.tar.zst | cz-admin restore --input -
 | `--pg-restore`       | `pg_restore` | `pg_restore` binary                                 |
 | `--replace-host-key` | off          | Overwrite a different SSH host key already in place |
 
-It refuses a database that already has tables, a non-empty `git.repos_root`, an unknown format version, an unsafe tar entry and a backup with a migration the binary lacks. Then it restores the database, extracts the repositories, writes the host key (mode 0600), applies newer migrations and prints repository rows without a directory and directories without a row. Sign-ins survive only with the same `auth.jwt_secret`. See [Backup and restore](./deployment.md#backup-and-restore).
+It refuses a database that already has tables, a non-empty `git.repos_root`, an unknown format version, an unsafe tar
+entry and a backup with a migration the binary lacks. Then it restores the database, extracts the repositories, writes
+the host key (mode 0600), applies newer migrations and prints repository rows without a directory and directories
+without a row. Sign-ins survive only with the same `auth.jwt_secret`. See
+[Backup and restore](./deployment.md#backup-and-restore).
 
 ### Instance management
 
