@@ -247,12 +247,12 @@
   function cardHTML(card) {
     var note = card.kind === 'note', linked = !note && card.num;
     var h = '<li class="group relative rounded-md border border-border bg-card p-3 shadow-xs hover:border-ring/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" data-card-id="' + card.id + '" draggable="true"' +
-      (note ? ' tabindex="0" role="button" aria-label="Open card: ' + esc(card.title) + '"' : '') + '>';
+      ' tabindex="0" role="button" aria-label="Open card: ' + esc(card.title) + '">';
     if (note) {
       h += '<p class="text-[13px] font-medium line-clamp-3 break-words">' + esc(card.title) + '</p>';
     } else {
       h += '<div class="flex items-start gap-2">' + kindIcon(card.kind) +
-        '<a href="' + (card.kind === 'pull' ? 'pr.html' : 'issue_detail.html') + '" draggable="false" class="min-w-0 text-[13px] font-medium after:absolute after:inset-0 after:rounded-md focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-ring">' + esc(card.title) + '</a></div>';
+        '<p class="min-w-0 text-[13px] font-medium line-clamp-3 break-words">' + esc(card.title) + '</p></div>';
     }
     if (card.desc) h += '<p class="mt-1 text-[12px] text-muted-foreground line-clamp-1 break-all">' + esc(card.desc) + '</p>';
     if (card.labels.length) {
@@ -367,7 +367,7 @@
     $('card-column').hidden = mode !== 'edit';
     $('card-column').textContent = col.name;
     $('card-heading').textContent = mode === 'edit' ? draft.title : 'Add item';
-    $('title-edit-btn').hidden = mode !== 'edit';
+    $('title-edit-btn').hidden = mode !== 'edit' || !!draft.num;
     $('create-title-field').hidden = mode !== 'create';
     $('card-title-input').value = '';
     $('desc-edit-btn').hidden = mode !== 'edit';

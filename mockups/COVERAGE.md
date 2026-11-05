@@ -72,3 +72,9 @@ Still in that state:
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
 - **Auth states:** the sign-in error banner, the email-first signup flow, expired and invalid reset or verify links, and
   the "instance can't send email" state.
+
+## Deliberate differences from the real app
+
+- **Project board cards.** Every card opens the card dialog, with the linked issue or PR shown as a link inside it. In
+  the real app only note cards open the dialog; a linked issue or PR card navigates straight to that item.
+- **PR checks page.** The repo tab bar highlights Checks. The real app keeps Pull requests highlighted on every PR tab.
