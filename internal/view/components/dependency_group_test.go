@@ -28,8 +28,8 @@ func TestDependencyGroup_RendersRows(t *testing.T) {
 		"v1.2.3",
 		"github.com/baz/qux",
 		"v0.9.0",
-		"pill-dev",
-		"pill-prod",
+		"bg-muted text-muted-foreground",
+		"bg-success/15 text-success",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in output:\n%s", want, out)
