@@ -355,7 +355,7 @@ templ Base(base view.BasePage, title string) {
 						}
 					}
 					@components.CommandGroup("Preferences") {
-						@components.CommandItem("", templ.Attributes{"onclick": "document.getElementById('theme-toggle').click(); this.closest('dialog').close()"}) {
+						@components.CommandItem("", templ.Attributes{"onclick": templ.JSUnsafeFuncCall("document.getElementById('theme-toggle').click(); this.closest('dialog').close()")}) {
 							{ "Toggle theme" }
 							@components.CommandShortcut() {
 								{ "⌘⇧L" }

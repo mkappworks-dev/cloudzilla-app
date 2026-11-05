@@ -12,7 +12,7 @@ func TestSelectMenu(t *testing.T) {
 	out := renderToString(t, SelectMenu("theme", "code_theme_dark", "Dark mode code theme", []SelectMenuOption{
 		{Value: "nord", Label: "Nord", Swatch: []string{"#2e3440", "#81a1c1"}},
 		{Value: "plain", Label: "Plain <b>"},
-	}, "nord", templ.Attributes{"onchange": "pick(this.value)"}))
+	}, "nord", templ.Attributes{"onchange": templ.JSUnsafeFuncCall("pick(this.value)")}))
 
 	for _, want := range []string{
 		`<input type="hidden" name="code_theme_dark" value="nord" x-ref="input" onchange="pick(this.value)">`,

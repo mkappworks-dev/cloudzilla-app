@@ -363,7 +363,7 @@ func ssoSwitchToast(name string, on bool) string {
 }
 
 func ssoSwitchAttrs(provider string, cfg *model.SSOConfig) templ.Attributes {
-	attrs := templ.Attributes{"id": provider + "_enabled", "checked": cfg.Enabled, "onchange": "this.form.requestSubmit()"}
+	attrs := templ.Attributes{"id": provider + "_enabled", "checked": cfg.Enabled, "onchange": templ.JSUnsafeFuncCall("this.form.requestSubmit()")}
 	if !cfg.Ready() {
 		attrs["aria-describedby"] = provider + "-switch-needs"
 	}

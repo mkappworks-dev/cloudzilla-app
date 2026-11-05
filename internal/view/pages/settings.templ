@@ -175,7 +175,7 @@ templ settingsCodeThemeSelect(name, label, dataKey string, themes []highlight.Th
 	<div class="flex items-center justify-between gap-4 py-3 border-b border-border last:border-b-0">
 		<label for={ name } class="block text-sm font-medium text-foreground">{ label }</label>
 		<div class="w-52 shrink-0">
-			@components.SelectMenu(name, name, label, codeThemeOptions(themes), selected, templ.Attributes{"onchange": "document.documentElement.dataset." + dataKey + " = this.value"})
+			@components.SelectMenu(name, name, label, codeThemeOptions(themes), selected, templ.Attributes{"onchange": templ.JSUnsafeFuncCall("document.documentElement.dataset." + dataKey + " = this.value")})
 		</div>
 	</div>
 }

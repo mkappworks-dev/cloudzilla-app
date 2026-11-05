@@ -99,7 +99,7 @@ templ Blob(data view.BlobData) {
 									@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 										"type":          "button",
 										"aria-haspopup": "dialog",
-										"onclick":       "document.getElementById('blob-delete-dialog').showModal()",
+										"onclick":       templ.JSUnsafeFuncCall("document.getElementById('blob-delete-dialog').showModal()"),
 									}) {
 										<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 											<polyline points="3 6 5 6 21 6"></polyline>
@@ -183,7 +183,7 @@ templ Blob(data view.BlobData) {
 					@components.DialogFooter() {
 						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
 							"type":    "button",
-							"onclick": "this.closest('dialog').close()",
+							"onclick": templ.JSUnsafeFuncCall("this.closest('dialog').close()"),
 						}) {
 							Cancel
 						}

@@ -155,7 +155,7 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 								"hx-post":              patchURL + "/replies",
 								"hx-target":            "#discussion-timeline",
 								"hx-swap":              "beforeend",
-								"hx-on::after:request": "if(event.target===this&&ctx.response.status<400) this.reset()",
+								"hx-on::after:request": templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response.status<400) this.reset()"),
 							}) {
 								@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
 								@components.MarkdownEditor("reply-body", "body", "", "Add to the discussion…", 6)
@@ -165,7 +165,7 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 											"type":                 "button",
 											"hx-patch":             patchURL,
 											"hx-vals":              `{"locked": true}`,
-											"hx-on::after:request": "window.location.reload()",
+											"hx-on::after:request": templ.JSUnsafeFuncCall("window.location.reload()"),
 										}) {
 											Lock discussion
 										}
@@ -182,7 +182,7 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 									@components.Button(components.ButtonGhost, components.ButtonSizeSM, templ.Attributes{
 										"hx-patch":             "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number),
 										"hx-vals":              `{"locked": false}`,
-										"hx-on::after:request": "window.location.reload()",
+										"hx-on::after:request": templ.JSUnsafeFuncCall("window.location.reload()"),
 										"type":                 "button",
 									}) {
 										Unlock discussion
@@ -310,7 +310,7 @@ templ discussionReply(owner, repoName string, number int, reply view.RenderedDis
 							"type":                 "button",
 							"hx-patch":             patchURL,
 							"hx-vals":              `{"answer_id": "null"}`,
-							"hx-on::after:request": "window.location.reload()",
+							"hx-on::after:request": templ.JSUnsafeFuncCall("window.location.reload()"),
 						}) {
 							Unmark answer
 						}
@@ -319,7 +319,7 @@ templ discussionReply(owner, repoName string, number int, reply view.RenderedDis
 							"type":                 "button",
 							"hx-patch":             patchURL,
 							"hx-vals":              `{"answer_id": ` + strconv.FormatInt(reply.ID, 10) + `}`,
-							"hx-on::after:request": "window.location.reload()",
+							"hx-on::after:request": templ.JSUnsafeFuncCall("window.location.reload()"),
 						}) {
 							Mark as answer
 						}

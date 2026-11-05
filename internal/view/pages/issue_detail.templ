@@ -82,7 +82,7 @@ templ IssueDetail(data view.IssueDetailData) {
 								"hx-post":               "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments",
 								"hx-target":             "#comments",
 								"hx-swap":               "beforeend",
-								"hx-on::after:request":  "if(event.target===this&&ctx.response.status<400){var el=document.getElementById('issue-comment-count');if(el){var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');}var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();this.reset();}",
+								"hx-on::after:request":  templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response.status<400){var el=document.getElementById('issue-comment-count');if(el){var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');}var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();this.reset();}"),
 							}) {
 								@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
 								@components.MarkdownEditor("comment-body", "body", "", "Add a comment…", 6)
@@ -101,7 +101,7 @@ templ IssueDetail(data view.IssueDetailData) {
 											"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
 											"hx-vals":  `{"state":"open"}`,
 											"hx-swap":  "none",
-											"hx-on::after:request": "if(ctx.response.status<400)window.location.reload()",
+											"hx-on::after:request": templ.JSUnsafeFuncCall("if(ctx.response.status<400)window.location.reload()"),
 											"type":     "button",
 										}) {
 											Reopen issue

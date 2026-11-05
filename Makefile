@@ -9,7 +9,7 @@ TAILWIND_OUT := cmd/server/frontend/static/main.css
 TEMPL := ~/go/bin/templ
 AIR := ~/go/bin/air
 
-TAILWIND_VERSION := v4.3.3
+TAILWIND_VERSION := v4.3.4
 HTMX_VERSION := 4.0.0
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
