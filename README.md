@@ -6,7 +6,8 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](LICENSE)
 
-> **Alpha**: Cloudzilla is under active development. APIs and features may change. Not recommended for production use yet.
+> **Alpha**: Cloudzilla is under active development. APIs and features may change. Not recommended for production use
+> yet.
 
 ---
 
@@ -78,23 +79,32 @@ graph TB
 
 ## Features
 
-- **Git hosting**: HTTP + SSH smart protocol, branch/tag management, code browser with blame, commit history and diffs, clone URLs
+- **Git hosting**: HTTP + SSH smart protocol, branch/tag management, code browser with blame, commit history and diffs,
+  clone URLs
 - **Pull requests**: fast-forward / merge / squash strategies, diff view, draft PRs, auto-merge, conflict detection
-- **Code review**: PR reviews (approve/request changes), inline line comments, code review suggestions with one-click apply, CODEOWNERS auto-assign
+- **Code review**: PR reviews (approve/request changes), inline line comments, code review suggestions with one-click
+  apply, CODEOWNERS auto-assign
 - **Issues**: open/close workflow, labels, assignees, milestones, pinning, locking, private issues, issue templates
 - **Organizations**: shared namespaces with owner/member roles, org profile pages, member management
-- **Access control**: three-tier permissions (instance/org/repo), branch protection rules, deploy keys, personal access tokens
+- **Access control**: three-tier permissions (instance/org/repo), branch protection rules, deploy keys, personal access
+  tokens
 - **Authentication**: JWT cookies, Google OAuth, TOTP 2FA with recovery codes, LDAP/SAML SSO, invitation system
-- **Collaboration**: wikis, discussions, gists, profile READMEs, repository topics, stars, forks, reactions, @mentions, saved replies
+- **Collaboration**: wikis, discussions, gists, profile READMEs, repository topics, stars, forks, reactions, @mentions,
+  saved replies
 - **Notifications**: in-app notifications with unread badge, email notifications (SMTP), watching/subscriptions
 - **Webhooks**: push/issues/PR events, HMAC-SHA256 signing, retry with backoff, event filtering, delivery logs
-- **Search**: full-text search across repos, issues, PRs, and users (PostgreSQL tsvector + GIN) with word-prefix matching and live topnav suggestions; advanced code search
+- **Search**: full-text search across repos, issues, PRs, and users (PostgreSQL tsvector + GIN) with word-prefix
+  matching and live topnav suggestions; advanced code search
 - **Project management**: Kanban boards, milestones with progress tracking, activity feed
-- **Infrastructure**: releases with tags, commit status API, audit log, OAuth apps, repository archive/templates, soft-delete/recovery, explore/trending, dependency graph
-- **Repositories**: import from another Git host, pull mirrors with scheduled sync, edit, rename and delete files from the browser
+- **Infrastructure**: releases with tags, commit status API, audit log, OAuth apps, repository archive/templates,
+  soft-delete/recovery, explore/trending, dependency graph
+- **Repositories**: import from another Git host, pull mirrors with scheduled sync, edit, rename and delete files from
+  the browser
 - **Storage**: avatars and markdown image attachments on local disk or S3-compatible storage
-- **Admin**: first-run setup wizard, site settings, invitation management, user suspension, password-reset links, superadmin controls
-- **Operations**: health and readiness probes, Prometheus metrics, backup and restore, per-user API rate limits and per-owner quotas
+- **Admin**: first-run setup wizard, site settings, invitation management, user suspension, password-reset links,
+  superadmin controls
+- **Operations**: health and readiness probes, Prometheus metrics, backup and restore, per-user API rate limits and
+  per-owner quotas
 - **CLI**: `cz` remote client for repos, issues and PRs, and `cz-admin` for server-side operator commands
 
 ---
@@ -113,8 +123,8 @@ docker exec -it cloudzilla-app-cloudzilla-1 /app/cz-admin migrate
 # Open http://localhost:8080 — redirects to /setup to create superadmin
 ```
 
-All data persists in Docker named volumes (`cloudzilla_data`, `postgres_data`).
-Set `CZ_AUTH_JWT_SECRET` in `docker-compose.yml` before exposing publicly.
+All data persists in Docker named volumes (`cloudzilla_data`, `postgres_data`). Set `CZ_AUTH_JWT_SECRET` in
+`docker-compose.yml` before exposing publicly.
 
 ```bash
 make docker-down        # Stop and remove containers
@@ -133,13 +143,15 @@ make setup-templ        # One-time: install the templ CLI
 make setup-air          # One-time: install the reloader `make dev` uses
 ```
 
-Start Postgres. The simplest option is the `postgres` service from the bundled compose file, which is preconfigured with the user/db that `config.yaml` expects:
+Start Postgres. The simplest option is the `postgres` service from the bundled compose file, which is preconfigured with
+the user/db that `config.yaml` expects:
 
 ```bash
 docker compose up -d postgres    # exposes 5432 to host; data persists in postgres_data volume
 ```
 
-Prefer a native install? Run any PostgreSQL 14+ and create a `cloudzilla` role and database (password `cloudzilla`) — or edit the DSN in `config.yaml` to match what you already have.
+Prefer a native install? Run any PostgreSQL 14+ and create a `cloudzilla` role and database (password `cloudzilla`) — or
+edit the DSN in `config.yaml` to match what you already have.
 
 Then run migrations and start the dev server:
 
@@ -150,7 +162,9 @@ make dev                # Backend + Tailwind watch on http://localhost:8080
 
 First visit redirects to `/setup` to create your superadmin account.
 
-For a populated instance to click around in, run `make seed` after `make migrate` on a fresh database instead of visiting `/setup`. It writes the repositories to `./git-repos`, where `make dev` reads them. See [`cz-admin seed`](./docs/configuration.md#cz-admin-seed).
+For a populated instance to click around in, run `make seed` after `make migrate` on a fresh database instead of
+visiting `/setup`. It writes the repositories to `./git-repos`, where `make dev` reads them. See
+[`cz-admin seed`](./docs/configuration.md#cz-admin-seed).
 
 ---
 

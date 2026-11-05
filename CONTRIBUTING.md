@@ -1,10 +1,13 @@
 # Contributing to Cloudzilla
 
-Thank you for your interest in contributing to Cloudzilla. This guide covers the process and requirements for contributing to the project.
+Thank you for your interest in contributing to Cloudzilla. This guide covers the process and requirements for
+contributing to the project.
 
 ## Contributor License Agreement (CLA)
 
-All contributors must sign the Contributor License Agreement before their first pull request can be merged. The CLA is managed via the [CLA Assistant](https://github.com/cla-assistant/cla-assistant) GitHub App and will automatically prompt you when you open your first PR.
+All contributors must sign the Contributor License Agreement before their first pull request can be merged. The CLA is
+managed via the [CLA Assistant](https://github.com/cla-assistant/cla-assistant) GitHub App and will automatically prompt
+you when you open your first PR.
 
 The full CLA text is available at [.github/CLA.md](.github/CLA.md).
 
@@ -16,7 +19,8 @@ The full CLA text is available at [.github/CLA.md](.github/CLA.md).
 
 ## License
 
-Cloudzilla is licensed under the [Business Source License 1.1 (BSL 1.1)](LICENSE). All contributions are accepted under the same license terms. By submitting a contribution, you agree that your work will be licensed under BSL 1.1.
+Cloudzilla is licensed under the [Business Source License 1.1 (BSL 1.1)](LICENSE). All contributions are accepted under
+the same license terms. By submitting a contribution, you agree that your work will be licensed under BSL 1.1.
 
 ## Code of Conduct
 
@@ -35,7 +39,8 @@ Violations may result in removal from the project at the maintainers' discretion
 
 1. Search [existing issues](../../issues) to avoid duplicates.
 2. Open a new issue with a clear, descriptive title.
-3. Include steps to reproduce, expected behavior, actual behavior, and your environment (OS, Go version, PostgreSQL version).
+3. Include steps to reproduce, expected behavior, actual behavior, and your environment (OS, Go version, PostgreSQL
+   version).
 4. Attach logs or screenshots if applicable.
 
 ### Suggesting Features
@@ -77,8 +82,8 @@ make dev
 make setup-air
 ```
 
-It runs two processes — air rebuilds and restarts the server, Tailwind rebuilds the stylesheet —
-and the browser stays on <http://localhost:8080> as always.
+It runs two processes — air rebuilds and restarts the server, Tailwind rebuilds the stylesheet — and the browser stays
+on <http://localhost:8080> as always.
 
 What each kind of change costs:
 
@@ -88,34 +93,34 @@ What each kind of change costs:
 | a `.templ` file                     | regenerate, rebuild, restart, refresh (~2-5s) |
 | a `.go` file                        | rebuild, restart, refresh (~1-4s)             |
 
-Two dev-only pieces make that work, both behind the `dev` build tag and absent from a release
-binary:
+Two dev-only pieces make that work, both behind the `dev` build tag and absent from a release binary:
 
-- `cmd/server/embed_dev.go` reads `cmd/server/frontend` from disk rather than the embedded copy,
-  which is what lets a CSS change skip the rebuild. `make build` embeds as always. Because the
-  path is relative, **`make dev` must run from the repo root**.
-- `internal/devreload` serves an event stream at `/_dev/reload` and injects a small client into
-  the layout. The page refreshes when the stream **reconnects and reports a different server
-  instance** — so a refresh cannot arrive before the new server is listening, and cannot loop,
-  since reconnecting to the same instance does nothing. Asset edits are pushed down the same
-  stream by a watcher on `cmd/server/frontend`.
+- `cmd/server/embed_dev.go` reads `cmd/server/frontend` from disk rather than the embedded copy, which is what lets a
+  CSS change skip the rebuild. `make build` embeds as always. Because the path is relative, **`make dev` must run from
+  the repo root**.
+- `internal/devreload` serves an event stream at `/_dev/reload` and injects a small client into the layout. The page
+  refreshes when the stream **reconnects and reports a different server instance** — so a refresh cannot arrive before
+  the new server is listening, and cannot loop, since reconnecting to the same instance does nothing. Asset edits are
+  pushed down the same stream by a watcher on `cmd/server/frontend`.
 
-**A compile error leaves the last good server running** and prints the error with its file and
-line. Fix it and the next build restarts the server. (That is `stop_on_error = false` in
-`.air.toml`; with air's default the site goes down on a typo.)
+**A compile error leaves the last good server running** and prints the error with its file and line. Fix it and the next
+build restarts the server. (That is `stop_on_error = false` in `.air.toml`; with air's default the site goes down on a
+typo.)
 
-**A brand-new Tailwind class needs `make build-css`.** The Tailwind watcher rebuilds when
-`tailwind/input.css` changes, but it does not watch the `@source` glob
-(`../internal/view/**/*.templ`), so adding a class that has never appeared in the project emits
-no CSS for it — the markup updates and the style is simply missing. Existing classes are already
-in `main.css` and are unaffected. This predates the dev loop and is tracked in
+**A brand-new Tailwind class needs `make build-css`.** The Tailwind watcher rebuilds when `tailwind/input.css` changes,
+but it does not watch the `@source` glob (`../internal/view/**/*.templ`), so adding a class that has never appeared in
+the project emits no CSS for it — the markup updates and the style is simply missing. Existing classes are already in
+`main.css` and are unaffected. This predates the dev loop and is tracked in
 `.scratch/2026-10-11-tailwind-source-watch/`.
 
 ## Planning Workflow (Claude Code)
 
-Planned work is tracked as markdown under `.scratch/` and driven by skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Using Claude Code is optional; the files are plain markdown and can be written by hand.
+Planned work is tracked as markdown under `.scratch/` and driven by skills from the
+[`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Using Claude Code is optional; the files are plain
+markdown and can be written by hand.
 
-Install the plugin once:
+Install the plugin once, at the version the repo's docs were written against (1.3.1). Later versions have renamed files
+the skills read, so check the changelog before updating:
 
 ```bash
 claude plugin install mattpocock-skills@claude-plugins-official
@@ -123,17 +128,28 @@ claude plugin install mattpocock-skills@claude-plugins-official
 
 Then work through the chain:
 
-| Step | Command       | What it does                                                                      | Output                                         |
-| ---- | ------------- | --------------------------------------------------------------------------------- | ---------------------------------------------- |
-| 1    | `/to-spec`    | Turns the conversation into a spec                                                | `.scratch/<date>-<slug>/spec.md`               |
-| 2    | `/to-tickets` | Splits the spec into tickets, each listing the tickets that block it              | `.scratch/<date>-<slug>/issues/<NN>-<slug>.md` |
-| 3    | `/triage`     | Moves a ticket through the triage roles; use it on anything not already triaged   | `Status:` line updated                         |
-| 4    | `/implement`  | Builds from a ticket, test-first via `/tdd` where it can; does not ask for a plan | Code and tests                                 |
+| Step | Command            | What it does                                                                                                                                                                        | Output                                         |
+| ---- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 0    | `/grill-with-docs` | Optional, for non-trivial work: interviews you in rounds of numbered questions, each with a recommended answer, and updates `GLOSSARY.md` and ADRs as decisions land                | Decisions, glossary and ADR edits              |
+| 1    | `/to-spec`         | Turns the conversation into a spec                                                                                                                                                  | `.scratch/<date>-<slug>/spec.md`               |
+| 2    | `/to-tickets`      | Splits the spec into tickets, each listing the tickets that block it                                                                                                                | `.scratch/<date>-<slug>/issues/<NN>-<slug>.md` |
+| 3    | `/triage`          | Moves a ticket through the triage roles; use it on anything not already triaged                                                                                                     | `Status:` line updated                         |
+| 4    | `/implement`       | Builds from a ticket, test-first via `/tdd` where it can; does not ask for a plan                                                                                                   | Code and tests                                 |
+| 4    | `/implement-spec`  | Alternative to step 4 when several tickets are unblocked at once: runs one subagent per ticket in its own worktree and merges onto one integration branch, then runs `/code-review` | Code and tests                                 |
+| 5    | `/code-review`     | Reviews the branch against the repo's standards and the spec; `/implement-spec` already runs it                                                                                     | Findings                                       |
+| 6    | `/retro`           | Optional, after a hard session: what to change in the agent's environment, not the code                                                                                             | Suggestions                                    |
 
-- `/to-spec` and `/to-tickets` output is already `ready-for-agent`. Run `/triage` on anything else: a bug, a rough idea, or a ticket with no `Status:`.
+- `/to-spec` and `/to-tickets` output is already `ready-for-agent`. Run `/triage` on anything else: a bug, a rough idea,
+  or a ticket with no `Status:`.
 - `/implement` takes only `ready-for-agent` tickets whose `Blocked by` tickets are all `done`.
-- Commit spec and ticket files with the branch that writes them, and set `Status: done` in the same commit that finishes a ticket.
-- Roles and file conventions: [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md) and [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+- `/implement-spec` does not replace tickets; it reads them as a task graph. Without `/to-tickets` it has nothing to
+  parallelise, so use `/implement`.
+- Write the PR body with the plugin's `pr` skill and the repo template.
+- Commit spec and ticket files with the branch that writes them, and set `Status: done` in the same commit that finishes
+  a ticket.
+- Roles and file conventions: [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md) and
+  [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+- Glossary and ADR rules for agents: [`docs/agents/domain.md`](docs/agents/domain.md).
 
 ## Commit Conventions
 
@@ -161,13 +177,18 @@ Keep the subject line under 72 characters. Add a body for additional context whe
 
 ## Pull Request Process
 
-1. **Title and description** -- Write a clear, concise PR title. Include a description of what changed and why.
-2. **Link related issues** -- Reference issues with `Closes #123` or `Relates to #456`.
-3. **CI must pass** -- All automated checks must be green before review.
-4. **Maintainer review required** -- At least one maintainer must approve the PR before it can be merged.
-5. **Squash-merge preferred** -- PRs are squash-merged to keep the commit history clean. Ensure your PR title is suitable as a final commit message.
-6. **Respond to feedback** -- Address review comments promptly. Push additional commits rather than force-pushing, so reviewers can see incremental changes.
+1. **Title and description** -- Write a clear, concise PR title in Conventional Commits form; it is enforced by
+   [`pr-title-lint.yml`](.github/workflows/pr-title-lint.yml) and becomes the squash-merge commit message.
+2. **Fill in the template** -- [`.github/pull_request_template.md`](.github/pull_request_template.md). Tick what applies
+   and strike through what does not (`- [ ] ~~item~~`) so a reviewer can tell "not applicable" from "forgot".
+3. **Link related issues** -- Reference issues with `Closes #123` or `Relates to #456`.
+4. **CI must pass** -- All automated checks must be green before review; `Test` and `Build` are required for merge.
+5. **Maintainer review required** -- At least one maintainer must approve the PR before it can be merged.
+6. **Squash-merge preferred** -- PRs are squash-merged to keep the commit history clean.
+7. **Respond to feedback** -- Address review comments promptly. Push additional commits rather than force-pushing, so
+   reviewers can see incremental changes.
 
 ## Questions
 
-If you have questions about contributing, open a [discussion](../../discussions) or reach out in an existing issue thread. We are happy to help you get started.
+If you have questions about contributing, open a [discussion](../../discussions) or reach out in an existing issue
+thread. We are happy to help you get started.

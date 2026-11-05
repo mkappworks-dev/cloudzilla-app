@@ -1,8 +1,11 @@
 # Mockup → shadcn class translation map
 
-Source of truth for the UI overhaul. Every per-phase page port translates mockup classes mechanically using this map. If a mockup uses a class not in this map, **halt and update the map first** — do not invent ad-hoc replacements during a port.
+Source of truth for the UI overhaul. Every per-phase page port translates mockup classes mechanically using this map. If
+a mockup uses a class not in this map, **halt and update the map first** — do not invent ad-hoc replacements during a
+port.
 
-The mockups themselves are archived in [`design/mockups-2026-05/`](./design/mockups-2026-05/README.md). They are Tailwind v3 play-CDN pages, so this map — not the mockup markup — is what binds.
+The mockups themselves are archived in [`design/mockups-2026-05/`](./design/mockups-2026-05/README.md). They are
+Tailwind v3 play-CDN pages, so this map — not the mockup markup — is what binds.
 
 ## Token reference (CSS variables)
 
@@ -22,7 +25,8 @@ The mockups themselves are archived in [`design/mockups-2026-05/`](./design/mock
 | `--warn`          | `--warning`                               | `text-warning`               |
 | `--danger`        | `--destructive`                           | `text-destructive`           |
 
-Utilities reach these variables through the `@theme inline` block in `tailwind/input.css`; a new token needs a `--color-*` entry there too.
+Utilities reach these variables through the `@theme inline` block in `tailwind/input.css`; a new token needs a
+`--color-*` entry there too.
 
 ## Utility classes
 
@@ -42,7 +46,8 @@ Utilities reach these variables through the `@theme inline` block in `tailwind/i
 
 ## Tailwind v4 names
 
-The build runs Tailwind v4, which moved several scales down a step. Mockups and shadcn snippets written for v3 still use the old names; translate them:
+The build runs Tailwind v4, which moved several scales down a step. Mockups and shadcn snippets written for v3 still use
+the old names; translate them:
 
 | v3 name                                               | v4 name                                                                |
 | ----------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -58,7 +63,11 @@ The build runs Tailwind v4, which moved several scales down a step. Mockups and 
 
 `rounded-xs`, `rounded-md` and `rounded-lg` follow `--radius`; `rounded-sm` is a fixed 0.25rem.
 
-`space-y-*` and `divide-y` put their margin or border on every child except the last. A last child that renders nothing (a hidden input, `<script>`, a closed `<dialog>`, a panel hidden with `x-show`) therefore leaves a gap or a stray border under the last visible row: put such elements first or outside the container. When rows toggle with `x-show`, use `flex flex-col gap-*`, which skips hidden rows. A child's own `mt-*`/`mb-*` now applies alongside `space-y-*` instead of being overridden by it.
+`space-y-*` and `divide-y` put their margin or border on every child except the last. A last child that renders nothing
+(a hidden input, `<script>`, a closed `<dialog>`, a panel hidden with `x-show`) therefore leaves a gap or a stray border
+under the last visible row: put such elements first or outside the container. When rows toggle with `x-show`, use
+`flex flex-col gap-*`, which skips hidden rows. A child's own `mt-*`/`mb-*` now applies alongside `space-y-*` instead of
+being overridden by it.
 
 ## Component-replaced classes
 
@@ -73,7 +82,9 @@ These mockup classes correspond to components in `internal/view/components/`. Us
 
 ## Language chip classes (`lbl-*`)
 
-The mockup uses `.lbl` (base chip) and `.lbl-blue`, `.lbl-green`, `.lbl-amber`, `.lbl-purple` colour variants for language chips on gist rows. These are small inline pills (10px, 1px-7px padding, pill shape). Render them with inline Tailwind — no separate component, just a `<span>` with the classes below.
+The mockup uses `.lbl` (base chip) and `.lbl-blue`, `.lbl-green`, `.lbl-amber`, `.lbl-purple` colour variants for
+language chips on gist rows. These are small inline pills (10px, 1px-7px padding, pill shape). Render them with inline
+Tailwind — no separate component, just a `<span>` with the classes below.
 
 | Mockup class            | Tailwind replacement                                                                                                                                                                      |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -83,14 +94,17 @@ The mockup uses `.lbl` (base chip) and `.lbl-blue`, `.lbl-green`, `.lbl-amber`, 
 | `lbl-amber`             | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-warning/15 text-warning border-warning/30 whitespace-nowrap`                                      |
 | `lbl-purple`            | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)] whitespace-nowrap` |
 
-In templ files, pass the correct Tailwind string through a helper (e.g. `gistLanguage(filenames)` returns `(label, chipClass string)`). Use `chipClass` as the class attribute on the `<span>`.
+In templ files, pass the correct Tailwind string through a helper (e.g. `gistLanguage(filenames)` returns
+`(label, chipClass string)`). Use `chipClass` as the class attribute on the `<span>`.
 
 ## Promoted utility classes (no shadcn equivalent)
 
-These classes are defined with `@utility` in `tailwind/input.css`, so variants work on them. They are used **by their original names** in templ files.
+These classes are defined with `@utility` in `tailwind/input.css`, so variants work on them. They are used **by their
+original names** in templ files.
 
 - `grid-bg` — radial-masked grid background on home hero / auth pages
-- `heatmap-cell-0`, `heatmap-cell-1`, `heatmap-cell-2`, `heatmap-cell-3`, `heatmap-cell-4` — commit heatmap intensity scale
+- `heatmap-cell-0`, `heatmap-cell-1`, `heatmap-cell-2`, `heatmap-cell-3`, `heatmap-cell-4` — commit heatmap intensity
+  scale
 - `dark-only`, `light-only` — already in layout (kept)
 
 ## Inline `<style>` blocks
@@ -107,6 +121,8 @@ When a per-phase port discovers a mockup class missing from this map:
 1. Stop the port.
 2. Decide which case it is:
    - Has a clean shadcn equivalent → add row to the utility classes table.
-   - No shadcn equivalent but reusable → add to the promoted utilities section AND as an `@utility` in `tailwind/input.css`.
+   - No shadcn equivalent but reusable → add to the promoted utilities section AND as an `@utility` in
+     `tailwind/input.css`.
    - One-off → translate inline using a comment in the templ file (`<!-- mockup: .xyz -->`).
-3. Commit the map update separately from the port commit, with subject `docs(ui): extend class translation map for <reason>`.
+3. Commit the map update separately from the port commit, with subject
+   `docs(ui): extend class translation map for <reason>`.

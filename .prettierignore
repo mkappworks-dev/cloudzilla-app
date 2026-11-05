@@ -1,0 +1,14 @@
+node_modules/
+.claude/
+.worktrees/
+CHANGELOG.md
+.release-please-manifest.json
+
+# Frozen archive and third-party fixtures: reformatting changes what they record.
+docs/design/
+internal/service/testdata/
+
+# Tickets carry machine-parsed "Status:" and "Blocked by:" lines. Prose reflow
+# merges adjacent metadata lines into one paragraph and breaks them.
+.scratch/
+.github/CLA.md

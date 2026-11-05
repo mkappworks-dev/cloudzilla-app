@@ -1,0 +1,12 @@
+{
+  "name": "cloudzilla-tooling",
+  "private": true,
+  "description": "Formatting tooling only. Cloudzilla is a Go module; this exists so prettier's version is pinned rather than whatever npx resolves.",
+  "devDependencies": {
+    "prettier": "3.6.2"
+  },
+  "scripts": {
+    "fmt": "prettier --write \"**/*.{md,json,yml,yaml}\"",
+    "fmt:check": "prettier --check \"**/*.{md,json,yml,yaml}\""
+  }
+}
