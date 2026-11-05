@@ -245,7 +245,7 @@ templ settingsSecuritySection(data view.SettingsData) {
 					<div class="mt-4 space-y-4">
 						<div class="flex gap-6 items-start">
 							if data.TOTPQRCode != "" {
-								<img src={ data.TOTPQRCode } width="160" height="160" alt="TOTP QR Code" class="shrink-0 border border-border rounded-md"/>
+								<img src={ templ.SafeURL(data.TOTPQRCode) } width="160" height="160" alt="TOTP QR Code" class="shrink-0 border border-border rounded-md"/>
 							}
 							<div class="flex-1 min-w-0">
 								<p class="text-[12.5px] font-medium mb-1">Or enter this key manually</p>
