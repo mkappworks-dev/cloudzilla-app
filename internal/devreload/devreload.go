@@ -41,7 +41,7 @@ func New(instanceID string) *Hub {
 		instanceID: instanceID,
 		closed:     make(chan struct{}),
 		debounce:   defaultDebounce,
-		subs:      map[chan struct{}]struct{}{},
+		subs:       map[chan struct{}]struct{}{},
 	}
 }
 
