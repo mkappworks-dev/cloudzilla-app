@@ -166,7 +166,7 @@ templ User(data view.UserData) {
 									if data.IsOwnProfile {
 										@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
 											"type":    "button",
-											"onclick": "document.getElementById('pin-modal').showModal()",
+											"onclick": templ.JSUnsafeFuncCall("document.getElementById('pin-modal').showModal()"),
 										}) {
 											if len(data.PinnedRepos) == 0 {
 												Pin a repository

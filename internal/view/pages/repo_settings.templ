@@ -253,7 +253,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 									}
 								</div>
 								if data.CanManage {
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('deploy-key-dialog').showModal()"}) {
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('deploy-key-dialog').showModal()")}) {
 										Add deploy key
 									}
 								}
@@ -329,7 +329,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 									}
 								</div>
 								if data.CanManage {
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('label-dialog').showModal()"}) {
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('label-dialog').showModal()")}) {
 										New label
 									}
 								}
@@ -401,7 +401,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 									}
 								</div>
 								if data.CanManage {
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('protection-rule-dialog').showModal()"}) {
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('protection-rule-dialog').showModal()")}) {
 										Add rule
 									}
 								}
@@ -538,7 +538,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										Send HTTP requests to external services when events occur in this repository.
 									}
 								</div>
-								@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('webhook-dialog').showModal()"}) {
+								@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('webhook-dialog').showModal()")}) {
 									Add webhook
 								}
 							</div>

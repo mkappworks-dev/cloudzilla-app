@@ -175,7 +175,7 @@ templ settingsCodeThemeSelect(name, label, dataKey string, themes []highlight.Th
 	<div class="flex items-center justify-between gap-4 py-3 border-b border-border last:border-b-0">
 		<label for={ name } class="block text-sm font-medium text-foreground">{ label }</label>
 		<div class="w-52 shrink-0">
-			@components.SelectMenu(name, name, label, codeThemeOptions(themes), selected, templ.Attributes{"onchange": "document.documentElement.dataset." + dataKey + " = this.value"})
+			@components.SelectMenu(name, name, label, codeThemeOptions(themes), selected, templ.Attributes{"onchange": templ.JSUnsafeFuncCall("document.documentElement.dataset." + dataKey + " = this.value")})
 		</div>
 	</div>
 }
@@ -245,7 +245,7 @@ templ settingsSecuritySection(data view.SettingsData) {
 					<div class="mt-4 space-y-4">
 						<div class="flex gap-6 items-start">
 							if data.TOTPQRCode != "" {
-								<img src={ data.TOTPQRCode } width="160" height="160" alt="TOTP QR Code" class="shrink-0 border border-border rounded-md"/>
+								<img src={ templ.SafeURL(data.TOTPQRCode) } width="160" height="160" alt="TOTP QR Code" class="shrink-0 border border-border rounded-md"/>
 							}
 							<div class="flex-1 min-w-0">
 								<p class="text-[12.5px] font-medium mb-1">Or enter this key manually</p>

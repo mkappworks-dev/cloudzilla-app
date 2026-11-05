@@ -316,7 +316,7 @@ templ addColumnDialog() {
 			@components.DialogFooter() {
 				@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
 					"type":    "button",
-					"onclick": "this.closest('dialog').close()",
+					"onclick": templ.JSUnsafeFuncCall("this.closest('dialog').close()"),
 				}) {
 					Cancel
 				}

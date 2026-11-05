@@ -11,7 +11,7 @@ COPY . .
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "aarch64" ]; then TW=tailwindcss-linux-arm64-musl; else TW=tailwindcss-linux-x64-musl; fi && \
     mkdir -p bin cmd/server/frontend/static && \
-    curl -sLf "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/${TW}" \
+    curl -sLf "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.4/${TW}" \
       -o bin/tailwindcss && \
     chmod +x bin/tailwindcss && \
     bin/tailwindcss -i tailwind/input.css -o cmd/server/frontend/static/main.css --minify

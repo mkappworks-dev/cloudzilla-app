@@ -26,7 +26,7 @@ templ AdminSettings(data view.AdminSettingsFragData) {
 						@components.Switch(templ.Attributes{
 							"id":       "setting-" + setting.Key,
 							"checked":  setting.Value == "true",
-							"onchange": "this.form.requestSubmit()",
+							"onchange": templ.JSUnsafeFuncCall("this.form.requestSubmit()"),
 						})
 					</label>
 				</form>

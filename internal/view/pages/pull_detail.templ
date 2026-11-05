@@ -134,7 +134,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						"hx-patch":             apiBase,
 						"hx-vals":              `{"state":"open"}`,
 						"hx-swap":              "none",
-						"hx-on::after:request": "if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request reopened'}));location.reload();}",
+						"hx-on::after:request": templ.JSUnsafeFuncCall("if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request reopened'}));location.reload();}"),
 					}) {
 						Reopen pull request
 					}
@@ -146,7 +146,7 @@ templ pullDetailBody(data view.PullDetailData) {
 					"hx-post":              apiBase + "/comments",
 					"hx-target":            "#pr-timeline",
 					"hx-swap":              "beforeend",
-					"hx-on::after:request": "if(event.target===this&&ctx.response.status<400) this.reset()",
+					"hx-on::after:request": templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response.status<400) this.reset()"),
 				}) {
 					@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
 					@components.MarkdownEditor("pr-comment-body", "body", "", "Leave a comment — Markdown supported", 5)
@@ -154,7 +154,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						if data.CanWrite && data.Pull.State == model.PRStateOpen {
 							@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
 								"type":    "button",
-								"onclick": "document.getElementById('close-pull-dialog').showModal()",
+								"onclick": templ.JSUnsafeFuncCall("document.getElementById('close-pull-dialog').showModal()"),
 							}) {
 								Close pull request
 							}
