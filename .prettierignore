@@ -11,3 +11,8 @@ internal/service/testdata/
 # merges adjacent metadata lines into one paragraph and breaks them.
 .scratch/
 .github/CLA.md
+
+# Generated accessibility run artifacts.
+tests/a11y/.cache/
+tests/a11y/test-results/
+tests/a11y/playwright-report/

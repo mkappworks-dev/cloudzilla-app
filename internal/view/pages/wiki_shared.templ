@@ -19,6 +19,12 @@ templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMe
 					} else {
 						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg.Slug }</a>
 					}
+					if canReorder {
+						<span class="wiki-move-controls hidden px-2 pb-1 space-x-1">
+							<button type="button" data-move="up" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label={ "Move " + pg.Slug + " up" }>↑</button>
+							<button type="button" data-move="down" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label={ "Move " + pg.Slug + " down" }>↓</button>
+						</span>
+					}
 				</li>
 			}
 		</ul>
@@ -26,6 +32,7 @@ templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMe
 			<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/new") } class="inline-block mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5">+ New page</a>
 		}
 		if canReorder {
+			<p id="wiki-order-status" class="sr-only" role="status"></p>
 			<button
 				type="button"
 				id="wiki-reorder-toggle"
@@ -41,12 +48,14 @@ templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMe
 				var repo    = toggle.dataset.repo;
 				var active  = false;
 				var dragged = null;
+				var saveQueue = Promise.resolve();
 
 				function setMode(on) {
 					active = on;
 					toggle.textContent = on ? 'Done' : 'Reorder pages';
 					list.querySelectorAll('li[data-slug]').forEach(function(li) {
 						li.draggable = on;
+						li.querySelector('.wiki-move-controls').classList.toggle('hidden', !on);
 						if (on) {
 							li.classList.add('cursor-move');
 						} else {
@@ -64,6 +73,18 @@ templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMe
 
 				list.addEventListener('click', function(e) {
 					if (!active) return;
+					var button = e.target.closest('button[data-move]');
+					if (button) {
+						var li = button.closest('li[data-slug]');
+						var sibling = button.dataset.move === 'up' ? li.previousElementSibling : li.nextElementSibling;
+						if (sibling) {
+							if (button.dataset.move === 'up') sibling.before(li); else sibling.after(li);
+							button.focus();
+							document.getElementById('wiki-order-status').textContent = li.dataset.slug + ' moved ' + button.dataset.move;
+							saveOrder();
+						}
+						return;
+					}
 					var a = e.target.closest('a');
 					if (a) e.preventDefault();
 				});
@@ -87,7 +108,7 @@ templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMe
 					e.preventDefault();
 					e.dataTransfer.dropEffect = 'move';
 					var target = e.target.closest('li[data-slug]');
-					if (!target || target === dragged) return;
+					if (!dragged || !target || target === dragged) return;
 					var rect = target.getBoundingClientRect();
 					var after = e.clientY > rect.top + rect.height / 2;
 					if (after) {
@@ -106,14 +127,14 @@ templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMe
 						.map(function(li) { return li.dataset.slug; });
 					var body = new URLSearchParams();
 					body.set('order', slugs.join(','));
-					fetch('/api/repos/' + owner + '/' + repo + '/wiki/order', {
+					saveQueue = saveQueue.then(function() { return fetch('/api/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo) + '/wiki/order', {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/x-www-form-urlencoded',
 							'X-CSRF-Token': getCsrf(),
 						},
 						body: body.toString(),
-					}).then(function(res) {
+					}); }).then(function(res) {
 						if (!res.ok) { location.reload(); }
 					}).catch(function() { location.reload(); });
 				}

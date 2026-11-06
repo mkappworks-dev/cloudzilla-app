@@ -32,14 +32,15 @@
     <aside aria-label="Wiki pages">
       <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Pages</p>
       <ul id="wiki-page-list" class="space-y-0.5 text-[13px]">
-        <li data-slug="Home"><a href="wiki.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Home</a></li>
-        <li data-slug="Architecture"><a href="wiki_architecture.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Architecture</a></li>
-        <li data-slug="Contributing"><a href="wiki_contributing.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Contributing</a></li>
-        <li data-slug="Code-of-Conduct"><a href="wiki_code_of_conduct.html" class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">Code-of-Conduct</a></li>
-        <li data-slug="Setup-on-mac"><a href="wiki_setup_on_mac.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Setup-on-mac</a></li>
-        <li data-slug="Release-process"><a href="wiki_release_process.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Release-process</a></li>
+        <li data-slug="Home"><a href="wiki.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Home</a><span class="wiki-move-controls hidden px-2 pb-1 space-x-1"><button type="button" data-move="up" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Home up">↑</button><button type="button" data-move="down" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Home down">↓</button></span></li>
+        <li data-slug="Architecture"><a href="wiki_architecture.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Architecture</a><span class="wiki-move-controls hidden px-2 pb-1 space-x-1"><button type="button" data-move="up" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Architecture up">↑</button><button type="button" data-move="down" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Architecture down">↓</button></span></li>
+        <li data-slug="Contributing"><a href="wiki_contributing.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Contributing</a><span class="wiki-move-controls hidden px-2 pb-1 space-x-1"><button type="button" data-move="up" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Contributing up">↑</button><button type="button" data-move="down" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Contributing down">↓</button></span></li>
+        <li data-slug="Code-of-Conduct"><a href="wiki_code_of_conduct.html" class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">Code-of-Conduct</a><span class="wiki-move-controls hidden px-2 pb-1 space-x-1"><button type="button" data-move="up" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Code-of-Conduct up">↑</button><button type="button" data-move="down" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Code-of-Conduct down">↓</button></span></li>
+        <li data-slug="Setup-on-mac"><a href="wiki_setup_on_mac.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Setup-on-mac</a><span class="wiki-move-controls hidden px-2 pb-1 space-x-1"><button type="button" data-move="up" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Setup-on-mac up">↑</button><button type="button" data-move="down" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Setup-on-mac down">↓</button></span></li>
+        <li data-slug="Release-process"><a href="wiki_release_process.html" class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">Release-process</a><span class="wiki-move-controls hidden px-2 pb-1 space-x-1"><button type="button" data-move="up" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Release-process up">↑</button><button type="button" data-move="down" class="rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring" aria-label="Move Release-process down">↓</button></span></li>
       </ul>
       <a href="wiki_new.html" class="inline-block mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5">+ New page</a>
+      <p id="wiki-order-status" class="sr-only" role="status"></p>
       <button type="button" id="wiki-reorder-toggle" class="mt-2 inline-block text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5">Reorder pages</button>
     </aside>
 
@@ -77,13 +78,22 @@
     toggle.textContent = on ? 'Done' : 'Reorder pages';
     list.querySelectorAll('li[data-slug]').forEach(function (li) {
       li.draggable = on;
+      li.querySelector('.wiki-move-controls').classList.toggle('hidden', !on);
       li.classList.toggle('cursor-move', on);
       if (!on) li.classList.remove('opacity-50');
     });
     ring.forEach(function (c) { list.classList.toggle(c, on); });
   }
   toggle.addEventListener('click', function () { setMode(!active); });
-  list.addEventListener('click', function (e) { if (active && e.target.closest('a')) e.preventDefault(); });
+  list.addEventListener('click', function (e) {
+    if (!active) return;
+    var button = e.target.closest('button[data-move]');
+    if (button) {
+      var li = button.closest('li[data-slug]');
+      var sibling = button.dataset.move === 'up' ? li.previousElementSibling : li.nextElementSibling;
+      if (sibling) { if (button.dataset.move === 'up') sibling.before(li); else sibling.after(li); button.focus(); document.getElementById('wiki-order-status').textContent = li.dataset.slug + ' moved ' + button.dataset.move; }
+    } else if (e.target.closest('a')) e.preventDefault();
+  });
   list.addEventListener('dragstart', function (e) {
     var li = e.target.closest('li[data-slug]');
     if (!li) return;
@@ -98,7 +108,7 @@
   list.addEventListener('dragover', function (e) {
     e.preventDefault();
     var t = e.target.closest('li[data-slug]');
-    if (!t || t === dragged) return;
+    if (!dragged || !t || t === dragged) return;
     var r = t.getBoundingClientRect();
     if (e.clientY > r.top + r.height / 2) t.after(dragged); else t.before(dragged);
   });

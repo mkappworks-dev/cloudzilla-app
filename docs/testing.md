@@ -37,3 +37,28 @@ stand-in scripts in `fakepg_test.go` run.
 `CZ_DATABASE_DSN=<the same DSN> go run ./cmd/cz-admin migrate` once first.
 
 Run the backup and seed packages before changing `internal/backup`, `internal/seed` or the schema they dump.
+
+## Local desktop accessibility checks
+
+The local Playwright harness uses pinned Chromium and axe versions. It scans the desktop route list in light and dark at
+1440px, and exercises the repository selectors, milestone tabs and wiki reorder by keyboard. These checks are not part
+of CI. Serious and critical findings fail unless their exact route, rule and target are documented in
+`tests/a11y/allowlist.js`.
+
+To run the browser checks locally, start a disposable server using the spec's unique ports, cookie name and storage
+paths. Migrate it and seed with `cz-admin seed --users 12 --orgs 2 --repos 10`, then:
+
+```sh
+cd tests/a11y
+npm ci
+npx playwright install chromium
+CZ_A11Y_BASE_URL=http://127.0.0.1:18631 npm test
+```
+
+Use a throwaway instance: setup creates wiki pages and a gist. When fixing an allow-listed finding, remove its entry;
+new exceptions should identify the affected node and explain why the issue remains.
+
+For the spec's visual harness, run `npm run screenshots` from `tests/a11y` against the same disposable server. It starts
+the standing-mock server, builds its Tailwind CSS, and captures every listed real route and standing mock in both themes
+at 1440px. Files go to `.cache/screenshots/<theme>/`; set `CZ_A11Y_SCREENSHOTS` to choose an evidence directory. The
+mock server uses port 18633 and exits when capture finishes.

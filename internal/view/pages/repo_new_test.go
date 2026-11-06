@@ -28,9 +28,9 @@ func TestRepoNew_OwnerOptionsCarryDefaultVisibility(t *testing.T) {
 	out := sb.String()
 
 	for _, want := range []string{
-		`data-value="alice" data-label="alice" data-visibility="public"`,
-		`data-value="privorg" data-label="privorg" data-visibility="private"`,
-		`data-value="puborg" data-label="puborg" data-visibility="public"`,
+		`&#34;alice&#34;:&#34;public&#34;`,
+		`&#34;privorg&#34;:&#34;private&#34;`,
+		`&#34;puborg&#34;:&#34;public&#34;`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("owner picker missing %s", want)
