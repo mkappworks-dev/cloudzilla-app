@@ -41,3 +41,4 @@ Thumbs.db
 
 # Prettier
 node_modules/
+mockups/.cache/

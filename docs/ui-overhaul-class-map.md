@@ -4,8 +4,9 @@ Source of truth for the UI overhaul. Every per-phase page port translates mockup
 a mockup uses a class not in this map, **halt and update the map first** — do not invent ad-hoc replacements during a
 port.
 
-The mockups themselves are archived in [`design/mockups-2026-05/`](./design/mockups-2026-05/README.md). They are
-Tailwind v3 play-CDN pages, so this map — not the mockup markup — is what binds.
+The original May 2026 mockups were Tailwind v3 play-CDN pages with their own token classes. They now live in
+[`mockups/`](../mockups/README.md), already ported to the classes below and to Tailwind v4, so the map only matters when
+translating an older mock or snippet.
 
 ## Token reference (CSS variables)
 

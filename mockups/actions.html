@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Checks · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="checks"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="flex flex-col gap-6">
+    <section aria-labelledby="checks-title">
+      <h1 id="checks-title" class="text-2xl font-semibold tracking-tight">Checks</h1>
+      <p class="mt-1 text-[13px] text-muted-foreground">Statuses that CI reports on this repository's commits through the status API.</p>
+    </section>
+    <ol class="flex flex-col gap-4" aria-label="Commits with checks">
+      <li class="rounded-md border border-border bg-card overflow-hidden">
+        <div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium truncate">Add OAuth scopes to access tokens</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">
+              3 of 3 passed
+              ·
+              <a href="commit.html" class="font-mono hover:text-foreground hover:underline">9c8e2a4</a>
+              ·
+              <time datetime="2026-05-13T14:08:00Z">12 minutes ago</time>
+            </p>
+          </div>
+        </div>
+        <ol class="divide-y divide-border" aria-label="Checks on 9c8e2a4">
+        <li class="px-4 py-2.5 flex items-center gap-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium font-mono">ci/build</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">Build passed in 1m 42s</p>
+          </div>
+          <a href="https://ci.example.com/runs/1201" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-2.5 flex items-center gap-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium font-mono">ci/test</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">412 tests passed</p>
+          </div>
+          <a href="https://ci.example.com/runs/1202" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-2.5 flex items-center gap-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium font-mono">security/govulncheck</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">No known vulnerabilities</p>
+          </div>
+          <a href="https://ci.example.com/runs/1203" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        </ol>
+      </li>
+      <li class="rounded-md border border-border bg-card overflow-hidden">
+        <div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-destructive" aria-label="Failed"><path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium truncate">fix: retry webhook deliveries with backoff</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">
+              2 of 3 passed
+              ·
+              <a href="commit.html" class="font-mono hover:text-foreground hover:underline">0cfa3e4</a>
+              ·
+              <time datetime="2026-05-13T11:00:00Z">3 hours ago</time>
+            </p>
+          </div>
+        </div>
+        <ol class="divide-y divide-border" aria-label="Checks on 0cfa3e4">
+        <li class="px-4 py-2.5 flex items-center gap-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium font-mono">ci/build</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">Build passed in 1m 38s</p>
+          </div>
+          <a href="https://ci.example.com/runs/1204" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-2.5 flex items-center gap-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-destructive" aria-label="Failed"><path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium font-mono">ci/test</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">2 tests failed: TestDispatchRetry, TestDispatchBackoff</p>
+          </div>
+          <a href="https://ci.example.com/runs/1205" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-2.5 flex items-center gap-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium font-mono">security/govulncheck</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">No known vulnerabilities</p>
+          </div>
+          <a href="https://ci.example.com/runs/1206" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        </ol>
+      </li>
+      <li class="rounded-md border border-border bg-card overflow-hidden">
+        <div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-warning" aria-label="Pending"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-medium truncate">tech(ui): tier 9 — sweep legacy palette across fragments</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">
+              1 of 2 passed
+              ·
+              <a href="commit.html" class="font-mono hover:text-foreground hover:underline">623cff3</a>
+              ·
+              <time datetime="2026-05-12T18:05:00Z">yesterday</time>
+            </p>
+          </div>
+        </div>
+        <ol class="divide-y divide-border" aria-label="Checks on 623cff3">
+        <li class="px-4 py-2.5 flex items-center gap-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium font-mono">ci/build</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">Build passed in 1m 45s</p>
+          </div>
+          <a href="https://ci.example.com/runs/1207" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        <li class="px-4 py-2.5 flex items-center gap-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-warning" aria-label="Pending"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-medium font-mono">ci/test</p>
+            <p class="text-[12px] text-muted-foreground mt-0.5">Running…</p>
+          </div>
+          <a href="https://ci.example.com/runs/1208" target="_blank" rel="noopener" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+        </li>
+        </ol>
+      </li>
+    </ol>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+</body>
+</html>

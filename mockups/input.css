@@ -1,0 +1,3 @@
+@import "../tailwind/input.css";
+@source "./*.html";
+@source "./*.js";

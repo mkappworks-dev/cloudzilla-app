@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New Gist — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-account-tab="gists"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-6">
+
+  <section aria-labelledby="new-title">
+    <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+      <a href="gists.html" class="hover:underline">Gists</a>
+      <span aria-hidden="true">·</span>
+      New
+    </p>
+    <h1 id="new-title" class="text-2xl font-semibold tracking-tight">New gist</h1>
+    <p class="mt-1 text-[13px] text-muted-foreground">Standalone files for snippets, scratch notes, and one-off configuration.</p>
+  </section>
+
+  <div class="grid lg:grid-cols-[1fr_280px] gap-8">
+    <div class="min-w-0">
+      <form id="gist-form" class="space-y-5">
+        <div class="space-y-1.5">
+          <label for="gist-description" class="block text-[12px] font-medium text-muted-foreground">
+            Gist description <span class="font-normal">(optional)</span>
+          </label>
+          <input id="gist-description" type="text" name="description" placeholder="A short description of this gist" autofocus class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+        </div>
+
+        <div id="file-rows" class="space-y-4">
+      <section class="rounded-md border border-border bg-card overflow-hidden" data-gist-file>
+        <header class="px-3 py-2 border-b border-border bg-accent flex items-center gap-2">
+          <label for="gist-filename-0" class="sr-only">Filename</label>
+          <input id="gist-filename-0" class="font-mono text-[13px] flex-1 bg-transparent focus:outline-hidden placeholder:text-muted-foreground" type="text" name="filename[]" placeholder="filename.ext" required />
+        </header>
+        <div class="md-editor" data-md-editor>
+        <div class="flex items-center gap-2 border-b border-border px-3">
+          <div role="tablist" aria-label="Editor mode" class="flex">
+            <button type="button" role="tab" data-md-tab="write" aria-selected="true" class="px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px">Write</button>
+            <button type="button" role="tab" data-md-tab="preview" aria-selected="false" class="px-3 py-2 text-[13px] border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px">Preview</button>
+          </div>
+          <div class="ml-auto flex items-center gap-0.5 text-muted-foreground" aria-label="Formatting">
+          <button type="button" data-md-action="bold" aria-label="Bold" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6zM6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"></path></svg>
+          </button>
+          <button type="button" data-md-action="italic" aria-label="Italic" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></svg>
+          </button>
+          <button type="button" data-md-action="code" aria-label="Code" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          </button>
+          <button type="button" data-md-action="link" aria-label="Insert link" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 007.07 0l3-3a5 5 0 00-7.07-7.07l-1 1"></path><path d="M14 11a5 5 0 00-7.07 0l-3 3a5 5 0 007.07 7.07l1-1"></path></svg>
+          </button>
+          </div>
+        </div>
+        <div data-md-pane="write">
+          <label for="gist-content-0" class="sr-only">File contents…</label>
+          <textarea id="gist-content-0" name="content[]" rows="8" placeholder="File contents…" style="height:200px" class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground"></textarea>
+        </div>
+        <div data-md-pane="preview" style="height:200px" class="hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"></div>
+      </div>
+      </section>
+        </div>
+
+        <button type="button" id="add-file" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">+ Add file</button>
+
+        <div class="border-t border-border pt-5 flex items-center justify-between flex-wrap gap-3">
+          <fieldset class="flex items-center gap-3">
+          <legend class="sr-only">Visibility</legend>
+          <label class="flex items-center gap-1.5 text-[13px]">
+            <input type="radio" name="visibility" value="public" checked /> Public
+          </label>
+          <label class="flex items-center gap-1.5 text-[13px]">
+            <input type="radio" name="visibility" value="private" /> Private
+          </label>
+        </fieldset>
+          <div class="flex items-center gap-2">
+            <a href="gists.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Cancel</a>
+            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Create gist</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <aside class="space-y-6" aria-label="About gists">
+      <section aria-labelledby="about-gists-heading">
+        <h2 id="about-gists-heading" class="text-[12px] font-medium text-muted-foreground mb-2">About gists</h2>
+        <p class="text-[13px] text-muted-foreground leading-relaxed">A gist is a lightweight home for standalone files — snippets, scratch notes, or one-off configuration. Each gist can hold multiple files and keeps full revision history.</p>
+      </section>
+      <section aria-labelledby="gists-tips-heading" class="border-t border-border pt-5">
+        <h2 id="gists-tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
+        <ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
+          <li>Gists are standalone — they aren't attached to any repository.</li>
+          <li>Private gists aren't listed or searchable, but anyone with the link can view them.</li>
+          <li>A file's extension picks its syntax highlighting and sort order, so name files precisely.</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</div>
+</main>
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  var ON = ['border-foreground', 'text-foreground', 'font-medium'];
+  var OFF = ['border-transparent', 'text-muted-foreground', 'hover:text-foreground'];
+  function mode(ed, m) {
+    ed.querySelectorAll('[data-md-tab]').forEach(function (t) {
+      var on = t.dataset.mdTab === m;
+      ON.forEach(function (c) { t.classList.toggle(c, on); });
+      OFF.forEach(function (c) { t.classList.toggle(c, !on); });
+      t.setAttribute('aria-selected', String(on));
+    });
+    var ta = ed.querySelector('textarea');
+    var pv = ed.querySelector('[data-md-pane="preview"]');
+    ed.querySelector('[data-md-pane="write"]').classList.toggle('hidden', m !== 'write');
+    pv.classList.toggle('hidden', m !== 'preview');
+    if (m === 'preview') pv.textContent = ta.value.trim() || 'Nothing to preview.';
+  }
+  var PAIRS = { bold: ['**', '**'], italic: ['*', '*'], code: ['`', '`'], link: ['[', '](url)'] };
+  document.addEventListener('click', function (e) {
+    var tab = e.target.closest('[data-md-tab]');
+    if (tab) return mode(tab.closest('[data-md-editor]'), tab.dataset.mdTab);
+    var act = e.target.closest('[data-md-action]');
+    if (!act) return;
+    var ta = act.closest('[data-md-editor]').querySelector('textarea');
+    var p = PAIRS[act.dataset.mdAction], s = ta.selectionStart, en = ta.selectionEnd;
+    ta.setRangeText(p[0] + ta.value.slice(s, en) + p[1], s, en, 'end');
+    ta.focus();
+  });
+  var rows = document.getElementById('file-rows');
+  var seq = 0;
+  document.getElementById('add-file').addEventListener('click', function () {
+    seq += 1;
+    var clone = rows.querySelector('[data-gist-file]').cloneNode(true);
+    var name = clone.querySelector('input[name="filename[]"]');
+    var ta = clone.querySelector('textarea');
+    name.id = 'gist-filename-add-' + seq; name.value = ''; name.placeholder = 'filename.ext';
+    clone.querySelector('label').htmlFor = name.id;
+    ta.id = 'gist-content-add-' + seq; ta.value = '';
+    clone.querySelector('[data-md-pane="write"] label').htmlFor = ta.id;
+    mode(clone.querySelector('[data-md-editor]'), 'write');
+    rows.appendChild(clone);
+    name.focus();
+  });
+  document.getElementById('gist-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    window.location.href = 'gist_detail.html';
+  });
+})();
+</script>
+</body>
+</html>

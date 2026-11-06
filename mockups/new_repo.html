@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New repository — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<section class="mb-6">
+  <h1 class="text-2xl font-semibold tracking-tight">New repository</h1>
+  <p class="mt-1 text-[13px] text-muted-foreground">A repository contains all of your project's files, revision history, and collaborators.</p>
+</section>
+
+<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+  <div class="min-w-0">
+    <form id="repo-form" class="border border-border rounded-lg bg-card p-6 space-y-6">
+
+      <div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
+        <div>
+          <label for="repo-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner *</label>
+          <div class="relative" data-cselect>
+      <input type="hidden" id="repo-owner" name="owner" value="mkappworks" />
+      <button type="button" id="repo-owner-btn" aria-expanded="false" aria-haspopup="listbox" class="w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-hidden focus:border-ring">
+        <span class="truncate text-left" data-cselect-label>mkappworks</span>
+        <svg class="text-muted-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <ul hidden role="listbox" class="absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto">
+        <li><button type="button" data-value="mkappworks" data-label="mkappworks" data-visibility="public" role="option" aria-selected="true" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent bg-accent text-foreground">mkappworks</button></li>
+        <li><button type="button" data-value="acme-corp" data-label="acme-corp" data-visibility="private" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">acme-corp</button></li>
+        <li><button type="button" data-value="stitch-labs" data-label="stitch-labs" data-visibility="public" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">stitch-labs</button></li>
+      </ul>
+    </div>
+        </div>
+        <span class="text-muted-foreground/70 pb-2.5" aria-hidden="true">/</span>
+        <div>
+          <label for="repo-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
+          <input id="repo-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" placeholder="my-new-repo" autofocus class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring font-mono" />
+        </div>
+      </div>
+      <p class="text-[12px] text-muted-foreground/70">Great repository names are short and memorable. Need inspiration? <span class="font-mono">turbo-octo-meme</span>.</p>
+
+      <div>
+        <label for="repo-description" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+          Description <span class="text-muted-foreground/70 font-normal">(optional)</span>
+        </label>
+        <textarea id="repo-description" name="description" rows="2" placeholder="A short description of your project" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"></textarea>
+      </div>
+
+      <fieldset>
+        <legend class="text-[12px] font-medium text-muted-foreground mb-2">Visibility</legend>
+        <label class="border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent mb-2">
+          <input type="radio" name="visibility" value="public" checked class="mt-0.5 accent-ring" />
+          <div>
+            <p class="text-[13.5px] font-medium inline-flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Public</p>
+            <p class="mt-0.5 text-[12.5px] text-muted-foreground/70">Anyone on the internet can see this repository. You choose who can commit.</p>
+          </div>
+        </label>
+        <label class="border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent">
+          <input type="radio" name="visibility" value="private" class="mt-0.5 accent-ring" />
+          <div>
+            <p class="text-[13.5px] font-medium inline-flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg> Private</p>
+            <p class="mt-0.5 text-[12.5px] text-muted-foreground/70">You choose who can see and commit to this repository.</p>
+          </div>
+        </label>
+      </fieldset>
+
+      <div class="space-y-3">
+        <p class="text-[12px] font-medium text-muted-foreground">Initialize this repository with</p>
+        <label class="flex items-start gap-2 text-[13px]">
+          <input type="checkbox" id="repo-readme" checked class="mt-0.5 accent-ring" />
+          <span>Add a README — describes your project at a glance.</span>
+        </label>
+        <div>
+          <label for="repo-gitignore-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+            Add .gitignore <span class="text-muted-foreground/70 font-normal">(optional)</span>
+          </label>
+          <div class="relative" data-cselect>
+      <input type="hidden" id="repo-gitignore" name="gitignore" value="" />
+      <button type="button" id="repo-gitignore-btn" aria-expanded="false" aria-haspopup="listbox" class="w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-hidden focus:border-ring">
+        <span class="truncate text-left" data-cselect-label>None</span>
+        <svg class="text-muted-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <ul hidden role="listbox" class="absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto">
+        <li><button type="button" data-value="" data-label="None" role="option" aria-selected="true" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent bg-accent text-foreground">None</button></li>
+        <li><button type="button" data-value="Go" data-label="Go" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">Go</button></li>
+        <li><button type="button" data-value="Node" data-label="Node" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">Node</button></li>
+        <li><button type="button" data-value="Python" data-label="Python" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">Python</button></li>
+        <li><button type="button" data-value="Rust" data-label="Rust" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">Rust</button></li>
+      </ul>
+    </div>
+          <p class="mt-1 text-[12px] text-muted-foreground/70">Choose which files Git should ignore, from a template.</p>
+        </div>
+        <div>
+          <label for="repo-license-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+            Choose a license <span class="text-muted-foreground/70 font-normal">(optional)</span>
+          </label>
+          <div class="relative" data-cselect>
+      <input type="hidden" id="repo-license" name="license" value="" />
+      <button type="button" id="repo-license-btn" aria-expanded="false" aria-haspopup="listbox" class="w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-hidden focus:border-ring">
+        <span class="truncate text-left" data-cselect-label>None</span>
+        <svg class="text-muted-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <ul hidden role="listbox" class="absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto">
+        <li><button type="button" data-value="" data-label="None" role="option" aria-selected="true" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent bg-accent text-foreground">None</button></li>
+        <li><button type="button" data-value="mit" data-label="MIT License" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">MIT License</button></li>
+        <li><button type="button" data-value="apache-2.0" data-label="Apache License 2.0" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">Apache License 2.0</button></li>
+        <li><button type="button" data-value="gpl-3.0" data-label="GNU General Public License v3.0" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">GNU General Public License v3.0</button></li>
+      </ul>
+    </div>
+          <p class="mt-1 text-[12px] text-muted-foreground/70">Sets the terms under which others may reuse your code.</p>
+        </div>
+      </div>
+
+      <div id="repo-form-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+        <a href="my_repositories.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Cancel</a>
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Create repository</button>
+      </div>
+    </form>
+  </div>
+
+  <aside class="space-y-6" aria-label="About repositories">
+    <section aria-labelledby="rn-about">
+      <h2 id="rn-about" class="text-[12px] font-medium text-muted-foreground mb-2">About repositories</h2>
+      <p class="text-[13px] text-muted-foreground/70 leading-relaxed">A repository is the home for one project — its code, full revision history, issues, and pull requests. Start it empty, or seed it with a README, .gitignore, and license below.</p>
+    </section>
+    <section aria-labelledby="rn-tips" class="border-t border-border pt-5">
+      <h2 id="rn-tips" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
+      <ul class="space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed">
+        <li>Repository names must be unique within the owner account or organization.</li>
+        <li>Visibility can be switched between public and private later in repository settings.</li>
+        <li>Adding a README lets you clone a working copy right away — an empty repo only shows setup instructions.</li>
+        <li>A license sets the terms for how others may reuse your code; you can add one later too.</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+
+<p class="mt-6 text-[12.5px] text-muted-foreground/70 text-center">Want to import an existing repository instead? <a href="repo_import.html" class="text-primary hover:underline">Import a repository →</a></p>
+</main>
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  document.querySelectorAll('[data-cselect]').forEach(function (box) {
+    var input = box.querySelector('input[type=hidden]');
+    var btn = box.querySelector('button');
+    var list = box.querySelector('ul');
+    var label = box.querySelector('[data-cselect-label]');
+    function close() { list.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('click', function () {
+      var open = list.hidden;
+      document.querySelectorAll('[data-cselect] ul').forEach(function (u) { u.hidden = true; });
+      list.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    list.addEventListener('click', function (e) {
+      var opt = e.target.closest('button[data-value]');
+      if (!opt) return;
+      var changed = input.value !== opt.dataset.value;
+      input.value = opt.dataset.value;
+      label.textContent = opt.dataset.label;
+      list.querySelectorAll('button').forEach(function (b) {
+        var on = b === opt;
+        b.classList.toggle('bg-accent', on);
+        b.classList.toggle('text-foreground', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      if (changed && opt.dataset.visibility) {
+        var radio = document.querySelector('input[name=visibility][value=' + opt.dataset.visibility + ']');
+        if (radio) radio.checked = true;
+      }
+      close();
+    });
+    document.addEventListener('click', function (e) { if (!box.contains(e.target)) close(); });
+  });
+  document.getElementById('repo-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target;
+    window.location.href = 'repo.html';
+  });
+})();
+</script>
+</body>
+</html>

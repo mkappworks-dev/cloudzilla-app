@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Users — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-6">
+<nav aria-label="Admin sections" class="flex items-center gap-1 border-b border-border text-sm">
+  <a href="admin_settings.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Settings</a>
+  <a href="admin_users.html" aria-current="page" class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5">Users</a>
+  <a href="audit_log.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Audit log</a>
+  <a href="sso_settings.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Single sign-on</a>
+</nav>
+<div id="user-root" class="space-y-6"></div>
+</div>
+</main>
+
+<dialog id="cz-confirm-dialog" aria-labelledby="cz-confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="p-5">
+    <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="cz-confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="cz-confirm-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Confirm</button>
+    </div>
+  </div>
+</dialog>
+<div id="cz-footer"></div>
+<script>
+(function () {
+  var CLS = {
+    def: 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90', out: 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm border border-input bg-transparent hover:bg-accent hover:text-accent-foreground', des: 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-destructive text-destructive-foreground hover:bg-destructive/90', suc: 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-success text-success-foreground hover:bg-success/90',
+    input: 'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50', card: 'rounded-lg border border-border bg-card text-card-foreground', ch: 'flex flex-col space-y-1.5 p-5 border-b border-border', cd: 'text-[12px] text-muted-foreground',
+    badgeSuper: 'bg-primary text-primary-foreground border-transparent', badgeUser: 'border-border text-foreground', badgeActive: 'bg-success/15 text-success border-success/30', badgeSusp: 'bg-destructive/15 text-destructive border-destructive/30',
+    confirmInput: 'h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring',
+    codeInput: 'h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring',
+    confirmLabel: 'block text-[12px] font-medium text-muted-foreground mb-1.5'
+  };
+  var USERS = {
+    malith: { name: 'Malith Kuruppu', email: 'malith@example.test', verified: true, sa: true, susp: null, totp: true, password: true, signin: 'Password, Google', created: 'Jan 12, 2026', last: 'Nov 6, 2026 08:12', orgs: [] },
+    daisy: { name: 'Daisy Okafor', email: 'daisy@example.test', verified: true, sa: false, susp: null, totp: false, password: true, signin: 'Password', created: 'Feb 3, 2026', last: 'Nov 5, 2026 11:47', orgs: [] },
+    yumi: { name: 'Yumi Tanaka', email: 'yumi@example.test', verified: true, sa: false, susp: null, totp: true, password: true, signin: 'Password, LDAP', created: 'Feb 19, 2026', last: 'Nov 5, 2026 17:20', orgs: [] },
+    rchen: { name: 'Rosa Chen', email: 'rchen@example.test', verified: true, sa: false, susp: null, totp: false, password: false, signin: 'SAML', created: 'Mar 7, 2026', last: 'Nov 3, 2026 21:05', orgs: [] },
+    tomas: { name: 'Tomas Novak', email: 'tomas@example.test', verified: false, sa: false, susp: 'Nov 6, 2026 09:41', totp: false, password: true, signin: 'Password', created: 'Apr 22, 2026', last: null, orgs: ['acme-corp'] },
+    priya: { name: 'Priya Raman', email: 'priya@example.test', verified: true, sa: true, susp: null, totp: true, password: true, signin: 'Password, Google', created: 'Jun 1, 2026', last: 'Nov 6, 2026 08:55', orgs: [] }
+  };
+  var SELF = 'malith';
+  var name = new URLSearchParams(location.search).get('u');
+  if (!USERS[name]) name = 'daisy';
+  var u = USERS[name];
+  var resetLink = null;
+  var root = document.getElementById('user-root');
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function badge(cls, text) {
+    return '<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium ' + cls + '">' + text + '</span>';
+  }
+  function roleBadge() { return u.sa ? badge(CLS.badgeSuper, 'Superadmin') : badge(CLS.badgeUser, 'User'); }
+  function statusBadge() { return u.susp ? badge(CLS.badgeSusp, 'Suspended') : badge(CLS.badgeActive, 'Active'); }
+  function btn(cls, label, a) {
+    return '<button type="button" class="' + cls + '" data-act="' + a.act + '" data-title="' + esc(a.title) + '" data-msg="' + esc(a.msg) +
+      '" data-label="' + esc(label) + '" data-toast="' + esc(a.toast || '') + '"' + (a.danger ? ' data-danger' : '') + '>' + esc(label) + '</button>';
+  }
+  function row(title, desc, inner, id) {
+    return '<div' + (id ? ' id="' + id + '"' : '') + ' class="flex flex-wrap items-center justify-between gap-3"><div class="min-w-0 max-w-prose">' +
+      '<h3 class="text-sm font-medium">' + title + '</h3><p class="text-[13px] text-muted-foreground">' + desc + '</p></div>' +
+      '<div class="flex flex-wrap items-end justify-end gap-3">' + inner + '</div></div>';
+  }
+  function suspendMsg() {
+    var m = '@' + name + ' will be signed out everywhere and can’t sign in, push or use tokens until unsuspended.';
+    if (u.orgs.length) m += ' They are the only owner of ' + u.orgs.join(', ') + ', which will have no active owner meanwhile.';
+    return m;
+  }
+
+  function details() {
+    var dd = function (t, v) { return '<dt class="text-muted-foreground">' + t + '</dt><dd>' + v + '</dd>'; };
+    var dash = '<span class="text-muted-foreground">—</span>';
+    return '<div class="' + CLS.card + '"><div class="' + CLS.ch + '"><h2 class="text-base font-semibold tracking-tight">Details</h2></div><div class="p-5">' +
+      '<dl class="grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-x-6 gap-y-3 text-sm">' +
+      dd('Name', u.name ? esc(u.name) : dash) +
+      dd('Email', esc(u.email) + ' <span class="text-xs text-muted-foreground">(' + (u.verified ? 'verified' : 'unverified') + ')</span>') +
+      dd('Profile', '<a href="profile.html" class="hover:underline">@' + name + '</a>') +
+      (u.susp ? dd('Suspended', '<time>' + u.susp + '</time>') : '') +
+      dd('Two-factor', u.totp ? 'On' : 'Off') +
+      dd('Signs in with', u.signin) +
+      dd('Created', '<time>' + u.created + '</time>') +
+      dd('Last web sign-in', u.last ? '<time>' + u.last + '</time>' : '<span class="text-muted-foreground">Never recorded</span>') +
+      dd('Sole owner of', u.orgs.length ? esc(u.orgs.join(', ')) : '<span class="text-muted-foreground">No organizations</span>') +
+      '</dl></div></div>';
+  }
+
+  function actions() {
+    var rows = [];
+    if (u.susp) {
+      rows.push(row('Unsuspend', 'Lets the account sign in again. Its tokens, SSH keys and app grants work again; its old sessions stay signed out.',
+        btn(CLS.suc, 'Unsuspend', { act: 'unsuspend', title: 'Unsuspend @' + name + '?', msg: '@' + name + ' will be able to sign in, push and use tokens again.', toast: 'Account unsuspended' })));
+    } else {
+      rows.push(row('Suspend', 'Signs the account out everywhere and blocks sign-in, tokens, SSH keys and deploy keys on its repositories. Its content stays visible.',
+        '<label for="suspend-reason" class="sr-only">Reason (optional, recorded in the audit log)</label>' +
+        '<input id="suspend-reason" type="text" name="reason" maxlength="500" placeholder="Reason (optional, for the audit log)" class="' + CLS.input + ' w-64" />' +
+        btn(CLS.des, 'Suspend', { act: 'suspend', title: 'Suspend @' + name + '?', msg: suspendMsg(), toast: 'Account suspended', danger: true })));
+    }
+    if (u.sa) {
+      rows.push(row('Remove superadmin', 'Takes away instance administration on the account’s next request.',
+        btn(CLS.out, 'Remove superadmin', { act: 'demote', title: 'Remove superadmin from @' + name + '?', msg: '@' + name + ' loses instance administration on their next request.', toast: 'Superadmin removed', danger: true })));
+    } else if (!u.susp) {
+      rows.push(row('Make superadmin', 'Gives the account full instance administration on its next request.',
+        btn(CLS.out, 'Make superadmin', { act: 'promote', title: 'Make @' + name + ' a superadmin?', msg: '@' + name + ' gets full instance administration, including over your account.', toast: 'Superadmin granted', danger: true })));
+    }
+    if (u.totp) {
+      rows.push(row('Reset two-factor', 'Turns two-factor sign-in off for someone who lost their authenticator and backup codes. They are emailed.',
+        btn(CLS.out, 'Reset two-factor', { act: 'reset2fa', title: 'Reset two-factor for @' + name + '?', msg: '@' + name + ' will sign in with only their password or provider until they turn it back on.', toast: 'Two-factor reset', danger: true })));
+    }
+    if (u.password && !u.susp) {
+      rows.push(resetLink ? resetLinkBox() : row('Password reset link', 'Creates a single-use link that sets a new password, for you to pass on. It lasts 24 hours and replaces any earlier link. The account is emailed a notice, not the link.',
+        btn(CLS.out, 'Issue link', { act: 'resetlink', title: 'Issue a password reset link for @' + name + '?', msg: 'You’ll see the link once. Anyone who has it can set @' + name + '’s password, until it is used or replaced.' }), 'admin-user-reset-link'));
+    }
+    rows.push(row('Revoke tokens and keys', 'Deletes the account’s personal access tokens, SSH keys and app authorizations, and signs it out everywhere. Deploy keys stay. They are emailed.',
+      btn(CLS.des, 'Revoke', { act: 'revoke', title: 'Revoke @' + name + '’s tokens and keys?', msg: 'Every personal access token, SSH key and app authorization of @' + name + ' is deleted. This cannot be undone.', toast: 'Tokens and keys revoked', danger: true })));
+    return '<div class="' + CLS.card + '"><div class="' + CLS.ch + '"><h2 class="text-base font-semibold tracking-tight">Actions</h2>' +
+      '<p class="' + CLS.cd + '">Each action needs your own confirmation.</p></div><div class="p-5"><div class="flex flex-col gap-5">' +
+      '<div id="admin-user-confirm" class="flex flex-wrap items-end gap-3">' + confirmFields('admin-user') + '</div>' + rows.join('') + '</div></div></div>';
+  }
+
+  function confirmFields(prefix) {
+    // The admin signs in with 2FA, so the real page asks for the password and a code.
+    return '<div class="min-w-0"><label for="' + prefix + '-password" class="' + CLS.confirmLabel + '">Current password</label>' +
+      '<input id="' + prefix + '-password" name="password" type="password" autocomplete="current-password" class="' + CLS.confirmInput + '" /></div>' +
+      '<div><label for="' + prefix + '-code" class="' + CLS.confirmLabel + '">Two-factor code</label>' +
+      '<input id="' + prefix + '-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="' + CLS.codeInput + '" /></div>';
+  }
+
+  function resetLinkBox() {
+    return '<div id="admin-user-reset-link" class="flex flex-col gap-2"><h3 class="text-sm font-medium">Password reset link</h3>' +
+      '<div role="status" class="border border-success/40 bg-success/10 rounded-md p-4 flex flex-col gap-2">' +
+      '<p class="font-semibold text-success text-[13px]">Copy this link now — it won’t be shown again. It works once, until <time>Nov 7, 2026 09:52</time>.</p>' +
+      '<div class="flex flex-wrap items-center gap-2"><code id="reset-link-code" class="min-w-0 flex-1 bg-background border border-success/40 rounded-sm px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">' + resetLink + '</code>' +
+      '<button type="button" id="reset-link-copy" class="' + CLS.out + '"><span>Copy</span></button></div>' +
+      '<p class="text-[12px] text-muted-foreground">Pass it on to @' + name + ' yourself. They were emailed a notice that you issued it, without the link. Issuing another link replaces this one.</p></div></div>';
+  }
+
+  function orgOwners() {
+    var forms = u.orgs.map(function (org, i) {
+      return '<form class="flex flex-wrap items-end justify-between gap-3" data-org-form="' + esc(org) + '"><div class="min-w-0">' +
+        '<label for="org-owner-' + i + '" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New owner of <span class="font-mono">' + esc(org) + '</span></label>' +
+        '<input id="org-owner-' + i + '" type="text" name="username" required autocomplete="off" placeholder="Username" class="' + CLS.input + ' w-56" /></div>' +
+        '<button type="submit" class="' + CLS.out + '">Add owner</button></form>';
+    }).join('');
+    return '<div class="' + CLS.card + '"><div class="' + CLS.ch + '"><h2 class="text-base font-semibold tracking-tight">Add an organization owner</h2>' +
+      '<p class="' + CLS.cd + '">@' + name + ' is the only owner of these organizations. Make another account an owner so they can be managed. You don’t join the organization. Uses the confirmation above.</p></div>' +
+      '<div class="p-5"><div class="flex flex-col gap-4">' + forms + '</div></div></div>';
+  }
+
+  function del() {
+    var desc = u.orgs.length
+      ? '@' + name + ' is the only owner of ' + esc(u.orgs.join(', ')) + '. Add another owner or delete those organizations first.'
+      : 'Deletes the account and its personal repositories. Issues, comments and pull requests it wrote elsewhere pass to the ghost account. This cannot be undone.';
+    return '<div id="delete" class="scroll-mt-6"></div><div class="' + CLS.card + ' border-destructive/40"><div class="' + CLS.ch + '">' +
+      '<h2 class="text-base font-semibold tracking-tight text-destructive">Delete this account</h2><p class="' + CLS.cd + '">' + desc + '</p></div>' +
+      '<div class="p-5"><form id="delete-form" class="flex flex-wrap items-end justify-end gap-3"><div class="min-w-0">' +
+      '<label for="delete-user-confirm" class="' + CLS.confirmLabel + '">Type <span class="font-mono">' + name + '</span> to confirm</label>' +
+      '<input id="delete-user-confirm" type="text" name="confirm_username" required autocomplete="off" class="' + CLS.input + ' w-56" /></div>' +
+      confirmFields('delete-user') +
+      '<button type="submit" class="' + CLS.des + '">Delete account</button></form></div></div>';
+  }
+
+  function render() {
+    var self = name === SELF;
+    root.innerHTML =
+      '<div class="flex flex-wrap items-center gap-3"><a href="admin_users.html" class="text-sm text-muted-foreground hover:underline">Users</a>' +
+      '<span class="text-muted-foreground" aria-hidden="true">/</span><h1 class="text-2xl font-semibold tracking-tight">' + name + '</h1>' + roleBadge() + statusBadge() + '</div>' +
+      details() +
+      (self ? '<p class="text-sm text-muted-foreground">This is your account. Change it under <a href="account_settings.html" class="underline">Account settings</a>.</p>'
+        : actions() + (u.orgs.length ? orgOwners() : '') + del());
+    document.title = name + ' · Users — Cloudzilla';
+  }
+
+  function factorsOK(prefix) {
+    var pw = document.getElementById(prefix + '-password');
+    var code = document.getElementById(prefix + '-code');
+    if (!pw.value) { czToast('Enter your current password to confirm.'); pw.focus(); return false; }
+    if (!/^[0-9]{6}$/.test(code.value)) { czToast('Enter your six-digit two-factor code.'); code.focus(); return false; }
+    return true;
+  }
+  function clearFactors() {
+    document.querySelectorAll('#user-root input[type=password], #user-root input[name=code]').forEach(function (i) { i.value = ''; });
+  }
+
+  function apply(act) {
+    if (act === 'unsuspend') u.susp = null;
+    else if (act === 'suspend') u.susp = 'Nov 6, 2026 10:04';
+    else if (act === 'promote') u.sa = true;
+    else if (act === 'demote') u.sa = false;
+    else if (act === 'reset2fa') u.totp = false;
+    else if (act === 'resetlink') resetLink = 'https://cloudzilla.example.com/reset-password?token=9fT2xK7mQpL4vBn8cYd1';
+  }
+
+    var dlg = document.getElementById('cz-confirm-dialog');
+  var okBtn = document.getElementById('cz-confirm-ok');
+  var OK_BASE = 'inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 ';
+  var pending = null;
+  function confirmAction(o, done) {
+    document.getElementById('cz-confirm-title').textContent = o.title;
+    document.getElementById('cz-confirm-msg').textContent = o.msg;
+    okBtn.textContent = o.label;
+    okBtn.className = OK_BASE + (o.danger ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
+    pending = done;
+    dlg.returnValue = '';
+    dlg.showModal();
+  }
+  okBtn.addEventListener('click', function () { dlg.close('confirm'); });
+  document.getElementById('cz-confirm-cancel').addEventListener('click', function () { dlg.close('cancel'); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close('cancel'); });
+  dlg.addEventListener('close', function () {
+    var f = pending; pending = null;
+    if (f && dlg.returnValue === 'confirm') f();
+  });
+
+
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (b) {
+      if (!factorsOK('admin-user')) return;
+      confirmAction({ title: b.dataset.title, msg: b.dataset.msg, label: b.dataset.label, danger: b.hasAttribute('data-danger') }, function () {
+        apply(b.dataset.act);
+        render();
+        if (b.dataset.act === 'resetlink') czToast('Password reset link issued');
+        else if (b.dataset.toast) czToast(b.dataset.toast);
+      });
+      return;
+    }
+    var c = e.target.closest('#reset-link-copy');
+    if (c) {
+      try { navigator.clipboard.writeText(document.getElementById('reset-link-code').textContent); } catch (err) {}
+      c.firstChild.textContent = 'Copied';
+      setTimeout(function () { if (c.firstChild) c.firstChild.textContent = 'Copy'; }, 2000);
+    }
+  });
+  root.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target;
+    if (f.id === 'delete-form') {
+      if (f.confirm_username.value !== name) { czToast('Type ' + name + ' to confirm.'); return; }
+      if (!factorsOK('delete-user')) return;
+      confirmAction({ title: 'Delete @' + name + '?', msg: 'This permanently deletes @' + name + ' and its personal repositories. This cannot be undone.', label: 'Delete account', danger: true }, function () {
+        czToast('Account deleted');
+        setTimeout(function () { location.href = 'admin_users.html'; }, 900);
+      });
+    } else if (f.hasAttribute('data-org-form')) {
+      if (!factorsOK('admin-user')) return;
+      var org = f.getAttribute('data-org-form');
+      confirmAction({ title: 'Add an owner to ' + org + '?', msg: 'The account you name becomes a full owner of ' + org + ': members, settings, repositories and deletion.', label: 'Add owner', danger: true }, function () {
+        f.reset();
+        czToast('Owner added');
+      });
+    }
+  });
+
+  render();
+})();
+</script>
+<script src="shell.js"></script>
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Import repository — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-account-tab="repositories"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div id="state-form">
+<section class="mb-6">
+  <h1 class="text-2xl font-semibold tracking-tight">Import a repository</h1>
+  <p class="mt-1 text-[13px] text-muted-foreground">Copy a Git repository from another host, with its full history, branches, and tags.</p>
+</section>
+
+<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+  <div class="min-w-0">
+    <form id="import-form" class="border border-border rounded-lg bg-card p-6 space-y-6">
+      <div>
+        <label for="import-url" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Source repository URL *</label>
+        <input id="import-url" name="clone_url" type="url" required autofocus placeholder="https://github.com/owner/repo.git" value="" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring font-mono" />
+        <p class="mt-1 text-[12px] text-muted-foreground/70">An HTTP or HTTPS clone URL. SSH URLs aren't supported.</p>
+      </div>
+
+      <div id="mirror-box" class="rounded-md border border-border p-3 flex flex-col gap-3">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input id="import-mirror" name="mirror" type="checkbox" class="mt-0.5 h-4 w-4 accent-ring" />
+          <span>
+            <span class="text-[13.5px] font-medium inline-flex items-center gap-2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"></path><path d="M3 21v-5h5"></path><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"></path><path d="M21 3v5h-5"></path></svg>
+              Keep this repository in sync
+            </span>
+            <span class="mt-0.5 block text-[12.5px] text-muted-foreground">Creates a pull mirror: new commits, branches and tags are fetched from the source on a schedule. The copy is read-only here, so pushes, merges and web edits are refused.</span>
+          </span>
+        </label>
+        <div id="mirror-interval-row" hidden class="flex items-center gap-2.5 pl-7">
+          <label for="import-mirror-interval" class="text-[12px] font-medium text-muted-foreground">Sync every</label>
+          <select id="import-mirror-interval" name="mirror_interval" class="bg-background border border-border rounded-md px-2 py-1.5 text-[13px] text-foreground focus:outline-hidden focus:border-ring">
+            <option value="15m">15 minutes</option>
+            <option value="1h" selected>1 hour</option>
+            <option value="6h">6 hours</option>
+            <option value="24h">24 hours</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <button type="button" id="cred-toggle" aria-expanded="false" aria-controls="import-credentials" class="self-start inline-flex items-center gap-1.5 text-[13px] text-primary hover:underline">
+          <svg id="cred-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false" class="transition-transform"><path d="M9 18l6-6-6-6"></path></svg>
+          This repository needs credentials
+        </button>
+        <div id="import-credentials" hidden class="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label for="import-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
+            <input id="import-username" name="auth_username" type="text" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          </div>
+          <div>
+            <label for="import-token" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Access token</label>
+            <input id="import-token" name="auth_token" type="password" autocomplete="new-password" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          </div>
+          <p id="cred-once" class="sm:col-span-2 text-[12px] text-muted-foreground/70">Used once for this import and not stored. A token with read access to the repository is enough.</p>
+          <p id="cred-stored" hidden class="sm:col-span-2 text-[12px] text-muted-foreground/70">Stored encrypted so the mirror can keep syncing, and never shown again. A token with read access to the repository is enough.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
+        <div>
+          <label for="import-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner *</label>
+          <div class="relative" data-cselect>
+          <input type="hidden" id="import-owner" name="owner" value="malith" />
+          <button type="button" id="import-owner-btn" aria-expanded="false" aria-haspopup="listbox" class="w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-hidden focus:border-ring">
+            <span class="truncate text-left" data-cselect-label>malith</span>
+            <svg class="text-muted-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+          </button>
+          <ul hidden role="listbox" class="absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto">
+            <li><button type="button" data-value="malith" data-label="malith" role="option" aria-selected="true" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent bg-accent text-foreground">malith</button></li>
+            <li><button type="button" data-value="acme-corp" data-label="acme-corp" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">acme-corp</button></li>
+            <li><button type="button" data-value="stitch-labs" data-label="stitch-labs" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">stitch-labs</button></li>
+          </ul>
+        </div>
+        </div>
+        <span class="text-muted-foreground/70 pb-2.5" aria-hidden="true">/</span>
+        <div>
+          <label for="import-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
+          <input id="import-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" placeholder="my-repo" value="" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring font-mono" />
+        </div>
+      </div>
+
+      <div>
+        <label for="import-description" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+          Description <span class="text-muted-foreground/70 font-normal">(optional)</span>
+        </label>
+        <textarea id="import-description" name="description" rows="2" placeholder="A short description of your project" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"></textarea>
+      </div>
+
+      <fieldset>
+        <legend class="text-[12px] font-medium text-muted-foreground mb-2">Visibility</legend>
+        <label class="border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent mb-2">
+          <input type="radio" name="visibility" value="public" checked class="mt-0.5 accent-ring" />
+          <div>
+            <p class="text-[13.5px] font-medium inline-flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Public</p>
+            <p class="mt-0.5 text-[12.5px] text-muted-foreground/70">Anyone on the internet can see this repository. You choose who can commit.</p>
+          </div>
+        </label>
+        <label class="border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent">
+          <input type="radio" name="visibility" value="private" class="mt-0.5 accent-ring" />
+          <div>
+            <p class="text-[13.5px] font-medium inline-flex items-center gap-2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg> Private</p>
+            <p class="mt-0.5 text-[12.5px] text-muted-foreground/70">You choose who can see and commit to this repository.</p>
+          </div>
+        </label>
+      </fieldset>
+
+      <div id="import-form-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+        <a href="home.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Cancel</a>
+        <button type="submit" id="import-submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Begin import</button>
+      </div>
+    </form>
+  </div>
+
+  <aside class="space-y-6" aria-label="About importing">
+    <section aria-labelledby="ri-what">
+      <h2 id="ri-what" class="text-[12px] font-medium text-muted-foreground mb-2">What gets imported</h2>
+      <p class="text-[13px] text-muted-foreground/70 leading-relaxed">Every branch and tag, with full history. The new repository's default branch matches the source's.</p>
+    </section>
+    <section aria-labelledby="ri-sync" class="border-t border-border pt-5">
+      <h2 id="ri-sync" class="text-[12px] font-medium text-muted-foreground mb-2">Keeping it in sync</h2>
+      <p class="text-[13px] text-muted-foreground/70 leading-relaxed">A mirror follows force pushes and deleted branches too. Issues and wikis stay local. You can stop mirroring later from the repository's settings.</p>
+    </section>
+    <section aria-labelledby="ri-not" class="border-t border-border pt-5">
+      <h2 id="ri-not" class="text-[12px] font-medium text-muted-foreground mb-2">Not imported</h2>
+      <ul class="space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed">
+        <li>Issues, pull requests, wikis, and releases.</li>
+        <li>Git LFS files: only their pointer files come across.</li>
+        <li>Later changes to the source, unless you keep it in sync.</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+</div>
+
+<div id="state-status" hidden>
+<section class="mb-6">
+  <h1 class="text-2xl font-semibold tracking-tight">Importing <span class="font-mono" id="st-target">malith/cloudzilla</span></h1>
+  <p class="mt-1 text-[13px] text-muted-foreground font-mono break-all" id="st-source">https://github.com/mkappworks/cloudzilla.git</p>
+</section>
+
+<div id="import-status" class="border border-border rounded-lg bg-card p-6" role="status" aria-live="polite">
+  <p class="text-[13.5px] font-medium inline-flex items-center gap-2">
+    <svg class="animate-spin text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg>
+    <span id="st-label">Waiting for other imports to finish…</span>
+  </p>
+  <p id="st-progress" class="mt-2 text-[12.5px] text-muted-foreground font-mono break-all" hidden></p>
+  <p class="mt-4 text-[12.5px] text-muted-foreground/70">You can leave this page: the import keeps running. Large repositories can take several minutes.</p>
+</div>
+
+<div id="import-done" hidden class="border border-border rounded-lg bg-card p-6" role="status">
+  <p class="text-[13.5px] font-medium">Import complete.</p>
+  <a id="st-done-link" href="repo.html" class="mt-2 inline-block text-[13px] text-primary hover:underline">Go to malith/cloudzilla →</a>
+</div>
+
+<div id="import-failed" hidden class="border border-destructive/40 bg-destructive/10 rounded-lg p-6" role="alert">
+  <p class="text-[13.5px] font-medium text-destructive">The import failed</p>
+  <p id="st-error" class="mt-1 text-[13px] text-foreground"></p>
+  <div class="mt-4">
+    <a href="repo_import.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-xs">Try again</a>
+  </div>
+</div>
+</div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+<script>
+(function () {
+  document.querySelectorAll('[data-cselect]').forEach(function (box) {
+    var input = box.querySelector('input[type=hidden]');
+    var btn = box.querySelector('button');
+    var list = box.querySelector('ul');
+    var label = box.querySelector('[data-cselect-label]');
+    function close() { list.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('click', function () {
+      var open = list.hidden;
+      document.querySelectorAll('[data-cselect] ul').forEach(function (u) { u.hidden = true; });
+      list.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    list.addEventListener('click', function (e) {
+      var opt = e.target.closest('button[data-value]');
+      if (!opt) return;
+      input.value = opt.dataset.value;
+      label.textContent = opt.dataset.label;
+      list.querySelectorAll('button').forEach(function (b) {
+        var on = b === opt;
+        b.classList.toggle('bg-accent', on);
+        b.classList.toggle('text-foreground', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      close();
+    });
+    document.addEventListener('click', function (e) { if (!box.contains(e.target)) close(); });
+  });
+  var $ = function (id) { return document.getElementById(id); };
+  var mirror = $('import-mirror');
+  var urlInput = $('import-url');
+  var nameInput = $('import-name');
+  var nameEdited = false;
+
+  // Query params mirror the real "Try again" link (?url=&name=); ?id=1 opens the status view directly.
+  var q = new URLSearchParams(location.search);
+  if (q.get('url')) urlInput.value = q.get('url');
+  if (q.get('name')) { nameInput.value = q.get('name'); nameEdited = true; }
+
+  nameInput.addEventListener('input', function () { nameEdited = true; });
+  urlInput.addEventListener('input', function () {
+    if (nameEdited) return;
+    var path = urlInput.value.trim().replace(/[?#].*$/, '').replace(/\/+$/, '');
+    nameInput.value = path.slice(path.lastIndexOf('/') + 1).replace(/\.git$/, '').replace(/[^A-Za-z0-9._-]/g, '-');
+  });
+
+  function syncMirror() {
+    var on = mirror.checked;
+    $('mirror-box').classList.toggle('border-ring/60', on);
+    $('mirror-box').classList.toggle('bg-ring/5', on);
+    $('mirror-box').classList.toggle('border-border', !on);
+    $('mirror-interval-row').hidden = !on;
+    $('cred-once').hidden = on;
+    $('cred-stored').hidden = !on;
+  }
+  mirror.addEventListener('change', syncMirror);
+
+  $('cred-toggle').addEventListener('click', function () {
+    var open = $('import-credentials').hidden;
+    $('import-credentials').hidden = !open;
+    this.setAttribute('aria-expanded', open ? 'true' : 'false');
+    $('cred-chevron').classList.toggle('rotate-90', open);
+  });
+
+  function showStatus(owner, name, source) {
+    $('state-form').hidden = true;
+    $('state-status').hidden = false;
+    $('st-target').textContent = owner + '/' + name;
+    $('st-source').textContent = source;
+    $('st-done-link').textContent = 'Go to ' + owner + '/' + name + ' →';
+    history.replaceState(null, '', 'repo_import.html?id=1');
+    var steps = [
+      ['Waiting for other imports to finish…', ''],
+      ['Importing…', 'Enumerating objects: 4182, done.'],
+      ['Importing…', 'Receiving objects: 63% (2635/4182)'],
+      ['Importing…', 'Resolving deltas: 100% (1904/1904), done.']
+    ];
+    var i = 0;
+    var timer = setInterval(function () {
+      if (i < steps.length) {
+        $('st-label').textContent = steps[i][0];
+        $('st-progress').textContent = steps[i][1];
+        $('st-progress').hidden = !steps[i][1];
+        i++;
+        return;
+      }
+      clearInterval(timer);
+      $('import-status').hidden = true;
+      $('import-done').hidden = false;
+      window.czToast('Import complete.');
+      setTimeout(function () { location.href = 'repo.html'; }, 1500);
+    }, 1200);
+  }
+
+  $('import-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('import-form-error').classList.add('hidden');
+    $('import-submit').disabled = true;
+    showStatus(document.querySelector('[name=owner]').value, nameInput.value.trim(), urlInput.value.trim());
+  });
+
+  if (q.get('id')) showStatus('malith', 'cloudzilla', 'https://github.com/mkappworks/cloudzilla.git');
+  syncMirror();
+})();
+</script>
+</body>
+</html>

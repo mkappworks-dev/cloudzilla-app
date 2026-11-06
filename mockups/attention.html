@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Needs your attention — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased flex flex-col">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-account-tab="attention"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="space-y-5">
+    <section>
+      <h1 class="text-2xl font-semibold tracking-tight">Needs your attention</h1>
+      <p class="mt-1 text-[13px] text-muted-foreground"><span id="total">13</span> items · <span id="caption">most overdue first</span></p>
+    </section>
+
+    <nav aria-label="Section navigation" class="flex items-center gap-1 border-b border-border text-sm" id="tabs">
+      <a href="#all" data-kind="all" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">All <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="13 items">13</span></a>
+      <a href="#mentions" data-kind="mentions" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Mentions <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="4 items">4</span></a>
+      <a href="#reviews" data-kind="reviews" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Reviews <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="4 items">4</span></a>
+      <a href="#assigned" data-kind="assigned" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Assigned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="5 items">5</span></a>
+    </nav>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="relative flex-1 min-w-[240px]">
+        <label for="attn-filter" class="sr-only">Filter attention items</label>
+        <input id="attn-filter" type="search" placeholder="Filter items…" autocomplete="off" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
+        <svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+      </div>
+      <div class="relative" data-dropdown>
+        <button type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Sort attention items" class="h-9 px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center gap-1.5">
+          <span id="sort-label">Sort: most overdue</span>
+          <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+        </button>
+        <div role="menu" aria-label="Sort attention items" id="sort-menu" class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"></div>
+      </div>
+    </div>
+
+    <ul class="border border-border rounded-md bg-card overflow-hidden" id="rows"></ul>
+    <div id="empty" hidden class="bg-background border border-border rounded-lg p-8 text-center"><p class="text-muted-foreground">Nothing needs your attention right now.</p></div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+
+<script>
+(function () {
+  var ITEMS = [
+    { kind: 'reviews', label: 'Review', t: 'Rate-limit middleware', repo: 'acme-corp/api', n: 319, waiting: 'review requested 1d ago', age: 30, href: 'pr.html' },
+    { kind: 'mentions', label: 'Mention', t: 'Schema migration rollback plan', repo: 'acme-corp/db', n: 88, waiting: 'mentioned 8h ago', age: 8, href: 'issue_detail.html' },
+    { kind: 'assigned', label: 'Assigned', t: 'Replay window UI', repo: 'ingest-pipeline', n: 298, waiting: 'assigned 3d ago', age: 72, href: 'issue_detail.html' },
+    { kind: 'reviews', label: 'Review', t: 'Audit log filters', repo: 'acme-corp/api', n: 327, waiting: 'review requested 4d ago', age: 96, href: 'pr.html' },
+    { kind: 'assigned', label: 'Assigned', t: 'Flaky test on push', repo: 'cloudzilla', n: 312, waiting: 'assigned 2h ago', age: 2, href: 'issue_detail.html' },
+    { kind: 'mentions', label: 'Mention', t: 'Wiki search ignores titles', repo: 'cloudzilla', n: 305, waiting: 'mentioned 6d ago', age: 144, href: 'issue_detail.html' },
+    { kind: 'assigned', label: 'Assigned', t: 'Add OAuth scopes to access tokens', repo: 'cloudzilla', n: 341, waiting: 'assigned 5d ago', age: 120, href: 'pr.html' }
+  ];
+  var KIND = {
+    reviews: ['text-success', '<path d="M5 12h14M12 5l7 7-7 7"></path>'],
+    mentions: ['text-warning', '<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path>'],
+    assigned: ['text-ring', '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>']
+  };
+  var SORTS = [['overdue', 'Sort: most overdue', 'most overdue first'], ['newest', 'Newest', 'newest first'], ['oldest', 'Oldest', 'oldest first']];
+  var kind = 'all', sort = 'overdue';
+
+  function row(i) {
+    return '<li class="border-b border-border last:border-b-0"><a href="' + i.href + '" class="group flex items-center gap-3 border-l-2 border-l-transparent px-4 py-3 transition-all hover:border-l-foreground hover:bg-accent hover:pl-[18px]">' +
+      '<span class="shrink-0 h-4 w-4 rounded-full grid place-items-center ' + KIND[i.kind][0] + '" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">' + KIND[i.kind][1] + '</svg></span>' +
+      '<div class="min-w-0 flex-1"><p class="text-[13px] truncate">' + i.label + ': ' + i.t + '</p><p class="text-[11px] text-muted-foreground mt-0.5"><span class="font-mono">' + i.repo + '</span><span aria-hidden="true"> · </span><span class="font-mono">#' + i.n + '</span><span aria-hidden="true"> · </span><time>' + i.waiting + '</time></p></div></a></li>';
+  }
+  function menuItem(s) {
+    var active = s[0] === sort;
+    return '<a href="#" role="menuitem" data-sort="' + s[0] + '" class="flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent hover:text-foreground ' + (active ? 'text-foreground font-medium' : 'text-muted-foreground') + '">' + s[1] +
+      (active ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '') + '</a>';
+  }
+  var ON = 'px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5';
+  var OFF = 'px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5';
+  function render() {
+    var q = document.getElementById('attn-filter').value.toLowerCase();
+    var rows = ITEMS.filter(function (i) { return (kind === 'all' || i.kind === kind) && (i.repo + ' ' + i.t).toLowerCase().indexOf(q) >= 0; });
+    rows.sort(function (a, b) { return sort === 'newest' ? a.age - b.age : b.age - a.age; });
+    var list = document.getElementById('rows');
+    list.innerHTML = rows.map(row).join('');
+    list.hidden = !rows.length;
+    document.getElementById('empty').hidden = rows.length > 0;
+    var cur = SORTS.filter(function (s) { return s[0] === sort; })[0];
+    document.getElementById('sort-label').textContent = cur[1];
+    document.getElementById('caption').textContent = cur[2];
+    document.getElementById('sort-menu').innerHTML = '<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>' + SORTS.map(menuItem).join('');
+    document.querySelectorAll('#tabs a').forEach(function (a) {
+      var on = a.dataset.kind === kind;
+      a.className = on ? ON : OFF;
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+  }
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault(); kind = a.dataset.kind; render();
+  });
+  document.getElementById('sort-menu').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault(); sort = a.dataset.sort; render();
+  });
+  document.getElementById('attn-filter').addEventListener('input', render);
+  render();
+})();
+</script>
+
+</body>
+</html>

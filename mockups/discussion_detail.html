@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RFC: Should we add OpenTelemetry tracing to the git transport layer? · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="discussions"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20">
+
+<div>
+  <section class="mb-6 border-b border-border pb-6">
+    <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+      <a href="repo.html" class="hover:underline">cloudzilla</a>
+      <span aria-hidden="true">·</span>
+      <a href="discussions.html" class="hover:underline">Discussions</a>
+      <span aria-hidden="true">·</span>
+      <span aria-current="page">#42</span>
+    </p>
+    <div class="mb-3">
+      <div id="title-view">
+       <div class="flex items-start justify-between gap-3">
+        <h1 class="text-2xl font-semibold tracking-tight min-w-0">
+          <span id="title-text">RFC: Should we add OpenTelemetry tracing to the git transport layer?</span>
+          <span class="text-muted-foreground font-normal font-mono">#42</span>
+        </h1>
+        <button type="button" id="edit-title-btn" class="shrink-0 inline-flex items-center h-8 px-3 text-[13px] rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground">Edit</button>
+       </div>
+      </div>
+      <div id="title-edit" hidden>
+       <div class="flex items-center gap-2">
+        <input id="dd-title-input" type="text" value="RFC: Should we add OpenTelemetry tracing to the git transport layer?" class="flex-1 min-w-0 h-9 rounded-md border border-border bg-transparent px-3 text-sm"/>
+        <button type="button" id="title-save" class="inline-flex items-center h-9 px-4 text-[13px] rounded-md font-medium bg-foreground text-background">Save</button>
+        <button type="button" id="title-cancel" class="inline-flex items-center h-9 px-3 text-[13px] rounded-md text-muted-foreground hover:underline">Cancel</button>
+       </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
+      <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">MK</span>
+      <span><strong class="text-foreground">malith</strong> started this discussion</span>
+      <time>May 12, 2026</time>
+      <span class="opacity-50 mx-1" aria-hidden="true">·</span>
+      <span>3 replies</span>
+      <span class="opacity-50 mx-1" aria-hidden="true">·</span>
+      <span id="hdr-cat" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border border-border bg-muted text-muted-foreground">Q&amp;A</span>
+      <span id="hdr-labels" class="contents"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #6ea8fe33; color: #6ea8fe; border-color: #6ea8fe55">observability</span><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #c084fc33; color: #c084fc; border-color: #c084fc55">rfc</span></span>
+    </div>
+  </section>
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+    <div class="space-y-5 min-w-0">
+        <div class="rounded-md border border-success/40 bg-success/10 p-3 flex items-center gap-2.5 text-[13px]">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-success shrink-0" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          <span><strong class="text-foreground">Answered</strong> — <a href="#reply-1" class="text-foreground hover:underline">daisy's reply</a> was marked as the answer.</span>
+        </div>
+
+      <article id="discussion-description" class="rounded-md border border-border bg-card overflow-hidden">
+        <header class="px-4 py-2.5 border-b border-border bg-blue-500/10 flex items-center gap-2 flex-wrap text-[12.5px]">
+          <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="malith">MK</span>
+          <strong class="text-foreground">malith</strong>
+          <span class="text-muted-foreground">started the discussion</span>
+          <time class="text-muted-foreground">May 12, 2026</time>
+          <button type="button" id="edit-desc-btn" class="ml-auto inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border hover:bg-accent text-[12px] text-muted-foreground">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            Edit
+          </button>
+        </header>
+        <div class="px-4 py-4">
+          <div id="desc-rendered" class="prose prose-sm dark:prose-invert max-w-none">
+            <p>Our git transport layer — both the HTTP smart protocol and the SSH server — is entirely pure Go, which gives us a clean place to add instrumentation without shelling out to a <code>git</code> binary.</p>
+            <p>I'd like opinions on wrapping <code>OpenTelemetry</code> spans around pack negotiation, ref advertisement, and the SSH auth handshake. Questions before anyone writes code:</p>
+            <ul>
+              <li>Do we export to an OTLP collector, or keep traces in-process behind a debug flag?</li>
+              <li>Is the per-request span overhead acceptable on the hot push/fetch path?</li>
+              <li>Should this wait until after v1.0?</li>
+            </ul>
+            <p>Not committing to anything yet — looking for a steer.</p>
+          </div>
+          <form id="desc-editor" hidden>
+            <div class="rounded-md border border-border overflow-hidden">
+              <div data-markdown-editor data-rows="12" data-placeholder="Edit the description…"><textarea>Our git transport layer — both the HTTP smart protocol and the SSH server — is entirely pure Go, which gives us a clean place to add instrumentation without shelling out to a `git` binary.
+
+I'd like opinions on wrapping `OpenTelemetry` spans around pack negotiation, ref advertisement, and the SSH auth handshake. Questions before anyone writes code:
+
+- Do we export to an OTLP collector, or keep traces in-process behind a debug flag?
+- Is the per-request span overhead acceptable on the hot push/fetch path?
+- Should this wait until after v1.0?
+
+Not committing to anything yet — looking for a steer.</textarea></div>
+            </div>
+            <div class="flex justify-end gap-2 mt-2">
+              <button type="button" id="desc-cancel" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Cancel</button>
+              <button type="submit" id="desc-save" class="h-8 px-3 text-[13px] rounded-md font-medium bg-foreground text-background">Save</button>
+            </div>
+          </form>
+        </div>
+        <footer class="px-4 py-2 border-t border-border">
+          <div class="flex flex-wrap items-center gap-1 mt-2">
+            <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-primary/40 bg-primary/10 border-primary/40 text-foreground">👍 <span class="text-xs font-medium">6</span></button>
+            <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-primary/40 bg-background border-border text-muted-foreground">🎉 <span class="text-xs font-medium">2</span></button>
+            <details class="relative">
+              <summary class="list-none inline-flex items-center justify-center w-7 h-7 rounded-full border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground cursor-pointer text-sm transition-colors">+</summary>
+              <div class="absolute z-10 left-0 top-8 bg-background border border-border rounded-lg shadow-md p-2 flex gap-1 flex-wrap">
+                <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👍</button>
+                <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👎</button>
+                <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">😄</button>
+                <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">🎉</button>
+                <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">😕</button>
+                <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">❤️</button>
+                <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">🚀</button>
+                <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👀</button>
+              </div>
+            </details>
+          </div>
+        </footer>
+      </article>
+      <h2 class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider pt-1">
+        <span>3 replies</span>
+      </h2>
+      <div id="discussion-timeline" class="space-y-5">
+        <article id="reply-1" class="rounded-md border bg-card overflow-hidden border-success/40">
+          <header class="px-4 py-2.5 border-b flex items-center gap-2 text-[12.5px] border-success/30 bg-success/10">
+            <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="daisy">DK</span>
+            <strong class="text-foreground">daisy</strong>
+          <span class="inline-flex items-center gap-1 text-success font-medium">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Answer
+          </span>
+            <span class="text-muted-foreground">replied</span>
+            <time class="text-muted-foreground ml-auto">May 12, 2026 at 11:42</time>
+          </header>
+          <div class="px-4 py-4 prose prose-sm dark:prose-invert max-w-none">
+            <p>Strong +1 on keeping traces in-process behind a debug flag to start. An OTLP exporter is a config surface we'd have to support forever; a flag we can iterate on freely.</p>
+          </div>
+          <footer class="px-4 py-2 border-t border-border flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-1 mt-2">
+              <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-primary/40 bg-background border-border text-muted-foreground">👍 <span class="text-xs font-medium">4</span></button>
+              <details class="relative">
+                <summary class="list-none inline-flex items-center justify-center w-7 h-7 rounded-full border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground cursor-pointer text-sm transition-colors">+</summary>
+                <div class="absolute z-10 left-0 top-8 bg-background border border-border rounded-lg shadow-md p-2 flex gap-1 flex-wrap">
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👍</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👎</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">😄</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">🎉</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">😕</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">❤️</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">🚀</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👀</button>
+                </div>
+              </details>
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+              <span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Marked as answer
+            </span>
+            <button type="button" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 px-3 text-[13px]">Unmark answer</button>
+            </div>
+          </footer>
+        </article>
+        <article id="reply-2" class="rounded-md border bg-card overflow-hidden border-border">
+          <header class="px-4 py-2.5 border-b flex items-center gap-2 text-[12.5px] border-border bg-muted">
+            <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="yumi">YM</span>
+            <strong class="text-foreground">yumi</strong>
+            <span class="text-muted-foreground">replied</span>
+            <time class="text-muted-foreground ml-auto">May 12, 2026 at 14:15</time>
+          </header>
+          <div class="px-4 py-4 prose prose-sm dark:prose-invert max-w-none">
+            <p>The overhead worry is real for fetch. Could we sample — trace 1 in N pack negotiations rather than every one? That keeps the hot path cheap and still surfaces the slow outliers.</p>
+          </div>
+          <footer class="px-4 py-2 border-t border-border flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-1 mt-2">
+              <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-primary/40 bg-primary/10 border-primary/40 text-foreground">👍 <span class="text-xs font-medium">3</span></button>
+              <details class="relative">
+                <summary class="list-none inline-flex items-center justify-center w-7 h-7 rounded-full border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground cursor-pointer text-sm transition-colors">+</summary>
+                <div class="absolute z-10 left-0 top-8 bg-background border border-border rounded-lg shadow-md p-2 flex gap-1 flex-wrap">
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👍</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👎</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">😄</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">🎉</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">😕</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">❤️</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">🚀</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👀</button>
+                </div>
+              </details>
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+              <button type="button" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">Mark as answer</button>
+            </div>
+          </footer>
+        </article>
+        <article id="reply-3" class="rounded-md border bg-card overflow-hidden border-border">
+          <header class="px-4 py-2.5 border-b flex items-center gap-2 text-[12.5px] border-border bg-muted">
+            <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="malith">MK</span>
+            <strong class="text-foreground">malith</strong>
+            <span class="text-muted-foreground">replied</span>
+            <time class="text-muted-foreground ml-auto">May 12, 2026 at 18:30</time>
+          </header>
+          <div class="px-4 py-4 prose prose-sm dark:prose-invert max-w-none">
+            <p>Good steer, both. Plan: in-process spans behind a debug flag, with sampling on the fetch path. I'll write it up as a post-v1.0 item and link a tracking issue here.</p>
+          </div>
+          <footer class="px-4 py-2 border-t border-border flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-1 mt-2">
+              <button type="button" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-primary/40 bg-background border-border text-muted-foreground">🎉 <span class="text-xs font-medium">5</span></button>
+              <details class="relative">
+                <summary class="list-none inline-flex items-center justify-center w-7 h-7 rounded-full border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground cursor-pointer text-sm transition-colors">+</summary>
+                <div class="absolute z-10 left-0 top-8 bg-background border border-border rounded-lg shadow-md p-2 flex gap-1 flex-wrap">
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👍</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👎</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">😄</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">🎉</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">😕</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">❤️</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">🚀</button>
+                  <button type="button" class="text-lg hover:scale-125 transition-transform leading-none">👀</button>
+                </div>
+              </details>
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+              <button type="button" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">Mark as answer</button>
+            </div>
+          </footer>
+        </article>
+      </div>
+        <div id="cz-comment-editor" data-avatar="MK" data-placeholder="Add to the discussion…" data-rows="6">
+          <button type="button" data-href="discussion_detail_locked.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Lock discussion</button>
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Comment</button>
+        </div>
+    </div>
+    <aside class="space-y-6" aria-label="Discussion metadata">
+      <section aria-labelledby="dd-category-heading">
+        <div class="flex items-center justify-between mb-2">
+          <h2 id="dd-category-heading" class="text-[12px] font-medium text-muted-foreground">Category</h2>
+          <div class="relative">
+            <button type="button" data-pop-btn aria-expanded="false" aria-haspopup="menu" aria-label="Change category" class="text-muted-foreground hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+            <div data-pop hidden role="menu" aria-label="Move to category" class="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1">
+              <div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Move to category</div>
+              <button type="button" role="menuitemradio" data-cat="General" aria-checked="false" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="flex-1 truncate">General</span>
+                <span class="cat-check invisible"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+              <button type="button" role="menuitemradio" data-cat="Q&amp;A" aria-checked="true" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="flex-1 truncate">Q&amp;A</span>
+                <span class="cat-check "><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+              <button type="button" role="menuitemradio" data-cat="Ideas" aria-checked="false" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="flex-1 truncate">Ideas</span>
+                <span class="cat-check invisible"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+              <button type="button" role="menuitemradio" data-cat="Announcements" aria-checked="false" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="flex-1 truncate">Announcements</span>
+                <span class="cat-check invisible"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <span id="side-cat" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-medium border border-border bg-muted text-foreground">Q&amp;A</span>
+      </section>
+      <div id="discussion-labels" class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-[12px] font-medium text-muted-foreground">Labels</h3>
+          <div class="relative">
+            <button type="button" data-pop-btn aria-expanded="false" aria-haspopup="menu" aria-label="Edit labels" class="text-muted-foreground hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+            <div data-pop hidden role="menu" aria-label="Apply labels" class="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-h-72 overflow-y-auto">
+              <div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Apply labels</div>
+              <button type="button" role="menuitemcheckbox" data-lab="observability" data-color="#6ea8fe" aria-checked="true" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #6ea8fe"></span>
+                <span class="flex-1 truncate">observability</span>
+                <span class="lab-check "><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-lab="rfc" data-color="#c084fc" aria-checked="true" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #c084fc"></span>
+                <span class="flex-1 truncate">rfc</span>
+                <span class="lab-check "><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-lab="performance" data-color="#fbbf24" aria-checked="false" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #fbbf24"></span>
+                <span class="flex-1 truncate">performance</span>
+                <span class="lab-check invisible"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-lab="security" data-color="#f87171" aria-checked="false" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #f87171"></span>
+                <span class="flex-1 truncate">security</span>
+                <span class="lab-check invisible"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-lab="tooling" data-color="#4ade80" aria-checked="false" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #4ade80"></span>
+                <span class="flex-1 truncate">tooling</span>
+                <span class="lab-check invisible"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
+              <div role="separator" class="my-1 h-px bg-border"></div>
+              <a href="#" role="menuitem" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                Create a new label
+              </a>
+            </div>
+          </div>
+        </div>
+        <div id="side-labels" class="flex flex-wrap gap-1"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #6ea8fe33; color: #6ea8fe; border-color: #6ea8fe55">observability</span><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #c084fc33; color: #c084fc; border-color: #c084fc55">rfc</span></div>
+      </div>
+      <section>
+        <div id="thread-subscription">
+          <h3 class="text-[12px] font-medium text-muted-foreground mb-2 flex items-center gap-2">Notifications</h3>
+          <button type="button" aria-pressed="true" class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M13.7 21a2 2 0 01-3.4 0M18.6 13A17 17 0 0118 8M6.3 6.3A6 6 0 006 8c0 7-3 9-3 9h14M18 8a6 6 0 00-9.3-5M1 1l22 22"></path></svg>
+            Unsubscribe
+          </button>
+          <p class="mt-2 text-[12px] text-muted-foreground">
+            <span>You’re receiving notifications. <em>You opened this thread.</em></span>
+          </p>
+        </div>
+      </section>
+      <section aria-labelledby="dd-participants-heading">
+        <h2 id="dd-participants-heading" class="text-[12px] font-medium text-muted-foreground mb-2">3 participants</h2>
+        <ul class="flex flex-wrap gap-1.5">
+            <li><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="malith">MK</span></li>
+            <li><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="daisy">DK</span></li>
+            <li><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="yumi">YM</span></li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</div>
+
+</main>
+
+<div id="cz-footer"></div>
+<script src="markdown-editor.js"></script>
+<script src="comment-editor.js"></script>
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function toggle(a, b, showB) { a.hidden = showB; b.hidden = !showB; }
+
+  var tv = $('title-view'), te = $('title-edit');
+  $('edit-title-btn').addEventListener('click', function () { toggle(tv, te, true); $('dd-title-input').focus(); });
+  $('title-cancel').addEventListener('click', function () { toggle(tv, te, false); });
+  $('title-save').addEventListener('click', function () { $('title-text').textContent = $('dd-title-input').value; toggle(tv, te, false); });
+
+  var rendered = $('desc-rendered'), editor = $('desc-editor'), editBtn = $('edit-desc-btn');
+  function editing(on) {
+    rendered.hidden = on;
+    editor.hidden = !on;
+    editBtn.hidden = on;
+  }
+  editBtn.addEventListener('click', function () { editing(true); });
+  $('desc-cancel').addEventListener('click', function () { editing(false); });
+  editor.addEventListener('submit', function (e) { e.preventDefault(); editing(false); });
+
+  document.addEventListener('click', function (e) {
+    var go = e.target.closest('[data-href]');
+    if (go) { location.href = go.getAttribute('data-href'); return; }
+    var btn = e.target.closest('[data-pop-btn]');
+    document.querySelectorAll('[data-pop]').forEach(function (p) {
+      var own = btn && p.parentNode.contains(btn);
+      var open = own ? p.hidden : false;
+      p.hidden = !open;
+      p.parentNode.querySelector('[data-pop-btn]').setAttribute('aria-expanded', String(open));
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('[data-pop]').forEach(function (p) { p.hidden = true; });
+  });
+
+  var LABEL_CLS = 'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border';
+  function pill(btn) {
+    var c = btn.getAttribute('data-color'), s = document.createElement('span');
+    s.className = LABEL_CLS;
+    s.setAttribute('style', 'background-color: ' + c + '33; color: ' + c + '; border-color: ' + c + '55');
+    s.textContent = btn.getAttribute('data-lab');
+    return s;
+  }
+  function renderLabels() {
+    var side = $('side-labels'), hdr = $('hdr-labels');
+    side.replaceChildren(); hdr.replaceChildren();
+    document.querySelectorAll('[data-lab][aria-checked="true"]').forEach(function (b) {
+      side.appendChild(pill(b)); hdr.appendChild(pill(b));
+    });
+    if (!side.children.length) {
+      var none = document.createElement('span');
+      none.className = 'text-xs text-muted-foreground';
+      none.textContent = 'None yet';
+      side.appendChild(none);
+    }
+  }
+  document.querySelectorAll('[data-lab]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var on = b.getAttribute('aria-checked') !== 'true';
+      b.setAttribute('aria-checked', String(on));
+      b.querySelector('.lab-check').classList.toggle('invisible', !on);
+      renderLabels();
+    });
+  });
+  document.querySelectorAll('[data-cat]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('[data-cat]').forEach(function (o) {
+        var on = o === b;
+        o.setAttribute('aria-checked', String(on));
+        o.querySelector('.cat-check').classList.toggle('invisible', !on);
+      });
+      var name = b.getAttribute('data-cat');
+      $('hdr-cat').innerHTML = name; $('side-cat').innerHTML = name;
+    });
+  });
+})();
+</script>
+</body>
+</html>

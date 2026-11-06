@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Repositories — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased flex flex-col">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-account-tab="repositories"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div>
+    <section class="mb-6 flex flex-wrap items-start justify-between gap-4" aria-labelledby="repos-title">
+      <div class="min-w-0">
+        <h1 id="repos-title" class="text-2xl font-semibold tracking-tight">Repositories</h1>
+        <p class="mt-1 text-[13px] text-muted-foreground">14 repositories you own or collaborate on.</p>
+      </div>
+      <a href="new_repo.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+        New repository
+      </a>
+    </section>
+
+    <a href="repo_transfers.html" class="mb-4 flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-[13px] hover:bg-primary/10">
+      <span>1 repository transfer is waiting for you.</span>
+      <span class="font-medium text-primary">Review</span>
+    </a>
+
+    <div class="mb-4">
+      <nav aria-label="Section navigation" class="flex items-center gap-1 border-b border-border text-sm" id="type-tabs">
+        <a href="#all" data-type="all" aria-current="page" class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5">All types <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="14 items">14</span></a>
+        <a href="#owned" data-type="owned" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Owned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="10 items">10</span></a>
+        <a href="#collaborator" data-type="collaborator" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Collaborator <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="4 items">4</span></a>
+        <a href="#forks" data-type="forks" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Forks <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="2 items">2</span></a>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-2 mb-4 flex-wrap">
+      <div class="relative flex-1 min-w-[240px]">
+        <label for="repo-filter" class="sr-only">Filter repositories</label>
+        <input id="repo-filter" type="search" placeholder="Filter by name…" autocomplete="off" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
+        <svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+      </div>
+      <div class="relative" data-dropdown>
+        <button type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Filter by language" class="h-9 px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center gap-1.5">
+          <span id="lang-label">All languages</span>
+          <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+        </button>
+        <div role="menu" aria-label="Filter by language" id="lang-menu" class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"></div>
+      </div>
+      <div class="relative" data-dropdown>
+        <button type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Sort repositories" class="h-9 px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center gap-1.5">
+          <span id="sort-label">Sort: last updated</span>
+          <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+        </button>
+        <div role="menu" aria-label="Sort repositories" id="sort-menu" class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"></div>
+      </div>
+    </div>
+
+    <section class="border border-border rounded-md bg-card overflow-hidden" aria-labelledby="repo-list">
+      <h2 id="repo-list" class="sr-only">Repositories</h2>
+      <ol class="divide-y divide-border" id="repo-rows"></ol>
+    </section>
+    <div id="repo-empty" hidden class="bg-background border border-border rounded-lg p-8 text-center"><p class="text-muted-foreground">No repositories match these filters.</p></div>
+
+    <nav class="mt-6 flex items-center justify-between text-[12px]" aria-label="Pagination">
+      <span class="h-8 px-3 border border-border rounded-md text-muted-foreground/40 inline-flex items-center gap-1.5" aria-disabled="true">← Newer</span>
+      <span class="font-mono text-muted-foreground/70">page 1 of 2</span>
+      <a href="my_repositories.html" class="h-8 px-3 border border-border rounded-md hover:bg-muted text-muted-foreground inline-flex items-center gap-1.5">Older →</a>
+    </nav>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+
+<script>
+(function () {
+  var ME = 'mkappworks';
+  var REPOS = [
+    { o: ME, n: 'cloudzilla', priv: false, lang: 'Go', time: '2h ago', stars: 128, forks: 14, commits: 1842, topics: ['git', 'htmx', 'self-hosted'] },
+    { o: ME, n: 'ingest-pipeline', priv: true, lang: 'Rust', time: '1d ago', stars: 41, forks: 3, commits: 612, topics: ['kafka', 'clickhouse'] },
+    { o: 'acme-corp', n: 'api', priv: true, lang: 'Go', time: '2d ago', stars: 12, forks: 1, commits: 3104, topics: [] },
+    { o: ME, n: 'benchlabs-site', priv: false, lang: 'TypeScript', time: '3d ago', stars: 9, forks: 0, commits: 227, topics: ['astro'] },
+    { o: 'openforge', n: 'runner', priv: false, lang: 'Go', time: '5d ago', stars: 230, forks: 31, commits: 940, topics: [], fork: true },
+    { o: ME, n: 'dotfiles', priv: false, lang: 'Lua', time: '1w ago', stars: 3, forks: 0, commits: 388, topics: [] },
+    { o: ME, n: 'go-service-starter', priv: false, lang: 'Go', time: '2w ago', stars: 18, forks: 4, commits: 74, topics: ['template'], tmpl: true },
+    { o: 'stitch-labs', n: 'loom', priv: false, lang: 'TypeScript', time: '3w ago', stars: 87, forks: 9, commits: 502, topics: [] },
+    { o: ME, n: 'old-notes', priv: true, lang: '', time: '5mo ago', stars: 0, forks: 0, commits: 12, topics: [], archived: true },
+    { o: ME, n: 'cloudzilla-docs', priv: false, lang: 'Shell', time: '2mo ago', stars: 1, forks: 0, commits: 96, topics: [], fork: true }
+  ];
+  var DOT = { Go: 'bg-[#00ADD8]', TypeScript: 'bg-[#3178C6]', Rust: 'bg-[#DEA584]', Lua: 'bg-[#000080]', Shell: 'bg-[#89E051]' };
+  var LABEL = 'inline-flex items-center text-[10px] leading-[1.4] px-[7px] py-px rounded-full border whitespace-nowrap ';
+  var STAT = 'inline-flex items-center gap-1';
+  var type = 'all', lang = '', sort = 'updated';
+  var SORTS = [['updated', 'Sort: last updated'], ['name', 'Name'], ['stars', 'Stars'], ['created', 'Created']];
+
+  function row(r) {
+    var owner = r.o === ME;
+    return '<li><a href="repo.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[\'\'] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">' +
+      '<div class="flex items-start gap-3 mb-1.5"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" focusable="false"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"></path></svg>' +
+      '<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap"><p class="text-[13.5px] font-medium leading-snug group-hover:underline">' + r.o + '/' + r.n + '</p>' +
+      '<span class="inline-flex items-center shrink-0 h-[20px] px-2 rounded-full border text-[10px] font-medium ' + (r.priv ? 'bg-warning/15 text-warning border-warning/30' : 'bg-success/15 text-success border-success/30') + '">' + (r.priv ? 'Private' : 'Public') + '</span>' +
+      (r.tmpl ? '<span class="' + LABEL + 'bg-warning/15 text-warning border-warning/30">Template</span>' : '') +
+      (r.archived ? '<span class="' + LABEL + 'border-border bg-accent text-muted-foreground">Archived</span>' : '') +
+      '</div></div><div class="flex items-center justify-between gap-3 pl-[27px]"><div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">' +
+      '<span class="' + (owner ? 'text-[#93c5fd]' : 'text-[#c084fc]') + ' font-medium">' + (owner ? 'Owner' : 'Collaborator') + '</span><span class="opacity-50" aria-hidden="true">·</span>' +
+      (r.lang ? '<span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full ' + DOT[r.lang] + '" aria-hidden="true"></span>' + r.lang + '</span><span class="opacity-50" aria-hidden="true">·</span>' : '') +
+      '<time>Updated ' + r.time + '</time>' +
+      (r.topics.length ? '<span class="opacity-50" aria-hidden="true">·</span>' + r.topics.map(function (t) { return '<span class="' + LABEL + 'border-border bg-accent text-muted-foreground">' + t + '</span>'; }).join('') : '') +
+      '</div><div class="flex items-center gap-3 text-[12px] shrink-0 text-muted-foreground">' +
+      '<span class="' + STAT + '"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>' + r.stars + '</span>' +
+      '<span class="' + STAT + '"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="21" r="3"></circle><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"></path></svg>' + r.forks + '</span>' +
+      '<span class="' + STAT + '"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"></circle><line x1="3" y1="12" x2="9" y2="12"></line><line x1="15" y1="12" x2="21" y2="12"></line></svg>' + r.commits + '</span>' +
+      '</div></div></a></li>';
+  }
+  function menuItem(label, active, attr) {
+    return '<a href="#" role="menuitem" ' + attr + ' class="flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent hover:text-foreground ' + (active ? 'text-foreground font-medium' : 'text-muted-foreground') + '">' + label +
+      (active ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '') + '</a>';
+  }
+  function head(t) { return '<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">' + t + '</div>'; }
+  var langs = ['Go', 'Lua', 'Rust', 'Shell', 'TypeScript'];
+
+  function render() {
+    var q = document.getElementById('repo-filter').value.toLowerCase();
+    var rows = REPOS.filter(function (r) {
+      var okType = type === 'all' || (type === 'owned' && r.o === ME) || (type === 'collaborator' && r.o !== ME) || (type === 'forks' && r.fork);
+      return okType && (!lang || r.lang === lang) && (r.o + '/' + r.n).toLowerCase().indexOf(q) >= 0;
+    });
+    if (sort === 'name') rows.sort(function (a, b) { return a.n < b.n ? -1 : 1; });
+    if (sort === 'stars') rows.sort(function (a, b) { return b.stars - a.stars; });
+    document.getElementById('repo-rows').innerHTML = rows.map(row).join('');
+    document.getElementById('repo-rows').parentNode.hidden = !rows.length;
+    document.getElementById('repo-empty').hidden = rows.length > 0;
+    document.getElementById('lang-label').textContent = lang || 'All languages';
+    document.getElementById('sort-label').textContent = SORTS.filter(function (s) { return s[0] === sort; })[0][1];
+    document.getElementById('lang-menu').innerHTML = head('Language') + menuItem('All languages', !lang, 'data-lang=""') + langs.map(function (l) { return menuItem(l, lang === l, 'data-lang="' + l + '"'); }).join('');
+    document.getElementById('sort-menu').innerHTML = head('Sort by') + SORTS.map(function (s) { return menuItem(s[1], sort === s[0], 'data-sort="' + s[0] + '"'); }).join('');
+  }
+  document.getElementById('repo-filter').addEventListener('input', render);
+  document.getElementById('lang-menu').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault(); lang = a.dataset.lang; render();
+  });
+  document.getElementById('sort-menu').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault(); sort = a.dataset.sort; render();
+  });
+  var ON = 'px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5';
+  var OFF = 'px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5';
+  document.getElementById('type-tabs').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault(); type = a.dataset.type;
+    this.querySelectorAll('a').forEach(function (t) {
+      t.className = t.dataset.type === type ? ON : OFF;
+      if (t.dataset.type === type) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    });
+    render();
+  });
+  render();
+})();
+</script>
+
+</body>
+</html>

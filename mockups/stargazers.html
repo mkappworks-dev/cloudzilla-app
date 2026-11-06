@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stargazers · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="max-w-4xl mx-auto space-y-6">
+
+    <section aria-labelledby="sg-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="repo.html" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        Stargazers
+      </p>
+      <h1 id="sg-title" class="text-2xl font-semibold tracking-tight inline-flex items-center gap-3">
+        Stargazers
+        <span class="font-mono text-base text-muted-foreground">
+          <span aria-hidden="true">★</span> 142
+        </span>
+      </h1>
+    </section>
+
+    <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="sg-list">
+      <h2 id="sg-list" class="sr-only">Users who starred mkappworks/cloudzilla</h2>
+      <ul class="divide-y divide-border" id="sg-rows"></ul>
+    </section>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+
+<script src="shell.js"></script>
+<script>
+(function () {
+  var USERS = [
+    { u: 'malith', n: 'Malith Kuruppu', bio: 'Building Cloudzilla' },
+    { u: 'daisy', n: 'Daisy Park', bio: 'Lua, Go and dotfiles' },
+    { u: 'kiyo', n: 'Kiyo Tanaka', bio: 'Distributed tracing' },
+    { u: 'openforge', n: 'Open Forge', bio: 'Sandboxed CI for everyone' },
+    { u: 'stitch-labs', n: 'Stitch Labs', bio: 'Tiny HTMX component toolkit' },
+    { u: 'benchlabs', n: 'Bench Labs', bio: '' },
+    { u: 'acme-dev', n: 'Acme Dev', bio: 'Platform engineer' },
+    { u: 'rhea', n: 'Rhea Santos', bio: 'Self-hosting enthusiast' }
+  ];
+  function initials(n) { var p = n.split(/\s+/); return (p.length > 1 ? p[0][0] + p[p.length - 1][0] : p[0][0]).toUpperCase(); }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  document.getElementById('sg-rows').innerHTML = USERS.map(function (x) {
+    return '<li class="flex items-center gap-3 px-4 py-3 hover:bg-muted/50">' +
+      '<span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="' + esc(x.u) + '">' + initials(x.n) + '</span>' +
+      '<a href="profile.html" class="text-[13px] font-medium hover:underline">' + esc(x.u) + '</a>' +
+      (x.bio ? '<span class="text-[12px] text-muted-foreground truncate">' + esc(x.bio) + '</span>' : '') +
+      '</li>';
+  }).join('');
+})();
+</script>
+</body>
+</html>

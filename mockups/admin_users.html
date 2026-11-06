@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Users — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-6">
+<nav aria-label="Admin sections" class="flex items-center gap-1 border-b border-border text-sm">
+  <a href="admin_settings.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Settings</a>
+  <a href="admin_users.html" aria-current="page" class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5">Users</a>
+  <a href="audit_log.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Audit log</a>
+  <a href="sso_settings.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Single sign-on</a>
+</nav>
+<div class="flex justify-between items-center">
+  <h1 class="text-2xl font-semibold tracking-tight">Users</h1>
+  <span id="users-count" class="text-sm text-muted-foreground">6 accounts</span>
+</div>
+
+<div class="rounded-md border border-border bg-card p-4">
+  <form id="users-filter" method="GET" action="admin_users.html" class="flex flex-wrap gap-4 items-end">
+    <div class="space-y-1.5">
+      <label for="users-q" class="block text-xs font-medium text-muted-foreground">Username or email starts with</label>
+      <input id="users-q" type="search" name="q" placeholder="e.g. alice" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 w-56" />
+    </div>
+    <div class="space-y-1.5">
+      <label for="users-role" class="block text-xs font-medium text-muted-foreground">Role</label>
+      <div class="relative">
+        <select id="users-role" name="role" class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50 w-36">
+          <option value="" selected>All</option>
+          <option value="superadmin">Superadmins</option>
+          <option value="user">Users</option>
+        </select>
+        <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+      </div>
+    </div>
+    <div class="space-y-1.5">
+      <label for="users-status" class="block text-xs font-medium text-muted-foreground">Status</label>
+      <div class="relative">
+        <select id="users-status" name="status" class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50 w-36">
+          <option value="" selected>All</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+        </select>
+        <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90">Filter</button>
+      <a href="admin_users.html" id="users-reset" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-4 text-sm">Reset</a>
+    </div>
+  </form>
+</div>
+
+<div class="rounded-md border border-border bg-card overflow-x-auto">
+  <table id="users-table" class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-muted-foreground border-b border-border bg-muted">
+        <th class="px-4 py-3 font-medium">User</th>
+        <th class="px-4 py-3 font-medium">Email</th>
+        <th class="px-4 py-3 font-medium">Role</th>
+        <th class="px-4 py-3 font-medium">Status</th>
+        <th class="px-4 py-3 font-medium">2FA</th>
+        <th class="px-4 py-3 font-medium">Sign-in</th>
+        <th class="px-4 py-3 font-medium">Created</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-border">
+          <tr class="hover:bg-muted/40" data-user="malith" data-email="malith@example.test" data-role="superadmin" data-status="active">
+            <td class="px-4 py-3">
+              <a href="admin_user.html?u=malith" class="font-medium text-foreground hover:underline">malith</a>
+              <div class="text-xs text-muted-foreground">Malith Kuruppu</div>
+            </td>
+            <td class="px-4 py-3 text-foreground">malith@example.test</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-primary text-primary-foreground border-transparent">Superadmin</span></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Active</span></td>
+            <td class="px-4 py-3 text-muted-foreground">On</td>
+            <td class="px-4 py-3 text-muted-foreground">Password, Google</td>
+            <td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
+              <time datetime="2026-01-12T00:00:00Z">Jan 12, 2026</time>
+            </td>
+          </tr>
+          <tr class="hover:bg-muted/40" data-user="daisy" data-email="daisy@example.test" data-role="user" data-status="active">
+            <td class="px-4 py-3">
+              <a href="admin_user.html?u=daisy" class="font-medium text-foreground hover:underline">daisy</a>
+              <div class="text-xs text-muted-foreground">Daisy Okafor</div>
+            </td>
+            <td class="px-4 py-3 text-foreground">daisy@example.test</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">User</span></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Active</span></td>
+            <td class="px-4 py-3 text-muted-foreground">Off</td>
+            <td class="px-4 py-3 text-muted-foreground">Password</td>
+            <td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
+              <time datetime="2026-02-03T00:00:00Z">Feb 3, 2026</time>
+            </td>
+          </tr>
+          <tr class="hover:bg-muted/40" data-user="yumi" data-email="yumi@example.test" data-role="user" data-status="active">
+            <td class="px-4 py-3">
+              <a href="admin_user.html?u=yumi" class="font-medium text-foreground hover:underline">yumi</a>
+              <div class="text-xs text-muted-foreground">Yumi Tanaka</div>
+            </td>
+            <td class="px-4 py-3 text-foreground">yumi@example.test</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">User</span></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Active</span></td>
+            <td class="px-4 py-3 text-muted-foreground">On</td>
+            <td class="px-4 py-3 text-muted-foreground">Password, LDAP</td>
+            <td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
+              <time datetime="2026-02-19T00:00:00Z">Feb 19, 2026</time>
+            </td>
+          </tr>
+          <tr class="hover:bg-muted/40" data-user="rchen" data-email="rchen@example.test" data-role="user" data-status="active">
+            <td class="px-4 py-3">
+              <a href="admin_user.html?u=rchen" class="font-medium text-foreground hover:underline">rchen</a>
+              <div class="text-xs text-muted-foreground">Rosa Chen</div>
+            </td>
+            <td class="px-4 py-3 text-foreground">rchen@example.test</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">User</span></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Active</span></td>
+            <td class="px-4 py-3 text-muted-foreground">Off</td>
+            <td class="px-4 py-3 text-muted-foreground">SAML</td>
+            <td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
+              <time datetime="2026-03-07T00:00:00Z">Mar 7, 2026</time>
+            </td>
+          </tr>
+          <tr class="hover:bg-muted/40" data-user="tomas" data-email="tomas@example.test" data-role="user" data-status="suspended">
+            <td class="px-4 py-3">
+              <a href="admin_user.html?u=tomas" class="font-medium text-foreground hover:underline">tomas</a>
+              <div class="text-xs text-muted-foreground">Tomas Novak</div>
+            </td>
+            <td class="px-4 py-3 text-foreground">tomas@example.test</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">User</span></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Suspended</span></td>
+            <td class="px-4 py-3 text-muted-foreground">Off</td>
+            <td class="px-4 py-3 text-muted-foreground">Password</td>
+            <td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
+              <time datetime="2026-04-22T00:00:00Z">Apr 22, 2026</time>
+            </td>
+          </tr>
+          <tr class="hover:bg-muted/40" data-user="priya" data-email="priya@example.test" data-role="superadmin" data-status="active">
+            <td class="px-4 py-3">
+              <a href="admin_user.html?u=priya" class="font-medium text-foreground hover:underline">priya</a>
+              <div class="text-xs text-muted-foreground">Priya Raman</div>
+            </td>
+            <td class="px-4 py-3 text-foreground">priya@example.test</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-primary text-primary-foreground border-transparent">Superadmin</span></td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Active</span></td>
+            <td class="px-4 py-3 text-muted-foreground">On</td>
+            <td class="px-4 py-3 text-muted-foreground">Password, Google</td>
+            <td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
+              <time datetime="2026-06-01T00:00:00Z">Jun 1, 2026</time>
+            </td>
+          </tr>
+    </tbody>
+  </table>
+  <div id="users-empty" class="hidden text-center py-12 text-muted-foreground">
+    <p>No accounts match.</p>
+  </div>
+</div>
+</div>
+</main>
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  var q = document.getElementById('users-q');
+  var role = document.getElementById('users-role');
+  var status = document.getElementById('users-status');
+  var rows = document.querySelectorAll('#users-table tbody tr');
+  function apply() {
+    var needle = q.value.trim().toLowerCase();
+    var shown = 0;
+    rows.forEach(function (r) {
+      var ok = (!needle || r.dataset.user.indexOf(needle) === 0 || r.dataset.email.indexOf(needle) === 0) &&
+        (!role.value || r.dataset.role === role.value) &&
+        (!status.value || r.dataset.status === status.value);
+      r.classList.toggle('hidden', !ok);
+      if (ok) shown++;
+    });
+    document.getElementById('users-table').classList.toggle('hidden', shown === 0);
+    document.getElementById('users-empty').classList.toggle('hidden', shown !== 0);
+    document.getElementById('users-count').textContent = shown + (shown === 1 ? ' account' : ' accounts');
+  }
+  document.getElementById('users-filter').addEventListener('submit', function (e) { e.preventDefault(); apply(); });
+  document.getElementById('users-reset').addEventListener('click', function (e) {
+    e.preventDefault();
+    q.value = ''; role.value = ''; status.value = '';
+    apply();
+  });
+})();
+</script>
+<script src="shell.js"></script>
+</body>
+</html>

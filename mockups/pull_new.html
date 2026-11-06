@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New pull request · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="pull_requests"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="space-y-6">
+
+    <section aria-labelledby="new-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="repo.html" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="pulls.html" class="hover:underline">Pull requests</a>
+        <span aria-hidden="true">·</span>
+        Compare
+      </p>
+      <h1 id="new-title" class="text-2xl font-semibold tracking-tight">Open a pull request</h1>
+      <p class="mt-1 text-[13px] text-muted-foreground">Choose a base and head branch — Cloudzilla will compare and let you create the request.</p>
+    </section>
+
+    <form method="POST" action="pulls.html" class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start">
+
+      <section class="rounded-md border border-border bg-card p-6 space-y-5 min-w-0">
+
+        <fieldset class="rounded-md border border-border bg-card p-4">
+          <legend class="px-2 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Compare</legend>
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[10rem] space-y-1.5">
+            <label for="base_branch" class="block text-[12px] font-medium text-muted-foreground">
+              Base branch <span class="text-muted-foreground/70">(target)</span>
+            </label>
+            <div class="relative">
+              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
+              <select id="base_branch" name="base_branch" required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-xs">
+              <option value="main" selected>main</option>
+              <option value="daisy/oauth-scopes">daisy/oauth-scopes</option>
+              <option value="feat/search-as-you-type">feat/search-as-you-type</option>
+              <option value="fix/webhook-retry">fix/webhook-retry</option>
+              </select>
+            </div>
+          </div>
+            <span class="text-muted-foreground pb-2" aria-hidden="true">←</span>
+            <div class="flex-1 min-w-[10rem] space-y-1.5">
+            <label for="head_branch" class="block text-[12px] font-medium text-muted-foreground">
+              Head branch <span class="text-muted-foreground/70">(yours)</span>
+            </label>
+            <div class="relative">
+              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
+              <select id="head_branch" name="head_branch" required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-xs">
+              <option value="main">main</option>
+              <option value="daisy/oauth-scopes" selected>daisy/oauth-scopes</option>
+              <option value="feat/search-as-you-type">feat/search-as-you-type</option>
+              <option value="fix/webhook-retry">fix/webhook-retry</option>
+              </select>
+            </div>
+          </div>
+          </div>
+          <p class="mt-3 text-[12px] text-muted-foreground">
+            Comparing <span id="cmp-head" class="font-mono text-foreground">daisy/oauth-scopes</span> → <span id="cmp-base" class="font-mono text-foreground">main</span>.
+          </p>
+        </fieldset>
+
+        <div class="space-y-1.5">
+          <label for="title" class="block text-sm font-medium">Title</label>
+          <input id="title" name="title" type="text" required autofocus placeholder="Summary of changes" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="body" class="block text-sm font-medium">Description</label>
+          <div class="rounded-md border border-border bg-card overflow-hidden">
+<div class="md-editor" data-md-editor>
+  <div class="flex items-center gap-2 border-b border-border px-3">
+    <div role="tablist" aria-label="Editor mode" class="flex">
+      <button type="button" role="tab" data-md-tab="write" aria-selected="true" class="px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px">Write</button>
+      <button type="button" role="tab" data-md-tab="preview" aria-selected="false" class="px-3 py-2 text-[13px] border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px">Preview</button>
+    </div>
+    <div class="ml-auto flex items-center gap-0.5 text-muted-foreground" aria-label="Formatting"><button type="button" data-md-action="bold" aria-label="Bold" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6zM6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"></path></svg></button><button type="button" data-md-action="italic" aria-label="Italic" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></svg></button><button type="button" data-md-action="code" aria-label="Code" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></button><button type="button" data-md-action="link" aria-label="Insert link" class="h-7 w-7 grid place-items-center rounded-sm hover:bg-accent hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 007.07 0l3-3a5 5 0 00-7.07-7.07l-1 1"></path><path d="M14 11a5 5 0 00-7.07 0l-3 3a5 5 0 007.07 7.07l1-1"></path></svg></button></div>
+  </div>
+  <div data-md-pane="write">
+    <label for="body" class="sr-only">What does this change, and why? Reference any related issues with #number.</label>
+    <textarea id="body" name="body" rows="12" placeholder="What does this change, and why? Reference any related issues with #number." style="height:288px" class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground">## Summary
+
+
+## Test plan
+
+- [ ] 
+</textarea>
+  </div>
+  <div id="body-preview" data-md-pane="preview" style="height:288px" class="hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"></div>
+</div>
+          </div>
+          <p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded-sm">#</kbd> links issues and pull requests.</p>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Create pull request</button>
+          <button type="submit" name="draft" value="1" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Save as draft</button>
+          <a href="pulls.html" class="text-sm text-muted-foreground hover:underline ml-auto">Cancel</a>
+        </div>
+      </section>
+
+      <aside class="space-y-6 text-[12.5px]" aria-label="Pull request metadata">
+        <section>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+          <h3 class="text-[12px] font-medium text-muted-foreground">Reviewers</h3>
+          <div class="relative" data-pick="reviewers">
+            <button type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Request reviewers" class="text-muted-foreground hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg></button>
+            <div role="menu" aria-label="Request reviewers" class="hidden absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-h-72 overflow-y-auto">
+              <div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Request reviewers</div>
+              <button type="button" role="menuitemcheckbox" data-val="yumi" aria-checked="true" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="yumi">Y</span>
+                <span class="flex-1 truncate">yumi</span>
+                <svg class="hidden group-aria-checked:block shrink-0 text-success ml-auto" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-val="aki" aria-checked="false" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="aki">A</span>
+                <span class="flex-1 truncate">aki</span>
+                <svg class="hidden group-aria-checked:block shrink-0 text-success ml-auto" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-val="nina" aria-checked="false" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="nina">N</span>
+                <span class="flex-1 truncate">nina</span>
+                <svg class="hidden group-aria-checked:block shrink-0 text-success ml-auto" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <div role="separator" class="my-1 h-px bg-border"></div>
+              <a href="#" role="menuitem" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"></path><circle cx="11" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+                Invite a collaborator
+              </a>
+            </div>
+          </div>
+        </div>
+            <div>
+              <ul class="flex flex-col gap-1.5">
+            <li data-show-for="reviewers:yumi" class="flex items-center gap-2 text-[13px]">
+              <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="yumi">Y</span>
+              <a href="profile.html" class="font-medium hover:underline truncate">yumi</a>
+              <span class="ml-auto text-[10px] font-mono text-muted-foreground">Pending</span>
+            </li>
+            <li data-show-for="reviewers:aki" class="flex items-center gap-2 text-[13px]">
+              <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="aki">A</span>
+              <a href="profile.html" class="font-medium hover:underline truncate">aki</a>
+              <span class="ml-auto text-[10px] font-mono text-muted-foreground">Pending</span>
+            </li>
+            <li data-show-for="reviewers:nina" class="flex items-center gap-2 text-[13px]">
+              <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="nina">N</span>
+              <a href="profile.html" class="font-medium hover:underline truncate">nina</a>
+              <span class="ml-auto text-[10px] font-mono text-muted-foreground">Pending</span>
+            </li>
+              </ul>
+              <p data-empty-for="reviewers" class="text-[13px] text-muted-foreground">No reviewers requested.</p>
+            </div>
+            <p class="text-[12px] text-muted-foreground">Suggested from the files changed.</p>
+          </div>
+        </section>
+        <section class="border-t border-border pt-6">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+          <h3 class="text-[12px] font-medium text-muted-foreground">Labels</h3>
+          <div class="relative" data-pick="labels">
+            <button type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Edit labels" class="text-muted-foreground hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+            <div role="menu" aria-label="Apply labels" class="hidden absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-h-72 overflow-y-auto">
+              <div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Apply labels</div>
+              <button type="button" role="menuitemcheckbox" data-val="feature" aria-checked="false" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #22c55e"></span>
+                <span class="flex-1 truncate">feature</span>
+                <svg class="hidden group-aria-checked:block shrink-0 text-success ml-auto" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-val="bug" aria-checked="false" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #ef4444"></span>
+                <span class="flex-1 truncate">bug</span>
+                <svg class="hidden group-aria-checked:block shrink-0 text-success ml-auto" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-val="auth" aria-checked="false" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #3b82f6"></span>
+                <span class="flex-1 truncate">auth</span>
+                <svg class="hidden group-aria-checked:block shrink-0 text-success ml-auto" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <button type="button" role="menuitemcheckbox" data-val="security" aria-checked="false" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style="background-color: #f59e0b"></span>
+                <span class="flex-1 truncate">security</span>
+                <svg class="hidden group-aria-checked:block shrink-0 text-success ml-auto" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+              <div role="separator" class="my-1 h-px bg-border"></div>
+              <a href="#" role="menuitem" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                Create a new label
+              </a>
+            </div>
+          </div>
+        </div>
+            <div class="flex flex-wrap gap-1.5">
+            <span data-show-for="labels:feature" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #22c55e33; color: #22c55e; border-color: #22c55e55">feature</span>
+            <span data-show-for="labels:bug" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #ef444433; color: #ef4444; border-color: #ef444455">bug</span>
+            <span data-show-for="labels:auth" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #3b82f633; color: #3b82f6; border-color: #3b82f655">auth</span>
+            <span data-show-for="labels:security" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #f59e0b33; color: #f59e0b; border-color: #f59e0b55">security</span>
+              <span data-empty-for="labels" class="text-[13px] text-muted-foreground">No labels.</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+    </form>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+<script>
+  document.querySelectorAll('[data-md-editor]').forEach(function (ed) {
+    var tabs = ed.querySelectorAll('[data-md-tab]');
+    var write = ed.querySelector('[data-md-pane=write]');
+    var preview = ed.querySelector('[data-md-pane=preview]');
+    var ta = ed.querySelector('textarea');
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        var showPreview = t.dataset.mdTab === 'preview';
+        tabs.forEach(function (o) {
+          var on = o === t;
+          o.setAttribute('aria-selected', on);
+          o.classList.toggle('border-foreground', on);
+          o.classList.toggle('text-foreground', on);
+          o.classList.toggle('font-medium', on);
+          o.classList.toggle('border-transparent', !on);
+          o.classList.toggle('text-muted-foreground', !on);
+        });
+        write.classList.toggle('hidden', showPreview);
+        preview.classList.toggle('hidden', !showPreview);
+        if (showPreview) {
+          preview.textContent = ta.value || 'Nothing to preview';
+          preview.classList.add('whitespace-pre-wrap');
+        }
+      });
+    });
+  });
+  function closePickers(except) {
+    document.querySelectorAll('[data-pick]').forEach(function (p) {
+      if (p === except) return;
+      p.querySelector('[role=menu]').classList.add('hidden');
+      p.querySelector('[aria-haspopup]').setAttribute('aria-expanded', 'false');
+    });
+  }
+  function syncPickers() {
+    var checked = {};
+    document.querySelectorAll('[data-pick] [data-val]').forEach(function (b) {
+      if (b.getAttribute('aria-checked') !== 'true') return;
+      var g = b.closest('[data-pick]').dataset.pick;
+      (checked[g] = checked[g] || []).push(b.dataset.val);
+    });
+    document.querySelectorAll('[data-show-for]').forEach(function (el) {
+      var p = el.dataset.showFor.split(':');
+      el.hidden = (checked[p[0]] || []).indexOf(p[1]) < 0;
+    });
+    document.querySelectorAll('[data-empty-for]').forEach(function (el) {
+      el.hidden = (checked[el.dataset.emptyFor] || []).length > 0;
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var pick = e.target.closest('[data-pick]');
+    closePickers(pick);
+    if (!pick) return;
+    var trigger = e.target.closest('[data-pick] > [aria-haspopup]');
+    if (trigger) {
+      var open = pick.querySelector('[role=menu]').classList.toggle('hidden') === false;
+      trigger.setAttribute('aria-expanded', open);
+      return;
+    }
+    var item = e.target.closest('[role=menuitemcheckbox], [role=menuitemradio]');
+    if (!item) return;
+    if (item.getAttribute('role') === 'menuitemradio') {
+      pick.querySelectorAll('[role=menuitemradio]').forEach(function (o) { o.setAttribute('aria-checked', o === item); });
+    } else {
+      item.setAttribute('aria-checked', item.getAttribute('aria-checked') !== 'true');
+    }
+    syncPickers();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePickers(null); });
+  syncPickers();
+  var base = document.getElementById('base_branch');
+  var head = document.getElementById('head_branch');
+  function syncCompare() {
+    document.getElementById('cmp-base').textContent = base.value;
+    document.getElementById('cmp-head').textContent = head.value;
+  }
+  base.addEventListener('change', syncCompare);
+  head.addEventListener('change', syncCompare);
+  document.querySelector('form').addEventListener('submit', function (e) { e.preventDefault(); });
+</script>
+</body>
+</html>

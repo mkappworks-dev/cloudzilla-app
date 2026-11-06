@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fork mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<section class="mb-6">
+  <h1 class="text-2xl font-semibold tracking-tight">Create a new fork</h1>
+  <p class="mt-1 text-[13px] text-muted-foreground">A fork is a copy of <a href="repo.html" class="font-mono text-primary hover:underline">mkappworks/cloudzilla</a>. Changes you make in the fork don't affect the original.</p>
+</section>
+
+<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+  <div class="min-w-0 flex flex-col gap-4">
+    <div id="existing-forks" hidden class="border border-border rounded-lg bg-muted px-4 py-3 text-[13px]">
+      <p class="text-muted-foreground">You already have a fork of this repository:</p>
+      <ul class="mt-1.5 flex flex-col gap-1">
+        <li><a href="repo.html" class="font-mono text-primary hover:underline">acme-corp/cloudzilla</a></li>
+      </ul>
+    </div>
+    <form id="fork-form" class="border border-border rounded-lg bg-card p-6 space-y-6">
+      <div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
+        <div>
+          <label for="fork-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner *</label>
+          <div class="relative" data-cselect>
+          <input type="hidden" id="fork-owner" name="owner" value="malith" />
+          <button type="button" id="fork-owner-btn" aria-expanded="false" aria-haspopup="listbox" class="w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-hidden focus:border-ring">
+            <span class="truncate text-left" data-cselect-label>malith</span>
+            <svg class="text-muted-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+          </button>
+          <ul hidden role="listbox" class="absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto">
+            <li><button type="button" data-value="malith" data-label="malith" role="option" aria-selected="true" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent bg-accent text-foreground">malith</button></li>
+            <li><button type="button" data-value="acme-corp" data-label="acme-corp" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">acme-corp</button></li>
+            <li><button type="button" data-value="stitch-labs" data-label="stitch-labs" role="option" aria-selected="false" class="w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent">stitch-labs</button></li>
+          </ul>
+        </div>
+        </div>
+        <span class="text-muted-foreground/70 pb-2.5" aria-hidden="true">/</span>
+        <div>
+          <label for="fork-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
+          <input id="fork-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" value="cloudzilla" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring font-mono" />
+        </div>
+      </div>
+
+      <div>
+        <label for="fork-description" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+          Description <span class="text-muted-foreground/70 font-normal">(optional)</span>
+        </label>
+        <textarea id="fork-description" name="description" rows="2" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring">Self-hosted git forge with pure-Go transport.</textarea>
+      </div>
+
+      <div>
+        <p class="text-[12px] font-medium text-muted-foreground mb-1">Visibility</p>
+        <p class="text-[13px]">Public</p>
+        <p class="mt-1 text-[12px] text-muted-foreground/70">Forks keep the visibility of the repository they are forked from.</p>
+      </div>
+
+      <div>
+        <label class="flex items-start gap-2 text-[13px]">
+          <input type="checkbox" id="fork-default-branch-only" checked class="mt-0.5 accent-ring" />
+          <span>Copy the <span class="font-mono">main</span> branch only</span>
+        </label>
+        <p class="mt-1 ml-6 text-[12px] text-muted-foreground/70">Leave unchecked to copy every branch. Tags are copied either way.</p>
+      </div>
+
+      <div id="fork-form-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+
+      <div class="flex items-center justify-end gap-2">
+        <a href="repo.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Cancel</a>
+        <button type="submit" id="fork-submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Create fork</button>
+      </div>
+    </form>
+  </div>
+
+  <aside aria-label="About forks">
+    <h2 class="text-[12px] font-medium text-muted-foreground mb-2">About forks</h2>
+    <p class="text-[13px] text-muted-foreground/70 leading-relaxed">A fork starts with the original's files and history and stays linked to it. It's yours to change: pushes to the fork never touch the original.</p>
+  </aside>
+</div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+<script>
+(function () {
+  // ?existing shows the "already forked" notice; the real page renders it only when the user has a fork.
+  if (/[?&]existing\b/.test(location.search)) document.getElementById('existing-forks').hidden = false;
+  document.querySelectorAll('[data-cselect]').forEach(function (box) {
+    var input = box.querySelector('input[type=hidden]');
+    var btn = box.querySelector('button');
+    var list = box.querySelector('ul');
+    var label = box.querySelector('[data-cselect-label]');
+    function close() { list.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('click', function () {
+      var open = list.hidden;
+      document.querySelectorAll('[data-cselect] ul').forEach(function (u) { u.hidden = true; });
+      list.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    list.addEventListener('click', function (e) {
+      var opt = e.target.closest('button[data-value]');
+      if (!opt) return;
+      input.value = opt.dataset.value;
+      label.textContent = opt.dataset.label;
+      list.querySelectorAll('button').forEach(function (b) {
+        var on = b === opt;
+        b.classList.toggle('bg-accent', on);
+        b.classList.toggle('text-foreground', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      close();
+    });
+    document.addEventListener('click', function (e) { if (!box.contains(e.target)) close(); });
+  });
+  var form = document.getElementById('fork-form');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    document.getElementById('fork-form-error').classList.add('hidden');
+    document.getElementById('fork-submit').disabled = true;
+    window.czToast('Forked to ' + form.querySelector('[name=owner]').value + '/' + form.querySelector('[name=name]').value.trim() + '.');
+    setTimeout(function () { location.href = 'repo.html'; }, 700);
+  });
+})();
+</script>
+</body>
+</html>

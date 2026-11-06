@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issues — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased flex flex-col">
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-account-tab="issues"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="space-y-5">
+    <section class="mb-6">
+      <h1 class="text-2xl font-semibold tracking-tight">Issues</h1>
+      <p class="mt-1 text-[13px] text-muted-foreground">Issues that involve you across every repository.</p>
+    </section>
+
+    <nav aria-label="Issue filter" class="flex items-center gap-1 border-b border-border text-sm" id="tabs">
+      <a href="#assigned" data-filter="assigned" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Assigned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">7</span></a>
+      <a href="#created" data-filter="created" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Created by you <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">9</span></a>
+      <a href="#mentioned" data-filter="mentioned" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Mentioned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">2</span></a>
+      <span class="ml-auto inline-flex items-center">
+        <a href="#open" data-state="open" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Open <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">7</span></a>
+        <a href="#closed" data-state="closed" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Closed <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">21</span></a>
+      </span>
+    </nav>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="relative flex-1 min-w-[240px]">
+        <label for="issue-filter" class="sr-only">Filter issues</label>
+        <input id="issue-filter" type="search" placeholder="Filter issues…" autocomplete="off" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
+        <svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+      </div>
+      <div class="relative" data-dropdown>
+        <button type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Sort issues" class="h-9 px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center gap-1.5">
+          <span id="sort-label">Sort: newest</span>
+          <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+        </button>
+        <div role="menu" aria-label="Sort issues" id="sort-menu" class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"></div>
+      </div>
+    </div>
+
+    <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="myissue-list">
+      <h2 id="myissue-list" class="sr-only">Your issues</h2>
+      <ol class="divide-y divide-border" id="rows"></ol>
+    </section>
+    <div id="empty" hidden class="bg-background border border-border rounded-lg p-8 text-center"><p class="text-muted-foreground"></p></div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+
+<script>
+(function () {
+  var ISSUES = [
+    { repo: 'mkappworks/cloudzilla', n: 312, t: 'Flaky test on push', state: 'open', f: ['assigned', 'mentioned'], by: 'yumi', when: '2h ago', labels: [['bug', '#ef4444']], pri: 'P0', c: 8, k: 1 },
+    { repo: 'mkappworks/ingest-pipeline', n: 298, t: 'Replay window UI', state: 'open', f: ['assigned', 'created'], by: 'mkappworks', when: '3d ago', labels: [['feature', '#22c55e'], ['ui', '#a855f7']], pri: 'P1', c: 3, k: 2 },
+    { repo: 'acme-corp/db', n: 88, t: 'Schema migration rollback plan', state: 'open', f: ['mentioned'], by: 'daisy', when: '8h ago', labels: [], pri: '', c: 14, k: 3 },
+    { repo: 'mkappworks/cloudzilla', n: 305, t: 'Wiki search ignores titles', state: 'open', f: ['created'], by: 'mkappworks', when: '1w ago', labels: [['bug', '#ef4444']], pri: 'P2', c: 0, k: 4 },
+    { repo: 'mkappworks/cloudzilla', n: 281, t: 'Add CODEOWNERS support', state: 'closed', f: ['created', 'assigned'], by: 'mkappworks', when: '3w ago', labels: [['feature', '#22c55e']], pri: '', c: 5, k: 5 },
+    { repo: 'openforge/runner', n: 41, t: 'Runner leaks tmp dirs', state: 'closed', f: ['mentioned'], by: 'kiyo', when: '1mo ago', labels: [], pri: '', c: 2, k: 6 }
+  ];
+  var ICON = {
+    open: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>',
+    closed: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>'
+  };
+  var BADGE = { open: ['bg-success/15 text-success border-success/30', 'Open'], closed: ['bg-destructive/15 text-destructive border-destructive/30', 'Closed'] };
+  var PRI = {
+    P0: 'bg-destructive/10 text-destructive border-destructive/30',
+    P1: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
+    P2: 'border-border bg-accent text-muted-foreground'
+  };
+  var SORTS = [['newest', 'Sort: newest'], ['oldest', 'Oldest'], ['updated', 'Recently updated'], ['comments', 'Most commented']];
+  var filter = 'assigned', state = 'open', sort = 'newest';
+
+  function row(i) {
+    var labels = i.labels.length ? '<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>' + i.labels.map(function (l) {
+      return '<span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background:' + l[1] + '22;color:' + l[1] + ';border-color:' + l[1] + '55">' + l[0] + '</span>';
+    }).join('') : '';
+    var pri = i.pri ? '<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border whitespace-nowrap ' + PRI[i.pri] + '">' + i.pri + '</span>' : '';
+    var c = i.c ? '<span class="inline-flex items-center gap-1" title="' + i.c + ' comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>' + i.c + '</span>' : '';
+    return '<li><a href="issue_detail.html" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[\'\'] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">' +
+      '<div class="flex items-start gap-3 mb-1.5">' + ICON[i.state] + '<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap"><span class="font-mono text-[12px] text-muted-foreground">' + i.repo + '</span><span class="opacity-50" aria-hidden="true">·</span><p class="text-[13.5px] font-medium leading-snug group-hover:underline">' + i.t +
+      '</p><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium ' + BADGE[i.state][0] + '">' + BADGE[i.state][1] + '</span></div></div>' +
+      '<div class="flex items-center justify-between gap-3 pl-[27px]"><div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap"><span class="font-mono">#' + i.n + '</span><span class="opacity-50" aria-hidden="true">·</span>' +
+      '<span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">' + i.by.slice(0, 2) + '</span><span>' + i.by + '</span><span class="opacity-50" aria-hidden="true">·</span><time>' + i.when + '</time>' + labels +
+      '</div><div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">' + pri + c + '</div></div></a></li>';
+  }
+  function menuItem(s) {
+    var active = s[0] === sort;
+    return '<a href="#" role="menuitem" data-sort="' + s[0] + '" class="flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent hover:text-foreground ' + (active ? 'text-foreground font-medium' : 'text-muted-foreground') + '">' + s[1] +
+      (active ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '') + '</a>';
+  }
+  var ON = 'px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5';
+  var OFF = 'px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5';
+  function render() {
+    var q = document.getElementById('issue-filter').value.toLowerCase();
+    var rows = ISSUES.filter(function (i) {
+      return i.f.indexOf(filter) >= 0 && i.state === state && (i.repo + ' ' + i.t).toLowerCase().indexOf(q) >= 0;
+    });
+    if (sort === 'comments') rows.sort(function (a, b) { return b.c - a.c; });
+    if (sort === 'oldest') rows.sort(function (a, b) { return b.k - a.k; });
+    document.getElementById('rows').innerHTML = rows.map(row).join('');
+    document.getElementById('rows').parentNode.hidden = !rows.length;
+    var empty = document.getElementById('empty');
+    empty.hidden = rows.length > 0;
+    empty.firstElementChild.textContent = 'No ' + state + ' issues.';
+    document.querySelectorAll('#tabs a').forEach(function (a) {
+      var on = a.dataset.filter ? a.dataset.filter === filter : a.dataset.state === state;
+      a.className = on ? ON : OFF;
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    document.getElementById('sort-label').textContent = SORTS.filter(function (s) { return s[0] === sort; })[0][1];
+    document.getElementById('sort-menu').innerHTML = '<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>' + SORTS.map(menuItem).join('');
+  }
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault();
+    if (a.dataset.filter) filter = a.dataset.filter; else state = a.dataset.state;
+    render();
+  });
+  document.getElementById('sort-menu').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a) return; e.preventDefault(); sort = a.dataset.sort; render();
+  });
+  document.getElementById('issue-filter').addEventListener('input', render);
+  render();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New Organization — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-6">
+
+  <section aria-labelledby="no-title">
+    <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+      <a href="organizations.html" class="hover:underline">Organizations</a> · New
+    </p>
+    <h1 id="no-title" class="text-2xl font-semibold tracking-tight">Tell us about your organization</h1>
+    <p class="mt-1 text-[13px] text-muted-foreground">Set up an organization to collaborate on repositories with your team.</p>
+  </section>
+
+  <div class="grid lg:grid-cols-[1fr_280px] gap-8">
+    <div class="min-w-0">
+      <form id="no-form" method="post" action="#" class="space-y-5 rounded-md border border-border bg-card p-6">
+
+        <div class="space-y-1.5">
+          <label for="org-name" class="block text-sm font-medium">
+            Organization name <span class="text-destructive" aria-hidden="true">*</span>
+          </label>
+          <input type="text" id="org-name" name="name" required pattern="[A-Za-z0-9._\-]+" placeholder="my-organization" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
+          <p class="text-[11px] text-muted-foreground">This will be the URL: <span class="font-mono">/<span class="text-foreground" id="org-slug-preview">my-organization</span></span>. Letters, numbers, dots, dashes, and underscores only.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="org-description" class="block text-sm font-medium">
+            Description <span class="text-muted-foreground font-normal">(optional)</span>
+          </label>
+          <input type="text" id="org-description" name="description" placeholder="What is this organization for?" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+        </div>
+
+        <fieldset class="space-y-3 border-t border-border pt-5">
+          <legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">This organization belongs to</legend>
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="radio" name="belongs" value="personal" checked class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
+            <span class="text-sm">
+              <span class="font-medium block">My personal account (mkappworks)</span>
+              <span class="text-muted-foreground text-[12px]">You will be the owner of this organization.</span>
+            </span>
+          </label>
+          <label class="flex items-start gap-3">
+            <input type="radio" name="belongs" value="enterprise" disabled class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
+            <span class="text-sm">
+              <span class="font-medium block text-muted-foreground">An enterprise account</span>
+              <span class="text-muted-foreground text-[12px]">Not available.</span>
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset class="space-y-3 border-t border-border pt-5">
+          <legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">Plan</legend>
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="radio" name="plan" value="free" checked class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
+            <span class="text-sm">
+              <span class="font-medium block">Free</span>
+              <span class="text-muted-foreground text-[12px]">Unlimited public and private repositories.</span>
+            </span>
+          </label>
+          <label class="flex items-start gap-3">
+            <input type="radio" name="plan" value="team" disabled class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
+            <span class="text-sm">
+              <span class="font-medium block text-muted-foreground">Team</span>
+              <span class="text-muted-foreground text-[12px]">Billing not yet supported.</span>
+            </span>
+          </label>
+        </fieldset>
+
+        <div class="border-t border-border pt-5">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" name="accept_tos" id="accept-tos" required class="h-4 w-4 shrink-0 rounded-sm border border-input bg-transparent accent-ring checked:bg-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
+            <span class="text-sm">I understand I'm responsible for this organization's content and conduct, and I agree to the <a href="https://github.com/mkappworks-dev/cloudzilla-app" class="text-primary hover:underline">Cloudzilla Terms of Service</a>.</span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+          <a href="organizations.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Cancel</a>
+          <button type="submit" id="no-submit" disabled class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm opacity-50 cursor-not-allowed">Create organization</button>
+        </div>
+      </form>
+    </div>
+
+    <aside class="space-y-6" aria-label="About organizations">
+      <section aria-labelledby="no-about">
+        <h2 id="no-about" class="text-[12px] font-medium text-muted-foreground mb-2">About organizations</h2>
+        <p class="text-[13px] text-muted-foreground leading-relaxed">An organization is a shared account where multiple people own and manage repositories together. Access is granted at the organization level, so you set permissions in one place instead of per repository.</p>
+      </section>
+      <section aria-labelledby="no-tips" class="border-t border-border pt-5">
+        <h2 id="no-tips" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
+        <ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
+          <li>Organization names must be unique across Cloudzilla and form the URL of every repository under the organization.</li>
+          <li>You'll be the owner with full admin rights, and can promote others to owner later from organization settings.</li>
+          <li>Once the organization exists you can create repositories under it.</li>
+          <li>Visibility (public/private) is set per repository, not at the organization level.</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</div>
+</main>
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  var name = document.getElementById('org-name');
+  var tos = document.getElementById('accept-tos');
+  var submit = document.getElementById('no-submit');
+  var preview = document.getElementById('org-slug-preview');
+  function sync() {
+    var ok = name.value.trim() !== '' && tos.checked;
+    submit.disabled = !ok;
+    submit.classList.toggle('opacity-50', !ok);
+    submit.classList.toggle('cursor-not-allowed', !ok);
+    preview.textContent = name.value.trim() || 'my-organization';
+  }
+  name.addEventListener('input', sync);
+  tos.addEventListener('change', sync);
+  document.getElementById('no-form').addEventListener('submit', function (e) { e.preventDefault(); });
+  sync();
+})();
+</script>
+</body>
+</html>

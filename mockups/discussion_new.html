@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New discussion · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen antialiased">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="discussions"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20">
+  <div class="space-y-6">
+
+    <section aria-labelledby="new-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="repo.html" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="discussions.html" class="hover:underline">Discussions</a>
+        <span aria-hidden="true">·</span>
+        New
+      </p>
+      <h1 id="new-title" class="text-2xl font-semibold tracking-tight">Start a new discussion</h1>
+      <p class="mt-1 text-[13px] text-muted-foreground">A discussion is an open-ended conversation, idea, or question — no code change required.</p>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+      <div class="min-w-0 space-y-10">
+
+        <section aria-labelledby="categories">
+          <h2 id="categories" class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Category</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a href="#" data-category="1" aria-current="true" class="rounded-md border p-4 transition border-border bg-muted">
+              <div class="flex items-center gap-2">
+                <p class="text-[13px] font-medium">General</p>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ml-auto text-success" aria-label="Selected"><path d="M20 6L9 17l-5-5"></path></svg>
+              </div>
+              <p class="mt-1 text-[12px] text-muted-foreground">Open conversation about anything related to the project.</p>
+            </a>
+            <a href="#" data-category="2" class="rounded-md border p-4 transition border-border bg-card hover:bg-muted/50">
+              <div class="flex items-center gap-2">
+                <p class="text-[13px] font-medium">Q&amp;A</p>
+              </div>
+              <p class="mt-1 text-[12px] text-muted-foreground">Ask a question and let the community mark an answer.</p>
+            </a>
+            <a href="#" data-category="3" class="rounded-md border p-4 transition border-border bg-card hover:bg-muted/50">
+              <div class="flex items-center gap-2">
+                <p class="text-[13px] font-medium">Ideas</p>
+              </div>
+              <p class="mt-1 text-[12px] text-muted-foreground">Share and refine proposals before they become issues.</p>
+            </a>
+            <a href="#" data-category="4" class="rounded-md border p-4 transition border-border bg-card hover:bg-muted/50">
+              <div class="flex items-center gap-2">
+                <p class="text-[13px] font-medium">Announcements</p>
+              </div>
+              <p class="mt-1 text-[12px] text-muted-foreground">Updates and news from the maintainers.</p>
+            </a>
+          </div>
+        </section>
+
+        <section aria-labelledby="composer" class="rounded-md border border-border bg-card p-6">
+          <h2 id="composer" class="text-[13px] font-medium mb-4">Compose</h2>
+          <form id="discussion-new-form" action="discussions.html" class="space-y-5">
+            <input type="hidden" name="category_id" id="category-id" value="1"/>
+            <div class="space-y-1.5">
+              <label for="title" class="block text-sm font-medium">Title</label>
+              <input id="title" name="title" type="text" required autofocus placeholder="Give your discussion a clear title" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"/>
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="body" class="block text-sm font-medium">Body</label>
+              <div class="rounded-md border border-border bg-card overflow-hidden">
+                <div data-markdown-editor data-rows="12" data-placeholder="Share the context, your question, or your idea."></div>
+              </div>
+              <p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded-sm">@</kbd> mentions notify users; <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded-sm">#</kbd> links issues/PRs.</p>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+              <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Start discussion</button>
+              <a href="discussions.html" class="text-sm text-muted-foreground hover:underline">Cancel</a>
+            </div>
+          </form>
+        </section>
+
+      </div>
+
+      <aside class="space-y-6" aria-label="Discussion options">
+        <section aria-labelledby="tips-heading">
+          <h2 id="tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Posting tips</h2>
+          <ul class="space-y-2 text-[12px] text-muted-foreground">
+            <li class="flex gap-2">
+              <span aria-hidden="true" class="text-muted-foreground">·</span>
+              <span>Search existing discussions first — your question may already be answered.</span>
+            </li>
+            <li class="flex gap-2">
+              <span aria-hidden="true" class="text-muted-foreground">·</span>
+              <span>Pick the category that best fits — Q&amp;A for questions, Ideas for proposals.</span>
+            </li>
+            <li class="flex gap-2">
+              <span aria-hidden="true" class="text-muted-foreground">·</span>
+              <span>Be specific: include context, versions, and what you have already tried.</span>
+            </li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+
+<script src="markdown-editor.js"></script>
+<script>
+(function () {
+  var cards = document.querySelectorAll('[data-category]');
+  var check = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ml-auto text-success" aria-label="Selected"><path d="M20 6L9 17l-5-5"></path></svg>';
+  cards.forEach(function (card) {
+    card.addEventListener('click', function (e) {
+      e.preventDefault();
+      cards.forEach(function (c) {
+        var on = c === card;
+        c.classList.toggle('bg-muted', on);
+        c.classList.toggle('bg-card', !on);
+        c.classList.toggle('hover:bg-muted/50', !on);
+        if (on) c.setAttribute('aria-current', 'true'); else c.removeAttribute('aria-current');
+        var row = c.firstElementChild;
+        var mark = row.querySelector('svg');
+        if (mark) mark.remove();
+        if (on) row.insertAdjacentHTML('beforeend', check);
+      });
+      document.getElementById('category-id').value = card.getAttribute('data-category');
+    });
+  });
+})();
+</script>
+</body>
+</html>

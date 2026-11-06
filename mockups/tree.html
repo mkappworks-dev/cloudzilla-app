@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>mkappworks/cloudzilla · main — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="space-y-6 pt-2">
+
+    <section aria-labelledby="tree-title">
+      <h1 id="tree-title" class="text-xl tracking-tight font-medium flex flex-wrap items-center gap-x-1.5 gap-y-1">
+          <a href="repo.html" class="hover:underline text-muted-foreground">cloudzilla</a>
+          <span class="text-muted-foreground" aria-hidden="true">/</span>
+          <a href="tree.html" class="hover:underline text-muted-foreground">internal</a>
+          <span class="text-muted-foreground" aria-hidden="true">/</span>
+          <a href="tree.html" class="hover:underline text-muted-foreground">view</a>
+          <span class="text-muted-foreground" aria-hidden="true">/</span>
+          <a href="tree.html" class="hover:underline font-semibold">pages</a>
+      </h1>
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+    <div class="relative" data-dropdown>
+      <button type="button" data-dropdown-btn aria-expanded="false" aria-haspopup="menu" aria-label="Switch branch or tag, current: main" class="h-8 px-3 text-[13px] text-foreground border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
+        <span class="font-medium">main</span>
+        <svg class="text-muted-foreground" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+      </button>
+      <div hidden data-dropdown-panel role="menu" aria-label="Switch branches and tags" class="absolute left-0 top-full mt-1.5 z-50 w-[300px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1">
+        <div class="px-1.5 pb-1.5">
+          <label for="branch-filter" class="sr-only">Find a branch or tag</label>
+          <input id="branch-filter" type="search" data-ref-filter placeholder="Find a branch or tag…" class="w-full h-7 px-2.5 text-[12px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+        </div>
+        <p class="px-2.5 pt-1 pb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Branches</p>
+        <a href="tree.html" role="menuitem" data-ref="main" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent bg-accent">
+          <span class="flex-1 font-mono text-[12px] truncate">main</span>
+          <span class="text-[10px] text-muted-foreground">default</span>
+        </a>
+        <a href="tree.html" role="menuitem" data-ref="feat/phase-12.3-discussions" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent">
+          <span class="flex-1 font-mono text-[12px] truncate">feat/phase-12.3-discussions</span>
+          
+        </a>
+        <a href="tree.html" role="menuitem" data-ref="fix/contributor-stats-sha-dedup" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent">
+          <span class="flex-1 font-mono text-[12px] truncate">fix/contributor-stats-sha-dedup</span>
+          
+        </a>
+        <p class="px-2.5 pt-1 pb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Tags</p>
+        <a href="tree.html" role="menuitem" data-ref="v0.2.0" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent">
+          <span class="flex-1 font-mono text-[12px] truncate">v0.2.0</span>
+          
+        </a>
+        <a href="tree.html" role="menuitem" data-ref="v0.1.0" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent">
+          <span class="flex-1 font-mono text-[12px] truncate">v0.1.0</span>
+          
+        </a>
+        <div role="separator" class="my-1 h-px bg-border"></div>
+        <a href="refs.html" role="menuitem" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs text-[13px] hover:bg-accent">View all branches</a>
+      </div>
+    </div>
+        <span aria-hidden="true">·</span>
+        <span class="font-mono">internal/view/pages</span>
+      </div>
+    </section>
+
+    <div data-tree-layout class="grid gap-4 grid-cols-[260px_1fr]">
+      <aside data-file-tree class="rounded-md border border-border bg-card sticky top-4 self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col" aria-label="Repository file tree">
+        <header class="px-3 py-2 border-b border-border flex items-center gap-2 bg-muted/40 shrink-0">
+          <span class="text-[12px] font-medium">Files</span>
+          <button type="button" data-tree-expand title="Expand all folders" aria-label="Expand all folders" class="ml-auto h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+          </button>
+          <button type="button" data-tree-collapse title="Collapse all folders" aria-label="Collapse all folders" class="h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m7 20 5-5 5 5"></path><path d="m7 4 5 5 5-5"></path></svg>
+          </button>
+          <button type="button" data-tree-hide title="Hide files" aria-label="Hide files" class="h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path><path d="m16 15-3-3 3-3"></path></svg>
+          </button>
+        </header>
+        <div class="px-2 py-1.5 border-b border-border shrink-0">
+          <input data-tree-filter type="search" placeholder="Filter files…" class="w-full h-7 px-2 text-[12px] bg-transparent border border-border rounded-xs placeholder:text-muted-foreground/60 focus:outline-hidden focus:border-foreground/30" aria-label="Filter files"/>
+        </div>
+        <div class="overflow-y-auto flex-1 flex flex-col">
+          <ol class="overflow-y-auto py-1 flex-1 text-[12.5px]" role="tree">
+<li data-name=".github" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 8px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">.github</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="workflows" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 20px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">workflows</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="ci.yml" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">ci.yml</span>
+  </a>
+</li>
+<li data-name="release.yml" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">release.yml</span>
+  </a>
+</li>
+  </ol>
+</li>
+  </ol>
+</li>
+<li data-name="cmd" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 8px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">cmd</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="server" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 20px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">server</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="main.go" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">main.go</span>
+  </a>
+</li>
+  </ol>
+</li>
+  </ol>
+</li>
+<li data-name="docs" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 8px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">docs</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="access-control.md" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 20px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">access-control.md</span>
+  </a>
+</li>
+<li data-name="git-transport.md" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 20px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">git-transport.md</span>
+  </a>
+</li>
+  </ol>
+</li>
+<li data-name="internal" role="treeitem" data-tree-dir aria-expanded="true">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 8px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform rotate-90" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">internal</span>
+    </a>
+  </div>
+  <ol role="group">
+<li data-name="handler" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 20px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">handler</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="repo_handler.go" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">repo_handler.go</span>
+  </a>
+</li>
+<li data-name="code_handler.go" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">code_handler.go</span>
+  </a>
+</li>
+  </ol>
+</li>
+<li data-name="router" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 20px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">router</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="router.go" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">router.go</span>
+  </a>
+</li>
+<li data-name="router_test.go" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">router_test.go</span>
+  </a>
+</li>
+  </ol>
+</li>
+<li data-name="service" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 20px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">service</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="code_service.go" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">code_service.go</span>
+  </a>
+</li>
+<li data-name="repo_service.go" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">repo_service.go</span>
+  </a>
+</li>
+  </ol>
+</li>
+<li data-name="store" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 20px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">store</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="repo_store.go" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 32px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">repo_store.go</span>
+  </a>
+</li>
+  </ol>
+</li>
+<li data-name="view" role="treeitem" data-tree-dir aria-expanded="true">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 20px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform rotate-90" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">view</span>
+    </a>
+  </div>
+  <ol role="group">
+<li data-name="pages" role="treeitem" data-tree-dir aria-expanded="true">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 32px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform rotate-90" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">pages</span>
+    </a>
+  </div>
+  <ol role="group">
+<li data-name="repo.templ" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 44px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">repo.templ</span>
+  </a>
+</li>
+<li data-name="tree.templ" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 44px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">tree.templ</span>
+  </a>
+</li>
+  </ol>
+</li>
+  </ol>
+</li>
+  </ol>
+</li>
+<li data-name="tailwind" role="treeitem" data-tree-dir aria-expanded="false">
+  <div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style="padding-left: 8px">
+    <button type="button" data-tree-toggle class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50" aria-label="Toggle folder">
+      <svg class="transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <a href="tree.html" class="flex items-center gap-1 py-[3px] flex-1 min-w-0 text-muted-foreground hover:text-foreground text-[12.5px]">
+      <svg style="color:#6ea8fe" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+      <span class="truncate">tailwind</span>
+    </a>
+  </div>
+  <ol role="group" hidden>
+<li data-name="input.css" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 20px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">input.css</span>
+  </a>
+</li>
+  </ol>
+</li>
+<li data-name=".gitignore" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 8px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">.gitignore</span>
+  </a>
+</li>
+<li data-name="CLAUDE.md" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 8px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">CLAUDE.md</span>
+  </a>
+</li>
+<li data-name="Makefile" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 8px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">Makefile</span>
+  </a>
+</li>
+<li data-name="README.md" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 8px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">README.md</span>
+  </a>
+</li>
+<li data-name="go.mod" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 8px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">go.mod</span>
+  </a>
+</li>
+<li data-name="go.sum" role="treeitem">
+  <a href="blob.html" class="flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-muted/50" style="padding-left: 8px">
+    <span class="shrink-0 w-5 flex items-center justify-center"></span>
+    <svg class="shrink-0 text-muted-foreground/50" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <span class="truncate font-mono">go.sum</span>
+  </a>
+</li>
+          </ol>
+        </div>
+      </aside>
+
+      <section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="files-heading">
+        <h2 id="files-heading" class="sr-only">Files at main</h2>
+            <div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
+              <button type="button" data-tree-show title="Show files" aria-label="Show files" hidden class="h-6 w-6 shrink-0 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path><path d="m14 9 3 3-3 3"></path></svg>
+            </button>
+              <a href="profile.html" class="font-medium hover:underline truncate">Malith Kuruppu</a>
+              <a href="commit.html" class="text-muted-foreground hover:underline truncate flex-1 min-w-0">feat: add publish step to promote draft releases to published</a>
+              <a href="commit.html" class="font-mono text-muted-foreground hover:underline shrink-0">420b44b</a>
+              <span class="text-muted-foreground shrink-0">
+                <time datetime="2026-05-13T11:00:00Z">13 May 26 11:00 UTC</time>
+              </span>
+            </div>
+        <table class="w-full caption-bottom text-sm">
+          <caption class="mt-4 text-sm text-muted-foreground sr-only">Repository files at main, directories first</caption>
+          <colgroup>
+            <col style="width: 32px"/>
+            <col/>
+            <col style="width: 40%"/>
+          </colgroup>
+          <thead class="sr-only">
+            <tr>
+              <th scope="col">Type</th>
+              <th scope="col">Name</th>
+              <th scope="col">Last commit</th>
+            </tr>
+          </thead>
+          <tbody class="[&_tr:last-child]:border-0">
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="tree.html" class="text-[13px] font-medium hover:underline">components</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">feat: add mini chart and sparkline components</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">13 May 26 09:12 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="tree.html" class="text-[13px] font-medium hover:underline">fragments</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">tech: split repo subnav into its own fragment</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">12 May 26 16:40 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="tree.html" class="text-[13px] font-medium hover:underline">layout</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">fix: keep the footer pinned on short pages</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">09 May 26 10:03 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="tree.html" class="text-[13px] font-medium hover:underline">pages</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">feat: add publish step to promote draft releases to published</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">13 May 26 11:00 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="blob.html" class="text-[13px] hover:underline">blame.templ</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">fix: dot-mark consecutive blame lines from one commit</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">05 May 26 14:22 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="blob.html" class="text-[13px] hover:underline">blob.templ</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">tech: port blob viewer to design system</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">13 May 26 11:00 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="blob.html" class="text-[13px] hover:underline">commits.templ</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">feat: group commit history by day</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">29 Apr 26 08:51 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="blob.html" class="text-[13px] hover:underline">contributors.templ</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">fix: dedupe contributors by author email</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">29 Apr 26 08:51 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="blob.html" class="text-[13px] hover:underline">dependencies.templ</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">feat: scan manifests for the dependency graph</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">21 Apr 26 17:30 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <td class="px-4 py-2.5 align-middle w-8"><svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></td>
+                  <th scope="row" class="px-4 py-2.5 align-middle font-normal text-left"><a href="blob.html" class="text-[13px] hover:underline">helpers.go</a></th>
+                  <td class="px-4 py-2.5 align-middle text-[12px] text-muted-foreground">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="truncate">tech: move humanBytes next to the blob page</span>
+                      <time datetime="2026-05-13T11:00:00Z" class="shrink-0">18 Apr 26 12:00 UTC</time>
+                    </div>
+                  </td>
+                </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+<script>
+(function () {
+  function closeAll(except) {
+    document.querySelectorAll('[data-dropdown]').forEach(function (d) {
+      if (d === except) return;
+      d.querySelector('[data-dropdown-panel]').hidden = true;
+      d.querySelector('[data-dropdown-btn]').setAttribute('aria-expanded', 'false');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-dropdown-btn]');
+    var dd = btn && btn.closest('[data-dropdown]');
+    if (!btn && e.target.closest('[data-dropdown-panel]')) return;
+    closeAll(dd);
+    if (!dd) return;
+    var panel = dd.querySelector('[data-dropdown-panel]');
+    panel.hidden = !panel.hidden;
+    btn.setAttribute('aria-expanded', String(!panel.hidden));
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); });
+  document.querySelectorAll('[data-ref-filter]').forEach(function (input) {
+    input.addEventListener('input', function () {
+      var q = input.value.toLowerCase();
+      input.closest('[data-dropdown-panel]').querySelectorAll('[data-ref]').forEach(function (a) {
+        a.hidden = !!q && a.dataset.ref.toLowerCase().indexOf(q) < 0;
+      });
+    });
+  });
+})();
+(function () {
+  var layout = document.querySelector('[data-tree-layout]');
+  if (!layout) return;
+  var tree = layout.querySelector('[data-file-tree]');
+  var dirs = tree.querySelectorAll('[data-tree-dir]');
+  function setOpen(li, open) {
+    li.setAttribute('aria-expanded', String(open));
+    li.querySelector(':scope > ol').hidden = !open;
+    li.querySelector('[data-tree-toggle] svg').classList.toggle('rotate-90', open);
+  }
+  dirs.forEach(function (li) {
+    li.querySelector('[data-tree-toggle]').addEventListener('click', function () {
+      setOpen(li, li.getAttribute('aria-expanded') !== 'true');
+    });
+  });
+  tree.querySelector('[data-tree-expand]').addEventListener('click', function () { dirs.forEach(function (li) { setOpen(li, true); }); });
+  tree.querySelector('[data-tree-collapse]').addEventListener('click', function () { dirs.forEach(function (li) { setOpen(li, false); }); });
+  function setHidden(hidden) {
+    tree.hidden = hidden;
+    layout.classList.toggle('grid-cols-[260px_1fr]', !hidden);
+    layout.classList.toggle('grid-cols-1', hidden);
+    layout.querySelectorAll('[data-tree-show]').forEach(function (b) { b.hidden = !hidden; });
+  }
+  tree.querySelector('[data-tree-hide]').addEventListener('click', function () { setHidden(true); });
+  layout.querySelectorAll('[data-tree-show]').forEach(function (b) { b.addEventListener('click', function () { setHidden(false); }); });
+  var filter = tree.querySelector('[data-tree-filter]');
+  filter.addEventListener('input', function () {
+    var q = filter.value.toLowerCase();
+    tree.querySelectorAll('li[role=treeitem]').forEach(function (li) {
+      var own = li.dataset.name.toLowerCase().indexOf(q) >= 0;
+      var kid = li.querySelector('li[data-name]') && Array.prototype.some.call(li.querySelectorAll('li[data-name]'), function (c) { return c.dataset.name.toLowerCase().indexOf(q) >= 0; });
+      li.hidden = !!q && !own && !kid;
+      if (q && kid && li.hasAttribute('data-tree-dir')) setOpen(li, true);
+    });
+  });
+})();
+</script>
+</body>
+</html>

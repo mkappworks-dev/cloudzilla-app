@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>96a6f51 · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="space-y-6">
+
+    <section aria-labelledby="commit-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="repo.html" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="commits.html" class="hover:underline">Commits</a>
+        <span aria-hidden="true">·</span>
+        <span class="font-mono">96a6f51</span>
+      </p>
+      <h1 id="commit-title" class="text-xl font-semibold tracking-tight">feat(security): private-repo visibility + transport + UI polish (#29)</h1>
+      <pre class="mt-3 text-sm text-muted-foreground whitespace-pre-wrap font-sans">Repositories can now be marked private. Anonymous reads of a private repository return 404 on the web UI and on both
+git transports, so its existence is not revealed.
+
+Adds an is_private column with an index, and tightens the visibility check in RepoService.Get.</pre>
+      <div class="mt-4 flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
+        <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="Malith Kuruppu">MK</span>
+        <span>
+          <span class="font-medium text-foreground">Malith Kuruppu</span>
+          <span class="text-muted-foreground/80 ml-1">&lt;malith@example.com&gt;</span>
+        </span>
+        <span aria-hidden="true">·</span>
+        <time datetime="2026-04-29T11:00:00Z">2026-04-29 11:00:00 UTC</time>
+        <span aria-hidden="true">·</span>
+        <code class="font-mono px-2 py-0.5 rounded-sm text-[12px] bg-muted text-foreground border border-border">96a6f51c3e0b8d47a2f19e5c7b4d6a80f3e12c95</code>
+      </div>
+      <div class="mt-2 text-[12px] text-muted-foreground">
+        Parents:
+        <a href="commit.html" class="font-mono ml-1 hover:text-foreground hover:underline">7e1d4b9</a>
+      </div>
+    </section>
+
+    <section class="rounded-md border border-border bg-card" aria-labelledby="checks-heading">
+      <header class="px-4 py-3 border-b border-border">
+        <h2 id="checks-heading" class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Checks</h2>
+      </header>
+      <div class="p-4 space-y-2">
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-success">&#10003;</span>
+          <span class="font-medium text-foreground">ci/build</span>
+          <span class="text-muted-foreground">— Build passed in 1m 42s</span>
+          <a href="https://ci.example.com/runs/1201" target="_blank" rel="noopener" class="text-foreground hover:underline ml-auto text-xs">Details</a>
+        </div>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-success">&#10003;</span>
+          <span class="font-medium text-foreground">ci/test</span>
+          <span class="text-muted-foreground">— 412 tests passed</span>
+          <a href="https://ci.example.com/runs/1202" target="_blank" rel="noopener" class="text-foreground hover:underline ml-auto text-xs">Details</a>
+        </div>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-destructive">&#10007;</span>
+          <span class="font-medium text-foreground">ci/lint</span>
+          <span class="text-muted-foreground">— 2 issues found</span>
+          <a href="https://ci.example.com/runs/1203" target="_blank" rel="noopener" class="text-foreground hover:underline ml-auto text-xs">Details</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="rounded-md border border-border bg-card px-4 py-3 text-[13px] text-muted-foreground" aria-label="Diff stats">
+      <span class="font-mono">3</span>
+      files changed,
+      <span class="font-mono text-success font-medium">
+        +8
+      </span>
+      <span class="font-mono text-destructive font-medium">
+        −2
+      </span>
+    </section>
+
+<article class="rounded-md border border-border bg-card overflow-hidden">
+<div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between">
+<code class="text-sm font-mono text-foreground">internal/service/repo_service.go</code>
+<div class="text-xs text-muted-foreground ml-4 shrink-0">
+<span class="text-success">+4</span>
+<span class="text-destructive ml-1">-1</span>
+</div>
+</div>
+<div class="hl overflow-x-auto">
+<table class="w-full text-xs font-mono border-collapse">
+<tbody>
+<tr>
+<td colspan="4" class="bg-primary/10 text-foreground px-4 py-1 select-none">@@ -18,7 +18,10 @@ func (s *RepoService) Get(ctx context.Context, owner, name string) (*model.Repository, error) {</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">18</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">18</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	repo, err := s.stores.Repos.GetByOwnerAndName(ctx, owner, name)</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">19</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">19</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	if err != nil {</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">20</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">20</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">		return nil, err</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">21</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">21</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	}</td>
+</tr>
+<tr class="bg-destructive/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">22</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-destructive">-</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	return repo, nil</td>
+</tr>
+<tr class="bg-success/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">22</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	if repo.IsPrivate &amp;&amp; !s.canRead(ctx, repo) {</td>
+</tr>
+<tr class="bg-success/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">23</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">		return nil, ErrNotFound</td>
+</tr>
+<tr class="bg-success/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">24</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	}</td>
+</tr>
+<tr class="bg-success/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">25</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	return repo, nil</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">23</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">26</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">}</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">24</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">27</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"></td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">25</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">28</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">func (s *RepoService) List(ctx context.Context, owner string) ([]model.Repository, error) {</td>
+</tr>
+</tbody>
+</table>
+</div>
+</article>
+
+<article class="rounded-md border border-border bg-card overflow-hidden">
+<div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between">
+<code class="text-sm font-mono text-foreground">internal/db/migrations/0042_repo_visibility.sql</code>
+<div class="text-xs text-muted-foreground ml-4 shrink-0">
+<span class="text-success">+2</span>
+<span class="text-destructive ml-1">-1</span>
+</div>
+</div>
+<div class="hl overflow-x-auto">
+<table class="w-full text-xs font-mono border-collapse">
+<tbody>
+<tr>
+<td colspan="4" class="bg-primary/10 text-foreground px-4 py-1 select-none">@@ -1,4 +1,5 @@</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">1</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">1</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">-- 0042_repo_visibility.sql</td>
+</tr>
+<tr class="bg-destructive/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">2</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-destructive">-</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">ALTER TABLE repositories ADD COLUMN visibility TEXT;</td>
+</tr>
+<tr class="bg-success/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">2</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">ALTER TABLE repositories ADD COLUMN is_private BOOLEAN NOT NULL DEFAULT FALSE;</td>
+</tr>
+<tr class="bg-success/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">3</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">CREATE INDEX idx_repositories_is_private ON repositories (is_private);</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">3</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">4</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"></td>
+</tr>
+</tbody>
+</table>
+</div>
+</article>
+
+<article class="rounded-md border border-border bg-card overflow-hidden">
+<div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between">
+<code class="text-sm font-mono text-foreground">docs/git-transport.md</code>
+<div class="text-xs text-muted-foreground ml-4 shrink-0">
+<span class="text-success">+2</span>
+<span class="text-destructive ml-1">-0</span>
+</div>
+</div>
+<div class="hl overflow-x-auto">
+<table class="w-full text-xs font-mono border-collapse">
+<tbody>
+<tr>
+<td colspan="4" class="bg-primary/10 text-foreground px-4 py-1 select-none">@@ -41,3 +41,5 @@ Clone over HTTP or SSH.</td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">41</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">41</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"></td>
+</tr>
+<tr>
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">42</td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">42</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">Private repositories require authentication on both transports.</td>
+</tr>
+<tr class="bg-success/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">43</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"></td>
+</tr>
+<tr class="bg-success/10">
+<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
+<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">44</td>
+<td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">Anonymous requests to a private repository return `404`, not `403`.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</article>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+</body>
+</html>
