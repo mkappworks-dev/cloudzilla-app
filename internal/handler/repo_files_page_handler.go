@@ -33,6 +33,11 @@ func (h *Handler) PageNewFile(w http.ResponseWriter, r *http.Request) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
+	// The path starts in the folder the page was opened from.
+	path := ""
+	if dir != "" {
+		path = dir + "/"
+	}
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	h.render(w, r, pages.NewFile(view.NewFileData{
 		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
@@ -40,6 +45,7 @@ func (h *Handler) PageNewFile(w http.ResponseWriter, r *http.Request) {
 		RepoName: repoName,
 		Ref:      ref,
 		Dir:      dir,
+		Path:     path,
 	}))
 }
 

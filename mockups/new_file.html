@@ -29,6 +29,11 @@
       </p>
     </section>
 
+    <div id="nf-error" role="alert" hidden class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">
+      <p id="nf-error-text"></p>
+      <p id="nf-error-upload" hidden class="mt-1">Choose <span class="font-mono"></span> again to upload it.</p>
+    </div>
+
     <form id="newfile-form" class="space-y-5">
       <div class="rounded-md border border-border bg-card p-5 space-y-4">
         <div>
@@ -65,11 +70,32 @@
 
 <script src="shell.js"></script>
 <script>
+// The real handler re-renders the form with the typed path, contents and message; the mock keeps them in place.
+function showError(msg, upload) {
+  document.getElementById('nf-error-text').textContent = msg;
+  var again = document.getElementById('nf-error-upload');
+  again.hidden = !upload;
+  again.querySelector('span').textContent = upload;
+  document.getElementById('nf-error').hidden = false;
+}
 document.getElementById('newfile-form').addEventListener('submit', function (e) {
   e.preventDefault();
+  var path = document.getElementById('nf-path').value.trim();
+  var file = document.getElementById('nf-file').files[0];
+  var upload = file ? file.name : '';
+  if (file && (path === '' || path.endsWith('/'))) path += file.name;
+  if (path === '') return showError('a file path is required', upload);
+  if (path.endsWith('/')) return showError('the path ends in /: add a file name or upload a file', upload);
+  if (/^\/?\.git(\/|$)/.test(path)) return showError('invalid file path: ".git" is reserved for Git\'s own data', upload);
   window.czToast('File committed to main.');
   setTimeout(function () { location.href = 'blob.html'; }, 700);
 });
+if (location.hash === '#error') {
+  document.getElementById('nf-path').value = '.git/hooks/post-checkout';
+  document.getElementById('nf-content').value = '#!/bin/sh\necho checked out\n';
+  document.getElementById('nf-message').value = 'Add a checkout hook';
+  showError('invalid file path: ".git" is reserved for Git\'s own data', '');
+}
 if (location.hash === '#upload') document.getElementById('upload').scrollIntoView();
 </script>
 </body>

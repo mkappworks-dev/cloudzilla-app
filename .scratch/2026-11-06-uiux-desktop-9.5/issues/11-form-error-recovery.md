@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: 02, 06
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -32,8 +32,8 @@ New file returns bare `http.Error` pages and loses the typed content (`repo_file
 
 ## Acceptance criteria
 
-- [ ] Each listed failure path shows a message and keeps input
-- [ ] Tests for new-file error re-render
+- [x] Each listed failure path shows a message and keeps input
+- [x] Tests for new-file error re-render
 
 ## Verification
 

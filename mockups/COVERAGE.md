@@ -41,8 +41,9 @@ Mocks show the happy path. These real states are not drawn:
   Close.
 - **Other states.** Draft, merged and closed pull requests outside `my_pulls.html`; merge conflicts; failing and pending
   checks; a draft or pre-release release; archived and mirror repo banners; binary file in `blob`; private-issue badge
-  outside `my_issues.html`; hidden-issue project card; form validation errors (`Alert` destructive) on every create
-  page; one-time token and backup-code reveals.
+  outside `my_issues.html`; hidden-issue project card; form validation errors (`Alert` destructive) on every create page
+  but `new_file.html` (submit a blank, `.git` or slash-ended path, or open `#error`); one-time token and backup-code
+  reveals.
 - **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
   `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
   a mock button draws the real busy state.

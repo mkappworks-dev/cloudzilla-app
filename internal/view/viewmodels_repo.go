@@ -51,6 +51,13 @@ type NewFileData struct {
 	RepoName string
 	Ref      string
 	Dir      string // optional subdirectory the file lands in
+	Path     string
+	Content  string
+	Message  string
+	Error    string
+	// UploadName is the file a refused submit carried: a file input can't be
+	// refilled, so the page asks for it again.
+	UploadName string
 }
 
 // EditFileData holds template data for the edit-file page. Path is the file

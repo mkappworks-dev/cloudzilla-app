@@ -187,7 +187,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-swap=\"none\" class=\"text-xs text-foreground hover:underline shrink-0\">Redeliver</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-swap=\"none\" data-toast=\"Redelivery queued\" class=\"text-xs text-foreground hover:underline shrink-0\">Redeliver</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

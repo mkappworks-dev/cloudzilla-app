@@ -525,3 +525,24 @@ func TestMilestones_Fragments(t *testing.T) {
 	e.makePrivate(t)
 	wantStatus(t, e.do(t, metaReq{method: "GET", target: frag("/title"), token: e.outsider.token}), http.StatusNotFound)
 }
+
+func TestMilestones_EditsRefreshTheHeader(t *testing.T) {
+	e := newGitMetaEnv(t)
+	_, n := e.seedMilestone(t, "before")
+	frag := func(suffix string) string { return e.path("/milestones/%d%s", n, suffix) }
+
+	page := e.page(t, e.pagePath("/milestones/%d", n), "", false)
+	bodyHas(t, page, `<span id="milestone-breadcrumb-title" aria-current="page">before</span>`)
+	bodyHas(t, page, `id="milestone-header-due"`)
+
+	rr := e.do(t, metaReq{method: "PATCH", target: frag("/title"), token: e.owner.token, form: url.Values{"title": {"after"}}})
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, "<title>after · ")
+	bodyHas(t, rr, `<span id="milestone-breadcrumb-title" aria-current="page" hx-swap-oob="true">after</span>`)
+
+	rr = e.do(t, metaReq{method: "PATCH", target: frag("/due"), token: e.owner.token, form: url.Values{"due_date": {"2035-07-08"}}})
+	wantStatus(t, rr, http.StatusOK)
+	bodyHas(t, rr, `id="milestone-header-due"`)
+	bodyHas(t, rr, `hx-swap-oob="true"`)
+	bodyHas(t, rr, "Jul 8, 2035</time>")
+}

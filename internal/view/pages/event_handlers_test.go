@@ -118,7 +118,7 @@ func TestEventHandlerAttributes_SurviveSanitization(t *testing.T) {
 		{
 			"discussion reply mark answer",
 			renderReplyFragment(t, view.RenderedDiscussionReply{}, 1, true),
-			"window.location.reload()",
+			"if(event.target===this&&ctx.response.status<400){location.reload();}",
 		},
 		{
 			"organizations leave",

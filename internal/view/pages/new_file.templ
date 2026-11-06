@@ -22,6 +22,15 @@ templ NewFile(data view.NewFileData) {
 				</p>
 			</section>
 
+			if data.Error != "" {
+				<div role="alert" class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">
+					<p>{ data.Error }</p>
+					if data.UploadName != "" {
+						<p class="mt-1">Choose <span class="font-mono">{ data.UploadName }</span> again to upload it.</p>
+					}
+				</div>
+			}
+
 			<form
 				method="POST"
 				action={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Ref, "")) }
@@ -36,7 +45,7 @@ templ NewFile(data view.NewFileData) {
 							id="nf-path"
 							name="path"
 							type="text"
-							value={ newFilePathPrefix(data.Dir) }
+							value={ data.Path }
 							placeholder="path/to/file.md"
 							required
 							class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
@@ -51,7 +60,7 @@ templ NewFile(data view.NewFileData) {
 							rows="16"
 							placeholder="Type the file contents here…"
 							class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-y"
-						></textarea>
+						>{ textareaValue(data.Content) }</textarea>
 					</div>
 				</div>
 
@@ -72,6 +81,7 @@ templ NewFile(data view.NewFileData) {
 						id="nf-message"
 						name="message"
 						type="text"
+						value={ data.Message }
 						placeholder="Add new file"
 						class="w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
 					/>
@@ -84,13 +94,4 @@ templ NewFile(data view.NewFileData) {
 			</form>
 		</div>
 	}
-}
-
-// newFilePathPrefix prefills the path field with the directory the user came
-// from, so the file lands in the right place.
-func newFilePathPrefix(dir string) string {
-	if dir == "" {
-		return ""
-	}
-	return dir + "/"
 }

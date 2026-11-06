@@ -165,30 +165,13 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	repo, ok := h.editableRepo(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-	if err := service.CheckContentWritable(repo); err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
-	if status, msg := h.storageRefusal(r, repo); status != 0 {
-		http.Error(w, msg, status)
 		return
 	}
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
-	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
-		http.Error(w, msg, status)
-		return
-	}
-
 	if err := parseNewFileForm(r); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
@@ -198,38 +181,67 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid form", http.StatusBadRequest)
 		return
 	}
-	path := strings.TrimSpace(r.FormValue("path"))
-	dir := strings.Trim(r.FormValue("dir"), "/")
-	content := []byte(textareaText(r.FormValue("content"), false))
-	message := strings.TrimSpace(r.FormValue("message"))
+
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	data := view.NewFileData{
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
+		Owner:    owner,
+		RepoName: repoName,
+		Ref:      ref,
+		Dir:      strings.Trim(r.FormValue("dir"), "/"),
+		Path:     r.FormValue("path"),
+		Content:  textareaText(r.FormValue("content"), false),
+		Message:  r.FormValue("message"),
+	}
+	refuse := func(status int, msg string) {
+		data.Error = msg
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(status)
+		if err := pages.NewFile(data).Render(r.Context(), w); err != nil {
+			slog.Error("render failed", "error", err)
+		}
+	}
+	if status, msg := h.storageRefusal(r, repo); status != 0 {
+		refuse(status, msg)
+		return
+	}
+	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
+		refuse(status, msg)
+		return
+	}
+
+	path := strings.TrimSpace(data.Path)
+	content := []byte(data.Content)
+	message := strings.TrimSpace(data.Message)
 
 	// An uploaded file, when present, takes precedence over the textarea.
 	if file, header, ferr := r.FormFile("file"); ferr == nil {
 		defer func() { _ = file.Close() }()
+		data.UploadName = header.Filename
 		if header.Size > maxUploadBytes {
-			http.Error(w, fileTooLargeMsg, http.StatusRequestEntityTooLarge)
+			refuse(http.StatusRequestEntityTooLarge, fileTooLargeMsg)
 			return
 		}
-		data, rerr := io.ReadAll(file)
+		upload, rerr := io.ReadAll(file)
 		if rerr != nil {
 			http.Error(w, "failed to read uploaded file", http.StatusInternalServerError)
 			return
 		}
-		content = data
+		content = upload
 		// A blank path means the directory the New file page was opened from.
-		if path == "" && dir != "" {
-			path = dir + "/"
+		if path == "" && data.Dir != "" {
+			path = data.Dir + "/"
 		}
 		if path == "" || strings.HasSuffix(path, "/") {
 			path += header.Filename
 		}
 	}
 	if path == "" {
-		http.Error(w, "a file path is required", http.StatusBadRequest)
+		refuse(http.StatusBadRequest, "a file path is required")
 		return
 	}
 	if strings.HasSuffix(path, "/") {
-		http.Error(w, "the path ends in /: add a file name or upload a file", http.StatusBadRequest)
+		refuse(http.StatusBadRequest, "the path ends in /: add a file name or upload a file")
 		return
 	}
 	// CommitFile ignores a leading /, and the redirect must name the committed path.
@@ -246,20 +258,17 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 
 	upd, err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message)
 	if err != nil {
-		if errors.Is(err, service.ErrRefMoved) {
-			http.Error(w, branchMovedMsg, http.StatusConflict)
-			return
+		switch {
+		case errors.Is(err, service.ErrRefMoved):
+			refuse(http.StatusConflict, branchMovedMsg)
+		case errors.Is(err, service.ErrPathCollision):
+			refuse(http.StatusConflict, err.Error())
+		case errors.Is(err, service.ErrInvalidFilePath) || errors.Is(err, service.ErrFileUnchanged):
+			refuse(http.StatusUnprocessableEntity, err.Error())
+		default:
+			slog.Error("commit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
+			refuse(http.StatusUnprocessableEntity, err.Error())
 		}
-		if errors.Is(err, service.ErrPathCollision) {
-			http.Error(w, err.Error(), http.StatusConflict)
-			return
-		}
-		if errors.Is(err, service.ErrInvalidFilePath) || errors.Is(err, service.ErrFileUnchanged) {
-			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-			return
-		}
-		slog.Error("commit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
