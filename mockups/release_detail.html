@@ -165,23 +165,23 @@ No migrations are required. The dependency graph is computed on first view and c
 </div>
 </main>
 
-<dialog id="rel-demote-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="rel-demote-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="rel-demote-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="rel-demote-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="rel-demote-dialog-title" class="text-base font-semibold leading-tight">Mark as pre-release?</h2>
     <p class="text-[13px] text-muted-foreground leading-snug">Mark <strong class="text-foreground">Phase 15.3 — Dependency graph</strong> as a pre-release. It stops being eligible for the "Latest" badge until you mark it back. Consumers who already pulled it as stable won't be re-notified.</p>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     <a href="releases.html" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Mark as pre-release</a>
   </div>
 </dialog>
 
-<dialog id="rel-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="rel-delete-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="rel-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="rel-delete-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="rel-delete-dialog-title" class="text-base font-semibold leading-tight">Delete this release?</h2>
     <p class="text-[13px] text-muted-foreground leading-snug">Delete <strong class="text-foreground">Phase 15.3 — Dependency graph</strong>. The release notes and metadata are removed, but the git tag <code class="font-mono">v0.2.0</code> is preserved — you can re-attach it as a new release later. This cannot be undone.</p>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     <a href="releases.html" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete release</a>
   </div>

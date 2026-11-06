@@ -482,12 +482,12 @@ Two things would help:
     </div>
   </div>
 
-<dialog id="close-issue-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="close-issue-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="close-issue-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="close-issue-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="close-issue-dialog-title" class="text-base font-semibold leading-tight">Close this issue?</h2>
     <p class="text-[13px] text-muted-foreground leading-snug">Close issue <strong class="text-foreground">#214</strong> — <strong class="text-foreground">SSH host key rotation breaks existing client fingerprints</strong>. You can reopen it later if needed.</p>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <form method="dialog" class="contents">
       <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     </form>

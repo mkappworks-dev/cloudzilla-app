@@ -137,9 +137,9 @@
       </form>
     </dialog>
 
-    <dialog id="add-column-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="add-column-dialog-title">
+    <dialog id="add-column-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="add-column-dialog-title">
       <form id="add-column-form">
-        <div class="flex flex-col gap-1 p-5 border-b border-border">
+        <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
           <h2 id="add-column-dialog-title" class="text-base font-semibold leading-tight">Add column</h2>
           <p class="text-[13px] text-muted-foreground leading-snug">Columns group the cards on this board.</p>
         </div>
@@ -151,7 +151,7 @@
             </div>
           </div>
         </div>
-        <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+        <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
           <button type="button" id="add-column-cancel" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Cancel</button>
           <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add column</button>
         </div>

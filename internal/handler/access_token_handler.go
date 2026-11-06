@@ -91,7 +91,7 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The flash cookie rides on the HX-Redirect response, so the reload shows the token.
+	// The flash cookie rides on the save response, so the reload shows the token.
 	h.setSettingsFlash(w, newTokenCookieName, rawToken)
 	redirectAfterSave(w, r, "/settings#tokens")
 }

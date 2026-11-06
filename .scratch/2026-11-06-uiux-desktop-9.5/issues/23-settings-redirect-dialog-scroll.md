@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: 06
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -38,11 +38,11 @@ Found during ticket 06's live check (#270).
 
 ## Acceptance criteria
 
-- [ ] Creating a token on `/settings` shows the new token without a manual reload
-- [ ] Enabling and disabling TOTP and saving org repo defaults show their result without a manual reload
-- [ ] The generate-token dialog's submit button is reachable at 1440×900, light and dark
-- [ ] Short dialogs (delete confirm, change password) look unchanged
-- [ ] Handler test for the same-page redirect
+- [x] Creating a token on `/settings` shows the new token without a manual reload
+- [x] Enabling and disabling TOTP and saving org repo defaults show their result without a manual reload
+- [x] The generate-token dialog's submit button is reachable at 1440×900, light and dark
+- [x] Short dialogs (delete confirm, change password) look unchanged
+- [x] Handler test for the same-page redirect
 
 ## Verification
 
@@ -52,3 +52,8 @@ settings dialog.
 ## Comments
 
 2026-11-06 (triage): ready-for-agent. Found in #270's live check; split out of 06.
+
+2026-11-06 (done): `redirectAfterSave` answers `HX-Refresh` when `HX-Current-URL` shows the target differs only by its
+hash; `HX-Location` would swap the body without a page load and `HX-Redirect` is the hash-only navigation. The reload
+keeps the current URL and scroll position, so the page stays on the form's section. `components.Dialog` caps its height
+and scrolls itself under a sticky header and footer, since Chrome gives a scrolling body the dialog's initial focus.

@@ -639,9 +639,9 @@
     </div>
   </div>
 
-  <dialog id="blob-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="blob-delete-dialog-title">
+  <dialog id="blob-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="blob-delete-dialog-title">
     <form method="dialog">
-      <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
         <h2 id="blob-delete-dialog-title" class="text-base font-semibold leading-tight">Delete this file?</h2>
         <p class="text-[13px] text-muted-foreground leading-snug">This commits the removal of <span class="font-mono text-foreground break-all">internal/router/router.go</span> to <span class="font-mono text-foreground">main</span>.</p>
       </div>
@@ -649,7 +649,7 @@
         <label for="blob-delete-message" class="block text-[12px] font-medium mb-1.5">Commit message</label>
         <input id="blob-delete-message" name="message" type="text" placeholder="Delete internal/router/router.go" class="w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
       </div>
-      <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
         <button type="submit" value="cancel" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Cancel</button>
         <button type="submit" value="delete" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-4 text-sm">Delete file</button>
       </div>
