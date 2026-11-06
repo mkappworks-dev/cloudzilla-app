@@ -1,6 +1,9 @@
 package components
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 // AvatarSize controls the diameter of the avatar.
 type AvatarSize string
@@ -9,6 +12,7 @@ const (
 	AvatarSizeXS      AvatarSize = "xs"      // 20px — inline with text
 	AvatarSizeSM      AvatarSize = "sm"      // 24px — list rows
 	AvatarSizeDefault AvatarSize = "default" // 28px — nav bar
+	AvatarSizeMD      AvatarSize = "md"      // 32px — activity feed
 	AvatarSizeLG      AvatarSize = "lg"      // 40px — profile chrome
 	AvatarSizeXL      AvatarSize = "xl"      // 64px — settings
 )
@@ -19,6 +23,8 @@ func avatarSizeClass(s AvatarSize) string {
 		return "h-5 w-5 text-[10px]"
 	case AvatarSizeSM:
 		return "h-6 w-6 text-[10px]"
+	case AvatarSizeMD:
+		return "h-8 w-8 text-[11px]"
 	case AvatarSizeLG:
 		return "h-10 w-10 text-sm"
 	case AvatarSizeXL:
@@ -34,6 +40,8 @@ func avatarSizePx(s AvatarSize) string {
 		return "20"
 	case AvatarSizeSM:
 		return "24"
+	case AvatarSizeMD:
+		return "32"
 	case AvatarSizeLG:
 		return "40"
 	case AvatarSizeXL:
@@ -51,9 +59,14 @@ func initials(name string) string {
 	}
 	parts := strings.Fields(name)
 	if len(parts) == 1 {
-		return strings.ToUpper(parts[0][:1])
+		return strings.ToUpper(firstRune(parts[0]))
 	}
-	return strings.ToUpper(parts[0][:1] + parts[len(parts)-1][:1])
+	return strings.ToUpper(firstRune(parts[0]) + firstRune(parts[len(parts)-1]))
+}
+
+func firstRune(s string) string {
+	_, size := utf8.DecodeRuneInString(s)
+	return s[:size]
 }
 
 // Avatar renders the uploaded avatar of the user or org called name, looked up

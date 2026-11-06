@@ -503,7 +503,7 @@ git checkout daisy/oauth-scopes</pre>
 <tr data-thread class="bg-primary/10 border-t border-primary/20">
 <td colspan="2" class="px-4 py-0">
 <div class="flex items-start gap-2 py-2 border-b border-primary/20 last:border-0">
-<div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-background text-xs font-bold shrink-0 mt-0.5">y</div>
+<span class="flex shrink-0 mt-0.5"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" aria-hidden="true">Y</span></span>
 <div class="flex-1 min-w-0">
 <div class="flex items-center gap-2">
 <a href="profile.html" class="text-xs font-semibold hover:underline">yumi</a>
@@ -854,7 +854,7 @@ git checkout daisy/oauth-scopes</pre>
       '<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-border rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none"></textarea>' +
       '<div class="flex gap-2"><button type="submit" class="px-3 py-1 bg-primary text-background rounded-sm text-xs font-medium hover:bg-primary">Comment</button>' +
       '<button type="button" data-cancel class="px-3 py-1 bg-background border border-border text-muted-foreground rounded-sm text-xs hover:bg-muted/40">Cancel</button></div></form></td>';
-    var POSTED = '<td colspan="2" class="px-4 py-0"><div class="flex items-start gap-2 py-2"><div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-background text-xs font-bold shrink-0 mt-0.5">m</div>' +
+    var POSTED = '<td colspan="2" class="px-4 py-0"><div class="flex items-start gap-2 py-2"><span class="flex shrink-0 mt-0.5"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" aria-hidden="true">M</span></span>' +
       '<div class="flex-1 min-w-0"><div class="flex items-center gap-2"><a href="profile.html" class="text-xs font-semibold hover:underline">malith</a><span class="text-xs text-muted-foreground">just now</span></div>' +
       '<div class="text-xs text-foreground mt-0.5" data-body></div></div></div></td>';
     document.querySelectorAll('[data-comment]').forEach(function (b) {

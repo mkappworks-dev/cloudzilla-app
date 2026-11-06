@@ -261,7 +261,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 	chromeCounts.Added = diff.TotalAdded
 	chromeCounts.Deleted = diff.TotalDeleted
 
-	h.render(w, r, pages.PullFiles(view.PullFilesData{
+	h.render(w, h.withAvatars(r, lineCommentAuthors(rawLineComments)...), pages.PullFiles(view.PullFilesData{
 		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		OwnerName:        owner,
 		Repo:             repo,
