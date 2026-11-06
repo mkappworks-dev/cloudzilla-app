@@ -13,12 +13,13 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// notificationsData builds the inbox view for the ?filter and ?page in r.
+// notificationsData builds the inbox view for the ?filter, ?reason and ?page in r.
 // The mark-read endpoints reuse it so the re-rendered view stays on the caller's page.
 // The returned request carries the actors' avatars and is the one to render with.
 func (h *Handler) notificationsData(r *http.Request, userID int64) (view.NotificationsData, *http.Request, error) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	np, err := h.Services.Notification.ListPage(r.Context(), userID, r.URL.Query().Get("filter"), page)
+	q := r.URL.Query()
+	np, err := h.Services.Notification.ListPage(r.Context(), userID, q.Get("filter"), q.Get("reason"), page)
 	if err != nil {
 		return view.NotificationsData{}, r, err
 	}
@@ -28,16 +29,17 @@ func (h *Handler) notificationsData(r *http.Request, userID int64) (view.Notific
 	}
 	r = h.withAvatars(r, actors...)
 	return view.NotificationsData{
-		BasePage:      basePage(r, h.Services),
-		Notifications: np.Items,
-		Filter:        np.Filter,
-		Page:          np.Page,
-		TotalPages:    np.TotalPages,
-		PerPage:       service.NotificationsPerPage,
-		Total:         np.Total,
-		InboxCount:    np.InboxCount,
-		UnreadCount:   np.UnreadCount,
-		ReadCount:     np.ReadCount,
+		BasePage:    basePage(r, h.Services),
+		Groups:      np.Items,
+		Filter:      np.Filter,
+		Reason:      np.Reason,
+		Page:        np.Page,
+		TotalPages:  np.TotalPages,
+		PerPage:     service.NotificationsPerPage,
+		Total:       np.Total,
+		InboxCount:  np.InboxCount,
+		UnreadCount: np.UnreadCount,
+		ReadCount:   np.ReadCount,
 	}, r, nil
 }
 
@@ -61,9 +63,9 @@ func bulkNotificationIDs(r *http.Request) []int64 {
 	return ids
 }
 
-// MarkNotificationsDone marks the selected notifications read.
+// MarkNotificationsDone marks the selected inbox rows read, each with the older notifications on its thread.
 func (h *Handler) MarkNotificationsDone(w http.ResponseWriter, r *http.Request) {
-	h.bulkNotificationAction(w, r, "failed to mark done", h.Services.Notification.MarkReadMany)
+	h.bulkNotificationAction(w, r, "failed to mark done", h.Services.Notification.MarkDone)
 }
 
 // UnsubscribeNotifications mutes the threads behind the selected notifications.

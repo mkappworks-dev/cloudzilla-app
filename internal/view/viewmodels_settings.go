@@ -56,9 +56,10 @@ type OAuthAuthorizationsFragData struct {
 // NotificationsData holds template data for the notifications page.
 type NotificationsData struct {
 	BasePage
-	Notifications []model.Notification
+	Groups []model.NotificationGroup
 
 	Filter     string // "inbox", "unread" or "read"
+	Reason     string // a store.NotifReason* value, or empty for any
 	Page       int
 	TotalPages int
 	PerPage    int
@@ -130,4 +131,9 @@ type OAuthAuthorizeData struct {
 	State       string
 	Confirm     components.ConfirmFactors
 	Error       string
+}
+
+// NotificationReason holds the label and empty-state copy for an inbox reason filter.
+type NotificationReason struct {
+	Value, Label, Empty string
 }

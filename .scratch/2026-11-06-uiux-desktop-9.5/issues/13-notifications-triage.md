@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -28,8 +28,8 @@ The inbox lists every notification flat with no way to narrow it; Unsubscribe mu
 
 ## Acceptance criteria
 
-- [ ] Grouping and reason filters work with pagination
-- [ ] Shortcuts work and are listed
+- [x] Grouping and reason filters work with pagination
+- [x] Shortcuts work and are listed
 
 ## Verification
 

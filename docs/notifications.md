@@ -105,16 +105,16 @@ read, keeping a `repo_transfer` notification while its transfer is still offered
 
 ## Pages & API
 
-| Route / Endpoint                      | Auth     | Description                                                                                                                       |
-| ------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| GET `/notifications`                  | Required | Inbox, 25 per page: `?filter=inbox\|unread\|read` (unknown means inbox), `?page=N` (clamped to the last page)                     |
-| PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware)                                                                                     |
-| POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)                                                                                       |
-| GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                                                                                                       |
-| POST `/api/notifications/done`        | Required | Mark the notifications in repeated form field `ids` as read (at most 100; other users' ids are ignored)                           |
-| POST `/api/notifications/unsubscribe` | Required | Mute the thread behind each notification in `ids` and mark that thread's unread notifications read (other users' ids are ignored) |
+| Route / Endpoint                      | Auth     | Description                                                                                                                                                      |
+| ------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET `/notifications`                  | Required | Inbox, 25 thread groups per page: `?filter=inbox\|unread\|read`, `?reason=mention\|review_requested\|assigned\|subscribed`, `?page=N` (clamped to the last page) |
+| PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware)                                                                                                                    |
+| POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)                                                                                                                      |
+| GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                                                                                                                                      |
+| POST `/api/notifications/done`        | Required | Mark the notifications in repeated form field `ids` as read (at most 100; other users' ids are ignored)                                                          |
+| POST `/api/notifications/unsubscribe` | Required | Mute the thread behind each notification in `ids` and mark that thread's unread notifications read (other users' ids are ignored)                                |
 
-The mark-read and bulk endpoints take the same `?filter` and `?page`, and their HTMX responses swap
+The mark-read and bulk endpoints take the same `?filter`, `?reason` and `?page`, and their HTMX responses swap
 `pages.NotificationsInbox` into `#notifications-view`, so the view stays on the caller's page.
 
 Each row has a checkbox, the actor's avatar and, on hover or focus, Done and Unsubscribe buttons; ticking rows swaps the
@@ -122,21 +122,23 @@ list header for a bulk bar. Unsubscribe mutes the notification's thread (`Notifi
 touches the repo watch, which only the repo page's Watch control changes. It writes one `muted` row per distinct thread
 among the caller's own selected notifications, using `subject_kind` and `subject_id`, then marks every unread
 notification on those threads read, selected or not, so they leave the unread filter and the email digest; a muted
-thread creates no new ones. Done marks only the selected rows read. Every row has the button (tooltip "Unsubscribe: mute
-this thread. Repo watch unchanged."), but it is disabled on `repo_transfer` rows and on rows with no `subject_kind`,
-which name no thread. Unmuting is the thread sidebar's Subscribe button. Done is mark-read: the row stays in the inbox
-and moves to the Read filter.
+thread creates no new ones. Done marks the selected group and its older thread notifications read; newer arrivals remain
+unread. Every row has the button (tooltip "Unsubscribe: mute this thread. Repo watch unchanged."), but it is disabled on
+`repo_transfer` rows and on rows with no `subject_kind`, which name no thread. Unmuting is the thread sidebar's
+Subscribe button. Done is mark-read: the row stays in the inbox and moves to the Read filter.
 
-Rows are grouped under their repo within a page. A row shows `subject_title` when set, with the "@actor did X" text
-beside it; mentions, repo transfers and rows created before migration 112 have no title and show only the action text.
+Notifications are grouped by thread before pagination, then displayed under their repo. Reason filters match mentions or
+current review requests, assignments, and subscriptions. The inbox supports `j`/`k` navigation, `e` to mark done, `x` to
+select, and `?` for the shortcut list. A row shows `subject_title` when set, with the "@actor did X" text beside it;
+mentions, repo transfers and rows created before migration 112 have no title and show only the action text.
 
 ## NotificationService (`internal/service/notification_service.go`)
 
-- `ListPage(ctx, userID, filter, page)` → `(NotificationPage, error)` — one page plus the inbox/unread/read counts the
-  sidebar shows
+- `ListPage(ctx, userID, filter, reason, page)` → `(NotificationPage, error)` — one page plus the inbox/unread/read
+  counts the sidebar shows
 - `List(ctx, userID)` → `([]Notification, error)` — newest 50
 - `ListUnreadForDigest(ctx, u, mode)` → `([]Notification, error)`
-- `MarkReadMany(ctx, userID, ids)` → `error` — ids that aren't the user's are ignored
+- `MarkDone(ctx, userID, ids)` → `error` — ids that aren't the user's are ignored
 - `MuteThreads(ctx, userID, ids)` → `error` — see [Pages & API](#pages--api); needs `WithThreadSubscriptions`
 - `CountUnread(ctx, userID)` → `(int, error)`
 - `MarkRead(ctx, id, userID)` → `error`

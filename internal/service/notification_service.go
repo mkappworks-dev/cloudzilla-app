@@ -113,53 +113,60 @@ func (s *NotificationService) List(ctx context.Context, userID int64) ([]model.N
 
 const NotificationsPerPage = 25
 
-// NotificationPage is one page of the inbox plus the counts the filter sidebar shows.
+// NotificationPage is one page of inbox rows, one per thread, plus the thread counts the filter sidebar shows.
 type NotificationPage struct {
-	Items       []model.Notification
+	Items       []model.NotificationGroup
 	Filter      string
+	Reason      string // empty for any
 	Page        int
 	TotalPages  int
-	Total       int // matching the filter
+	Total       int // matching Filter and Reason
 	InboxCount  int
 	UnreadCount int
 	ReadCount   int
 }
 
-// ListPage returns the requested page of userID's notifications. An unknown
-// filter means the inbox, and a page past the end clamps to the last page.
-func (s *NotificationService) ListPage(ctx context.Context, userID int64, filter string, page int) (NotificationPage, error) {
+var notifReasons = []string{store.NotifReasonMention, store.NotifReasonReviewRequested, store.NotifReasonAssigned, store.NotifReasonSubscribed}
+
+// ListPage returns the requested page of userID's inbox rows. An unknown filter means the inbox, an
+// unknown reason means any, and a page past the end clamps to the last page. The counts follow the
+// reason, and a thread with read and unread notifications counts under both Unread and Read.
+func (s *NotificationService) ListPage(ctx context.Context, userID int64, filter, reason string, page int) (NotificationPage, error) {
 	if filter != store.NotifFilterUnread && filter != store.NotifFilterRead {
 		filter = store.NotifFilterInbox
 	}
-	inbox, err := s.notifs.CountByFilter(ctx, userID, store.NotifFilterInbox)
-	if err != nil {
-		return NotificationPage{}, err
+	if !slices.Contains(notifReasons, reason) {
+		reason = ""
 	}
-	unread, err := s.notifs.CountUnread(ctx, userID)
-	if err != nil {
-		return NotificationPage{}, err
+	p := NotificationPage{Filter: filter, Reason: reason}
+	for f, n := range map[string]*int{store.NotifFilterInbox: &p.InboxCount, store.NotifFilterUnread: &p.UnreadCount, store.NotifFilterRead: &p.ReadCount} {
+		var err error
+		if *n, err = s.notifs.CountThreads(ctx, userID, f, reason); err != nil {
+			return NotificationPage{}, err
+		}
 	}
-	p := NotificationPage{Filter: filter, InboxCount: inbox, UnreadCount: unread, ReadCount: inbox - unread}
 	switch filter {
 	case store.NotifFilterUnread:
-		p.Total = unread
+		p.Total = p.UnreadCount
 	case store.NotifFilterRead:
 		p.Total = p.ReadCount
 	default:
-		p.Total = inbox
+		p.Total = p.InboxCount
 	}
 	p.TotalPages = max(1, (p.Total+NotificationsPerPage-1)/NotificationsPerPage)
 	p.Page = min(max(page, 1), p.TotalPages)
-	p.Items, err = s.notifs.ListPage(ctx, userID, filter, NotificationsPerPage, (p.Page-1)*NotificationsPerPage)
+	var err error
+	p.Items, err = s.notifs.ListThreadPage(ctx, userID, filter, reason, NotificationsPerPage, (p.Page-1)*NotificationsPerPage)
 	if err != nil {
 		return NotificationPage{}, err
 	}
 	return p, nil
 }
 
-// MarkReadMany marks the given notifications read; ids that aren't userID's are ignored.
-func (s *NotificationService) MarkReadMany(ctx context.Context, userID int64, ids []int64) error {
-	return s.notifs.MarkReadMany(ctx, userID, ids)
+// MarkDone marks userID's notifications among ids read, each with the older notifications on its
+// thread: the inbox row it stands for. Ids that aren't userID's are ignored.
+func (s *NotificationService) MarkDone(ctx context.Context, userID int64, ids []int64) error {
+	return s.notifs.MarkDone(ctx, userID, ids)
 }
 
 // MuteThreads mutes each thread behind userID's notifications among ids and marks all of those
