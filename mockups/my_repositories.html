@@ -130,15 +130,16 @@
 
   function render() {
     var q = document.getElementById('repo-filter').value.toLowerCase();
-    var rows = REPOS.filter(function (r) {
+    var tab = REPOS.filter(function (r) {
       var okType = type === 'all' || (type === 'owned' && r.o === ME) || (type === 'collaborator' && r.o !== ME) || (type === 'forks' && r.fork);
-      return okType && (!lang || r.lang === lang) && (r.o + '/' + r.n).toLowerCase().indexOf(q) >= 0;
+      return okType && (!lang || r.lang === lang);
     });
+    var rows = tab.filter(function (r) { return (r.o + '/' + r.n).toLowerCase().indexOf(q) >= 0; });
     if (sort === 'name') rows.sort(function (a, b) { return a.n < b.n ? -1 : 1; });
     if (sort === 'stars') rows.sort(function (a, b) { return b.stars - a.stars; });
-    document.getElementById('repo-rows').innerHTML = rows.map(row).join('');
-    document.getElementById('repo-rows').parentNode.hidden = !rows.length;
-    document.getElementById('repo-empty').hidden = rows.length > 0;
+    document.getElementById('repo-rows').innerHTML = (rows.length ? '' : '<li class="border-b-0 px-4 py-6 text-center text-[13px] text-muted-foreground">No repositories match this filter.</li>') + rows.map(row).join('');
+    document.getElementById('repo-rows').parentNode.hidden = !tab.length;
+    document.getElementById('repo-empty').hidden = tab.length > 0;
     document.getElementById('lang-label').textContent = lang || 'All languages';
     document.getElementById('sort-label').textContent = SORTS.filter(function (s) { return s[0] === sort; })[0][1];
     document.getElementById('lang-menu').innerHTML = head('Language') + menuItem('All languages', !lang, 'data-lang=""') + langs.map(function (l) { return menuItem(l, lang === l, 'data-lang="' + l + '"'); }).join('');

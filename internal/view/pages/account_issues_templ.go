@@ -224,6 +224,10 @@ func AccountIssues(data view.AccountIssuesData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
+				templ_7745c5c3_Err = components.FilterNoMatchRow("No issues match this filter.").Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 				for _, is := range data.Issues {
 					templ_7745c5c3_Err = components.IssueListRow(components.IssueListRowData{
 						Href:     fmt.Sprintf("/%s/issues/%d", is.RepoFullName, is.Number),
@@ -232,6 +236,7 @@ func AccountIssues(data view.AccountIssuesData) templ.Component {
 						Title:    is.Title,
 						Author:   is.AuthorName,
 						State:    is.State,
+						Private:  is.Visibility == "private",
 						Time:     relativeTime(is.UpdatedAt),
 						Labels:   issueLabelChips(data.IssueLabels[is.ID]),
 						Priority: issuePriority(is.Priority),
@@ -333,7 +338,7 @@ func tabCountBadge(counts map[string]int, key string) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(counts[key]) + " items").Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 126, Col: 116}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 128, Col: 116}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
@@ -346,7 +351,7 @@ func tabCountBadge(counts map[string]int, key string) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(counts[key]))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 126, Col: 146}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 128, Col: 146}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {

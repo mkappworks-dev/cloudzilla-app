@@ -129,11 +129,11 @@
     '<div id="topnav-suggest" class="hidden absolute inset-x-0 top-full mt-1 z-50 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"></div></div></form>';
 
   var bell = '<a href="notifications.html" class="relative h-7 w-7 grid place-items-center text-muted-foreground ' +
-    'hover:text-foreground rounded-md hover:bg-accent" aria-label="Notifications, 3 unread">' +
+    'hover:text-foreground rounded-md hover:bg-accent" aria-label="Notifications, 1492 unread">' +
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">' +
     '<path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg>' +
-    '<span class="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 grid place-items-center bg-destructive ' +
-    'text-destructive-foreground text-[9px] font-medium rounded-full leading-none ring-2 ring-background">3</span></a>';
+    '<span class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 grid place-items-center bg-destructive ' +
+    'text-destructive-foreground text-[9px] font-medium rounded-full leading-none ring-2 ring-background">99+</span></a>';
 
   var themeToggle = '<button type="button" id="theme-toggle" class="text-muted-foreground hover:text-foreground h-7 w-7 ' +
     'grid place-items-center rounded-md border border-border hover:bg-accent" aria-pressed="false" aria-label="Switch to light theme">' +

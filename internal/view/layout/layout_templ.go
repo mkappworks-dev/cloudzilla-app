@@ -694,14 +694,14 @@ func Base(base view.BasePage, title string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if base.UnreadNotifCount > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<span class=\"absolute top-1 right-1 min-w-[14px] h-[14px] px-1 grid place-items-center bg-destructive text-destructive-foreground text-[9px] font-medium rounded-full leading-none ring-2 ring-background\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<span class=\"absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 grid place-items-center bg-destructive text-destructive-foreground text-[9px] font-medium rounded-full leading-none ring-2 ring-background\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var38 string
-				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(base.UnreadNotifCount))
+				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(unreadBadgeText(base.UnreadNotifCount))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 198, Col: 249}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 198, Col: 254}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 				if templ_7745c5c3_Err != nil {
@@ -1995,6 +1995,14 @@ func upperASCII(s string) string {
 		out[i] = c
 	}
 	return string(out)
+}
+
+// unreadBadgeText caps the bell's badge; notificationsAriaLabel keeps the exact count.
+func unreadBadgeText(count int) string {
+	if count > 99 {
+		return "99+"
+	}
+	return strconv.Itoa(count)
 }
 
 // notificationsAriaLabel produces a descriptive label for the bell button.

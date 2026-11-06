@@ -15,6 +15,7 @@ type PullListItem struct {
 	Number       int
 	Title        string
 	State        string
+	IsDraft      bool
 	AuthorID     int64
 	RepoFullName string // "<owner_username>/<repo_name>"
 	UpdatedAt    time.Time
@@ -542,7 +543,7 @@ func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state s
 	default: // "created"
 		cond = `p.author_id = $1`
 	}
-	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
+	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.is_draft, p.author_id,
 	             r.owner_name || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
@@ -564,7 +565,7 @@ func (s *PullStore) ListByIDs(ctx context.Context, userID int64, ids []int64, st
 		placeholders[i] = fmt.Sprintf("$%d", i+3)
 		args = append(args, id)
 	}
-	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
+	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.is_draft, p.author_id,
 	             r.owner_name || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
@@ -584,7 +585,7 @@ func (s *PullStore) scanPullListItems(ctx context.Context, q string, args ...any
 	out := []PullListItem{}
 	for rows.Next() {
 		var it PullListItem
-		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt, &it.CreatedAt); err != nil {
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.IsDraft, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt, &it.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, it)

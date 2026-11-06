@@ -55,6 +55,7 @@ templ AccountIssues(data view.AccountIssuesData) {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="myissue-list">
 					<h2 id="myissue-list" class="sr-only">Your issues</h2>
 					<ol class="divide-y divide-border">
+						@components.FilterNoMatchRow("No issues match this filter.")
 						for _, is := range data.Issues {
 							@components.IssueListRow(components.IssueListRowData{
 								Href:     fmt.Sprintf("/%s/issues/%d", is.RepoFullName, is.Number),
@@ -63,6 +64,7 @@ templ AccountIssues(data view.AccountIssuesData) {
 								Title:    is.Title,
 								Author:   is.AuthorName,
 								State:    is.State,
+								Private:  is.Visibility == "private",
 								Time:     relativeTime(is.UpdatedAt),
 								Labels:   issueLabelChips(data.IssueLabels[is.ID]),
 								Priority: issuePriority(is.Priority),

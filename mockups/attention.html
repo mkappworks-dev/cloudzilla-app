@@ -85,12 +85,13 @@
   var OFF = 'px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5';
   function render() {
     var q = document.getElementById('attn-filter').value.toLowerCase();
-    var rows = ITEMS.filter(function (i) { return (kind === 'all' || i.kind === kind) && (i.repo + ' ' + i.t).toLowerCase().indexOf(q) >= 0; });
+    var tab = ITEMS.filter(function (i) { return kind === 'all' || i.kind === kind; });
+    var rows = tab.filter(function (i) { return (i.repo + ' ' + i.t).toLowerCase().indexOf(q) >= 0; });
     rows.sort(function (a, b) { return sort === 'newest' ? a.age - b.age : b.age - a.age; });
     var list = document.getElementById('rows');
-    list.innerHTML = rows.map(row).join('');
-    list.hidden = !rows.length;
-    document.getElementById('empty').hidden = rows.length > 0;
+    list.innerHTML = (rows.length ? '' : '<li class="border-b-0 px-4 py-6 text-center text-[13px] text-muted-foreground">No items match this filter.</li>') + rows.map(row).join('');
+    list.hidden = !tab.length;
+    document.getElementById('empty').hidden = tab.length > 0;
     var cur = SORTS.filter(function (s) { return s[0] === sort; })[0];
     document.getElementById('sort-label').textContent = cur[1];
     document.getElementById('caption').textContent = cur[2];

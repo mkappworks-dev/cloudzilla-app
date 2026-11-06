@@ -31,6 +31,7 @@ templ AccountAttention(data view.AttentionData) {
 			</div>
 			if len(data.Items) > 0 {
 				<ul class="border border-border rounded-md bg-card overflow-hidden">
+					@components.FilterNoMatchRow("No items match this filter.")
 					for _, item := range data.Items {
 						<li class="border-b border-border last:border-b-0" data-name={ item.RepoName + " " + item.Title } x-show="!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
 							@components.AttentionRow(item)

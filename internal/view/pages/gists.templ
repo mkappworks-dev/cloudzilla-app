@@ -58,6 +58,7 @@ templ Gists(data view.GistsData) {
 						}
 					</h2>
 					<ol class="divide-y divide-border">
+						@components.FilterNoMatchRow("No gists match this filter.")
 						for _, g := range data.Gists {
 							<li data-name={ g.Description + " " + g.OwnerName } x-show="!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
 								<a href={ templ.SafeURL("/gists/" + g.ID) } class="relative block px-4 py-3 hover:bg-accent group transition-[padding] hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-foreground before:opacity-0 hover:before:opacity-100 before:transition-opacity before:rounded-xs">

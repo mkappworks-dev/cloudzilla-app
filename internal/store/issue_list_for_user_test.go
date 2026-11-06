@@ -30,8 +30,8 @@ func TestIssueStore_ListForUser(t *testing.T) {
 
 	var openIssue int64
 	if err := db.QueryRowContext(ctx,
-		`INSERT INTO issues (repo_id, number, author_id, title, body, state)
-		 VALUES ($1, 1, $2, 't1', '', 'open') RETURNING id`,
+		`INSERT INTO issues (repo_id, number, author_id, title, body, state, visibility)
+		 VALUES ($1, 1, $2, 't1', '', 'open', 'private') RETURNING id`,
 		repoID, aliceID,
 	).Scan(&openIssue); err != nil {
 		t.Fatalf("insert open issue: %v", err)
@@ -43,8 +43,8 @@ func TestIssueStore_ListForUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListForUser(created, open): %v", err)
 	}
-	if len(got) != 1 || got[0].ID != openIssue {
-		t.Errorf("ListForUser(created, open): want [%d], got %+v", openIssue, got)
+	if len(got) != 1 || got[0].ID != openIssue || got[0].Visibility != "private" {
+		t.Errorf("ListForUser(created, open): want [%d] private, got %+v", openIssue, got)
 	}
 
 	got, err = s.ListForUser(ctx, aliceID, "created", "closed")

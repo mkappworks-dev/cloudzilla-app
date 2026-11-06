@@ -69,8 +69,8 @@ templ Releases(data view.ReleasesData) {
 											}
 										}
 									</div>
-									if release.Body != "" {
-										<p class="mt-2 text-[13px] text-muted-foreground leading-relaxed">{ release.Body }</p>
+									if release.Excerpt != "" {
+										<p class="mt-2 text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{ release.Excerpt }</p>
 									}
 								</div>
 							</div>
