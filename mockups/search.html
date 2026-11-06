@@ -117,9 +117,13 @@
     draft: [BADGE + 'bg-muted text-muted-foreground border-transparent', 'Draft']
   };
   function badge(state) { return '<span class="' + BADGES[state][0] + '">' + BADGES[state][1] + '</span>'; }
+  var CHIP_STYLES = {
+    '#22c55e': '--label-bg:#22c55e;--label-fg:#1f2328;--label-border:#1ead53;--label-dark-bg:#22c55e2e;--label-dark-border:#22c55e66;--label-dark-fg:#22c55e',
+    '#3b82f6': '--label-bg:#4588f6;--label-fg:#1f2328;--label-border:#3d78d8;--label-dark-bg:#3b82f62e;--label-dark-border:#3b82f666;--label-dark-fg:#5895f7',
+    '#ef4444': '--label-bg:#f15757;--label-fg:#1f2328;--label-border:#d44d4d;--label-dark-bg:#ef44442e;--label-dark-border:#ef444466;--label-dark-fg:#f26969'
+  };
   function chip(c) {
-    var h = c[1];
-    return '<span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: ' + h + '26; color: ' + h + '; border-color: ' + h + '59">' + esc(c[0]) + '</span>';
+    return '<span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="' + CHIP_STYLES[c[1]] + '">' + esc(c[0]) + '</span>';
   }
 
   var ISSUE_ICON = {

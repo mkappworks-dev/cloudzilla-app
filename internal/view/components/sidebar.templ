@@ -120,12 +120,7 @@ templ LabelSidebar(owner, repoName string, itemNumber int, kind string, labels [
 					<span class="text-xs text-muted-foreground">None yet</span>
 				} else {
 					for _, lbl := range labels {
-						<span
-							class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border"
-							style={ "background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55" }
-						>
-							{ lbl.Name }
-						</span>
+						@LabelChip(lbl.Name, lbl.Color)
 					}
 				}
 			</div>

@@ -18,10 +18,10 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-func issueLabelChips(labels []model.Label) []components.LabelChip {
-	chips := make([]components.LabelChip, len(labels))
+func issueLabelChips(labels []model.Label) []components.LabelChipData {
+	chips := make([]components.LabelChipData, len(labels))
 	for i, l := range labels {
-		chips[i] = components.LabelChip{Name: l.Name, Color: l.Color}
+		chips[i] = components.LabelChipData{Name: l.Name, Color: l.Color}
 	}
 	return chips
 }

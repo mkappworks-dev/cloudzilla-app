@@ -40,7 +40,7 @@ func TestIssueListRow(t *testing.T) {
 	d := IssueListRowData{
 		Href: "/alice/app/issues/4", Repo: "alice/app", Number: 4, Title: "Crash <on> load",
 		Author: "bob", State: "open", Private: true, Time: "2d ago",
-		Labels: []LabelChip{{Name: "bug", Color: "#ff0000"}}, Priority: "P0", Comments: 3,
+		Labels: []LabelChipData{{Name: "bug", Color: "#ff0000"}}, Priority: "P0", Comments: 3,
 		LiAttrs: templ.Attributes{"data-name": "alice/app Crash"},
 	}
 	assertHas(t, render(t, IssueListRow(d)),

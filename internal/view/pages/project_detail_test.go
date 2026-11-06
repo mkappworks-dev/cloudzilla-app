@@ -66,7 +66,7 @@ func TestProjectDetail_CardFace(t *testing.T) {
 	for _, want := range []string{
 		"Ship the beta",
 		"Blocked on #1",
-		`style="background-color: #d73a4a; color: #ffffff;"`,
+		`--label-bg:#d73a4a;--label-fg:#ffffff;`,
 		`<time datetime="2020-01-02">Jan 2, 2020</time>`,
 		`src="/avatars/user/7/abc.png"`,
 		`data-card-json=`,
@@ -128,7 +128,7 @@ func TestProjectDetail_CardDialogWriteControls(t *testing.T) {
 		`id="card-desc-label"`, `data-md-editor`, `id="card-description"`, `Write</button>`, `Preview</button>`,
 		`x-data="linkPicker"`, `<label for="card-link-input"`, `data-picker-list`,
 		`data-card-people`, `x-model="editor.assignees"`, `data-value="7"`, "daisy",
-		`data-card-labels`, `x-model="editor.labels"`, `data-value="4"`, "docs", `style="background-color: #fef2c0; color: #1f2328;"`,
+		`data-card-labels`, `x-model="editor.labels"`, `data-value="4"`, "docs", `--label-bg:#fef2c0;--label-fg:#1f2328;`,
 		`<label for="card-due-input"`, `id="card-due-input"`, `x-data="datePicker"`, `x-model="editor.dueDate"`,
 		`aria-label="Choose due date"`, `name="due_date"`,
 		`type="submit"`, "Create card", `@click="close()"`, `role="alert"`,

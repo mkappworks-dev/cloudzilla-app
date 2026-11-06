@@ -217,11 +217,14 @@
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
   function label(id) { return LABELS.filter(function (l) { return l.id === id; })[0]; }
-  function chipStyle(color) {
-    var n = parseInt(color.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
-    var fg = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#1f2328' : '#ffffff';
-    return 'background-color: ' + color + '; color: ' + fg;
-  }
+  var CHIP_STYLES = {
+    '#d73a4a': '--label-bg:#d73a4a;--label-fg:#ffffff;--label-border:#bd3341;--label-dark-bg:#d73a4a2e;--label-dark-border:#d73a4a66;--label-dark-fg:#e16b77',
+    '#fbca04': '--label-bg:#fbca04;--label-fg:#1f2328;--label-border:#ddb204;--label-dark-bg:#fbca042e;--label-dark-border:#fbca0466;--label-dark-fg:#fbca04',
+    '#5319e7': '--label-bg:#5319e7;--label-fg:#ffffff;--label-border:#4916cb;--label-dark-bg:#5319e72e;--label-dark-border:#5319e766;--label-dark-fg:#9875f1',
+    '#0075ca': '--label-bg:#0075ca;--label-fg:#ffffff;--label-border:#0067b2;--label-dark-bg:#0075ca2e;--label-dark-border:#0075ca66;--label-dark-fg:#4098d7',
+    '#7057ff': '--label-bg:#7057ff;--label-fg:#ffffff;--label-border:#634de0;--label-dark-bg:#7057ff2e;--label-dark-border:#7057ff66;--label-dark-fg:#9481ff'
+  };
+  function chipStyle(color) { return CHIP_STYLES[color]; }
   function avatar(name, cls) {
     return '<span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground ' + (cls || 'h-5 w-5 text-[10px]') + '" aria-hidden="true">' + esc(name.slice(0, 1).toUpperCase()) + '</span>';
   }
@@ -258,7 +261,7 @@
     if (card.labels.length) {
       h += '<div class="mt-2 flex flex-wrap gap-1">' + card.labels.map(function (id) {
         var l = label(id);
-        return '<span class="inline-flex max-w-full items-center truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium" style="' + chipStyle(l.color) + '">' + esc(l.name) + '</span>';
+        return '<span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="' + chipStyle(l.color) + '">' + esc(l.name) + '</span>';
       }).join('') + '</div>';
     }
     if (card.num) {
@@ -320,7 +323,7 @@
     return selected.map(function (v) {
       if (kind === 'assignees') return '<span class="inline-flex min-w-0 items-center gap-1">' + avatar(v) + '<span class="truncate">' + esc(v) + '</span></span>';
       var l = label(v);
-      return '<span class="inline-flex max-w-full items-center truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium" style="' + chipStyle(l.color) + '">' + esc(l.name) + '</span>';
+      return '<span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="' + chipStyle(l.color) + '">' + esc(l.name) + '</span>';
     }).join('');
   }
   function renderMulti(kind) {
@@ -330,7 +333,7 @@
     box.querySelector('[data-multi-list]').innerHTML = (kind === 'assignees' ? PEOPLE : LABELS.map(function (l) { return l.id; })).map(function (v) {
       var on = sel.indexOf(v) !== -1;
       var inner = kind === 'assignees' ? avatar(v) + '<span class="flex-1 truncate">' + esc(v) + '</span>'
-        : '<span class="flex-1"><span class="inline-flex max-w-full items-center truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium" style="' + chipStyle(label(v).color) + '">' + esc(label(v).name) + '</span></span>';
+        : '<span class="flex-1"><span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="' + chipStyle(label(v).color) + '">' + esc(label(v).name) + '</span></span>';
       return '<li role="option" aria-selected="' + on + '"><button type="button" data-multi-opt="' + esc(v) + '" class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-muted">' + inner +
         (on ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '') + '</button></li>';
     }).join('');

@@ -62,7 +62,7 @@ func TestPRListRow_RendersLabelChips(t *testing.T) {
 	d := PRListRowData{
 		OwnerName: "o", RepoName: "r", Number: 1,
 		Title: "t", Author: "a", State: "open", OpenedAt: "now",
-		LabelChips: []LabelChip{
+		LabelChips: []LabelChipData{
 			{Name: "bug", Color: "#d73a4a"},
 			{Name: "enhancement", Color: "#84b6eb"},
 		},

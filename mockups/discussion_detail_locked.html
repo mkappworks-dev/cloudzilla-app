@@ -52,7 +52,7 @@
       <span>2 replies</span>
       <span class="opacity-50 mx-1" aria-hidden="true">·</span>
       <span id="hdr-cat" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border border-border bg-muted text-muted-foreground">General</span>
-      <span id="hdr-labels" class="contents"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #4ade8033; color: #4ade80; border-color: #4ade8055">tooling</span></span>
+      <span id="hdr-labels" class="contents"><span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="--label-bg:#4ade80;--label-fg:#1f2328;--label-border:#41c371;--label-dark-bg:#4ade802e;--label-dark-border:#4ade8066;--label-dark-fg:#4ade80">tooling</span></span>
           <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">Locked</span>
     </div>
   </section>
@@ -248,7 +248,7 @@ Dropping 1.22 lets us use the new `slices` / `maps` stdlib helpers directly and 
             </div>
           </div>
         </div>
-        <div id="side-labels" class="flex flex-wrap gap-1"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style="background-color: #4ade8033; color: #4ade80; border-color: #4ade8055">tooling</span></div>
+        <div id="side-labels" class="flex flex-wrap gap-1"><span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="--label-bg:#4ade80;--label-fg:#1f2328;--label-border:#41c371;--label-dark-bg:#4ade802e;--label-dark-border:#4ade8066;--label-dark-fg:#4ade80">tooling</span></div>
       </div>
       <section>
         <div id="thread-subscription">
@@ -314,11 +314,18 @@ Dropping 1.22 lets us use the new `slices` / `maps` stdlib helpers directly and 
     document.querySelectorAll('[data-pop]').forEach(function (p) { p.hidden = true; });
   });
 
-  var LABEL_CLS = 'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border';
+  var LABEL_CLS = 'inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)';
+  var CHIP_STYLES = {
+    '#4ade80': '--label-bg:#4ade80;--label-fg:#1f2328;--label-border:#41c371;--label-dark-bg:#4ade802e;--label-dark-border:#4ade8066;--label-dark-fg:#4ade80',
+    '#6ea8fe': '--label-bg:#6ea8fe;--label-fg:#1f2328;--label-border:#6194e0;--label-dark-bg:#6ea8fe2e;--label-dark-border:#6ea8fe66;--label-dark-fg:#6ea8fe',
+    '#c084fc': '--label-bg:#c084fc;--label-fg:#1f2328;--label-border:#a974de;--label-dark-bg:#c084fc2e;--label-dark-border:#c084fc66;--label-dark-fg:#c084fc',
+    '#f87171': '--label-bg:#f87171;--label-fg:#1f2328;--label-border:#da6363;--label-dark-bg:#f871712e;--label-dark-border:#f8717166;--label-dark-fg:#f87171',
+    '#fbbf24': '--label-bg:#fbbf24;--label-fg:#1f2328;--label-border:#dda820;--label-dark-bg:#fbbf242e;--label-dark-border:#fbbf2466;--label-dark-fg:#fbbf24'
+  };
   function pill(btn) {
     var c = btn.getAttribute('data-color'), s = document.createElement('span');
     s.className = LABEL_CLS;
-    s.setAttribute('style', 'background-color: ' + c + '33; color: ' + c + '; border-color: ' + c + '55');
+    s.setAttribute('style', CHIP_STYLES[c]);
     s.textContent = btn.getAttribute('data-lab');
     return s;
   }

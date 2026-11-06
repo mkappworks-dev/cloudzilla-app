@@ -7,7 +7,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-var defaultLabels = []struct{ name, color, description string }{
+// DefaultLabels is the label set every seeded repo gets.
+var DefaultLabels = []struct{ Name, Color, Description string }{
 	{"bug", "#d73a4a", "Something isn't working"},
 	{"enhancement", "#a2eeef", "New feature or request"},
 	{"documentation", "#0075ca", "Improvements or additions to documentation"},
@@ -55,8 +56,8 @@ func (s *seeder) discuss(r *seedRepo, max int, create func(p *person, body strin
 
 func (s *seeder) seedIssues() error {
 	for _, r := range s.repos {
-		for _, l := range defaultLabels {
-			label, err := s.svcs.Label.Create(s.ctx, r.OwnerName, r.Name, l.name, l.color, l.description)
+		for _, l := range DefaultLabels {
+			label, err := s.svcs.Label.Create(s.ctx, r.OwnerName, r.Name, l.Name, l.Color, l.Description)
 			if err != nil {
 				return err
 			}
