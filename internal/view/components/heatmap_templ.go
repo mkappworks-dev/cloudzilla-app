@@ -273,7 +273,7 @@ func heatmapYearAriaLabel(counts map[time.Time]int, year int) string {
 	for _, n := range counts {
 		total += n
 	}
-	return fmt.Sprintf("Commit heatmap: %d commits in %d", total, year)
+	return fmt.Sprintf("Commit heatmap: %s in %d", Count(total, "commit", "commits"), year)
 }
 
 // heatmapMonthLabels returns one entry per week column — twelve month
@@ -304,7 +304,7 @@ func heatmapCellClass(n int) string {
 }
 
 func heatmapTitle(day time.Time, n int) string {
-	return fmt.Sprintf("%s — %d commits", day.Format("Mon, Jan 2 2006"), n)
+	return day.Format("Mon, Jan 2 2006") + " — " + Count(n, "commit", "commits")
 }
 
 func heatmapAriaLabel(counts map[time.Time]int, weeks int) string {
@@ -312,7 +312,7 @@ func heatmapAriaLabel(counts map[time.Time]int, weeks int) string {
 	for _, n := range counts {
 		total += n
 	}
-	return fmt.Sprintf("Contribution heatmap: %d commits in the past %d weeks", total, weeks)
+	return fmt.Sprintf("Contribution heatmap: %s in the past %d weeks", Count(total, "commit", "commits"), weeks)
 }
 
 var _ = templruntime.GeneratedTemplate

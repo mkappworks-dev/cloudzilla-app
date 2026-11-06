@@ -101,8 +101,11 @@ func TestBase_FooterShowsBuildVersion(t *testing.T) {
 	if err := layout.Base(view.BasePage{}, "Home").Render(context.Background(), &page); err != nil {
 		t.Fatalf("render: %v", err)
 	}
-	if !strings.Contains(page.String(), "cloudzilla / v9.9.9 <span") {
+	if !strings.Contains(page.String(), "cloudzilla / v9.9.9</p>") {
 		t.Errorf("footer lacks the build version v9.9.9")
+	}
+	if strings.Contains(page.String(), "systems normal") {
+		t.Errorf("footer claims a system status nothing measures")
 	}
 }
 

@@ -39,12 +39,7 @@ templ IssueDetail(data view.IssueDetailData) {
 						{ " opened this issue " }
 						<time datetime={ data.Issue.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Issue.CreatedAt.Format("Jan 2, 2006") }</time>
 						<span id="issue-comment-count" data-count={ strconv.Itoa(len(data.Comments)) }>
-							{ " · " + strconv.Itoa(len(data.Comments)) }
-							if len(data.Comments) == 1 {
-								{ " comment" }
-							} else {
-								{ " comments" }
-							}
+							{ " · " + components.Count(len(data.Comments), "comment", "comments") }
 						</span>
 					</p>
 				</div>

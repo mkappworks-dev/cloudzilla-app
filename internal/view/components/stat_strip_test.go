@@ -10,7 +10,7 @@ import (
 func TestStatStrip_RendersAllItems(t *testing.T) {
 	items := []StatItem{
 		{Label: "Repositories", Value: 12, Subtitle: "active"},
-		{Label: "Pull Requests", Value: 5, Subtitle: "open"},
+		{Label: "Pull requests", Value: 5, Subtitle: "open"},
 		{Label: "Issues", Value: 23, Subtitle: ""},
 		{Label: "Stars", Value: 100, Subtitle: "total"},
 	}

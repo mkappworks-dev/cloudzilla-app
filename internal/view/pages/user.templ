@@ -195,7 +195,7 @@ templ User(data view.UserData) {
 
 						<section aria-labelledby="contrib-heading">
 							<h2 id="contrib-heading" class="text-sm font-semibold tracking-tight mb-3">
-								{ contributionsHeading(totalContributions(data.Heatmap)) }
+								{ components.Count(totalContributions(data.Heatmap), "contribution", "contributions") + " in the last year" }
 							</h2>
 							<div class="rounded-md border border-border bg-card p-5 overflow-x-auto">
 								@components.HeatmapLarge(data.Heatmap, time.Now(), 52)
@@ -274,13 +274,6 @@ templ profileTab(active bool, href, label string, counts ...int) {
 			}
 		</a>
 	}
-}
-
-func contributionsHeading(n int) string {
-	if n == 1 {
-		return "1 contribution in the last year"
-	}
-	return strconv.Itoa(n) + " contributions in the last year"
 }
 
 func totalContributions(counts map[time.Time]int) int {
@@ -455,7 +448,7 @@ templ userStarRow(data view.UserData, repo model.Repository) {
 			</div>
 			if stars > 0 {
 				<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">
-					<span class="inline-flex items-center gap-1" title={ strconv.Itoa(stars) + " stars" }>
+					<span class="inline-flex items-center gap-1" title={ components.Count(stars, "star", "stars") }>
 						<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
 						{ strconv.Itoa(stars) }
 					</span>
@@ -530,7 +523,7 @@ templ userGistRow(g view.GistTabItem) {
 				}
 			</div>
 			<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">
-				<span class="inline-flex items-center gap-1" title={ strconv.Itoa(g.FileCount) + " files" }>
+				<span class="inline-flex items-center gap-1" title={ components.Count(g.FileCount, "file", "files") }>
 					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
 					{ strconv.Itoa(g.FileCount) }
 				</span>
@@ -604,11 +597,11 @@ templ userRepoRow(data view.UserData, repo model.Repository) {
 				<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time></span>
 			</div>
 			<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">
-				<span class="inline-flex items-center gap-1" title={ strconv.Itoa(stars) + " stars" }>
+				<span class="inline-flex items-center gap-1" title={ components.Count(stars, "star", "stars") }>
 					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
 					{ strconv.Itoa(stars) }
 				</span>
-				<span class="inline-flex items-center gap-1" title={ strconv.Itoa(repo.ForkCount) + " forks" }>
+				<span class="inline-flex items-center gap-1" title={ components.Count(repo.ForkCount, "fork", "forks") }>
 					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="21" r="3"/><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"/></svg>
 					{ strconv.Itoa(repo.ForkCount) }
 				</span>

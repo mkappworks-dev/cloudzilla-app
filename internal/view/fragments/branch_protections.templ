@@ -28,7 +28,7 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 							}
 						</div>
 						<p class="text-xs text-muted-foreground mt-1">
-							{ strconv.Itoa(rule.RequireReviewCount) } required { reviewWord(rule.RequireReviewCount) }
+							{ strconv.Itoa(rule.RequireReviewCount) } required { components.Pluralize(rule.RequireReviewCount, "review", "reviews") }
 							if len(rule.RequireStatusChecks) > 0 {
 								<span aria-hidden="true"> · </span>
 								Status checks: { strings.Join(rule.RequireStatusChecks, ", ") }
@@ -60,9 +60,3 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 	</div>
 }
 
-func reviewWord(n int) string {
-	if n == 1 {
-		return "review"
-	}
-	return "reviews"
-}

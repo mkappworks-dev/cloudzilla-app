@@ -8,14 +8,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-// projectItemLabel renders a card count as "1 item" / "N items".
-func projectItemLabel(n int) string {
-	if n == 1 {
-		return "1 item"
-	}
-	return strconv.Itoa(n) + " items"
-}
-
 templ Projects(data view.ProjectsData) {
 	@layout.Base(data.BasePage, "Projects · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
@@ -158,7 +150,7 @@ templ Projects(data view.ProjectsData) {
 										if p.Description != "" {
 											<p class="mt-0.5 text-[12px] text-muted-foreground">{ p.Description }</p>
 										}
-										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">{ projectItemLabel(p.CardCount) } · Updated { formatRelative(p.UpdatedAt) }</p>
+										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">{ components.Count(p.CardCount, "item", "items") } · Updated { formatRelative(p.UpdatedAt) }</p>
 									</div>
 									if p.LinkedCount > 0 {
 										<div class="hidden sm:block w-40 shrink-0 pt-0.5" role="progressbar" aria-valuenow={ strconv.Itoa(p.Progress()) } aria-valuemin="0" aria-valuemax="100" aria-label={ "Progress: " + strconv.Itoa(p.Progress()) + "%" }>

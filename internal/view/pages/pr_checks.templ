@@ -138,14 +138,7 @@ func checksBannerDetail(passed, failed int) string {
 	if failed > 0 {
 		return strconv.Itoa(failed) + " failing, " + strconv.Itoa(passed) + " successful"
 	}
-	return strconv.Itoa(passed) + " successful " + checkNoun(passed)
-}
-
-func checkNoun(n int) string {
-	if n == 1 {
-		return "check"
-	}
-	return "checks"
+	return strconv.Itoa(passed) + " successful " + components.Pluralize(passed, "check", "checks")
 }
 
 func shortSHA(sha string) string {

@@ -536,10 +536,7 @@ func repoRoleColorClass(ownerID, userID int64) string {
 }
 
 func reposSubtitle(total int) string {
-	if total == 1 {
-		return "1 repository you own or collaborate on."
-	}
-	return strconv.Itoa(total) + " repositories you own or collaborate on."
+	return components.Count(total, "repository", "repositories") + " you own or collaborate on."
 }
 
 func reposEmptyMessage(filtered bool) string {
@@ -547,13 +544,6 @@ func reposEmptyMessage(filtered bool) string {
 		return "No repositories match these filters."
 	}
 	return "No repositories yet."
-}
-
-func statTitle(n int, noun string) string {
-	if n == 1 {
-		return "1 " + noun
-	}
-	return strconv.Itoa(n) + " " + noun + "s"
 }
 
 // compactRelative renders a short "2h ago" / "3w ago" style duration.

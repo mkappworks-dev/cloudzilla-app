@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -95,15 +94,8 @@ templ orgListRow(e view.OrgListEntry, viewerUsername string) {
 	</li>
 }
 
-func memberCountLabel(n int) string {
-	if n == 1 {
-		return "1 member"
-	}
-	return strconv.Itoa(n) + " members"
-}
-
 func orgRowSubtitle(e view.OrgListEntry) string {
-	base := memberCountLabel(e.MemberCount)
+	base := components.Count(e.MemberCount, "member", "members")
 	if e.Org.DisplayName != "" {
 		return e.Org.DisplayName + " · " + base
 	}

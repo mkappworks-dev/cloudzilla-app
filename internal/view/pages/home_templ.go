@@ -862,9 +862,9 @@ func Home(data view.HomeData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var42 string
-					templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(pluralize(len(data.Repos), "repository", "repositories"))
+					templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(components.Pluralize(len(data.Repos), "repository", "repositories"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/home.templ`, Line: 240, Col: 107}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/home.templ`, Line: 240, Col: 118}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 					if templ_7745c5c3_Err != nil {
@@ -1364,13 +1364,6 @@ func eventTimelineDetail(ev model.Event) string {
 		return ev.RepoName
 	}
 	return fmt.Sprintf("%s/%s", ev.OwnerName, ev.RepoName)
-}
-
-func pluralize(n int, singular, plural string) string {
-	if n == 1 {
-		return singular
-	}
-	return plural
 }
 
 type repoDropdownOption struct {

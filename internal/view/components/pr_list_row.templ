@@ -58,7 +58,7 @@ templ PRListRow(d PRListRowData) {
 				</div>
 				<div class="flex items-center gap-3 text-xs shrink-0">
 					if len(d.ReviewerAvatars) > 0 {
-						<div class="flex -space-x-1.5" aria-label={ fmt.Sprintf("%d reviewers", len(d.ReviewerAvatars)) }>
+						<div class="flex -space-x-1.5" aria-label={ Count(len(d.ReviewerAvatars), "reviewer", "reviewers") }>
 							for _, rv := range d.ReviewerAvatars {
 								<span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">{ rv }</span>
 							}
@@ -66,7 +66,7 @@ templ PRListRow(d PRListRowData) {
 					}
 					@prCIBadge(d.CIStatus, d.CIPassing, d.CITotal)
 					if d.CommentCount > 0 {
-						<span class="text-muted-foreground inline-flex items-center gap-1" title={ fmt.Sprintf("%d comments", d.CommentCount) }>
+						<span class="text-muted-foreground inline-flex items-center gap-1" title={ Count(d.CommentCount, "comment", "comments") }>
 							<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
 							{ strconv.Itoa(d.CommentCount) }
 						</span>

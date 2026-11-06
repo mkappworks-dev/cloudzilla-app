@@ -11,7 +11,7 @@ templ NewOrganization(data view.NewOrganizationData) {
 	if data.CurrentUser != nil {
 		{{ me = data.CurrentUser.Username }}
 	}
-	@layout.Base(data.BasePage, "New Organization") {
+	@layout.Base(data.BasePage, "New organization") {
 		<div class="space-y-6">
 
 			<section aria-labelledby="no-title">

@@ -127,8 +127,8 @@ func TestActivityRow_Star(t *testing.T) {
 	if !strings.Contains(s, "acme/bar") {
 		t.Errorf("missing repo name in output")
 	}
-	if !strings.Contains(s, " in ") {
-		t.Errorf("expected \" in \" before repo name")
+	if strings.Contains(s, " in ") {
+		t.Errorf("star row reads \"starred in\"; want \"starred acme/bar\"")
 	}
 	if strings.Contains(s, `href=""`) {
 		t.Errorf("unexpected empty href in output")

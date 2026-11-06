@@ -354,9 +354,9 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var21 string
-		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(commitsPhrase(data.CommitsCount))
+		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(components.Count(data.CommitsCount, "commit", "commits"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 76, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 76, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -843,13 +843,6 @@ func chromeMergeVerb(state model.PRState) string {
 	default:
 		return "wants to merge"
 	}
-}
-
-func commitsPhrase(n int) string {
-	if n == 1 {
-		return "1 commit"
-	}
-	return strconv.Itoa(n) + " commits"
 }
 
 func chromeTabClass(active bool) string {

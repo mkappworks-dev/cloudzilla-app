@@ -65,6 +65,6 @@ Default events when `events` is omitted: `push,issues,pull_request`.
 ## Repo Settings Page
 
 `/{owner}/{repo}/settings` (write access required) — shows a **Collaborators** section, a **Webhooks** section, and (for
-repo owners, and org owners on org repos) a **Transfer Ownership** danger zone. The collaborators section is only
+repo owners, and org owners on org repos) a **Transfer ownership** danger zone. The collaborators section is only
 editable by the repo owner or an org owner (`CanManage`). Collaborators with `admin` role can see the settings page
 (write access) but cannot modify collaborators or transfer.

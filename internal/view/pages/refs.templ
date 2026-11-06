@@ -8,7 +8,7 @@ import (
 )
 
 templ Refs(data view.RefsData) {
-	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · Branches & Tags") {
+	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · Branches & tags") {
 		<div class="space-y-6">
 			<section aria-labelledby="refs-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -45,7 +45,7 @@ templ Refs(data view.RefsData) {
 								})
 							</div>
 							@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
-								Create Branch
+								Create branch
 							}
 						</form>
 					</div>
@@ -78,7 +78,7 @@ templ Refs(data view.RefsData) {
 								})
 							</div>
 							@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
-								Create Tag
+								Create tag
 							}
 						</form>
 					</div>

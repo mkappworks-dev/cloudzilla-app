@@ -74,7 +74,7 @@ func Explore(data view.ExploreData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h1 class=\"text-2xl font-bold\">Explore Repositories</h1><p class=\"text-sm text-muted-foreground mt-1\">Discover public repositories on this instance.</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h1 class=\"text-2xl font-bold\">Explore repositories</h1><p class=\"text-sm text-muted-foreground mt-1\">Discover public repositories on this instance.</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -162,7 +162,7 @@ func Explore(data view.ExploreData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Most Forked")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Most forked")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

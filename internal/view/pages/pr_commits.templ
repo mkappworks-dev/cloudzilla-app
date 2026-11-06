@@ -41,7 +41,7 @@ templ pullCommitsBody(data view.PullCommitsData) {
 		{{ repoBase := "/" + data.OwnerName + "/" + data.Repo.Name }}
 		<section class="mb-6">
 			<p class="text-[12.5px] text-muted-foreground">
-				{ strconv.Itoa(len(data.Commits)) } { commitsNoun(len(data.Commits)) } in this pull request, branching from
+				{ strconv.Itoa(len(data.Commits)) } { components.Pluralize(len(data.Commits), "commit", "commits") } in this pull request, branching from
 				<a href={ templ.SafeURL(codeurl.Path(data.OwnerName, data.Repo.Name, "commits", data.Pull.BaseBranch, "")) } class="text-primary hover:underline font-mono">{ data.Pull.BaseBranch }</a>.
 			</p>
 		</section>
@@ -88,9 +88,3 @@ func firstLine(msg string) string {
 	return strings.TrimSpace(msg)
 }
 
-func commitsNoun(n int) string {
-	if n == 1 {
-		return "commit"
-	}
-	return "commits"
-}

@@ -1,7 +1,5 @@
 package components
 
-import "strconv"
-
 // CommitLine is one commit shown in a push activity row.
 type CommitLine struct {
 	SHA     string
@@ -31,7 +29,7 @@ templ ActivityRow(a ActivityRowData) {
 			<p class="text-[13px]">
 				<a href={ templ.SafeURL("/" + a.Actor) } class="font-medium hover:underline">{ a.Actor }</a>
 				if a.Kind == "push" {
-					<span class="text-muted-foreground">{ " pushed " }</span><span class="font-mono">{ commitCountLabel(a.CommitTotal) }</span><span class="text-muted-foreground">{ " to " }</span><span class="font-mono text-muted-foreground">{ a.Branch }</span>
+					<span class="text-muted-foreground">{ " pushed " }</span><span class="font-mono">{ Count(a.CommitTotal, "commit", "commits") }</span><span class="text-muted-foreground">{ " to " }</span><span class="font-mono text-muted-foreground">{ a.Branch }</span>
 				} else {
 					<span class="text-muted-foreground">{ " " + activityVerb(a.Kind) }</span>
 					if a.Ref != "" {
@@ -39,7 +37,7 @@ templ ActivityRow(a ActivityRowData) {
 					}
 				}
 				if a.RepoName != "" {
-					<span class="text-muted-foreground">{ " in " }</span><a href={ templ.SafeURL("/" + a.RepoName) } class="font-mono text-muted-foreground hover:underline">{ a.RepoName }</a>
+					<span class="text-muted-foreground">{ activityRepoJoin(a.Kind) }</span><a href={ templ.SafeURL("/" + a.RepoName) } class="font-mono text-muted-foreground hover:underline">{ a.RepoName }</a>
 				}
 			</p>
 			if a.Kind == "push" && len(a.Commits) > 0 {
@@ -48,7 +46,7 @@ templ ActivityRow(a ActivityRowData) {
 						<li class="truncate"><span class="font-mono text-[11px] text-muted-foreground/70 mr-1">{ c.SHA }</span>{ c.Message }</li>
 					}
 					if a.CommitTotal > len(a.Commits) {
-						<li class="text-[11px] text-muted-foreground/70">{ moreCommitsLabel(a.CommitTotal - len(a.Commits)) }</li>
+						<li class="text-[11px] text-muted-foreground/70">{ "and " + Count(a.CommitTotal-len(a.Commits), "more commit", "more commits") }</li>
 					}
 				</ul>
 			} else if a.Kind == "comment" && a.Quote != "" {
@@ -60,20 +58,6 @@ templ ActivityRow(a ActivityRowData) {
 		</div>
 		@activityIcon(a.Kind)
 	</li>
-}
-
-func commitCountLabel(n int) string {
-	if n == 1 {
-		return "1 commit"
-	}
-	return strconv.Itoa(n) + " commits"
-}
-
-func moreCommitsLabel(n int) string {
-	if n == 1 {
-		return "and 1 more commit"
-	}
-	return "and " + strconv.Itoa(n) + " more commits"
 }
 
 func activityVerb(kind string) string {
@@ -102,6 +86,14 @@ func activityVerb(kind string) string {
 		return "added member"
 	}
 	return "updated"
+}
+
+// A star or fork acts on the repo itself: "starred acme/bar", not "starred in".
+func activityRepoJoin(kind string) string {
+	if kind == "star" || kind == "fork" {
+		return " "
+	}
+	return " in "
 }
 
 templ activityIcon(kind string) {

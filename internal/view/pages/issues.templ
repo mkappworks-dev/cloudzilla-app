@@ -57,7 +57,7 @@ templ Issues(data view.IssuesData) {
 								<circle cx="11" cy="11" r="7"></circle>
 								<path d="M21 21l-4.3-4.3"></path>
 							</svg>
-							<input id="filter-search" type="search" name="q" value={ data.SearchQuery } placeholder="Filter is:open" class="w-56 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+							<input id="filter-search" type="search" name="q" value={ data.SearchQuery } placeholder={ "Search " + data.StateFilter + " issues" } class="w-56 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 						</div>
 						<div class="relative">
 							<select name="label" aria-label="Filter by label" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
@@ -156,10 +156,6 @@ templ Issues(data view.IssuesData) {
 			} else {
 				@components.EmptyState("No " + data.StateFilter + " issues.")
 			}
-
-			<p class="text-[12px] text-muted-foreground">
-				Filter syntax: <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">is:open</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">label:bug</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">milestone:v0.3</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">author:daisy</code>.
-			</p>
 
 		</div>
 	}

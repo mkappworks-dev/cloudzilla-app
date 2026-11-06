@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 04, 05, 06, 07
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -28,10 +28,10 @@ Title Case leftovers ("Pull Requests", "New Pull Request", "Explore Repositories
 
 ## Acceptance criteria
 
-- [ ] `grep -rnE "[0-9]+ (accounts|repositories|reviewers|entries)"` style checks pass
-- [ ] No Title Case page titles
-- [ ] Footer has no status claim
-- [ ] Mocks match
+- [x] `grep -rnE "[0-9]+ (accounts|repositories|reviewers|entries)"` style checks pass
+- [x] No Title Case page titles
+- [x] Footer has no status claim
+- [x] Mocks match
 
 ## Verification
 
@@ -44,3 +44,10 @@ Touches many files: start it only after 04, 05, 06 and 07 merge, and keep it cop
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (implementation): `components.Pluralize`/`Count` replace the per-file plural helpers. Also fixed beyond the
+list: "Branches & Tags" and "IP Address", "starred in"/"forked in" on activity rows, and `Open`/`Closed` badges on
+project cards (same `IssueStateBadge`). The issues filter placeholder reads "Search open issues"/"Search closed issues"
+until ticket 10 adds qualifiers. Verified by crawling 49 real pages and 17 mocks at 1440 in light and dark on a seeded
+server: no unpluralised "1 …s" count in text, titles, aria-labels or placeholders, and no Title Case headings, tabs or
+buttons left beyond proper nouns ("Assertion Consumer Service", org display names).

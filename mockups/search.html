@@ -42,8 +42,8 @@
 <script src="shell.js"></script>
 <script>
 (function () {
-  var TYPES = [['all', 'All'], ['repos', 'Repositories'], ['orgs', 'Organizations'], ['issues', 'Issues'], ['pulls', 'Pull Requests'], ['users', 'Users']];
-  var GROUPS = { repos: 'Repositories', orgs: 'Organizations', issues: 'Issues', pulls: 'Pull Requests', users: 'Users' };
+  var TYPES = [['all', 'All'], ['repos', 'Repositories'], ['orgs', 'Organizations'], ['issues', 'Issues'], ['pulls', 'Pull requests'], ['users', 'Users']];
+  var GROUPS = { repos: 'Repositories', orgs: 'Organizations', issues: 'Issues', pulls: 'Pull requests', users: 'Users' };
 
   var DATA = {
     repos: [
@@ -169,7 +169,7 @@
       '<span>' + esc(i.author) + '</span>' + SEP + '<time>' + esc(i.time) + '</time>' +
       (i.labels.length ? '<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>' + i.labels.map(chip).join('') : '') + '</div>' +
       '<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">' +
-      (i.comments ? '<span class="inline-flex items-center gap-1" title="' + i.comments + ' comments">' + COMMENT_ICON + i.comments + '</span>' : '') +
+      (i.comments ? '<span class="inline-flex items-center gap-1" title="' + i.comments + (i.comments === 1 ? ' comment' : ' comments') + '">' + COMMENT_ICON + i.comments + '</span>' : '') +
       '</div></div></a></li>';
   }
 
@@ -197,7 +197,7 @@
       var active = t[0] === type;
       return '<a href="search.html?q=' + encodeURIComponent(query) + '&type=' + t[0] + '" data-type="' + t[0] + '"' + (active ? ' aria-current="page"' : '') +
         ' class="' + cls + (active ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground') + '">' + t[1] +
-        (n ? '<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="' + n + ' items">' + n + '</span>' : '') + '</a>';
+        (n ? '<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="' + n + (n === 1 ? ' item' : ' items') + '">' + n + '</span>' : '') + '</a>';
     }).join('') + '</nav>';
   }
 

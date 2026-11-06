@@ -24,7 +24,7 @@ templ Topic(data view.TopicData) {
 			</section>
 
 			<div class="mb-3 flex items-center justify-between gap-4">
-				<p class="text-[13px] text-muted-foreground"><span class="font-medium">{ strconv.Itoa(data.Total) }</span> repositories</p>
+				<p class="text-[13px] text-muted-foreground"><span class="font-medium">{ strconv.Itoa(data.Total) }</span> { components.Pluralize(data.Total, "repository", "repositories") }</p>
 				<form method="get" class="inline-flex items-center gap-2">
 					<label for="topic-sort" class="text-[12px] text-muted-foreground">Sort</label>
 					<select
@@ -65,7 +65,7 @@ templ Topic(data view.TopicData) {
 									<p class="mt-1 text-[13px] text-muted-foreground">{ repo.Description }</p>
 								}
 								<div class="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
-									<span class="inline-flex items-center gap-1" aria-label={ strconv.Itoa(repo.StarCount) + " stars" }>
+									<span class="inline-flex items-center gap-1" aria-label={ components.Count(repo.StarCount, "star", "stars") }>
 										<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
 										{ strconv.Itoa(repo.StarCount) }
 									</span>

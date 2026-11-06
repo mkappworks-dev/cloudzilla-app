@@ -330,33 +330,20 @@ func mergeSubtitle(d MergeabilityBoxData, st mergeState) string {
 }
 
 func aheadBehindDescription(ahead, behind int) string {
-	return fmt.Sprintf("%s ahead, %s behind the base branch", pluralCommits(ahead), strconv.Itoa(behind))
-}
-
-func pluralCommits(n int) string {
-	if n == 1 {
-		return "1 commit"
-	}
-	return strconv.Itoa(n) + " commits"
+	return fmt.Sprintf("%s ahead, %s behind the base branch", Count(ahead, "commit", "commits"), strconv.Itoa(behind))
 }
 
 func checksDescription(passing, required int) string {
 	if passing >= required {
-		return fmt.Sprintf("All %s passed", pluralChecks(required, "required check"))
+		return fmt.Sprintf("All %s passed", Count(required, "required check", "required checks"))
 	}
-	return fmt.Sprintf("%d of %s passed", passing, pluralChecks(required, "required check"))
+	return fmt.Sprintf("%d of %s passed", passing, Count(required, "required check", "required checks"))
 }
 
 func reviewsDescription(approved, required int) string {
 	if approved >= required {
-		return fmt.Sprintf("All %s approved", pluralChecks(required, "required review"))
+		return fmt.Sprintf("All %s approved", Count(required, "required review", "required reviews"))
 	}
-	return fmt.Sprintf("%d of %s approved", approved, pluralChecks(required, "required review"))
+	return fmt.Sprintf("%d of %s approved", approved, Count(required, "required review", "required reviews"))
 }
 
-func pluralChecks(n int, noun string) string {
-	if n == 1 {
-		return "1 " + noun
-	}
-	return strconv.Itoa(n) + " " + noun + "s"
-}

@@ -125,7 +125,7 @@ func issuesSortMenu(data view.AccountIssuesData) []repoMenuItem {
 // A nil counts map means the count query failed; render no badge rather than 0.
 templ tabCountBadge(counts map[string]int, key string) {
 	if counts != nil {
-		<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label={ strconv.Itoa(counts[key]) + " items" }>{ strconv.Itoa(counts[key]) }</span>
+		<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label={ components.Count(counts[key], "item", "items") }>{ strconv.Itoa(counts[key]) }</span>
 	}
 }
 

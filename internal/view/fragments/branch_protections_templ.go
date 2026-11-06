@@ -123,9 +123,9 @@ func BranchProtections(data view.BranchProtectionsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
-				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(reviewWord(rule.RequireReviewCount))
+				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(components.Pluralize(rule.RequireReviewCount, "review", "reviews"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/branch_protections.templ`, Line: 31, Col: 95}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/branch_protections.templ`, Line: 31, Col: 126}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -205,13 +205,6 @@ func BranchProtections(data view.BranchProtectionsFragData) templ.Component {
 		}
 		return nil
 	})
-}
-
-func reviewWord(n int) string {
-	if n == 1 {
-		return "review"
-	}
-	return "reviews"
 }
 
 var _ = templruntime.GeneratedTemplate

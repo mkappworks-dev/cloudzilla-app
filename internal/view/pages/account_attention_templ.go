@@ -69,9 +69,9 @@ func AccountAttention(data view.AttentionData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
-				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(pluralizeAttention(data.Total))
+				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(components.Pluralize(data.Total, "item", "items"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_attention.templ`, Line: 17, Col: 116}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_attention.templ`, Line: 17, Col: 135}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -84,7 +84,7 @@ func AccountAttention(data view.AttentionData) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(attentionSortCaption(data.Sort))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_attention.templ`, Line: 17, Col: 155}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_attention.templ`, Line: 17, Col: 174}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -240,13 +240,6 @@ func attentionKindTabs(data view.AttentionData) []components.Tab {
 		})
 	}
 	return tabs
-}
-
-func pluralizeAttention(n int) string {
-	if n == 1 {
-		return "item"
-	}
-	return "items"
 }
 
 var _ = templruntime.GeneratedTemplate

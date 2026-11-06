@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"fmt"
 	"net/url"
 	"strconv"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
@@ -15,7 +14,7 @@ templ CodeSearch(data view.CodeSearchData) {
 		<div class="space-y-6">
 			@components.Card(nil) {
 				@components.CardContent() {
-					<h1 class="text-2xl font-bold mb-4">Code Search</h1>
+					<h1 class="text-2xl font-bold mb-4">Code search</h1>
 					<form action="/search/code" method="GET" class="space-y-3">
 						<div class="flex gap-2">
 							<label for="code-search-query" class="sr-only">Search code</label>
@@ -52,7 +51,6 @@ templ CodeSearch(data view.CodeSearchData) {
 							<div class="px-6 py-4">
 								<div class="flex items-start justify-between gap-4 mb-1">
 									<a href={ templ.SafeURL(codeurl.Path(res.OwnerName, res.RepoName, "blob", "HEAD", res.FilePath)) } class="text-foreground font-medium hover:underline text-sm font-mono">{ res.OwnerName }/{ res.RepoName }/{ res.FilePath }</a>
-									<span class="shrink-0 text-xs text-muted-foreground">{ fmt.Sprintf("%.3f", res.Rank) }</span>
 								</div>
 								<pre class="text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap">{ res.Snippet }</pre>
 							</div>
@@ -73,7 +71,7 @@ templ CodeSearch(data view.CodeSearchData) {
 				}
 			} else {
 				<div class="rounded-md border border-border bg-card p-12 text-center">
-					<p class="text-muted-foreground">Enter a search query above to search code across all public repositories.</p>
+					<p class="text-muted-foreground">Enter a search query above to search code across all repositories you can read.</p>
 				</div>
 			}
 		</div>
@@ -82,17 +80,13 @@ templ CodeSearch(data view.CodeSearchData) {
 
 func codeSearchTitle(data view.CodeSearchData) string {
 	if data.Query != "" {
-		return "Code Search: " + data.Query
+		return "Code search: " + data.Query
 	}
-	return "Code Search"
+	return "Code search"
 }
 
 func codeSearchSummary(data view.CodeSearchData) string {
-	word := "results"
-	if data.Total == 1 {
-		word = "result"
-	}
-	s := strconv.Itoa(data.Total) + " " + word + " matching \"" + data.Query + "\""
+	s := components.Count(data.Total, "result", "results") + " matching \"" + data.Query + "\""
 	if data.RepoFilter != "" {
 		s += " in " + data.RepoFilter
 	}

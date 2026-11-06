@@ -11,12 +11,12 @@ import (
 )
 
 templ AuditLog(data view.AuditLogData) {
-	@layout.Base(data.BasePage, "Audit Log") {
+	@layout.Base(data.BasePage, "Audit log") {
 		<div class="space-y-6">
 			@adminTabs("/admin/audit-log")
 			<div class="flex justify-between items-center">
-				<h1 class="text-2xl font-semibold tracking-tight">Audit Log</h1>
-				<span class="text-sm text-muted-foreground">{ strconv.Itoa(data.TotalCount) } total entries</span>
+				<h1 class="text-2xl font-semibold tracking-tight">Audit log</h1>
+				<span class="text-sm text-muted-foreground">{ components.Count(data.TotalCount, "entry", "entries") }</span>
 			</div>
 			<!-- Filter bar -->
 			<div class="rounded-md border border-border bg-card p-4">
@@ -63,7 +63,7 @@ templ AuditLog(data view.AuditLogData) {
 								<th class="px-4 py-3 font-medium">Actor</th>
 								<th class="px-4 py-3 font-medium">Action</th>
 								<th class="px-4 py-3 font-medium">Target</th>
-								<th class="px-4 py-3 font-medium">IP Address</th>
+								<th class="px-4 py-3 font-medium">IP address</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-border">

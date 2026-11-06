@@ -125,9 +125,9 @@ func pullCommitsBody(data view.PullCommitsData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(commitsNoun(len(data.Commits)))
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(components.Pluralize(len(data.Commits), "commit", "commits"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_commits.templ`, Line: 44, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_commits.templ`, Line: 44, Col: 102}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -396,13 +396,6 @@ func firstLine(msg string) string {
 		return strings.TrimSpace(msg[:i])
 	}
 	return strings.TrimSpace(msg)
-}
-
-func commitsNoun(n int) string {
-	if n == 1 {
-		return "commit"
-	}
-	return "commits"
 }
 
 var _ = templruntime.GeneratedTemplate

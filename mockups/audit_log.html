@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Audit Log — Cloudzilla</title>
+<title>Audit log — Cloudzilla</title>
 <link rel="stylesheet" href="/assets/tailwind.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,8 +23,8 @@
   <a href="sso_settings.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Single sign-on</a>
 </nav>
 <div class="flex justify-between items-center">
-  <h1 class="text-2xl font-semibold tracking-tight">Audit Log</h1>
-  <span id="audit-count" class="text-sm text-muted-foreground">126 total entries</span>
+  <h1 class="text-2xl font-semibold tracking-tight">Audit log</h1>
+  <span id="audit-count" class="text-sm text-muted-foreground">126 entries</span>
 </div>
 
 <div class="rounded-md border border-border bg-card p-4">
@@ -52,7 +52,7 @@
         <th class="px-4 py-3 font-medium">Actor</th>
         <th class="px-4 py-3 font-medium">Action</th>
         <th class="px-4 py-3 font-medium">Target</th>
-        <th class="px-4 py-3 font-medium">IP Address</th>
+        <th class="px-4 py-3 font-medium">IP address</th>
       </tr>
     </thead>
     <tbody class="divide-y divide-border">
@@ -259,7 +259,8 @@
     document.getElementById('audit-table').classList.toggle('hidden', shown === 0);
     document.getElementById('audit-empty').classList.toggle('hidden', shown !== 0);
     document.getElementById('audit-pager').classList.toggle('hidden', filtered);
-    document.getElementById('audit-count').textContent = (filtered ? shown : 126) + ' total entries';
+    var n = filtered ? shown : 126;
+    document.getElementById('audit-count').textContent = n + (n === 1 ? ' entry' : ' entries');
   }
   document.getElementById('audit-filter').addEventListener('submit', function (e) { e.preventDefault(); apply(); });
   document.getElementById('audit-reset').addEventListener('click', function (e) {

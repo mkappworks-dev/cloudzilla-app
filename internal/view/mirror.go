@@ -2,9 +2,10 @@ package view
 
 import (
 	"math"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // MirrorBanner is the strip a pull mirror's repo page opens with.
@@ -64,21 +65,14 @@ func In(t time.Time) string {
 // rounded count fills it: 59m59s reads "1 hour", 40m stays "40 minutes".
 func roundedSpan(d time.Duration) string {
 	if m := round(d, time.Minute); m < 60 {
-		return plural(max(m, 1), "minute")
+		return components.Count(max(m, 1), "minute", "minutes")
 	}
 	if h := round(d, time.Hour); h < 24 {
-		return plural(h, "hour")
+		return components.Count(h, "hour", "hours")
 	}
-	return plural(round(d, 24*time.Hour), "day")
+	return components.Count(round(d, 24*time.Hour), "day", "days")
 }
 
 func round(d, unit time.Duration) int {
 	return int(math.Round(float64(d) / float64(unit)))
-}
-
-func plural(n int, name string) string {
-	if n == 1 {
-		return "1 " + name
-	}
-	return strconv.Itoa(n) + " " + name + "s"
 }
