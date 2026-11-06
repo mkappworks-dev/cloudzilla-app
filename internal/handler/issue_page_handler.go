@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,14 +20,14 @@ import (
 
 // PageIssues renders the filtered, paginated issue list for a repository.
 func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
-	if redirectListForm(w, r) {
-		return
-	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
 	repo, ok := h.readableRepoPage(w, r, owner, repoName)
 	if !ok {
+		return
+	}
+	if redirectListForm(w, r, "/"+url.PathEscape(owner)+"/"+url.PathEscape(repoName)+"/issues") {
 		return
 	}
 	if !repo.AllowIssues {
@@ -73,9 +74,9 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load issues", http.StatusInternalServerError)
 		return
 	}
-	openCount, closedCount, err := h.Services.Issue.CountByState(r.Context(), owner, repoName, callerID)
-	if err != nil {
-		slog.Warn("issues: tab counts failed; showing 0", "owner", owner, "repo", repoName, "error", err)
+	openCount, closedCount, countErr := h.Services.Issue.CountByState(r.Context(), owner, repoName, callerID)
+	if countErr != nil {
+		slog.Warn("issues: tab counts failed; showing 0", "owner", owner, "repo", repoName, "error", countErr)
 	}
 
 	issueIDs := make([]int64, len(issues))
@@ -131,6 +132,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		TotalPages:    totalPages,
 		PrevURL:       prevURL,
 		NextURL:       nextURL,
+		RepoEmpty:     countErr == nil && openCount+closedCount == 0,
 		OpenCount:     openCount,
 		ClosedCount:   closedCount,
 	}))

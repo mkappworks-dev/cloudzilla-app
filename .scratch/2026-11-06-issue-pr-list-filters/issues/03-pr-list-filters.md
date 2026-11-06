@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 02
 
 | Branch | Worktree | PR title |
@@ -23,13 +23,13 @@ Spec: [../spec.md](../spec.md).
 
 ## Acceptance criteria
 
-- [ ] Every qualifier in the spec filters PRs correctly; `is:draft` / `is:merged` match the old tabs
-- [ ] Filtering, sorting and paging run in SQL; tab counts stay unfiltered; CI resolves for at most 25 rows per page
-- [ ] Works with JavaScript disabled; back/forward and shared URLs reproduce the view
-- [ ] Standing mocks updated and checked under `make mockups`; verified at 1440 in light and dark on a throwaway server
-- [ ] Benchmark shows before/after for the list query
-- [ ] Store and handler tests cover the filters; `/code-review` run
-- [ ] On merge, parent ticket 10 set to `done` and its criteria ticked
+- [x] Every qualifier in the spec filters PRs correctly; `is:draft` / `is:merged` match the old tabs
+- [x] Filtering, sorting and paging run in SQL; tab counts stay unfiltered; CI resolves for at most 25 rows per page
+- [x] Works with JavaScript disabled; back/forward and shared URLs reproduce the view
+- [x] Standing mocks updated and checked under `make mockups`; verified at 1440 in light and dark on a throwaway server
+- [x] Benchmark shows before/after for the list query
+- [x] Store and handler tests cover the filters; `/code-review` run
+- [x] On merge, parent ticket 10 set to `done` and its criteria ticked
 
 ## Verification
 

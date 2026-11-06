@@ -16,16 +16,16 @@ import (
 const listPageSize = 25
 
 // redirectListForm turns a submitted search or menu form into the canonical ?q= URL, so a filtered list always has one
-// shareable address. The forms send f (the query minus what the control sets), v (menu qualifier tokens) and q (typed
+// shareable address at base, which the caller builds from the validated route rather than the request path. The forms send f (the query minus what the control sets), v (menu qualifier tokens) and q (typed
 // text, which may itself hold qualifiers).
-func redirectListForm(w http.ResponseWriter, r *http.Request) bool {
+func redirectListForm(w http.ResponseWriter, r *http.Request, base string) bool {
 	qv := r.URL.Query()
 	if !qv.Has("f") && !qv.Has("v") {
 		return false
 	}
 	parts := append([]string{qv.Get("f")}, qv["v"]...)
 	parts = append(parts, qv.Get("q"))
-	http.Redirect(w, r, listURL(r.URL.Path, listquery.Parse(strings.Join(parts, " ")), 1), http.StatusSeeOther)
+	http.Redirect(w, r, listURL(base, listquery.Parse(strings.Join(parts, " ")), 1), http.StatusSeeOther)
 	return true
 }
 
@@ -91,7 +91,8 @@ func listStoreFilter(viewer *middleware.Claims, q listquery.Query, state string,
 	return f
 }
 
-// listMilestoneTitle lets a legacy ?milestone=<id> link show up as a milestone: chip.
+// listMilestoneTitle lets a legacy ?milestone=<id> link show up as a milestone: chip. An ID with no milestone becomes a
+// title that matches nothing, so the filter stays visible in the chips and survives into tab and page links.
 func listMilestoneTitle(q listquery.Query, milestones []model.Milestone) listquery.Query {
 	if q.MilestoneID == 0 {
 		return q
@@ -99,9 +100,10 @@ func listMilestoneTitle(q listquery.Query, milestones []model.Milestone) listque
 	for _, m := range milestones {
 		if m.ID == q.MilestoneID {
 			q.Milestone, q.MilestoneID = m.Title, 0
-			break
+			return q
 		}
 	}
+	q.Milestone, q.MilestoneID = strconv.FormatInt(q.MilestoneID, 10), 0
 	return q
 }
 

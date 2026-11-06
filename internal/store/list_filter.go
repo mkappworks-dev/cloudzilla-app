@@ -90,6 +90,7 @@ func (f ListFilter) orderBy(t listTable) string {
 	case "updated":
 		return a + ".updated_at DESC, " + a + ".number DESC"
 	case "comments":
+		// A per-row count before LIMIT: accepted, as sorting by comments is rare and idx_comments_* serves each lookup.
 		return `(SELECT COUNT(*) FROM comments sc WHERE sc.` + t.fk + ` = ` + a + `.id) DESC, ` + a + ".number DESC"
 	}
 	return t.defaultOrder

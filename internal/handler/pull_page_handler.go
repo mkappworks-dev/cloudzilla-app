@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -19,14 +20,14 @@ import (
 
 // PagePulls renders the filtered, paginated pull request list for a repository.
 func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
-	if redirectListForm(w, r) {
-		return
-	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
 	repo, ok := h.readableRepoPage(w, r, owner, repoName)
 	if !ok {
+		return
+	}
+	if redirectListForm(w, r, "/"+url.PathEscape(owner)+"/"+url.PathEscape(repoName)+"/pulls") {
 		return
 	}
 
@@ -70,9 +71,9 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load pull requests", http.StatusInternalServerError)
 		return
 	}
-	counts, err := h.Services.Pull.CountByState(r.Context(), owner, repoName)
-	if err != nil {
-		slog.Warn("pulls: tab counts failed; showing 0", "owner", owner, "repo", repoName, "error", err)
+	counts, countErr := h.Services.Pull.CountByState(r.Context(), owner, repoName)
+	if countErr != nil {
+		slog.Warn("pulls: tab counts failed; showing 0", "owner", owner, "repo", repoName, "error", countErr)
 	}
 
 	rows := make([]components.PRListRowData, 0, len(serviceRows))
@@ -145,6 +146,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		TotalPages:  totalPages,
 		PrevURL:     prevURL,
 		NextURL:     nextURL,
+		RepoEmpty:   countErr == nil && counts.Open+counts.Draft+counts.Merged+counts.Closed == 0,
 		OpenCount:   counts.Open,
 		DraftCount:  counts.Draft,
 		MergedCount: counts.Merged,

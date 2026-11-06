@@ -6,7 +6,8 @@ import (
 )
 
 // ListParticipants returns the usernames that authored or were assigned an issue the viewer can see, or a pull request,
-// in the repo: the choices of the list's Author and Assignee menus.
+// in the repo: the choices of the list's Author and Assignee menus. It stops at 200 names; past that a user is reachable
+// by typing author:name.
 func (s *IssueStore) ListParticipants(ctx context.Context, repoID int64, visibleToUserID *int64) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT u.username FROM users u WHERE u.id IN (

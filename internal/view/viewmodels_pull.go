@@ -27,6 +27,7 @@ type PullsData struct {
 	PrevURL    string
 	NextURL    string
 
+	RepoEmpty   bool // no item in any state: the toolbar is hidden
 	OpenCount   int
 	DraftCount  int
 	MergedCount int

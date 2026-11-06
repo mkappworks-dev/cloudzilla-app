@@ -33,7 +33,7 @@ templ Issues(data view.IssuesData) {
 				}
 			</section>
 
-			if data.OpenCount+data.ClosedCount > 0 {
+			if !data.RepoEmpty {
 				<nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Issue state">
 					@components.TabLink(data.OpenTabURL, data.StateFilter == "open") {
 						Open
@@ -97,7 +97,7 @@ templ Issues(data view.IssuesData) {
 					<p class="text-muted-foreground">{ "No " + data.StateFilter + " issues match these filters." }</p>
 					<a href={ templ.SafeURL(data.ClearURL) } class="mt-2 inline-block text-sm text-primary hover:underline">Clear filters</a>
 				</div>
-			} else if data.OpenCount+data.ClosedCount == 0 {
+			} else if data.RepoEmpty {
 				@components.EmptyStateWithHint("No issues yet.", "Issues track bugs, tasks and ideas for this repository.")
 			} else {
 				@components.EmptyState("No " + data.StateFilter + " issues.")

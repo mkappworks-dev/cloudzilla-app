@@ -205,29 +205,6 @@ func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, st
 	return err
 }
 
-func (s *PullStore) ListByState(ctx context.Context, repoID int64, state model.PRState, offset, limit int) ([]model.PullRequest, error) {
-	var limitParam sql.NullInt64
-	if limit > 0 {
-		limitParam = sql.NullInt64{Int64: int64(limit), Valid: true}
-	}
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
-		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
-		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
-		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
-		 FROM pull_requests pr
-		 LEFT JOIN users u ON u.id = pr.author_id
-		 WHERE pr.repo_id = $1 AND ($2 = '' OR pr.state = $2)
-		 ORDER BY pr.number DESC LIMIT $3 OFFSET $4`,
-		repoID, string(state), limitParam, offset,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("pr list by state: %w", err)
-	}
-	defer rows.Close()
-	return scanPullRows(rows)
-}
-
 func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullRequest, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,

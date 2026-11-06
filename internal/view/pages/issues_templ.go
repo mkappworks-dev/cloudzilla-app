@@ -85,7 +85,7 @@ func Issues(data view.IssuesData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if data.OpenCount+data.ClosedCount > 0 {
+			if !data.RepoEmpty {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<nav class=\"flex items-center gap-1 border-b border-border text-sm\" aria-label=\"Issue state\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -350,7 +350,7 @@ func Issues(data view.IssuesData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			} else if data.OpenCount+data.ClosedCount == 0 {
+			} else if data.RepoEmpty {
 				templ_7745c5c3_Err = components.EmptyStateWithHint("No issues yet.", "Issues track bugs, tasks and ideas for this repository.").Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

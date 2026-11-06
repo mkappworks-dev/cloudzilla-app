@@ -30,6 +30,7 @@ type IssuesData struct {
 	PrevURL    string
 	NextURL    string
 
+	RepoEmpty   bool // no item in any state: the toolbar is hidden
 	OpenCount   int
 	ClosedCount int
 }

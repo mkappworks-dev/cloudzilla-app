@@ -26,7 +26,7 @@ func TestRedirectListForm(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			redirected := redirectListForm(w, httptest.NewRequest(http.MethodGet, tt.url, nil))
+			redirected := redirectListForm(w, httptest.NewRequest(http.MethodGet, tt.url, nil), "/o/r/issues")
 			if redirected != (tt.want != "") {
 				t.Fatalf("redirected = %v, want %v", redirected, tt.want != "")
 			}
@@ -37,6 +37,14 @@ func TestRedirectListForm(t *testing.T) {
 				t.Errorf("got %d %q, want 303 %q", w.Code, w.Header().Get("Location"), tt.want)
 			}
 		})
+	}
+}
+
+func TestRedirectListFormIgnoresRequestPath(t *testing.T) {
+	w := httptest.NewRecorder()
+	redirectListForm(w, httptest.NewRequest(http.MethodGet, "//evil.example/x?f=&q=a", nil), "/o/r/issues")
+	if got := w.Header().Get("Location"); got != "/o/r/issues?q=a" {
+		t.Errorf("Location = %q, want a path under the route base", got)
 	}
 }
 
@@ -137,7 +145,7 @@ func TestListMilestoneTitle(t *testing.T) {
 	if got.Milestone != "v0.3" || got.MilestoneID != 0 {
 		t.Errorf("resolved = %+v", got)
 	}
-	if got := listMilestoneTitle(q, nil); got.MilestoneID != 12 {
-		t.Errorf("unknown ID should stay a filter: %+v", got)
+	if got := listMilestoneTitle(q, nil); got.Milestone != "12" || got.MilestoneID != 0 {
+		t.Errorf("unknown ID should become a visible milestone that matches nothing: %+v", got)
 	}
 }

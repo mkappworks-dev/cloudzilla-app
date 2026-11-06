@@ -78,7 +78,7 @@ func Pulls(data view.PullsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if data.OpenCount+data.DraftCount+data.MergedCount+data.ClosedCount > 0 {
+			if !data.RepoEmpty {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<nav class=\"flex items-center gap-1 border-b border-border text-sm\" aria-label=\"Pull request state\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -334,7 +334,7 @@ func Pulls(data view.PullsData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			} else if data.OpenCount+data.DraftCount+data.MergedCount+data.ClosedCount == 0 {
+			} else if data.RepoEmpty {
 				templ_7745c5c3_Err = components.EmptyStateWithHint("No pull requests yet.", "Pull requests propose merging one branch into another.").Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

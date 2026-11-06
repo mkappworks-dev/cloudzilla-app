@@ -26,7 +26,7 @@ templ Pulls(data view.PullsData) {
 				}
 			</section>
 
-			if data.OpenCount+data.DraftCount+data.MergedCount+data.ClosedCount > 0 {
+			if !data.RepoEmpty {
 				<nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Pull request state">
 					@components.TabLink(data.OpenURL, data.StateFilter == "open") {
 						Open
@@ -63,7 +63,7 @@ templ Pulls(data view.PullsData) {
 					<p class="text-muted-foreground">{ "No " + data.StateFilter + " pull requests match these filters." }</p>
 					<a href={ templ.SafeURL(data.ClearURL) } class="mt-2 inline-block text-sm text-primary hover:underline">Clear filters</a>
 				</div>
-			} else if data.OpenCount+data.DraftCount+data.MergedCount+data.ClosedCount == 0 {
+			} else if data.RepoEmpty {
 				@components.EmptyStateWithHint("No pull requests yet.", "Pull requests propose merging one branch into another.")
 			} else {
 				@components.EmptyState("No " + data.StateFilter + " pull requests.")

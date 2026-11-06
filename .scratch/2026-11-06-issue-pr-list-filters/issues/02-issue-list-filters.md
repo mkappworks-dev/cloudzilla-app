@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 | Branch | Worktree | PR title |
@@ -28,14 +28,21 @@ Spec: [../spec.md](../spec.md).
 
 ## Acceptance criteria
 
-- [ ] Every qualifier in the spec filters correctly; `no:` and `@me` work; legacy params still resolve
-- [ ] Filtering, sorting and paging run in SQL; tab counts stay unfiltered; out-of-range `page` clamps
-- [ ] Works with JavaScript disabled; back/forward and shared URLs reproduce the view
-- [ ] Rows show priority and comment count
-- [ ] Standing mocks updated and checked under `make mockups`; verified at 1440 in light and dark on a throwaway server
-- [ ] Large-repo benchmark shows before/after for the list query
-- [ ] Store and handler tests cover the filters; `/code-review` run
+- [x] Every qualifier in the spec filters correctly; `no:` and `@me` work; legacy params still resolve
+- [x] Filtering, sorting and paging run in SQL; tab counts stay unfiltered; out-of-range `page` clamps
+- [x] Works with JavaScript disabled; back/forward and shared URLs reproduce the view
+- [x] Rows show priority and comment count
+- [x] Standing mocks updated and checked under `make mockups`; verified at 1440 in light and dark on a throwaway server
+- [x] Large-repo benchmark shows before/after for the list query
+- [x] Store and handler tests cover the filters; `/code-review` run
 
 ## Verification
 
 Throwaway server per the parent spec's harness; `ada-silva/hollow-atlas` for a busy repo.
+
+## Comments
+
+2026-11-07 (Claude): benchmark on a scratch DB with 100k issues in one repo (`go test -bench`, 20 iterations, M-series):
+the old `ListByRepo(…, 1, 500)` that the page loaded took 85 ms and silently dropped everything past 500 rows; the new
+paged query takes 45 ms for page 1 (mostly the filtered `COUNT(*)`), 63 ms with `label:bug author:`, 70 ms with free
+text, 124 ms for `sort:comments` (a per-row count before `LIMIT`, accepted), and the unfiltered tab counts 42 ms.
