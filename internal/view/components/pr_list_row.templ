@@ -2,9 +2,7 @@ package components
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
-	"strings"
 )
 
 type PRListRowData struct {
@@ -18,13 +16,13 @@ type PRListRowData struct {
 	CIPassing           int
 	CITotal             int
 	CommentCount        int
-	LabelChips          []LabelChip
+	LabelChips          []LabelChipData
 	ReviewerAvatars     []string // initials
 	OpenedAt            string   // pre-formatted relative
 	Query               string   // highlights matching words in the title
 }
 
-type LabelChip struct {
+type LabelChipData struct {
 	Name  string
 	Color string // hex
 }
@@ -54,7 +52,7 @@ templ PRListRow(d PRListRowData) {
 					if len(d.LabelChips) > 0 {
 						<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
 						for _, lab := range d.LabelChips {
-							<span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style={ labelChipStyle(lab.Color) }>{ lab.Name }</span>
+							@LabelChip(lab.Name, lab.Color)
 						}
 					}
 				</div>
@@ -143,17 +141,3 @@ templ prCIBadge(state string, passing, total int) {
 	}
 }
 
-var hexColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
-
-func labelChipStyle(hex string) string {
-	if !hexColorRe.MatchString(hex) {
-		return "color: inherit"
-	}
-	full6 := hex
-	if len(hex) == 4 {
-		// expand 3-digit #rgb → #rrggbb
-		r, g, b := string(hex[1]), string(hex[2]), string(hex[3])
-		full6 = "#" + strings.Repeat(r, 2) + strings.Repeat(g, 2) + strings.Repeat(b, 2)
-	}
-	return "background-color: " + full6 + "26; color: " + full6 + "; border-color: " + full6 + "59"
-}

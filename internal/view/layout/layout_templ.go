@@ -1799,27 +1799,27 @@ func Base(base view.BasePage, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 81, "\" defer></script><!-- Before Alpine: it registers its component on alpine:init. --><script src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 81, "\" defer></script><script src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var98 string
-		templ_7745c5c3_Var98, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/select-menu.js")).ResolveURL(ctx)
+		templ_7745c5c3_Var98, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/htmx-busy.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 525, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 524, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var98)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 82, "\" defer></script><script src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 82, "\" defer></script><!-- Before Alpine: it registers its component on alpine:init. --><script src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var99 string
-		templ_7745c5c3_Var99, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/topnav-search.js")).ResolveURL(ctx)
+		templ_7745c5c3_Var99, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/select-menu.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 526, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 526, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var99)
 		if templ_7745c5c3_Err != nil {
@@ -1830,28 +1830,41 @@ func Base(base view.BasePage, title string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var100 string
-		templ_7745c5c3_Var100, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/alpine.min.js")).ResolveURL(ctx)
+		templ_7745c5c3_Var100, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/topnav-search.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 527, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 527, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var100)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 84, "\" defer></script><script data-mermaid-src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 84, "\" defer></script><script src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var101 string
-		templ_7745c5c3_Var101, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/mermaid.min.js")).ResolveURL(ctx)
+		templ_7745c5c3_Var101, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/alpine.min.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 528, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 528, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var101)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 85, "\">\n\t\t\t\t// Mermaid is megabytes of JS, so only a page holding a diagram loads it.\n\t\t\t\t(function() {\n\t\t\t\t\tvar src = document.currentScript.dataset.mermaidSrc;\n\t\t\t\t\tvar loaded;\n\t\t\t\t\tfunction load() {\n\t\t\t\t\t\tif (!loaded) {\n\t\t\t\t\t\t\tloaded = new Promise(function(resolve) {\n\t\t\t\t\t\t\t\tvar script = document.createElement('script');\n\t\t\t\t\t\t\t\tscript.src = src;\n\t\t\t\t\t\t\t\tscript.onload = resolve;\n\t\t\t\t\t\t\t\tdocument.head.appendChild(script);\n\t\t\t\t\t\t\t}).then(function() {\n\t\t\t\t\t\t\t\t// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.\n\t\t\t\t\t\t\t\tmermaid.initialize({\n\t\t\t\t\t\t\t\t\tstartOnLoad: false,\n\t\t\t\t\t\t\t\t\ttheme: 'default',\n\t\t\t\t\t\t\t\t\tlook: 'classic',\n\t\t\t\t\t\t\t\t\tlayout: 'dagre',\n\t\t\t\t\t\t\t\t\tflowchart: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\tstate: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\t// A site-wide layout would replace these diagrams' own layout engines.\n\t\t\t\t\t\t\t\t\tmindmap: { layout: 'cose-bilkent' },\n\t\t\t\t\t\t\t\t\tswimlane: { layout: 'swimlane' },\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t}\n\t\t\t\t\t\treturn loaded;\n\t\t\t\t\t}\n\t\t\t\t\tfunction render() {\n\t\t\t\t\t\tif (document.querySelector('.mermaid:not([data-processed])')) {\n\t\t\t\t\t\t\tload().then(function() { mermaid.run(); });\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\tdocument.addEventListener('DOMContentLoaded', render);\n\t\t\t\t\tdocument.addEventListener('htmx:after:swap', render);\n\t\t\t\t})();\n\t\t\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 85, "\" defer></script><script data-mermaid-src=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var102 string
+		templ_7745c5c3_Var102, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/mermaid.min.js")).ResolveURL(ctx)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 529, Col: 66}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var102)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 86, "\">\n\t\t\t\t// Mermaid is megabytes of JS, so only a page holding a diagram loads it.\n\t\t\t\t(function() {\n\t\t\t\t\tvar src = document.currentScript.dataset.mermaidSrc;\n\t\t\t\t\tvar loaded;\n\t\t\t\t\tfunction load() {\n\t\t\t\t\t\tif (!loaded) {\n\t\t\t\t\t\t\tloaded = new Promise(function(resolve) {\n\t\t\t\t\t\t\t\tvar script = document.createElement('script');\n\t\t\t\t\t\t\t\tscript.src = src;\n\t\t\t\t\t\t\t\tscript.onload = resolve;\n\t\t\t\t\t\t\t\tdocument.head.appendChild(script);\n\t\t\t\t\t\t\t}).then(function() {\n\t\t\t\t\t\t\t\t// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.\n\t\t\t\t\t\t\t\tmermaid.initialize({\n\t\t\t\t\t\t\t\t\tstartOnLoad: false,\n\t\t\t\t\t\t\t\t\ttheme: 'default',\n\t\t\t\t\t\t\t\t\tlook: 'classic',\n\t\t\t\t\t\t\t\t\tlayout: 'dagre',\n\t\t\t\t\t\t\t\t\tflowchart: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\tstate: { wrappingWidth: 200, minNodeWidth: 0 },\n\t\t\t\t\t\t\t\t\t// A site-wide layout would replace these diagrams' own layout engines.\n\t\t\t\t\t\t\t\t\tmindmap: { layout: 'cose-bilkent' },\n\t\t\t\t\t\t\t\t\tswimlane: { layout: 'swimlane' },\n\t\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t}\n\t\t\t\t\t\treturn loaded;\n\t\t\t\t\t}\n\t\t\t\t\tfunction render() {\n\t\t\t\t\t\tif (document.querySelector('.mermaid:not([data-processed])')) {\n\t\t\t\t\t\t\tload().then(function() { mermaid.run(); });\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\tdocument.addEventListener('DOMContentLoaded', render);\n\t\t\t\t\tdocument.addEventListener('htmx:after:swap', render);\n\t\t\t\t})();\n\t\t\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1859,7 +1872,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 86, "</body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "</body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1940,43 +1953,43 @@ func workspaceChip(name, avatarKey string) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "<span class=\"relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[10px] font-medium\" aria-hidden=\"true\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 88, "<span class=\"relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[10px] font-medium\" aria-hidden=\"true\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var103 string
-		templ_7745c5c3_Var103, templ_7745c5c3_Err = templ.JoinStringErrs(firstInitial(name))
+		var templ_7745c5c3_Var104 string
+		templ_7745c5c3_Var104, templ_7745c5c3_Err = templ.JoinStringErrs(firstInitial(name))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 629, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 630, Col: 22}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var103))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var104))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 88, " ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, " ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if avatarKey != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, "<img data-avatar src=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "<img data-avatar src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var104 string
-			templ_7745c5c3_Var104, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.AvatarURL(avatarKey)).ResolveURL(ctx)
+			var templ_7745c5c3_Var105 string
+			templ_7745c5c3_Var105, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.AvatarURL(avatarKey)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 631, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 632, Col: 57}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var104)
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var105)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "\" alt=\"\" width=\"20\" height=\"20\" decoding=\"async\" class=\"absolute inset-0 h-full w-full object-cover\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 91, "\" alt=\"\" width=\"20\" height=\"20\" decoding=\"async\" class=\"absolute inset-0 h-full w-full object-cover\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 91, "</span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, "</span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

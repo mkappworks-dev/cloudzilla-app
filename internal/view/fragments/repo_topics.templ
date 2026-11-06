@@ -39,6 +39,7 @@ templ RepoTopics(data view.RepoTopicsFragData) {
 					<button
 						type="button"
 						onclick={ saveTopics(data.Owner, data.RepoName, data.RepoID) }
+						data-topics-save
 						class="px-3 py-1 bg-primary text-background rounded-sm text-sm hover:bg-primary"
 					>Save</button>
 				</div>
@@ -56,14 +57,23 @@ script saveTopics(owner string, repo string, repoID int64) {
 	var raw = document.getElementById('topic-input-' + repoID).value;
 	var topics = raw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
 	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+	var release = window.CzBusy.mark([document.querySelector('#topic-edit-row-' + repoID + ' [data-topics-save]')]);
 	fetch('/api/repos/' + owner + '/' + repo + '/topics', {
 		method: 'PUT',
 		headers: {'Content-Type': 'application/json', 'HX-Request': 'true', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({ topics: topics })
 	}).then(function(r) {
-		if (!r.ok) { throw new Error('HTTP ' + r.status); }
-		return r.text();
+		return r.text().then(function(text) {
+			if (r.ok) return text;
+			var msg = '';
+			try { msg = JSON.parse(text).error || ''; } catch (_) {}
+			throw new Error(msg || 'Failed to save topics (HTTP ' + r.status + ').');
+		});
 	}).then(function(html) {
 		document.getElementById('repo-topics').outerHTML = html;
-	}).catch(function(err) { alert('Failed to save topics: ' + err); });
+	}, function(err) {
+		release();
+		var msg = err instanceof TypeError ? 'Could not reach the server. Check your connection and try again.' : err.message;
+		document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: msg } }));
+	});
 }

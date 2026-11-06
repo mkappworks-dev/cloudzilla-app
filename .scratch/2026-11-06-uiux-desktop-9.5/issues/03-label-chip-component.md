@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -27,9 +27,9 @@ Labels are drawn at least five ways (`pr_list_row.templ:148`, `project_detail.te
 
 ## Acceptance criteria
 
-- [ ] One chip implementation; `grep labelChipStyle` finds one helper
-- [ ] Contrast test passes for the seed palette in both themes
-- [ ] Mocks updated
+- [x] One chip implementation; `grep labelChipStyle` finds one helper
+- [x] Contrast test passes for the seed palette in both themes
+- [x] Mocks updated
 
 ## Verification
 
@@ -38,3 +38,8 @@ Screenshot issues, pulls, PR sidebar, board, discussions at 1440 light and dark.
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (implementation): `components.LabelChip` fills the chip with the label colour in light mode and tints the
+page with it in dark mode; per-theme colours travel as CSS variables in the inline style. The board's multi-select
+renders the same chip, so `MultiSelectOption.Style` became `Color`. `seed.DefaultLabels` is exported for the test, which
+also sweeps every `#rgb` colour.

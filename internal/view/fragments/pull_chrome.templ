@@ -141,6 +141,11 @@ git checkout { data.Pull.HeadBranch }</pre>
 							return;
 						}
 						var token = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+						var release = window.CzBusy.mark([btn]);
+						function failed() {
+							txt.textContent = original;
+							document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: 'Could not save the title.' } }));
+						}
 						fetch(btn.dataset.prPatch, {
 							method: 'PATCH',
 							headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'HX-Request': 'true', 'X-CSRF-Token': token },
@@ -151,13 +156,9 @@ git checkout { data.Pull.HeadBranch }</pre>
 								document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Title updated' } }));
 								document.title = document.title.replace(/^[^·]+/, next + ' ');
 							} else {
-								txt.textContent = original;
-								alert('Could not save the title.');
+								failed();
 							}
-						}).catch(function () {
-							txt.textContent = original;
-							alert('Could not save the title.');
-						});
+						}).catch(failed).finally(release);
 					} else {
 						txt.contentEditable = 'true';
 						txt.classList.add('rounded-sm', 'bg-muted', 'px-1', 'outline-solid', 'outline-1', 'outline-border');

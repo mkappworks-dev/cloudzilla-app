@@ -377,3 +377,24 @@ input[type="search"]::-webkit-search-cancel-button { appearance: none; display: 
 @media (prefers-reduced-motion: reduce) {
   .cz-toast-in { animation: none; }
 }
+
+/* Busy control while its htmx request runs (static/htmx-busy.js). The spinner takes the place of a leading icon, so
+ * icon buttons keep their size. The base layer's reduced-motion rule stops the spin. */
+@keyframes cz-spin {
+  to { transform: rotate(360deg); }
+}
+button[aria-busy="true"] { opacity: 0.6; cursor: progress; }
+button[aria-busy="true"] > svg:first-child { display: none; }
+button[aria-busy="true"]::before {
+  content: "";
+  display: inline-block;
+  flex: none;
+  width: 0.875em;
+  height: 0.875em;
+  vertical-align: -0.125em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: cz-spin 0.6s linear infinite;
+}
+button[aria-busy="true"]:not(.flex, .inline-flex, .grid, .inline-grid)::before { margin-inline-end: 0.375em; }

@@ -179,7 +179,7 @@ func RepoTopics(data view.RepoTopicsFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"px-3 py-1 bg-primary text-background rounded-sm text-sm hover:bg-primary\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" data-topics-save class=\"px-3 py-1 bg-primary text-background rounded-sm text-sm hover:bg-primary\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -218,23 +218,32 @@ func toggleTopicEdit(repoID int64) templ.ComponentScript {
 
 func saveTopics(owner string, repo string, repoID int64) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_saveTopics_309a`,
-		Function: `function __templ_saveTopics_309a(owner, repo, repoID){var raw = document.getElementById('topic-input-' + repoID).value;
+		Name: `__templ_saveTopics_38fb`,
+		Function: `function __templ_saveTopics_38fb(owner, repo, repoID){var raw = document.getElementById('topic-input-' + repoID).value;
 	var topics = raw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
 	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+	var release = window.CzBusy.mark([document.querySelector('#topic-edit-row-' + repoID + ' [data-topics-save]')]);
 	fetch('/api/repos/' + owner + '/' + repo + '/topics', {
 		method: 'PUT',
 		headers: {'Content-Type': 'application/json', 'HX-Request': 'true', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({ topics: topics })
 	}).then(function(r) {
-		if (!r.ok) { throw new Error('HTTP ' + r.status); }
-		return r.text();
+		return r.text().then(function(text) {
+			if (r.ok) return text;
+			var msg = '';
+			try { msg = JSON.parse(text).error || ''; } catch (_) {}
+			throw new Error(msg || 'Failed to save topics (HTTP ' + r.status + ').');
+		});
 	}).then(function(html) {
 		document.getElementById('repo-topics').outerHTML = html;
-	}).catch(function(err) { alert('Failed to save topics: ' + err); });
+	}, function(err) {
+		release();
+		var msg = err instanceof TypeError ? 'Could not reach the server. Check your connection and try again.' : err.message;
+		document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: msg } }));
+	});
 }`,
-		Call:       templ.SafeScript(`__templ_saveTopics_309a`, owner, repo, repoID),
-		CallInline: templ.SafeScriptInline(`__templ_saveTopics_309a`, owner, repo, repoID),
+		Call:       templ.SafeScript(`__templ_saveTopics_38fb`, owner, repo, repoID),
+		CallInline: templ.SafeScriptInline(`__templ_saveTopics_38fb`, owner, repo, repoID),
 	}
 }
 

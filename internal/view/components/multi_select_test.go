@@ -25,7 +25,7 @@ func TestMultiSelect_Structure(t *testing.T) {
 	out := renderMultiSelect(t, components.MultiSelectProps{
 		ID: "ms", LabelID: "ms-label", Placeholder: "Nobody", Empty: "No matches",
 		Options: []components.MultiSelectOption{
-			{Value: "1", Label: "bug", Style: "background-color: #d73a4a; color: #ffffff"},
+			{Value: "1", Label: "bug", Color: "#d73a4a"},
 			{Value: "2", Label: "ann", Avatar: true},
 		},
 		Attrs: templ.Attributes{"x-model": "editor.things"},
@@ -36,7 +36,7 @@ func TestMultiSelect_Structure(t *testing.T) {
 		`role="listbox"`, `aria-multiselectable="true"`, `id="ms-list"`,
 		`id="ms-opt-1"`, `id="ms-opt-2"`, `role="option"`, `data-value="1"`, `data-label="bug"`,
 		`x-bind:aria-selected="has($el.dataset.value).toString()"`,
-		`style="background-color: #d73a4a; color: #ffffff;"`, "Nobody", "No matches",
+		`--label-bg:#d73a4a;--label-fg:#ffffff;`, `style="background-color: #d73a4a;"`, "Nobody", "No matches",
 		`@keydown.escape.prevent.stop="close()"`, `@keydown.tab="close(false)"`, `@click.outside="close(false)"`,
 		`@keydown.arrow-down.prevent="show()"`,
 	} {

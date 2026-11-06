@@ -1,0 +1,131 @@
+package components
+
+import (
+	"fmt"
+	"math"
+	"regexp"
+	"strconv"
+)
+
+// LabelChip draws a label pill in the label's colour, with text that keeps 4.5:1 contrast in both themes.
+// A colour that isn't #rgb or #rrggbb gets the neutral muted pill.
+templ LabelChip(name, hex string) {
+	{{ style, ok := labelChipStyle(hex) }}
+	if ok {
+		<span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style={ style }>{ name }</span>
+	} else {
+		<span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-border bg-muted text-muted-foreground">{ name }</span>
+	}
+}
+
+const labelMinContrast = 4.5
+
+// Dark chips are the label colour at these alphas over the page, so they sit on any surface like a tint.
+const (
+	labelDarkBgAlpha     = 0x2e
+	labelDarkBorderAlpha = 0x66
+)
+
+var (
+	labelHexRe    = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
+	labelInkDark  = rgb{0x1f, 0x23, 0x28}
+	labelInkLight = rgb{0xff, 0xff, 0xff}
+	labelBlack    = rgb{0, 0, 0}
+)
+
+// labelDarkSurface is the lightest surface a chip sits on in dark mode (--muted and --accent, 0 0% 10%, in
+// tailwind/input.css): the worst case for light text.
+var labelDarkSurface = rgb{0x1a, 0x1a, 0x1a}
+
+type rgb struct{ r, g, b uint8 }
+
+type labelChipColors struct {
+	bg, fg, border rgb
+	darkBase       rgb // drawn at labelDarkBgAlpha as the background and labelDarkBorderAlpha as the border
+	darkFg         rgb
+}
+
+// labelChipStyle sets the CSS variables LabelChip's classes read.
+func labelChipStyle(hex string) (string, bool) {
+	c, ok := parseLabelHex(hex)
+	if !ok {
+		return "", false
+	}
+	col := chipColors(c)
+	return fmt.Sprintf("--label-bg:%s;--label-fg:%s;--label-border:%s;--label-dark-bg:%s%02x;--label-dark-border:%s%02x;--label-dark-fg:%s",
+		col.bg, col.fg, col.border, col.darkBase, labelDarkBgAlpha, col.darkBase, labelDarkBorderAlpha, col.darkFg), true
+}
+
+// labelSwatchStyle fills a colour dot, or leaves it to its class for an invalid colour.
+func labelSwatchStyle(hex string) string {
+	c, ok := parseLabelHex(hex)
+	if !ok {
+		return ""
+	}
+	return "background-color: " + c.String()
+}
+
+// chipColors fills the light chip with the label colour under whichever ink reads better, shifting the fill away
+// from the ink when neither reaches 4.5:1. The dark chip tints the page with the label and lightens the text instead.
+func chipColors(c rgb) labelChipColors {
+	fg, away := labelInkDark, labelInkLight
+	if contrastRatio(labelInkLight, c) > contrastRatio(labelInkDark, c) {
+		fg, away = labelInkLight, labelBlack
+	}
+	bg := shiftUntilReadable(c, away, func(bg rgb) float64 { return contrastRatio(fg, bg) })
+
+	darkBg := mix(labelDarkSurface, c, labelDarkBgAlpha/255.0)
+	darkFg := shiftUntilReadable(c, labelInkLight, func(fg rgb) float64 { return contrastRatio(fg, darkBg) })
+	return labelChipColors{bg: bg, fg: fg, border: mix(bg, labelBlack, 0.12), darkBase: c, darkFg: darkFg}
+}
+
+// shiftUntilReadable mixes c towards target in 5% steps until contrast reaches labelMinContrast. Both targets
+// (black under white ink, white under dark ink or over a dark tint) pass on their own, so the last step always does.
+func shiftUntilReadable(c, target rgb, contrast func(rgb) float64) rgb {
+	for step := 0; step < 20; step++ {
+		if m := mix(c, target, float64(step)/20); contrast(m) >= labelMinContrast {
+			return m
+		}
+	}
+	return target
+}
+
+func parseLabelHex(hex string) (rgb, bool) {
+	if !labelHexRe.MatchString(hex) {
+		return rgb{}, false
+	}
+	h := hex[1:]
+	if len(h) == 3 {
+		h = string([]byte{h[0], h[0], h[1], h[1], h[2], h[2]})
+	}
+	v, _ := strconv.ParseUint(h, 16, 32)
+	return rgb{uint8(v >> 16), uint8(v >> 8), uint8(v)}, true
+}
+
+func (c rgb) String() string { return fmt.Sprintf("#%02x%02x%02x", c.r, c.g, c.b) }
+
+// mix moves a towards b by t, rounding to whole channels so the contrast checked is the contrast rendered.
+func mix(a, b rgb, t float64) rgb {
+	ch := func(x, y uint8) uint8 { return uint8(math.Round(float64(x) + (float64(y)-float64(x))*t)) }
+	return rgb{ch(a.r, b.r), ch(a.g, b.g), ch(a.b, b.b)}
+}
+
+// contrastRatio is WCAG 2's (L1 + 0.05) / (L2 + 0.05).
+func contrastRatio(a, b rgb) float64 {
+	la, lb := relativeLuminance(a), relativeLuminance(b)
+	if la < lb {
+		la, lb = lb, la
+	}
+	return (la + 0.05) / (lb + 0.05)
+}
+
+func relativeLuminance(c rgb) float64 {
+	lin := func(v uint8) float64 {
+		s := float64(v) / 255
+		if s <= 0.04045 {
+			return s / 12.92
+		}
+		return math.Pow((s+0.055)/1.055, 2.4)
+	}
+	return 0.2126*lin(c.r) + 0.7152*lin(c.g) + 0.0722*lin(c.b)
+}

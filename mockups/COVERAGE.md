@@ -43,6 +43,9 @@ Mocks show the happy path. These real states are not drawn:
   pre-release release; archived and mirror repo banners; binary file in `blob`; private-issue badge; hidden-issue
   project card; form validation errors (`Alert` destructive) on every create page; one-time token and backup-code
   reveals.
+- **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
+  `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
+  a mock button draws the real busy state.
 - **Filters.** `?category=` on discussions.
 - **Admin.** The identity-confirm dialog (password, two-factor and provider factors), the SSO success and error banners,
   and users and audit-log pages beyond the first. The mock uses the generic confirm dialog instead.
