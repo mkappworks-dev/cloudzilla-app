@@ -173,7 +173,7 @@ func IssueDetail(data view.IssueDetailFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" hx-target=\"#issue-detail\" hx-swap=\"outerHTML\" class=\"px-4 py-2 bg-destructive text-background rounded-sm font-medium hover:bg-destructive transition-colors\">Close Issue</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" hx-target=\"#issue-detail\" hx-swap=\"outerHTML\" class=\"px-4 py-2 bg-destructive text-background rounded-sm font-medium hover:bg-destructive transition-colors\">Close issue</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

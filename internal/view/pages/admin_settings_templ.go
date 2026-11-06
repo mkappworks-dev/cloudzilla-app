@@ -59,7 +59,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex justify-between items-center\"><h1 class=\"text-2xl font-semibold tracking-tight\">Admin Settings</h1></div><!-- Instance Settings -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex justify-between items-center\"><h1 class=\"text-2xl font-semibold tracking-tight\">Admin settings</h1></div><!-- Instance Settings -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -99,7 +99,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "Instance Settings")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "Instance settings")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -255,7 +255,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<form hx-post=\"/api/admin/invitations\" hx-target=\"#admin-invitations-list\" hx-swap=\"outerHTML\" data-toast=\"Invitation sent\" data-confirm-identity=\"Send Invite\" class=\"flex gap-3 mb-6\"><label for=\"invite-email\" class=\"sr-only\">Invitee email</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<form hx-post=\"/api/admin/invitations\" hx-target=\"#admin-invitations-list\" hx-swap=\"outerHTML\" data-toast=\"Invitation sent\" data-confirm-identity=\"Send invite\" class=\"flex gap-3 mb-6\"><label for=\"invite-email\" class=\"sr-only\">Invitee email</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -282,7 +282,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "Send Invite")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "Send invite")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -474,7 +474,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layout.Base(data.BasePage, "Admin Settings").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Base(data.BasePage, "Admin settings").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

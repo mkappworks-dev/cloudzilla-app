@@ -56,20 +56,20 @@ func AuditLog(data view.AuditLogData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex justify-between items-center\"><h1 class=\"text-2xl font-semibold tracking-tight\">Audit Log</h1><span class=\"text-sm text-muted-foreground\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex justify-between items-center\"><h1 class=\"text-2xl font-semibold tracking-tight\">Audit log</h1><span class=\"text-sm text-muted-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.TotalCount))
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(components.Count(data.TotalCount, "entry", "entries"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/audit_log.templ`, Line: 19, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/audit_log.templ`, Line: 19, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, " total entries</span></div><!-- Filter bar --><div class=\"rounded-md border border-border bg-card p-4\"><form method=\"GET\" action=\"/admin/audit-log\" class=\"flex flex-wrap gap-4 items-end\"><div class=\"space-y-1.5\"><label for=\"filter-action\" class=\"block text-xs font-medium text-muted-foreground\">Action</label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</span></div><!-- Filter bar --><div class=\"rounded-md border border-border bg-card p-4\"><form method=\"GET\" action=\"/admin/audit-log\" class=\"flex flex-wrap gap-4 items-end\"><div class=\"space-y-1.5\"><label for=\"filter-action\" class=\"block text-xs font-medium text-muted-foreground\">Action</label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -152,7 +152,7 @@ func AuditLog(data view.AuditLogData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if len(data.Entries) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<table class=\"w-full text-sm\"><thead><tr class=\"text-left text-muted-foreground border-b border-border bg-muted\"><th class=\"px-4 py-3 font-medium\">Time</th><th class=\"px-4 py-3 font-medium\">Actor</th><th class=\"px-4 py-3 font-medium\">Action</th><th class=\"px-4 py-3 font-medium\">Target</th><th class=\"px-4 py-3 font-medium\">IP Address</th></tr></thead> <tbody class=\"divide-y divide-border\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<table class=\"w-full text-sm\"><thead><tr class=\"text-left text-muted-foreground border-b border-border bg-muted\"><th class=\"px-4 py-3 font-medium\">Time</th><th class=\"px-4 py-3 font-medium\">Actor</th><th class=\"px-4 py-3 font-medium\">Action</th><th class=\"px-4 py-3 font-medium\">Target</th><th class=\"px-4 py-3 font-medium\">IP address</th></tr></thead> <tbody class=\"divide-y divide-border\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -292,7 +292,7 @@ func AuditLog(data view.AuditLogData) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layout.Base(data.BasePage, "Audit Log").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Base(data.BasePage, "Audit log").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

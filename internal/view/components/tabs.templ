@@ -21,7 +21,7 @@ templ TabBar(tabs []Tab) {
 			@TabLink(t.URL, t.IsActive) {
 				{ t.Label }
 				if t.Count >= 0 {
-					<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label={ strconv.Itoa(t.Count) + " items" }>{ strconv.Itoa(t.Count) }</span>
+					<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label={ Count(t.Count, "item", "items") }>{ strconv.Itoa(t.Count) }</span>
 				}
 			}
 		}

@@ -72,9 +72,9 @@
   ];
   function row(e) {
     var head = '<a href="profile.html" class="font-medium hover:underline">' + e.a + '</a>';
-    if (e.k === 'push') head += '<span class="text-muted-foreground"> pushed </span><span class="font-mono">' + e.total + ' commits</span><span class="text-muted-foreground"> to </span><span class="font-mono text-muted-foreground">' + e.branch + '</span>';
+    if (e.k === 'push') head += '<span class="text-muted-foreground"> pushed </span><span class="font-mono">' + e.total + (e.total === 1 ? ' commit' : ' commits') + '</span><span class="text-muted-foreground"> to </span><span class="font-mono text-muted-foreground">' + e.branch + '</span>';
     else head += '<span class="text-muted-foreground"> ' + VERB[e.k] + '</span>' + (e.ref ? '<span class="text-muted-foreground"> </span><a href="' + e.href + '" class="font-mono hover:underline text-primary">' + e.ref + '</a>' : '');
-    head += '<span class="text-muted-foreground"> in </span><a href="repo.html" class="font-mono text-muted-foreground hover:underline">' + e.repo + '</a>';
+    head += '<span class="text-muted-foreground">' + (e.k === 'star' || e.k === 'fork' ? ' ' : ' in ') + '</span><a href="repo.html" class="font-mono text-muted-foreground hover:underline">' + e.repo + '</a>';
     var body = '';
     if (e.k === 'push') body = '<ul class="mt-1 text-[12.5px] text-muted-foreground space-y-0.5">' + e.commits.map(function (c) { return '<li class="truncate"><span class="font-mono text-[11px] text-muted-foreground/70 mr-1">' + c[0] + '</span>' + c[1] + '</li>'; }).join('') + '<li class="text-[11px] text-muted-foreground/70">and ' + (e.total - e.commits.length) + ' more commits</li></ul>';
     else if (e.quote) body = '<blockquote class="mt-1 pl-3 border-l border-border text-[12.5px] text-muted-foreground italic">“' + e.quote + '”</blockquote>';

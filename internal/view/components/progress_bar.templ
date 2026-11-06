@@ -6,7 +6,7 @@ import "strconv"
 templ ProgressBar(closedCount, totalCount int) {
 	<div class="mt-2">
 		<div class="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-			<span>{ strconv.Itoa(closedCount) } / { strconv.Itoa(totalCount) } issues closed</span>
+			<span>{ strconv.Itoa(closedCount) } / { strconv.Itoa(totalCount) } { Pluralize(totalCount, "issue", "issues") } closed</span>
 		</div>
 		<div class="w-full bg-muted rounded-full h-1.5">
 			<div class="bg-success h-1.5 rounded-full" style={ "width: " + strconv.Itoa(Percent(closedCount, totalCount)) + "%" }></div>

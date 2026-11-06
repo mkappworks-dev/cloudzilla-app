@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 )
 
 templ Gists(data view.GistsData) {
-	@layout.Base(data.BasePage, "Explore Gists") {
+	@layout.Base(data.BasePage, "Explore gists") {
 		<div class="space-y-5" x-data="{ q: '', openMenu: null }">
 
 			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="gists-title">
@@ -103,16 +102,16 @@ templ Gists(data view.GistsData) {
 											}
 										</div>
 										<div class="flex items-center gap-3 text-[12px] shrink-0">
-											<span class="text-muted-foreground/70 inline-flex items-center gap-1" title={ fmt.Sprintf("%d files", g.FileCount) }>
+											<span class="text-muted-foreground/70 inline-flex items-center gap-1" title={ components.Count(int(g.FileCount), "file", "files") }>
 												<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
 												{ strconv.FormatInt(g.FileCount, 10) }
 											</span>
 											if g.Public {
-												<span class="text-muted-foreground/70 inline-flex items-center gap-1" title={ fmt.Sprintf("%d stars", g.StarCount) }>
+												<span class="text-muted-foreground/70 inline-flex items-center gap-1" title={ components.Count(int(g.StarCount), "star", "stars") }>
 													<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
 													{ strconv.FormatInt(g.StarCount, 10) }
 												</span>
-												<span class="text-muted-foreground/70 inline-flex items-center gap-1" title={ fmt.Sprintf("%d forks", g.ForkCount) }>
+												<span class="text-muted-foreground/70 inline-flex items-center gap-1" title={ components.Count(int(g.ForkCount), "fork", "forks") }>
 													<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="21" r="3"/><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"/></svg>
 													{ strconv.FormatInt(g.ForkCount, 10) }
 												</span>

@@ -307,15 +307,15 @@ func Pulse(data view.PulseData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var15 string
-					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(c.Commits))
+					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(components.Count(c.Commits, "commit", "commits"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pulse.templ`, Line: 81, Col: 99}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pulse.templ`, Line: 81, Col: 124}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, " commits</span></li>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</span></li>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

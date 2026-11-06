@@ -10,7 +10,6 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -133,7 +132,7 @@ func Gists(data view.GistsData) templ.Component {
 					var templ_7745c5c3_Var4 string
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(g.Description + " " + g.OwnerName).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 63, Col: 56}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 62, Col: 56}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 					if templ_7745c5c3_Err != nil {
@@ -146,7 +145,7 @@ func Gists(data view.GistsData) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/gists/" + g.ID)).ResolveURL(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 64, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 63, Col: 49}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 					if templ_7745c5c3_Err != nil {
@@ -175,7 +174,7 @@ func Gists(data view.GistsData) templ.Component {
 						var templ_7745c5c3_Var6 string
 						templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(g.Description)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 74, Col: 28}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 73, Col: 28}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 						if templ_7745c5c3_Err != nil {
@@ -245,7 +244,7 @@ func Gists(data view.GistsData) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(g.ID[:min(12, len(g.ID))])
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 94, Col: 62}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 93, Col: 62}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -266,7 +265,7 @@ func Gists(data view.GistsData) templ.Component {
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(g.OwnerName)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 97, Col: 60}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 96, Col: 60}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -279,7 +278,7 @@ func Gists(data view.GistsData) templ.Component {
 					var templ_7745c5c3_Var11 string
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(g.UpdatedAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 99, Col: 66}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 98, Col: 66}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 					if templ_7745c5c3_Err != nil {
@@ -292,7 +291,7 @@ func Gists(data view.GistsData) templ.Component {
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(g.UpdatedAt.Format("Jan 2, 2006"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 99, Col: 104}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 98, Col: 104}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -350,7 +349,7 @@ func Gists(data view.GistsData) templ.Component {
 						var templ_7745c5c3_Var15 string
 						templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(g.LanguageLabel)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 102, Col: 61}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 101, Col: 61}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 						if templ_7745c5c3_Err != nil {
@@ -366,9 +365,9 @@ func Gists(data view.GistsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var16 string
-					templ_7745c5c3_Var16, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%d files", g.FileCount)).Resolve(ctx)
+					templ_7745c5c3_Var16, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(int(g.FileCount), "file", "files")).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 106, Col: 125}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 105, Col: 140}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 					if templ_7745c5c3_Err != nil {
@@ -381,7 +380,7 @@ func Gists(data view.GistsData) templ.Component {
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.FormatInt(g.FileCount, 10))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 108, Col: 48}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 107, Col: 48}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -397,9 +396,9 @@ func Gists(data view.GistsData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var18 string
-						templ_7745c5c3_Var18, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%d stars", g.StarCount)).Resolve(ctx)
+						templ_7745c5c3_Var18, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(int(g.StarCount), "star", "stars")).Resolve(ctx)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 111, Col: 126}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 110, Col: 141}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 						if templ_7745c5c3_Err != nil {
@@ -412,7 +411,7 @@ func Gists(data view.GistsData) templ.Component {
 						var templ_7745c5c3_Var19 string
 						templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.FormatInt(g.StarCount, 10))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 113, Col: 49}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 112, Col: 49}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 						if templ_7745c5c3_Err != nil {
@@ -423,9 +422,9 @@ func Gists(data view.GistsData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var20 string
-						templ_7745c5c3_Var20, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%d forks", g.ForkCount)).Resolve(ctx)
+						templ_7745c5c3_Var20, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(int(g.ForkCount), "fork", "forks")).Resolve(ctx)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 115, Col: 126}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 114, Col: 141}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
 						if templ_7745c5c3_Err != nil {
@@ -438,7 +437,7 @@ func Gists(data view.GistsData) templ.Component {
 						var templ_7745c5c3_Var21 string
 						templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.FormatInt(g.ForkCount, 10))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 117, Col: 49}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 116, Col: 49}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 						if templ_7745c5c3_Err != nil {
@@ -495,7 +494,7 @@ func Gists(data view.GistsData) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layout.Base(data.BasePage, "Explore Gists").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Base(data.BasePage, "Explore gists").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

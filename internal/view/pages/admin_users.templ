@@ -17,7 +17,7 @@ templ AdminUsers(data view.AdminUsersData) {
 			@adminTabs("/admin/users")
 			<div class="flex justify-between items-center">
 				<h1 class="text-2xl font-semibold tracking-tight">Users</h1>
-				<span class="text-sm text-muted-foreground">{ strconv.Itoa(data.TotalCount) } accounts</span>
+				<span class="text-sm text-muted-foreground">{ components.Count(data.TotalCount, "account", "accounts") }</span>
 			</div>
 			<div class="rounded-md border border-border bg-card p-4">
 				<form method="GET" action="/admin/users" class="flex flex-wrap gap-4 items-end">

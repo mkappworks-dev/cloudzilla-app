@@ -64,21 +64,11 @@ templ Org(data view.OrgData) {
 					</div>
 					<div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
 						<a href={ templ.SafeURL("/" + data.Org.Name + "?tab=repositories") } class="hover:text-foreground">
-							<strong class="text-foreground">{ strconv.Itoa(len(data.Repos)) }</strong>
-							if len(data.Repos) == 1 {
-								repository
-							} else {
-								repositories
-							}
+							<strong class="text-foreground">{ strconv.Itoa(len(data.Repos)) }</strong> { components.Pluralize(len(data.Repos), "repository", "repositories") }
 						</a>
 						<span class="opacity-50" aria-hidden="true">·</span>
 						<a href="#org-people-heading" class="hover:text-foreground">
-							<strong class="text-foreground">{ strconv.Itoa(data.MemberCount) }</strong>
-							if data.MemberCount == 1 {
-								member
-							} else {
-								members
-							}
+							<strong class="text-foreground">{ strconv.Itoa(data.MemberCount) }</strong> { components.Pluralize(data.MemberCount, "member", "members") }
 						</a>
 					</div>
 				</div>

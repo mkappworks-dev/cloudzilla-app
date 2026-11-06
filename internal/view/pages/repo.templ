@@ -437,7 +437,7 @@ templ Repo(data view.RepoData) {
 						<h2 id="releases-heading" class="text-[13px] font-medium mb-3 flex items-center justify-between">
 							<span>
 								Releases
-								<span class="font-mono text-muted-foreground ml-0.5 text-[11px]" aria-label={ strconv.Itoa(len(data.Releases)) + " releases" }>{ strconv.Itoa(len(data.Releases)) }</span>
+								<span class="font-mono text-muted-foreground ml-0.5 text-[11px]" aria-label={ components.Count(len(data.Releases), "release", "releases") }>{ strconv.Itoa(len(data.Releases)) }</span>
 							</span>
 							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="text-[12px] text-muted-foreground hover:text-foreground">All</a>
 						</h2>
@@ -464,7 +464,7 @@ templ Repo(data view.RepoData) {
 						<h2 id="contrib-heading" class="text-[13px] font-medium mb-3 flex items-center justify-between">
 							<span>
 								Contributors
-								<span class="font-mono text-muted-foreground ml-0.5 text-[11px]" aria-label={ strconv.Itoa(len(data.TopContribs)) + " contributors" }>{ strconv.Itoa(len(data.TopContribs)) }</span>
+								<span class="font-mono text-muted-foreground ml-0.5 text-[11px]" aria-label={ components.Count(len(data.TopContribs), "contributor", "contributors") }>{ strconv.Itoa(len(data.TopContribs)) }</span>
 							</span>
 							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/graphs/contributors") } class="text-[12px] text-muted-foreground hover:text-foreground">All</a>
 						</h2>
@@ -732,11 +732,11 @@ func contributorSlug(c service.ContributorStat) string {
 }
 
 func contributorAriaLabel(c service.ContributorStat) string {
-	return contributorDisplayName(c) + ", " + strconv.Itoa(c.Commits) + " commits"
+	return contributorDisplayName(c) + ", " + components.Count(c.Commits, "commit", "commits")
 }
 
 func contributorTooltip(c service.ContributorStat) string {
-	return contributorDisplayName(c) + " — " + strconv.Itoa(c.Commits) + " commits"
+	return contributorDisplayName(c) + " — " + components.Count(c.Commits, "commit", "commits")
 }
 
 templ mirrorSyncIcon(class string) {

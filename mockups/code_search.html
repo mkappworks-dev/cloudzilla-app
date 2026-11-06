@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Code Search — Cloudzilla</title>
+<title>Code search — Cloudzilla</title>
 <link rel="stylesheet" href="/assets/tailwind.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,7 +18,7 @@
   <div class="space-y-6">
     <div class="rounded-lg border border-border bg-card text-card-foreground">
       <div class="p-5">
-        <h1 class="text-2xl font-bold mb-4">Code Search</h1>
+        <h1 class="text-2xl font-bold mb-4">Code search</h1>
         <form action="code_search.html" method="GET" class="space-y-3" id="code-form">
           <div class="flex gap-2">
             <label for="code-search-query" class="sr-only">Search code</label>
@@ -82,9 +82,9 @@
 
   function render(q, repo, lang) {
     var out = document.getElementById('code-results');
-    document.title = (q ? 'Code Search: ' + q : 'Code Search') + ' — Cloudzilla';
+    document.title = (q ? 'Code search: ' + q : 'Code search') + ' — Cloudzilla';
     if (!q) {
-      out.innerHTML = '<div class="rounded-md border border-border bg-card p-12 text-center"><p class="text-muted-foreground">Enter a search query above to search code across all public repositories.</p></div>';
+      out.innerHTML = '<div class="rounded-md border border-border bg-card p-12 text-center"><p class="text-muted-foreground">Enter a search query above to search code across all repositories you can read.</p></div>';
       return;
     }
     var t = toks(q);
@@ -105,8 +105,7 @@
       '<div class="rounded-md border border-border bg-card divide-y divide-border">' + hits.map(function (h) {
         var snippet = q.toLowerCase() === 'router' ? h.snippet : mark(h.snippet, q);
         return '<div class="px-6 py-4"><div class="flex items-start justify-between gap-4 mb-1">' +
-          '<a href="blob.html" class="text-foreground font-medium hover:underline text-sm font-mono">' + esc(h.owner + '/' + h.repo + '/' + h.path) + '</a>' +
-          '<span class="shrink-0 text-xs text-muted-foreground">' + h.rank.toFixed(3) + '</span></div>' +
+          '<a href="blob.html" class="text-foreground font-medium hover:underline text-sm font-mono">' + esc(h.owner + '/' + h.repo + '/' + h.path) + '</a></div>' +
           '<pre class="text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap">' + esc(snippet) + '</pre></div>';
       }).join('') + '</div>';
   }

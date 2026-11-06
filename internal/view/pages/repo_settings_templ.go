@@ -36,7 +36,7 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
 		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: "Danger zone"})
-		items = append(items, components.SettingsSidebarItem{Label: "Transfer Ownership", Href: "#transfer", Key: "transfer", Danger: true})
+		items = append(items, components.SettingsSidebarItem{Label: "Transfer ownership", Href: "#transfer", Key: "transfer", Danger: true})
 		items = append(items, components.SettingsSidebarItem{Label: "Delete repository", Href: "#delete", Key: "delete", Danger: true})
 	}
 	return items
@@ -953,7 +953,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<div class=\"flex items-start justify-between gap-4\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight\">Deploy Keys</h2>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<div class=\"flex items-start justify-between gap-4\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight\">Deploy keys</h2>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1143,7 +1143,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "</div><div class=\"space-y-1.5\"><label for=\"deploy-key-public\" class=\"block text-xs font-medium\">Public Key</label>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "</div><div class=\"space-y-1.5\"><label for=\"deploy-key-public\" class=\"block text-xs font-medium\">Public key</label>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -1222,7 +1222,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								}()
 							}
 							ctx = templ.InitializeContext(ctx)
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "Add Deploy Key")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "Add deploy key")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -1583,7 +1583,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 81, "<div class=\"flex items-start justify-between gap-4\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight\">Branch Protection</h2>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 81, "<div class=\"flex items-start justify-between gap-4\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight\">Branch protection</h2>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1759,7 +1759,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 88, "\" hx-target=\"#branch-protections\" hx-swap=\"outerHTML\" hx-on::after:request=\"if(ctx.response.status<400){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Protection rule added'}}));}\" class=\"space-y-4\"><div class=\"space-y-1.5\"><label for=\"bp-pattern\" class=\"block text-xs font-medium\">Branch Pattern</label>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 88, "\" hx-target=\"#branch-protections\" hx-swap=\"outerHTML\" hx-on::after:request=\"if(ctx.response.status<400){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Protection rule added'}}));}\" class=\"space-y-4\"><div class=\"space-y-1.5\"><label for=\"bp-pattern\" class=\"block text-xs font-medium\">Branch pattern</label>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -1773,7 +1773,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, "</div><div class=\"space-y-1.5\"><label for=\"bp-review-count\" class=\"block text-xs font-medium\">Required Approvals</label>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, "</div><div class=\"space-y-1.5\"><label for=\"bp-review-count\" class=\"block text-xs font-medium\">Required approvals</label>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -1787,7 +1787,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "</div><div class=\"space-y-1.5\"><label for=\"bp-status-checks\" class=\"block text-xs font-medium\">Required Status Checks (comma-separated)</label>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "</div><div class=\"space-y-1.5\"><label for=\"bp-status-checks\" class=\"block text-xs font-medium\">Required status checks (comma-separated)</label>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -1856,7 +1856,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								}()
 							}
 							ctx = templ.InitializeContext(ctx)
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "Add Rule")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "Add rule")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -2060,7 +2060,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "Add Webhook")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "Add webhook")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2235,7 +2235,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "<h2 class=\"text-base font-semibold tracking-tight\">Template Repository</h2>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "<h2 class=\"text-base font-semibold tracking-tight\">Template repository</h2>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2592,7 +2592,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Transfer Ownership</h2>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Transfer ownership</h2>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

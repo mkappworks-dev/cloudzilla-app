@@ -77,9 +77,9 @@ func TabBar(tabs []Tab) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var4 string
-					templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(t.Count) + " items").Resolve(ctx)
+					templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(Count(t.Count, "item", "items")).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/tabs.templ`, Line: 24, Col: 115}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/tabs.templ`, Line: 24, Col: 114}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 					if templ_7745c5c3_Err != nil {
@@ -92,7 +92,7 @@ func TabBar(tabs []Tab) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(t.Count))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/tabs.templ`, Line: 24, Col: 141}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/tabs.templ`, Line: 24, Col: 140}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {

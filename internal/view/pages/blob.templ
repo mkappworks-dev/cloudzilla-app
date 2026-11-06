@@ -36,7 +36,7 @@ templ Blob(data view.BlobData) {
 					})
 					<span class="text-[12px] text-muted-foreground">·</span>
 					if !data.IsBinary {
-						<span class="font-mono text-[11px] text-muted-foreground">{ strconv.Itoa(len(data.Lines)) } lines · { humanBytes(data.Size) }</span>
+						<span class="font-mono text-[11px] text-muted-foreground">{ components.Count(len(data.Lines), "line", "lines") } · { humanBytes(data.Size) }</span>
 					} else {
 						<span class="font-mono text-[11px] text-muted-foreground">binary · { humanBytes(data.Size) }</span>
 					}
@@ -128,7 +128,7 @@ templ Blob(data view.BlobData) {
 							<div class="px-4 py-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-3">
 								<p>Binary file — not displayed.</p>
 								@components.LinkButton(data.RawURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
-									Download Raw
+									Download raw
 								}
 							</div>
 						} else {
@@ -149,11 +149,6 @@ templ Blob(data view.BlobData) {
 							</div>
 						}
 					</section>
-
-					<p class="mt-4 text-[12px] text-muted-foreground">
-						Permalink anchors: click any line number to deep-link (e.g.
-						<a class="font-mono text-foreground hover:underline" href="#L11">#L11</a>).
-					</p>
 				</div>
 			}
 		</div>

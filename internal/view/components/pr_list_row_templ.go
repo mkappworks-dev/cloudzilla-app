@@ -204,9 +204,9 @@ func PRListRow(d PRListRowData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%d reviewers", len(d.ReviewerAvatars))).Resolve(ctx)
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(Count(len(d.ReviewerAvatars), "reviewer", "reviewers")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/pr_list_row.templ`, Line: 61, Col: 101}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/pr_list_row.templ`, Line: 61, Col: 104}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
@@ -250,9 +250,9 @@ func PRListRow(d PRListRowData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
-			templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%d comments", d.CommentCount)).Resolve(ctx)
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(Count(d.CommentCount, "comment", "comments")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/pr_list_row.templ`, Line: 69, Col: 123}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/pr_list_row.templ`, Line: 69, Col: 125}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 			if templ_7745c5c3_Err != nil {

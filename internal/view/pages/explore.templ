@@ -13,7 +13,7 @@ templ Explore(data view.ExploreData) {
 		<div class="space-y-6">
 			@components.Card(nil) {
 				@components.CardContent() {
-					<h1 class="text-2xl font-bold">Explore Repositories</h1>
+					<h1 class="text-2xl font-bold">Explore repositories</h1>
 					<p class="text-sm text-muted-foreground mt-1">Discover public repositories on this instance.</p>
 				}
 			}
@@ -26,7 +26,7 @@ templ Explore(data view.ExploreData) {
 					Newest
 				}
 				@components.TabLink("/explore?tab=forked", data.Tab == "forked") {
-					Most Forked
+					Most forked
 				}
 			}
 			if data.Tab == "trending" {

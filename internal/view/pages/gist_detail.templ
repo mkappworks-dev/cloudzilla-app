@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -101,5 +100,5 @@ func gistFileStats(content string) string {
 	}
 	lines := strings.Count(content, "\n") + 1
 	size := humanBytes(int64(len(content)))
-	return fmt.Sprintf("%d lines · %s", lines, size)
+	return components.Count(lines, "line", "lines") + " · " + size
 }

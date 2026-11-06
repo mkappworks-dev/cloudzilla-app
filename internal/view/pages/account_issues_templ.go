@@ -336,9 +336,9 @@ func tabCountBadge(counts map[string]int, key string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 string
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(counts[key]) + " items").Resolve(ctx)
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(counts[key], "item", "items")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 128, Col: 116}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 128, Col: 126}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
@@ -351,7 +351,7 @@ func tabCountBadge(counts map[string]int, key string) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(counts[key]))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 128, Col: 146}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 128, Col: 156}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {

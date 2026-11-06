@@ -237,7 +237,7 @@ templ Home(data view.HomeData) {
 								if data.TotalRepos > 0 {
 									<span>Showing { strconv.Itoa(len(data.Repos)) } of { strconv.Itoa(data.TotalRepos) }</span>
 								} else {
-									<span>{ strconv.Itoa(len(data.Repos)) } { pluralize(len(data.Repos), "repository", "repositories") }</span>
+									<span>{ strconv.Itoa(len(data.Repos)) } { components.Pluralize(len(data.Repos), "repository", "repositories") }</span>
 								}
 								<a href="/repos" class="hover:text-foreground">View all repositories<span aria-hidden="true"> →</span></a>
 							</div>
@@ -451,13 +451,6 @@ func eventTimelineDetail(ev model.Event) string {
 		return ev.RepoName
 	}
 	return fmt.Sprintf("%s/%s", ev.OwnerName, ev.RepoName)
-}
-
-func pluralize(n int, singular, plural string) string {
-	if n == 1 {
-		return singular
-	}
-	return plural
 }
 
 type repoDropdownOption struct {

@@ -10,7 +10,6 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -62,7 +61,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Gist.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 29, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 28, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -76,7 +75,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Gist.Description)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 33, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 32, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -103,7 +102,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Gist.OwnerName)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 40, Col: 56}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 39, Col: 56}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -116,7 +115,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.Gist.OwnerName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 40, Col: 122}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 39, Col: 122}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -129,7 +128,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Gist.CreatedAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 42, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 41, Col: 69}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -142,7 +141,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(data.Gist.CreatedAt.Format("Jan 2, 2006"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 42, Col: 115}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 41, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -274,7 +273,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(f.Filename)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 80, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 79, Col: 65}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -287,7 +286,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(gistFileStats(f.Content))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 81, Col: 102}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 80, Col: 102}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -333,7 +332,7 @@ func gistFileStats(content string) string {
 	}
 	lines := strings.Count(content, "\n") + 1
 	size := humanBytes(int64(len(content)))
-	return fmt.Sprintf("%d lines · %s", lines, size)
+	return components.Count(lines, "line", "lines") + " · " + size
 }
 
 var _ = templruntime.GeneratedTemplate

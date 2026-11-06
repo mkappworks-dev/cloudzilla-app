@@ -1218,9 +1218,9 @@ func Repo(data view.RepoData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var67 string
-			templ_7745c5c3_Var67, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(len(data.Releases)) + " releases").Resolve(ctx)
+			templ_7745c5c3_Var67, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(len(data.Releases), "release", "releases")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 440, Col: 132}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 440, Col: 145}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var67)
 			if templ_7745c5c3_Err != nil {
@@ -1233,7 +1233,7 @@ func Repo(data view.RepoData) templ.Component {
 			var templ_7745c5c3_Var68 string
 			templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(data.Releases)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 440, Col: 169}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 440, Col: 182}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 			if templ_7745c5c3_Err != nil {
@@ -1322,9 +1322,9 @@ func Repo(data view.RepoData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var72 string
-			templ_7745c5c3_Var72, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(len(data.TopContribs)) + " contributors").Resolve(ctx)
+			templ_7745c5c3_Var72, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(len(data.TopContribs), "contributor", "contributors")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 467, Col: 139}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 467, Col: 156}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var72)
 			if templ_7745c5c3_Err != nil {
@@ -1337,7 +1337,7 @@ func Repo(data view.RepoData) templ.Component {
 			var templ_7745c5c3_Var73 string
 			templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(data.TopContribs)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 467, Col: 179}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 467, Col: 196}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var73))
 			if templ_7745c5c3_Err != nil {
@@ -2085,11 +2085,11 @@ func contributorSlug(c service.ContributorStat) string {
 }
 
 func contributorAriaLabel(c service.ContributorStat) string {
-	return contributorDisplayName(c) + ", " + strconv.Itoa(c.Commits) + " commits"
+	return contributorDisplayName(c) + ", " + components.Count(c.Commits, "commit", "commits")
 }
 
 func contributorTooltip(c service.ContributorStat) string {
-	return contributorDisplayName(c) + " — " + strconv.Itoa(c.Commits) + " commits"
+	return contributorDisplayName(c) + " — " + components.Count(c.Commits, "commit", "commits")
 }
 
 func mirrorSyncIcon(class string) templ.Component {

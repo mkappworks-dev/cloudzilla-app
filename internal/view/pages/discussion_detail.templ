@@ -11,13 +11,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-func discussionReplyCountText(n int) string {
-	if n == 1 {
-		return "1 reply"
-	}
-	return strconv.Itoa(n) + " replies"
-}
-
 func discussionAnswerAuthor(replies []view.RenderedDiscussionReply) string {
 	for _, r := range replies {
 		if r.IsAnswer {
@@ -229,11 +222,7 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 					}
 					<section aria-labelledby="dd-participants-heading">
 						<h2 id="dd-participants-heading" class="text-[12px] font-medium text-muted-foreground mb-2">
-							if len(data.Participants) == 1 {
-								1 participant
-							} else {
-								{ strconv.Itoa(len(data.Participants)) } participants
-							}
+							{ components.Count(len(data.Participants), "participant", "participants") }
 						</h2>
 						<ul class="flex flex-wrap gap-1.5">
 							for _, p := range data.Participants {
@@ -271,7 +260,7 @@ templ DiscussionLabelsFragment(owner, repoName string, number int, labels, allLa
 // reply can refresh both the header meta count and the timeline heading via
 // out-of-band swaps (oob=true).
 templ discussionReplyCount(elemID string, n int, oob bool) {
-	<span id={ elemID } if oob { hx-swap-oob="true" }>{ discussionReplyCountText(n) }</span>
+	<span id={ elemID } if oob { hx-swap-oob="true" }>{ components.Count(n, "reply", "replies") }</span>
 }
 
 // discussionReply is one reply card, reused by the timeline loop and by the

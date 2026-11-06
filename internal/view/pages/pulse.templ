@@ -78,7 +78,7 @@ templ Pulse(data view.PulseData) {
 							<li class="flex items-center gap-3 px-4 py-2.5">
 								@components.Avatar(c.Username, components.AvatarSizeSM, c.Username)
 								<span class="flex-1 font-medium text-[13px] truncate">{ c.Username }</span>
-								<span class="font-mono text-[12px] font-semibold w-24 text-right">{ strconv.Itoa(c.Commits) } commits</span>
+								<span class="font-mono text-[12px] font-semibold w-24 text-right">{ components.Count(c.Commits, "commit", "commits") }</span>
 							</li>
 						}
 					</ul>

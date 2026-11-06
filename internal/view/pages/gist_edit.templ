@@ -9,7 +9,7 @@ import (
 )
 
 templ GistEdit(data view.GistEditData) {
-	@layout.Base(data.BasePage, "Edit Gist") {
+	@layout.Base(data.BasePage, "Edit gist") {
 		<div class="space-y-5">
 
 			<section aria-labelledby="edit-title">
@@ -104,7 +104,7 @@ templ GistEdit(data view.GistEditData) {
 						<h2 id="edit-tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Editing tips</h2>
 						<ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
 							<li>Renaming a file keeps its content; saving creates a new revision.</li>
-							<li>Switching to Private hides the gist from the Explore listing.</li>
+							<li>Switching to private hides the gist from the Explore listing.</li>
 							<li>Use the file extension to pick syntax highlighting (e.g. <span class="font-mono">.go</span>, <span class="font-mono">.sql</span>).</li>
 						</ul>
 					</section>

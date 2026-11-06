@@ -62,15 +62,15 @@ func AdminUsers(data view.AdminUsersData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.TotalCount))
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(components.Count(data.TotalCount, "account", "accounts"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/admin_users.templ`, Line: 20, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/admin_users.templ`, Line: 20, Col: 106}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, " accounts</span></div><div class=\"rounded-md border border-border bg-card p-4\"><form method=\"GET\" action=\"/admin/users\" class=\"flex flex-wrap gap-4 items-end\"><div class=\"space-y-1.5\"><label for=\"users-q\" class=\"block text-xs font-medium text-muted-foreground\">Username or email starts with</label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</span></div><div class=\"rounded-md border border-border bg-card p-4\"><form method=\"GET\" action=\"/admin/users\" class=\"flex flex-wrap gap-4 items-end\"><div class=\"space-y-1.5\"><label for=\"users-q\" class=\"block text-xs font-medium text-muted-foreground\">Username or email starts with</label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

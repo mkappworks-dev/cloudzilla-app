@@ -11,14 +11,14 @@ import (
 )
 
 templ SSOSettings(data view.SSOSettingsData) {
-	@layout.Base(data.BasePage, "SSO Settings") {
+	@layout.Base(data.BasePage, "SSO settings") {
 		<div class="space-y-6">
 			if data.Confirm.Any() {
 				@components.ConfirmIdentityDialog(data.Confirm)
 			}
 			@adminTabs("/admin/sso")
 			<div>
-				<h1 class="text-2xl font-semibold tracking-tight">Single Sign-On</h1>
+				<h1 class="text-2xl font-semibold tracking-tight">Single sign-on</h1>
 				<p class="text-muted-foreground text-sm mt-1">Configure LDAP and SAML authentication providers.</p>
 			</div>
 			if data.Success != "" {

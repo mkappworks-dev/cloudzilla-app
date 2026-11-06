@@ -10,7 +10,6 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"fmt"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -76,7 +75,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h1 class=\"text-2xl font-bold mb-4\">Code Search</h1><form action=\"/search/code\" method=\"GET\" class=\"space-y-3\"><div class=\"flex gap-2\"><label for=\"code-search-query\" class=\"sr-only\">Search code</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h1 class=\"text-2xl font-bold mb-4\">Code search</h1><form action=\"/search/code\" method=\"GET\" class=\"space-y-3\"><div class=\"flex gap-2\"><label for=\"code-search-query\" class=\"sr-only\">Search code</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -120,7 +119,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.RepoFilter).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 37, Col: 72}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 36, Col: 72}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 					if templ_7745c5c3_Err != nil {
@@ -133,7 +132,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Lang).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 41, Col: 66}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 40, Col: 66}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 					if templ_7745c5c3_Err != nil {
@@ -164,7 +163,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(codeSearchSummary(data))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 49, Col: 76}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 48, Col: 76}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
@@ -182,7 +181,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						var templ_7745c5c3_Var9 string
 						templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(res.OwnerName, res.RepoName, "blob", "HEAD", res.FilePath))).ResolveURL(ctx)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 54, Col: 105}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 53, Col: 105}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 						if templ_7745c5c3_Err != nil {
@@ -195,7 +194,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						var templ_7745c5c3_Var10 string
 						templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(res.OwnerName)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 54, Col: 193}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 53, Col: 193}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 						if templ_7745c5c3_Err != nil {
@@ -208,7 +207,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						var templ_7745c5c3_Var11 string
 						templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(res.RepoName)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 54, Col: 210}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 53, Col: 210}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 						if templ_7745c5c3_Err != nil {
@@ -221,44 +220,31 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						var templ_7745c5c3_Var12 string
 						templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(res.FilePath)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 54, Col: 227}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 53, Col: 227}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</a> <span class=\"shrink-0 text-xs text-muted-foreground\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</a></div><pre class=\"text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var13 string
-						templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.3f", res.Rank))
+						templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(res.Snippet)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 55, Col: 93}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 55, Col: 118}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</span></div><pre class=\"text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap\">")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						var templ_7745c5c3_Var14 string
-						templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(res.Snippet)
-						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 57, Col: 118}
-						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</pre></div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</pre></div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -267,7 +253,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					if data.Page > 1 {
 						csPrev = "/search/code?q=" + url.QueryEscape(data.Query) + "&repo=" + url.QueryEscape(data.RepoFilter) + "&lang=" + url.QueryEscape(data.Lang) + "&page=" + strconv.Itoa(data.Page-1)
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, " ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -275,7 +261,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					if data.Page*20 < data.Total {
 						csNext = "/search/code?q=" + url.QueryEscape(data.Query) + "&repo=" + url.QueryEscape(data.RepoFilter) + "&lang=" + url.QueryEscape(data.Lang) + "&page=" + strconv.Itoa(data.Page+1)
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, " ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, " ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -290,12 +276,12 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					}
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"rounded-md border border-border bg-card p-12 text-center\"><p class=\"text-muted-foreground\">Enter a search query above to search code across all public repositories.</p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div class=\"rounded-md border border-border bg-card p-12 text-center\"><p class=\"text-muted-foreground\">Enter a search query above to search code across all repositories you can read.</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -311,17 +297,13 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 
 func codeSearchTitle(data view.CodeSearchData) string {
 	if data.Query != "" {
-		return "Code Search: " + data.Query
+		return "Code search: " + data.Query
 	}
-	return "Code Search"
+	return "Code search"
 }
 
 func codeSearchSummary(data view.CodeSearchData) string {
-	word := "results"
-	if data.Total == 1 {
-		word = "result"
-	}
-	s := strconv.Itoa(data.Total) + " " + word + " matching \"" + data.Query + "\""
+	s := components.Count(data.Total, "result", "results") + " matching \"" + data.Query + "\""
 	if data.RepoFilter != "" {
 		s += " in " + data.RepoFilter
 	}

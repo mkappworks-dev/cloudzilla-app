@@ -8,20 +8,20 @@ import (
 )
 
 templ AdminSettings(data view.AdminSettingsData) {
-	@layout.Base(data.BasePage, "Admin Settings") {
+	@layout.Base(data.BasePage, "Admin settings") {
 		<div class="space-y-6">
 			if data.Confirm.Any() {
 				@components.ConfirmIdentityDialog(data.Confirm)
 			}
 			@adminTabs("/admin/settings")
 			<div class="flex justify-between items-center">
-				<h1 class="text-2xl font-semibold tracking-tight">Admin Settings</h1>
+				<h1 class="text-2xl font-semibold tracking-tight">Admin settings</h1>
 			</div>
 			<!-- Instance Settings -->
 			@components.Card(nil) {
 				@components.CardHeader() {
 					@components.CardTitle(2) {
-						Instance Settings
+						Instance settings
 					}
 					@components.CardDescription() {
 						Toggle site-wide feature flags.
@@ -42,7 +42,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 					}
 				}
 				@components.CardContent() {
-					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" data-toast="Invitation sent" data-confirm-identity="Send Invite" class="flex gap-3 mb-6">
+					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" data-toast="Invitation sent" data-confirm-identity="Send invite" class="flex gap-3 mb-6">
 						<label for="invite-email" class="sr-only">Invitee email</label>
 						@components.Input(templ.Attributes{
 							"id":          "invite-email",
@@ -53,7 +53,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 							"class":       "flex-1",
 						})
 						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-							Send Invite
+							Send invite
 						}
 					</form>
 					@fragments.AdminInvitations(view.AdminInvitationsFragData{Invitations: data.Invitations})

@@ -73,7 +73,7 @@ git checkout { data.Pull.HeadBranch }</pre>
 				<p class="text-[13px] text-muted-foreground">
 					<a href={ templ.SafeURL("/" + chromeAuthor(data)) } class="font-medium text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">{ "@" + chromeAuthor(data) }</a>
 					{ " " + chromeMergeVerb(data.Pull.State) + " " }
-					<strong class="text-foreground font-medium">{ commitsPhrase(data.CommitsCount) }</strong>
+					<strong class="text-foreground font-medium">{ components.Count(data.CommitsCount, "commit", "commits") }</strong>
 					{ " into " }
 					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ data.Pull.BaseBranch }</span>
 					{ " from " }
@@ -187,13 +187,6 @@ func chromeMergeVerb(state model.PRState) string {
 	default:
 		return "wants to merge"
 	}
-}
-
-func commitsPhrase(n int) string {
-	if n == 1 {
-		return "1 commit"
-	}
-	return strconv.Itoa(n) + " commits"
 }
 
 func chromeTabClass(active bool) string {

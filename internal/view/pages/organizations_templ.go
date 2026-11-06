@@ -10,8 +10,6 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"strconv"
-
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -98,7 +96,7 @@ func Organizations(data view.OrgListData) templ.Component {
 					var templ_7745c5c3_Var4 string
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.CurrentUser.Username)).ResolveURL(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 34, Col: 65}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 33, Col: 65}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 					if templ_7745c5c3_Err != nil {
@@ -111,7 +109,7 @@ func Organizations(data view.OrgListData) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.CurrentUser.Username)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 35, Col: 37}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 34, Col: 37}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {
@@ -210,7 +208,7 @@ func orgListRow(e view.OrgListEntry, viewerUsername string) templ.Component {
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + e.Org.Name)).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 61, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 60, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 		if templ_7745c5c3_Err != nil {
@@ -223,7 +221,7 @@ func orgListRow(e view.OrgListEntry, viewerUsername string) templ.Component {
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(e.Org.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 62, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 61, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
@@ -269,7 +267,7 @@ func orgListRow(e view.OrgListEntry, viewerUsername string) templ.Component {
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(orgRowSubtitle(e))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 72, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/organizations.templ`, Line: 71, Col: 70}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
@@ -344,15 +342,8 @@ func orgListRow(e view.OrgListEntry, viewerUsername string) templ.Component {
 	})
 }
 
-func memberCountLabel(n int) string {
-	if n == 1 {
-		return "1 member"
-	}
-	return strconv.Itoa(n) + " members"
-}
-
 func orgRowSubtitle(e view.OrgListEntry) string {
-	base := memberCountLabel(e.MemberCount)
+	base := components.Count(e.MemberCount, "member", "members")
 	if e.Org.DisplayName != "" {
 		return e.Org.DisplayName + " · " + base
 	}

@@ -27,7 +27,7 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
 		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: "Danger zone"})
-		items = append(items, components.SettingsSidebarItem{Label: "Transfer Ownership", Href: "#transfer", Key: "transfer", Danger: true})
+		items = append(items, components.SettingsSidebarItem{Label: "Transfer ownership", Href: "#transfer", Key: "transfer", Danger: true})
 		items = append(items, components.SettingsSidebarItem{Label: "Delete repository", Href: "#delete", Key: "delete", Danger: true})
 	}
 	return items
@@ -247,7 +247,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 						@components.CardHeader() {
 							<div class="flex items-start justify-between gap-4">
 								<div class="min-w-0">
-									<h2 class="text-base font-semibold tracking-tight">Deploy Keys</h2>
+									<h2 class="text-base font-semibold tracking-tight">Deploy keys</h2>
 									@components.CardDescription() {
 										SSH keys that grant CI/CD pipelines access to this repository.
 									}
@@ -290,7 +290,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										})
 									</div>
 									<div class="space-y-1.5">
-										<label for="deploy-key-public" class="block text-xs font-medium">Public Key</label>
+										<label for="deploy-key-public" class="block text-xs font-medium">Public key</label>
 										@components.Textarea(templ.Attributes{
 											"id":          "deploy-key-public",
 											"name":        "public_key",
@@ -312,7 +312,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 									Cancel
 								}
 								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "deploy-key-form"}) {
-									Add Deploy Key
+									Add deploy key
 								}
 							}
 						}
@@ -395,7 +395,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 						@components.CardHeader() {
 							<div class="flex items-start justify-between gap-4">
 								<div class="min-w-0">
-									<h2 class="text-base font-semibold tracking-tight">Branch Protection</h2>
+									<h2 class="text-base font-semibold tracking-tight">Branch protection</h2>
 									@components.CardDescription() {
 										Protect branches by requiring reviews, status checks, or blocking force pushes.
 									}
@@ -427,7 +427,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 							@components.DialogBody() {
 								<form id="protection-rule-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections" } hx-target="#branch-protections" hx-swap="outerHTML" hx-on::after:request="if(ctx.response.status<400){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Protection rule added'}}));}" class="space-y-4">
 									<div class="space-y-1.5">
-										<label for="bp-pattern" class="block text-xs font-medium">Branch Pattern</label>
+										<label for="bp-pattern" class="block text-xs font-medium">Branch pattern</label>
 										@components.Input(templ.Attributes{
 											"id":          "bp-pattern",
 											"type":        "text",
@@ -437,7 +437,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										})
 									</div>
 									<div class="space-y-1.5">
-										<label for="bp-review-count" class="block text-xs font-medium">Required Approvals</label>
+										<label for="bp-review-count" class="block text-xs font-medium">Required approvals</label>
 										@components.Input(templ.Attributes{
 											"id":    "bp-review-count",
 											"type":  "number",
@@ -447,7 +447,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										})
 									</div>
 									<div class="space-y-1.5">
-										<label for="bp-status-checks" class="block text-xs font-medium">Required Status Checks (comma-separated)</label>
+										<label for="bp-status-checks" class="block text-xs font-medium">Required status checks (comma-separated)</label>
 										@components.Input(templ.Attributes{
 											"id":          "bp-status-checks",
 											"type":        "text",
@@ -473,7 +473,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 									Cancel
 								}
 								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "protection-rule-form"}) {
-									Add Rule
+									Add rule
 								}
 							}
 						}
@@ -523,7 +523,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								Cancel
 							}
 							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "webhook-form"}) {
-								Add Webhook
+								Add webhook
 							}
 						}
 					}
@@ -558,7 +558,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 						<!-- Template repository section -->
 						@components.Card(nil) {
 							@components.CardHeader() {
-								<h2 class="text-base font-semibold tracking-tight">Template Repository</h2>
+								<h2 class="text-base font-semibold tracking-tight">Template repository</h2>
 							}
 							@components.CardContent() {
 								<div class="flex items-center justify-between">
@@ -635,7 +635,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 						<div id="transfer" class="scroll-mt-6"></div>
 						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
 							@components.CardHeader() {
-								<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
+								<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer ownership</h2>
 								@components.CardDescription() {
 									Transfer this repository to another user, who has { transferTTLDays() } days to accept it, or at once to an organization you own. You keep owner access only if the new owner is you or an organization you own.
 								}

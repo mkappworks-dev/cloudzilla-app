@@ -207,8 +207,7 @@
 
   var footer =
     '<footer role="contentinfo" class="mt-20 w-full max-w-[1400px] mx-auto px-6 text-[11px] text-muted-foreground">' +
-    '<div class="border-t border-border py-6 flex items-center justify-between"><p class="font-mono">cloudzilla / dev ' +
-    '<span aria-hidden="true">·</span> <span aria-hidden="true" class="text-success">●</span> all systems normal</p>' +
+    '<div class="border-t border-border py-6 flex items-center justify-between"><p class="font-mono">cloudzilla / dev</p>' +
     '<nav aria-label="Footer"><ul class="flex gap-4 list-none"><li><a href="' + DOCS_URL + '" class="hover:text-foreground">Docs</a></li>' +
     '<li><a href="' + API_URL + '" class="hover:text-foreground">API</a></li><li><a href="' + CHANGELOG_URL + '" class="hover:text-foreground">Changelog</a></li></ul></nav></div></footer>';
 

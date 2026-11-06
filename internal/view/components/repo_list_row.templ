@@ -70,13 +70,13 @@ templ RepoListRow(d RepoListRowData) {
 				</div>
 				if d.ShowStats {
 					<div class="flex items-center gap-3 text-[12px] shrink-0 text-muted-foreground">
-						<span class="inline-flex items-center gap-1" title={ repoStatTitle(d.Stars, "star") }>
+						<span class="inline-flex items-center gap-1" title={ Count(d.Stars, "star", "stars") }>
 							<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 								<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
 							</svg>
 							{ strconv.Itoa(d.Stars) }
 						</span>
-						<span class="inline-flex items-center gap-1" title={ repoStatTitle(d.Forks, "fork") }>
+						<span class="inline-flex items-center gap-1" title={ Count(d.Forks, "fork", "forks") }>
 							<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 								<circle cx="6" cy="3" r="3"></circle>
 								<circle cx="18" cy="6" r="3"></circle>
@@ -86,7 +86,7 @@ templ RepoListRow(d RepoListRowData) {
 							{ strconv.Itoa(d.Forks) }
 						</span>
 						if d.Commits > 0 {
-							<span class="inline-flex items-center gap-1" title={ repoStatTitle(d.Commits, "commit") }>
+							<span class="inline-flex items-center gap-1" title={ Count(d.Commits, "commit", "commits") }>
 								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 									<circle cx="12" cy="12" r="3"></circle>
 									<line x1="3" y1="12" x2="9" y2="12"></line>
@@ -123,9 +123,3 @@ func repoLabelClass(variant string) string {
 	return "bg-muted text-muted-foreground border-border"
 }
 
-func repoStatTitle(n int, noun string) string {
-	if n == 1 {
-		return "1 " + noun
-	}
-	return strconv.Itoa(n) + " " + noun + "s"
-}

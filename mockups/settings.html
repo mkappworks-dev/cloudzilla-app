@@ -39,7 +39,7 @@
 <li><a href="#template" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Template</a></li>
 <li role="presentation" aria-hidden="true"><p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-destructive">Danger zone</p></li>
 <li><a href="#archive" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Archive</a></li>
-<li><a href="#transfer" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Transfer Ownership</a></li>
+<li><a href="#transfer" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Transfer ownership</a></li>
 <li><a href="#delete" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Delete repository</a></li>
           </ul>
         </nav>
@@ -214,7 +214,7 @@
   <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">
-        <h2 class="text-base font-semibold tracking-tight">Deploy Keys</h2>
+        <h2 class="text-base font-semibold tracking-tight">Deploy keys</h2>
         <p class="text-[12px] text-muted-foreground">SSH keys that grant CI/CD pipelines access to this repository.</p>
       </div>
       <button type="button" onclick="document.getElementById('deploy-key-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add deploy key</button>
@@ -305,7 +305,7 @@
   <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">
-        <h2 class="text-base font-semibold tracking-tight">Branch Protection</h2>
+        <h2 class="text-base font-semibold tracking-tight">Branch protection</h2>
         <p class="text-[12px] text-muted-foreground">Protect branches by requiring reviews, status checks, or blocking force pushes.</p>
       </div>
       <button type="button" onclick="document.getElementById('protection-rule-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add rule</button>
@@ -405,7 +405,7 @@
 <div id="template" class="scroll-mt-6"></div>
 <div class="rounded-lg border border-border bg-card text-card-foreground">
   <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
-    <h2 class="text-base font-semibold tracking-tight">Template Repository</h2>
+    <h2 class="text-base font-semibold tracking-tight">Template repository</h2>
   </div>
   <div class="p-5">
     <div class="flex items-center justify-between">
@@ -432,7 +432,7 @@
 <div id="transfer" class="scroll-mt-6"></div>
 <div class="rounded-lg border border-border bg-card text-card-foreground border-destructive/40">
   <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
-    <h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
+    <h2 class="text-base font-semibold tracking-tight text-destructive">Transfer ownership</h2>
     <p class="text-[12px] text-muted-foreground">Transfer this repository to another user, who has 7 days to accept it, or at once to an organization you own. You keep owner access only if the new owner is you or an organization you own.</p>
   </div>
   <div class="p-5">
@@ -480,7 +480,7 @@
         <input id="deploy-key-title" type="text" name="title" placeholder="e.g., CI server" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
       </div>
       <div class="space-y-1.5">
-        <label for="deploy-key-public" class="block text-xs font-medium">Public Key</label>
+        <label for="deploy-key-public" class="block text-xs font-medium">Public key</label>
         <textarea id="deploy-key-public" name="public_key" placeholder="ssh-ed25519 AAAA..." rows="3" required class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono text-xs"></textarea>
       </div>
       <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
@@ -495,7 +495,7 @@
   </div>
   <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-    <button type="submit" form="deploy-key-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Deploy Key</button>
+    <button type="submit" form="deploy-key-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add deploy key</button>
   </div>
 </dialog>
 
@@ -532,15 +532,15 @@
   <div class="p-5 text-sm">
     <form id="protection-rule-form" class="space-y-4" onsubmit="return false">
       <div class="space-y-1.5">
-        <label for="bp-pattern" class="block text-xs font-medium">Branch Pattern</label>
+        <label for="bp-pattern" class="block text-xs font-medium">Branch pattern</label>
         <input id="bp-pattern" type="text" name="pattern" placeholder="e.g., main or release/*" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
       </div>
       <div class="space-y-1.5">
-        <label for="bp-review-count" class="block text-xs font-medium">Required Approvals</label>
+        <label for="bp-review-count" class="block text-xs font-medium">Required approvals</label>
         <input id="bp-review-count" type="number" name="require_review_count" value="0" min="0" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
       </div>
       <div class="space-y-1.5">
-        <label for="bp-status-checks" class="block text-xs font-medium">Required Status Checks (comma-separated)</label>
+        <label for="bp-status-checks" class="block text-xs font-medium">Required status checks (comma-separated)</label>
         <input id="bp-status-checks" type="text" name="require_status_checks" placeholder="e.g., ci/build,ci/test" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
       </div>
       <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
@@ -558,7 +558,7 @@
   </div>
   <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-    <button type="submit" form="protection-rule-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Rule</button>
+    <button type="submit" form="protection-rule-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add rule</button>
   </div>
 </dialog>
 
@@ -588,7 +588,7 @@
   </div>
   <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-    <button type="submit" form="webhook-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Webhook</button>
+    <button type="submit" form="webhook-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add webhook</button>
   </div>
 </dialog>
 

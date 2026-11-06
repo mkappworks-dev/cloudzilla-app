@@ -678,9 +678,9 @@ func discussionRow(data view.DiscussionsData, d model.Discussion) templ.Componen
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var33 string
-			templ_7745c5c3_Var33, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(len(parts)) + " participants").Resolve(ctx)
+			templ_7745c5c3_Var33, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(len(parts), "participant", "participants")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/discussions.templ`, Line: 167, Col: 92}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/discussions.templ`, Line: 167, Col: 109}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var33)
 			if templ_7745c5c3_Err != nil {
@@ -754,9 +754,9 @@ func discussionRow(data view.DiscussionsData, d model.Discussion) templ.Componen
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var36 string
-		templ_7745c5c3_Var36, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(replyCount) + " replies").Resolve(ctx)
+		templ_7745c5c3_Var36, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(replyCount, "reply", "replies")).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/discussions.templ`, Line: 186, Col: 117}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/discussions.templ`, Line: 186, Col: 128}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var36)
 		if templ_7745c5c3_Err != nil {

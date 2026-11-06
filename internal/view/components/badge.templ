@@ -48,11 +48,11 @@ templ Badge(variant BadgeVariant) {
 templ IssueStateBadge(state string) {
 	if state == "open" {
 		@Badge(BadgeSuccess) {
-			{ state }
+			Open
 		}
 	} else {
 		@Badge(BadgeDestructive) {
-			{ state }
+			Closed
 		}
 	}
 }

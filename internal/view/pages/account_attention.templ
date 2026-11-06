@@ -14,7 +14,7 @@ templ AccountAttention(data view.AttentionData) {
 			<section>
 				<h1 class="text-2xl font-semibold tracking-tight">Needs your attention</h1>
 				if data.Total > 0 {
-					<p class="mt-1 text-[13px] text-muted-foreground">{ strconv.Itoa(data.Total) } { pluralizeAttention(data.Total) } · { attentionSortCaption(data.Sort) }</p>
+					<p class="mt-1 text-[13px] text-muted-foreground">{ strconv.Itoa(data.Total) } { components.Pluralize(data.Total, "item", "items") } · { attentionSortCaption(data.Sort) }</p>
 				}
 			</section>
 			@components.TabBar(attentionKindTabs(data))
@@ -112,9 +112,3 @@ func attentionKindTabs(data view.AttentionData) []components.Tab {
 	return tabs
 }
 
-func pluralizeAttention(n int) string {
-	if n == 1 {
-		return "item"
-	}
-	return "items"
-}

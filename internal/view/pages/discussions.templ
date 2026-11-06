@@ -164,7 +164,7 @@ templ discussionRow(data view.DiscussionsData, d model.Discussion) {
 				</div>
 				<div class="flex items-center gap-3 text-[12px] shrink-0">
 					if len(parts) > 0 {
-						<div class="flex -space-x-1.5" aria-label={ strconv.Itoa(len(parts)) + " participants" }>
+						<div class="flex -space-x-1.5" aria-label={ components.Count(len(parts), "participant", "participants") }>
 							for i, p := range parts {
 								if i < 3 {
 									<span class="rounded-full ring-2 ring-card inline-block">
@@ -183,7 +183,7 @@ templ discussionRow(data view.DiscussionsData, d model.Discussion) {
 							Answered
 						</span>
 					}
-					<span class="text-muted-foreground inline-flex items-center gap-1" title={ strconv.Itoa(replyCount) + " replies" }>
+					<span class="text-muted-foreground inline-flex items-center gap-1" title={ components.Count(replyCount, "reply", "replies") }>
 						<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 							<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path>
 						</svg>

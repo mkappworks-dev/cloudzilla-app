@@ -329,7 +329,7 @@ func Search(data view.SearchData) templ.Component {
 							}
 							return nil
 						})
-						templ_7745c5c3_Err = searchGroup(data, "Pull Requests").Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = searchGroup(data, "Pull requests").Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -480,7 +480,7 @@ func searchTabs(data view.SearchData) []components.Tab {
 		{Label: "Repositories", URL: href("repos"), IsActive: data.Type == "repos", Count: count(len(r.Repos))},
 		{Label: "Organizations", URL: href("orgs"), IsActive: data.Type == "orgs", Count: count(len(r.Orgs))},
 		{Label: "Issues", URL: href("issues"), IsActive: data.Type == "issues", Count: count(len(r.Issues))},
-		{Label: "Pull Requests", URL: href("pulls"), IsActive: data.Type == "pulls", Count: count(len(r.Pulls))},
+		{Label: "Pull requests", URL: href("pulls"), IsActive: data.Type == "pulls", Count: count(len(r.Pulls))},
 		{Label: "Users", URL: href("users"), IsActive: data.Type == "users", Count: count(len(r.Users))},
 	}
 }

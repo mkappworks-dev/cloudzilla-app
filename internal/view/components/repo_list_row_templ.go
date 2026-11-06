@@ -307,9 +307,9 @@ func RepoListRow(d RepoListRowData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var12 string
-			templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression(repoStatTitle(d.Stars, "star")).Resolve(ctx)
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression(Count(d.Stars, "star", "stars")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/repo_list_row.templ`, Line: 73, Col: 89}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/repo_list_row.templ`, Line: 73, Col: 90}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 			if templ_7745c5c3_Err != nil {
@@ -333,9 +333,9 @@ func RepoListRow(d RepoListRowData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.NewAttributeExpression(repoStatTitle(d.Forks, "fork")).Resolve(ctx)
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.NewAttributeExpression(Count(d.Forks, "fork", "forks")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/repo_list_row.templ`, Line: 79, Col: 89}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/repo_list_row.templ`, Line: 79, Col: 90}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 			if templ_7745c5c3_Err != nil {
@@ -364,9 +364,9 @@ func RepoListRow(d RepoListRowData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var16 string
-				templ_7745c5c3_Var16, templ_7745c5c3_Err = templruntime.NewAttributeExpression(repoStatTitle(d.Commits, "commit")).Resolve(ctx)
+				templ_7745c5c3_Var16, templ_7745c5c3_Err = templruntime.NewAttributeExpression(Count(d.Commits, "commit", "commits")).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/repo_list_row.templ`, Line: 89, Col: 94}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/repo_list_row.templ`, Line: 89, Col: 97}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 				if templ_7745c5c3_Err != nil {
@@ -514,13 +514,6 @@ func repoLabelClass(variant string) string {
 		return "bg-warning/15 text-warning border-warning/30"
 	}
 	return "bg-muted text-muted-foreground border-border"
-}
-
-func repoStatTitle(n int, noun string) string {
-	if n == 1 {
-		return "1 " + noun
-	}
-	return strconv.Itoa(n) + " " + noun + "s"
 }
 
 var _ = templruntime.GeneratedTemplate
