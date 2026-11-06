@@ -108,6 +108,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	mergeabilityBox := components.MergeabilityBoxData{
 		PatchURL:   fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
 		BaseBranch: pull.BaseBranch,
+		CanWrite:   canWrite2,
 	}
 	mg, mgErr := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
 	if mgErr != nil {
