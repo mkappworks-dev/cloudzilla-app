@@ -372,3 +372,57 @@ func TestGetUnreadCount_CountsTheCallersUnreadNotifications(t *testing.T) {
 		t.Errorf("response = %d %s; want {\"count\":2}", rr.Code, rr.Body)
 	}
 }
+
+func TestMarkNotificationsDone_ReadsTheWholeThreadRow(t *testing.T) {
+	w := newInboxWorld(t)
+	w.notify(1)
+	shown := w.notify(1)
+	w.notify(2)
+
+	rr := w.do(http.MethodPost, "/api/notifications/done", ids(shown), false)
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("status = %d: %s; want 204", rr.Code, rr.Body)
+	}
+	if got := w.unread(); got != 1 {
+		t.Errorf("unread = %d; want only issue 2's notification left", got)
+	}
+}
+
+func TestMarkNotificationsDone_HTMXKeepsTheReasonFilter(t *testing.T) {
+	w := newInboxWorld(t)
+	first := w.notify(1)
+	w.notify(1)
+	w.notify(2)
+	if err := store.NewThreadSubscriptionStore(w.db).Upsert(w.t.Context(), w.recipient.id, w.repo.id, model.ThreadKindIssue, 1, model.ThreadStateSubscribed, model.ThreadReasonComment); err != nil {
+		t.Fatal(err)
+	}
+
+	rr := w.do(http.MethodPost, "/api/notifications/done?filter=unread&reason=subscribed", ids(first), true)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s; want 200", rr.Code, rr.Body)
+	}
+	body := rr.Body.String()
+	assertContains(t, body, `/api/notifications/done?filter=unread&amp;reason=subscribed`)
+	if n := strings.Count(body, `name="ids"`); n != 1 {
+		t.Errorf("rows = %d; want issue 1's thread only", n)
+	}
+}
+
+func TestNotificationsInbox_OneRowPerThreadWithItsCount(t *testing.T) {
+	w := newInboxWorld(t)
+	w.notify(1)
+	w.notify(1)
+	w.notify(1)
+	w.notify(2)
+
+	rr := w.do(http.MethodPost, "/api/notifications/read-all", nil, true)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s; want 200", rr.Code, rr.Body)
+	}
+	body := rr.Body.String()
+	if n := strings.Count(body, `name="ids"`); n != 2 {
+		t.Errorf("rows = %d; want one per thread (2)", n)
+	}
+	assertContains(t, body, `>3 notifications on this thread<`)
+	assertContains(t, body, `>2</span> threads`)
+}

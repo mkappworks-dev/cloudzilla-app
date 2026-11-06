@@ -252,7 +252,7 @@ func TestNotification_ListPage_ClampsAndCounts(t *testing.T) {
 		t.Fatalf("MarkRead: %v", err)
 	}
 
-	p, err := svc.ListPage(ctx, userID, "inbox", 99)
+	p, err := svc.ListPage(ctx, userID, "inbox", "", 99)
 	if err != nil {
 		t.Fatalf("ListPage: %v", err)
 	}
@@ -263,7 +263,7 @@ func TestNotification_ListPage_ClampsAndCounts(t *testing.T) {
 		t.Errorf("counts = %d/%d/%d", p.InboxCount, p.UnreadCount, p.ReadCount)
 	}
 
-	read, err := svc.ListPage(ctx, userID, "read", 0)
+	read, err := svc.ListPage(ctx, userID, "read", "", 0)
 	if err != nil || read.Page != 1 || read.TotalPages != 1 || len(read.Items) != 1 {
 		t.Errorf("read page = %+v, %v", read, err)
 	}
@@ -351,5 +351,55 @@ func TestNotification_NotifyDiscussionReply_NotifiesDiscussionAuthor(t *testing.
 	}
 	if want := "/" + ownerName + "/testrepo_" + suffix + "/discussions/7"; n.SubjectURL != want {
 		t.Errorf("SubjectURL = %q, want %q", n.SubjectURL, want)
+	}
+}
+
+func TestNotification_ListPage_CountsThreadsAndNormalisesReason(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	actorID := testutil.SeedUser(t, db, "actor_"+suffix)
+	repoID := testutil.SeedRepo(t, db, userID, "testuser_"+suffix, suffix)
+
+	notifStore := store.NewNotificationStore(db)
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
+		service.NewEmailService(config.SMTPConfig{}),
+		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
+	)
+	ctx := context.Background()
+	notify := func(typ model.NotificationType, number int64) int64 {
+		n := &model.Notification{
+			UserID: userID, ActorID: actorID, ActorName: "a", Type: typ, RepoID: repoID, RepoName: suffix,
+			OwnerName: "testuser_" + suffix, SubjectID: number, SubjectKind: model.ThreadKindIssue,
+		}
+		if err := notifStore.Create(ctx, n); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+		return n.ID
+	}
+	first := notify(model.NotifIssueComment, 1)
+	notify(model.NotifIssueComment, 1)
+	notify(model.NotifMention, 2)
+	if err := svc.MarkRead(ctx, first, userID); err != nil {
+		t.Fatalf("MarkRead: %v", err)
+	}
+
+	p, err := svc.ListPage(ctx, userID, "inbox", "bogus", 1)
+	if err != nil {
+		t.Fatalf("ListPage: %v", err)
+	}
+	if p.Reason != "" || p.Total != 2 || len(p.Items) != 2 {
+		t.Errorf("bogus reason = %q, total %d, %d items; want any reason, 2 threads", p.Reason, p.Total, len(p.Items))
+	}
+	if p.InboxCount != 2 || p.UnreadCount != 2 || p.ReadCount != 1 {
+		t.Errorf("counts = %d/%d/%d; want threads 2/2/1", p.InboxCount, p.UnreadCount, p.ReadCount)
+	}
+
+	m, err := svc.ListPage(ctx, userID, "unread", store.NotifReasonMention, 1)
+	if err != nil {
+		t.Fatalf("ListPage(mention): %v", err)
+	}
+	if m.Reason != store.NotifReasonMention || m.Total != 1 || m.InboxCount != 1 || m.ReadCount != 0 {
+		t.Errorf("mention page = %+v; the sidebar counts follow the reason", m)
 	}
 }

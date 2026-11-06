@@ -51,3 +51,11 @@ type Notification struct {
 	Read        bool      `db:"read"        json:"read"`
 	CreatedAt   time.Time `db:"created_at"  json:"created_at"`
 }
+
+// NotificationGroup is one inbox row: the newest of a user's notifications on one thread. A
+// notification with no SubjectKind names no thread and is a group of its own.
+type NotificationGroup struct {
+	Notification
+	Count  int // notifications in the group
+	Unread int
+}

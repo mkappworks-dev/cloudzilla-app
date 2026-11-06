@@ -184,37 +184,12 @@ func TestNotificationStore_SubjectTitle_RoundTrips(t *testing.T) {
 	if err := ns.Create(ctx, n); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	got, err := ns.ListPage(ctx, userID, store.NotifFilterInbox, 10, 0)
+	got, err := ns.ListThreadPage(ctx, userID, store.NotifFilterInbox, "", 10, 0)
 	if err != nil || len(got) != 1 {
-		t.Fatalf("ListPage: %v, %d rows", err, len(got))
+		t.Fatalf("ListThreadPage: %v, %d rows", err, len(got))
 	}
 	if got[0].SubjectTitle != "Fix the flaky test" {
 		t.Errorf("SubjectTitle = %q", got[0].SubjectTitle)
-	}
-}
-
-func TestNotificationStore_MarkReadMany_OnlyOwn(t *testing.T) {
-	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
-	ctx := context.Background()
-
-	mine := makeNotif(userID, actorID, repoID, owner, repo)
-	theirs := makeNotif(actorID, userID, repoID, owner, repo)
-	for _, n := range []*model.Notification{mine, theirs} {
-		if err := ns.Create(ctx, n); err != nil {
-			t.Fatalf("Create: %v", err)
-		}
-	}
-	if err := ns.MarkReadMany(ctx, userID, []int64{mine.ID, theirs.ID}); err != nil {
-		t.Fatalf("MarkReadMany: %v", err)
-	}
-	if n, _ := ns.CountUnread(ctx, userID); n != 0 {
-		t.Errorf("own unread = %d, want 0", n)
-	}
-	if n, _ := ns.CountUnread(ctx, actorID); n != 1 {
-		t.Errorf("other user's unread = %d, want 1 (untouched)", n)
-	}
-	if err := ns.MarkReadMany(ctx, userID, nil); err != nil {
-		t.Errorf("empty ids: %v", err)
 	}
 }
 
@@ -308,44 +283,200 @@ func TestNotificationStore_MarkThreadsRead_CoversUnselectedSiblingsOnly(t *testi
 	}
 }
 
-func TestNotificationStore_ListPage_FilterAndOffset(t *testing.T) {
+func TestNotificationStore_ListThreadPage_OneRowPerThreadNewestFirst(t *testing.T) {
 	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
 	ctx := context.Background()
 
-	var ids []int64
-	for i := 1; i <= 5; i++ {
-		n := makeNotif(userID, actorID, repoID, owner, repo)
-		n.SubjectID = int64(i)
+	mk := func(user int64, kind string, number int64) *model.Notification {
+		n := makeNotif(user, actorID, repoID, owner, repo)
+		n.SubjectKind, n.SubjectID = kind, number
 		if err := ns.Create(ctx, n); err != nil {
 			t.Fatalf("Create: %v", err)
 		}
-		ids = append(ids, n.ID)
+		return n
 	}
-	if err := ns.MarkRead(ctx, ids[0], userID); err != nil {
+	issue1a := mk(userID, model.ThreadKindIssue, 1)
+	pull1 := mk(userID, model.ThreadKindPull, 1)
+	soloA := mk(userID, "", 5)
+	soloB := mk(userID, "", 5)
+	issue1b := mk(userID, model.ThreadKindIssue, 1)
+	mk(actorID, model.ThreadKindIssue, 1)
+	if err := ns.MarkRead(ctx, issue1a.ID, userID); err != nil {
 		t.Fatalf("MarkRead: %v", err)
 	}
 
-	for _, tc := range []struct {
-		filter string
-		want   int
-	}{
-		{store.NotifFilterInbox, 5},
-		{store.NotifFilterUnread, 4},
-		{store.NotifFilterRead, 1},
-		{"bogus", 5},
-	} {
-		got, err := ns.CountByFilter(ctx, userID, tc.filter)
-		if err != nil || got != tc.want {
-			t.Errorf("CountByFilter(%q) = %d, %v; want %d", tc.filter, got, err, tc.want)
-		}
+	got, err := ns.ListThreadPage(ctx, userID, store.NotifFilterInbox, "", 10, 0)
+	if err != nil {
+		t.Fatalf("ListThreadPage: %v", err)
+	}
+	type row struct {
+		id            int64
+		count, unread int
+	}
+	var rows []row
+	for _, g := range got {
+		rows = append(rows, row{g.ID, g.Count, g.Unread})
+	}
+	// Rows without a thread never merge, even with the same number.
+	want := []row{{issue1b.ID, 2, 1}, {soloB.ID, 1, 1}, {soloA.ID, 1, 1}, {pull1.ID, 1, 1}}
+	if !slices.Equal(rows, want) {
+		t.Errorf("groups = %+v, want %+v", rows, want)
 	}
 
-	page2, err := ns.ListPage(ctx, userID, store.NotifFilterInbox, 2, 2)
-	if err != nil {
-		t.Fatalf("ListPage: %v", err)
+	if n, err := ns.CountThreads(ctx, userID, store.NotifFilterInbox, ""); err != nil || n != 4 {
+		t.Errorf("CountThreads(inbox) = %d, %v; want 4", n, err)
 	}
-	// Newest first: ids[4], ids[3] | ids[2], ids[1] | ids[0].
-	if len(page2) != 2 || page2[0].ID != ids[2] || page2[1].ID != ids[1] {
-		t.Errorf("page 2 = %+v; want ids %d, %d", page2, ids[2], ids[1])
+
+	page2, err := ns.ListThreadPage(ctx, userID, store.NotifFilterInbox, "", 2, 2)
+	if err != nil || len(page2) != 2 || page2[0].ID != soloA.ID || page2[1].ID != pull1.ID {
+		t.Errorf("page 2 = %+v, %v; want soloA, pull1", page2, err)
+	}
+
+	read, err := ns.ListThreadPage(ctx, userID, store.NotifFilterRead, "", 10, 0)
+	if err != nil || len(read) != 1 || read[0].ID != issue1a.ID || read[0].Count != 1 {
+		t.Errorf("read groups = %+v, %v; want only issue1a, counting its read notification", read, err)
+	}
+	if n, _ := ns.CountThreads(ctx, userID, store.NotifFilterUnread, ""); n != 4 {
+		t.Errorf("CountThreads(unread) = %d; want 4", n)
+	}
+}
+
+func TestNotificationStore_ListThreadPage_Reasons(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	actorID := testutil.SeedUser(t, db, "actor_nr_"+suffix)
+	owner, repo := "testuser_"+suffix, "testrepo_"+suffix
+	repoID := testutil.SeedRepo(t, db, userID, owner, suffix)
+	ns := store.NewNotificationStore(db)
+	ctx := context.Background()
+
+	issue := func() *model.Issue {
+		i := &model.Issue{RepoID: repoID, AuthorID: actorID, Title: "i", State: model.IssueStateOpen}
+		if err := store.NewIssueStore(db).Create(ctx, i); err != nil {
+			t.Fatalf("issue: %v", err)
+		}
+		return i
+	}
+	pull := func() *model.PullRequest {
+		p := &model.PullRequest{RepoID: repoID, AuthorID: actorID, Title: "p", State: model.PRStateOpen, HeadBranch: "h", BaseBranch: "main"}
+		if err := store.NewPullStore(db).Create(ctx, p); err != nil {
+			t.Fatalf("pull: %v", err)
+		}
+		return p
+	}
+	notify := func(typ model.NotificationType, kind string, number int) int64 {
+		n := makeNotif(userID, actorID, repoID, owner, repo)
+		n.Type, n.SubjectKind, n.SubjectID = typ, kind, int64(number)
+		if err := ns.Create(ctx, n); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		return n.ID
+	}
+
+	assignedIssue, assignedPull, otherIssue := issue(), pull(), issue()
+	if err := store.NewAssigneeStore(db).AddToIssue(ctx, assignedIssue.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.NewAssigneeStore(db).AddToPull(ctx, assignedPull.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+	requested, reviewed := pull(), pull()
+	reviews := store.NewPullReviewStore(db)
+	if err := reviews.RequestReview(ctx, requested.ID, repoID, userID, "u"); err != nil {
+		t.Fatal(err)
+	}
+	if err := reviews.Upsert(ctx, &model.PullReview{PullID: reviewed.ID, RepoID: repoID, AuthorID: userID, State: model.PRReviewApproved}); err != nil {
+		t.Fatal(err)
+	}
+	subs := store.NewThreadSubscriptionStore(db)
+	if err := subs.Upsert(ctx, userID, repoID, model.ThreadKindIssue, int64(otherIssue.Number), model.ThreadStateSubscribed, model.ThreadReasonComment); err != nil {
+		t.Fatal(err)
+	}
+	if err := subs.Upsert(ctx, userID, repoID, model.ThreadKindPull, int64(reviewed.Number), model.ThreadStateMuted, model.ThreadReasonManual); err != nil {
+		t.Fatal(err)
+	}
+
+	assignedIssueN := notify(model.NotifIssueComment, model.ThreadKindIssue, assignedIssue.Number)
+	assignedPullN := notify(model.NotifPRComment, model.ThreadKindPull, assignedPull.Number)
+	// An issue and a pull share numbers; only the pull is requested.
+	notify(model.NotifIssueComment, model.ThreadKindIssue, requested.Number)
+	requestedN := notify(model.NotifPRComment, model.ThreadKindPull, requested.Number)
+	notify(model.NotifPRComment, model.ThreadKindPull, reviewed.Number)
+	notify(model.NotifIssueComment, model.ThreadKindIssue, otherIssue.Number)
+	mentionN := notify(model.NotifMention, model.ThreadKindIssue, otherIssue.Number)
+	strayMentionN := notify(model.NotifMention, "", 99)
+
+	for _, tc := range []struct {
+		reason string
+		want   []int64
+	}{
+		{store.NotifReasonMention, []int64{strayMentionN, mentionN}},
+		{store.NotifReasonReviewRequested, []int64{requestedN}},
+		{store.NotifReasonAssigned, []int64{assignedPullN, assignedIssueN}},
+		{store.NotifReasonSubscribed, []int64{mentionN}},
+	} {
+		got, err := ns.ListThreadPage(ctx, userID, store.NotifFilterInbox, tc.reason, 10, 0)
+		if err != nil {
+			t.Fatalf("ListThreadPage(%s): %v", tc.reason, err)
+		}
+		var gotIDs []int64
+		for _, g := range got {
+			gotIDs = append(gotIDs, g.ID)
+		}
+		if !slices.Equal(gotIDs, tc.want) {
+			t.Errorf("reason %s = %v, want %v", tc.reason, gotIDs, tc.want)
+		}
+		if n, err := ns.CountThreads(ctx, userID, store.NotifFilterInbox, tc.reason); err != nil || n != len(tc.want) {
+			t.Errorf("CountThreads(%s) = %d, %v; want %d", tc.reason, n, err, len(tc.want))
+		}
+	}
+}
+
+func TestNotificationStore_MarkDone_ReadsTheThreadUpToTheSelectedRow(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+
+	mk := func(user int64, kind string, number int64) *model.Notification {
+		n := makeNotif(user, actorID, repoID, owner, repo)
+		n.SubjectKind, n.SubjectID = kind, number
+		if err := ns.Create(ctx, n); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		return n
+	}
+	older := mk(userID, model.ThreadKindIssue, 1)
+	selected := mk(userID, model.ThreadKindIssue, 1)
+	otherThread := mk(userID, model.ThreadKindIssue, 2)
+	solo := mk(userID, "", 1)
+	otherSolo := mk(userID, "", 1)
+	theirs := mk(actorID, model.ThreadKindIssue, 1)
+	newer := mk(userID, model.ThreadKindIssue, 1)
+	outOfOrder := mk(userID, model.ThreadKindIssue, 1)
+	if _, err := testutil.OpenTestDB(t).ExecContext(ctx, `UPDATE notifications SET created_at = CASE id WHEN $1 THEN '2020-01-01'::timestamptz WHEN $2 THEN '2021-01-01'::timestamptz WHEN $3 THEN '2022-01-01'::timestamptz WHEN $4 THEN '2019-01-01'::timestamptz END WHERE id IN ($1,$2,$3,$4)`, older.ID, selected.ID, newer.ID, outOfOrder.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ns.MarkDone(ctx, userID, []int64{selected.ID, solo.ID, theirs.ID}); err != nil {
+		t.Fatalf("MarkDone: %v", err)
+	}
+	unread, err := ns.ListUnreadReadable(ctx, userID)
+	if err != nil {
+		t.Fatalf("ListUnreadReadable: %v", err)
+	}
+	var left []int64
+	for _, n := range unread {
+		left = append(left, n.ID)
+	}
+	slices.Sort(left)
+	want := []int64{otherThread.ID, otherSolo.ID, newer.ID}
+	if !slices.Equal(left, want) {
+		t.Errorf("unread after = %v, want %v: the selected rows and their threads' older notifications become read (older=%d)", left, want, older.ID)
+	}
+	if n, _ := ns.CountUnread(ctx, actorID); n != 1 {
+		t.Errorf("other user's unread = %d, want 1 (untouched)", n)
+	}
+	if err := ns.MarkDone(ctx, userID, nil); err != nil {
+		t.Errorf("empty ids: %v", err)
 	}
 }

@@ -11,7 +11,7 @@ import (
 
 const notificationCols = `id, user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, subject_title, COALESCE(subject_kind, ''), read, created_at`
 
-// Inbox filters for ListPage and CountByFilter.
+// Inbox filters for ListThreadPage and CountThreads.
 const (
 	NotifFilterInbox  = "inbox"
 	NotifFilterUnread = "unread"
@@ -25,6 +25,40 @@ func filterClause(filter string) string {
 		return " AND read = FALSE"
 	case NotifFilterRead:
 		return " AND read = TRUE"
+	}
+	return ""
+}
+
+// Inbox reasons for ListThreadPage and CountThreads; empty means any.
+const (
+	NotifReasonMention         = "mention"
+	NotifReasonReviewRequested = "review_requested"
+	NotifReasonAssigned        = "assigned"
+	NotifReasonSubscribed      = "subscribed"
+)
+
+// reasonClause returns a fixed SQL fragment on alias n, never one built from input; an unknown
+// reason means any. Mention is a property of the notification; the others are the user's standing
+// on the thread now, not when the notification was sent.
+func reasonClause(reason string) string {
+	switch reason {
+	case NotifReasonMention:
+		return ` AND n.type = 'mention'`
+	case NotifReasonReviewRequested:
+		return ` AND n.subject_kind = 'pull' AND EXISTS (SELECT 1 FROM pull_requests p
+		   JOIN pull_reviews rv ON rv.pull_id = p.id AND rv.author_id = n.user_id AND rv.state = 'pending'
+		   WHERE p.repo_id = n.repo_id AND p.number = n.subject_id)`
+	case NotifReasonAssigned:
+		return ` AND (n.subject_kind = 'issue' AND EXISTS (SELECT 1 FROM issues i
+		   JOIN issue_assignees a ON a.issue_id = i.id AND a.user_id = n.user_id
+		   WHERE i.repo_id = n.repo_id AND i.number = n.subject_id)
+		 OR n.subject_kind = 'pull' AND EXISTS (SELECT 1 FROM pull_requests p
+		   JOIN pull_assignees a ON a.pull_id = p.id AND a.user_id = n.user_id
+		   WHERE p.repo_id = n.repo_id AND p.number = n.subject_id))`
+	case NotifReasonSubscribed:
+		return ` AND EXISTS (SELECT 1 FROM thread_subscriptions ts
+		   WHERE ts.user_id = n.user_id AND ts.repo_id = n.repo_id AND ts.kind = n.subject_kind
+		     AND ts.number = n.subject_id AND ts.state = 'subscribed')`
 	}
 	return ""
 }
@@ -125,41 +159,6 @@ func (s *NotificationStore) MarkAllRead(ctx context.Context, userID int64) error
 	return err
 }
 
-// ListPage returns one page of userID's notifications, newest first. The id tiebreaker keeps
-// rows that share a timestamp from straddling or repeating across pages.
-func (s *NotificationStore) ListPage(ctx context.Context, userID int64, filter string, limit, offset int) ([]model.Notification, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT `+notificationCols+` FROM notifications WHERE user_id = $1`+filterClause(filter)+`
-		 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`,
-		userID, limit, offset,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("notification list page: %w", err)
-	}
-	defer rows.Close()
-	var notifs []model.Notification
-	for rows.Next() {
-		var n model.Notification
-		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.SubjectTitle, &n.SubjectKind, &n.Read, &n.CreatedAt); err != nil {
-			return nil, err
-		}
-		notifs = append(notifs, n)
-	}
-	return notifs, rows.Err()
-}
-
-func (s *NotificationStore) CountByFilter(ctx context.Context, userID int64, filter string) (int, error) {
-	var count int
-	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM notifications WHERE user_id = $1`+filterClause(filter),
-		userID,
-	).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("notification count by filter: %w", err)
-	}
-	return count, nil
-}
-
 // inPlaceholders returns "$start,$start+1,..." for ids and the ids as query args.
 func inPlaceholders(start int, ids []int64) (string, []any) {
 	ph := make([]string, len(ids))
@@ -171,17 +170,27 @@ func inPlaceholders(start int, ids []int64) (string, []any) {
 	return strings.Join(ph, ","), args
 }
 
-// MarkReadMany marks the given notifications read; ids that belong to another user are ignored.
-func (s *NotificationStore) MarkReadMany(ctx context.Context, userID int64, ids []int64) error {
+// MarkDone marks read the given notifications and, for each that names a thread, the thread's older
+// ones: the group its inbox row stood for. A newer notification, which arrived after the row was
+// shown, stays unread. Ids that belong to another user are ignored.
+func (s *NotificationStore) MarkDone(ctx context.Context, userID int64, ids []int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
 	ph, args := inPlaceholders(2, ids)
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE notifications SET read = TRUE WHERE user_id = $1 AND id IN (`+ph+`)`,
+		`UPDATE notifications n SET read = TRUE
+		 WHERE n.user_id = $1 AND n.read = FALSE AND EXISTS (
+		   SELECT 1 FROM notifications sel
+		   WHERE sel.user_id = $1 AND sel.id IN (`+ph+`) AND (sel.id = n.id
+		     OR sel.subject_kind IS NOT NULL AND (n.created_at, n.id) < (sel.created_at, sel.id)
+		       AND sel.repo_id = n.repo_id AND sel.subject_kind = n.subject_kind AND sel.subject_id = n.subject_id))`,
 		append([]any{userID}, args...)...,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("notification mark done: %w", err)
+	}
+	return nil
 }
 
 // NotificationThread identifies the issue, pull request or discussion a notification is about.
@@ -238,4 +247,53 @@ func (s *NotificationStore) MarkThreadsRead(ctx context.Context, userID int64, i
 		return fmt.Errorf("notification mark threads read: %w", err)
 	}
 	return nil
+}
+
+// threadRows selects userID's notifications matching filter and reason, with solo set to the id of
+// a row that names no thread so it never merges with another.
+func threadRows(filter, reason string) string {
+	return `SELECT n.*, CASE WHEN n.subject_kind IS NULL THEN n.id END AS solo
+		FROM notifications n WHERE n.user_id = $1` + filterClause(filter) + reasonClause(reason)
+}
+
+// ListThreadPage returns one page of userID's notification groups, newest first. Filter and reason
+// pick the notifications before grouping, so a group counts only its matching ones.
+func (s *NotificationStore) ListThreadPage(ctx context.Context, userID int64, filter, reason string, limit, offset int) ([]model.NotificationGroup, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+notificationCols+`, count, unread FROM (
+		   SELECT DISTINCT ON (repo_id, subject_kind, subject_id, solo) *,
+		     COUNT(*) OVER w AS count, COUNT(*) FILTER (WHERE NOT read) OVER w AS unread
+		   FROM (`+threadRows(filter, reason)+`) t
+		   WINDOW w AS (PARTITION BY repo_id, subject_kind, subject_id, solo)
+		   ORDER BY repo_id, subject_kind, subject_id, solo, created_at DESC, id DESC
+		 ) g
+		 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`,
+		userID, limit, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("notification list thread page: %w", err)
+	}
+	defer rows.Close()
+	var groups []model.NotificationGroup
+	for rows.Next() {
+		var g model.NotificationGroup
+		if err := rows.Scan(&g.ID, &g.UserID, &g.ActorID, &g.ActorName, &g.Type, &g.RepoID, &g.RepoName, &g.OwnerName, &g.SubjectID, &g.SubjectURL, &g.SubjectTitle, &g.SubjectKind, &g.Read, &g.CreatedAt, &g.Count, &g.Unread); err != nil {
+			return nil, fmt.Errorf("notification list thread page: scan: %w", err)
+		}
+		groups = append(groups, g)
+	}
+	return groups, rows.Err()
+}
+
+// CountThreads counts the groups ListThreadPage pages through.
+func (s *NotificationStore) CountThreads(ctx context.Context, userID int64, filter, reason string) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM (SELECT DISTINCT repo_id, subject_kind, subject_id, solo FROM (`+threadRows(filter, reason)+`) t) g`,
+		userID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("notification count threads: %w", err)
+	}
+	return count, nil
 }

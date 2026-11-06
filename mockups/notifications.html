@@ -26,9 +26,11 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
         <span>Notification settings</span>
       </a>
+      <button type="button" id="shortcuts-open" class="mt-0.5 w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent" aria-keyshortcuts="?"><span class="flex-1 text-left">Keyboard shortcuts</span><kbd class="font-mono text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">?</kbd></button>
     </aside>
 
     <div class="min-w-0">
+      <nav id="reasons" class="mb-3 flex flex-wrap items-center gap-1.5" aria-label="Filter by reason"></nav>
       <form id="notifications-form" onsubmit="return false" class="border border-border rounded-md bg-card overflow-hidden" aria-label="Notifications">
         <div id="bar-idle" class="flex items-center gap-3 px-4 min-h-[45px] border-b border-border bg-muted/40 text-[12px] text-muted-foreground">
           <input type="checkbox" id="select-all-idle" class="shrink-0 size-[15px] accent-primary cursor-pointer" aria-label="Select all notifications on this page"/>
@@ -70,6 +72,7 @@
   </div>
 </main>
 
+<dialog id="notif-shortcuts" class="rounded-md border border-border bg-card text-foreground p-6"><h2 class="font-semibold">Keyboard shortcuts</h2><dl class="flex flex-col gap-2 mt-4"><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Next notification</dt><dd><kbd class="font-mono text-[11px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">j</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Previous notification</dt><dd><kbd class="font-mono text-[11px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">k</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Open the thread</dt><dd><kbd class="font-mono text-[11px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">Enter</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Select or deselect</dt><dd><kbd class="font-mono text-[11px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">x</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Mark as done</dt><dd><kbd class="font-mono text-[11px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">e</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Show these shortcuts</dt><dd><kbd class="font-mono text-[11px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">?</kbd></dd></div></dl><form method="dialog" class="mt-4"><button>Close</button></form></dialog>
 <div id="cz-footer"></div>
 
 <script>
@@ -97,11 +100,12 @@
     { id: 7, repo: 'openforge/runner', type: 'issue', title: 'Runner leaks tmp dirs', text: '@kiyo closed issue #41', by: 'kiyo', when: 'Nov 2', read: true, thread: true },
     { id: 8, repo: 'stitch-labs/loom', type: 'discussion', title: 'Roadmap for 0.4', text: '@yumi replied in a discussion', by: 'yumi', when: 'Nov 1', read: true, thread: true }
   ];
-  var filter = 'inbox', selected = {};
+  var filter = 'inbox', reason = '', selected = {};
+  N[0].count = 3; N[1].count = 2; N[0].reasons = ['review_requested', 'subscribed']; N[1].reasons = ['mention', 'assigned']; N[3].reasons = ['assigned', 'subscribed'];
   var NAV = 'flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent';
 
-  function visible() { return N.filter(function (n) { return filter === 'inbox' || (filter === 'unread') === !n.read; }); }
-  function count(f) { return N.filter(function (n) { return f === 'inbox' || (f === 'unread') === !n.read; }).length; }
+  function visible() { return N.filter(function (n) { return (filter === 'inbox' || (filter === 'unread') === !n.read) && (!reason || (n.reasons || []).indexOf(reason) >= 0); }); }
+  function count(f) { return N.filter(function (n) { return (f === 'inbox' || (f === 'unread') === !n.read) && (!reason || (n.reasons || []).indexOf(reason) >= 0); }).length; }
 
   function row(n) {
     var title = n.title
@@ -117,13 +121,15 @@
       (n.read ? '<span class="shrink-0 w-[7px] h-[7px] rounded-full border border-border" aria-hidden="true"></span>' : '<span class="shrink-0 w-[7px] h-[7px] rounded-full bg-primary" aria-label="Unread"></span>') +
       '<input type="checkbox" name="ids" value="' + n.id + '" class="shrink-0 size-[15px] accent-primary cursor-pointer" aria-label="Select notification"' + (selected[n.id] ? ' checked' : '') + '/>' + box +
       '<a href="' + (n.type === 'review' || n.type === 'merged' ? 'pr.html' : 'issue_detail.html') + '" class="min-w-0 flex-1 truncate">' + title + '</a>' +
-      '<div class="group/right relative shrink-0 w-[150px] h-7 flex items-center justify-end gap-3"><span class="relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[10px] font-medium" aria-hidden="true">' + n.by[0].toUpperCase() + '</span>' +
+      (n.count > 1 ? '<span class="shrink-0 h-5 min-w-5 px-1.5 grid place-items-center rounded-full border border-border bg-muted font-mono text-[11px] text-muted-foreground" title="' + n.count + ' notifications on this thread">' + n.count + '</span>' : '') + '<div class="group/right relative shrink-0 w-[150px] h-7 flex items-center justify-end gap-3"><span class="relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[10px] font-medium" aria-hidden="true">' + n.by[0].toUpperCase() + '</span>' +
       '<time class="w-16 text-right text-[12px] text-muted-foreground group-hover:invisible group-has-[:focus-visible]/right:invisible">' + n.when + '</time>' +
       '<div class="absolute right-0 top-0 h-7 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100">' + done + mute + '</div></div></div></li>';
   }
 
   function render() {
     var rows = visible(), seen = [], html = '';
+    document.getElementById('reasons').innerHTML = [['', 'All'], ['mention', 'Mentions'], ['review_requested', 'Review requested'], ['assigned', 'Assigned'], ['subscribed', 'Subscribed']].map(function (r) { return '<a href="#" data-reason="' + r[0] + '" class="h-7 px-3 inline-flex items-center rounded-full border text-[12px] transition-colors ' + (reason === r[0] ? 'border-primary/40 bg-primary/10 text-foreground font-medium' : 'border-border bg-card text-muted-foreground hover:text-foreground hover:bg-accent') + '">' + r[1] + '</a>'; }).join('');
+    document.getElementById('mark-all').hidden = !!reason;
     rows.forEach(function (n) { if (seen.indexOf(n.repo) < 0) seen.push(n.repo); });
     seen.forEach(function (repo) {
       html += '<h2 class="px-4 py-2 text-[13px] font-semibold font-mono bg-muted/40 border-b border-border">' + repo + '</h2><ol>' + rows.filter(function (n) { return n.repo === repo; }).map(row).join('') + '</ol>';
@@ -161,7 +167,7 @@
   });
   document.getElementById('groups').addEventListener('click', function (e) {
     var d = e.target.closest('[data-done]'), m = e.target.closest('[data-mute]');
-    if (d) { byId(d.dataset.done).read = true; render(); }
+    if (d) { var index = Array.from(document.querySelectorAll('#groups li')).indexOf(d.closest('li')); byId(d.dataset.done).read = true; render(); var rows = document.querySelectorAll('#groups li'); if (rows.length) rows[Math.min(index, rows.length - 1)].querySelector('a').focus(); }
     if (m) drop([+m.dataset.mute]);
   });
   function selectAll(on) { visible().forEach(function (n) { selected[n.id] = on; }); render(); }
@@ -170,6 +176,10 @@
   document.getElementById('mark-all').addEventListener('click', function () { N.forEach(function (n) { n.read = true; }); render(); });
   document.getElementById('bulk-done').addEventListener('click', function () { selIds().forEach(function (id) { byId(id).read = true; }); selected = {}; render(); });
   document.getElementById('bulk-mute').addEventListener('click', function () { drop(selIds()); });
+  document.getElementById('reasons').addEventListener('click', function(e) { var a = e.target.closest('[data-reason]'); if (!a) return; e.preventDefault(); reason = a.dataset.reason; selected = {}; render(); });
+  var dialog = document.getElementById('notif-shortcuts');
+  document.getElementById('shortcuts-open').addEventListener('click', function() { dialog.showModal(); });
+  document.addEventListener('keydown', function(e) { if (dialog.open || e.metaKey || e.ctrlKey || e.altKey || e.target.matches('input:not([type=checkbox]), textarea, select')) return; var rows = Array.from(document.querySelectorAll('#groups li')), i = rows.findIndex(function(r) { return r.contains(document.activeElement); }); if (e.key === '?') dialog.showModal(); else if (e.key === 'j' || e.key === 'k') { var row = rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === 'j' ? 1 : -1)))]; if (row) row.querySelector('a').focus(); } else if (e.key === 'e' && i >= 0) { var done = rows[i].querySelector('[data-done]'); if (done) done.click(); } else if (e.key === 'x' && i >= 0) { var box = rows[i].querySelector('input'); box.click(); } else return; e.preventDefault(); });
   render();
 })();
 </script>
