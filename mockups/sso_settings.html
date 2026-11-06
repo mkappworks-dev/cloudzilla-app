@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Single Sign-On — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-6">
+<nav aria-label="Admin sections" class="flex items-center gap-1 border-b border-border text-sm">
+  <a href="admin_settings.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Settings</a>
+  <a href="admin_users.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Users</a>
+  <a href="audit_log.html" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Audit log</a>
+  <a href="sso_settings.html" aria-current="page" class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5">Single sign-on</a>
+</nav>
+<div>
+  <h1 class="text-2xl font-semibold tracking-tight">Single Sign-On</h1>
+  <p class="text-muted-foreground text-sm mt-1">Configure LDAP and SAML authentication providers.</p>
+</div>
+
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <div class="flex items-center justify-between">
+      <div class="flex flex-col space-y-1.5">
+        <h2 class="text-[13px] font-semibold leading-none tracking-tight">LDAP</h2>
+        <p class="text-[12px] text-muted-foreground">Authenticate users via LDAP simple bind.</p>
+      </div>
+      <div id="ldap-switch" class="flex items-center gap-3"></div>
+    </div>
+  </div>
+  <div class="p-5">
+    <form id="sso-ldap-form" class="space-y-4">
+      <div id="sso-ldap-form-error" class="empty:hidden"></div>
+      <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label for="ldap_host" class="block text-sm font-medium text-foreground">Host</label>
+            <input id="ldap_host" type="text" name="ldap_host" value="ldap.example.test" data-sso-required="Host" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+          </div>
+          <div class="space-y-1.5">
+            <label for="ldap_port" class="block text-sm font-medium text-foreground">Port</label>
+            <input id="ldap_port" type="text" name="ldap_port" value="389" placeholder="389" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+          </div>
+      </div>
+          <div class="space-y-1.5">
+            <label for="ldap_base_dn" class="block text-sm font-medium text-foreground">Base DN</label>
+            <input id="ldap_base_dn" type="text" name="ldap_base_dn" value="ou=people,dc=example,dc=test" placeholder="dc=example,dc=com" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+          </div>
+          <div class="space-y-1.5">
+            <label for="ldap_bind_dn_tmpl" class="block text-sm font-medium text-foreground">Bind DN Template</label>
+            <input id="ldap_bind_dn_tmpl" type="text" name="ldap_bind_dn_tmpl" value="uid=%s,ou=people,dc=example,dc=test" placeholder="uid=%s,ou=people,dc=example,dc=com" data-sso-required="Bind DN Template" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+          </div>
+      <label class="flex w-fit items-center gap-2 text-sm text-foreground cursor-pointer">
+        <input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" checked class="h-4 w-4 shrink-0 rounded-sm border border-input bg-transparent accent-ring checked:bg-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50" />
+        <span>Use TLS</span>
+      </label>
+      <p id="ldap-tls-warning" class="hidden text-xs text-warning border border-warning/40 bg-warning/10 rounded-sm px-3 py-2">
+        Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.
+      </p>
+    </form>
+  </div>
+  <div class="flex items-center p-5 border-t border-border">
+    <div class="ml-auto">
+      <button type="submit" form="sso-ldap-form" data-sso-save class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90">Save LDAP Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <div class="flex items-center justify-between">
+      <div class="flex flex-col space-y-1.5">
+        <h2 class="text-[13px] font-semibold leading-none tracking-tight">SAML 2.0</h2>
+        <p class="text-[12px] text-muted-foreground">Authenticate users via SAML 2.0 HTTP-POST binding.</p>
+      </div>
+      <div id="saml-switch" class="flex items-center gap-3"></div>
+    </div>
+  </div>
+  <div class="p-5">
+    <form id="sso-saml-form" class="space-y-4">
+      <div id="sso-saml-form-error" class="empty:hidden"></div>
+          <div class="space-y-1.5">
+            <label for="saml_entity_id" class="block text-sm font-medium text-foreground">Entity ID</label>
+            <input id="saml_entity_id" type="text" name="saml_entity_id" data-sso-required="Entity ID" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+          </div>
+          <div class="space-y-1.5">
+            <label for="saml_sso_url" class="block text-sm font-medium text-foreground">IdP SSO URL</label>
+            <input id="saml_sso_url" type="text" name="saml_sso_url" data-sso-required="IdP SSO URL" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+          </div>
+          <div class="space-y-1.5">
+            <label for="saml_acs_url" class="block text-sm font-medium text-foreground">Assertion Consumer Service (ACS) URL</label>
+            <input id="saml_acs_url" type="text" name="saml_acs_url" placeholder="https://yourdomain/auth/saml/callback" data-sso-required="ACS URL" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+          </div>
+      <div class="space-y-1.5">
+        <label for="saml_idp_cert" class="block text-sm font-medium text-foreground">IdP Certificate (base64, no headers)</label>
+        <textarea id="saml_idp_cert" name="saml_idp_cert" data-sso-required="IdP Certificate" rows="4" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"></textarea>
+      </div>
+    </form>
+  </div>
+  <div class="flex items-center p-5 border-t border-border">
+    <div id="saml-footer" class="ml-auto flex items-center gap-2">
+      <a id="saml-metadata" href="#" class="hidden items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">View SP Metadata</a>
+      <button type="submit" form="sso-saml-form" data-sso-save class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90">Save SAML Settings</button>
+    </div>
+  </div>
+</div>
+</div>
+</main>
+
+<dialog id="cz-confirm-dialog" aria-labelledby="cz-confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="p-5">
+    <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="cz-confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="cz-confirm-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Confirm</button>
+    </div>
+  </div>
+</dialog>
+<div id="cz-footer"></div>
+<script>
+  var dlg = document.getElementById('cz-confirm-dialog');
+  var okBtn = document.getElementById('cz-confirm-ok');
+  var OK_BASE = 'inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 ';
+  var pending = null;
+  function confirmAction(o, done) {
+    document.getElementById('cz-confirm-title').textContent = o.title;
+    document.getElementById('cz-confirm-msg').textContent = o.msg;
+    okBtn.textContent = o.label;
+    okBtn.className = OK_BASE + (o.danger ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
+    pending = done;
+    dlg.returnValue = '';
+    dlg.showModal();
+  }
+  okBtn.addEventListener('click', function () { dlg.close('confirm'); });
+  document.getElementById('cz-confirm-cancel').addEventListener('click', function () { dlg.close('cancel'); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close('cancel'); });
+  dlg.addEventListener('close', function () {
+    var f = pending; pending = null;
+    if (f && dlg.returnValue === 'confirm') f();
+  });
+
+  var READY = ['ring-2', 'ring-switch', 'ring-offset-2', 'ring-offset-card'];
+  var SWITCH_TRACK = "relative w-9 h-5 bg-input dark:bg-border-strong rounded-full transition-colors peer-checked:bg-switch dark:peer-checked:bg-switch peer-focus-visible:outline-solid peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed after:absolute after:content-[''] after:top-0.5 after:left-0.5 after:bg-white after:shadow-sm after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-4";
+  // saved is what the server holds; the form fields are what's typed. The switch follows saved, the hint follows typed.
+  var P = {
+    ldap: { name: 'LDAP', saved: { required: ['ldap_host', 'ldap_bind_dn_tmpl'] }, ready: true, enabled: true },
+    saml: { name: 'SAML', saved: { required: ['saml_entity_id', 'saml_sso_url', 'saml_acs_url', 'saml_idp_cert'] }, ready: false, enabled: false }
+  };
+
+  function joinLabels(l) { return l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' and ' + l[l.length - 1]; }
+  function formOf(p) { return document.getElementById('sso-' + p + '-form'); }
+  function missing(p) {
+    return Array.prototype.filter.call(formOf(p).querySelectorAll('[data-sso-required]'), function (f) { return !f.value.trim(); })
+      .map(function (f) { return f.getAttribute('data-sso-required'); });
+  }
+
+  function renderSwitch(p) {
+    var s = P[p];
+    var box = document.getElementById(p + '-switch');
+    var track = '<span aria-hidden="true" class="' + SWITCH_TRACK + '"></span>';
+    var html = '';
+    if (!s.ready) html += '<span id="' + p + '-switch-needs" aria-live="polite" class="text-[12px] text-muted-foreground text-right"></span>';
+    if (s.ready || s.enabled) {
+      html += '<form onsubmit="return false"><label class="flex items-center cursor-pointer"><span class="sr-only">Enable ' + s.name + ' authentication</span>' +
+        '<span class="relative inline-flex items-center"><input type="checkbox" role="switch" id="' + p + '_enabled" class="peer sr-only"' + (s.enabled ? ' checked' : '') + ' />' + track + '</span></label></form>';
+    } else {
+      html += '<label class="flex items-center"><span class="sr-only">Enable ' + s.name + ' authentication</span>' +
+        '<span class="relative inline-flex items-center"><input type="checkbox" role="switch" id="' + p + '_enabled" disabled aria-describedby="' + p + '-switch-needs" class="peer sr-only" />' + track + '</span></label>';
+    }
+    box.innerHTML = html;
+    var sw = document.getElementById(p + '_enabled');
+    if (!sw.disabled) {
+      sw.addEventListener('change', function () {
+        var on = sw.checked;
+        sw.checked = !on;
+        confirmAction({
+          title: (on ? 'Turn on ' : 'Turn off ') + s.name + '?',
+          msg: on ? 'Users will be able to sign in with ' + s.name + '.' : 'Users will no longer be able to sign in with ' + s.name + '.',
+          label: on ? 'Turn on ' + s.name : 'Turn off ' + s.name,
+          danger: !on
+        }, function () {
+          s.enabled = on;
+          renderSwitch(p);
+          if (p === 'saml') renderMetadata();
+          if (p === 'ldap') renderTLSWarning();
+          czToast(s.name + (on ? ' turned on' : ' turned off'));
+        });
+      });
+    }
+    updateHint(p);
+  }
+
+  function updateHint(p) {
+    var s = P[p];
+    var save = document.querySelector('[data-sso-save][form="sso-' + p + '-form"]');
+    var miss = missing(p);
+    READY.forEach(function (c) { save.classList.toggle(c, !miss.length && !s.ready); });
+    var hint = document.getElementById(p + '-switch-needs');
+    if (!hint) return;
+    var text = miss.length ? 'Fill in ' + joinLabels(miss) + ', then save' : 'Save ' + s.name + ' Settings to turn this on';
+    if (hint.textContent !== text) hint.textContent = text;
+  }
+
+  function renderMetadata() {
+    var m = document.getElementById('saml-metadata');
+    m.classList.toggle('hidden', !P.saml.enabled);
+    m.classList.toggle('inline-flex', P.saml.enabled);
+  }
+  function renderTLSWarning() {
+    var tls = document.getElementById('ldap_use_tls').checked;
+    document.getElementById('ldap-tls-warning').classList.toggle('hidden', !(P.ldap.enabled && !tls));
+  }
+
+  ['ldap', 'saml'].forEach(function (p) {
+    formOf(p).addEventListener('input', function () { updateHint(p); });
+    formOf(p).addEventListener('submit', function (e) {
+      e.preventDefault();
+      confirmAction({
+        title: 'Save ' + P[p].name + ' Settings?',
+        msg: 'The ' + P[p].name + ' settings apply to every sign-in on this instance.',
+        label: 'Save ' + P[p].name + ' Settings',
+        danger: false
+      }, function () {
+        P[p].ready = missing(p).length === 0;
+        renderSwitch(p);
+        if (p === 'ldap') renderTLSWarning();
+        czToast(P[p].name + ' settings saved');
+      });
+    });
+  });
+
+  renderSwitch('ldap');
+  renderSwitch('saml');
+  renderMetadata();
+  renderTLSWarning();
+
+</script>
+<script src="shell.js"></script>
+</body>
+</html>

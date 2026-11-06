@@ -5,20 +5,14 @@ in November 2026; update it when a mock is added.
 
 ## Pages with no mock
 
-| Real page               | Route                                     | Notes           |
-| ----------------------- | ----------------------------------------- | --------------- |
-| `code_search.templ`     | `/search/code`                            |                 |
-| `search.templ`          | `/search`                                 |                 |
-| `explore.templ`         | `/explore`                                |                 |
-| `admin_settings.templ`  | `/admin/settings`                         |                 |
-| `admin_users.templ`     | `/admin/users`, `/admin/users/{username}` |                 |
-| `audit_log.templ`       | `/admin/audit-log`                        |                 |
-| `sso_settings.templ`    | `/admin/sso`                              |                 |
-| `setup.templ`           | `/setup`                                  | First-run setup |
-| `oauth_authorize.templ` | `/oauth/authorize`                        |                 |
-| `device_login.templ`    | `/login/device`, `/login/device/confirm`  |                 |
-| `forbidden.templ`       | any 403                                   |                 |
-| `not_found.templ`       | any 404                                   |                 |
+| Real page               | Route                                    | Notes           |
+| ----------------------- | ---------------------------------------- | --------------- |
+| `explore.templ`         | `/explore`                               |                 |
+| `setup.templ`           | `/setup`                                 | First-run setup |
+| `oauth_authorize.templ` | `/oauth/authorize`                       |                 |
+| `device_login.templ`    | `/login/device`, `/login/device/confirm` |                 |
+| `forbidden.templ`       | any 403                                  |                 |
+| `not_found.templ`       | any 404                                  |                 |
 
 ## Pages covered by a differently named mock
 
@@ -49,6 +43,8 @@ Mocks show the happy path. These real states are not drawn:
   project card; form validation errors (`Alert` destructive) on every create page; one-time token and backup-code
   reveals.
 - **Filters.** `?category=` on discussions.
+- **Admin.** The identity-confirm dialog (password, two-factor and provider factors), the SSO success and error banners,
+  and users and audit-log pages beyond the first. The mock uses the generic confirm dialog instead.
 
 ## Differences found in the real app
 

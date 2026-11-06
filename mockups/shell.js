@@ -115,14 +115,18 @@
   }
 
   var search =
-    '<form action="#" method="GET" class="hidden md:block"><label for="topnav-search" class="sr-only">Search Cloudzilla</label>' +
-    '<div class="relative"><input id="topnav-search" name="q" type="search" placeholder="Search…" autocomplete="off" ' +
+    '<form action="search.html" method="GET" class="hidden md:block" data-cz-search><label for="topnav-search" class="sr-only">Search Cloudzilla</label>' +
+    '<div class="relative"><input id="topnav-search" name="q" type="search" placeholder="Search…" autocomplete="off" role="combobox" ' +
+    'aria-autocomplete="list" aria-haspopup="listbox" aria-controls="topnav-suggest" aria-expanded="false" ' +
     'class="w-72 focus:w-96 transition-[width] duration-150 h-7 pl-7 pr-14 text-[13px] bg-muted border border-transparent ' +
     'hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground" />' +
     '<svg class="absolute left-2 top-1.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" ' +
     'stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>' +
-    '<kbd class="absolute right-1.5 top-1 h-5 min-w-5 px-1 grid place-items-center text-[11px] font-sans leading-none ' +
-    'text-muted-foreground border border-border rounded" aria-hidden="true">/</kbd></div></form>';
+    '<button type="button" data-cz-clear class="hidden absolute right-1.5 top-1 h-5 w-5 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear search">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg></button>' +
+    '<kbd data-cz-kbd class="absolute right-1.5 top-1 h-5 min-w-5 px-1 grid place-items-center text-[11px] font-sans leading-none ' +
+    'text-muted-foreground border border-border rounded" aria-hidden="true">/</kbd>' +
+    '<div id="topnav-suggest" class="hidden absolute inset-x-0 top-full mt-1 z-50 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"></div></div></form>';
 
   var bell = '<a href="notifications.html" class="relative h-7 w-7 grid place-items-center text-muted-foreground ' +
     'hover:text-foreground rounded-md hover:bg-accent" aria-label="Notifications, 3 unread">' +
@@ -145,7 +149,7 @@
     link('profile.html', svg('user', 13, ' class="text-muted-foreground"') + 'Your profile') +
     link('stars.html', svg('star', 13, ' class="text-muted-foreground"') + 'Your stars') + DIVIDER +
     link('account_settings.html', svg('settings', 13, ' class="text-muted-foreground"') + 'Settings') +
-    link('settings.html', svg('shield', 13, ' class="text-muted-foreground"') + 'Admin') +
+    link('admin_settings.html', svg('shield', 13, ' class="text-muted-foreground"') + 'Admin') +
     link(DOCS_URL, svg('book', 13, ' class="text-muted-foreground"') + 'Docs') +
     link(CHANGELOG_URL, svg('clock', 13, ' class="text-muted-foreground"') + 'Changelog') + DIVIDER +
     link('login.html', svg('logout', 13, ' class="text-destructive"') + '<span class="text-destructive">Sign out</span>')) + '</div>';
@@ -212,6 +216,144 @@
   }
   if (mount) mount.replaceWith(parse(header));
   if (footerMount) footerMount.replaceWith(parse(footer));
+
+  // Search suggestions, mirroring fragments/search_suggestions.templ: repos, users and orgs whose name contains the
+  // typed text (two characters minimum), then a "Search for" row. The real fragment has no issue or code rows.
+  var SUGGEST = {
+    repo: [
+      ['mkappworks/cloudzilla', 'Self-hosted git forge', 'repo.html', false],
+      ['mkappworks/benchlabs-site', 'Marketing site for Bench Labs', 'repo.html', false],
+      ['mkappworks/go-service-starter', 'Opinionated Go service template', 'repo.html', true],
+      ['acme-corp/oauth-proxy', 'Reverse proxy that fronts apps with OAuth 2.0', 'repo.html', false],
+      ['stitch-labs/htmx-kit', 'Tiny HTMX component toolkit', 'repo.html', false],
+      ['openforge/runner', 'Sandboxed CI runner', 'repo.html', false],
+    ],
+    user: [['malith', '', 'profile.html'], ['daisy', '', 'profile.html'], ['kiyo', '', 'profile.html'],
+      ['rhea', '', 'profile.html'], ['oauth-bot', '', 'profile.html']],
+    org: [['acme-corp', 'Acme Corp', 'org_profile.html'], ['stitch-labs', 'Stitch Labs', 'org_profile.html'],
+      ['openforge', 'Open Forge', 'org_profile.html']],
+  };
+  var SUGGEST_LABEL = { repo: 'Repositories', user: 'Users', org: 'Organizations' };
+  var BOOK = '<svg class="shrink-0 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>';
+  var SUGGEST_ROW = 'flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-accent aria-selected:bg-accent';
+  function escHtml(t) {
+    var d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
+  }
+  function initialsOf(n) { return n.split('/').pop().slice(0, 2).toUpperCase(); }
+
+  // Pages with their own search box (search.html) attach the same behaviour: czAttachSuggest(input, panel).
+  function attachSuggest(input, panel) {
+    var active = -1;
+    function isOpen() { return !panel.classList.contains('hidden'); }
+    function setOpen(open) {
+      panel.classList.toggle('hidden', !open);
+      input.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open) { active = -1; input.removeAttribute('aria-activedescendant'); }
+    }
+    function options() { return panel.querySelectorAll('[data-suggest-item]'); }
+    function highlight(i) {
+      active = i;
+      options().forEach(function (a, n) { a.setAttribute('aria-selected', n === i ? 'true' : 'false'); });
+      if (i >= 0) input.setAttribute('aria-activedescendant', panel.id + '-' + i);
+      else input.removeAttribute('aria-activedescendant');
+    }
+    function render() {
+      var q = input.value.trim();
+      if (q.length < 2) { panel.innerHTML = ''; setOpen(false); return; }
+      var needle = q.toLowerCase();
+      var rows = [];
+      ['repo', 'user', 'org'].forEach(function (kind) {
+        SUGGEST[kind].forEach(function (r) {
+          if (r[0].toLowerCase().indexOf(needle) < 0) return;
+          rows.push({ kind: kind, title: r[0], detail: r[1], href: r[2], priv: kind === 'repo' && r[3] });
+        });
+      });
+      var html = '<div role="listbox" aria-label="Search suggestions" class="py-1">';
+      rows.forEach(function (r, i) {
+        if (i === 0 || rows[i - 1].kind !== r.kind) {
+          html += '<div role="presentation" class="px-3 pt-1.5 pb-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">' + SUGGEST_LABEL[r.kind] + '</div>';
+        }
+        html += '<a id="' + panel.id + '-' + i + '" role="option" aria-selected="false" data-suggest-item href="' + r.href + '" class="' + SUGGEST_ROW + '">' +
+          (r.kind === 'repo' ? BOOK : '<span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">' + escHtml(initialsOf(r.title)) + '</span>') +
+          '<span class="shrink-0 truncate font-medium max-w-[65%]">' + escHtml(r.title) + '</span>' +
+          (r.priv ? '<span class="shrink-0 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span>' : '') +
+          (r.detail ? '<span class="truncate text-muted-foreground">' + escHtml(r.detail) + '</span>' : '') + '</a>';
+      });
+      html += '<a id="' + panel.id + '-' + rows.length + '" role="option" aria-selected="false" data-suggest-item href="search.html?q=' + encodeURIComponent(q) +
+        '" class="' + SUGGEST_ROW + ' border-t border-border text-muted-foreground">' +
+        '<svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>' +
+        '<span class="truncate">Search for “' + escHtml(q) + '”</span></a></div>';
+      panel.innerHTML = html;
+      active = -1;
+      setOpen(true);
+      document.dispatchEvent(new CustomEvent('cz-suggest-opened', { detail: panel }));
+    }
+    function move(delta) {
+      var n = options().length;
+      if (!n) return;
+      setOpen(true);
+      highlight(active < 0 ? (delta > 0 ? 0 : n - 1) : (active + delta + n) % n);
+      options()[active].scrollIntoView({ block: 'nearest' });
+    }
+    input.addEventListener('input', render);
+    input.addEventListener('focus', function () { if (options().length) setOpen(true); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      else if (e.key === 'Enter') {
+        // Nothing highlighted: Enter submits the form.
+        if (isOpen() && active >= 0) { e.preventDefault(); options()[active].click(); }
+      } else if (e.key === 'Escape' && isOpen()) { e.preventDefault(); setOpen(false); }
+    });
+    panel.addEventListener('mouseover', function (e) {
+      var a = e.target.closest && e.target.closest('[data-suggest-item]');
+      if (a) highlight(Array.prototype.indexOf.call(options(), a));
+    });
+    document.addEventListener('click', function (e) {
+      if (isOpen() && !input.contains(e.target) && !panel.contains(e.target)) setOpen(false);
+    });
+    // The topnav and the results page each have a box; only one list shows at a time.
+    document.addEventListener('cz-suggest-opened', function (e) { if (e.detail !== panel) setOpen(false); });
+    return { close: function () { panel.innerHTML = ''; setOpen(false); } };
+  }
+  window.czAttachSuggest = attachSuggest;
+
+  var searchForm = document.querySelector('form[data-cz-search]');
+  if (searchForm) {
+    var searchInput = searchForm.querySelector('input[name=q]');
+    var clearBtn = searchForm.querySelector('[data-cz-clear]');
+    var kbd = searchForm.querySelector('[data-cz-kbd]');
+    var topSuggest = attachSuggest(searchInput, document.getElementById('topnav-suggest'));
+    var syncClear = function () {
+      var has = searchInput.value !== '';
+      clearBtn.classList.toggle('hidden', !has);
+      kbd.classList.toggle('hidden', has);
+    };
+    searchInput.addEventListener('input', syncClear);
+    clearBtn.addEventListener('click', function () {
+      searchInput.value = '';
+      topSuggest.close();
+      syncClear();
+      searchInput.focus();
+    });
+    // The generic submit handler below would only toast; this form really navigates.
+    searchForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var q = searchInput.value.trim();
+      location.href = 'search.html' + (q ? '?q=' + encodeURIComponent(q) : '');
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target;
+      if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (searchInput.offsetParent === null) return;
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    });
+  }
 
   // Theme: same storage key and class polarity as the layout's bootstrap (dark by default, `light` opts out).
   var root = document.documentElement;
