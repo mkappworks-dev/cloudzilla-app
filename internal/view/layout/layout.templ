@@ -282,9 +282,7 @@ templ Base(base view.BasePage, title string) {
 				<div class="border-t border-border py-6 flex items-center justify-between">
 					<p class="font-mono">
 						cloudzilla / { view.Version() } <span aria-hidden="true">·</span>
-						<span role="status">
-							<span aria-hidden="true" class="text-success">●</span> all systems normal
-						</span>
+						<span aria-hidden="true" class="text-success">●</span> all systems normal
 					</p>
 					if !base.SetupPending {
 						<nav aria-label="Footer">

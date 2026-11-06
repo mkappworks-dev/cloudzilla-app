@@ -22,10 +22,10 @@ templ SSOSettings(data view.SSOSettingsData) {
 				<p class="text-muted-foreground text-sm mt-1">Configure LDAP and SAML authentication providers.</p>
 			</div>
 			if data.Success != "" {
-				<div class="p-4 border border-success/40 bg-success/10 rounded-md text-success text-sm">{ data.Success }</div>
+				<div role="status" class="p-4 border border-success/40 bg-success/10 rounded-md text-success text-sm">{ data.Success }</div>
 			}
 			if data.Error != "" {
-				<div class="p-4 border border-destructive/40 bg-destructive/10 rounded-md text-destructive text-sm">{ data.Error }</div>
+				<div role="alert" class="p-4 border border-destructive/40 bg-destructive/10 rounded-md text-destructive text-sm">{ data.Error }</div>
 			}
 			<!-- LDAP Configuration -->
 			@components.Card(nil) {

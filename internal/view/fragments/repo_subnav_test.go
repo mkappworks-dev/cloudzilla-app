@@ -111,7 +111,7 @@ func TestRepoSubnav_RendersCountBadges(t *testing.T) {
 
 // badgeSpanMarker is a substring unique to the count-badge <span>.
 // If it appears at all, at least one badge was rendered.
-const badgeSpanMarker = `class="font-mono text-[11px] text-muted-foreground/70 ml-0.5"`
+const badgeSpanMarker = `class="font-mono text-[11px] text-muted-foreground ml-0.5"`
 
 func TestRepoSubnav_OmitsZeroCount(t *testing.T) {
 	data := RepoSubnavData{

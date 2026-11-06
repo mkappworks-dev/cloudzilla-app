@@ -26,14 +26,14 @@ templ accountSubnavTab(data AccountSubnavData, key, label, href string) {
 		<a href={ templ.SafeURL(href) } aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">
 			{ label }
 			if count, ok := data.Counts[key]; ok && count > 0 {
-				<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
+				<span class="font-mono text-[11px] text-muted-foreground ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
 			}
 		</a>
 	} else {
 		<a href={ templ.SafeURL(href) } class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">
 			{ label }
 			if count, ok := data.Counts[key]; ok && count > 0 {
-				<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
+				<span class="font-mono text-[11px] text-muted-foreground ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
 			}
 		</a>
 	}

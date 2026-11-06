@@ -62,7 +62,7 @@ templ repoSubnavTab(data RepoSubnavData, key, label, href, extra string) {
 			{ children... }
 			{ label }
 			if count, ok := data.Counts[key]; ok && count > 0 {
-				<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
+				<span class="font-mono text-[11px] text-muted-foreground ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
 			}
 		</a>
 	} else {
@@ -70,7 +70,7 @@ templ repoSubnavTab(data RepoSubnavData, key, label, href, extra string) {
 			{ children... }
 			{ label }
 			if count, ok := data.Counts[key]; ok && count > 0 {
-				<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
+				<span class="font-mono text-[11px] text-muted-foreground ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
 			}
 		</a>
 	}

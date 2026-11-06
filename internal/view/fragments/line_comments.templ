@@ -20,10 +20,12 @@ templ LineComments(data view.LineCommentsFragData) {
 							<a href={ templ.SafeURL("/" + c.AuthorName) } class="text-xs font-semibold hover:underline">{ c.AuthorName }</a>
 							<span class="text-xs text-muted-foreground">{ c.CreatedAt.Format("Jan 2, 2006") }</span>
 						</div>
-						<div class="text-xs text-foreground mt-0.5 prose prose-xs max-w-none">@templ.Raw(c.BodyHTML)</div>
+						<div class="text-xs text-foreground mt-0.5 prose prose-xs dark:prose-invert max-w-none">@templ.Raw(c.BodyHTML)</div>
 					</div>
 					if data.CanWrite {
 						<button
+							type="button"
+							aria-label="Delete comment"
 							hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10) }
 							hx-target={ "#" + view.LineCommentID(data.Key) }
 							hx-swap="outerHTML"

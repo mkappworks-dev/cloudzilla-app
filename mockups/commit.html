@@ -53,19 +53,22 @@ Adds an is_private column with an index, and tightens the visibility check in Re
       </header>
       <div class="p-4 space-y-2">
         <div class="flex items-center gap-3 text-sm">
-          <span class="text-success">&#10003;</span>
+          <span aria-hidden="true" class="text-success">&#10003;</span>
+          <span class="sr-only">Success:</span>
           <span class="font-medium text-foreground">ci/build</span>
           <span class="text-muted-foreground">— Build passed in 1m 42s</span>
           <a href="https://ci.example.com/runs/1201" target="_blank" rel="noopener" class="text-foreground hover:underline ml-auto text-xs">Details</a>
         </div>
         <div class="flex items-center gap-3 text-sm">
-          <span class="text-success">&#10003;</span>
+          <span aria-hidden="true" class="text-success">&#10003;</span>
+          <span class="sr-only">Success:</span>
           <span class="font-medium text-foreground">ci/test</span>
           <span class="text-muted-foreground">— 412 tests passed</span>
           <a href="https://ci.example.com/runs/1202" target="_blank" rel="noopener" class="text-foreground hover:underline ml-auto text-xs">Details</a>
         </div>
         <div class="flex items-center gap-3 text-sm">
-          <span class="text-destructive">&#10007;</span>
+          <span aria-hidden="true" class="text-destructive">&#10007;</span>
+          <span class="sr-only">Failure:</span>
           <span class="font-medium text-foreground">ci/lint</span>
           <span class="text-muted-foreground">— 2 issues found</span>
           <a href="https://ci.example.com/runs/1203" target="_blank" rel="noopener" class="text-foreground hover:underline ml-auto text-xs">Details</a>
@@ -122,31 +125,31 @@ Adds an is_private column with an index, and tightens the visibility check in Re
 <td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	}</td>
 </tr>
-<tr class="bg-destructive/10">
+<tr class="bg-destructive/6 dark:bg-destructive/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">22</td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-destructive">-</td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	return repo, nil</td>
 </tr>
-<tr class="bg-success/10">
+<tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">22</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	if repo.IsPrivate &amp;&amp; !s.canRead(ctx, repo) {</td>
 </tr>
-<tr class="bg-success/10">
+<tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">23</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">		return nil, ErrNotFound</td>
 </tr>
-<tr class="bg-success/10">
+<tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">24</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	}</td>
 </tr>
-<tr class="bg-success/10">
+<tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">25</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
@@ -195,19 +198,19 @@ Adds an is_private column with an index, and tightens the visibility check in Re
 <td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">-- 0042_repo_visibility.sql</td>
 </tr>
-<tr class="bg-destructive/10">
+<tr class="bg-destructive/6 dark:bg-destructive/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">2</td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-destructive">-</td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">ALTER TABLE repositories ADD COLUMN visibility TEXT;</td>
 </tr>
-<tr class="bg-success/10">
+<tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">2</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">ALTER TABLE repositories ADD COLUMN is_private BOOLEAN NOT NULL DEFAULT FALSE;</td>
 </tr>
-<tr class="bg-success/10">
+<tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">3</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
@@ -250,13 +253,13 @@ Adds an is_private column with an index, and tightens the visibility check in Re
 <td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">Private repositories require authentication on both transports.</td>
 </tr>
-<tr class="bg-success/10">
+<tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">43</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
 <td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"></td>
 </tr>
-<tr class="bg-success/10">
+<tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">44</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
