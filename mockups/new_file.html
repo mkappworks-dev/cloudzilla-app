@@ -78,8 +78,11 @@ function showError(msg, upload) {
   again.querySelector('span').textContent = upload;
   document.getElementById('nf-error').hidden = false;
 }
-document.getElementById('newfile-form').addEventListener('submit', function (e) {
+document.getElementById('newfile-form').addEventListener('submit', async function (e) {
   e.preventDefault();
+  if ((await new Response(new FormData(e.currentTarget)).blob()).size > 26 * 1024 * 1024) {
+    return showError('Files are limited to 25 MB. Reduce the form size and try again.', '');
+  }
   var path = document.getElementById('nf-path').value.trim();
   var file = document.getElementById('nf-file').files[0];
   var upload = file ? file.name : '';

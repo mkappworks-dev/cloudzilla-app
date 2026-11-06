@@ -30,8 +30,10 @@ templ NewFile(data view.NewFileData) {
 					}
 				</div>
 			}
+			<div id="nf-size-error" role="alert" hidden class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">Files are limited to 25 MB. Reduce the form size and try again.</div>
 
 			<form
+				id="newfile-form"
 				method="POST"
 				action={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Ref, "")) }
 				enctype="multipart/form-data"
@@ -92,6 +94,31 @@ templ NewFile(data view.NewFileData) {
 					<button type="submit" class="h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Commit file</button>
 				</div>
 			</form>
+			<script>
+				(function () {
+					var form = document.getElementById('newfile-form');
+					var error = document.getElementById('nf-size-error');
+					var checking = false;
+					var ready = false;
+					form.addEventListener('submit', async function (event) {
+						if (ready) { ready = false; return; }
+						event.preventDefault();
+						if (checking) return;
+						checking = true;
+						try {
+							var size = (await new Response(new FormData(form)).blob()).size;
+							if (size > 26 * 1024 * 1024) {
+								error.hidden = false;
+								error.scrollIntoView({ block: 'nearest' });
+								return;
+							}
+							error.hidden = true;
+							ready = true;
+							form.requestSubmit(event.submitter);
+						} finally { checking = false; }
+					});
+				})();
+			</script>
 		</div>
 	}
 }

@@ -129,14 +129,14 @@ func NewFile(data view.NewFileData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<form method=\"POST\" action=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div id=\"nf-size-error\" role=\"alert\" hidden class=\"text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\">Files are limited to 25 MB. Reduce the form size and try again.</div><form id=\"newfile-form\" method=\"POST\" action=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Ref, ""))).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 36, Col: 88}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 38, Col: 88}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -149,7 +149,7 @@ func NewFile(data view.NewFileData) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Dir).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 40, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 42, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
@@ -162,7 +162,7 @@ func NewFile(data view.NewFileData) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Path).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 48, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 50, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
@@ -175,7 +175,7 @@ func NewFile(data view.NewFileData) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(textareaValue(data.Content))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 63, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 65, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -188,7 +188,7 @@ func NewFile(data view.NewFileData) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Message).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 84, Col: 26}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 86, Col: 26}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 			if templ_7745c5c3_Err != nil {
@@ -201,13 +201,13 @@ func NewFile(data view.NewFileData) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 91, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 93, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent\">Cancel</a> <button type=\"submit\" class=\"h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium\">Commit file</button></div></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent\">Cancel</a> <button type=\"submit\" class=\"h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium\">Commit file</button></div></form><script>\n\t\t\t\t(function () {\n\t\t\t\t\tvar form = document.getElementById('newfile-form');\n\t\t\t\t\tvar error = document.getElementById('nf-size-error');\n\t\t\t\t\tvar checking = false;\n\t\t\t\t\tvar ready = false;\n\t\t\t\t\tform.addEventListener('submit', async function (event) {\n\t\t\t\t\t\tif (ready) { ready = false; return; }\n\t\t\t\t\t\tevent.preventDefault();\n\t\t\t\t\t\tif (checking) return;\n\t\t\t\t\t\tchecking = true;\n\t\t\t\t\t\ttry {\n\t\t\t\t\t\t\tvar size = (await new Response(new FormData(form)).blob()).size;\n\t\t\t\t\t\t\tif (size > 26 * 1024 * 1024) {\n\t\t\t\t\t\t\t\terror.hidden = false;\n\t\t\t\t\t\t\t\terror.scrollIntoView({ block: 'nearest' });\n\t\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\terror.hidden = true;\n\t\t\t\t\t\t\tready = true;\n\t\t\t\t\t\t\tform.requestSubmit(event.submitter);\n\t\t\t\t\t\t} finally { checking = false; }\n\t\t\t\t\t});\n\t\t\t\t})();\n\t\t\t</script></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

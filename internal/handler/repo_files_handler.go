@@ -193,6 +193,9 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		Content:  textareaText(r.FormValue("content"), false),
 		Message:  r.FormValue("message"),
 	}
+	if r.MultipartForm != nil && len(r.MultipartForm.File["file"]) > 0 {
+		data.UploadName = r.MultipartForm.File["file"][0].Filename
+	}
 	refuse := func(status int, msg string) {
 		data.Error = msg
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -217,14 +220,13 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 	// An uploaded file, when present, takes precedence over the textarea.
 	if file, header, ferr := r.FormFile("file"); ferr == nil {
 		defer func() { _ = file.Close() }()
-		data.UploadName = header.Filename
 		if header.Size > maxUploadBytes {
 			refuse(http.StatusRequestEntityTooLarge, fileTooLargeMsg)
 			return
 		}
 		upload, rerr := io.ReadAll(file)
 		if rerr != nil {
-			http.Error(w, "failed to read uploaded file", http.StatusInternalServerError)
+			refuse(http.StatusInternalServerError, "failed to read uploaded file")
 			return
 		}
 		content = upload
@@ -252,7 +254,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 
 	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
-		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		refuse(http.StatusInternalServerError, "failed to load user")
 		return
 	}
 
