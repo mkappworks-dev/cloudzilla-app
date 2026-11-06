@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -34,9 +34,9 @@ After an action, handlers swap in older fragments that look different and drop s
 
 ## Acceptance criteria
 
-- [ ] SSH key delete asks for confirmation after a refresh
-- [ ] Rows look identical before and after add/delete for keys, tokens, invitations, refs
-- [ ] Page-vs-fragment test per list
+- [x] SSH key delete asks for confirmation after a refresh
+- [x] Rows look identical before and after add/delete for keys, tokens, invitations, refs
+- [x] Page-vs-fragment test per list
 
 ## Verification
 
@@ -45,3 +45,9 @@ Add then delete an SSH key, a token, an invite and a branch on a throwaway serve
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (done): the four fragments now hold the list markup the pages used, and the pages render them, so a swap
+returns the same rows. Branch and tag deletes gained `data-confirm-title` and toasts. Seen during the live check, not
+fixed here: token create answers `HX-Redirect: /settings#tokens`, which from `/settings` is a hash-only navigation, so
+the new token appears only after a manual reload; the generate-token dialog's submit button sits below a 900px-tall
+viewport and the dialog doesn't scroll.

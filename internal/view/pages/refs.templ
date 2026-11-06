@@ -1,11 +1,9 @@
 package pages
 
 import (
-	"net/url"
-
-	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -24,42 +22,7 @@ templ Refs(data view.RefsData) {
 				<div class="px-4 py-3 border-b border-border">
 					<h2 class="font-semibold text-foreground">Branches</h2>
 				</div>
-				<div id="branches-list">
-					if len(data.Branches) > 0 {
-						for _, b := range data.Branches {
-							<div class="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b border-border last:border-b-0">
-								<div class="flex items-center gap-2 min-w-0">
-									<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "tree", b.Name, "")) } class="font-mono text-sm text-foreground hover:underline truncate">{ b.Name }</a>
-									if b.IsDefault {
-										<span class="shrink-0">
-											@components.Badge(components.BadgeSuccess) {
-												default
-											}
-										</span>
-									}
-									<span class="text-xs text-muted-foreground font-mono shrink-0">{ b.Hash }</span>
-								</div>
-								<div class="flex items-center gap-3 ml-4 shrink-0">
-									<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", b.Name, "")) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
-									if data.CanWrite && !b.IsDefault {
-										@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
-											"hx-delete":  "/api/repos/"+data.Owner+"/"+data.RepoName+"/branches?name="+url.QueryEscape(b.Name),
-											"hx-target":  "#branches-list",
-											"hx-swap":    "outerHTML",
-											"hx-confirm": "Delete branch '"+b.Name+"'?",
-											"type":       "button",
-											"aria-label": "Delete branch "+b.Name,
-										}) {
-											Delete
-										}
-									}
-								</div>
-							</div>
-						}
-					} else {
-						<div class="px-4 py-8 text-center text-muted-foreground text-sm">No branches yet.</div>
-					}
-				</div>
+				@fragments.BranchesList(view.BranchesFragData{Owner: data.Owner, RepoName: data.RepoName, Branches: data.Branches, CanWrite: data.CanWrite, DefaultBranch: data.Repo.DefaultBranch})
 				if data.CanWrite {
 					<div class="px-4 py-4 border-t border-border bg-muted/40">
 						<form hx-post={ "/api/repos/"+data.Owner+"/"+data.RepoName+"/branches" } hx-target="#branches-list" hx-swap="outerHTML" class="flex flex-wrap gap-2 items-end">
@@ -92,35 +55,7 @@ templ Refs(data view.RefsData) {
 				<div class="px-4 py-3 border-b border-border">
 					<h2 class="font-semibold text-foreground">Tags</h2>
 				</div>
-				<div id="tags-list">
-					if len(data.Tags) > 0 {
-						for _, t := range data.Tags {
-							<div class="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b border-border last:border-b-0">
-								<div class="flex items-center gap-2 min-w-0">
-									<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "tree", t.Name, "")) } class="font-mono text-sm text-foreground hover:underline truncate">{ t.Name }</a>
-									<span class="text-xs text-muted-foreground font-mono shrink-0">{ t.Hash }</span>
-								</div>
-								<div class="flex items-center gap-3 ml-4 shrink-0">
-									<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", t.Name, "")) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
-									if data.CanWrite {
-										@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
-											"hx-delete":  "/api/repos/"+data.Owner+"/"+data.RepoName+"/tags?name="+url.QueryEscape(t.Name),
-											"hx-target":  "#tags-list",
-											"hx-swap":    "outerHTML",
-											"hx-confirm": "Delete tag '"+t.Name+"'?",
-											"type":       "button",
-											"aria-label": "Delete tag "+t.Name,
-										}) {
-											Delete
-										}
-									}
-								</div>
-							</div>
-						}
-					} else {
-						<div class="px-4 py-8 text-center text-muted-foreground text-sm">No tags yet.</div>
-					}
-				</div>
+				@fragments.TagsList(view.TagsFragData{Owner: data.Owner, RepoName: data.RepoName, Tags: data.Tags, CanWrite: data.CanWrite})
 				if data.CanWrite {
 					<div class="px-4 py-4 border-t border-border bg-muted/40">
 						<form hx-post={ "/api/repos/"+data.Owner+"/"+data.RepoName+"/tags" } hx-target="#tags-list" hx-swap="outerHTML" class="flex flex-wrap gap-2 items-end">

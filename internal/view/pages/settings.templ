@@ -1,10 +1,6 @@
 package pages
 
 import (
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -380,36 +376,7 @@ templ settingsSSHKeysSection(data view.SettingsData) {
 				Add SSH key
 			</button>
 		</div>
-		<div id="ssh-keys-list" class="space-y-2 mb-4">
-			if len(data.SSHKeys) > 0 {
-				for _, k := range data.SSHKeys {
-					<div class="flex items-center gap-3 border border-border rounded-md p-3" data-key-id={ strconv.FormatInt(k.ID, 10) }>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-						<div class="min-w-0 flex-1">
-							<p class="text-[13.5px] font-medium">{ k.Title }</p>
-							<p class="text-[11.5px] text-muted-foreground font-mono break-all">{ k.Fingerprint }</p>
-							<p class="text-[11.5px] text-muted-foreground mt-0.5">
-								Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ k.CreatedAt.Format("Jan 2, 2006") }</time>
-							</p>
-						</div>
-						<button
-							type="button"
-							hx-delete={ "/api/user/keys/" + strconv.FormatInt(k.ID, 10) }
-							hx-target="#ssh-keys-list"
-							hx-swap="outerHTML"
-							hx-confirm={ "The " + k.Title + " key will immediately lose access. Any system using it for git operations will stop working." }
-							data-confirm-title="Remove this SSH key?"
-							data-confirm-label="Remove"
-							data-confirm-danger="true"
-							data-toast="SSH key removed"
-							class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
-						>Remove</button>
-					</div>
-				}
-			} else {
-				<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No SSH keys yet.</div>
-			}
-		</div>
+		@fragments.SSHKeysList(view.SSHKeysFragData{SSHKeys: data.SSHKeys})
 		@settingsAddSSHKeyDialog(data)
 	</section>
 }
@@ -477,58 +444,7 @@ templ settingsTokensSection(data view.SettingsData) {
 				<code class="block bg-background border border-success/40 rounded-sm px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">{ data.NewToken }</code>
 			</div>
 		}
-		<div id="tokens-list" class="space-y-2 mb-4">
-			if len(data.Tokens) > 0 {
-				for _, t := range data.Tokens {
-					<div class="flex items-center gap-3 border border-border rounded-md p-3">
-						<span class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
-						<div class="min-w-0 flex-1">
-							<p class="text-[13.5px] font-medium">{ t.Name }</p>
-							<p class="text-[12px] text-muted-foreground">
-								scopes:
-								if len(t.Scopes) > 0 {
-									for i, s := range t.Scopes {
-										if i > 0 {
-											{ ", " }
-										}
-										<span class="font-mono">{ s }</span>
-									}
-								} else {
-									<span class="font-mono">none</span>
-								}
-								if t.SigningKey != "" {
-									{ " · signed requests only" }
-								}
-								if len(t.Targets) > 0 {
-									{ " · only " + strings.Join(t.Targets, ", ") }
-								}
-								if t.ExpiresAt != nil {
-									{ " · expires " }
-									<time datetime={ t.ExpiresAt.UTC().Format(time.RFC3339) }>{ t.ExpiresAt.Format("Jan 2, 2006") }</time>
-								} else {
-									{ " · no expiry" }
-								}
-							</p>
-						</div>
-						<span class="text-[11px] text-muted-foreground font-mono">…{ t.LastEight }</span>
-						<button
-							type="button"
-							hx-delete={ "/api/user/tokens/" + strconv.FormatInt(t.ID, 10) }
-							hx-target="#tokens-list"
-							hx-swap="outerHTML"
-							hx-confirm={ "The " + t.Name + " token will immediately lose access. Any script or integration using it will stop working." }
-							data-confirm-title="Revoke this token?"
-							data-confirm-label="Revoke"
-							data-confirm-danger="true"
-							data-toast="Token revoked"
-							class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
-						>Revoke</button>
-					</div>
-				}
-			} else {
-				<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No tokens yet.</div>
-			}
-		</div>
+		@fragments.TokensList(view.TokensListFragData{Tokens: data.Tokens})
 		@settingsGenerateTokenDialog(data)
 	</section>
 }

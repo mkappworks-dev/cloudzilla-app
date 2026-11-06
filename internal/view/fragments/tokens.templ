@@ -2,71 +2,63 @@ package fragments
 
 import (
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
 
 templ TokensList(data view.TokensListFragData) {
-	<div id="tokens-list">
+	<div id="tokens-list" class="space-y-2 mb-4">
 		if len(data.Tokens) > 0 {
-			<table class="w-full text-sm">
-				<thead>
-					<tr class="text-left text-muted-foreground border-b border-border">
-						<th class="pb-2 font-medium">Name</th>
-						<th class="pb-2 font-medium">Scopes</th>
-						<th class="pb-2 font-medium">Last used</th>
-						<th class="pb-2 font-medium">Expires</th>
-						<th class="pb-2 font-medium">Suffix</th>
-						<th class="pb-2"></th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-border">
-					for _, tok := range data.Tokens {
-						<tr class="py-2">
-							<td class="py-3 font-medium text-foreground">{ tok.Name }</td>
-							<td class="py-3 text-muted-foreground">
-								if len(tok.Scopes) > 0 {
-									for _, scope := range tok.Scopes {
-										<span class="inline-block bg-muted text-foreground text-xs px-2 py-0.5 rounded-sm mr-1">{ scope }</span>
+			for _, t := range data.Tokens {
+				<div class="flex items-center gap-3 border border-border rounded-md p-3">
+					<span class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
+					<div class="min-w-0 flex-1">
+						<p class="text-[13.5px] font-medium">{ t.Name }</p>
+						<p class="text-[12px] text-muted-foreground">
+							scopes:
+							if len(t.Scopes) > 0 {
+								for i, s := range t.Scopes {
+									if i > 0 {
+										{ ", " }
 									}
-								} else {
-									<span class="text-muted-foreground">none</span>
+									<span class="font-mono">{ s }</span>
 								}
-							</td>
-							<td class="py-3 text-muted-foreground">
-								if tok.LastUsedAt != nil {
-									{ tok.LastUsedAt.Format("Jan 2, 2006") }
-								} else {
-									Never
-								}
-							</td>
-							<td class="py-3 text-muted-foreground">
-								if tok.ExpiresAt != nil {
-									{ tok.ExpiresAt.Format("Jan 2, 2006") }
-								} else {
-									Never
-								}
-							</td>
-							<td class="py-3 font-mono text-muted-foreground text-xs">...{ tok.LastEight }</td>
-							<td class="py-3">
-								<button
-									hx-delete={ "/api/user/tokens/" + strconv.FormatInt(tok.ID, 10) }
-									hx-target="#tokens-list"
-									hx-swap="outerHTML"
-									hx-confirm="Revoke this token?"
-									class="px-3 py-1 text-destructive border border-destructive/40 rounded-sm hover:bg-destructive/10 transition-colors text-xs"
-								>
-									Revoke
-								</button>
-							</td>
-						</tr>
-					}
-				</tbody>
-			</table>
+							} else {
+								<span class="font-mono">none</span>
+							}
+							if t.SigningKey != "" {
+								{ " · signed requests only" }
+							}
+							if len(t.Targets) > 0 {
+								{ " · only " + strings.Join(t.Targets, ", ") }
+							}
+							if t.ExpiresAt != nil {
+								{ " · expires " }
+								<time datetime={ t.ExpiresAt.UTC().Format(time.RFC3339) }>{ t.ExpiresAt.Format("Jan 2, 2006") }</time>
+							} else {
+								{ " · no expiry" }
+							}
+						</p>
+					</div>
+					<span class="text-[11px] text-muted-foreground font-mono">…{ t.LastEight }</span>
+					<button
+						type="button"
+						hx-delete={ "/api/user/tokens/" + strconv.FormatInt(t.ID, 10) }
+						hx-target="#tokens-list"
+						hx-swap="outerHTML"
+						hx-confirm={ "The " + t.Name + " token will immediately lose access. Any script or integration using it will stop working." }
+						data-confirm-title="Revoke this token?"
+						data-confirm-label="Revoke"
+						data-confirm-danger="true"
+						data-toast="Token revoked"
+						class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
+					>Revoke</button>
+				</div>
+			}
 		} else {
-			<div class="text-center py-8 border border-border border-dashed rounded-lg bg-muted/40">
-				<p class="text-muted-foreground">No active tokens. Create one above.</p>
-			</div>
+			<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No tokens yet.</div>
 		}
 	</div>
 }

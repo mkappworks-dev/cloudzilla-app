@@ -67,6 +67,16 @@
   </div>
 </main>
 
+<dialog id="cz-confirm-dialog" aria-labelledby="cz-confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="p-5">
+    <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="cz-confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="cz-confirm-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</button>
+    </div>
+  </div>
+</dialog>
 <div id="cz-footer"></div>
 
 <script src="shell.js"></script>
@@ -128,10 +138,23 @@
     if (!b) return;
     var kind = b.closest('#tags-list') ? 'tag' : 'branch';
     var name = b.dataset.delete;
-    if (!confirm("Delete " + kind + " '" + name + "'?")) return;
-    DATA[kind] = DATA[kind].filter(function (r) { return r.name !== name; });
-    render(kind);
-    window.czToast('Deleted ' + kind + ' ' + name + '.');
+    document.getElementById('cz-confirm-title').textContent = 'Delete this ' + kind + '?';
+    document.getElementById('cz-confirm-msg').textContent = 'The ' + name + ' ' + kind + ' will be deleted.';
+    pending = function () {
+      DATA[kind] = DATA[kind].filter(function (r) { return r.name !== name; });
+      render(kind);
+      window.czToast(kind === 'tag' ? 'Tag deleted' : 'Branch deleted');
+    };
+    dlg.returnValue = '';
+    dlg.showModal();
+  });
+  var dlg = document.getElementById('cz-confirm-dialog'), pending = null;
+  document.getElementById('cz-confirm-ok').addEventListener('click', function () { dlg.close('confirm'); });
+  document.getElementById('cz-confirm-cancel').addEventListener('click', function () { dlg.close('cancel'); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close('cancel'); });
+  dlg.addEventListener('close', function () {
+    var f = pending; pending = null;
+    if (f && dlg.returnValue === 'confirm') f();
   });
 })();
 </script>
