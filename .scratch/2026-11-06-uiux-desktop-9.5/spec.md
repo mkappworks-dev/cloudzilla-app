@@ -116,7 +116,11 @@ tracks the effort. The spec sessions can start at step 1; the build PRs come aft
 | -------------- | --- | ------------------- | -------------------------- | --------------------------------- | --------------------- |
 | after each wave | 22 | Re-score and polish | `fix/uiux-polish-wave-<n>` | the wave's last ticket (08, 10, 19) | Closes the gap to 9.5 |
 
-Rule for every UI ticket: change the page's mock in `mockups/` in the same PR (CLAUDE.md).
+Rules for every UI ticket:
+
+- Change the page's mock in `mockups/` in the same PR (CLAUDE.md).
+- Every visual check, of the mock and of the real page, covers **both light and dark mode** at 1440px, and the PR
+  evidence shows both.
 
 ## Hotspot files
 
@@ -129,7 +133,8 @@ Two tickets editing these at once will conflict, so **Depends on** orders every 
 
 ## Verification harness
 
-Desktop screenshots of every mock/real pair at 1440px, light and dark, against a seeded throwaway server:
+Desktop screenshots of every mock/real pair at 1440px, in **both light and dark mode** (Playwright `colorScheme`
+`'light'` and `'dark'`), against a seeded throwaway server:
 
 1. `docker run -d --name czui-pg -e POSTGRES_DB=czui -e POSTGRES_USER=cloudzilla -e POSTGRES_PASSWORD=test -p <port>:5432 postgres:18-alpine`
 2. `cz-admin migrate` and `cz-admin seed` with `CZ_DATABASE_DSN` pointing at it (seed takes ~2 min), then run the server
