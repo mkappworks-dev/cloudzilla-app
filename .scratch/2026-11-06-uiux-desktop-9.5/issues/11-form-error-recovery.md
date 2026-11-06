@@ -42,3 +42,8 @@ Force failures with a stubbed fetch / bad input on a throwaway server.
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (wave 1 re-score, ticket 22): Related findings, not fixed in the polish PR: the file edit conflict path
+asks users to copy their text and start over (`edit_file.templ:28`, Codex +0.3), and the diff-load failure on the PR
+files page offers no retry (`pr_files.templ:40`; the polish PR only added "Reload the page to try again"). Ticket 27
+reuses the keep-the-input mechanism.

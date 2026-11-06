@@ -11,6 +11,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
+const topicPageSize = 20
+
 // PageTopic renders the explore page for a single topic.
 func (h *Handler) PageTopic(w http.ResponseWriter, r *http.Request) {
 	topicName := chi.URLParam(r, "name")
@@ -26,7 +28,7 @@ func (h *Handler) PageTopic(w http.ResponseWriter, r *http.Request) {
 		sort = "stars"
 	}
 
-	repos, err := h.Services.Topic.ListReposByTopicWithStats(r.Context(), topicName, page, 20, sort)
+	repos, err := h.Services.Topic.ListReposByTopicWithStats(r.Context(), topicName, page, topicPageSize, sort)
 	if err != nil {
 		slog.Error("topic: list repos failed", "topic", topicName, "sort", sort, "page", page, "error", err)
 		h.NotFound(w, r)
@@ -50,5 +52,6 @@ func (h *Handler) PageTopic(w http.ResponseWriter, r *http.Request) {
 		Total:     total,
 		Sort:      sort,
 		Page:      page,
+		HasNext:   page*topicPageSize < total,
 	}))
 }

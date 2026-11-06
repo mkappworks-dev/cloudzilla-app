@@ -236,7 +236,7 @@ git checkout daisy/oauth-scopes</pre>
       </aside>
       <div class="space-y-6 min-w-0">
         <section id="diff-0" class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
-          <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+          <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring" role="button" tabindex="0" aria-expanded="true">
             <svg class="diff-file-caret shrink-0 text-muted-foreground transition-transform" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
             <span class="font-mono font-medium truncate">docs/api-reference.md</span>
             <span class="ml-auto font-mono text-[11px] shrink-0">
@@ -338,7 +338,7 @@ git checkout daisy/oauth-scopes</pre>
           </div>
         </section>
         <section id="diff-1" class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
-          <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+          <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring" role="button" tabindex="0" aria-expanded="true">
             <svg class="diff-file-caret shrink-0 text-muted-foreground transition-transform" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
             <span class="font-mono font-medium truncate">internal/db/migrations/0042_access_token_scopes.sql</span>
             <span class="ml-auto font-mono text-[11px] shrink-0">
@@ -429,7 +429,7 @@ git checkout daisy/oauth-scopes</pre>
           </div>
         </section>
         <section id="diff-2" class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
-          <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+          <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring" role="button" tabindex="0" aria-expanded="true">
             <svg class="diff-file-caret shrink-0 text-muted-foreground transition-transform" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
             <span class="font-mono font-medium truncate">internal/middleware/auth.go</span>
             <span class="ml-auto font-mono text-[11px] shrink-0">
@@ -627,7 +627,7 @@ git checkout daisy/oauth-scopes</pre>
           </div>
         </section>
         <section id="diff-3" class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
-          <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+          <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring" role="button" tabindex="0" aria-expanded="true">
             <svg class="diff-file-caret shrink-0 text-muted-foreground transition-transform" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
             <span class="font-mono font-medium truncate">internal/store/token_store.go</span>
             <span class="ml-auto font-mono text-[11px] shrink-0">
@@ -763,12 +763,21 @@ git checkout daisy/oauth-scopes</pre>
     function setCollapsed(section, collapsed) {
       section.querySelector('.diff-file-body').classList.toggle('hidden', collapsed);
       section.querySelector('.diff-file-caret').style.transform = collapsed ? 'rotate(-90deg)' : '';
+      section.querySelector('.diff-file-header').setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     }
     document.querySelectorAll('.diff-file-header').forEach(function (h) {
-      h.addEventListener('click', function (e) {
-        if (e.target.closest('a')) return;
+      function toggle() {
         var s = h.closest('.diff-file');
         setCollapsed(s, !s.querySelector('.diff-file-body').classList.contains('hidden'));
+      }
+      h.addEventListener('click', function (e) {
+        if (e.target.closest('a')) return;
+        toggle();
+      });
+      h.addEventListener('keydown', function (e) {
+        if (e.target !== h || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        toggle();
       });
     });
 

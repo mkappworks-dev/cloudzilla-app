@@ -37,3 +37,8 @@ Per the spec; benchmark with the large-repo harness (memory: large-repo-benchmar
 ## Comments
 
 2026-11-06 (triage): ready-for-human; spec needs a `/grill-with-docs` session with the maintainer first.
+
+2026-11-06 (wave 1 re-score, ticket 22): Both reviewers listed this: repo PR lists have no search, filters, sorting or
+pagination (Codex, `pulls.templ:29`, `:48`, +0.6 Features); issue filters need the Apply button, so they could submit on
+change (Claude, `issues.templ`). The polish PR only made the empty state filter-aware ("No open issues match these
+filters." with a Clear filters link); keep it when the filters land.

@@ -154,7 +154,14 @@ templ Issues(data view.IssuesData) {
 					</ol>
 				</section>
 			} else {
-				@components.EmptyState("No " + data.StateFilter + " issues.")
+				if data.SearchQuery != "" || data.LabelFilter != "" || data.MilestoneFilter != "" {
+					<div class="bg-background border border-border rounded-lg p-8 text-center">
+						<p class="text-muted-foreground">{ "No " + data.StateFilter + " issues match these filters." }</p>
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues?state=" + data.StateFilter) } class="mt-2 inline-block text-sm text-primary hover:underline">Clear filters</a>
+					</div>
+				} else {
+					@components.EmptyState("No " + data.StateFilter + " issues.")
+				}
 			}
 
 		</div>

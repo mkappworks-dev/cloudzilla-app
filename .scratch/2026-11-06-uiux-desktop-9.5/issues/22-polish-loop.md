@@ -25,7 +25,7 @@ The scoped tickets reach about 8.4. The rest is the long tail the reviewers find
 
 ## Acceptance criteria
 
-- [ ] Scores recorded per wave
+- [x] Scores recorded per wave (wave 1)
 - [ ] Each dimension ≥ 9.5 by both reviewers after wave 3
 
 ## Verification
@@ -35,3 +35,7 @@ Same harness and brief as the 2026-11-06 audit.
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (wave 1): scored by Claude and Codex, 8.00 and 7.25 (mean 7.63); details in spec.md Comments. Small findings
+fixed in `fix/uiux-polish-wave-1`, the rest are tickets 24–31, and findings in running tickets' files are comments on
+10–14 and 20. Stays `ready-for-agent`: waves 2 and 3 repeat it, and the "≥ 9.5 after wave 3" criterion is open.

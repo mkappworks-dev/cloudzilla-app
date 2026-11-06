@@ -857,7 +857,7 @@ func mergeTitle(st mergeState) string {
 func mergeSubtitle(d MergeabilityBoxData, st mergeState) string {
 	switch st {
 	case mergeReady:
-		return "All checks have passed and reviewers have approved."
+		return "This branch has no conflicts with the base and can be merged."
 	case mergeConflicts:
 		return "Resolve the conflicts on the head branch before this can merge."
 	case mergeUpToDate:

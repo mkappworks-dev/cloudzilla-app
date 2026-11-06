@@ -15,7 +15,7 @@ templ WikiPage(data view.WikiPageData) {
 					<h1 id="wiki-title" class="text-2xl font-semibold tracking-tight">{ data.Slug }</h1>
 				</div>
 				<div class="flex items-center gap-2 shrink-0">
-					if data.CanWrite {
+					if data.CanWrite && data.Exists {
 						@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug+"/edit", components.ButtonOutline, components.ButtonSizeSM, nil) {
 							Edit
 						}

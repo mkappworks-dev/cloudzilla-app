@@ -56,3 +56,9 @@ Changes an authorization check: do it in the main session, not a subagent (memor
 
 2026-11-06 (maintainer): decided admin mode over a blanket override; ready-for-human because it changes authorization
 checks. Prior art: GitLab Admin Mode (re-auth, 6 h expiry), GitHub Enterprise Server repo unlock (audited, temporary).
+
+2026-11-06 (wave 1 re-score, ticket 22): Findings in this ticket's files, left for it: the signed-out header shows
+"Sign in" and "Register" on the sign-in page itself and the theme toggle changes both `aria-pressed` and `aria-label`
+(`layout.templ:203`, `:400`; Claude, +0.05); admin pages show a bare tab row with no "Administration" label (Claude,
+unverified); the repo settings default branch is free text (`repo_settings.templ:181`, ticket 28); "Renaming from
+settings is not yet available." is roadmap copy on a disabled field (`repo_settings.templ:169`, ticket 15).

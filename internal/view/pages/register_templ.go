@@ -104,16 +104,17 @@ func Register(data view.RegisterData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			templ_7745c5c3_Err = components.PasswordInput(templ.Attributes{
-				"id":        "password",
-				"name":      "password",
-				"required":  "required",
-				"minlength": "8",
-				"class":     authPasswordClass,
+				"id":               "password",
+				"name":             "password",
+				"required":         "required",
+				"minlength":        "8",
+				"class":            authPasswordClass,
+				"aria-describedby": "password-hint",
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p id=\"password-hint\" class=\"text-xs text-muted-foreground\">At least 8 characters.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -44,7 +44,9 @@ templ Register(data view.RegisterData) {
 						"required":  "required",
 						"minlength": "8",
 						"class":     authPasswordClass,
+						"aria-describedby": "password-hint",
 					})
+					<p id="password-hint" class="text-xs text-muted-foreground">At least 8 characters.</p>
 				</div>
 				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
 					Create account
