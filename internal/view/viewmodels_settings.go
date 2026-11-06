@@ -137,3 +137,9 @@ type OAuthAuthorizeData struct {
 type NotificationReason struct {
 	Value, Label, Empty string
 }
+
+type AdminModeData struct {
+	BasePage
+	Confirm components.ConfirmFactors
+	Next    string
+}

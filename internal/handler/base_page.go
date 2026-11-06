@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/adminmode"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -26,6 +27,9 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 		count = 0
 	}
 	page := BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration}
+	if st := adminmode.FromContext(r.Context()); st != nil && st.UserID() == claims.UserID {
+		page.AdminMode = &view.AdminModeInfo{ExpiresAt: st.ExpiresAt()}
+	}
 	if prefs, err := services.User.LayoutPrefs(r.Context(), claims.UserID); err != nil {
 		slog.Error("basePage: layout prefs lookup failed; rendering defaults",
 			"error", err, "user_id", claims.UserID, "path", r.URL.Path)

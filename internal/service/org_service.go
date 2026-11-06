@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/adminmode"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -161,7 +162,7 @@ func (s *OrgService) ListOwnedByUser(ctx context.Context, userID int64) ([]model
 	}
 	owned := make([]model.Organization, 0, len(orgs))
 	for _, o := range orgs {
-		if s.IsOwner(ctx, o.ID, userID) {
+		if s.isOwnerOrdinarily(ctx, o.ID, userID) {
 			owned = append(owned, o)
 		}
 	}
@@ -184,7 +185,7 @@ func (s *OrgService) ListMembershipsForUser(ctx context.Context, userID int64) (
 	out := make([]OrgMembership, 0, len(orgs))
 	for _, o := range orgs {
 		role := model.OrgRoleMember
-		if s.IsOwner(ctx, o.ID, userID) {
+		if s.isOwnerOrdinarily(ctx, o.ID, userID) {
 			role = model.OrgRoleOwner
 		}
 		out = append(out, OrgMembership{Org: o, Role: role})
@@ -196,17 +197,23 @@ func (s *OrgService) CountMembers(ctx context.Context, orgID int64) (int, error)
 	return s.orgs.CountMembers(ctx, orgID)
 }
 
+// IsOwner is true for an org's owners, and for a superadmin in admin mode, for themselves only.
 func (s *OrgService) IsOwner(ctx context.Context, orgID, userID int64) bool {
+	return s.isOwnerOrdinarily(ctx, orgID, userID) || adminmode.Override(ctx, userID)
+}
+
+// isOwnerOrdinarily is for lists of the user's own memberships, where admin
+// mode would show every org as theirs and log an override nobody asked for.
+func (s *OrgService) isOwnerOrdinarily(ctx context.Context, orgID, userID int64) bool {
 	m, err := s.orgs.GetMember(ctx, orgID, userID)
-	if err != nil {
-		return false
-	}
-	return m.Role == model.OrgRoleOwner
+	return err == nil && m.Role == model.OrgRoleOwner
 }
 
 func (s *OrgService) IsMember(ctx context.Context, orgID, userID int64) bool {
-	_, err := s.orgs.GetMember(ctx, orgID, userID)
-	return err == nil
+	if _, err := s.orgs.GetMember(ctx, orgID, userID); err == nil {
+		return true
+	}
+	return adminmode.Override(ctx, userID)
 }
 
 func (s *OrgService) AddMember(ctx context.Context, orgID, requestingUserID, targetUserID int64, role model.OrgRole) error {

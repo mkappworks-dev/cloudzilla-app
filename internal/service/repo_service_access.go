@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/adminmode"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
@@ -29,50 +30,55 @@ func (s *RepoService) CanRead(ctx context.Context, repo *model.Repository, userI
 		return false
 	}
 
-	if s.IsOwner(ctx, repo, *userID) {
+	if s.ownsOrdinarily(ctx, repo, *userID) {
 		return true
 	}
 
-	role, err := s.repos.GetPermission(ctx, repo.ID, *userID)
-	if err != nil || role == "" {
-		return false
+	if role, err := s.repos.GetPermission(ctx, repo.ID, *userID); err == nil && role != "" {
+		return true
 	}
 
-	return true
+	return adminmode.Override(ctx, *userID)
 }
 
 func (s *RepoService) CanWrite(ctx context.Context, repo *model.Repository, userID int64) bool {
-	if s.IsOwner(ctx, repo, userID) {
+	if s.ownsOrdinarily(ctx, repo, userID) {
 		return true
 	}
 
 	role, err := s.repos.GetPermission(ctx, repo.ID, userID)
-	if err != nil || role == "" {
-		return false
+	if err == nil && (role == string(model.RoleWriter) || role == string(model.RoleAdmin)) {
+		return true
 	}
 
-	return role == string(model.RoleWriter) || role == string(model.RoleAdmin)
+	return adminmode.Override(ctx, userID)
 }
 
 // CanManage returns true for the repo owner, org owner, or admin collaborators.
 // Grants access to manage collaborators, settings, branch protection, deploy keys, etc.
 // Does NOT grant transfer, delete or the admin role — use IsOwner for those.
 func (s *RepoService) CanManage(ctx context.Context, repo *model.Repository, userID int64) bool {
-	if s.IsOwner(ctx, repo, userID) {
+	if s.ownsOrdinarily(ctx, repo, userID) {
 		return true
 	}
-	role, err := s.repos.GetPermission(ctx, repo.ID, userID)
-	if err != nil || role == "" {
-		return false
+	if role, err := s.repos.GetPermission(ctx, repo.ID, userID); err == nil && role == string(model.RoleAdmin) {
+		return true
 	}
-	return role == string(model.RoleAdmin)
+	return adminmode.Override(ctx, userID)
 }
 
 // IsOwner returns true only for the owner of a personal repo or an owner of
 // an org repo's org; having created an org repo counts for nothing.
 // Used for destructive operations: transfer, delete, archive, unarchive, template toggle,
 // and for granting, changing or removing the admin role.
+// A superadmin in admin mode passes too, for themselves only.
 func (s *RepoService) IsOwner(ctx context.Context, repo *model.Repository, userID int64) bool {
+	return s.ownsOrdinarily(ctx, repo, userID) || adminmode.Override(ctx, userID)
+}
+
+// ownsOrdinarily is IsOwner without admin mode, so the checks built on it ask
+// for the override only after every ordinary grant has failed.
+func (s *RepoService) ownsOrdinarily(ctx context.Context, repo *model.Repository, userID int64) bool {
 	if repo.OrgID != 0 {
 		return s.isOrgOwner(ctx, repo.OrgID, userID)
 	}

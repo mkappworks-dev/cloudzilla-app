@@ -57,6 +57,8 @@ type AuthConfig struct {
 	JWTExpiry    time.Duration `mapstructure:"jwt_expiry"`
 	CookieName   string        `mapstructure:"cookie_name"`
 	CookieSecure bool          `mapstructure:"cookie_secure"`
+	// AdminModeTTL is how long a superadmin's admin mode lasts once entered.
+	AdminModeTTL time.Duration `mapstructure:"admin_mode_ttl"`
 }
 
 // GitConfig holds git repository storage and SSH server settings.
@@ -251,6 +253,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("auth.jwt_expiry", "24h")
 	v.SetDefault("auth.cookie_name", "cz_token")
 	v.SetDefault("auth.cookie_secure", false)
+	v.SetDefault("auth.admin_mode_ttl", "1h")
 	v.SetDefault("git.repos_root", "./git-repos")
 	v.SetDefault("git.ssh_port", 2222)
 	v.SetDefault("git.ssh_host_key", "./cloudzilla_host_key")

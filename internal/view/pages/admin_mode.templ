@@ -1,0 +1,50 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ AdminMode(data view.AdminModeData) {
+	@layout.Base(data.BasePage, "Admin mode") {
+		<div class="max-w-xl space-y-6">
+			if data.Confirm.Any() {
+				@components.ConfirmIdentityDialog(data.Confirm)
+			}
+			<div>
+				<h1 class="text-2xl font-semibold tracking-tight">Admin mode</h1>
+				<p class="text-muted-foreground text-sm mt-1">
+					Outside admin mode you are a normal user on every repository and organization. Admin mode lets this browser
+					open and change any of them for a limited time.
+				</p>
+			</div>
+			<ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+				<li>It needs your password or second factor again.</li>
+				<li>It applies to this browser only, and ends when you leave it, sign out or change your password.</li>
+				<li>Every change made because of it is written to the audit log.</li>
+				<li>It never applies to API tokens, git or SSH.</li>
+			</ul>
+			if data.AdminMode != nil {
+				<form method="POST" action="/admin/mode/leave">
+					<input type="hidden" name="next" value={ data.Next }/>
+					<p class="text-sm mb-3">
+						You are in admin mode until
+						<time datetime={ data.AdminMode.ISO() } class="font-medium">{ data.AdminMode.Clock() } UTC</time>.
+					</p>
+					@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Leave admin mode
+					}
+				</form>
+			} else {
+				<form id="admin-mode-form" hx-post="/admin/mode" hx-swap="none" data-confirm-identity="Enter admin mode" class="space-y-3">
+					<input type="hidden" name="next" value={ data.Next }/>
+					<div id="admin-mode-error" class="empty:hidden"></div>
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Enter admin mode
+					}
+				</form>
+			}
+		</div>
+	}
+}

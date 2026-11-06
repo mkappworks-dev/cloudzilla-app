@@ -92,8 +92,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(middleware.HighlightBudget(requestHighlightBytes, requestHighlightTime))
 
 	sessions := middleware.WithSessionStates(services.User)
-	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized, sessions)
-	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions)
+	adminMode := middleware.WithAdminMode(handler.AdminModeCookie(cfg.Auth.CookieName), services.AdminMode)
+	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized, sessions, adminMode)
+	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions, adminMode)
+	// Git transport never honours admin mode: it is for the web UI only.
+	gitAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions)
 	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB
 
 	superadminMW := middleware.RequireSuperadmin(h.Forbidden)
@@ -116,6 +119,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW, superadminMW).Get("/admin/audit-log", h.PageAuditLog)
 	r.With(authMW, superadminMW).Get("/admin/sso", h.PageSSOSettings)
 	r.With(authMW, superadminMW).Post("/admin/sso", h.SaveSSOConfig)
+	r.With(authMW, superadminMW).Get("/admin/mode", h.PageAdminMode)
+	r.With(authMW).Post("/admin/mode", h.EnterAdminMode)
+	r.With(authMW).Post("/admin/mode/leave", h.LeaveAdminMode)
 
 	// Search
 	r.With(optAuthMW).Get("/search", h.PageSearch)
@@ -299,7 +305,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Use(apiBodyLimit)
 		r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.Login)
-		r.Post("/logout", h.Logout)
+		r.With(optAuthMW).Post("/logout", h.Logout)
 		r.With(middleware.NoStore, middleware.RateLimit(deviceCodeLimit, deviceCodeWindow)).Post("/device/code", h.DeviceCode)
 		r.With(middleware.NoStore).Post("/device/token", h.DeviceToken)
 	})
@@ -665,9 +671,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Post("/auth/2fa/verify", h.VerifyTOTP)
 
 	// Git HTTP Smart Protocol routes
-	r.With(optAuthMW).Get("/{owner}/{repo}/info/refs", h.GitInfoRefs)
-	r.With(optAuthMW).Post("/{owner}/{repo}/git-upload-pack", h.GitUploadPack)
-	r.With(optAuthMW).Post("/{owner}/{repo}/git-receive-pack", h.GitReceivePack)
+	r.With(gitAuthMW).Get("/{owner}/{repo}/info/refs", h.GitInfoRefs)
+	r.With(gitAuthMW).Post("/{owner}/{repo}/git-upload-pack", h.GitUploadPack)
+	r.With(gitAuthMW).Post("/{owner}/{repo}/git-receive-pack", h.GitReceivePack)
 
 	// Static file serving — registered on explicit prefixes so chi's radix
 	// tree prefers these over the parameterized /{owner}/{repo} routes.

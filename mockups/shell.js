@@ -8,6 +8,7 @@
  *   <div id="cz-header" data-anon></div>                   signed-out header
  *   data-owner="acme-corp" data-repo="x"                   workspace and repo shown in the switchers; the signed-in
  *                                                          user stays mkappworks
+ *   data-admin-mode (or ?admin_mode=1 in the URL)          the "Acting as instance admin" banner under the header
  *   <div id="cz-footer"></div>                             optional; renders the layout footer
  *
  * All markup is a fixed build-time template; nothing here takes runtime or user input. */
@@ -31,6 +32,7 @@
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>',
     user: '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
     star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
     book: '<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>',
     clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
@@ -76,6 +78,7 @@
   var mount = document.getElementById('cz-header');
   var ds = mount ? mount.dataset : {};
   var anon = mount && mount.hasAttribute('data-anon');
+  var adminMode = !anon && ((mount && mount.hasAttribute('data-admin-mode')) || /[?&]admin_mode=1(&|$)/.test(location.search));
   var repoTab = ds.repoTab || '';
   var accountTab = ds.accountTab || '';
   var me = 'mkappworks';
@@ -155,6 +158,7 @@
     link('profile.html', svg('user', 13, ' class="text-muted-foreground"') + 'Your profile') +
     link('profile.html?tab=stars', svg('star', 13, ' class="text-muted-foreground"') + 'Your stars') + DIVIDER +
     link('account_settings.html', svg('settings', 13, ' class="text-muted-foreground"') + 'Settings') +
+    (adminMode ? '' : link('admin_mode.html', svg('lock', 13, ' class="text-muted-foreground"') + 'Enter admin mode')) +
     link('admin_settings.html', svg('shield', 13, ' class="text-muted-foreground"') + 'Admin') +
     link(DOCS_URL, svg('book', 13, ' class="text-muted-foreground"') + 'Docs') +
     link(CHANGELOG_URL, svg('clock', 13, ' class="text-muted-foreground"') + 'Changelog') + DIVIDER +
@@ -220,7 +224,18 @@
   function parse(html) {
     return new DOMParser().parseFromString(html, 'text/html').body.firstChild;
   }
-  if (mount) mount.replaceWith(parse(header));
+  // layout.templ renders the banner between </header> and <main>; mirrored here as the header's next sibling.
+  var adminBanner =
+    '<div role="status" class="border-b border-warning/40 bg-warning/10 text-sm">' +
+    '<form method="GET" action="admin_mode.html" class="max-w-[1400px] mx-auto px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">' +
+    '<span class="font-medium text-warning">Acting as instance admin</span>' +
+    '<span class="text-muted-foreground">· expires <time datetime="2026-11-07T15:32:00Z">15:32 UTC</time> ·</span>' +
+    '<button type="submit" class="underline underline-offset-2 hover:no-underline">Leave admin mode</button></form></div>';
+  if (mount) {
+    var headerNode = parse(header);
+    mount.replaceWith(headerNode);
+    if (adminMode) headerNode.insertAdjacentHTML('afterend', adminBanner);
+  }
   function mountFooter() {
     var m = document.getElementById('cz-footer');
     if (m) m.replaceWith(parse(footer));

@@ -1,12 +1,24 @@
 package pages
 
 import (
+	"net/url"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Forbidden(base view.BasePage) {
+	@forbiddenPage(base, "")
+}
+
+// ForbiddenAdminMode is Forbidden for a superadmin who could open the page in
+// admin mode; next is the page to return to once they have.
+templ ForbiddenAdminMode(base view.BasePage, next string) {
+	@forbiddenPage(base, next)
+}
+
+templ forbiddenPage(base view.BasePage, adminModeNext string) {
 	@layout.Base(base, "Access denied") {
 		<div class="max-w-md mx-auto mt-20 rounded-md border border-border bg-card overflow-hidden relative">
 			<div class="absolute inset-0 pointer-events-none opacity-40" style="background-image: linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);" aria-hidden="true"></div>
@@ -15,8 +27,16 @@ templ Forbidden(base view.BasePage) {
 				<p class="mt-4 font-mono text-[7rem] font-semibold leading-none tracking-tight text-muted-foreground/70">403</p>
 				<h1 class="mt-2 text-xl font-semibold tracking-tight">Access denied</h1>
 				<p class="mt-2 text-[13px] text-muted-foreground max-w-xs mx-auto">You don't have permission to view this page. Ask the owner if you think this is a mistake.</p>
+				if adminModeNext != "" {
+					<p class="mt-3 text-[13px] text-muted-foreground max-w-xs mx-auto">You're an instance admin. To manage this as one, enter admin mode; it is time-limited and every change is logged.</p>
+				}
 				<div class="mt-5 flex items-center justify-center gap-2">
-					@components.LinkButton("/", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+					if adminModeNext != "" {
+						@components.LinkButton("/admin/mode?next="+url.QueryEscape(adminModeNext), components.ButtonDefault, components.ButtonSizeDefault, nil) {
+							Enter admin mode
+						}
+					}
+					@components.LinkButton("/", homeButtonVariant(adminModeNext), components.ButtonSizeDefault, nil) {
 						Go home
 					}
 					if base.CurrentUser == nil {
@@ -28,4 +48,11 @@ templ Forbidden(base view.BasePage) {
 			</div>
 		</div>
 	}
+}
+
+func homeButtonVariant(adminModeNext string) components.ButtonVariant {
+	if adminModeNext != "" {
+		return components.ButtonOutline
+	}
+	return components.ButtonDefault
 }

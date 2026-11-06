@@ -9,8 +9,11 @@ See [docs/](docs/) for how each area works.
 
 **Instance** — one running Cloudzilla server and its database. Instance roles are `superadmin` and `user`.
 
-**Superadmin** — an instance role with every permission: settings, SSO, accounts and invitations. There is always at
-least one active superadmin.
+**Superadmin** — an instance role: settings, SSO, accounts and invitations. There is always at least one active
+superadmin.
+
+**Admin mode** — a superadmin's time-boxed, audited access to any Repository or Organization, held per browser. Outside
+it a Superadmin is a normal User there.
 
 **User** — an individual account. Its username is a namespace that can own Repositories.
 

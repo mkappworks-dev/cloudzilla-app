@@ -41,7 +41,16 @@ type BasePage struct {
 	CodeDark  string
 	// AvatarKey is the viewer's avatar, for the nav menu.
 	AvatarKey string
+	AdminMode *AdminModeInfo
 }
+
+type AdminModeInfo struct {
+	ExpiresAt time.Time
+}
+
+// ISO and Clock are in UTC because the server doesn't know the viewer's zone.
+func (i AdminModeInfo) ISO() string   { return i.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z") }
+func (i AdminModeInfo) Clock() string { return i.ExpiresAt.UTC().Format("15:04") }
 
 // CodeThemeLight falls back to the default for pages built without basePage(), such as setup and error pages.
 func (b BasePage) CodeThemeLight() string {

@@ -239,7 +239,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	if !canManage {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		h.forbiddenSettings(w, r, claims.IsSuperadmin)
 		return
 	}
 

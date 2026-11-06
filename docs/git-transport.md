@@ -377,6 +377,9 @@ HAVING count(*) > 1;
 The first repo listed is the one the key authenticates to. Resolve each by deleting the later rows and giving those
 repos their own keys; nothing removes them automatically.
 
+Admin mode (see [access-control](./access-control.md#admin-mode)) never applies to git: the smart-HTTP routes use an
+auth middleware without it and SSH never sets it, so a superadmin clones and pushes with their ordinary rights.
+
 **Service API:**
 
 - `RepoService.CanRead(ctx, repo, userID)` — checks public/private + permissions
