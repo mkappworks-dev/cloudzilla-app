@@ -5,7 +5,7 @@
    Requires markdown-editor.js to be loaded first (it supplies the inner editor).
 
    Each page uses:
-     <div id="cz-comment-editor" data-avatar="MK"
+     <div id="cz-comment-editor" data-avatar="M"
           data-placeholder="Leave a comment — Markdown supported" data-rows="5">
        <button type="button" ...>Close pull request</button>
        <button type="submit" ...>Comment</button>

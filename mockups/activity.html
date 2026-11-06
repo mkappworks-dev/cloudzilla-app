@@ -79,7 +79,7 @@
     if (e.k === 'push') body = '<ul class="mt-1 text-[12.5px] text-muted-foreground space-y-0.5">' + e.commits.map(function (c) { return '<li class="truncate"><span class="font-mono text-[11px] text-muted-foreground/70 mr-1">' + c[0] + '</span>' + c[1] + '</li>'; }).join('') + '<li class="text-[11px] text-muted-foreground/70">and ' + (e.total - e.commits.length) + ' more commits</li></ul>';
     else if (e.quote) body = '<blockquote class="mt-1 pl-3 border-l border-border text-[12.5px] text-muted-foreground italic">“' + e.quote + '”</blockquote>';
     else if (e.title) body = '<p class="mt-0.5 text-[12.5px] text-muted-foreground truncate">' + e.title + '</p>';
-    return '<li class="px-4 py-3 flex items-start gap-3 hover:bg-accent"><span class="h-8 w-8 rounded-full bg-accent border border-border grid place-items-center text-[11px] font-medium shrink-0 mt-0.5 select-none" aria-hidden="true">' + e.a.slice(0, 2) + '</span>' +
+    return '<li class="px-4 py-3 flex items-start gap-3 hover:bg-accent"><span class="flex shrink-0 mt-0.5 select-none"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-8 w-8 text-[11px]" aria-hidden="true">' + e.a[0].toUpperCase() + '</span></span>' +
       '<div class="min-w-0 flex-1"><p class="text-[13px]">' + head + '</p>' + body + '<p class="mt-1 text-[11px] text-muted-foreground/70"><time>' + e.when + '</time></p></div>' + I[e.k] + '</li>';
   }
   var ON = 'px-3 py-2.5 border-b -mb-px border-foreground font-medium inline-flex items-center gap-1.5';

@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -29,9 +29,9 @@ The header shows "SI" (`layout.templ:653`), the body "S" (`components.Initials`)
 
 ## Acceptance criteria
 
-- [ ] Same user shows the same initials in header, rows and activity
-- [ ] Home repo rows show a repo icon
-- [ ] Mocks use the real initials rule
+- [x] Same user shows the same initials in header, rows and activity
+- [x] Home repo rows show a repo icon
+- [x] Mocks use the real initials rule
 
 ## Verification
 

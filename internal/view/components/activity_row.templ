@@ -24,7 +24,9 @@ type ActivityRowData struct {
 
 templ ActivityRow(a ActivityRowData) {
 	<li class="px-4 py-3 flex items-start gap-3 hover:bg-accent">
-		<span class="h-8 w-8 rounded-full bg-accent border border-border grid place-items-center text-[11px] font-medium shrink-0 mt-0.5 select-none" aria-hidden="true">{ actorInitials(a.Actor) }</span>
+		<span class="flex shrink-0 mt-0.5 select-none">
+			@Avatar(a.Actor, AvatarSizeMD, "")
+		</span>
 		<div class="min-w-0 flex-1">
 			<p class="text-[13px]">
 				<a href={ templ.SafeURL("/" + a.Actor) } class="font-medium hover:underline">{ a.Actor }</a>
@@ -72,18 +74,6 @@ func moreCommitsLabel(n int) string {
 		return "and 1 more commit"
 	}
 	return "and " + strconv.Itoa(n) + " more commits"
-}
-
-func actorInitials(name string) string {
-	r := []rune(name)
-	switch {
-	case len(r) == 0:
-		return "?"
-	case len(r) == 1:
-		return string(r[:1])
-	default:
-		return string(r[:2])
-	}
 }
 
 func activityVerb(kind string) string {

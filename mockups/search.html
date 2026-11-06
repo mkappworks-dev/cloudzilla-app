@@ -71,7 +71,7 @@
   };
 
   function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-  function initials(n) { var p = n.split(/[\s\-\/]+/); return (p.length > 1 ? p[0][0] + p[p.length - 1][0] : n.slice(0, 2)).toUpperCase(); }
+  function initials(n) { var p = n.trim().split(/\s+/); return (p.length > 1 ? p[0][0] + p[p.length - 1][0] : p[0][0]).toUpperCase(); }
 
   var query = '';
   var type = 'all';

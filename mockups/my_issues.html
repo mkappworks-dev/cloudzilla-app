@@ -96,7 +96,7 @@
       '<div class="flex items-start gap-3 mb-1.5">' + ICON[i.state] + '<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap"><span class="font-mono text-[12px] text-muted-foreground">' + i.repo + '</span><span class="opacity-50" aria-hidden="true">·</span><p class="text-[13.5px] font-medium leading-snug group-hover:underline">' + i.t +
       '</p><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium ' + BADGE[i.state][0] + '">' + BADGE[i.state][1] + '</span></div></div>' +
       '<div class="flex items-center justify-between gap-3 pl-[27px]"><div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap"><span class="font-mono">#' + i.n + '</span><span class="opacity-50" aria-hidden="true">·</span>' +
-      '<span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">' + i.by.slice(0, 2) + '</span><span>' + i.by + '</span><span class="opacity-50" aria-hidden="true">·</span><time>' + i.when + '</time>' + labels +
+      '<span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">' + i.by[0].toUpperCase() + '</span><span>' + i.by + '</span><span class="opacity-50" aria-hidden="true">·</span><time>' + i.when + '</time>' + labels +
       '</div><div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">' + pri + c + '</div></div></a></li>';
   }
   function menuItem(s) {

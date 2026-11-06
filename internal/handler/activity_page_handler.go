@@ -58,7 +58,11 @@ func (h *Handler) PageActivity(w http.ResponseWriter, r *http.Request) {
 		scopeCounts = nil
 	}
 
-	h.render(w, r, pages.Activity(view.ActivityData{
+	actors := make([]string, len(events))
+	for i, e := range events {
+		actors[i] = e.ActorName
+	}
+	h.render(w, h.withAvatars(r, actors...), pages.Activity(view.ActivityData{
 		BasePage:    withAccountSubnav(basePage(r, h.Services), "activity", h.accountCounts(r.Context(), claims.UserID)),
 		Username:    claims.Username,
 		Events:      events,
