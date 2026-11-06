@@ -1269,40 +1269,25 @@ func kanbanCard(data view.ProjectDetailData, card service.KanbanCardView, column
 			}
 		}
 		if data.CanWrite && !opensEditor(card) {
-			{
-				templ_7745c5c3_ElementWriter := templ_7745c5c3_Buffer
-				templ_7745c5c3_Buffer := templ.GetBuffer()
-				var templ_7745c5c3_ElementScripts []templ.ComponentScript
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, "<button type=\"button\" aria-label=\"Remove from board\" onclick=\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var56 templ.ComponentScript = deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID)
-				templ_7745c5c3_ElementScripts = append(templ_7745c5c3_ElementScripts, templ_7745c5c3_Var56)
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var56.Call)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, "\" class=\"absolute right-1.5 top-1.5 z-10 rounded px-1 text-xs text-muted-foreground opacity-0 hover:bg-muted hover:text-destructive focus:opacity-100 group-hover:opacity-100\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templ.RenderScriptItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_ElementScripts...)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteTo(templ_7745c5c3_ElementWriter)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ.ReleaseBuffer(templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, "<button type=\"button\" aria-label=\"Remove from board\" hx-delete=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, ">✕</button>")
+			var templ_7745c5c3_Var56 string
+			templ_7745c5c3_Var56, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(data.Project.ID, 10) + "/cards/" + strconv.FormatInt(card.ID, 10)).Resolve(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 402, Col: 165}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var56)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, "\" hx-on::after:request=\"if(event.target===this&&ctx.response.status<400){location.reload();}\" class=\"absolute right-1.5 top-1.5 z-10 rounded px-1 text-xs text-muted-foreground opacity-0 hover:bg-muted hover:text-destructive focus:opacity-100 group-hover:opacity-100\">✕</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "</li>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "</li>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1336,12 +1321,12 @@ func linkKindIcon(kind string) templ.Component {
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
 		if kind == "pull" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "<svg class=\"mt-0.5 shrink-0 text-muted-foreground\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"6\" cy=\"6\" r=\"2.5\"></circle> <circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle> <circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle> <path d=\"M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-3\"></path></svg>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "<svg class=\"mt-0.5 shrink-0 text-muted-foreground\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"6\" cy=\"6\" r=\"2.5\"></circle> <circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle> <circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle> <path d=\"M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-3\"></path></svg>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "<svg class=\"mt-0.5 shrink-0 text-muted-foreground\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle> <circle cx=\"12\" cy=\"12\" r=\"1\" fill=\"currentColor\"></circle></svg>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "<svg class=\"mt-0.5 shrink-0 text-muted-foreground\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle> <circle cx=\"12\" cy=\"12\" r=\"1\" fill=\"currentColor\"></circle></svg>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1369,7 +1354,7 @@ func targetResults() templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "<div x-show=\"showList\" x-cloak x-bind:style=\"listStyle\" class=\"z-50 max-h-72 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md\" data-picker-list><p x-show=\"pending && !results.length\" class=\"px-2 py-1.5 text-[12px] text-muted-foreground\">Searching…</p><p x-show=\"error\" x-text=\"error\" class=\"px-2 py-1.5 text-[12px] text-destructive\" role=\"alert\"></p><p x-show=\"searched && !pending && !error && !results.length\" class=\"px-2 py-1.5 text-[12px] text-muted-foreground\">No matching issues or pull requests</p><ul role=\"listbox\" aria-label=\"Issues and pull requests\" class=\"flex flex-col\"><template x-for=\"(t, i) in results\" x-bind:key=\"t.kind + t.id\"><li role=\"option\" x-bind:aria-selected=\"(i === active).toString()\"><button type=\"button\" tabindex=\"-1\" @mousedown.prevent=\"pick(t)\" x-bind:class=\"i === active ? 'bg-muted' : ''\" class=\"flex w-full items-baseline gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-muted\"><span class=\"shrink-0 font-mono text-[11px] text-muted-foreground\" x-text=\"(t.kind === 'pull' ? 'PR #' : '#') + t.number\"></span> <span class=\"min-w-0 flex-1 truncate\" x-text=\"t.title\"></span> <span class=\"shrink-0 text-[11px] text-muted-foreground\" x-text=\"t.state\"></span></button></li></template></ul></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "<div x-show=\"showList\" x-cloak x-bind:style=\"listStyle\" class=\"z-50 max-h-72 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md\" data-picker-list><p x-show=\"pending && !results.length\" class=\"px-2 py-1.5 text-[12px] text-muted-foreground\">Searching…</p><p x-show=\"error\" x-text=\"error\" class=\"px-2 py-1.5 text-[12px] text-destructive\" role=\"alert\"></p><p x-show=\"searched && !pending && !error && !results.length\" class=\"px-2 py-1.5 text-[12px] text-muted-foreground\">No matching issues or pull requests</p><ul role=\"listbox\" aria-label=\"Issues and pull requests\" class=\"flex flex-col\"><template x-for=\"(t, i) in results\" x-bind:key=\"t.kind + t.id\"><li role=\"option\" x-bind:aria-selected=\"(i === active).toString()\"><button type=\"button\" tabindex=\"-1\" @mousedown.prevent=\"pick(t)\" x-bind:class=\"i === active ? 'bg-muted' : ''\" class=\"flex w-full items-baseline gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-muted\"><span class=\"shrink-0 font-mono text-[11px] text-muted-foreground\" x-text=\"(t.kind === 'pull' ? 'PR #' : '#') + t.number\"></span> <span class=\"min-w-0 flex-1 truncate\" x-text=\"t.title\"></span> <span class=\"shrink-0 text-[11px] text-muted-foreground\" x-text=\"t.state\"></span></button></li></template></ul></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1396,17 +1381,17 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, "<dialog id=\"card-dialog\" x-ref=\"cardDialog\" class=\"rounded-lg border border-border bg-popover text-popover-foreground p-0 m-auto w-[960px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs\" aria-labelledby=\"card-dialog-title\" @close=\"onDialogClosed()\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "<dialog id=\"card-dialog\" x-ref=\"cardDialog\" class=\"rounded-lg border border-border bg-popover text-popover-foreground p-0 m-auto w-[960px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs\" aria-labelledby=\"card-dialog-title\" @close=\"onDialogClosed()\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, " @keydown.escape=\"onEscape($event)\" @cancel=\"onEscape($event)\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, " @keydown.escape=\"onEscape($event)\" @cancel=\"onEscape($event)\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 105, " @card-link-picked=\"pickLink($event.detail)\"><form class=\"flex max-h-[calc(100dvh-4rem)] flex-col\" @submit.prevent=\"submit()\"><div class=\"flex items-start justify-between gap-3 border-b border-border p-5\"><div class=\"min-w-0 flex-1\" data-card-field=\"title\"><p x-show=\"editor.mode === 'edit'\" x-text=\"editor.column\" class=\"mb-1 truncate font-mono text-[11px] uppercase tracking-wider text-muted-foreground\"></p><div x-show=\"!editor.fields.title.editing\" class=\"flex items-start gap-1\"><div class=\"min-w-0 pt-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, " @card-link-picked=\"pickLink($event.detail)\"><form class=\"flex max-h-[calc(100dvh-4rem)] flex-col\" @submit.prevent=\"submit()\"><div class=\"flex items-start justify-between gap-3 border-b border-border p-5\"><div class=\"min-w-0 flex-1\" data-card-field=\"title\"><p x-show=\"editor.mode === 'edit'\" x-text=\"editor.column\" class=\"mb-1 truncate font-mono text-[11px] uppercase tracking-wider text-muted-foreground\"></p><div x-show=\"!editor.fields.title.editing\" class=\"flex items-start gap-1\"><div class=\"min-w-0 pt-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1422,7 +1407,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "<span x-text=\"heading\" class=\"block break-words\"></span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 105, "<span x-text=\"heading\" class=\"block break-words\"></span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1432,7 +1417,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1447,12 +1432,12 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, "<div x-show=\"editor.fields.title.editing\" x-cloak class=\"flex flex-col gap-2\"><label for=\"card-title-edit\" class=\"sr-only\">Title</label> <input id=\"card-title-edit\" type=\"text\" x-ref=\"titleEdit\" x-model=\"editor.title\" maxlength=\"256\" autocomplete=\"off\" x-bind:disabled=\"editor.fields.title.saving\" @keydown.enter.prevent=\"saveTitle()\" class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[15px] font-semibold focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, "<div x-show=\"editor.fields.title.editing\" x-cloak class=\"flex flex-col gap-2\"><label for=\"card-title-edit\" class=\"sr-only\">Title</label> <input id=\"card-title-edit\" type=\"text\" x-ref=\"titleEdit\" x-model=\"editor.title\" maxlength=\"256\" autocomplete=\"off\" x-bind:disabled=\"editor.fields.title.saving\" @keydown.enter.prevent=\"saveTitle()\" class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[15px] font-semibold focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1460,7 +1445,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1469,17 +1454,17 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, "</div><button type=\"button\" aria-label=\"Close\" x-ref=\"cardClose\" x-bind:disabled=\"closeBlocked\" @click=\"close()\" class=\"-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg></button></div><div class=\"min-h-0 flex-1 overflow-y-auto p-5 text-sm\"><div class=\"grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]\"><div data-card-main class=\"flex min-w-0 flex-col gap-5\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "</div><button type=\"button\" aria-label=\"Close\" x-ref=\"cardClose\" x-bind:disabled=\"closeBlocked\" @click=\"close()\" class=\"-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg></button></div><div class=\"min-h-0 flex-1 overflow-y-auto p-5 text-sm\"><div class=\"grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]\"><div data-card-main class=\"flex min-w-0 flex-col gap-5\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, "<div x-show=\"editor.mode === 'create'\"><label for=\"card-title-input\" class=\"mb-1 block text-[12px] font-medium text-muted-foreground\">Title</label> <input id=\"card-title-input\" type=\"text\" x-ref=\"cardTitle\" x-model=\"editor.title\" maxlength=\"256\" autocomplete=\"off\" class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring\"><p x-text=\"titleHint\" class=\"mt-1 text-[11px] text-muted-foreground\"></p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, "<div x-show=\"editor.mode === 'create'\"><label for=\"card-title-input\" class=\"mb-1 block text-[12px] font-medium text-muted-foreground\">Title</label> <input id=\"card-title-input\" type=\"text\" x-ref=\"cardTitle\" x-model=\"editor.title\" maxlength=\"256\" autocomplete=\"off\" class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-ring\"><p x-text=\"titleHint\" class=\"mt-1 text-[11px] text-muted-foreground\"></p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "<div data-card-field=\"description\"><div class=\"mb-1 flex min-h-7 items-center gap-1\"><span id=\"card-desc-label\" class=\"text-[12px] font-medium text-muted-foreground\">Description</span> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, "<div data-card-field=\"description\"><div class=\"mb-1 flex min-h-7 items-center gap-1\"><span id=\"card-desc-label\" class=\"text-[12px] font-medium text-muted-foreground\">Description</span> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1498,27 +1483,27 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 114, "</div><div x-show=\"editor.mode === 'edit' && !editor.fields.description.editing\" role=\"region\" aria-labelledby=\"card-desc-label\"><div x-show=\"editor.saved.descriptionHTML\" x-html=\"editor.saved.descriptionHTML\" class=\"prose prose-sm dark:prose-invert max-w-none break-words\" data-card-preview></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "</div><div x-show=\"editor.mode === 'edit' && !editor.fields.description.editing\" role=\"region\" aria-labelledby=\"card-desc-label\"><div x-show=\"editor.saved.descriptionHTML\" x-html=\"editor.saved.descriptionHTML\" class=\"prose prose-sm dark:prose-invert max-w-none break-words\" data-card-preview></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "<button type=\"button\" x-show=\"!editor.saved.descriptionHTML\" x-bind:disabled=\"editor.busy\" @click=\"editField('description')\" class=\"w-full rounded-md border border-dashed border-border px-3 py-4 text-left text-[13px] text-muted-foreground hover:border-ring hover:text-foreground\">Add a description</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 114, "<button type=\"button\" x-show=\"!editor.saved.descriptionHTML\" x-bind:disabled=\"editor.busy\" @click=\"editField('description')\" class=\"w-full rounded-md border border-dashed border-border px-3 py-4 text-left text-[13px] text-muted-foreground hover:border-ring hover:text-foreground\">Add a description</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "<p x-show=\"!editor.saved.descriptionHTML\" class=\"text-[12px] text-muted-foreground\">No description</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "<p x-show=\"!editor.saved.descriptionHTML\" class=\"text-[12px] text-muted-foreground\">No description</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<div x-show=\"editor.mode === 'create' || editor.fields.description.editing\" class=\"flex flex-col gap-2\" data-card-description-editor><fieldset x-bind:disabled=\"editor.fields.description.saving\" class=\"min-w-0 overflow-hidden rounded-md border border-border bg-card\"><legend class=\"sr-only\">Description</legend>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<div x-show=\"editor.mode === 'create' || editor.fields.description.editing\" class=\"flex flex-col gap-2\" data-card-description-editor><fieldset x-bind:disabled=\"editor.fields.description.saving\" class=\"min-w-0 overflow-hidden rounded-md border border-border bg-card\"><legend class=\"sr-only\">Description</legend>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1526,7 +1511,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "</fieldset><div x-show=\"editor.mode === 'edit'\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "</fieldset><div x-show=\"editor.mode === 'edit'\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1534,12 +1519,12 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, "</div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "</div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "</div></div><div data-card-side class=\"flex min-w-0 flex-col gap-5\"><div data-card-field=\"assignees\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, "</div></div><div data-card-side class=\"flex min-w-0 flex-col gap-5\"><div data-card-field=\"assignees\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1548,7 +1533,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, " <fieldset x-bind:disabled=\"editor.busy || editor.fields.assignees.saving\" @multiselect-closed=\"commitField('assignees', $event.detail.selected)\" class=\"min-w-0\"><legend class=\"sr-only\">Assignees</legend>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, " <fieldset x-bind:disabled=\"editor.busy || editor.fields.assignees.saving\" @multiselect-closed=\"commitField('assignees', $event.detail.selected)\" class=\"min-w-0\"><legend class=\"sr-only\">Assignees</legend>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1567,17 +1552,17 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "</fieldset>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, "</fieldset>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 124, "<p x-show=\"!editor.saved.assignees.length\" class=\"text-[12px] text-muted-foreground\">None</p><ul class=\"flex flex-col gap-1 text-[13px]\"><template x-for=\"a in editor.saved.assignees\" x-bind:key=\"a.id\"><li x-text=\"a.username\"></li></template></ul>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "<p x-show=\"!editor.saved.assignees.length\" class=\"text-[12px] text-muted-foreground\">None</p><ul class=\"flex flex-col gap-1 text-[13px]\"><template x-for=\"a in editor.saved.assignees\" x-bind:key=\"a.id\"><li x-text=\"a.username\"></li></template></ul>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "</div><div data-card-field=\"labels\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 124, "</div><div data-card-field=\"labels\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1586,7 +1571,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 126, "<fieldset x-bind:disabled=\"editor.busy || editor.fields.labels.saving\" @multiselect-closed=\"commitField('labels', $event.detail.selected)\" class=\"min-w-0\"><legend class=\"sr-only\">Labels</legend>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "<fieldset x-bind:disabled=\"editor.busy || editor.fields.labels.saving\" @multiselect-closed=\"commitField('labels', $event.detail.selected)\" class=\"min-w-0\"><legend class=\"sr-only\">Labels</legend>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1604,22 +1589,22 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 127, "</fieldset>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 126, "</fieldset>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 128, "<p x-show=\"!editor.saved.labels.length\" class=\"text-[12px] text-muted-foreground\">None</p><ul class=\"flex flex-col gap-1 text-[13px]\"><template x-for=\"l in editor.saved.labels\" x-bind:key=\"l.id\"><li class=\"flex items-center gap-2\"><span class=\"inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted\" x-bind:style=\"l.color ? { backgroundColor: l.color } : {}\"></span> <span x-text=\"l.name\"></span></li></template></ul>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 127, "<p x-show=\"!editor.saved.labels.length\" class=\"text-[12px] text-muted-foreground\">None</p><ul class=\"flex flex-col gap-1 text-[13px]\"><template x-for=\"l in editor.saved.labels\" x-bind:key=\"l.id\"><li class=\"flex items-center gap-2\"><span class=\"inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted\" x-bind:style=\"l.color ? { backgroundColor: l.color } : {}\"></span> <span x-text=\"l.name\"></span></li></template></ul>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 129, "</div><div data-card-field=\"due\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 128, "</div><div data-card-field=\"due\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "<div class=\"mb-1 flex min-h-7 items-center gap-2\"><label for=\"card-due-input\" class=\"text-[12px] font-medium text-muted-foreground\">Due date</label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 129, "<div class=\"mb-1 flex min-h-7 items-center gap-2\"><label for=\"card-due-input\" class=\"text-[12px] font-medium text-muted-foreground\">Due date</label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1627,7 +1612,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "</div><fieldset x-bind:disabled=\"editor.busy || editor.fields.due.saving\" @date-picked=\"commitField('due', $event.detail.value)\" class=\"min-w-0\"><legend class=\"sr-only\">Due date</legend>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "</div><fieldset x-bind:disabled=\"editor.busy || editor.fields.due.saving\" @date-picked=\"commitField('due', $event.detail.value)\" class=\"min-w-0\"><legend class=\"sr-only\">Due date</legend>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1641,7 +1626,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "</fieldset>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "</fieldset>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1650,12 +1635,12 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, "<p x-text=\"dueLabel(editor.saved.dueDate) || 'None'\" x-bind:class=\"editor.saved.dueDate ? 'text-[13px]' : 'text-[12px] text-muted-foreground'\" data-card-due-text></p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<p x-text=\"dueLabel(editor.saved.dueDate) || 'None'\" x-bind:class=\"editor.saved.dueDate ? 'text-[13px]' : 'text-[12px] text-muted-foreground'\" data-card-due-text></p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 134, "</div><div data-card-field=\"link\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, "</div><div data-card-field=\"link\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1663,7 +1648,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 135, "<div x-show=\"editor.link\" class=\"flex items-center gap-1 rounded-md border border-border bg-card py-1.5 pl-2.5 pr-1 text-[13px]\" data-card-link-chip><a x-ref=\"linkAnchor\" x-bind:href=\"linkURL\" class=\"flex min-w-0 flex-1 items-baseline gap-2 rounded hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring\"><span class=\"shrink-0 font-mono text-[11px] text-muted-foreground\" x-text=\"editor.link ? (editor.link.kind === 'pull' ? 'PR #' : '#') + editor.link.number : ''\"></span> <span class=\"min-w-0 flex-1 truncate\" x-text=\"editor.link ? editor.link.title : ''\"></span> <span class=\"shrink-0 text-[11px] text-muted-foreground\" x-text=\"editor.link ? editor.link.state : ''\"></span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 134, "<div x-show=\"editor.link\" class=\"flex items-center gap-1 rounded-md border border-border bg-card py-1.5 pl-2.5 pr-1 text-[13px]\" data-card-link-chip><a x-ref=\"linkAnchor\" x-bind:href=\"linkURL\" class=\"flex min-w-0 flex-1 items-baseline gap-2 rounded hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring\"><span class=\"shrink-0 font-mono text-[11px] text-muted-foreground\" x-text=\"editor.link ? (editor.link.kind === 'pull' ? 'PR #' : '#') + editor.link.number : ''\"></span> <span class=\"min-w-0 flex-1 truncate\" x-text=\"editor.link ? editor.link.title : ''\"></span> <span class=\"shrink-0 text-[11px] text-muted-foreground\" x-text=\"editor.link ? editor.link.state : ''\"></span></a> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1677,17 +1662,17 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 136, "<button type=\"button\" x-ref=\"linkClear\" aria-label=\"Remove link\" x-bind:disabled=\"editor.busy || editor.fields.link.saving\" @click=\"clearLink()\" class=\"h-7 w-7 shrink-0 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-50\">✕</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 135, "<button type=\"button\" x-ref=\"linkClear\" aria-label=\"Remove link\" x-bind:disabled=\"editor.busy || editor.fields.link.saving\" @click=\"clearLink()\" class=\"h-7 w-7 shrink-0 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-50\">✕</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 137, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 136, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 138, "<div x-show=\"!editor.link || editor.fields.link.editing\" x-data=\"linkPicker\" @click.outside=\"reset()\" @focusout=\"onFocusOut($event)\" x-bind:class=\"editor.link ? 'mt-2' : ''\" class=\"flex flex-col gap-2\"><label for=\"card-link-input\" class=\"sr-only\">Find an issue or pull request</label> <input id=\"card-link-input\" type=\"text\" x-ref=\"input\" x-model=\"text\" placeholder=\"Find an issue or PR by title or #number\" autocomplete=\"off\" x-bind:disabled=\"editor.busy || editor.fields.link.saving\" class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70\" @input=\"search()\" @keydown.enter.prevent=\"enterPick()\" @keydown.escape=\"showList && ($event.preventDefault(), $event.stopPropagation(), reset())\" @keydown.arrow-down.prevent=\"move(1)\" @keydown.arrow-up.prevent=\"move(-1)\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 137, "<div x-show=\"!editor.link || editor.fields.link.editing\" x-data=\"linkPicker\" @click.outside=\"reset()\" @focusout=\"onFocusOut($event)\" x-bind:class=\"editor.link ? 'mt-2' : ''\" class=\"flex flex-col gap-2\"><label for=\"card-link-input\" class=\"sr-only\">Find an issue or pull request</label> <input id=\"card-link-input\" type=\"text\" x-ref=\"input\" x-model=\"text\" placeholder=\"Find an issue or PR by title or #number\" autocomplete=\"off\" x-bind:disabled=\"editor.busy || editor.fields.link.saving\" class=\"h-9 w-full rounded-md border border-input bg-card px-2.5 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring disabled:opacity-70\" @input=\"search()\" @keydown.enter.prevent=\"enterPick()\" @keydown.escape=\"showList && ($event.preventDefault(), $event.stopPropagation(), reset())\" @keydown.arrow-down.prevent=\"move(1)\" @keydown.arrow-up.prevent=\"move(-1)\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1695,7 +1680,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "</div><div x-show=\"editor.link && editor.fields.link.editing\" class=\"mt-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 138, "</div><div x-show=\"editor.link && editor.fields.link.editing\" class=\"mt-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1711,7 +1696,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 140, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1725,32 +1710,32 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 141, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 140, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "<p x-show=\"!editor.link\" class=\"text-[12px] text-muted-foreground\">None</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 141, "<p x-show=\"!editor.link\" class=\"text-[12px] text-muted-foreground\">None</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, "</div></div></div></div><p x-show=\"editor.error\" x-cloak x-text=\"editor.error\" class=\"px-5 pb-3 text-[12px] text-destructive\" role=\"alert\"></p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "</div></div></div></div><p x-show=\"editor.error\" x-cloak x-text=\"editor.error\" class=\"px-5 pb-3 text-[12px] text-destructive\" role=\"alert\"></p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, "<div role=\"status\" aria-live=\"polite\"><p x-show=\"editor.notice\" x-cloak x-text=\"editor.notice\" class=\"px-5 pb-3 text-[12px] text-muted-foreground\" data-card-notice></p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, "<div role=\"status\" aria-live=\"polite\"><p x-show=\"editor.notice\" x-cloak x-text=\"editor.notice\" class=\"px-5 pb-3 text-[12px] text-muted-foreground\" data-card-notice></p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, "<div class=\"flex flex-wrap items-center gap-2 border-t border-border px-5 py-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, "<div class=\"flex flex-wrap items-center gap-2 border-t border-border px-5 py-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "<div x-show=\"!editor.confirm\" class=\"flex w-full flex-wrap items-center gap-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, "<div x-show=\"!editor.confirm\" class=\"flex w-full flex-wrap items-center gap-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1766,7 +1751,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "Delete")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "Delete")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1795,7 +1780,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, "Convert to issue")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "Convert to issue")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1812,7 +1797,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, "<div x-show=\"editor.mode === 'create'\" class=\"ml-auto flex items-center gap-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, "<div x-show=\"editor.mode === 'create'\" class=\"ml-auto flex items-center gap-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1828,7 +1813,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1850,7 +1835,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "Create card")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "Create card")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1860,17 +1845,17 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, "</div></div><div x-show=\"editor.confirm\" x-cloak class=\"flex w-full flex-wrap items-center justify-end gap-x-2 gap-y-3\" role=\"group\" aria-labelledby=\"card-confirm-text\" data-card-confirm><p id=\"card-confirm-text\" class=\"basis-full text-[13px] font-medium\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "</div></div><div x-show=\"editor.confirm\" x-cloak class=\"flex w-full flex-wrap items-center justify-end gap-x-2 gap-y-3\" role=\"group\" aria-labelledby=\"card-confirm-text\" data-card-confirm><p id=\"card-confirm-text\" class=\"basis-full text-[13px] font-medium\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if data.Repo.AllowIssues {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "<span x-show=\"editor.confirm === 'convert'\">Create an issue from this card? The card will link to the new issue.</span> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, "<span x-show=\"editor.confirm === 'convert'\">Create an issue from this card? The card will link to the new issue.</span> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "<span x-show=\"editor.confirm === 'delete'\">Delete this card?</span></p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "<span x-show=\"editor.confirm === 'delete'\">Delete this card?</span></p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1886,7 +1871,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1909,7 +1894,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, "Create issue")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "Create issue")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1938,7 +1923,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "Delete card")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, "Delete card")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1954,7 +1939,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 158, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1971,7 +1956,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 159, "Close")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 158, "Close")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1982,7 +1967,7 @@ func cardDialog(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 160, "</div></form></dialog>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 159, "</div></form></dialog>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2012,33 +1997,33 @@ func cardEditButton(label string, attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_ElementWriter := templ_7745c5c3_Buffer
 			templ_7745c5c3_Buffer := templ.GetBuffer()
 			var templ_7745c5c3_ElementScripts []templ.ComponentScript
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 161, "<button type=\"button\" aria-label=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 160, "<button type=\"button\" aria-label=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var71 string
 			templ_7745c5c3_Var71, templ_7745c5c3_Err = templruntime.NewAttributeExpression(label).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 834, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 835, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var71)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 162, "\" title=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 161, "\" title=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var72 string
 			templ_7745c5c3_Var72, templ_7745c5c3_Err = templruntime.NewAttributeExpression(label).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 835, Col: 15}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 836, Col: 15}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var72)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 163, "\" class=\"flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 162, "\" class=\"flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2056,7 +2041,7 @@ func cardEditButton(label string, attrs templ.Attributes) templ.Component {
 			}
 			templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 164, "><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 20h9\"></path> <path d=\"M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z\"></path></svg></button>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 163, "><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 20h9\"></path> <path d=\"M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z\"></path></svg></button>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2082,33 +2067,33 @@ func cardFieldLabel(id, label, field string, canWrite bool) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 165, "<div class=\"mb-1 flex min-h-7 items-center gap-2\"><span id=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 164, "<div class=\"mb-1 flex min-h-7 items-center gap-2\"><span id=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var74 string
 		templ_7745c5c3_Var74, templ_7745c5c3_Err = templruntime.NewAttributeExpression(id).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 849, Col: 15}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 850, Col: 15}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var74)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 166, "\" class=\"text-[12px] font-medium text-muted-foreground\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 165, "\" class=\"text-[12px] font-medium text-muted-foreground\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var75 string
 		templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 849, Col: 79}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 850, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "</span> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 166, "</span> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2118,7 +2103,7 @@ func cardFieldLabel(id, label, field string, canWrite bool) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2144,46 +2129,46 @@ func cardFieldStatus(field string) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "<span role=\"status\" aria-live=\"polite\" x-text=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, "<span role=\"status\" aria-live=\"polite\" x-text=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var77 string
 		templ_7745c5c3_Var77, templ_7745c5c3_Err = templruntime.NewAttributeExpression("fieldStatus('" + field + "')").Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 861, Col: 41}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 862, Col: 41}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var77)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "\" x-bind:class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "\" x-bind:class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var78 string
 		templ_7745c5c3_Var78, templ_7745c5c3_Err = templruntime.NewAttributeExpression("editor.fields." + field + ".error ? 'text-destructive' : 'text-muted-foreground'").Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 862, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 863, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var78)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 171, "\" class=\"ml-auto min-w-0 text-right text-[11px]\" data-field-status=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "\" class=\"ml-auto min-w-0 text-right text-[11px]\" data-field-status=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var79 string
 		templ_7745c5c3_Var79, templ_7745c5c3_Err = templruntime.NewAttributeExpression(field).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 864, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/project_detail.templ`, Line: 865, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var79)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 172, "\"></span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 171, "\"></span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2209,7 +2194,7 @@ func cardFieldActions(field, save, blank string) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 173, "<div class=\"flex items-center gap-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 172, "<div class=\"flex items-center gap-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2225,7 +2210,7 @@ func cardFieldActions(field, save, blank string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "Save")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 173, "Save")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2251,7 +2236,7 @@ func cardFieldActions(field, save, blank string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 175, "Cancel")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "Cancel")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2265,7 +2250,7 @@ func cardFieldActions(field, save, blank string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 176, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 175, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2275,28 +2260,24 @@ func cardFieldActions(field, save, blank string) templ.Component {
 
 func setProjectClosedJS(owner, repoName string, projectID int64, closed bool) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_setProjectClosedJS_cf49`,
-		Function: `function __templ_setProjectClosedJS_cf49(owner, repoName, projectID, closed){var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+		Name: `__templ_setProjectClosedJS_dcfa`,
+		Function: `function __templ_setProjectClosedJS_dcfa(owner, repoName, projectID, closed){var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID, {
 		method: 'PATCH',
 		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({closed: closed})
-	}).then(function(r){ if(r.ok) window.location.reload(); });
+	}).then(function(r){
+		if (r.ok) { window.location.reload(); return; }
+		return r.json().catch(function(){ return {}; }).then(function(body){
+			var msg = (body && body.error) || 'Something went wrong (HTTP ' + r.status + ').';
+			document.dispatchEvent(new CustomEvent('toast', {detail: {type: 'error', message: msg}}));
+		});
+	}, function(){
+		document.dispatchEvent(new CustomEvent('toast', {detail: {type: 'error', message: 'The project could not be updated. Check your connection and try again.'}}));
+	});
 }`,
-		Call:       templ.SafeScript(`__templ_setProjectClosedJS_cf49`, owner, repoName, projectID, closed),
-		CallInline: templ.SafeScriptInline(`__templ_setProjectClosedJS_cf49`, owner, repoName, projectID, closed),
-	}
-}
-
-func deleteCardJS(owner, repoName string, projectID, cardID int64) templ.ComponentScript {
-	return templ.ComponentScript{
-		Name: `__templ_deleteCardJS_5b23`,
-		Function: `function __templ_deleteCardJS_5b23(owner, repoName, projectID, cardID){var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
-		.then(function(r){ if(r.ok) window.location.reload(); });
-}`,
-		Call:       templ.SafeScript(`__templ_deleteCardJS_5b23`, owner, repoName, projectID, cardID),
-		CallInline: templ.SafeScriptInline(`__templ_deleteCardJS_5b23`, owner, repoName, projectID, cardID),
+		Call:       templ.SafeScript(`__templ_setProjectClosedJS_dcfa`, owner, repoName, projectID, closed),
+		CallInline: templ.SafeScriptInline(`__templ_setProjectClosedJS_dcfa`, owner, repoName, projectID, closed),
 	}
 }
 

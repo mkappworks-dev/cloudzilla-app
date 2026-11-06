@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -156,7 +157,12 @@ func TestSubmitNewFile_PushLandsMidCommit_Conflict(t *testing.T) {
 			rr = postForm(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {"web.txt"}, "content": {"web\n"}})
 		})
 
-	assertPushKept(t, rr, branchMovedMsg+"\n", r.git, "main", r.mainPushed)
+	if rr.Code != http.StatusConflict || !strings.Contains(rr.Body.String(), branchMovedMsg) {
+		t.Errorf("want 409 %q, got %d %.300q", branchMovedMsg, rr.Code, rr.Body.String())
+	}
+	if got := branchHash(t, r.git, "main"); got != r.mainPushed {
+		t.Errorf("main = %s, want pushed commit %s", got, r.mainPushed)
+	}
 }
 
 func TestWikiEdits_PushLandsMidCommit_Conflict(t *testing.T) {

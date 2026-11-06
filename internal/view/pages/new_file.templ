@@ -22,7 +22,18 @@ templ NewFile(data view.NewFileData) {
 				</p>
 			</section>
 
+			if data.Error != "" {
+				<div role="alert" class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">
+					<p>{ data.Error }</p>
+					if data.UploadName != "" {
+						<p class="mt-1">Choose <span class="font-mono">{ data.UploadName }</span> again to upload it.</p>
+					}
+				</div>
+			}
+			<div id="nf-size-error" role="alert" hidden class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">Files are limited to 25 MB. Reduce the form size and try again.</div>
+
 			<form
+				id="newfile-form"
 				method="POST"
 				action={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Ref, "")) }
 				enctype="multipart/form-data"
@@ -36,7 +47,7 @@ templ NewFile(data view.NewFileData) {
 							id="nf-path"
 							name="path"
 							type="text"
-							value={ newFilePathPrefix(data.Dir) }
+							value={ data.Path }
 							placeholder="path/to/file.md"
 							required
 							class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
@@ -51,7 +62,7 @@ templ NewFile(data view.NewFileData) {
 							rows="16"
 							placeholder="Type the file contents here…"
 							class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-y"
-						></textarea>
+						>{ textareaValue(data.Content) }</textarea>
 					</div>
 				</div>
 
@@ -72,6 +83,7 @@ templ NewFile(data view.NewFileData) {
 						id="nf-message"
 						name="message"
 						type="text"
+						value={ data.Message }
 						placeholder="Add new file"
 						class="w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
 					/>
@@ -82,15 +94,31 @@ templ NewFile(data view.NewFileData) {
 					<button type="submit" class="h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Commit file</button>
 				</div>
 			</form>
+			<script>
+				(function () {
+					var form = document.getElementById('newfile-form');
+					var error = document.getElementById('nf-size-error');
+					var checking = false;
+					var ready = false;
+					form.addEventListener('submit', async function (event) {
+						if (ready) { ready = false; return; }
+						event.preventDefault();
+						if (checking) return;
+						checking = true;
+						try {
+							var size = (await new Response(new FormData(form)).blob()).size;
+							if (size > 26 * 1024 * 1024) {
+								error.hidden = false;
+								error.scrollIntoView({ block: 'nearest' });
+								return;
+							}
+							error.hidden = true;
+							ready = true;
+							form.requestSubmit(event.submitter);
+						} finally { checking = false; }
+					});
+				})();
+			</script>
 		</div>
 	}
-}
-
-// newFilePathPrefix prefills the path field with the directory the user came
-// from, so the file lands in the right place.
-func newFilePathPrefix(dir string) string {
-	if dir == "" {
-		return ""
-	}
-	return dir + "/"
 }

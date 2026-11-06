@@ -61,6 +61,15 @@ func TestRequirePullRequest_EditFormKeepsTheText(t *testing.T) {
 	}
 }
 
+func TestRequirePullRequest_NewFileUploadCanBeReselected(t *testing.T) {
+	r := seedEditRepo(t)
+	r.requirePullRequest(t, "main")
+	rr := postUpload(t, r.api, r.owner.token, r.path+"/new/main", url.Values{"path": {"new.txt"}, "content": {"keep text"}}, []byte("upload"))
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), `Choose <span class="font-mono">upload.bin</span> again`) || !strings.Contains(rr.Body.String(), "keep text") {
+		t.Fatalf("want a refusal with the upload notice and typed text, got %d: %.500s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestRequirePullRequest_LeavesOtherBranchesEditable(t *testing.T) {
 	r := seedEditRepo(t)
 	r.requirePullRequest(t, "main")

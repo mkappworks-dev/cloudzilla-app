@@ -51,6 +51,35 @@ templ MilestoneTitleSection(owner, repoName string, number int, title string, ca
 	</div>
 }
 
+// MilestoneTitleSaved answers a title edit. htmx sets document.title from a
+// <title> inside a <head>, and the breadcrumb swaps out of band.
+templ MilestoneTitleSaved(owner, repoName string, number int, title string) {
+	<head><title>{ title } · { owner }/{ repoName } — Cloudzilla</title></head>
+	@MilestoneTitleSection(owner, repoName, number, title, true, false)
+	@MilestoneBreadcrumbTitle(title, true)
+}
+
+// MilestoneDueSaved answers a due-date edit, swapping the header's due line
+// out of band.
+templ MilestoneDueSaved(owner, repoName string, number int, due *time.Time) {
+	@MilestoneDueSection(owner, repoName, number, due, true, false)
+	@MilestoneHeaderDue(due, true)
+}
+
+templ MilestoneBreadcrumbTitle(title string, oob bool) {
+	<span id="milestone-breadcrumb-title" aria-current="page" if oob { hx-swap-oob="true" }>{ title }</span>
+}
+
+templ MilestoneHeaderDue(due *time.Time, oob bool) {
+	<p id="milestone-header-due" class="text-[13px] text-muted-foreground" if oob { hx-swap-oob="true" }>
+		if due != nil {
+			Due by <strong class="text-foreground"><time datetime={ due.UTC().Format(time.RFC3339) }>{ due.Format("Jan 2, 2006") }</time></strong>
+		} else {
+			No due date
+		}
+	</p>
+}
+
 templ MilestoneBodyCard(data view.MilestoneBodyCardData) {
 	{{ base := "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(data.Number) + "/body" }}
 	<section id="milestone-body-card" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Milestone description">

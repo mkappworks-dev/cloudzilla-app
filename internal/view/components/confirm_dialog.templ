@@ -113,6 +113,12 @@ templ ConfirmDialog() {
 				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: msg } }));
 			});
 
+			document.body.addEventListener('htmx:error', function (e) {
+				var ctx = e.detail.ctx;
+				if (!ctx || ctx.response || !ctx.request) return;
+				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: 'The request failed. Check your connection and try again.' } }));
+			});
+
 			function stashToastFromForm(form) {
 				var msg = form.getAttribute('data-toast');
 				if (!msg) return;

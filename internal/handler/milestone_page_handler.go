@@ -407,7 +407,7 @@ func (h *Handler) EditMilestoneTitle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	h.render(w, r, fragments.MilestoneTitleSection(owner, repoName, number, updated.Title, true, false))
+	h.render(w, r, fragments.MilestoneTitleSaved(owner, repoName, number, updated.Title))
 }
 
 func (h *Handler) MilestoneBodySection(w http.ResponseWriter, r *http.Request) {
@@ -513,7 +513,7 @@ func (h *Handler) EditMilestoneDue(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	h.render(w, r, fragments.MilestoneDueSection(owner, repoName, number, updated.DueDate, true, false))
+	h.render(w, r, fragments.MilestoneDueSaved(owner, repoName, number, updated.DueDate))
 }
 
 // milestoneSetFailureMessage maps SetIssue/SetPull sentinel errors to a

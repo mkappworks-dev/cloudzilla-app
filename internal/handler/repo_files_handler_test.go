@@ -73,14 +73,14 @@ func TestSubmitNewFile_RefusesPathCollisions(t *testing.T) {
 	}
 
 	tests := []struct{ name, path, want string }{
-		{"file over a directory", "docs", "path collides with an existing entry: docs is a directory\n"},
-		{"directory over a file", "a.txt/x", "path collides with an existing entry: a.txt is a file\n"},
+		{"file over a directory", "docs", "path collides with an existing entry: docs is a directory"},
+		{"directory over a file", "a.txt/x", "path collides with an existing entry: a.txt is a file"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tip := branchHash(t, r.git, "main")
 			rr := postForm(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {tt.path}, "content": {"x\n"}})
-			if rr.Code != http.StatusConflict || rr.Body.String() != tt.want {
+			if rr.Code != http.StatusConflict || !strings.Contains(rr.Body.String(), tt.want) {
 				t.Errorf("want 409 %q, got %d %q", tt.want, rr.Code, rr.Body.String())
 			}
 			if got := branchHash(t, r.git, "main"); got != tip {
@@ -290,7 +290,7 @@ func TestSubmitNewFile_RefusesOversizedForms(t *testing.T) {
 
 			rr := tt.send(t, api, r)
 
-			if want := "files are limited to 25 MB\n"; rr.Code != http.StatusRequestEntityTooLarge || rr.Body.String() != want {
+			if want := "files are limited to 25 MB"; rr.Code != http.StatusRequestEntityTooLarge || !strings.Contains(rr.Body.String(), want) {
 				t.Errorf("want 413 %q, got %d %.100q", want, rr.Code, rr.Body.String())
 			}
 			if got := branchHash(t, r.git, "main"); got != r.mainTip {
@@ -318,7 +318,7 @@ func TestSubmitNewFile_RefusesInvalidPathsWithoutLoggingThem(t *testing.T) {
 
 			rr := postForm(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {tt.path}, "content": {"hook\n"}})
 
-			if rr.Code != http.StatusUnprocessableEntity || !strings.HasPrefix(rr.Body.String(), "invalid file path: ") {
+			if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "invalid file path: ") {
 				t.Errorf("want 422 invalid file path, got %d %.100q", rr.Code, rr.Body.String())
 			}
 			if got := branchHash(t, r.git, "main"); got != r.mainTip {
@@ -395,7 +395,7 @@ func TestSubmitNewFile_AsksForAFileNameAfterATrailingSlash(t *testing.T) {
 
 			rr := postUpload(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {tt.path}, "content": {"typed\n"}}, nil)
 
-			if want := "the path ends in /: add a file name or upload a file\n"; rr.Code != http.StatusBadRequest || rr.Body.String() != want {
+			if want := "the path ends in /: add a file name or upload a file"; rr.Code != http.StatusBadRequest || !strings.Contains(rr.Body.String(), want) {
 				t.Errorf("want 400 %q, got %d %q", want, rr.Code, rr.Body.String())
 			}
 			if got := branchHash(t, r.git, "main"); got != tip {
@@ -435,5 +435,58 @@ func TestUpdateProfileReadme_RunsPushSideEffects(t *testing.T) {
 		if time.Now().After(deadline) {
 			t.Fatalf("push events = %d, want 1", n)
 		}
+	}
+}
+
+func TestSubmitNewFile_RefusalKeepsTheForm(t *testing.T) {
+	tests := []struct {
+		name, path string
+		status     int
+		want       string
+	}{
+		{"no path", "  ", http.StatusBadRequest, "a file path is required"},
+		{"path ends in a slash", "notes/", http.StatusBadRequest, "the path ends in /: add a file name or upload a file"},
+		{"collision", "a.txt/x", http.StatusConflict, "path collides with an existing entry: a.txt is a file"},
+		{"invalid path", ".git/hooks/post-checkout", http.StatusUnprocessableEntity, "invalid file path: "},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := testutil.OpenTestDB(t)
+			reposRoot := t.TempDir()
+			api := newAPIRouterAt(t, db, reposRoot)
+			r := seedRaceRepo(t, db, reposRoot)
+
+			rr := postForm(t, api, r.owner.token, r.path+"/new/main",
+				url.Values{"path": {tt.path}, "content": {"my unsaved words\r\n"}, "message": {"my commit note"}})
+
+			body := rr.Body.String()
+			if rr.Code != tt.status {
+				t.Fatalf("want %d, got %d: %.300s", tt.status, rr.Code, body)
+			}
+			for _, want := range []string{`role="alert"`, tt.want, "my unsaved words\n</textarea>", `value="my commit note"`, `value="` + tt.path + `"`} {
+				if !strings.Contains(body, want) {
+					t.Errorf("body lacks %q", want)
+				}
+			}
+			if got := branchHash(t, r.git, "main"); got != r.mainTip {
+				t.Errorf("main = %s, want %s", got, r.mainTip)
+			}
+		})
+	}
+}
+
+func TestSubmitNewFile_RefusedUploadAsksForTheFileAgain(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+
+	rr := postUpload(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {".git/hooks/x"}}, []byte("uploaded\n"))
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("want 422, got %d: %.300s", rr.Code, rr.Body.String())
+	}
+	if want := `Choose <span class="font-mono">upload.bin</span> again`; !strings.Contains(rr.Body.String(), want) {
+		t.Errorf("body lacks %q", want)
 	}
 }

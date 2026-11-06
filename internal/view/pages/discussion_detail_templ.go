@@ -191,7 +191,7 @@ func DiscussionDetail(data view.DiscussionDetailData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" hx-vals=\"js:{title: document.getElementById('dd-title-input').value}\" hx-on::after:request=\"window.location.reload()\" class=\"inline-flex items-center h-9 px-4 text-[13px] rounded-md font-medium bg-foreground text-background\">Save</button> <button type=\"button\" x-on:click=\"editingTitle = false\" class=\"inline-flex items-center h-9 px-3 text-[13px] rounded-md text-muted-foreground hover:underline\">Cancel</button></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" hx-vals=\"js:{title: document.getElementById('dd-title-input').value}\" hx-on::after:request=\"if(event.target===this&&ctx.response.status<400){location.reload();}\" class=\"inline-flex items-center h-9 px-4 text-[13px] rounded-md font-medium bg-foreground text-background\">Save</button> <button type=\"button\" x-on:click=\"editingTitle = false\" class=\"inline-flex items-center h-9 px-3 text-[13px] rounded-md text-muted-foreground hover:underline\">Cancel</button></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -525,7 +525,7 @@ func DiscussionDetail(data view.DiscussionDetailData) templ.Component {
 									"type":                 "button",
 									"hx-patch":             patchURL,
 									"hx-vals":              `{"locked": true}`,
-									"hx-on::after:request": templ.JSUnsafeFuncCall("window.location.reload()"),
+									"hx-on::after:request": templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response.status<400){location.reload();}"),
 								}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var24), templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
@@ -601,7 +601,7 @@ func DiscussionDetail(data view.DiscussionDetailData) templ.Component {
 						templ_7745c5c3_Err = components.Button(components.ButtonGhost, components.ButtonSizeSM, templ.Attributes{
 							"hx-patch":             "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number),
 							"hx-vals":              `{"locked": false}`,
-							"hx-on::after:request": templ.JSUnsafeFuncCall("window.location.reload()"),
+							"hx-on::after:request": templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response.status<400){location.reload();}"),
 							"type":                 "button",
 						}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var26), templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
@@ -655,14 +655,14 @@ func DiscussionDetail(data view.DiscussionDetailData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "\" hx-on::after:request=\"window.location.reload()\" role=\"menuitemradio\" aria-checked=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "\" hx-on::after:request=\"if(event.target===this&&ctx.response.status<400){location.reload();}\" role=\"menuitemradio\" aria-checked=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var29 string
 					templ_7745c5c3_Var29, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.FormatBool(cat.ID == data.Category.ID)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/discussion_detail.templ`, Line: 204, Col: 253}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/discussion_detail.templ`, Line: 204, Col: 297}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var29)
 					if templ_7745c5c3_Err != nil {
@@ -1138,7 +1138,7 @@ func discussionReply(owner, repoName string, number int, reply view.RenderedDisc
 					"type":                 "button",
 					"hx-patch":             patchURL,
 					"hx-vals":              `{"answer_id": "null"}`,
-					"hx-on::after:request": templ.JSUnsafeFuncCall("window.location.reload()"),
+					"hx-on::after:request": templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response.status<400){location.reload();}"),
 				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var47), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -1166,7 +1166,7 @@ func discussionReply(owner, repoName string, number int, reply view.RenderedDisc
 					"type":                 "button",
 					"hx-patch":             patchURL,
 					"hx-vals":              `{"answer_id": ` + strconv.FormatInt(reply.ID, 10) + `}`,
-					"hx-on::after:request": templ.JSUnsafeFuncCall("window.location.reload()"),
+					"hx-on::after:request": templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response.status<400){location.reload();}"),
 				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var48), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

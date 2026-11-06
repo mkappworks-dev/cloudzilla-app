@@ -83,59 +83,131 @@ func NewFile(data view.NewFileData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span></p></section><form method=\"POST\" action=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span></p></section>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Ref, ""))).ResolveURL(ctx)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 27, Col: 88}
+			if data.Error != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div role=\"alert\" class=\"text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\"><p>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var6 string
+				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 27, Col: 20}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</p>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				if data.UploadName != "" {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p class=\"mt-1\">Choose <span class=\"font-mono\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var7 string
+					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.UploadName)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 29, Col: 70}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span> again to upload it.</p>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" enctype=\"multipart/form-data\" class=\"space-y-5\"><input type=\"hidden\" name=\"dir\" value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var7 string
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Dir).Resolve(ctx)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 31, Col: 52}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><div class=\"rounded-md border border-border bg-card p-5 space-y-4\"><div><label for=\"nf-path\" class=\"block text-[12px] font-medium mb-1.5\">File path</label> <input id=\"nf-path\" name=\"path\" type=\"text\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div id=\"nf-size-error\" role=\"alert\" hidden class=\"text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\">Files are limited to 25 MB. Reduce the form size and try again.</div><form id=\"newfile-form\" method=\"POST\" action=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
-			templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(newFilePathPrefix(data.Dir)).Resolve(ctx)
+			templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "new", data.Ref, ""))).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 39, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 38, Col: 88}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" placeholder=\"path/to/file.md\" required class=\"w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Directories in the path are created automatically.</p></div><div><label for=\"nf-content\" class=\"block text-[12px] font-medium mb-1.5\">Contents</label> <textarea id=\"nf-content\" name=\"content\" rows=\"16\" placeholder=\"Type the file contents here…\" class=\"w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-y\"></textarea></div></div><div id=\"upload\" class=\"rounded-md border border-border bg-card p-5\"><label for=\"nf-file\" class=\"block text-[12px] font-medium mb-1.5\">…or upload a file</label> <input id=\"nf-file\" name=\"file\" type=\"file\" class=\"block w-full text-[13px] text-muted-foreground file:mr-3 file:h-8 file:px-3 file:text-[13px] file:border file:border-border file:rounded-md file:bg-muted file:text-foreground file:hover:bg-accent\"><p class=\"text-[11px] text-muted-foreground mt-1\">An uploaded file replaces the typed contents. End the path with / to keep the uploaded file's name.</p></div><div class=\"rounded-md border border-border bg-card p-5\"><label for=\"nf-message\" class=\"block text-[12px] font-medium mb-1.5\">Commit message</label> <input id=\"nf-message\" name=\"message\" type=\"text\" placeholder=\"Add new file\" class=\"w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"flex items-center justify-end gap-2\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" enctype=\"multipart/form-data\" class=\"space-y-5\"><input type=\"hidden\" name=\"dir\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName)).ResolveURL(ctx)
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Dir).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 81, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 42, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent\">Cancel</a> <button type=\"submit\" class=\"h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium\">Commit file</button></div></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\"><div class=\"rounded-md border border-border bg-card p-5 space-y-4\"><div><label for=\"nf-path\" class=\"block text-[12px] font-medium mb-1.5\">File path</label> <input id=\"nf-path\" name=\"path\" type=\"text\" value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var10 string
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Path).Resolve(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 50, Col: 24}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" placeholder=\"path/to/file.md\" required class=\"w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Directories in the path are created automatically.</p></div><div><label for=\"nf-content\" class=\"block text-[12px] font-medium mb-1.5\">Contents</label> <textarea id=\"nf-content\" name=\"content\" rows=\"16\" placeholder=\"Type the file contents here…\" class=\"w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-y\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var11 string
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(textareaValue(data.Content))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 65, Col: 36}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</textarea></div></div><div id=\"upload\" class=\"rounded-md border border-border bg-card p-5\"><label for=\"nf-file\" class=\"block text-[12px] font-medium mb-1.5\">…or upload a file</label> <input id=\"nf-file\" name=\"file\" type=\"file\" class=\"block w-full text-[13px] text-muted-foreground file:mr-3 file:h-8 file:px-3 file:text-[13px] file:border file:border-border file:rounded-md file:bg-muted file:text-foreground file:hover:bg-accent\"><p class=\"text-[11px] text-muted-foreground mt-1\">An uploaded file replaces the typed contents. End the path with / to keep the uploaded file's name.</p></div><div class=\"rounded-md border border-border bg-card p-5\"><label for=\"nf-message\" class=\"block text-[12px] font-medium mb-1.5\">Commit message</label> <input id=\"nf-message\" name=\"message\" type=\"text\" value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var12 string
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Message).Resolve(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 86, Col: 26}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" placeholder=\"Add new file\" class=\"w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"flex items-center justify-end gap-2\"><a href=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var13 string
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName)).ResolveURL(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_file.templ`, Line: 93, Col: 68}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent\">Cancel</a> <button type=\"submit\" class=\"h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium\">Commit file</button></div></form><script>\n\t\t\t\t(function () {\n\t\t\t\t\tvar form = document.getElementById('newfile-form');\n\t\t\t\t\tvar error = document.getElementById('nf-size-error');\n\t\t\t\t\tvar checking = false;\n\t\t\t\t\tvar ready = false;\n\t\t\t\t\tform.addEventListener('submit', async function (event) {\n\t\t\t\t\t\tif (ready) { ready = false; return; }\n\t\t\t\t\t\tevent.preventDefault();\n\t\t\t\t\t\tif (checking) return;\n\t\t\t\t\t\tchecking = true;\n\t\t\t\t\t\ttry {\n\t\t\t\t\t\t\tvar size = (await new Response(new FormData(form)).blob()).size;\n\t\t\t\t\t\t\tif (size > 26 * 1024 * 1024) {\n\t\t\t\t\t\t\t\terror.hidden = false;\n\t\t\t\t\t\t\t\terror.scrollIntoView({ block: 'nearest' });\n\t\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\terror.hidden = true;\n\t\t\t\t\t\t\tready = true;\n\t\t\t\t\t\t\tform.requestSubmit(event.submitter);\n\t\t\t\t\t\t} finally { checking = false; }\n\t\t\t\t\t});\n\t\t\t\t})();\n\t\t\t</script></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -147,15 +219,6 @@ func NewFile(data view.NewFileData) templ.Component {
 		}
 		return nil
 	})
-}
-
-// newFilePathPrefix prefills the path field with the directory the user came
-// from, so the file lands in the right place.
-func newFilePathPrefix(dir string) string {
-	if dir == "" {
-		return ""
-	}
-	return dir + "/"
 }
 
 var _ = templruntime.GeneratedTemplate

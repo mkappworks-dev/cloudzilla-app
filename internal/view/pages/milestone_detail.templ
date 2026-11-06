@@ -20,7 +20,7 @@ templ MilestoneDetail(data view.MilestoneDetailData) {
 				<span aria-hidden="true">·</span>
 				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="hover:underline">Milestones</a>
 				<span aria-hidden="true">·</span>
-				<span aria-current="page">{ data.Milestone.Title }</span>
+				@fragments.MilestoneBreadcrumbTitle(data.Milestone.Title, false)
 			</p>
 			@milestoneDetailHeader(data)
 			<div class="grid lg:grid-cols-[1fr_280px] gap-8">
@@ -81,13 +81,7 @@ templ milestoneDetailHeader(data view.MilestoneDetailData) {
 					Closed
 				</span>
 			}
-			<p class="text-[13px] text-muted-foreground">
-				if data.Milestone.DueDate != nil {
-					Due by <strong class="text-foreground"><time datetime={ data.Milestone.DueDate.UTC().Format(time.RFC3339) }>{ data.Milestone.DueDate.Format("Jan 2, 2006") }</time></strong>
-				} else {
-					No due date
-				}
-			</p>
+			@fragments.MilestoneHeaderDue(data.Milestone.DueDate, false)
 		</div>
 	</div>
 }

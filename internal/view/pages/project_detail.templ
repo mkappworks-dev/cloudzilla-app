@@ -399,7 +399,8 @@ templ kanbanCard(data view.ProjectDetailData, card service.KanbanCardView, colum
 			<button
 				type="button"
 				aria-label="Remove from board"
-				onclick={ deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
+				hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(data.Project.ID, 10) + "/cards/" + strconv.FormatInt(card.ID, 10) }
+				hx-on::after:request="if(event.target===this&&ctx.response.status<400){location.reload();}"
 				class="absolute right-1.5 top-1.5 z-10 rounded px-1 text-xs text-muted-foreground opacity-0 hover:bg-muted hover:text-destructive focus:opacity-100 group-hover:opacity-100"
 			>✕</button>
 		}
@@ -891,11 +892,13 @@ script setProjectClosedJS(owner, repoName string, projectID int64, closed bool) 
 		method: 'PATCH',
 		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({closed: closed})
-	}).then(function(r){ if(r.ok) window.location.reload(); });
-}
-
-script deleteCardJS(owner, repoName string, projectID, cardID int64) {
-	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
-		.then(function(r){ if(r.ok) window.location.reload(); });
+	}).then(function(r){
+		if (r.ok) { window.location.reload(); return; }
+		return r.json().catch(function(){ return {}; }).then(function(body){
+			var msg = (body && body.error) || 'Something went wrong (HTTP ' + r.status + ').';
+			document.dispatchEvent(new CustomEvent('toast', {detail: {type: 'error', message: msg}}));
+		});
+	}, function(){
+		document.dispatchEvent(new CustomEvent('toast', {detail: {type: 'error', message: 'The project could not be updated. Check your connection and try again.'}}));
+	});
 }
