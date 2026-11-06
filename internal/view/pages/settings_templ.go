@@ -56,14 +56,14 @@ func Settings(data view.SettingsData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.ProfileError != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"alert\" class=\"mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(SettingsErrorMessage(data.ProfileError))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 23, Col: 159}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 23, Col: 172}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -1489,7 +1489,7 @@ func settingsTokensSection(data view.SettingsData) templ.Component {
 		}
 		if len(data.Tokens) > 0 {
 			for _, t := range data.Tokens {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<div class=\"flex items-center gap-3 border border-border rounded-md p-3\"><span class=\"h-2 w-2 rounded-full bg-success shrink-0\" aria-label=\"Active\"></span><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<div class=\"flex items-center gap-3 border border-border rounded-md p-3\"><span role=\"img\" class=\"h-2 w-2 rounded-full bg-success shrink-0\" aria-label=\"Active\"></span><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -2690,7 +2690,7 @@ func settingsDangerSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 201, "<input type=\"text\" name=\"confirm_username\" placeholder=\"type your username\" required autocomplete=\"off\" class=\"h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring\"> <button type=\"submit\" class=\"h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90\">Delete account</button></form></li></ul></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 201, "<input type=\"text\" name=\"confirm_username\" placeholder=\"type your username\" aria-label=\"Type your username to confirm\" required autocomplete=\"off\" class=\"h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring\"> <button type=\"submit\" class=\"h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90\">Delete account</button></form></li></ul></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2747,7 +2747,7 @@ func comingSoonButton(label string) templ.Component {
 		var templ_7745c5c3_Var112 string
 		templ_7745c5c3_Var112, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 914, Col: 158}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 915, Col: 158}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var112))
 		if templ_7745c5c3_Err != nil {

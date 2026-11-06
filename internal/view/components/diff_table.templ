@@ -40,7 +40,7 @@ templ DiffHunkTable(hunks []service.DiffHunk) {
 						<td colspan="4" class="bg-primary/10 text-foreground px-4 py-1 select-none">{ hunk.Header }</td>
 					</tr>
 					for _, line := range hunk.Lines {
-						<tr class={ templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
+						<tr class={ templ.KV("bg-success/6 dark:bg-success/10", line.Type == "add"), templ.KV("bg-destructive/6 dark:bg-destructive/10", line.Type == "del") }>
 							<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">
 								if line.OldNum != 0 {
 									{ strconv.Itoa(line.OldNum) }

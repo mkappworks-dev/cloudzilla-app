@@ -71,7 +71,7 @@ git checkout { data.Pull.HeadBranch }</pre>
 			<div class="flex flex-wrap items-center gap-3">
 				@components.PullStateBadge(data.Pull.State, data.Pull.IsDraft)
 				<p class="text-[13px] text-muted-foreground">
-					<a href={ templ.SafeURL("/" + chromeAuthor(data)) } class="text-primary hover:underline">{ "@" + chromeAuthor(data) }</a>
+					<a href={ templ.SafeURL("/" + chromeAuthor(data)) } class="font-medium text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">{ "@" + chromeAuthor(data) }</a>
 					{ " " + chromeMergeVerb(data.Pull.State) + " " }
 					<strong class="text-foreground font-medium">{ commitsPhrase(data.CommitsCount) }</strong>
 					{ " into " }

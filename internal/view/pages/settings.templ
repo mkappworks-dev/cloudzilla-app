@@ -20,7 +20,7 @@ templ Settings(data view.SettingsData) {
 			<p class="mt-1 text-[13px] text-muted-foreground">Profile, appearance, security, access tokens, OAuth apps, notifications, and saved replies.</p>
 		</section>
 		if data.ProfileError != "" {
-			<div class="mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]">{ SettingsErrorMessage(data.ProfileError) }</div>
+			<div role="alert" class="mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]">{ SettingsErrorMessage(data.ProfileError) }</div>
 		}
 		<div class="grid grid-cols-12 gap-8">
 			<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
@@ -481,7 +481,7 @@ templ settingsTokensSection(data view.SettingsData) {
 			if len(data.Tokens) > 0 {
 				for _, t := range data.Tokens {
 					<div class="flex items-center gap-3 border border-border rounded-md p-3">
-						<span class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
+						<span role="img" class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
 						<div class="min-w-0 flex-1">
 							<p class="text-[13.5px] font-medium">{ t.Name }</p>
 							<p class="text-[12px] text-muted-foreground">
@@ -895,6 +895,7 @@ templ settingsDangerSection(data view.SettingsData) {
 						type="text"
 						name="confirm_username"
 						placeholder="type your username"
+						aria-label="Type your username to confirm"
 						required
 						autocomplete="off"
 						class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring"

@@ -167,7 +167,7 @@
   var SUBNAV_CLS = 'max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto ' +
     '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
   function count(n) {
-    return n ? ' <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">' + n + '</span>' : '';
+    return n ? ' <span class="font-mono text-[11px] text-muted-foreground ml-0.5">' + n + '</span>' : '';
   }
 
   var REPO_TABS = [
@@ -207,7 +207,7 @@
   var footer =
     '<footer role="contentinfo" class="mt-20 w-full max-w-[1400px] mx-auto px-6 text-[11px] text-muted-foreground">' +
     '<div class="border-t border-border py-6 flex items-center justify-between"><p class="font-mono">cloudzilla / dev ' +
-    '<span aria-hidden="true">·</span> <span role="status"><span aria-hidden="true" class="text-success">●</span> all systems normal</span></p>' +
+    '<span aria-hidden="true">·</span> <span aria-hidden="true" class="text-success">●</span> all systems normal</p>' +
     '<nav aria-label="Footer"><ul class="flex gap-4 list-none"><li><a href="' + DOCS_URL + '" class="hover:text-foreground">Docs</a></li>' +
     '<li><a href="' + API_URL + '" class="hover:text-foreground">API</a></li><li><a href="' + CHANGELOG_URL + '" class="hover:text-foreground">Changelog</a></li></ul></nav></div></footer>';
 

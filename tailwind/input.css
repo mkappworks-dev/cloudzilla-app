@@ -132,10 +132,10 @@
     --destructive: 0 70% 41%;
     --destructive-foreground: 0 0% 98%;
 
-    --success: 142 71% 32%;
+    --success: 142 71% 26%;
     --success-foreground: 0 0% 98%;
 
-    --warning: 38 92% 39%;
+    --warning: 38 92% 29%;
     --warning-foreground: 0 0% 98%;
 
     --border: 240 5.9% 88%;

@@ -1124,7 +1124,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, " <span aria-hidden=\"true\">·</span> <span role=\"status\"><span aria-hidden=\"true\" class=\"text-success\">●</span> all systems normal</span></p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, " <span aria-hidden=\"true\">·</span> <span aria-hidden=\"true\" class=\"text-success\">●</span> all systems normal</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1144,7 +1144,7 @@ func Base(base view.BasePage, title string) templ.Component {
 				var templ_7745c5c3_Var59 string
 				templ_7745c5c3_Var59, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(docsURL)).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 295, Col: 44}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 293, Col: 44}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var59)
 				if templ_7745c5c3_Err != nil {
@@ -1187,7 +1187,7 @@ func Base(base view.BasePage, title string) templ.Component {
 				var templ_7745c5c3_Var60 string
 				templ_7745c5c3_Var60, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(apiDocsURL)).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 296, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 294, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var60)
 				if templ_7745c5c3_Err != nil {
@@ -1230,7 +1230,7 @@ func Base(base view.BasePage, title string) templ.Component {
 				var templ_7745c5c3_Var61 string
 				templ_7745c5c3_Var61, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(changelogURL)).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 297, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 295, Col: 49}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var61)
 				if templ_7745c5c3_Err != nil {
@@ -1307,7 +1307,7 @@ func Base(base view.BasePage, title string) templ.Component {
 						var templ_7745c5c3_Var65 string
 						templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs("Home")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 308, Col: 15}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 306, Col: 15}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 						if templ_7745c5c3_Err != nil {
@@ -1334,7 +1334,7 @@ func Base(base view.BasePage, title string) templ.Component {
 						var templ_7745c5c3_Var67 string
 						templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs("Explore")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 311, Col: 18}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 309, Col: 18}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 						if templ_7745c5c3_Err != nil {
@@ -1362,7 +1362,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var69 string
 							templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinStringErrs("New repository")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 315, Col: 26}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 313, Col: 26}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var69))
 							if templ_7745c5c3_Err != nil {
@@ -1389,7 +1389,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var71 string
 							templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.JoinStringErrs("Notifications")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 318, Col: 25}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 316, Col: 25}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var71))
 							if templ_7745c5c3_Err != nil {
@@ -1436,7 +1436,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var74 string
 							templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.JoinStringErrs("Your profile")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 325, Col: 24}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 323, Col: 24}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var74))
 							if templ_7745c5c3_Err != nil {
@@ -1463,7 +1463,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var76 string
 							templ_7745c5c3_Var76, templ_7745c5c3_Err = templ.JoinStringErrs("Your pull requests")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 328, Col: 30}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 326, Col: 30}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var76))
 							if templ_7745c5c3_Err != nil {
@@ -1490,7 +1490,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var78 string
 							templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.JoinStringErrs("Your issues")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 331, Col: 23}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 329, Col: 23}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var78))
 							if templ_7745c5c3_Err != nil {
@@ -1517,7 +1517,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var80 string
 							templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinStringErrs("Your gists")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 334, Col: 22}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 332, Col: 22}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
 							if templ_7745c5c3_Err != nil {
@@ -1544,7 +1544,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var82 string
 							templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.JoinStringErrs("Your stars")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 337, Col: 22}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 335, Col: 22}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var82))
 							if templ_7745c5c3_Err != nil {
@@ -1571,7 +1571,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var84 string
 							templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.JoinStringErrs("Settings")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 340, Col: 20}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 338, Col: 20}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var84))
 							if templ_7745c5c3_Err != nil {
@@ -1617,7 +1617,7 @@ func Base(base view.BasePage, title string) templ.Component {
 								var templ_7745c5c3_Var87 string
 								templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs("Admin settings")
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 346, Col: 27}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 344, Col: 27}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 								if templ_7745c5c3_Err != nil {
@@ -1644,7 +1644,7 @@ func Base(base view.BasePage, title string) templ.Component {
 								var templ_7745c5c3_Var89 string
 								templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinStringErrs("Audit log")
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 349, Col: 22}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 347, Col: 22}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
 								if templ_7745c5c3_Err != nil {
@@ -1671,7 +1671,7 @@ func Base(base view.BasePage, title string) templ.Component {
 								var templ_7745c5c3_Var91 string
 								templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.JoinStringErrs("Single sign-on")
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 352, Col: 27}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 350, Col: 27}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var91))
 								if templ_7745c5c3_Err != nil {
@@ -1722,7 +1722,7 @@ func Base(base view.BasePage, title string) templ.Component {
 						var templ_7745c5c3_Var94 string
 						templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs("Toggle theme")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 359, Col: 23}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 357, Col: 23}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 						if templ_7745c5c3_Err != nil {
@@ -1743,7 +1743,7 @@ func Base(base view.BasePage, title string) templ.Component {
 							var templ_7745c5c3_Var96 string
 							templ_7745c5c3_Var96, templ_7745c5c3_Err = templ.JoinStringErrs("⌘⇧L")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 361, Col: 19}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 359, Col: 19}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var96))
 							if templ_7745c5c3_Err != nil {
@@ -1793,7 +1793,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		var templ_7745c5c3_Var97 string
 		templ_7745c5c3_Var97, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/htmx.min.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 525, Col: 43}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 523, Col: 43}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var97)
 		if templ_7745c5c3_Err != nil {
@@ -1806,7 +1806,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		var templ_7745c5c3_Var98 string
 		templ_7745c5c3_Var98, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/select-menu.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 527, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 525, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var98)
 		if templ_7745c5c3_Err != nil {
@@ -1819,7 +1819,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		var templ_7745c5c3_Var99 string
 		templ_7745c5c3_Var99, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/topnav-search.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 528, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 526, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var99)
 		if templ_7745c5c3_Err != nil {
@@ -1832,7 +1832,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		var templ_7745c5c3_Var100 string
 		templ_7745c5c3_Var100, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/alpine.min.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 529, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 527, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var100)
 		if templ_7745c5c3_Err != nil {
@@ -1845,7 +1845,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		var templ_7745c5c3_Var101 string
 		templ_7745c5c3_Var101, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/mermaid.min.js")).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 530, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 528, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var101)
 		if templ_7745c5c3_Err != nil {
@@ -1947,7 +1947,7 @@ func workspaceChip(name, avatarKey string) templ.Component {
 		var templ_7745c5c3_Var103 string
 		templ_7745c5c3_Var103, templ_7745c5c3_Err = templ.JoinStringErrs(firstInitial(name))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 631, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 629, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var103))
 		if templ_7745c5c3_Err != nil {
@@ -1965,7 +1965,7 @@ func workspaceChip(name, avatarKey string) templ.Component {
 			var templ_7745c5c3_Var104 string
 			templ_7745c5c3_Var104, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.AvatarURL(avatarKey)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 633, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout/layout.templ`, Line: 631, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var104)
 			if templ_7745c5c3_Err != nil {

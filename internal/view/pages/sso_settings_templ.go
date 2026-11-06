@@ -67,14 +67,14 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.Success != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"p-4 border border-success/40 bg-success/10 rounded-md text-success text-sm\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div role=\"status\" class=\"p-4 border border-success/40 bg-success/10 rounded-md text-success text-sm\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Success)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 25, Col: 106}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 25, Col: 120}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -86,14 +86,14 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 				}
 			}
 			if data.Error != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"p-4 border border-destructive/40 bg-destructive/10 rounded-md text-destructive text-sm\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div role=\"alert\" class=\"p-4 border border-destructive/40 bg-destructive/10 rounded-md text-destructive text-sm\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 28, Col: 116}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/sso_settings.templ`, Line: 28, Col: 129}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {

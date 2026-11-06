@@ -1213,14 +1213,14 @@ func Repo(data view.RepoData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "</div></section><!-- Releases --><section aria-labelledby=\"releases-heading\"><h2 id=\"releases-heading\" class=\"text-[13px] font-medium mb-3 flex items-center justify-between\"><span>Releases <span class=\"font-mono text-muted-foreground/70 ml-0.5 text-[11px]\" aria-label=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "</div></section><!-- Releases --><section aria-labelledby=\"releases-heading\"><h2 id=\"releases-heading\" class=\"text-[13px] font-medium mb-3 flex items-center justify-between\"><span>Releases <span class=\"font-mono text-muted-foreground ml-0.5 text-[11px]\" aria-label=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var67 string
 			templ_7745c5c3_Var67, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(len(data.Releases)) + " releases").Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 440, Col: 135}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 440, Col: 132}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var67)
 			if templ_7745c5c3_Err != nil {
@@ -1233,7 +1233,7 @@ func Repo(data view.RepoData) templ.Component {
 			var templ_7745c5c3_Var68 string
 			templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(data.Releases)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 440, Col: 172}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 440, Col: 169}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 			if templ_7745c5c3_Err != nil {
@@ -1317,14 +1317,14 @@ func Repo(data view.RepoData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<!-- Contributors --><section aria-labelledby=\"contrib-heading\"><h2 id=\"contrib-heading\" class=\"text-[13px] font-medium mb-3 flex items-center justify-between\"><span>Contributors <span class=\"font-mono text-muted-foreground/70 ml-0.5 text-[11px]\" aria-label=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<!-- Contributors --><section aria-labelledby=\"contrib-heading\"><h2 id=\"contrib-heading\" class=\"text-[13px] font-medium mb-3 flex items-center justify-between\"><span>Contributors <span class=\"font-mono text-muted-foreground ml-0.5 text-[11px]\" aria-label=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var72 string
 			templ_7745c5c3_Var72, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(len(data.TopContribs)) + " contributors").Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 467, Col: 142}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 467, Col: 139}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var72)
 			if templ_7745c5c3_Err != nil {
@@ -1337,7 +1337,7 @@ func Repo(data view.RepoData) templ.Component {
 			var templ_7745c5c3_Var73 string
 			templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(data.TopContribs)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 467, Col: 182}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 467, Col: 179}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var73))
 			if templ_7745c5c3_Err != nil {
