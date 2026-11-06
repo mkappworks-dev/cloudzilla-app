@@ -234,6 +234,12 @@ templ Base(base view.BasePage, title string) {
 											{ "Settings" }
 										}
 										if base.CurrentUser.IsSuperadmin {
+											if base.AdminMode == nil {
+												@components.DropdownMenuLink("/admin/mode", nil) {
+													<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+													{ "Enter admin mode" }
+												}
+											}
 											@components.DropdownMenuLink("/admin/settings", nil) {
 												<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
 												{ "Admin" }
@@ -273,6 +279,16 @@ templ Base(base view.BasePage, title string) {
 					@fragments.AccountSubnav(*base.AccountSubnav)
 				}
 			</header>
+
+			if base.AdminMode != nil {
+				<div role="status" class="border-b border-warning/40 bg-warning/10 text-sm">
+					<form method="POST" action="/admin/mode/leave" class="max-w-[1400px] mx-auto px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+						<span class="font-medium text-warning">Acting as instance admin</span>
+						<span class="text-muted-foreground">· expires <time datetime={ base.AdminMode.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z") }>{ base.AdminMode.ExpiresAt.UTC().Format("15:04") } UTC</time> ·</span>
+						<button type="submit" class="underline underline-offset-2 hover:no-underline">Leave admin mode</button>
+					</form>
+				</div>
+			}
 
 			<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
 				{ children... }

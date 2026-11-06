@@ -72,3 +72,10 @@ const (
 	AuditActionAdminOrgOwnerAdd           = "admin.org.owner_add"
 	AuditActionAdminUserDelete            = "admin.user.delete"
 )
+
+// Admin mode: entering and leaving, and each mutating request that only passed through it.
+const (
+	AuditActionAdminModeEnter  = "admin.mode.enter"
+	AuditActionAdminModeLeave  = "admin.mode.leave"
+	AuditActionAdminModeAction = "admin.mode.action"
+)

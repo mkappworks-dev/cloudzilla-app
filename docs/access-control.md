@@ -449,10 +449,10 @@ repo or org administration stay session-only, so a PAT can't mint PATs, add SSH 
 
 ### Instance Roles
 
-| Role         | Permissions                                                                                                                                                                                                                                       |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `superadmin` | Everything. Manages instance settings, SSO, invitations, accounts, audit log. The first is assigned at `/setup`; others are made at `/admin/users`. There is always at least one active superadmin (see [Managing accounts](#managing-accounts)). |
-| `user`       | Normal account. Access governed by org/repo permissions and instance settings.                                                                                                                                                                    |
+| Role         | Permissions                                                                                                                                                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `superadmin` | Manages instance settings, SSO, invitations, accounts and the audit log. On repositories and organizations they are a normal user until they enter [admin mode](#admin-mode). The first is assigned at `/setup`; others are made at `/admin/users`. There is always at least one active superadmin (see [Managing accounts](#managing-accounts)). |
+| `user`       | Normal account. Access governed by org/repo permissions and instance settings.                                                                                                                                                                                                                                                                    |
 
 ### Organization Roles
 
@@ -894,17 +894,42 @@ re-count in the same transaction (`keepActiveSuperadmin`), so of two admins remo
 
 ### Adding an organization owner
 
-Org permission checks look only at `org_members`, so a superadmin has no override over an organization. When an org's
-only owner is suspended, nobody can manage it, and an admin can't delete that owner (`ErrSoleOrgOwner`). The admin user
-page lists such orgs under "Sole owner of", each with a field for a new owner's username
-(`POST /api/admin/orgs/{org}/owners`: `username`, optional `from`, the user page to return to). It needs the admin's
-[confirmation](#confirming-sensitive-actions) and writes `admin.org.owner_add` (target the org, `username` in the
-metadata).
+Org permission checks look only at `org_members`, so a superadmin has no standing access to an organization outside
+[admin mode](#admin-mode). When an org's only owner is suspended, nobody can manage it, and an admin can't delete that
+owner (`ErrSoleOrgOwner`). The admin user page lists such orgs under "Sole owner of", each with a field for a new
+owner's username (`POST /api/admin/orgs/{org}/owners`: `username`, optional `from`, the user page to return to). It
+needs the admin's [confirmation](#confirming-sensitive-actions) and writes `admin.org.owner_add` (target the org,
+`username` in the metadata).
 
 `OrgService.AdminAddOwner` promotes a member or adds a non-member as owner; for an existing owner it changes nothing.
 The ghost is a 404 and a suspended account `ErrUserSuspended` (409), since a suspended owner couldn't manage anything.
 The superadmin doesn't become a member unless they name themselves. It can't remove or demote an owner: the new owner
 does that, or the admin deletes the account once the org has another owner.
+
+## Admin mode
+
+A superadmin is a normal user for repositories and organizations. To open or change another user's settings they **enter
+admin mode** at `GET /admin/mode` (the user menu's "Enter admin mode", or the link on the 403 of a repository or
+organization settings page). [ADR 1](./adr/0001-superadmin-admin-mode.md) records why.
+
+- **Entering** (`POST /admin/mode`, `next` optional) takes the [confirmation](#confirming-sensitive-actions), with its
+  failure limit. It sets an HttpOnly `<auth.cookie_name>_admin` cookie holding a random token; `admin_modes`
+  (migration 117) keeps its SHA-256, the user, the `session_version` at entry, `expires_at` and `ended_at`. Only that
+  browser has admin rights.
+- **Length.** `auth.admin_mode_ttl`, one hour by default ([configuration](./configuration.md)).
+- **Ending.** `POST /admin/mode/leave`, logout, a `session_version` bump (**Sign out other sessions**, a password change
+  or reset, suspension), losing the superadmin role, or the expiry. The banner and the admin-mode page show when it
+  ends.
+- **Cookie sessions only.** `middleware.WithAdminMode` is on `authMW` and `optAuthMW`; it skips PATs, OAuth-app tokens
+  and a session JWT sent as a bearer header, and the git smart-HTTP routes use an auth middleware without it. SSH never
+  sees it. See [git-transport](./git-transport.md#repository-permission-rules).
+- **What it widens.** `RepoService.IsOwner`, `CanRead`, `CanWrite` and `CanManage`, and `OrgService.IsOwner` and
+  `IsMember`, pass for the admin-mode user, after the ordinary check fails. The request context carries that user's id
+  (`internal/adminmode`) and a check for any other `userID`, such as a notification recipient, is unchanged. Owner-only
+  actions (transfer, delete, the `admin` role) are included. SQL list filters (`readableBy`, `ownedBy`) are not.
+- **Audit.** `admin.mode.enter`; `admin.mode.leave` with `reason` `left`, `expired` or `revoked`; and
+  `admin.mode.action` for each POST, PUT, PATCH or DELETE that passed only through the override (`method`, `path`,
+  `target_type`, `target`, `status`). Viewing a private repository writes nothing.
 
 ## Suspended accounts
 
@@ -937,21 +962,24 @@ owns keep serving the users who authorized them.
 
 ### Instance / Admin Endpoints
 
-| Method   | Path                                                                                                                                    | Auth                  | AuthZ                                     | Handler                                                                                                                                              |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET      | `/admin/settings`                                                                                                                       | authMW + superadminMW | Superadmin only                           | PageAdminSettings                                                                                                                                    |
-| GET      | `/admin/users`                                                                                                                          | authMW + superadminMW | Superadmin only                           | PageAdminUsers                                                                                                                                       |
-| GET      | `/admin/users/{username}`                                                                                                               | authMW + superadminMW | Superadmin only                           | PageAdminUser                                                                                                                                        |
-| GET      | `/admin/audit-log`                                                                                                                      | authMW + superadminMW | Superadmin only                           | PageAuditLog                                                                                                                                         |
-| GET/POST | `/admin/sso`                                                                                                                            | authMW + superadminMW | Superadmin only                           | PageSSOSettings / SaveSSOConfig                                                                                                                      |
-| POST     | `/api/admin/settings`                                                                                                                   | authMW + superadminMW | Superadmin only                           | UpdateSiteSetting                                                                                                                                    |
-| POST     | `/api/admin/invitations`                                                                                                                | authMW + superadminMW | Superadmin only                           | CreateInvitation                                                                                                                                     |
-| DELETE   | `/api/admin/invitations/{id}`                                                                                                           | authMW + superadminMW | Superadmin only                           | DeleteInvitation                                                                                                                                     |
-| POST     | `/api/admin/users/verify-email`                                                                                                         | authMW + superadminMW | Superadmin only                           | AdminVerifyEmail                                                                                                                                     |
-| POST     | `/api/admin/users/{username}/suspend`, `/unsuspend`, `/promote`, `/demote`, `/reset-2fa`, `/revoke-credentials`, `/password-reset-link` | authMW + superadminMW | Superadmin only, not on their own account | AdminSuspendUser, AdminUnsuspendUser, AdminPromoteUser, AdminDemoteUser, AdminResetUserTOTP, AdminRevokeUserCredentials, AdminIssuePasswordResetLink |
-| POST     | `/api/admin/users/{username}/delete`                                                                                                    | authMW + superadminMW | Superadmin only, not on their own account | AdminDeleteUser                                                                                                                                      |
-| POST     | `/api/admin/orgs/{org}/owners`                                                                                                          | authMW + superadminMW | Superadmin only, with confirmation        | AdminAddOrgOwner                                                                                                                                     |
-| POST     | `/api/admin/sso/{provider}/enabled`                                                                                                     | authMW + superadminMW | Superadmin only                           | SetSSOEnabled                                                                                                                                        |
+| Method   | Path                                                                                                                                    | Auth                  | AuthZ                                          | Handler                                                                                                                                              |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET      | `/admin/settings`                                                                                                                       | authMW + superadminMW | Superadmin only                                | PageAdminSettings                                                                                                                                    |
+| GET      | `/admin/users`                                                                                                                          | authMW + superadminMW | Superadmin only                                | PageAdminUsers                                                                                                                                       |
+| GET      | `/admin/users/{username}`                                                                                                               | authMW + superadminMW | Superadmin only                                | PageAdminUser                                                                                                                                        |
+| GET      | `/admin/audit-log`                                                                                                                      | authMW + superadminMW | Superadmin only                                | PageAuditLog                                                                                                                                         |
+| GET/POST | `/admin/sso`                                                                                                                            | authMW + superadminMW | Superadmin only                                | PageSSOSettings / SaveSSOConfig                                                                                                                      |
+| GET      | `/admin/mode`                                                                                                                           | authMW + superadminMW | Superadmin only                                | PageAdminMode                                                                                                                                        |
+| POST     | `/admin/mode`                                                                                                                           | authMW                | Superadmin, browser session, with confirmation | EnterAdminMode                                                                                                                                       |
+| POST     | `/admin/mode/leave`                                                                                                                     | authMW                | Any session                                    | LeaveAdminMode                                                                                                                                       |
+| POST     | `/api/admin/settings`                                                                                                                   | authMW + superadminMW | Superadmin only                                | UpdateSiteSetting                                                                                                                                    |
+| POST     | `/api/admin/invitations`                                                                                                                | authMW + superadminMW | Superadmin only                                | CreateInvitation                                                                                                                                     |
+| DELETE   | `/api/admin/invitations/{id}`                                                                                                           | authMW + superadminMW | Superadmin only                                | DeleteInvitation                                                                                                                                     |
+| POST     | `/api/admin/users/verify-email`                                                                                                         | authMW + superadminMW | Superadmin only                                | AdminVerifyEmail                                                                                                                                     |
+| POST     | `/api/admin/users/{username}/suspend`, `/unsuspend`, `/promote`, `/demote`, `/reset-2fa`, `/revoke-credentials`, `/password-reset-link` | authMW + superadminMW | Superadmin only, not on their own account      | AdminSuspendUser, AdminUnsuspendUser, AdminPromoteUser, AdminDemoteUser, AdminResetUserTOTP, AdminRevokeUserCredentials, AdminIssuePasswordResetLink |
+| POST     | `/api/admin/users/{username}/delete`                                                                                                    | authMW + superadminMW | Superadmin only, not on their own account      | AdminDeleteUser                                                                                                                                      |
+| POST     | `/api/admin/orgs/{org}/owners`                                                                                                          | authMW + superadminMW | Superadmin only, with confirmation             | AdminAddOrgOwner                                                                                                                                     |
+| POST     | `/api/admin/sso/{provider}/enabled`                                                                                                     | authMW + superadminMW | Superadmin only                                | SetSSOEnabled                                                                                                                                        |
 
 ### Authentication Endpoints (No Auth Required)
 

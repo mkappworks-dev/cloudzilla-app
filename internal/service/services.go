@@ -42,6 +42,7 @@ type Services struct {
 	OAuthLink          *OAuthLinkService
 	Reauth             *ReauthService
 	AuditLog           *AuditService
+	AdminMode          *AdminModeService
 	Project            *ProjectService
 	SSO                *SSOService
 	SavedReply         *SavedReplyService
@@ -162,6 +163,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		OAuthLink:          NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
 		Reauth:             reauthSvc,
 		AuditLog:           auditSvc,
+		AdminMode:          NewAdminModeService(stores.AdminMode, auditSvc, cfg.Auth.AdminModeTTL),
 		Project:            NewProjectService(stores.Project, repoSvc).WithConvertDeps(issueSvc, stores.Issue, stores.Label, stores.Assignee),
 		SSO:                ssoSvc,
 		SavedReply:         NewSavedReplyService(stores.SavedReply),

@@ -41,6 +41,13 @@ type BasePage struct {
 	CodeDark  string
 	// AvatarKey is the viewer's avatar, for the nav menu.
 	AvatarKey string
+	// AdminMode is set while this browser is in admin mode.
+	AdminMode *AdminModeInfo
+}
+
+// AdminModeInfo describes the running admin mode for the banner.
+type AdminModeInfo struct {
+	ExpiresAt time.Time
 }
 
 // CodeThemeLight falls back to the default for pages built without basePage(), such as setup and error pages.

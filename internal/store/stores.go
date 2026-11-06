@@ -36,6 +36,7 @@ type Stores struct {
 	BranchProtection   *BranchProtectionStore
 	Reaction           *ReactionStore
 	AuditLog           *AuditLogStore
+	AdminMode          *AdminModeStore
 	Project            *ProjectStore
 	SSO                *SSOStore
 	Mention            *MentionStore
@@ -95,6 +96,7 @@ func New(database *sql.DB) *Stores {
 		BranchProtection:   NewBranchProtectionStore(database),
 		Reaction:           NewReactionStore(database),
 		AuditLog:           NewAuditLogStore(database),
+		AdminMode:          NewAdminModeStore(database),
 		Project:            NewProjectStore(database),
 		SSO:                NewSSOStore(database),
 		Mention:            NewMentionStore(database),

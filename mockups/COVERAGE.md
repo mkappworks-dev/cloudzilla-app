@@ -50,6 +50,10 @@ Mocks show the happy path. These real states are not drawn:
   and the profile README call to action.
 - **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, the issue template picker, and PR
   diff error states.
+- **Admin mode.** `admin_mode.html` draws the page in both states (add `?admin_mode=1` for the running one), and any
+  mock with `?admin_mode=1` or `data-admin-mode` on `#cz-header` shows the "Acting as instance admin" banner and drops
+  "Enter admin mode" from the user menu. Not drawn: the 403 page's admin-mode hint (`forbidden.templ`, see the table
+  above) and the identity dialog it opens.
 - **Admin.** The identity-confirm dialog (password, two-factor and provider factors), the SSO success and error banners,
   and users and audit-log pages beyond the first. The mock uses the generic confirm dialog instead.
 

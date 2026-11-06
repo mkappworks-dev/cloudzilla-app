@@ -2,12 +2,12 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: done
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
 | --- | --- | --- | --- | --- | --- |
-| `fix/superadmin-settings-access` | `.worktrees/fix+superadmin-settings-access` | `fix(auth): let superadmins open repo and org settings` | 2 | M | IA +0.2 |
+| `fix/superadmin-settings-access` | `.worktrees/fix+superadmin-settings-access` | `fix(auth): time-boxed admin mode for superadmins` | 2 | M | IA +0.2 |
 
 ## Problem
 
@@ -36,11 +36,11 @@ Decided 2026-11-06: no blanket override. An explicit, time-boxed admin mode, mod
 
 ## Acceptance criteria
 
-- [ ] Decision recorded as an ADR in docs/adr/
-- [ ] Superadmin can open any repo or org settings only while in admin mode
-- [ ] Admin mode expires after 1 hour and can be left early
-- [ ] Audit entries for entering, leaving and each change
-- [ ] `docs/access-control.md` describes admin mode
+- [x] Decision recorded as an ADR in docs/adr/
+- [x] Superadmin can open any repo or org settings only while in admin mode
+- [x] Admin mode expires after 1 hour and can be left early
+- [x] Audit entries for entering, leaving and each change
+- [x] `docs/access-control.md` describes admin mode
 
 ## Verification
 
@@ -62,3 +62,8 @@ checks. Prior art: GitLab Admin Mode (re-auth, 6 h expiry), GitHub Enterprise Se
 (`layout.templ:203`, `:400`; Claude, +0.05); admin pages show a bare tab row with no "Administration" label (Claude,
 unverified); the repo settings default branch is free text (`repo_settings.templ:181`, ticket 28); "Renaming from
 settings is not yet available." is roadmap copy on a disabled field (`repo_settings.templ:169`, ticket 15).
+
+2026-11-07 (implemented): ADR 0001, migration 117, `internal/adminmode` (context value bound to the user id), banner and
+`/admin/mode`. Admin mode is per browser and cookie-only: PATs, OAuth, git HTTP and SSH never get it. The 403 on repo and
+org settings points to it for superadmins. Owner-only actions (transfer, delete, the `admin` role) are covered too, since
+`IsOwner` is; SQL list filters (`readableBy`, `ownedBy`) are not.

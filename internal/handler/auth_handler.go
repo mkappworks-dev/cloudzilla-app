@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
@@ -67,6 +68,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		if ck, err := r.Cookie(h.adminModeCookieName()); err == nil {
+			h.Services.AdminMode.Leave(r.Context(), r, ck.Value, claims.UserID, claims.Username)
+		}
+	}
+	h.setAdminModeCookie(w, "", time.Time{})
 	h.setDeviceCookie(w, 0, "", -1)
 	http.SetCookie(w, &http.Cookie{
 		Name:     h.Cfg.Auth.CookieName,

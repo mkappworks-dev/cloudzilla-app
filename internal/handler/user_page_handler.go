@@ -574,7 +574,7 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		h.forbiddenSettings(w, r, claims.IsSuperadmin)
 		return
 	}
 

@@ -47,7 +47,9 @@ type SessionStates interface {
 }
 
 type authOptions struct {
-	sessions SessionStates
+	sessions    SessionStates
+	adminModes  AdminModes
+	adminCookie string
 }
 
 type AuthOption func(*authOptions)
@@ -149,7 +151,7 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				return
 			}
 			ctx := context.WithValue(r.Context(), claimsKey, claims)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			o.withAdminMode(w, r.WithContext(ctx), claims, cookieName, next)
 		})
 	}
 }
@@ -171,6 +173,8 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 				if claims, ok := parseSessionJWT(secret, tokenStr); ok {
 					if claims, ok = o.sessionLive(r.Context(), claims); ok {
 						r = r.WithContext(context.WithValue(r.Context(), claimsKey, claims))
+						o.withAdminMode(w, r, claims, cookieName, next)
+						return
 					}
 				}
 			}
