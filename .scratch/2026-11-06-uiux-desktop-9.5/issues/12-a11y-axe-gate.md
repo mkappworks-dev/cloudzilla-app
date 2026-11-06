@@ -27,7 +27,6 @@ Accessibility regressions are caught only by hand. Custom selects in `repo_new.t
 
 ## Acceptance criteria
 
-- [ ] ~~CI job green on main and fails on an injected violation~~ — removed from scope at maintainer request.
 - [x] Local axe checks pass in both themes and detect an injected serious violation
 - [x] Listed widgets usable by keyboard only
 
