@@ -57,7 +57,7 @@
   function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   document.getElementById('sg-rows').innerHTML = USERS.map(function (x) {
     return '<li class="flex items-center gap-3 px-4 py-3 hover:bg-muted/50">' +
-      '<span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="' + esc(x.u) + '">' + initials(x.n) + '</span>' +
+      '<span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="' + esc(x.u) + '">' + initials(x.u) + '</span>' +
       '<a href="profile.html" class="text-[13px] font-medium hover:underline">' + esc(x.u) + '</a>' +
       (x.bio ? '<span class="text-[12px] text-muted-foreground truncate">' + esc(x.bio) + '</span>' : '') +
       '</li>';

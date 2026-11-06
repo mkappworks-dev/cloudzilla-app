@@ -112,7 +112,7 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		h.render(w, r, fragments.LineComments(view.LineCommentsFragData{
+		h.render(w, h.withAvatars(r, lineCommentAuthors(allComments)...), fragments.LineComments(view.LineCommentsFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
@@ -211,7 +211,7 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		h.render(w, r, fragments.LineComments(view.LineCommentsFragData{
+		h.render(w, h.withAvatars(r, lineCommentAuthors(allComments)...), fragments.LineComments(view.LineCommentsFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
@@ -299,7 +299,7 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		h.render(w, r, fragments.LineComments(view.LineCommentsFragData{
+		h.render(w, h.withAvatars(r, lineCommentAuthors(allComments)...), fragments.LineComments(view.LineCommentsFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,

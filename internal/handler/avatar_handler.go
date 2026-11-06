@@ -282,6 +282,14 @@ func userAvatarKeys(users []model.User) map[string]string {
 	return keys
 }
 
+func lineCommentAuthors(comments []model.PullLineComment) []string {
+	names := make([]string, len(comments))
+	for i, c := range comments {
+		names[i] = c.AuthorName
+	}
+	return names
+}
+
 func commentAuthors(comments []view.RenderedComment) []string {
 	names := make([]string, len(comments))
 	for i, c := range comments {
