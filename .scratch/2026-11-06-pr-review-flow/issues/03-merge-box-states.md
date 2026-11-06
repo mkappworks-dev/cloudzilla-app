@@ -14,6 +14,8 @@ Spec: [../spec.md](../spec.md)
 
 - `mergeStateOf` gains "needs approvals" (warning header, `1 of 2`) and "checks failing" (destructive header, Merge
   disabled, "View checks →", no auto-merge). Data: `PullReviewService.Counts` and the commit's required statuses.
+- A "changes requested" state too: the live check showed a PR with two Changes requested reviews still reading "Ready to
+  merge", though `CanMerge` refuses it with a 422.
 - Auto-merge: "Enable auto-merge" split button in the needs-approvals and checks-pending states, and an enabled state
   naming who armed it and the strategy, with Disable. Uses `PATCH` `auto_merge=enable|disable` and
   `auto_merge_strategy`.
