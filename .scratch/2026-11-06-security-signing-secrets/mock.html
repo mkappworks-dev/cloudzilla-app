@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Commits · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="./mock.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+<template id="mock-subnav">
+<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <a href="mock.html" aria-current="page" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  bg-accent font-medium text-foreground"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg> Pull requests <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">12</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg> Issues <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">23</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Milestones</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg> Checks</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> Discussions <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">5</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg> Projects</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg> Wiki</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> Releases <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="security.html" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Security <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 ml-auto text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg> Settings</a>
+</nav>
+</template>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="flex flex-col gap-6">
+
+    <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
+      <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
+      <button type="button" data-mock-state="none" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">List</button>
+      <button type="button" data-mock-state="verified" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Verified popover</button>
+      <button type="button" data-mock-state="partial" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Partially verified popover</button>
+      <button type="button" data-mock-state="unverified" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unverified popover</button>
+      <span class="ml-auto">Other pages: <a href="commit.html" class="underline hover:text-foreground">commit.html</a> · <a href="settings.html" class="underline hover:text-foreground">settings.html</a> · <a href="security.html" class="underline hover:text-foreground">security.html</a> · <a href="alert.html" class="underline hover:text-foreground">alert.html</a></span>
+    </div>
+
+    <section aria-labelledby="commits-title">
+      <h1 id="commits-title" class="text-2xl font-semibold tracking-tight">Commit history</h1>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <a href="#" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]" aria-label="Branches and tags, current: main">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
+          <span class="font-medium">main</span>
+        </a>
+        <a href="#" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">
+          Browse code →
+        </a>
+      </div>
+    </section>
+
+    <div class="flex flex-col gap-4" aria-label="Commit history grouped by date">
+      <div class="flex items-center gap-3">
+        <time datetime="2026-11-06" class="text-[12px] font-semibold text-muted-foreground whitespace-nowrap">Commits on Nov 6, 2026</time>
+        <div class="flex-1 border-t border-border" aria-hidden="true"></div>
+      </div>
+
+      <div class="rounded-md border border-border bg-card">
+        <div class="flex items-start gap-3 px-4 py-3">
+          <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="Malith Kuruppu">MK</span>
+          <div class="min-w-0 flex-1">
+            <a href="commit.html?state=verified" class="text-[13px] font-medium hover:underline line-clamp-2 block">feat(ci): cache Go modules between runs</a>
+            <p class="mt-0.5 text-[12px] text-muted-foreground">Malith Kuruppu</p>
+          </div>
+          <div class="flex flex-wrap justify-end items-center gap-2 shrink-0 mt-0.5">
+            <div class="relative inline-block" data-sig="verified">
+              <button type="button" data-sig-btn aria-expanded="false" aria-haspopup="dialog" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30 hover:bg-success/25">Verified</button>
+              <div hidden data-sig-panel role="dialog" aria-label="Signature of 7d1e0a2" class="absolute right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left">
+                <p class="flex items-start gap-2 text-[13px] font-medium">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-[3px] text-success" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
+                  Signed by the committer with a key on their account.
+                </p>
+                <div class="mt-3 flex items-center gap-2">
+                  <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">MK</span>
+                  <a href="#" class="text-[13px] font-medium hover:underline">malith</a>
+                  <span class="text-[12px] text-muted-foreground truncate">malith@example.com</span>
+                </div>
+                <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+                  <dt class="text-muted-foreground">Key type</dt><dd>SSH · ed25519</dd>
+                  <dt class="text-muted-foreground">Key</dt><dd>MacBook Pro</dd>
+                  <dt class="text-muted-foreground">Fingerprint</dt><dd class="font-mono break-all">SHA256:Zk1p7vQ3nXh0e9LwYb2sAq5cT8uRfJdM4oGiNxVa6Hw</dd>
+                </dl>
+                <div role="separator" class="my-2 h-px bg-border"></div>
+                <a href="settings.html" class="text-[12px] text-muted-foreground hover:text-foreground">About signing keys →</a>
+              </div>
+            </div>
+            <a href="commit.html?state=verified" class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline">7d1e0a2</a>
+            <a href="#" class="hidden sm:inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-sm px-1.5 py-0.5 hover:bg-muted/50" title="Browse repository at this point in history">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              Browse files
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-md border border-border bg-card">
+        <div class="flex items-start gap-3 px-4 py-3">
+          <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="Daisy K.">DK</span>
+          <div class="min-w-0 flex-1">
+            <a href="commit.html?state=verified-gpg" class="text-[13px] font-medium hover:underline line-clamp-2 block">fix: retry webhook deliveries with backoff</a>
+            <p class="mt-0.5 text-[12px] text-muted-foreground">Daisy K.</p>
+          </div>
+          <div class="flex flex-wrap justify-end items-center gap-2 shrink-0 mt-0.5">
+            <div class="relative inline-block" data-sig="verified-gpg">
+              <button type="button" data-sig-btn aria-expanded="false" aria-haspopup="dialog" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30 hover:bg-success/25">Verified</button>
+              <div hidden data-sig-panel role="dialog" aria-label="Signature of 0cfa3e4" class="absolute right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left">
+                <p class="flex items-start gap-2 text-[13px] font-medium">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-[3px] text-success" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
+                  Signed by the committer with a key on their account.
+                </p>
+                <div class="mt-3 flex items-center gap-2">
+                  <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">DK</span>
+                  <a href="#" class="text-[13px] font-medium hover:underline">daisy</a>
+                  <span class="text-[12px] text-muted-foreground truncate">daisy@example.com</span>
+                </div>
+                <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+                  <dt class="text-muted-foreground">Key type</dt><dd>GPG · RSA 4096</dd>
+                  <dt class="text-muted-foreground">Key ID</dt><dd class="font-mono">3AA5C34371567BD2</dd>
+                  <dt class="text-muted-foreground">Fingerprint</dt><dd class="font-mono break-all">4AEE 18F8 3AFD EB23 B1C9 7D04 3AA5 C343 7156 7BD2</dd>
+                </dl>
+                <div role="separator" class="my-2 h-px bg-border"></div>
+                <a href="settings.html" class="text-[12px] text-muted-foreground hover:text-foreground">About signing keys →</a>
+              </div>
+            </div>
+            <a href="commit.html?state=verified-gpg" class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline">0cfa3e4</a>
+            <a href="#" class="hidden sm:inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-sm px-1.5 py-0.5 hover:bg-muted/50" title="Browse repository at this point in history">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              Browse files
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <time datetime="2026-11-05" class="text-[12px] font-semibold text-muted-foreground whitespace-nowrap">Commits on Nov 5, 2026</time>
+        <div class="flex-1 border-t border-border" aria-hidden="true"></div>
+      </div>
+
+      <div class="rounded-md border border-border bg-card">
+        <div class="flex items-start gap-3 px-4 py-3">
+          <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="Rhea">RH</span>
+          <div class="min-w-0 flex-1">
+            <a href="commit.html?state=partial" class="text-[13px] font-medium hover:underline line-clamp-2 block">docs: clarify the mirror lease timeout</a>
+            <p class="mt-0.5 text-[12px] text-muted-foreground">Rhea</p>
+          </div>
+          <div class="flex flex-wrap justify-end items-center gap-2 shrink-0 mt-0.5">
+            <div class="relative inline-block" data-sig="partial">
+              <button type="button" data-sig-btn aria-expanded="false" aria-haspopup="dialog" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground hover:bg-accent">Partially verified</button>
+              <div hidden data-sig-panel role="dialog" aria-label="Signature of 5a90c2e" class="absolute right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left">
+                <p class="flex items-start gap-2 text-[13px] font-medium">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-[3px] text-muted-foreground" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  The signature is valid and the key is rhea's, but the committer email isn't one of rhea's verified emails.
+                </p>
+                <div class="mt-3 flex items-center gap-2">
+                  <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">RH</span>
+                  <a href="#" class="text-[13px] font-medium hover:underline">rhea</a>
+                  <span class="text-[12px] text-muted-foreground truncate">committed as rhea@contractor.dev</span>
+                </div>
+                <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+                  <dt class="text-muted-foreground">Key type</dt><dd>SSH · ecdsa-sk (hardware key)</dd>
+                  <dt class="text-muted-foreground">Key</dt><dd>YubiKey 5C</dd>
+                  <dt class="text-muted-foreground">Fingerprint</dt><dd class="font-mono break-all">SHA256:p0Qe2Vx8nLk4TzR7cYb1sWm9uHgJdA3oFiNyVa5Kt2E</dd>
+                </dl>
+                <div role="separator" class="my-2 h-px bg-border"></div>
+                <a href="settings.html" class="text-[12px] text-muted-foreground hover:text-foreground">About signing keys →</a>
+              </div>
+            </div>
+            <a href="commit.html?state=partial" class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline">5a90c2e</a>
+            <a href="#" class="hidden sm:inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-sm px-1.5 py-0.5 hover:bg-muted/50" title="Browse repository at this point in history">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              Browse files
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-md border border-border bg-card">
+        <div class="flex items-start gap-3 px-4 py-3">
+          <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="Kiyo">KI</span>
+          <div class="min-w-0 flex-1">
+            <a href="commit.html?state=unverified" class="text-[13px] font-medium hover:underline line-clamp-2 block">chore: bump x/crypto to v0.31.0</a>
+            <p class="mt-0.5 text-[12px] text-muted-foreground">Kiyo</p>
+          </div>
+          <div class="flex flex-wrap justify-end items-center gap-2 shrink-0 mt-0.5">
+            <div class="relative inline-block" data-sig="unverified">
+              <button type="button" data-sig-btn aria-expanded="false" aria-haspopup="dialog" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-warning/15 text-warning border-warning/30 hover:bg-warning/25">Unverified</button>
+              <div hidden data-sig-panel role="dialog" aria-label="Signature of e2c7714" class="absolute right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left">
+                <p class="flex items-start gap-2 text-[13px] font-medium">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-[3px] text-warning" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  The commit is signed, but no account on this server has the key.
+                </p>
+                <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+                  <dt class="text-muted-foreground">Key type</dt><dd>GPG</dd>
+                  <dt class="text-muted-foreground">Key ID</dt><dd class="font-mono">B5690EEEBB952194</dd>
+                  <dt class="text-muted-foreground">Committer</dt><dd>kiyo@example.com</dd>
+                </dl>
+                <p class="mt-2 text-[12px] text-muted-foreground">If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view.</p>
+                <div role="separator" class="my-2 h-px bg-border"></div>
+                <a href="settings.html" class="text-[12px] text-muted-foreground hover:text-foreground">About signing keys →</a>
+              </div>
+            </div>
+            <a href="commit.html?state=unverified" class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline">e2c7714</a>
+            <a href="#" class="hidden sm:inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-sm px-1.5 py-0.5 hover:bg-muted/50" title="Browse repository at this point in history">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              Browse files
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-md border border-border bg-card">
+        <div class="flex items-start gap-3 px-4 py-3">
+          <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="Malith Kuruppu">MK</span>
+          <div class="min-w-0 flex-1">
+            <a href="commit.html?state=unsigned" class="text-[13px] font-medium hover:underline line-clamp-2 block">chore: release v0.4.1</a>
+            <p class="mt-0.5 text-[12px] text-muted-foreground">Malith Kuruppu</p>
+          </div>
+          <div class="flex flex-wrap justify-end items-center gap-2 shrink-0 mt-0.5">
+            <a href="commit.html?state=unsigned" class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline">420b44b</a>
+            <a href="#" class="hidden sm:inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-sm px-1.5 py-0.5 hover:bg-muted/50" title="Browse repository at this point in history">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              Browse files
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="../../mockups/shell.js"></script>
+<script>
+  (function () {
+    document.querySelector('nav[aria-label="Repository sections"]').replaceWith(document.getElementById('mock-subnav').content.cloneNode(true));
+
+    var sigs = document.querySelectorAll('[data-sig]');
+    function openSig(name) {
+      sigs.forEach(function (w) {
+        var on = w.dataset.sig === name;
+        w.querySelector('[data-sig-panel]').hidden = !on;
+        w.querySelector('[data-sig-btn]').setAttribute('aria-expanded', String(on));
+      });
+    }
+    sigs.forEach(function (w) {
+      w.querySelector('[data-sig-btn]').addEventListener('click', function (e) {
+        e.stopPropagation();
+        openSig(w.querySelector('[data-sig-panel]').hidden ? w.dataset.sig : '');
+      });
+    });
+    document.addEventListener('click', function (e) { if (!e.target.closest('[data-sig-panel]')) openSig(''); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') openSig(''); });
+
+    function show(state) {
+      document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.mockState === state));
+      });
+      openSig(state);
+    }
+    document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); show(b.dataset.mockState); });
+    });
+    show(new URLSearchParams(location.search).get('state') || 'none');
+  })();
+</script>
+</body>
+</html>

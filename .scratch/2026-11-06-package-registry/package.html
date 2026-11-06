@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>cloudzilla-server · Packages · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="./mock.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+<template id="mock-subnav">
+<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg> Pull requests <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">12</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg> Issues <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">23</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Milestones</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg> Checks</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> Discussions <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">5</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg> Projects</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg> Wiki</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> Releases <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="mock.html" aria-current="page" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  bg-accent font-medium text-foreground"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> Packages <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">4</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 ml-auto text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg> Settings</a>
+</nav>
+</template>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="flex flex-col gap-6">
+
+    <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
+      <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
+      <button type="button" data-mock-state="container" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Container</button>
+      <button type="button" data-mock-state="private" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Container, private repo</button>
+      <button type="button" data-mock-state="generic" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Generic</button>
+      <button type="button" data-mock-state="delete" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Delete version dialog</button>
+      <span class="ml-auto"><a href="mock.html" class="underline hover:text-foreground">← packages list</a></span>
+    </div>
+
+    <section aria-labelledby="pkg-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="#" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="mock.html" class="hover:underline">Packages</a>
+        <span aria-hidden="true">·</span>
+        <span aria-current="page" data-when="container private delete">cloudzilla-server</span>
+        <span aria-current="page" data-when="generic">cz-cli</span>
+      </p>
+      <div class="flex flex-wrap items-center gap-2">
+        <svg data-when="container private delete" class="text-muted-foreground shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        <svg data-when="generic" class="text-muted-foreground shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+        <h1 id="pkg-title" class="text-2xl font-semibold tracking-tight font-mono min-w-0 break-all"><span data-when="container private delete">cloudzilla-server</span><span data-when="generic">cz-cli</span></h1>
+        <span data-when="container private delete" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Container</span>
+        <span data-when="generic" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Generic</span>
+        <span data-when="private" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-transparent">Private</span>
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+        <span class="inline-flex items-center gap-1.5">
+          <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" role="img" aria-label="Malith Kuruppu">MK</span>
+          malith
+        </span>
+        <span aria-hidden="true" class="text-muted-foreground/50">·</span>
+        <span>latest <span class="font-mono text-foreground" data-when="container private delete">v0.4.1</span><span class="font-mono text-foreground" data-when="generic">0.4.1</span> published <time datetime="2026-11-05T16:20:00Z">yesterday</time></span>
+        <span aria-hidden="true" class="text-muted-foreground/50">·</span>
+        <span data-when="container private delete">1,284 pulls</span>
+        <span data-when="generic">3,410 downloads</span>
+      </div>
+    </section>
+
+    <div class="grid lg:grid-cols-[1fr_280px] gap-6 items-start">
+      <div class="flex flex-col gap-6 min-w-0">
+
+        <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="install-heading">
+          <header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+            <h2 id="install-heading" class="text-[13px] font-medium">Install</h2>
+            <span class="text-[12px] text-muted-foreground" data-when="container private delete">from the command line</span>
+            <span class="text-[12px] text-muted-foreground" data-when="generic">one file of 0.4.1</span>
+          </header>
+          <div class="px-5 py-4 flex flex-col gap-3">
+            <p data-when="private" class="text-[12.5px] text-muted-foreground">This repository is private: <span class="font-mono text-foreground">docker login localhost:8080</span> first, with a token that has <span class="font-mono text-foreground">packages:read</span>.</p>
+            <div class="flex items-center gap-1.5" data-when="container private delete">
+              <label for="pull-cmd" class="sr-only">Pull command</label>
+              <input id="pull-cmd" type="text" readonly value="docker pull localhost:8080/mkappworks/cloudzilla-server:v0.4.1" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+              <button type="button" data-copy="pull-cmd" class="h-8 w-8 grid place-items-center border border-border rounded-md hover:bg-accent shrink-0" aria-label="Copy pull command">
+                <svg data-icon-copy width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                <svg data-icon-done hidden class="text-success" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+              </button>
+            </div>
+            <div class="flex items-center gap-1.5" data-when="generic">
+              <label for="curl-cmd" class="sr-only">Download command</label>
+              <input id="curl-cmd" type="text" readonly value="curl -LO localhost:8080/packages/mkappworks/cloudzilla/cz-cli/0.4.1/cz-cli_linux_amd64.tar.gz" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+              <button type="button" data-copy="curl-cmd" class="h-8 w-8 grid place-items-center border border-border rounded-md hover:bg-accent shrink-0" aria-label="Copy download command">
+                <svg data-icon-copy width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                <svg data-icon-done hidden class="text-success" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+              </button>
+            </div>
+            <p class="text-[11px] text-muted-foreground" data-when="container private delete">Pin a digest instead of a tag to get exactly this build: <span class="font-mono break-all">cloudzilla-server@sha256:4f1c0e…9a2e</span></p>
+            <p class="text-[11px] text-muted-foreground" data-when="generic">Add <span class="font-mono">-H "Authorization: Bearer $CZ_TOKEN"</span> when the repository is private.</p>
+          </div>
+        </section>
+
+        <section data-when="container private delete" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="tags-heading">
+          <header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+            <h2 id="tags-heading" class="text-[13px] font-medium">Tags</h2>
+            <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">4</span>
+          </header>
+          <div class="overflow-x-auto">
+            <table class="w-full caption-bottom text-sm">
+              <thead class="[&_tr]:border-b [&_tr]:border-border">
+                <tr class="border-b border-border">
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Tag</th>
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Digest</th>
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider text-right">Size</th>
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider hidden md:table-cell">Published</th>
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody class="[&_tr:last-child]:border-0">
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <th scope="row" class="p-4 align-middle font-normal text-left">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">v0.4.1</code>
+                      <code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">latest</code>
+                    </div>
+                  </th>
+                  <td class="p-4 align-middle"><span class="font-mono text-[12px] text-muted-foreground whitespace-nowrap" title="sha256:4f1c0e7b2d9a51f3c8e6a0b4d27f915e8c3a6b0d1f4e72a9c5b8d3e01f6a9a2e">sha256:4f1c0e…9a2e</span></td>
+                  <td class="p-4 align-middle text-right font-mono text-[12px] whitespace-nowrap">48.2 MB</td>
+                  <td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap">malith · <time datetime="2026-11-05T16:20:00Z">yesterday</time></td>
+                  <td class="p-4 align-middle text-right">
+                    <button type="button" data-delete="v0.4.1" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 text-muted-foreground" aria-label="Delete tag v0.4.1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <th scope="row" class="p-4 align-middle font-normal text-left"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">v0.4.0</code></th>
+                  <td class="p-4 align-middle"><span class="font-mono text-[12px] text-muted-foreground whitespace-nowrap">sha256:91ab37…0c4d</span></td>
+                  <td class="p-4 align-middle text-right font-mono text-[12px] whitespace-nowrap">47.9 MB</td>
+                  <td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap">daisy · <time datetime="2026-10-22T10:00:00Z">Oct 22</time></td>
+                  <td class="p-4 align-middle text-right">
+                    <button type="button" data-delete="v0.4.0" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 text-muted-foreground" aria-label="Delete tag v0.4.0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <th scope="row" class="p-4 align-middle font-normal text-left"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">v0.3.2</code></th>
+                  <td class="p-4 align-middle"><span class="font-mono text-[12px] text-muted-foreground whitespace-nowrap">sha256:c07d5e…71b8</span></td>
+                  <td class="p-4 align-middle text-right font-mono text-[12px] whitespace-nowrap">46.1 MB</td>
+                  <td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap">malith · <time datetime="2026-09-30T10:00:00Z">Sep 30</time></td>
+                  <td class="p-4 align-middle text-right">
+                    <button type="button" data-delete="v0.3.2" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 text-muted-foreground" aria-label="Delete tag v0.3.2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <th scope="row" class="p-4 align-middle font-normal text-left"><span class="text-[12px] text-muted-foreground">untagged</span></th>
+                  <td class="p-4 align-middle"><span class="font-mono text-[12px] text-muted-foreground whitespace-nowrap">sha256:e5f019…3a07</span></td>
+                  <td class="p-4 align-middle text-right font-mono text-[12px] whitespace-nowrap">46.0 MB</td>
+                  <td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap">malith · <time datetime="2026-09-28T10:00:00Z">Sep 28</time></td>
+                  <td class="p-4 align-middle text-right">
+                    <button type="button" data-delete="sha256:e5f019…3a07" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 text-muted-foreground" aria-label="Delete untagged manifest sha256:e5f019">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section data-when="generic" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="files-heading">
+          <header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+            <h2 id="files-heading" class="text-[13px] font-medium">Files in 0.4.1</h2>
+          </header>
+          <ul class="divide-y divide-border">
+            <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3">
+              <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <div class="min-w-0 flex-1">
+                <p class="font-mono text-[13px] truncate">cz-cli_linux_amd64.tar.gz</p>
+                <p class="font-mono text-[11px] text-muted-foreground truncate" title="sha256:2b7e0f3a…">sha256:2b7e0f3a91c4…d81e · 6.1 MB</p>
+              </div>
+              <a href="#" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download
+              </a>
+            </li>
+            <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3">
+              <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <div class="min-w-0 flex-1">
+                <p class="font-mono text-[13px] truncate">cz-cli_darwin_arm64.tar.gz</p>
+                <p class="font-mono text-[11px] text-muted-foreground truncate">sha256:8d40c1e7a3f2…0b5c · 5.8 MB</p>
+              </div>
+              <a href="#" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download
+              </a>
+            </li>
+            <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3">
+              <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <div class="min-w-0 flex-1">
+                <p class="font-mono text-[13px] truncate">checksums.txt</p>
+                <p class="font-mono text-[11px] text-muted-foreground truncate">sha256:51aa09c2e8b7…7f30 · 182 B</p>
+              </div>
+              <a href="#" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section data-when="generic" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="versions-heading">
+          <header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+            <h2 id="versions-heading" class="text-[13px] font-medium">Versions</h2>
+            <span class="ml-0.5 text-[11px] text-muted-foreground font-mono">3</span>
+          </header>
+          <div class="overflow-x-auto">
+            <table class="w-full caption-bottom text-sm">
+              <thead class="[&_tr]:border-b [&_tr]:border-border">
+                <tr class="border-b border-border">
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Version</th>
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider text-right">Files</th>
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider text-right hidden sm:table-cell">Downloads</th>
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider hidden md:table-cell">Published</th>
+                  <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody class="[&_tr:last-child]:border-0">
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <th scope="row" class="p-4 align-middle font-normal text-left"><div class="flex items-center gap-1.5"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">0.4.1</code><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Latest</span></div></th>
+                  <td class="p-4 align-middle text-right font-mono text-[12px]">3 · 11.9 MB</td>
+                  <td class="p-4 align-middle text-right font-mono text-[12px] hidden sm:table-cell">1,920</td>
+                  <td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap">malith · <time datetime="2026-11-05T16:24:00Z">yesterday</time></td>
+                  <td class="p-4 align-middle text-right">
+                    <button type="button" data-delete="0.4.1" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 text-muted-foreground" aria-label="Delete version 0.4.1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <th scope="row" class="p-4 align-middle font-normal text-left"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">0.4.0</code></th>
+                  <td class="p-4 align-middle text-right font-mono text-[12px]">3 · 11.7 MB</td>
+                  <td class="p-4 align-middle text-right font-mono text-[12px] hidden sm:table-cell">1,204</td>
+                  <td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap">daisy · <time datetime="2026-10-22T10:00:00Z">Oct 22</time></td>
+                  <td class="p-4 align-middle text-right">
+                    <button type="button" data-delete="0.4.0" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 text-muted-foreground" aria-label="Delete version 0.4.0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="border-b border-border transition-colors hover:bg-muted/50">
+                  <th scope="row" class="p-4 align-middle font-normal text-left"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">0.3.2</code></th>
+                  <td class="p-4 align-middle text-right font-mono text-[12px]">2 · 10.9 MB</td>
+                  <td class="p-4 align-middle text-right font-mono text-[12px] hidden sm:table-cell">286</td>
+                  <td class="p-4 align-middle hidden md:table-cell text-[12px] text-muted-foreground whitespace-nowrap">malith · <time datetime="2026-09-30T10:00:00Z">Sep 30</time></td>
+                  <td class="p-4 align-middle text-right">
+                    <button type="button" data-delete="0.3.2" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 text-muted-foreground" aria-label="Delete version 0.3.2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="readme-heading">
+          <header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+            <h2 id="readme-heading" class="text-[13px] font-medium">Readme</h2>
+            <span class="text-[12px] text-muted-foreground font-mono" data-when="container private delete">README.md at v0.4.1</span>
+            <span class="text-[12px] text-muted-foreground font-mono" data-when="generic">README.md at 0.4.1</span>
+          </header>
+          <div class="px-5 py-4 prose prose-sm dark:prose-invert max-w-none">
+            <h2>Cloudzilla</h2>
+            <p>Self-hosted git forge. One binary, PostgreSQL, no <code>git</code> on the host.</p>
+            <h3>Run it</h3>
+            <pre><code>docker run -p 8080:8080 -e CZ_DATABASE_DSN=… localhost:8080/mkappworks/cloudzilla-server:v0.4.1</code></pre>
+            <p>See <a href="#">docs/deployment.md</a> for volumes and the bootstrap admin.</p>
+          </div>
+        </section>
+      </div>
+
+      <aside class="flex flex-col gap-6" aria-label="Package details">
+        <section aria-labelledby="pk-repo-heading">
+          <h2 id="pk-repo-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Repository</h2>
+          <p><a href="#" class="text-[13px] font-medium hover:underline">mkappworks/cloudzilla</a></p>
+        </section>
+        <section aria-labelledby="pk-vis-heading" class="border-t border-border pt-5">
+          <h2 id="pk-vis-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Visibility</h2>
+          <p data-when="container generic delete"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Public</span></p>
+          <p data-when="private"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-transparent">Private</span></p>
+          <p class="mt-2 text-[12px] text-muted-foreground">Follows the repository. Anyone who can read the code can pull; writers can push and delete.</p>
+        </section>
+        <section data-when="container private delete" aria-labelledby="pk-plat-heading" class="border-t border-border pt-5">
+          <h2 id="pk-plat-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Platforms of v0.4.1</h2>
+          <p class="font-mono text-[12px]">linux/amd64 · linux/arm64</p>
+        </section>
+        <section aria-labelledby="pk-storage-heading" class="border-t border-border pt-5">
+          <h2 id="pk-storage-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Storage</h2>
+          <p class="text-[13px]" data-when="container private delete">142 MB <span class="text-muted-foreground">after shared layers</span></p>
+          <p class="text-[13px]" data-when="generic">34.5 MB</p>
+          <p class="mt-1 text-[12px] text-muted-foreground">Counts toward the owner's storage quota.</p>
+        </section>
+        <section aria-labelledby="pk-danger-heading" class="border-t border-border pt-5">
+          <h2 id="pk-danger-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Danger zone</h2>
+          <button type="button" data-delete-package class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Delete package</button>
+        </section>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<dialog id="delete-version-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="delete-version-dialog-title">
+  <form method="dialog" data-delete-form>
+    <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <h2 id="delete-version-dialog-title" class="text-base font-semibold leading-tight">Delete <span class="font-mono" data-delete-name>cloudzilla-server:v0.4.0</span>?</h2>
+      <p class="text-[13px] text-muted-foreground leading-snug" data-delete-desc>The tag and its manifest are removed. Pulls of this tag fail with “manifest unknown”. Layers that other tags share stay.</p>
+    </div>
+    <div class="p-5 text-sm">
+      <label for="delete-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Type <span class="font-mono text-foreground" data-delete-target>v0.4.0</span> to confirm</label>
+      <input id="delete-confirm" type="text" autocomplete="off" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors font-mono placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"/>
+    </div>
+    <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <button type="button" data-delete-cancel class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" data-delete-ok disabled class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-4 text-sm">Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="cz-footer"></div>
+<script src="../../mockups/shell.js"></script>
+<script>
+  (function () {
+    document.querySelector('nav[aria-label="Repository sections"]').replaceWith(document.getElementById('mock-subnav').content.cloneNode(true));
+
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var input = document.getElementById(btn.dataset.copy);
+        if (navigator.clipboard) navigator.clipboard.writeText(input.value);
+        btn.querySelector('[data-icon-copy]').hidden = true;
+        btn.querySelector('[data-icon-done]').hidden = false;
+        setTimeout(function () {
+          btn.querySelector('[data-icon-copy]').hidden = false;
+          btn.querySelector('[data-icon-done]').hidden = true;
+        }, 1500);
+      });
+    });
+
+    var dlg = document.getElementById('delete-version-dialog');
+    var input = document.getElementById('delete-confirm');
+    var ok = dlg.querySelector('[data-delete-ok]');
+    var pending = null;
+    function openDelete(target, whole) {
+      var pkg = state === 'generic' ? 'cz-cli' : 'cloudzilla-server';
+      var sep = state === 'generic' ? ' ' : (target.indexOf('sha256:') === 0 ? '@' : ':');
+      dlg.querySelector('[data-delete-name]').textContent = whole ? pkg : pkg + sep + target;
+      dlg.querySelector('[data-delete-target]').textContent = whole ? pkg : target;
+      dlg.querySelector('[data-delete-desc]').textContent = whole
+        ? 'Every version and its files are removed, and the name is freed. This can’t be undone.'
+        : state === 'generic'
+          ? 'All files of this version are removed. Download links to them return 404. Other versions are kept.'
+          : 'The tag and its manifest are removed. Pulls of this tag fail with “manifest unknown”. Layers that other tags share stay.';
+      ok.textContent = whole ? 'Delete package' : 'Delete version';
+      input.value = '';
+      ok.disabled = true;
+      pending = { target: whole ? pkg : target };
+      dlg.showModal();
+    }
+    input.addEventListener('input', function () { ok.disabled = input.value !== pending.target; });
+    dlg.querySelector('[data-delete-cancel]').addEventListener('click', function () { dlg.close(); });
+    ok.addEventListener('click', function () { dlg.close(); window.czToast('Deleted ' + pending.target + '.'); });
+    document.querySelectorAll('[data-delete]').forEach(function (b) {
+      b.addEventListener('click', function () { openDelete(b.dataset.delete, false); });
+    });
+    document.querySelector('[data-delete-package]').addEventListener('click', function () { openDelete('', true); });
+
+    var state = 'container';
+    function show(s) {
+      state = s;
+      document.querySelectorAll('[data-when]').forEach(function (el) {
+        el.toggleAttribute('hidden', el.dataset.when.split(' ').indexOf(s) < 0);
+      });
+      document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.mockState === s));
+      });
+      if (dlg.open) dlg.close();
+      if (s === 'delete') { openDelete('v0.4.0', false); input.value = 'v0.4'; }
+    }
+    document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+      b.addEventListener('click', function () { show(b.dataset.mockState); });
+    });
+    show(new URLSearchParams(location.search).get('state') || 'container');
+  })();
+</script>
+</body>
+</html>

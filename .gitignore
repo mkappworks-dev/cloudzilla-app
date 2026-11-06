@@ -36,6 +36,10 @@ cloudzilla_host_key
 .DS_Store
 Thumbs.db
 
+# Design mocks: compiled CSS and screenshots are rebuilt locally
+.scratch/*/mock.css
+.scratch/*/shots/
+
 # Superpowers brainstorm sessions
 .superpowers/
 

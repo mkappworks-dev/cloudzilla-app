@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Alert #12 · Security · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="./mock.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+<template id="mock-subnav">
+<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg> Pull requests <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">12</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg> Issues <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">23</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Milestones</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg> Checks</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> Discussions <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">5</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg> Projects</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg> Wiki</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> Releases <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="security.html" aria-current="page" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  bg-accent font-medium text-foreground"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Security <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 ml-auto text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg> Settings</a>
+</nav>
+</template>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="flex flex-col gap-6">
+
+    <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
+      <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
+      <button type="button" data-mock-state="open" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Open</button>
+      <button type="button" data-mock-state="menu" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Close-as menu open</button>
+      <button type="button" data-mock-state="blocked" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Blocked push</button>
+      <button type="button" data-mock-state="revoked" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Closed: revoked</button>
+      <button type="button" data-mock-state="false-positive" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Closed: false positive</button>
+      <button type="button" data-mock-state="used-in-tests" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Closed: used in tests</button>
+      <span class="ml-auto"><a href="security.html" class="underline hover:text-foreground">← alerts</a></span>
+    </div>
+
+    <section aria-labelledby="alert-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="#" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="security.html" class="hover:underline">Security</a>
+        <span aria-hidden="true">·</span>
+        <span aria-current="page">#12</span>
+      </p>
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2 min-w-0">
+          <h1 id="alert-title" class="text-2xl font-semibold tracking-tight min-w-0">AWS access key ID</h1>
+          <span data-when="open menu blocked" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Open</span>
+          <span data-when="revoked false-positive used-in-tests" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">Closed · <span data-f="reason">revoked</span></span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <div class="relative inline-block" data-dropdown data-when="open menu blocked">
+            <button type="button" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]" aria-haspopup="menu" aria-expanded="false">
+              Close as
+              <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" data-close-menu class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[12rem] w-72 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm">
+              <button type="button" role="menuitem" data-close-as="revoked" class="flex w-full items-start gap-2 px-2 py-1.5 rounded-xs text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none">
+                <span class="min-w-0"><span class="block font-medium">Revoked</span><span class="block text-[12px] text-muted-foreground">The secret was rotated and no longer works.</span></span>
+              </button>
+              <button type="button" role="menuitem" data-close-as="false-positive" class="flex w-full items-start gap-2 px-2 py-1.5 rounded-xs text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none">
+                <span class="min-w-0"><span class="block font-medium">False positive</span><span class="block text-[12px] text-muted-foreground">It isn't a secret.</span></span>
+              </button>
+              <button type="button" role="menuitem" data-close-as="used-in-tests" class="flex w-full items-start gap-2 px-2 py-1.5 rounded-xs text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none">
+                <span class="min-w-0"><span class="block font-medium">Used in tests</span><span class="block text-[12px] text-muted-foreground">A fixture or example value that grants nothing.</span></span>
+              </button>
+            </div>
+          </div>
+          <button type="button" data-reopen data-when="revoked false-positive used-in-tests" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Reopen</button>
+        </div>
+      </div>
+      <p class="mt-2 text-[13px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <span>Found in <a href="commit.html" class="font-mono hover:text-foreground hover:underline">9c8e2a4</a>, pushed by daisy to</span>
+        <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">daisy/deploy-config</span>
+        <span aria-hidden="true">·</span>
+        <time datetime="2026-11-03T10:00:00Z">3 days ago</time>
+      </p>
+    </section>
+
+    <div class="grid lg:grid-cols-[1fr_280px] gap-6 items-start">
+      <div class="flex flex-col gap-6 min-w-0">
+
+        <div data-when="blocked" role="alert" class="relative w-full rounded-md border p-4 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:pl-7 [&>svg~*]:pl-7 border-warning/40 bg-warning/10 text-warning">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <h5 class="mb-1 font-medium leading-none tracking-tight">This secret blocked a push by daisy 4 minutes ago</h5>
+          <div class="text-sm [&_p]:leading-relaxed opacity-90">
+            <p>Nothing was stored. Allow it only if it isn't a live secret: the next push of this exact value goes through within the hour, and the alert closes with the reason you pick.</p>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <button type="button" data-allow class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px] text-foreground">Allow as used in tests</button>
+              <button type="button" data-allow class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px] text-foreground">Allow as false positive</button>
+            </div>
+          </div>
+        </div>
+
+        <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="loc-heading">
+          <div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between gap-3">
+            <h2 id="loc-heading" class="min-w-0"><code class="text-sm font-mono text-foreground break-all">config/deploy.env</code></h2>
+            <a href="#" class="text-xs text-muted-foreground hover:text-foreground shrink-0">View file at 9c8e2a4</a>
+          </div>
+          <div class="overflow-x-auto bg-card">
+            <table class="w-full font-mono text-[12.5px] leading-[1.6]">
+              <caption class="sr-only">config/deploy.env, lines 11 to 17, secret on line 14</caption>
+              <tbody>
+                <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">11</td><td class="pl-4 pr-4 py-0 whitespace-pre"># staging deploy target</td></tr>
+                <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">12</td><td class="pl-4 pr-4 py-0 whitespace-pre">DEPLOY_HOST=staging.example.com</td></tr>
+                <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">13</td><td class="pl-4 pr-4 py-0 whitespace-pre">AWS_REGION=eu-west-1</td></tr>
+                <tr class="bg-destructive/10"><td class="select-none text-destructive pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">14</td><td class="pl-4 pr-4 py-0 whitespace-pre">AWS_ACCESS_KEY_ID=<mark class="bg-destructive/15 text-destructive rounded-xs px-0.5">AKIA••••••••••••7QXZ</mark></td></tr>
+                <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">15</td><td class="pl-4 pr-4 py-0 whitespace-pre">AWS_SECRET_ACCESS_KEY=${AWS_SECRET}</td></tr>
+                <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">16</td><td class="pl-4 pr-4 py-0 whitespace-pre">BUCKET=cz-staging-artifacts</td></tr>
+                <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">17</td><td class="pl-4 pr-4 py-0 whitespace-pre"> </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section data-when="open menu blocked" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="fix-heading">
+          <header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+            <h2 id="fix-heading" class="text-[13px] font-medium">How to fix</h2>
+          </header>
+          <ol class="px-5 py-4 flex flex-col gap-2 text-[13px] list-decimal list-inside">
+            <li>Deactivate the key in AWS IAM and issue a new one. Deleting the file doesn't help: the key stays in history and in every clone.</li>
+            <li>Move the new key out of the repository, for example into a pipeline secret.</li>
+            <li>Close this alert as <strong class="font-medium">Revoked</strong>.</li>
+          </ol>
+        </section>
+
+        <section aria-labelledby="activity-heading" class="flex flex-col gap-3">
+          <h2 id="activity-heading" class="text-[13px] font-medium">Activity</h2>
+          <ol data-when="open menu" class="cz-timeline space-y-4" aria-label="Alert activity">
+            <li class="text-[13px] text-muted-foreground">
+              <span class="cz-timeline-icon text-destructive bg-destructive/15" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></span>
+              <p>Secret scanning found this in <a href="commit.html" class="font-mono hover:text-foreground hover:underline">9c8e2a4</a> when it scanned existing history, and notified the repository's admins <time class="text-xs">3 days ago</time></p>
+            </li>
+          </ol>
+          <ol data-when="blocked" class="cz-timeline space-y-4" aria-label="Alert activity">
+            <li class="text-[13px] text-muted-foreground">
+              <span class="cz-timeline-icon text-destructive bg-destructive/15" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></span>
+              <p>Secret scanning found this in <a href="commit.html" class="font-mono hover:text-foreground hover:underline">9c8e2a4</a> when it scanned existing history, and notified the repository's admins <time class="text-xs">3 days ago</time></p>
+            </li>
+            <li class="text-[13px] text-muted-foreground">
+              <span class="cz-timeline-icon text-warning bg-warning/15" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M4.93 4.93l14.14 14.14"></path></svg></span>
+              <p>Push protection rejected a push by <a href="#" class="font-medium text-foreground hover:text-primary">daisy</a> to <span class="font-mono">daisy/deploy-config</span> <time class="text-xs">4 minutes ago</time></p>
+            </li>
+          </ol>
+          <ol data-when="revoked false-positive used-in-tests" class="cz-timeline space-y-4" aria-label="Alert activity">
+            <li class="text-[13px] text-muted-foreground">
+              <span class="cz-timeline-icon text-destructive bg-destructive/15" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></span>
+              <p>Secret scanning found this in <a href="commit.html" class="font-mono hover:text-foreground hover:underline">9c8e2a4</a> when it scanned existing history, and notified the repository's admins <time class="text-xs">3 days ago</time></p>
+            </li>
+            <li class="text-[13px] text-muted-foreground">
+              <span class="cz-timeline-icon text-muted-foreground bg-muted" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span>
+              <p><a href="#" class="font-medium text-foreground hover:text-primary">malith</a> closed this as <span data-f="reason2">revoked</span> <time class="text-xs">2 hours ago</time></p>
+            </li>
+          </ol>
+        </section>
+      </div>
+
+      <aside class="flex flex-col gap-6" aria-label="Alert details">
+        <section aria-labelledby="al-type-heading">
+          <h2 id="al-type-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Secret</h2>
+          <p><code class="font-mono px-2 py-0.5 border border-border bg-muted rounded-sm text-[12px]">AKIA…7QXZ</code></p>
+          <p class="mt-2 text-[12px] text-muted-foreground">Only the first and last four characters are stored. The snippet is read from the commit and masked.</p>
+        </section>
+        <section aria-labelledby="al-pattern-heading" class="border-t border-border pt-5">
+          <h2 id="al-pattern-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Pattern</h2>
+          <p class="font-mono text-[12px]">aws_key</p>
+        </section>
+        <section aria-labelledby="al-loc-heading" class="border-t border-border pt-5">
+          <h2 id="al-loc-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Locations</h2>
+          <ul class="flex flex-col gap-1 text-[12px]">
+            <li class="font-mono break-all">config/deploy.env:14 <span class="text-muted-foreground">· 9c8e2a4</span></li>
+            <li class="font-mono break-all">deploy/staging.env:3 <span class="text-muted-foreground">· 9c8e2a4</span></li>
+          </ul>
+        </section>
+        <section aria-labelledby="al-commit-heading" class="border-t border-border pt-5">
+          <h2 id="al-commit-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Still on the default branch</h2>
+          <p class="text-[13px]">Yes, since <a href="commit.html" class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline">9c8e2a4</a> was merged</p>
+        </section>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="../../mockups/shell.js"></script>
+<script>
+  (function () {
+    document.querySelector('nav[aria-label="Repository sections"]').replaceWith(document.getElementById('mock-subnav').content.cloneNode(true));
+    var REASON = { revoked: 'revoked', 'false-positive': 'false positive', 'used-in-tests': 'used in tests' };
+    var menu = document.querySelector('[data-close-menu]');
+    function show(s) {
+      var shown = s === 'menu' ? 'menu' : s;
+      document.querySelectorAll('[data-when]').forEach(function (el) {
+        el.toggleAttribute('hidden', el.dataset.when.split(' ').indexOf(shown) < 0);
+      });
+      if (REASON[s]) {
+        document.querySelector('[data-f=reason]').textContent = REASON[s];
+        document.querySelector('[data-f=reason2]').textContent = REASON[s];
+      }
+      menu.classList.toggle('hidden', s !== 'menu');
+      document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.mockState === s));
+      });
+    }
+    document.querySelectorAll('[data-close-as]').forEach(function (b) {
+      b.addEventListener('click', function () { show(b.dataset.closeAs); });
+    });
+    document.querySelector('[data-reopen]').addEventListener('click', function () { show('open'); });
+    document.querySelectorAll('[data-allow]').forEach(function (b) {
+      b.addEventListener('click', function () { show(/false/.test(b.textContent) ? 'false-positive' : 'used-in-tests'); });
+    });
+    document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); show(b.dataset.mockState); });
+    });
+    show(new URLSearchParams(location.search).get('state') || 'open');
+  })();
+</script>
+</body>
+</html>

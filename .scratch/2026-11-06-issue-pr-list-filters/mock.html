@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Issues · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="./mock.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- Mock-only: not part of the page. -->
+<div class="max-w-[1400px] mx-auto w-full px-6 pt-3">
+  <div class="rounded-md border border-dashed border-border-strong px-3 py-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px]">
+    <span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Mock state</span>
+    <div class="flex flex-wrap items-center gap-1" role="group" aria-label="List">
+      <span class="text-muted-foreground mr-1">List</span>
+      <button type="button" data-set="list=issues" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Issues</button>
+      <button type="button" data-set="list=pulls" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Pull requests</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Data">
+      <span class="text-muted-foreground mr-1">Repo</span>
+      <button type="button" data-set="data=items" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Has items</button>
+      <button type="button" data-set="data=zero" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Zero items</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Filters">
+      <span class="text-muted-foreground mr-1">Filters</span>
+      <button type="button" data-preset="none" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground">None</button>
+      <button type="button" data-preset="sample" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground">Sample</button>
+      <button type="button" data-preset="nomatch" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground">No match</button>
+      <button type="button" data-open-menu="label" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground">Open label menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="cz-header" data-repo-tab="issues"></div>
+<script>
+  if (/list=pulls/.test(location.hash)) document.getElementById('cz-header').dataset.repoTab = 'pull_requests';
+</script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="flex flex-col gap-6">
+
+    <section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="list-title">
+      <div class="min-w-0">
+        <h1 id="list-title" class="text-2xl font-semibold tracking-tight" data-text-issues="Issues" data-text-pulls="Pull requests">Issues</h1>
+      </div>
+      <a href="#" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 text-sm bg-success text-success-foreground hover:bg-success/90">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+        <span data-text-issues="New issue" data-text-pulls="New pull request">New issue</span>
+      </a>
+    </section>
+
+    <!-- GET form: chips are the parsed q; each menu writes its qualifier back into q. -->
+    <form data-when-data="items" class="flex flex-wrap items-center gap-2" role="search" onsubmit="return false">
+      <div class="relative flex-1 min-w-[240px]">
+        <label for="list-search" class="sr-only" data-text-issues="Search issues" data-text-pulls="Search pull requests">Search issues</label>
+        <svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+        <div data-token-field class="flex flex-wrap items-center gap-1 min-h-9 w-full pl-8 pr-9 py-1 bg-card border border-border rounded-md focus-within:ring-2 focus-within:ring-ring">
+          <span data-chips class="contents"></span>
+          <input id="list-search" name="q" type="text" enterkeyhint="search" autocomplete="off" placeholder="Search or filter, e.g. label:bug" class="flex-1 min-w-[8rem] h-7 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-hidden"/>
+        </div>
+        <button type="button" data-clear data-when-filtered="1" class="absolute right-1.5 top-1.5 h-6 w-6 grid place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent" aria-label="Clear filters">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <button type="button" data-filters-toggle aria-expanded="false" aria-controls="filter-menus" class="md:hidden h-9 px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center gap-1.5">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M3 6h18M7 12h10M10 18h4"></path></svg>
+        Filters
+        <span data-filter-count class="font-mono text-[11px] text-muted-foreground"></span>
+      </button>
+      <div id="filter-menus" class="hidden md:flex w-full md:w-auto flex-col md:flex-row gap-2 md:gap-1.5">
+          <div class="relative w-full md:w-auto" data-menu="author">
+            <button type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" class="h-9 w-full md:w-auto px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center justify-between md:justify-start gap-1.5">
+              <span class="inline-flex items-center gap-1.5 min-w-0"><span>Author</span><span data-trigger-value class="truncate max-w-32 text-muted-foreground"></span></span>
+              <svg class="text-muted-foreground shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" aria-label="Filter by author" class="hidden absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1.5 z-50 md:w-64 flex-col rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+              <div class="shrink-0 border-b border-border p-1.5"><input type="text" data-menu-filter aria-label="Filter author" autocomplete="off" placeholder="Filter author" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/></div>
+              <div class="max-h-72 overflow-y-auto p-1">
+                <div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Filter by author</div>
+                <button type="button" role="menuitemradio" aria-checked="false" data-key="author" data-val="aki" data-label="aki" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">A</span><span class="flex-1 truncate">aki</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="author" data-val="daisy" data-label="daisy" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">D</span><span class="flex-1 truncate">daisy</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="author" data-val="malith" data-label="malith" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">M</span><span class="flex-1 truncate">malith</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="author" data-val="priya" data-label="priya" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">P</span><span class="flex-1 truncate">priya</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="author" data-val="yumi" data-label="yumi" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">Y</span><span class="flex-1 truncate">yumi</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button>
+                <p data-menu-empty hidden class="px-2.5 py-1.5 text-[12px] text-muted-foreground">No matches.</p>
+              </div>
+            </div>
+          </div>
+          <div class="relative w-full md:w-auto" data-menu="label">
+            <button type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" class="h-9 w-full md:w-auto px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center justify-between md:justify-start gap-1.5">
+              <span class="inline-flex items-center gap-1.5 min-w-0"><span>Label</span><span data-trigger-value class="truncate max-w-32 text-muted-foreground"></span></span>
+              <svg class="text-muted-foreground shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" aria-label="Filter by labels" class="hidden absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1.5 z-50 md:w-64 flex-col rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+              <div class="shrink-0 border-b border-border p-1.5"><input type="text" data-menu-filter aria-label="Filter label" autocomplete="off" placeholder="Filter label" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/></div>
+              <div class="max-h-72 overflow-y-auto p-1">
+                <div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Filter by labels</div>
+                <button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="bug" data-label="bug" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #ef4444"></span><span class="flex-1 truncate">bug</span></button><button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="performance" data-label="performance" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #3b82f6"></span><span class="flex-1 truncate">performance</span></button><button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="db" data-label="db" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #a855f7"></span><span class="flex-1 truncate">db</span></button><button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="docs" data-label="docs" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #22c55e"></span><span class="flex-1 truncate">docs</span></button><button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="enhancement" data-label="enhancement" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #06b6d4"></span><span class="flex-1 truncate">enhancement</span></button><button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="ui" data-label="ui" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #f59e0b"></span><span class="flex-1 truncate">ui</span></button><button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="security" data-label="security" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #f97316"></span><span class="flex-1 truncate">security</span></button><button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="auth" data-label="auth" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #3b82f6"></span><span class="flex-1 truncate">auth</span></button><div role="separator" class="my-1 h-px bg-border"></div><button type="button" role="menuitemcheckbox" aria-checked="false" data-key="label" data-val="none" data-label="none" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span aria-hidden="true" class="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-input group-aria-checked:border-primary group-aria-checked:bg-primary group-aria-checked:text-primary-foreground"><svg class="hidden group-aria-checked:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"></path></svg></span><span class="flex-1 truncate">No label</span></button>
+                <p data-menu-empty hidden class="px-2.5 py-1.5 text-[12px] text-muted-foreground">No matches.</p>
+              </div>
+            </div>
+          </div>
+          <div class="relative w-full md:w-auto" data-menu="milestone">
+            <button type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" class="h-9 w-full md:w-auto px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center justify-between md:justify-start gap-1.5">
+              <span class="inline-flex items-center gap-1.5 min-w-0"><span>Milestone</span><span data-trigger-value class="truncate max-w-32 text-muted-foreground"></span></span>
+              <svg class="text-muted-foreground shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" aria-label="Filter by milestone" class="hidden absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1.5 z-50 md:w-64 flex-col rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+              <div class="shrink-0 border-b border-border p-1.5"><input type="text" data-menu-filter aria-label="Filter milestone" autocomplete="off" placeholder="Filter milestone" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/></div>
+              <div class="max-h-72 overflow-y-auto p-1">
+                <div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Filter by milestone</div>
+                <button type="button" role="menuitemradio" aria-checked="false" data-key="milestone" data-val="v0.3" data-label="v0.3" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 min-w-0"><span class="block truncate">v0.3 — UI overhaul</span><span class="block text-[11px] text-muted-foreground">Due Nov 30</span></span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="milestone" data-val="v0.4" data-label="v0.4" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 min-w-0"><span class="block truncate">v0.4 — Mirrors &amp; imports</span><span class="block text-[11px] text-muted-foreground">Due Jan 15</span></span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><div role="separator" class="my-1 h-px bg-border"></div><button type="button" role="menuitemradio" aria-checked="false" data-key="milestone" data-val="none" data-label="none" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">No milestone</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button>
+                <p data-menu-empty hidden class="px-2.5 py-1.5 text-[12px] text-muted-foreground">No matches.</p>
+              </div>
+            </div>
+          </div>
+          <div class="relative w-full md:w-auto" data-menu="assignee">
+            <button type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" class="h-9 w-full md:w-auto px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center justify-between md:justify-start gap-1.5">
+              <span class="inline-flex items-center gap-1.5 min-w-0"><span>Assignee</span><span data-trigger-value class="truncate max-w-32 text-muted-foreground"></span></span>
+              <svg class="text-muted-foreground shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" aria-label="Filter by assignee" class="hidden absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1.5 z-50 md:w-64 flex-col rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+              <div class="shrink-0 border-b border-border p-1.5"><input type="text" data-menu-filter aria-label="Filter assignee" autocomplete="off" placeholder="Filter assignee" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/></div>
+              <div class="max-h-72 overflow-y-auto p-1">
+                <div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Filter by assignee</div>
+                <button type="button" role="menuitemradio" aria-checked="false" data-key="assignee" data-val="@me" data-label="@me" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">M</span><span class="flex-1 truncate">Assigned to me</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="assignee" data-val="aki" data-label="aki" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">A</span><span class="flex-1 truncate">aki</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="assignee" data-val="daisy" data-label="daisy" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">D</span><span class="flex-1 truncate">daisy</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="assignee" data-val="priya" data-label="priya" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">P</span><span class="flex-1 truncate">priya</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="assignee" data-val="yumi" data-label="yumi" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[9px] shrink-0" aria-hidden="true">Y</span><span class="flex-1 truncate">yumi</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><div role="separator" class="my-1 h-px bg-border"></div><button type="button" role="menuitemradio" aria-checked="false" data-key="assignee" data-val="none" data-label="none" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">Assigned to nobody</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button>
+                <p data-menu-empty hidden class="px-2.5 py-1.5 text-[12px] text-muted-foreground">No matches.</p>
+              </div>
+            </div>
+          </div>
+          <div class="relative w-full md:w-auto" data-menu="review" data-only="pulls">
+            <button type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" class="h-9 w-full md:w-auto px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center justify-between md:justify-start gap-1.5">
+              <span class="inline-flex items-center gap-1.5 min-w-0"><span>Review</span><span data-trigger-value class="truncate max-w-32 text-muted-foreground"></span></span>
+              <svg class="text-muted-foreground shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" aria-label="Filter by review" class="hidden absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1.5 z-50 md:w-64 flex-col rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+              
+              <div class="max-h-72 overflow-y-auto p-1">
+                <div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Filter by review</div>
+                <button type="button" role="menuitemradio" aria-checked="false" data-key="review" data-val="required" data-label="required" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">Review required</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="review" data-val="approved" data-label="approved" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">Approved</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="review" data-val="changes" data-label="changes" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">Changes requested</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="review" data-val="none" data-label="none" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">No reviews</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button>
+                <p data-menu-empty hidden class="px-2.5 py-1.5 text-[12px] text-muted-foreground">No matches.</p>
+              </div>
+            </div>
+          </div>
+          <div class="relative w-full md:w-auto" data-menu="sort">
+            <button type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false" class="h-9 w-full md:w-auto px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center justify-between md:justify-start gap-1.5">
+              <span class="inline-flex items-center gap-1.5 min-w-0"><span>Sort</span><span data-trigger-value class="truncate max-w-32 text-muted-foreground"></span></span>
+              <svg class="text-muted-foreground shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" aria-label="Sort by" class="hidden absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1.5 z-50 md:w-64 flex-col rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+              
+              <div class="max-h-72 overflow-y-auto p-1">
+                <div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>
+                <button type="button" role="menuitemradio" aria-checked="false" data-key="sort" data-val="newest" data-label="newest" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">Newest</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="sort" data-val="oldest" data-label="oldest" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">Oldest</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="sort" data-val="updated" data-label="updated" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">Recently updated</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button><button type="button" role="menuitemradio" aria-checked="false" data-key="sort" data-val="comments" data-label="comments" class="group flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground aria-checked:text-foreground"><span class="flex-1 truncate">Most commented</span><svg class="hidden group-aria-checked:block ml-auto shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></button>
+                <p data-menu-empty hidden class="px-2.5 py-1.5 text-[12px] text-muted-foreground">No matches.</p>
+              </div>
+            </div>
+          </div>
+      </div>
+    </form>
+
+    <nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="State">
+      <a href="#" data-tab="open" data-only="issues" data-count="87">Open<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" data-n></span></a>
+      <a href="#" data-tab="closed" data-only="issues" data-count="142">Closed<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" data-n></span></a>
+      <a href="#" data-tab="open" data-only="pulls" data-count="31">Open<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" data-n></span></a>
+      <a href="#" data-tab="draft" data-only="pulls" data-count="3">Draft<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" data-n></span></a>
+      <a href="#" data-tab="merged" data-only="pulls" data-count="412">Merged<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" data-n></span></a>
+      <a href="#" data-tab="closed" data-only="pulls" data-count="58">Closed<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" data-n></span></a>
+      <div class="ml-auto hidden sm:flex items-center gap-3 pb-1.5" data-when-filtered="1">
+        <span class="font-mono text-[11px] text-muted-foreground" data-result-count></span>
+        <button type="button" data-clear class="text-[12px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          Clear filters
+        </button>
+      </div>
+    </nav>
+
+    <section data-pinned aria-labelledby="pinned-heading">
+      <h2 id="pinned-heading" class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Pinned <span class="ml-1">2</span></h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <a href="#" class="block rounded-md border border-border bg-card p-4 hover:bg-accent/40 transition">
+          <div class="flex items-start gap-2">
+            <svg class="w-4 h-4 text-warning shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.62l5.34-.78L10 1z"></path></svg>
+            <div class="min-w-0"><p class="text-[13px] font-semibold truncate">Roadmap: phases 16–20 prep</p><p class="mt-1 font-mono text-[11px] text-muted-foreground">#1 · open</p></div>
+          </div>
+        </a>
+        <a href="#" class="block rounded-md border border-border bg-card p-4 hover:bg-accent/40 transition">
+          <div class="flex items-start gap-2">
+            <svg class="w-4 h-4 text-warning shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.62l5.34-.78L10 1z"></path></svg>
+            <div class="min-w-0"><p class="text-[13px] font-semibold truncate">UI overhaul tracking issue</p><p class="mt-1 font-mono text-[11px] text-muted-foreground">#42 · open</p></div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section data-list="issues" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="issue-list">
+      <h2 id="issue-list" class="sr-only">Issues</h2>
+      <ol class="divide-y divide-border" data-rows>
+        <li data-n="138" data-author="daisy" data-state="open" data-labels="performance db" data-milestone="v0.3" data-assignee="malith" data-updated="2" data-comments="6">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Profile slow query: pulls list with assignee join</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#138</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">da</span>
+                <span>daisy</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>4 days ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #3b82f626; color: #3b82f6; border-color: #3b82f659">performance</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #a855f726; color: #a855f7; border-color: #a855f759">db</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 text-blue-500 border-blue-500/30 whitespace-nowrap">P1</span><span class="inline-flex items-center gap-1" title="6 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 6</span></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="131" data-author="priya" data-state="open" data-labels="bug ui" data-milestone="v0.3" data-assignee="daisy" data-updated="1" data-comments="4">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Issue list ignores the author: qualifier</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#131</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">pr</span>
+                <span>priya</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>5 days ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #ef444426; color: #ef4444; border-color: #ef444459">bug</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #f59e0b26; color: #f59e0b; border-color: #f59e0b59">ui</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-destructive/10 text-destructive border-destructive/30 whitespace-nowrap">P0</span><span class="inline-flex items-center gap-1" title="4 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 4</span></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="129" data-author="malith" data-state="open" data-labels="db" data-milestone="v0.4" data-assignee="" data-updated="5" data-comments="3">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Decide retention window for audit_log table</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#129</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">ma</span>
+                <span>malith</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>1 week ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #a855f726; color: #a855f7; border-color: #a855f759">db</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="3 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 3</span></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="120" data-author="yumi" data-state="open" data-labels="bug ui" data-milestone="v0.3" data-assignee="yumi" data-updated="3" data-comments="2">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Dark mode: label chips lose contrast on hover</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#120</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">yu</span>
+                <span>yumi</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>1 week ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #ef444426; color: #ef4444; border-color: #ef444459">bug</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #f59e0b26; color: #f59e0b; border-color: #f59e0b59">ui</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground whitespace-nowrap">P2</span><span class="inline-flex items-center gap-1" title="2 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 2</span></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="112" data-author="priya" data-state="open" data-labels="bug" data-milestone="v0.4" data-assignee="priya" data-updated="6" data-comments="2">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Mirror sync should back off after repeated auth failures</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#112</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">pr</span>
+                <span>priya</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>2 weeks ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #ef444426; color: #ef4444; border-color: #ef444459">bug</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="2 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 2</span></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="98" data-author="daisy" data-state="open" data-labels="enhancement ui" data-milestone="v0.3" data-assignee="" data-updated="4" data-comments="9">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Paginate the repository issue list</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#98</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">da</span>
+                <span>daisy</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>3 weeks ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #06b6d426; color: #06b6d4; border-color: #06b6d459">enhancement</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #f59e0b26; color: #f59e0b; border-color: #f59e0b59">ui</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 text-blue-500 border-blue-500/30 whitespace-nowrap">P1</span><span class="inline-flex items-center gap-1" title="9 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 9</span></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="74" data-author="yumi" data-state="open" data-labels="bug" data-milestone="" data-assignee="malith" data-updated="7" data-comments="9">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Webhook retry queue stalls past 1k entries</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#74</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">yu</span>
+                <span>yumi</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>3 weeks ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #ef444426; color: #ef4444; border-color: #ef444459">bug</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-destructive/10 text-destructive border-destructive/30 whitespace-nowrap">P0</span><span class="inline-flex items-center gap-1" title="9 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 9</span></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="61" data-author="daisy" data-state="open" data-labels="docs enhancement" data-milestone="" data-assignee="" data-updated="8" data-comments="0">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Document the cz CLI token scopes</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#61</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">da</span>
+                <span>daisy</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>1 month ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #22c55e26; color: #22c55e; border-color: #22c55e59">docs</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #06b6d426; color: #06b6d4; border-color: #06b6d459">enhancement</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="57" data-author="aki" data-state="closed" data-labels="ui" data-milestone="v0.3" data-assignee="aki" data-updated="9" data-comments="1">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Highlight search terms in issue titles</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#57</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">ak</span>
+                <span>aki</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>1 month ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #f59e0b26; color: #f59e0b; border-color: #f59e0b59">ui</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="1 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 1</span></div>
+            </div>
+          </a>
+        </li>
+        <li data-n="44" data-author="malith" data-state="closed" data-labels="bug security" data-milestone="" data-assignee="malith" data-updated="10" data-comments="5">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Login form loses next= after a failed attempt</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#44</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">ma</span>
+                <span>malith</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <time>2 months ago</time>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #ef444426; color: #ef4444; border-color: #ef444459">bug</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #f9731626; color: #f97316; border-color: #f9731659">security</span>
+              </div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 text-blue-500 border-blue-500/30 whitespace-nowrap">P1</span><span class="inline-flex items-center gap-1" title="5 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 5</span></div>
+            </div>
+          </a>
+        </li>
+      </ol>
+    </section>
+
+    <section data-list="pulls" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="pull-list">
+      <h2 id="pull-list" class="sr-only">Pull requests</h2>
+      <ul data-rows>
+        <li class="border-b border-border last:border-0" data-n="341" data-author="daisy" data-state="open" data-labels="auth security" data-milestone="v0.3" data-assignee="daisy" data-updated="1" data-comments="6" data-review="approved">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Add OAuth scopes to access tokens</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#341</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">DA</span>
+                <span>daisy</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span>3 days ago</span>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #3b82f626; color: #3b82f6; border-color: #3b82f659">auth</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #f9731626; color: #f97316; border-color: #f9731659">security</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs shrink-0"><div class="flex -space-x-1.5" aria-label="2 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">Y</span><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">A</span></div><span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Approved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="hidden sm:inline text-[11px]">Approved</span></span><span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span><span class="text-muted-foreground inline-flex items-center gap-1" title="6 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 6</span></div>
+            </div>
+          </a>
+        </li>
+        <li class="border-b border-border last:border-0" data-n="339" data-author="priya" data-state="open" data-labels="ui enhancement" data-milestone="v0.3" data-assignee="priya" data-updated="2" data-comments="3" data-review="changes">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Paginate repository issue and PR lists</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#339</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">PR</span>
+                <span>priya</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span>4 days ago</span>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #f59e0b26; color: #f59e0b; border-color: #f59e0b59">ui</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #06b6d426; color: #06b6d4; border-color: #06b6d459">enhancement</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs shrink-0"><div class="flex -space-x-1.5" aria-label="1 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">M</span></div><span class="text-destructive inline-flex items-center gap-1" title="Changes requested" aria-label="Changes requested"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="hidden sm:inline text-[11px]">Changes requested</span></span><span class="text-destructive inline-flex items-center gap-1" title="Some checks failing" aria-label="CI failing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="font-mono text-[11px]">4/6</span></span><span class="text-muted-foreground inline-flex items-center gap-1" title="3 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 3</span></div>
+            </div>
+          </a>
+        </li>
+        <li class="border-b border-border last:border-0" data-n="336" data-author="yumi" data-state="open" data-labels="enhancement" data-milestone="v0.3" data-assignee="" data-updated="4" data-comments="1" data-review="required">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Batch-apply review suggestions</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#336</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">YU</span>
+                <span>yumi</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span>1 week ago</span>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #06b6d426; color: #06b6d4; border-color: #06b6d459">enhancement</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs shrink-0"><div class="flex -space-x-1.5" aria-label="2 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">D</span><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">M</span></div><span class="text-muted-foreground inline-flex items-center gap-1" title="Review required" aria-label="Review required"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span class="hidden sm:inline text-[11px]">Review required</span></span><span class="text-warning inline-flex items-center gap-1" title="Checks in progress" aria-label="CI pending"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="font-mono text-[11px]">2/6</span></span><span class="text-muted-foreground inline-flex items-center gap-1" title="1 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 1</span></div>
+            </div>
+          </a>
+        </li>
+        <li class="border-b border-border last:border-0" data-n="333" data-author="malith" data-state="open" data-labels="bug" data-milestone="v0.4" data-assignee="malith" data-updated="3" data-comments="0" data-review="required">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-success" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Back off mirror sync after auth failures</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#333</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">MA</span>
+                <span>malith</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span>1 week ago</span>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #ef444426; color: #ef4444; border-color: #ef444459">bug</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs shrink-0"><span class="text-muted-foreground inline-flex items-center gap-1" title="Review required" aria-label="Review required"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span class="hidden sm:inline text-[11px]">Review required</span></span><span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span></div>
+            </div>
+          </a>
+        </li>
+        <li class="border-b border-border last:border-0" data-n="330" data-author="aki" data-state="draft" data-labels="security" data-milestone="" data-assignee="aki" data-updated="5" data-comments="2" data-review="none">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>WIP: SAML assertion replay cache</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-transparent">Draft</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#330</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">AK</span>
+                <span>aki</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span>2 weeks ago</span>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #f9731626; color: #f97316; border-color: #f9731659">security</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs shrink-0"><span class="text-warning inline-flex items-center gap-1" title="Checks in progress" aria-label="CI pending"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="font-mono text-[11px]">1/6</span></span><span class="text-muted-foreground inline-flex items-center gap-1" title="2 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 2</span></div>
+            </div>
+          </a>
+        </li>
+        <li class="border-b border-border last:border-0" data-n="318" data-author="daisy" data-state="merged" data-labels="bug" data-milestone="v0.3" data-assignee="daisy" data-updated="6" data-comments="4" data-review="approved">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-[hsl(270_70%_70%)]" aria-hidden="true"><path d="M5 3.254V3.25v.005a.75.75 0 110-.005v.004zm.45 1.9a2.25 2.25 0 10-1.95.218v5.256a2.25 2.25 0 101.5 0V7.123A5.735 5.735 0 009.25 9h1.378a2.251 2.251 0 100-1.5H9.25a4.25 4.25 0 01-3.8-2.346zM12.75 9a.75.75 0 100-1.5.75.75 0 000 1.5zm-8.5 4.5a.75.75 0 100-1.5.75.75 0 000 1.5z"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Fix contributor stats SHA dedup</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)]">Merged</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#318</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">DA</span>
+                <span>daisy</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span>3 weeks ago</span>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #ef444426; color: #ef4444; border-color: #ef444459">bug</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs shrink-0"><div class="flex -space-x-1.5" aria-label="1 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">Y</span></div><span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Approved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="hidden sm:inline text-[11px]">Approved</span></span><span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span><span class="text-muted-foreground inline-flex items-center gap-1" title="4 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 4</span></div>
+            </div>
+          </a>
+        </li>
+        <li class="border-b border-border last:border-0" data-n="305" data-author="priya" data-state="closed" data-labels="auth" data-milestone="" data-assignee="" data-updated="7" data-comments="7" data-review="changes">
+          <a href="#" class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+            <div class="flex items-start gap-3 mb-1.5">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true"><path d="M3.25 1A2.25 2.25 0 014 5.372v5.256a2.251 2.251 0 11-1.5 0V5.372A2.251 2.251 0 013.25 1zm9.5 14a2.25 2.25 0 110-4.5 2.25 2.25 0 010 4.5zM2.5 3.25a.75.75 0 101.5 0 .75.75 0 00-1.5 0zM3.25 12a.75.75 0 100 1.5.75.75 0 000-1.5zm9.5 0a.75.75 0 100 1.5.75.75 0 000-1.5zm1.28-9.53a.75.75 0 010 1.06l-1.97 1.97 1.97 1.97a.75.75 0 11-1.06 1.06l-1.97-1.97-1.97 1.97a.75.75 0 01-1.06-1.06l1.97-1.97-1.97-1.97a.75.75 0 011.06-1.06l1.97 1.97 1.97-1.97a.75.75 0 011.06 0z"></path></svg>
+              <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <p class="text-[13.5px] font-medium leading-snug group-hover:underline" data-title>Drop legacy all-scopes token fallback</p>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Closed</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 pl-[27px]">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+                <span class="font-mono">#305</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">PR</span>
+                <span>priya</span>
+                <span class="opacity-50" aria-hidden="true">·</span>
+                <span>1 month ago</span>
+                <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #3b82f626; color: #3b82f6; border-color: #3b82f659">auth</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs shrink-0"><div class="flex -space-x-1.5" aria-label="1 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">M</span></div><span class="text-destructive inline-flex items-center gap-1" title="Changes requested" aria-label="Changes requested"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="hidden sm:inline text-[11px]">Changes requested</span></span><span class="text-destructive inline-flex items-center gap-1" title="Some checks failing" aria-label="CI failing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="font-mono text-[11px]">3/6</span></span><span class="text-muted-foreground inline-flex items-center gap-1" title="7 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 7</span></div>
+            </div>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- New: EmptyStateWithHint plus an action. -->
+    <div data-empty="nomatch" class="bg-background border border-border rounded-lg p-8 text-center">
+      <p class="text-muted-foreground" data-text-issues="No issues match these filters." data-text-pulls="No pull requests match these filters.">No issues match these filters.</p>
+      <p class="text-sm text-muted-foreground mt-2">Try removing a filter, or look in another tab.</p>
+      <button type="button" data-clear class="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Clear filters</button>
+    </div>
+    <div data-empty="zero" class="bg-background border border-border rounded-lg p-8 text-center">
+      <p class="text-muted-foreground" data-text-issues="There aren't any issues yet." data-text-pulls="There aren't any pull requests yet.">There aren't any issues yet.</p>
+      <p class="text-sm text-muted-foreground mt-2" data-text-issues="Issues track bugs, tasks and ideas for cloudzilla." data-text-pulls="Push a branch, then open a pull request to propose and review a change.">Issues track bugs, tasks and ideas for cloudzilla.</p>
+      <a href="#" class="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 text-sm bg-success text-success-foreground hover:bg-success/90">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+        <span data-text-issues="New issue" data-text-pulls="New pull request">New issue</span>
+      </a>
+    </div>
+
+    <!-- components.PaginationWithCount -->
+    <div data-pagination class="flex justify-between items-center text-sm">
+      <span class="text-muted-foreground">Page 1 of <span data-pages>4</span></span>
+      <div class="flex gap-2">
+        <a href="#" class="px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted transition-colors">Next &rarr;</a>
+      </div>
+    </div>
+
+    <p data-when-data="items" class="text-[12px] text-muted-foreground">
+      Qualifiers: <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">author:daisy</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">label:bug</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">milestone:v0.3</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">assignee:@me</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">no:label</code>, <span data-only="pulls"><code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">review:approved</code>, </span><code class="font-mono px-1 py-0.5 bg-accent border border-border rounded-sm">sort:updated</code>.
+    </p>
+
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="../../mockups/shell.js"></script>
+<script>
+  var TAB_ON = 'px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5';
+  var TAB_OFF = 'px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5';
+  var CHIP = 'inline-flex items-center gap-1 h-6 pl-2 rounded-sm border border-border bg-muted font-mono text-[12px] whitespace-nowrap';
+  var CHIP_X = 'h-5 w-5 grid place-items-center rounded-xs text-muted-foreground hover:text-foreground hover:bg-accent';
+  var X_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"></path></svg>';
+  var SORT_LABEL = { newest: 'Newest', oldest: 'Oldest', updated: 'Recently updated', comments: 'Most commented' };
+  var REVIEW_LABEL = { required: 'Review required', approved: 'Approved', changes: 'Changes requested', none: 'No reviews' };
+  var PER_PAGE = 25;
+  var EMPTY = { author: '', label: [], milestone: '', assignee: '', review: '', sort: 'newest', q: '' };
+  var PRESETS = {
+    issues: { sample: { author: 'priya', label: ['bug'], sort: 'updated' }, nomatch: { author: 'aki', label: ['security'] } },
+    pulls: { sample: { milestone: 'v0.3', sort: 'updated' }, nomatch: { author: 'aki', review: 'approved' } }
+  };
+  var s = Object.assign({ list: 'issues', data: 'items', state: 'open' }, JSON.parse(JSON.stringify(EMPTY)));
+
+  var rows = {};
+  document.querySelectorAll('[data-list]').forEach(function (sec) {
+    rows[sec.dataset.list] = Array.prototype.slice.call(sec.querySelectorAll('[data-rows] > li'));
+  });
+
+  function filtered() {
+    return s.author || s.label.length || s.milestone || s.assignee || s.review || s.q || s.sort !== 'newest';
+  }
+  function activeCount() {
+    return (s.author ? 1 : 0) + s.label.length + (s.milestone ? 1 : 0) + (s.assignee ? 1 : 0) + (s.review ? 1 : 0) + (s.sort !== 'newest' ? 1 : 0);
+  }
+  function matches(li) {
+    var d = li.dataset;
+    if (d.state !== s.state) return false;
+    if (s.author && d.author !== s.author) return false;
+    var labels = d.labels ? d.labels.split(' ') : [];
+    for (var i = 0; i < s.label.length; i++) {
+      if (s.label[i] === 'none' ? labels.length : labels.indexOf(s.label[i]) < 0) return false;
+    }
+    if (s.milestone && (s.milestone === 'none' ? d.milestone : d.milestone !== s.milestone)) return false;
+    var me = s.assignee === '@me' ? 'malith' : s.assignee;
+    if (me && (me === 'none' ? d.assignee : d.assignee !== me)) return false;
+    if (s.review && d.review !== s.review) return false;
+    if (s.q && li.querySelector('[data-title]').textContent.toLowerCase().indexOf(s.q.toLowerCase()) < 0) return false;
+    return true;
+  }
+  function sorter(a, b) {
+    var x = a.dataset, y = b.dataset;
+    if (s.sort === 'oldest') return x.n - y.n;
+    if (s.sort === 'updated') return x.updated - y.updated;
+    if (s.sort === 'comments') return y.comments - x.comments;
+    return y.n - x.n;
+  }
+
+  function chip(key, val, removable) {
+    var html = '<span class="' + CHIP + (removable ? ' pr-0.5' : ' pr-2') + '"><span><span class="text-muted-foreground">' + key + ':</span><span class="text-foreground">' + val + '</span></span>';
+    if (removable) html += '<button type="button" class="' + CHIP_X + '" data-remove="' + key + '" data-val="' + val + '" aria-label="Remove ' + key + ':' + val + '">' + X_SVG + '</button>';
+    return html + '</span>';
+  }
+  function renderChips() {
+    var h = chip('is', s.state, false);
+    if (s.author) h += chip('author', s.author, true);
+    s.label.forEach(function (l) { h += l === 'none' ? chip('no', 'label', true) : chip('label', l, true); });
+    if (s.milestone) h += s.milestone === 'none' ? chip('no', 'milestone', true) : chip('milestone', s.milestone, true);
+    if (s.assignee) h += s.assignee === 'none' ? chip('no', 'assignee', true) : chip('assignee', s.assignee, true);
+    if (s.review) h += chip('review', s.review, true);
+    if (s.sort !== 'newest') h += chip('sort', s.sort, true);
+    document.querySelector('[data-chips]').innerHTML = h;
+  }
+
+  function renderMenus() {
+    document.querySelectorAll('[data-menu]').forEach(function (m) {
+      var key = m.dataset.menu;
+      m.hidden = !!(m.dataset.only && m.dataset.only !== s.list);
+      m.querySelectorAll('[data-key]').forEach(function (it) {
+        var on = key === 'label' ? s.label.indexOf(it.dataset.val) >= 0 : s[key] === it.dataset.val;
+        it.setAttribute('aria-checked', on);
+      });
+      var v = '';
+      if (key === 'label') v = s.label.length > 1 ? String(s.label.length) : (s.label[0] === 'none' ? 'none' : s.label[0] || '');
+      else if (key === 'sort') v = SORT_LABEL[s.sort];
+      else if (key === 'review') v = REVIEW_LABEL[s.review] || '';
+      else v = s[key];
+      m.querySelector('[data-trigger-value]').textContent = v || '';
+    });
+  }
+
+  function render() {
+    document.title = (s.list === 'issues' ? 'Issues' : 'Pull requests') + ' · mkappworks/cloudzilla — Cloudzilla';
+    document.querySelectorAll('[data-text-issues]').forEach(function (el) { el.textContent = el.dataset['text' + (s.list === 'issues' ? 'Issues' : 'Pulls')]; });
+    document.querySelectorAll('[data-set]').forEach(function (b) { var p = b.dataset.set.split('='); b.setAttribute('aria-pressed', s[p[0]] === p[1]); });
+    document.querySelectorAll('[data-only]:not([data-menu])').forEach(function (el) { el.hidden = el.dataset.only !== s.list; });
+    document.querySelectorAll('[data-tab]').forEach(function (a) {
+      var on = a.dataset.tab === s.state;
+      a.className = on ? TAB_ON : TAB_OFF;
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+      a.querySelector('[data-n]').textContent = s.data === 'zero' ? '0' : a.dataset.count;
+    });
+
+    var shown = [];
+    Object.keys(rows).forEach(function (k) {
+      var sec = document.querySelector('[data-list="' + k + '"]');
+      var list = sec.querySelector('[data-rows]');
+      list.innerHTML = '';
+      if (k !== s.list) { sec.hidden = true; return; }
+      shown = rows[k].filter(matches).sort(sorter);
+      shown.forEach(function (li) { list.appendChild(li); });
+      sec.hidden = s.data === 'zero' || shown.length === 0;
+    });
+    var isFiltered = filtered();
+    document.querySelectorAll('[data-when-data]').forEach(function (el) { el.hidden = el.dataset.whenData !== s.data; });
+    document.querySelectorAll('[data-when-filtered]').forEach(function (el) { el.hidden = !isFiltered; });
+    document.querySelector('[data-empty=nomatch]').hidden = !(s.data === 'items' && shown.length === 0);
+    document.querySelector('[data-empty=zero]').hidden = s.data !== 'zero';
+    document.querySelector('[data-pinned]').hidden = !(s.list === 'issues' && s.data === 'items' && s.state === 'open' && !isFiltered);
+    var total = Number(document.querySelector('[data-tab="' + s.state + '"][data-only="' + s.list + '"]').dataset.count);
+    var pages = Math.ceil(total / PER_PAGE);
+    document.querySelector('[data-pagination]').hidden = !(s.data === 'items' && !isFiltered && pages > 1);
+    document.querySelector('[data-pages]').textContent = pages;
+    document.querySelector('[data-result-count]').textContent = shown.length + (shown.length === 1 ? ' result' : ' results');
+    var n = activeCount();
+    document.querySelector('[data-filter-count]').textContent = n ? String(n) : '';
+    renderChips();
+    renderMenus();
+  }
+
+  function closeMenus(except) {
+    document.querySelectorAll('[data-menu]').forEach(function (m) {
+      if (m === except) return;
+      var panel = m.querySelector('[role=menu]');
+      panel.classList.add('hidden'); panel.classList.remove('flex');
+      m.querySelector('[data-menu-trigger]').setAttribute('aria-expanded', 'false');
+    });
+  }
+  function openMenu(m) {
+    closeMenus(m);
+    var panel = m.querySelector('[role=menu]');
+    panel.classList.remove('hidden'); panel.classList.add('flex');
+    m.querySelector('[data-menu-trigger]').setAttribute('aria-expanded', 'true');
+    var f = m.querySelector('[data-menu-filter]');
+    if (f) f.focus();
+  }
+  function setFiltersOpen(open) {
+    var box = document.getElementById('filter-menus');
+    box.classList.toggle('hidden', !open);
+    box.classList.toggle('flex', open);
+    document.querySelector('[data-filters-toggle]').setAttribute('aria-expanded', open);
+  }
+  function clearFilters() {
+    Object.assign(s, JSON.parse(JSON.stringify(EMPTY)));
+    document.getElementById('list-search').value = '';
+    render();
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    var set = t.closest('[data-set]');
+    if (set) {
+      var p = set.dataset.set.split('=');
+      if (p[0] === 'list') { location.hash = 'list=' + p[1]; location.reload(); return; }
+      s[p[0]] = p[1]; render(); return;
+    }
+    var preset = t.closest('[data-preset]');
+    if (preset) { clearFilters(); Object.assign(s, JSON.parse(JSON.stringify(PRESETS[s.list][preset.dataset.preset] || {}))); s.data = 'items'; render(); return; }
+    var om = t.closest('[data-open-menu]');
+    if (om) { e.stopPropagation(); if (window.innerWidth < 768) setFiltersOpen(true); openMenu(document.querySelector('[data-menu="' + om.dataset.openMenu + '"]')); return; }
+    var tab = t.closest('[data-tab]');
+    if (tab) { e.preventDefault(); s.state = tab.dataset.tab; render(); return; }
+    if (t.closest('[data-clear]')) { clearFilters(); return; }
+    if (t.closest('[data-filters-toggle]')) { setFiltersOpen(document.getElementById('filter-menus').classList.contains('hidden')); return; }
+    var rm = t.closest('[data-remove]');
+    if (rm) {
+      var k = rm.dataset.remove, v = rm.dataset.val;
+      if (k === 'label') s.label = s.label.filter(function (l) { return l !== v; });
+      else if (k === 'no') { if (v === 'label') s.label = s.label.filter(function (l) { return l !== 'none'; }); else s[v] = ''; }
+      else if (k === 'sort') s.sort = 'newest';
+      else s[k] = '';
+      render(); return;
+    }
+    var menu = t.closest('[data-menu]');
+    if (menu && t.closest('[data-menu-trigger]')) {
+      if (menu.querySelector('[role=menu]').classList.contains('hidden')) openMenu(menu); else closeMenus(null);
+      return;
+    }
+    var it = t.closest('[data-key]');
+    if (it) {
+      var key = it.dataset.key, val = it.dataset.val;
+      if (key === 'label') {
+        var i = s.label.indexOf(val);
+        if (i >= 0) s.label.splice(i, 1); else s.label.push(val);
+      } else if (key === 'sort') {
+        s.sort = val; closeMenus(null);
+      } else {
+        s[key] = s[key] === val ? '' : val; closeMenus(null);
+      }
+      render(); return;
+    }
+    if (!menu) closeMenus(null);
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenus(null); });
+  document.querySelectorAll('[data-menu-filter]').forEach(function (f) {
+    f.addEventListener('input', function () {
+      var q = f.value.toLowerCase(), any = false;
+      var m = f.closest('[data-menu]');
+      m.querySelectorAll('[data-key]').forEach(function (it) { var hit = it.dataset.label.toLowerCase().indexOf(q) >= 0; it.hidden = !hit; any = any || hit; });
+      m.querySelector('[data-menu-empty]').hidden = any;
+    });
+  });
+
+  var search = document.getElementById('list-search');
+  search.addEventListener('input', function () { if (search.value.indexOf(':') < 0) { s.q = search.value.trim(); render(); } });
+  search.addEventListener('keydown', function (e) {
+    if (e.key === 'Backspace' && !search.value) {
+      if (s.sort !== 'newest') s.sort = 'newest';
+      else if (s.review) s.review = '';
+      else if (s.assignee) s.assignee = '';
+      else if (s.milestone) s.milestone = '';
+      else if (s.label.length) s.label.pop();
+      else if (s.author) s.author = '';
+      render(); return;
+    }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    var rest = [];
+    search.value.split(/\s+/).forEach(function (tok) {
+      var m = tok.match(/^(is|author|label|milestone|assignee|review|sort|no):(.+)$/);
+      if (!m) { if (tok) rest.push(tok); return; }
+      var k = m[1], v = m[2].replace(/^@(?!me$)/, '');
+      if (k === 'is') s.state = v;
+      else if (k === 'label') { if (s.label.indexOf(v) < 0) s.label.push(v); }
+      else if (k === 'no') { if (v === 'label') s.label = ['none']; else s[v] = 'none'; }
+      else s[k] = v;
+    });
+    s.q = rest.join(' ');
+    search.value = s.q;
+    render();
+  });
+
+  (location.hash.slice(1) || '').split('&').forEach(function (kv) {
+    var p = kv.split('=');
+    if (p[0] === 'list' || p[0] === 'data' || p[0] === 'state') s[p[0]] = p[1];
+    if (p[0] === 'preset') Object.assign(s, JSON.parse(JSON.stringify(PRESETS[s.list][p[1]] || {})));
+  });
+  render();
+  if (/menu=(\w+)/.test(location.hash)) {
+    var name = location.hash.match(/menu=(\w+)/)[1];
+    if (window.innerWidth < 768) setFiltersOpen(true);
+    openMenu(document.querySelector('[data-menu="' + name + '"]'));
+  }
+  if (/filters=open/.test(location.hash)) setFiltersOpen(true);
+</script>
+</body>
+</html>
