@@ -263,7 +263,7 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
             <div class="relative inline-flex" data-merge>
               <div class="inline-flex rounded-md overflow-hidden">
                 <button type="button" class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5">
-                  <span data-merge-icon><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg></span>
+                  <svg data-merge-icon width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg>
                   <span data-merge-label>Squash and merge</span>
                 </button>
                 <button type="button" data-merge-toggle aria-expanded="false" aria-haspopup="menu" aria-label="Choose merge strategy" class="h-9 px-2.5 grid place-items-center bg-success text-success-foreground hover:opacity-90 border-l border-success-foreground/25">
@@ -740,7 +740,9 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
     item.addEventListener('click', function () {
       mergeMenu.querySelectorAll('[data-strategy]').forEach(function (o) { o.setAttribute('aria-checked', o === item); });
       merge.querySelector('[data-merge-label]').textContent = item.dataset.label;
-      merge.querySelector('[data-merge-icon]').innerHTML = item.querySelector('svg').outerHTML;
+      var icon = item.querySelector('svg').cloneNode(true);
+      icon.setAttribute('data-merge-icon', '');
+      merge.querySelector('[data-merge-icon]').replaceWith(icon);
       setMenu(false);
     });
   });
