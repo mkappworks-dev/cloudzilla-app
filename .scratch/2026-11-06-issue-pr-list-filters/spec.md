@@ -58,6 +58,9 @@ assignee filters, sorting (PRs) or pagination.
 
 ## Tickets
 
+Maintainer decision 2026-11-07: all three ship as one PR on `feat/issue-pr-list-filters` (`feat(issues,pulls): qualifier
+search, filter menus and pagination`), one commit per ticket.
+
 1. `01-listquery-parser` — parser package, tests, glossary entry. No UI.
 2. `02-issue-list-filters` — issues SQL filter and paging, comment and priority rows, shared filter components, index
    migration, placeholder copy, standing mocks, benchmark. Blocked by 01.

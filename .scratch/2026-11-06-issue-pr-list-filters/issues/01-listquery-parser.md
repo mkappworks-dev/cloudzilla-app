@@ -7,7 +7,7 @@ Blocked by: none
 
 | Branch | Worktree | PR title |
 | --- | --- | --- |
-| `feat/issue-pr-list-filters` | `.worktrees/feat+issue-pr-list-filters` | `feat(listquery): qualifier parser for issue and PR lists` |
+| `feat/issue-pr-list-filters` | `.worktrees/feat+issue-pr-list-filters` | `feat(issues,pulls): qualifier search, filter menus and pagination` (all three tickets) |
 
 Spec: [../spec.md](../spec.md). This PR also carries the spec, the tickets and the mock folder.
 

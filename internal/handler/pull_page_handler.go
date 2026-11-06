@@ -9,16 +9,19 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/listquery"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PagePulls renders the pull request list for a repository.
+// PagePulls renders the filtered, paginated pull request list for a repository.
 func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
+	if redirectListForm(w, r) {
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
@@ -27,64 +30,53 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allPulls, err := h.Services.Pull.List(r.Context(), owner, repoName)
+	var callerID *int64
+	canManage := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		callerID = &claims.UserID
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	}
+
+	allMilestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, callerID)
+	if err != nil {
+		slog.Warn("pulls: milestone list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("pulls: label list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	people, err := h.Services.Issue.Participants(r.Context(), owner, repoName, callerID)
+	if err != nil {
+		slog.Warn("pulls: participants failed", "owner", owner, "repo", repoName, "error", err)
+	}
+
+	q := listMilestoneTitle(listquery.FromValues(r.URL.Query()), allMilestones)
+	stateFilter := q.State
+	if stateFilter == "" {
+		stateFilter = "open"
+	}
+	if q.State == "open" {
+		q = q.Without(listquery.KeyIs, "")
+	}
+
+	page := listPage(r)
+	serviceRows, total, err := h.Services.Pull.ListWithCIStatus(r.Context(), owner, repoName, listStoreFilter(listViewer(r), q, stateFilter, page))
+	if err == nil && len(serviceRows) == 0 && total > 0 && page > 1 {
+		page = listTotalPages(total)
+		serviceRows, total, err = h.Services.Pull.ListWithCIStatus(r.Context(), owner, repoName, listStoreFilter(listViewer(r), q, stateFilter, page))
+	}
 	if err != nil {
 		slog.Error("pulls: list failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "failed to load pull requests", http.StatusInternalServerError)
 		return
 	}
-	if allPulls == nil {
-		allPulls = []model.PullRequest{}
-	}
-
-	var openCount, draftCount, mergedCount, closedCount int
-	for _, p := range allPulls {
-		switch {
-		case p.State == model.PRStateOpen && !p.IsDraft:
-			openCount++
-		case p.State == model.PRStateOpen && p.IsDraft:
-			draftCount++
-		case p.State == model.PRStateMerged:
-			mergedCount++
-		case p.State == model.PRStateClosed:
-			closedCount++
-		}
-	}
-
-	stateFilter := r.URL.Query().Get("state")
-	if stateFilter == "" {
-		stateFilter = "open"
-	}
-
-	var prState model.PRState
-	switch stateFilter {
-	case "draft":
-		prState = model.PRStateOpen
-	case "merged":
-		prState = model.PRStateMerged
-	case "closed":
-		prState = model.PRStateClosed
-	default:
-		prState = model.PRStateOpen
-	}
-
-	serviceRows, err := h.Services.Pull.ListWithCIStatus(r.Context(), owner, repoName, prState, 0, 0)
+	counts, err := h.Services.Pull.CountByState(r.Context(), owner, repoName)
 	if err != nil {
-		slog.Error("pulls: list with CI status failed", "owner", owner, "repo", repoName, "error", err)
-	}
-	if serviceRows == nil {
-		serviceRows = []service.PullListRow{}
+		slog.Warn("pulls: tab counts failed; showing 0", "owner", owner, "repo", repoName, "error", err)
 	}
 
 	rows := make([]components.PRListRowData, 0, len(serviceRows))
 	for _, sr := range serviceRows {
-		if stateFilter == "draft" && !sr.IsDraft {
-			continue
-		}
-		if stateFilter == "open" && sr.IsDraft {
-			continue
-		}
-
 		rowState := string(sr.State)
 		if sr.IsDraft && sr.State == model.PRStateOpen {
 			rowState = "draft"
@@ -120,20 +112,43 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	canManage := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	base := "/" + owner + "/" + repoName + "/pulls"
+	totalPages := listTotalPages(total)
+	var prevURL, nextURL string
+	if page > 1 {
+		prevURL = listURL(base, q, page-1)
 	}
+	if page < totalPages {
+		nextURL = listURL(base, q, page+1)
+	}
+	_, signedIn := middleware.ClaimsFromContext(r.Context())
+	tab := func(state string) string {
+		if state == "open" {
+			return listURL(base, q.Without(listquery.KeyIs, ""), 1)
+		}
+		return listURL(base, q.With(listquery.KeyIs, state), 1)
+	}
+
 	h.render(w, r, pages.Pulls(view.PullsData{
 		BasePage:    h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
 		StateFilter: stateFilter,
-		OpenCount:   openCount,
-		DraftCount:  draftCount,
-		MergedCount: mergedCount,
-		ClosedCount: closedCount,
+		OpenURL:     tab("open"),
+		DraftURL:    tab("draft"),
+		MergedURL:   tab("merged"),
+		ClosedURL:   tab("closed"),
+		Filter:      listFilterData(base, "pull request", q, total, people, signedIn, allLabels, allMilestones),
+		ClearURL:    listURL(base, listquery.Query{State: q.State}, 1),
+		Page:        page,
+		TotalPages:  totalPages,
+		PrevURL:     prevURL,
+		NextURL:     nextURL,
+		OpenCount:   counts.Open,
+		DraftCount:  counts.Draft,
+		MergedCount: counts.Merged,
+		ClosedCount: counts.Closed,
 		Rows:        rows,
 	}))
 }

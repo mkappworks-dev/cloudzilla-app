@@ -7,7 +7,7 @@ Blocked by: 01
 
 | Branch | Worktree | PR title |
 | --- | --- | --- |
-| `feat/issue-list-filters` | `.worktrees/feat+issue-list-filters` | `feat(issues): qualifier search, filter menus and pagination` |
+| `feat/issue-pr-list-filters` | `.worktrees/feat+issue-pr-list-filters` | same PR as 01 and 03 |
 
 Spec: [../spec.md](../spec.md).
 

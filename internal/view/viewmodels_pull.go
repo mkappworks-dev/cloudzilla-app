@@ -15,6 +15,18 @@ type PullsData struct {
 	Owner       string
 	RepoName    string
 	StateFilter string
+	OpenURL     string
+	DraftURL    string
+	MergedURL   string
+	ClosedURL   string
+	Filter      components.ListFilterData
+	ClearURL    string
+
+	Page       int
+	TotalPages int
+	PrevURL    string
+	NextURL    string
+
 	OpenCount   int
 	DraftCount  int
 	MergedCount int

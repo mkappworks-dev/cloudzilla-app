@@ -86,16 +86,32 @@ type PullListRow struct {
 	AssigneeChips []model.User
 }
 
-func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName string, state model.PRState, offset, limit int) ([]PullListRow, error) {
+// CountByState returns the per-tab pull request totals, ignoring any filter.
+func (s *PullService) CountByState(ctx context.Context, owner, repoName string) (store.PullStateCounts, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
-		return nil, fmt.Errorf("repo not found: %w", err)
+		return store.PullStateCounts{}, fmt.Errorf("repo not found: %w", err)
 	}
-	pulls, err := s.pulls.ListByState(ctx, repo.ID, state, offset, limit)
-	if err != nil {
-		return nil, err
-	}
+	return s.pulls.CountByState(ctx, repo.ID)
+}
 
+// ListWithCIStatus returns one page of the repo's pull requests that f matches and the total across all pages. CI
+// status resolves a ref per row, so f's Limit is what keeps it cheap.
+func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName string, f store.ListFilter) ([]PullListRow, int, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, 0, fmt.Errorf("repo not found: %w", err)
+	}
+	pulls, total, err := s.pulls.ListFiltered(ctx, repo.ID, f)
+	if err != nil {
+		return nil, 0, err
+	}
+	rows, err := s.listRows(ctx, owner, repoName, pulls)
+	return rows, total, err
+}
+
+func (s *PullService) listRows(ctx context.Context, owner, repoName string, pulls []model.PullRequest) ([]PullListRow, error) {
+	var err error
 	pullIDs := make([]int64, len(pulls))
 	for i, p := range pulls {
 		pullIDs[i] = p.ID

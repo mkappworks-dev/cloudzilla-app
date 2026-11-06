@@ -209,3 +209,12 @@ func TestFromValuesQLabelsWinOverLegacy(t *testing.T) {
 		t.Errorf("FromValues = %+v, want %+v", got, want)
 	}
 }
+
+func TestToken(t *testing.T) {
+	if got, want := Token(KeyLabel, "good first issue"), `label:"good first issue"`; got != want {
+		t.Errorf("Token = %q, want %q", got, want)
+	}
+	if got := Parse(Token(KeyLabel, "good first issue")); !got.Has(KeyLabel, "good first issue") {
+		t.Errorf("Token does not parse back: %+v", got)
+	}
+}

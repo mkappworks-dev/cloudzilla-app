@@ -119,6 +119,11 @@ func (q Query) String() string {
 	return strings.Join(parts, " ")
 }
 
+// Token renders one qualifier the way String does, for form values.
+func Token(key, value string) string {
+	return key + ":" + quote(value)
+}
+
 // HasFilters reports whether q narrows the list beyond its state tab and sort.
 func (q Query) HasFilters() bool {
 	return q.Text != "" || q.Author != "" || q.Assignee != "" || len(q.Labels) > 0 || q.Milestone != "" ||

@@ -26,24 +26,27 @@ templ Pulls(data view.PullsData) {
 				}
 			</section>
 
-			<nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Pull request state">
-				@components.TabLink("/"+data.Owner+"/"+data.RepoName+"/pulls?state=open", data.StateFilter == "open") {
-					Open
-					<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.OpenCount) + " open" }>{ strconv.Itoa(data.OpenCount) }</span>
-				}
-				@components.TabLink("/"+data.Owner+"/"+data.RepoName+"/pulls?state=draft", data.StateFilter == "draft") {
-					Draft
-					<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.DraftCount) + " draft" }>{ strconv.Itoa(data.DraftCount) }</span>
-				}
-				@components.TabLink("/"+data.Owner+"/"+data.RepoName+"/pulls?state=merged", data.StateFilter == "merged") {
-					Merged
-					<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.MergedCount) + " merged" }>{ strconv.Itoa(data.MergedCount) }</span>
-				}
-				@components.TabLink("/"+data.Owner+"/"+data.RepoName+"/pulls?state=closed", data.StateFilter == "closed") {
-					Closed
-					<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.ClosedCount) + " closed" }>{ strconv.Itoa(data.ClosedCount) }</span>
-				}
-			</nav>
+			if data.OpenCount+data.DraftCount+data.MergedCount+data.ClosedCount > 0 {
+				<nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Pull request state">
+					@components.TabLink(data.OpenURL, data.StateFilter == "open") {
+						Open
+						<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.OpenCount) + " open" }>{ strconv.Itoa(data.OpenCount) }</span>
+					}
+					@components.TabLink(data.DraftURL, data.StateFilter == "draft") {
+						Draft
+						<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.DraftCount) + " draft" }>{ strconv.Itoa(data.DraftCount) }</span>
+					}
+					@components.TabLink(data.MergedURL, data.StateFilter == "merged") {
+						Merged
+						<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.MergedCount) + " merged" }>{ strconv.Itoa(data.MergedCount) }</span>
+					}
+					@components.TabLink(data.ClosedURL, data.StateFilter == "closed") {
+						Closed
+						<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.ClosedCount) + " closed" }>{ strconv.Itoa(data.ClosedCount) }</span>
+					}
+				</nav>
+				@components.ListFilterBar(data.Filter)
+			}
 
 			if len(data.Rows) > 0 {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="pull-list">
@@ -54,6 +57,14 @@ templ Pulls(data view.PullsData) {
 						}
 					</ul>
 				</section>
+				@components.PaginationWithCount(data.PrevURL, data.NextURL, data.Page, data.TotalPages)
+			} else if data.Filter.HasFilters {
+				<div class="bg-background border border-border rounded-lg p-8 text-center">
+					<p class="text-muted-foreground">{ "No " + data.StateFilter + " pull requests match these filters." }</p>
+					<a href={ templ.SafeURL(data.ClearURL) } class="mt-2 inline-block text-sm text-primary hover:underline">Clear filters</a>
+				</div>
+			} else if data.OpenCount+data.DraftCount+data.MergedCount+data.ClosedCount == 0 {
+				@components.EmptyStateWithHint("No pull requests yet.", "Pull requests propose merging one branch into another.")
 			} else {
 				@components.EmptyState("No " + data.StateFilter + " pull requests.")
 			}
