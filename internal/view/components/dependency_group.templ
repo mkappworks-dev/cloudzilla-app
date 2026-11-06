@@ -15,7 +15,7 @@ type DependencyRow struct {
 templ DependencyGroup(d DependencyGroupData) {
 	<section class="rounded-md border border-border bg-card" aria-labelledby={ "dep-" + d.PackageMgr }>
 		<header class="px-4 py-3 border-b border-border flex items-center justify-between">
-			<h3 id={ "dep-" + d.PackageMgr } class="font-medium text-sm">{ d.Label }</h3>
+			<h2 id={ "dep-" + d.PackageMgr } class="font-medium text-sm">{ d.Label }</h2>
 			<span class="text-xs text-muted-foreground font-mono">{ d.PackageMgr }</span>
 		</header>
 		<table class="w-full text-sm">

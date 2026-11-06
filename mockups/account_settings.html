@@ -269,7 +269,7 @@
         </div>
         <div id="tokens-list" class="space-y-2 mb-4">
           <div class="flex items-center gap-3 border border-border rounded-md p-3">
-            <span class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
+            <span role="img" class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
             <div class="min-w-0 flex-1">
               <p class="text-[13.5px] font-medium">CI deploy</p>
               <p class="text-[12px] text-muted-foreground">scopes: <span class="font-mono">repo:read</span>, <span class="font-mono">repo:write</span> · expires <time datetime="2026-12-01T00:00:00Z">Dec 1, 2026</time></p>
@@ -278,7 +278,7 @@
             <button type="button" data-remove data-confirm-title="Revoke this token?" data-confirm-label="Revoke" data-confirm-msg="The CI deploy token will immediately lose access. Any script or integration using it will stop working." data-toast="Token revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Revoke</button>
           </div>
           <div class="flex items-center gap-3 border border-border rounded-md p-3">
-            <span class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
+            <span role="img" class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
             <div class="min-w-0 flex-1">
               <p class="text-[13.5px] font-medium">cz CLI</p>
               <p class="text-[12px] text-muted-foreground">scopes: <span class="font-mono">repo:read</span>, <span class="font-mono">issues:write</span>, <span class="font-mono">pulls:write</span> · no expiry</p>
@@ -512,7 +512,7 @@
                 <label for="delete-account-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
                 <input id="delete-account-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
               </div>
-              <input type="text" name="confirm_username" placeholder="type your username" required autocomplete="off" class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
+              <input type="text" name="confirm_username" placeholder="type your username" aria-label="Type your username to confirm" required autocomplete="off" class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
               <button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete account</button>
             </form>
           </li>

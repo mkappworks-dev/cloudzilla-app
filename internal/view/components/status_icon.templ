@@ -6,13 +6,17 @@ import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 // success=green ✓, failure=red ✗, error=red ⚠, pending=yellow ●
 templ StatusIcon(state model.CommitStatusState) {
 	if state == model.CommitStatusSuccess {
-		<span class="text-success">&#10003;</span>
+		<span aria-hidden="true" class="text-success">&#10003;</span>
+		<span class="sr-only">Success:</span>
 	} else if state == model.CommitStatusFailure {
-		<span class="text-destructive">&#10007;</span>
+		<span aria-hidden="true" class="text-destructive">&#10007;</span>
+		<span class="sr-only">Failure:</span>
 	} else if state == model.CommitStatusError {
-		<span class="text-destructive">&#9888;</span>
+		<span aria-hidden="true" class="text-destructive">&#9888;</span>
+		<span class="sr-only">Error:</span>
 	} else {
-		<span class="text-warning">&#9679;</span>
+		<span aria-hidden="true" class="text-warning">&#9679;</span>
+		<span class="sr-only">Pending:</span>
 	}
 }
 

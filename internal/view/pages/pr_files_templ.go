@@ -480,7 +480,7 @@ func prFileDiff(data view.PullFilesData, f service.FileDiff) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var21 = []any{"diff-line", templ.KV("ws-only", wsLines[li]), templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del")}
+					var templ_7745c5c3_Var21 = []any{"diff-line", templ.KV("ws-only", wsLines[li]), templ.KV("bg-success/6 dark:bg-success/10", line.Type == "add"), templ.KV("bg-destructive/6 dark:bg-destructive/10", line.Type == "del")}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var21...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -860,7 +860,7 @@ func prFileWholeDiff(f service.FileDiff) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var37 = []any{templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del")}
+					var templ_7745c5c3_Var37 = []any{templ.KV("bg-success/6 dark:bg-success/10", line.Type == "add"), templ.KV("bg-destructive/6 dark:bg-destructive/10", line.Type == "del")}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var37...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -1053,7 +1053,7 @@ func prSplitCell(c prSplitCellData, right bool) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var46 = []any{"pl-3 pr-4 py-0.5 whitespace-pre overflow-hidden", templ.KV("border-l border-border", right), templ.KV("bg-success/10", c.Type == "add"), templ.KV("bg-destructive/10", c.Type == "del"), templ.KV("text-success", c.Type == "add" && c.HTML == ""), templ.KV("text-destructive", c.Type == "del" && c.HTML == ""), templ.KV("text-foreground/85", c.Type == "ctx" && c.HTML == "")}
+				var templ_7745c5c3_Var46 = []any{"pl-3 pr-4 py-0.5 whitespace-pre overflow-hidden", templ.KV("border-l border-border", right), templ.KV("bg-success/6 dark:bg-success/10", c.Type == "add"), templ.KV("bg-destructive/6 dark:bg-destructive/10", c.Type == "del"), templ.KV("text-success", c.Type == "add" && c.HTML == ""), templ.KV("text-destructive", c.Type == "del" && c.HTML == ""), templ.KV("text-foreground/85", c.Type == "ctx" && c.HTML == "")}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var46...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

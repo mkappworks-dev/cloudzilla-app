@@ -98,7 +98,7 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></div><div class=\"text-xs text-foreground mt-0.5 prose prose-xs max-w-none\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></div><div class=\"text-xs text-foreground mt-0.5 prose prose-xs dark:prose-invert max-w-none\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -111,14 +111,14 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.CanWrite {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<button hx-delete=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<button type=\"button\" aria-label=\"Delete comment\" hx-delete=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 27, Col: 161}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 29, Col: 161}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -131,7 +131,7 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression("#" + view.LineCommentID(data.Key)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 28, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 30, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 				if templ_7745c5c3_Err != nil {
@@ -154,7 +154,7 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(view.LineCommentFormID(data.Key)).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 35, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 37, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 		if templ_7745c5c3_Err != nil {
@@ -193,7 +193,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments").Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 43, Col: 123}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 45, Col: 123}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 		if templ_7745c5c3_Err != nil {
@@ -206,7 +206,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression("#" + view.LineCommentID(key)).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 44, Col: 43}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 46, Col: 43}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 		if templ_7745c5c3_Err != nil {
@@ -219,7 +219,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Path).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 48, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 50, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 		if templ_7745c5c3_Err != nil {
@@ -232,7 +232,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(data.Line)).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 49, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 51, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 		if templ_7745c5c3_Err != nil {
@@ -245,7 +245,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.NewAttributeExpression(key.Side).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 50, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 52, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 		if templ_7745c5c3_Err != nil {

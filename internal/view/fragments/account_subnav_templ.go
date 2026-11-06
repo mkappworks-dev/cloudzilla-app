@@ -127,14 +127,14 @@ func accountSubnavTab(data AccountSubnavData, key, label, href string) templ.Com
 				return templ_7745c5c3_Err
 			}
 			if count, ok := data.Counts[key]; ok && count > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<span class=\"font-mono text-[11px] text-muted-foreground/70 ml-0.5\" aria-label=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<span class=\"font-mono text-[11px] text-muted-foreground ml-0.5\" aria-label=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(count) + " " + label).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/account_subnav.templ`, Line: 29, Col: 118}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/account_subnav.templ`, Line: 29, Col: 115}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 				if templ_7745c5c3_Err != nil {
@@ -147,7 +147,7 @@ func accountSubnavTab(data AccountSubnavData, key, label, href string) templ.Com
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(count))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/account_subnav.templ`, Line: 29, Col: 142}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/account_subnav.templ`, Line: 29, Col: 139}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -194,14 +194,14 @@ func accountSubnavTab(data AccountSubnavData, key, label, href string) templ.Com
 				return templ_7745c5c3_Err
 			}
 			if count, ok := data.Counts[key]; ok && count > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<span class=\"font-mono text-[11px] text-muted-foreground/70 ml-0.5\" aria-label=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<span class=\"font-mono text-[11px] text-muted-foreground ml-0.5\" aria-label=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(count) + " " + label).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/account_subnav.templ`, Line: 36, Col: 118}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/account_subnav.templ`, Line: 36, Col: 115}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 				if templ_7745c5c3_Err != nil {
@@ -214,7 +214,7 @@ func accountSubnavTab(data AccountSubnavData, key, label, href string) templ.Com
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(count))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/account_subnav.templ`, Line: 36, Col: 142}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/account_subnav.templ`, Line: 36, Col: 139}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {

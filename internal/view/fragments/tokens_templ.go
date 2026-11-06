@@ -40,7 +40,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 		}
 		if len(data.Tokens) > 0 {
 			for _, t := range data.Tokens {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex items-center gap-3 border border-border rounded-md p-3\"><span class=\"h-2 w-2 rounded-full bg-success shrink-0\" aria-label=\"Active\"></span><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex items-center gap-3 border border-border rounded-md p-3\"><span role=\"img\" class=\"h-2 w-2 rounded-full bg-success shrink-0\" aria-label=\"Active\"></span><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

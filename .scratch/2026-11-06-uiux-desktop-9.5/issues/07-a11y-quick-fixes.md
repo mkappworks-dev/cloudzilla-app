@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -24,8 +24,8 @@ From the audit: `release_detail.templ:18` `aria-labelledby="rel-title"` points a
 
 ## Acceptance criteria
 
-- [ ] Each listed item fixed
-- [ ] axe (run once by hand) reports no violations on release detail, milestone detail, settings, PR files
+- [x] Each listed item fixed
+- [x] axe (run once by hand) reports no violations on release detail, milestone detail, settings, PR files
 
 ## Verification
 
@@ -34,3 +34,10 @@ Run axe-core in the Playwright harness on the touched pages.
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (implementation): axe also failed on light-mode colour contrast and on the PR header's author link, neither
+of which was in the list. At the maintainer's request this PR fixes them too: light `--success` 32% → 26% and
+`--warning` 39% → 29% lightness, full-strength subnav count badges, diff add/del rows at /6 in light mode, an
+underlined author link, and `role="img"` on the token status dot. Not fixed: commit page author email
+(`text-muted-foreground/80`, 4.27:1) and the ~30 mocks that load `shell.js` before `#cz-footer`, so their footer never
+renders (ticket 20).

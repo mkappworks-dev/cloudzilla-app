@@ -185,7 +185,7 @@ func DiffHunkTable(hunks []service.DiffHunk) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var11 = []any{templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del")}
+					var templ_7745c5c3_Var11 = []any{templ.KV("bg-success/6 dark:bg-success/10", line.Type == "add"), templ.KV("bg-destructive/6 dark:bg-destructive/10", line.Type == "del")}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var11...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
