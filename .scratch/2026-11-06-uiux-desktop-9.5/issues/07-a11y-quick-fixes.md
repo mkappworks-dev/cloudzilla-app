@@ -7,7 +7,7 @@ Blocked by: 01
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
 | --- | --- | --- | --- | --- | --- |
-| `fix/a11y-quick-fixes` | `.worktrees/fix+a11y-quick-fixes` | `fix(a11y): broken names, missing labels and roles` | 1, lane A | S | A11y +0.5 |
+| `fix/a11y-quick-fixes` | `.worktrees/fix+a11y-quick-fixes` | `fix(a11y): broken names, missing labels and roles` | 1, step 2 | S | A11y +0.5 |
 
 ## Problem
 

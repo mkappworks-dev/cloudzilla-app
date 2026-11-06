@@ -3,11 +3,11 @@
 Created: 2026-11-06
 Category: bug
 Status: ready-for-agent
-Blocked by: 03
+Blocked by: 03, 04
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
 | --- | --- | --- | --- | --- | --- |
-| `fix/account-list-display-bugs` | `.worktrees/fix+account-list-display-bugs` | `fix(ui): private and draft markers on account lists, release excerpts, bell cap` | 1, lane C | S | Edge +0.6 |
+| `fix/account-list-display-bugs` | `.worktrees/fix+account-list-display-bugs` | `fix(ui): private and draft markers on account lists, release excerpts, bell cap` | 1, step 2 | S | Edge +0.6 |
 
 ## Problem
 

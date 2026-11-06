@@ -3,7 +3,7 @@
 Created: 2026-11-06
 Category: enhancement
 Status: ready-for-human
-Blocked by: 03, 05
+Blocked by: 03, 05, 08
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
 | --- | --- | --- | --- | --- | --- |

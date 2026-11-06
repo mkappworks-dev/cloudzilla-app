@@ -7,7 +7,7 @@ Blocked by: 02
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
 | --- | --- | --- | --- | --- | --- |
-| `fix/htmx-fragment-parity` | `.worktrees/fix+htmx-fragment-parity` | `fix(ui): refresh fragments render the page markup` | 1, lane B | S | Interaction +0.2, Edge +0.3 |
+| `fix/htmx-fragment-parity` | `.worktrees/fix+htmx-fragment-parity` | `fix(ui): refresh fragments render the page markup` | 1, step 2 | S | Interaction +0.2, Edge +0.3 |
 
 ## Problem
 
