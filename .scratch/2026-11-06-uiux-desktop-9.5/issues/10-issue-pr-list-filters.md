@@ -42,3 +42,7 @@ Per the spec; benchmark with the large-repo harness (memory: large-repo-benchmar
 pagination (Codex, `pulls.templ:29`, `:48`, +0.6 Features); issue filters need the Apply button, so they could submit on
 change (Claude, `issues.templ`). The polish PR only made the empty state filter-aware ("No open issues match these
 filters." with a Clear filters link); keep it when the filters land.
+
+2026-11-07 (maintainer grill + Claude): decisions are in `.scratch/2026-11-06-issue-pr-list-filters/spec.md`, split into
+tickets 01 (parser), 02 (issues), 03 (PRs). `review:` and the PR review-state indicator are deferred until 09 merges;
+saved filters are out. Close this ticket when 03 merges.
