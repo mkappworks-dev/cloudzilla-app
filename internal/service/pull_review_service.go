@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+var ErrOwnPullVerdict = errors.New("you can comment on your own pull request, but not approve it or request changes")
 
 // PullReviewService manages PR review submission and approval state.
 type PullReviewService struct {
@@ -37,8 +40,14 @@ func (s *PullReviewService) SubmitReview(ctx context.Context, owner, repoName st
 	if err != nil {
 		return nil, fmt.Errorf("pull request not found: %w", err)
 	}
-	if reviewerID == pr.AuthorID {
-		return nil, fmt.Errorf("cannot review your own pull request")
+	switch model.PRReviewState(state) {
+	case model.PRReviewApproved, model.PRReviewChangesRequested:
+		if reviewerID == pr.AuthorID {
+			return nil, ErrOwnPullVerdict
+		}
+	case model.PRReviewCommented:
+	default:
+		return nil, fmt.Errorf("review state must be approved, changes_requested or commented")
 	}
 	r := &model.PullReview{
 		PullID:     pr.ID,

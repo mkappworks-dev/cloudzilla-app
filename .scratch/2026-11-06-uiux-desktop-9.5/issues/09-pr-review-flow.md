@@ -41,3 +41,6 @@ Split into several PRs via its own tickets: review dialog, merge box states, dra
 ## Comments
 
 2026-11-06 (triage): ready-for-human; spec needs a `/grill-with-docs` session with the maintainer first.
+
+2026-11-07 (Malith Kuruppu): grilled; spec and 7 tickets in `../../2026-11-06-pr-review-flow/` (ticket 30 folded in as
+07). Close this ticket when 07 merges (06 is droppable).

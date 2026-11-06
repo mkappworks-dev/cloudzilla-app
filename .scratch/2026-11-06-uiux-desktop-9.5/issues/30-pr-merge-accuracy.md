@@ -44,3 +44,7 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 ## Comments
 
 2026-11-06 (wave 1 re-score): opened by ticket 22. Run `/triage` before any code.
+
+2026-11-07 (Malith Kuruppu): folded into the PR review flow spec as
+[ticket 07](../../2026-11-06-pr-review-flow/issues/07-merge-accuracy-confirm.md), which ships both fixes after the merge
+box states. Set this ticket to `done` when that PR merges.

@@ -8,8 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
 func (h *Handler) ListReviews(w http.ResponseWriter, r *http.Request) {
@@ -87,22 +85,8 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		reviews, _ := h.Services.PullReview.ListByPull(r.Context(), owner, repoName, number)
-		canMerge, mergeBlockReason, _ := h.Services.PullReview.CanMerge(r.Context(), review.PullID)
-		canWrite := false
-		if repo != nil {
-			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		}
-		h.render(w, r, fragments.PRReviews(view.PRReviewsFragData{
-			Owner:            owner,
-			RepoName:         repoName,
-			PullNumber:       number,
-			Reviews:          reviews,
-			CanWrite:         canWrite,
-			PullOpen:         pr != nil && pr.State == "open",
-			CanMerge:         canMerge,
-			MergeBlockReason: mergeBlockReason,
-		}))
+		// The page reloads itself (see the review dialog's hx-on), so there is no fragment to swap.
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	writeJSON(w, http.StatusCreated, review)

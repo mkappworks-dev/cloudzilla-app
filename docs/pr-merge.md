@@ -42,9 +42,13 @@ scripts make it, can still be read to the root.
 4. `UpdatePull` calls `h.mergePull`, which runs the checks and dispatches to `MergePullRequest`,
    `ThreeWayMergePullRequest`, or `SquashMergePullRequest`
 5. On success → `PullService.SetState(merged)`, the `merged` timeline event, the `pull_request` webhook, the
-   notification and activity event, then [closing issues](#closing-issues) → fragment returned
-6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert. If a push moved the base
-   branch mid-merge, or the head branch since its statuses were checked → 409 and the PR stays open (see below)
+   notification and activity event, then [closing issues](#closing-issues) → HTMX callers get `204 No Content`
+6. On failure (conflict, missing branch, etc.) → 422 → the layout shows an error toast. If a push moved the base branch
+   mid-merge, or the head branch since its statuses were checked → 409 and the PR stays open (see below)
+
+**HTMX responses:** `UpdatePull` (merge, close, reopen, draft toggle, auto-merge) and `SubmitReview` answer an HTMX
+request with `204 No Content`. The page's `hx-on::after:request` stashes a toast in `sessionStorage` and reloads, so
+every box, badge and the timeline are rendered fresh instead of by a partial that can go stale.
 
 **Concurrent pushes:** every server-side commit (merges, applied suggestions, web file commits, wiki edits) advances its
 branch through `gitref.Move`, a compare-and-swap against the tip it read. If a push moved the branch in between, the

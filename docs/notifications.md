@@ -19,11 +19,13 @@ watch, with optional email delivery (see [Email](#email)).
 | `repo_transfer`    | Someone wants to transfer a repository to you; links to `/repos/transfers`                            |
 | `pr_opened`        | (type reserved; not currently auto-fired)                                                             |
 
-Notifications are never created when `actorID == authorID` (self-actions are silent). Every notification, watchers'
-copies included, is created only if its recipient can read the repo at that moment (`RepoService.CanRead`), so watching
-a repo or having opened the issue, PR or discussion stops counting once the user is removed as a collaborator, removed
-from the org or demoted from org owner. `CommentService` likewise records an @-mention only for users who can read the
-repo. The exception is `repo_transfer`: its recipient can't read a private repo until they accept it.
+Notifications are never created when `actorID == authorID` (self-actions are silent), which covers the comment-only
+review a PR's author may leave on their own PR; the author cannot approve or request changes (`ErrOwnPullVerdict`).
+Every notification, watchers' copies included, is created only if its recipient can read the repo at that moment
+(`RepoService.CanRead`), so watching a repo or having opened the issue, PR or discussion stops counting once the user is
+removed as a collaborator, removed from the org or demoted from org owner. `CommentService` likewise records an
+@-mention only for users who can read the repo. The exception is `repo_transfer`: its recipient can't read a private
+repo until they accept it.
 
 ## Who is notified
 

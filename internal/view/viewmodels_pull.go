@@ -143,29 +143,6 @@ type PullNewData struct {
 	Error        string
 }
 
-// PRReviewsFragData holds template data for the PR reviews HTMX fragment.
-type PRReviewsFragData struct {
-	Owner            string
-	RepoName         string
-	PullNumber       int
-	Reviews          []model.PullReview
-	CanWrite         bool
-	PullOpen         bool
-	CanMerge         bool
-	MergeBlockReason string
-}
-
-// PullDetailFragData holds template data for the pull request detail HTMX fragment.
-type PullDetailFragData struct {
-	Pull              model.PullRequest
-	Owner             string
-	Repo              string
-	BodyHTML          string
-	CanWrite          bool
-	AutoMergeEnabled  bool
-	AutoMergeStrategy string
-}
-
 // PullLabelSidebarData holds template data for the PR label sidebar HTMX fragment.
 type PullLabelSidebarData struct {
 	Owner      string

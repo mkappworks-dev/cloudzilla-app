@@ -117,8 +117,8 @@ templ mergeSplitButton(d MergeabilityBoxData) {
 			type="button"
 			hx-patch={ d.PatchURL }
 			hx-vals={ fmt.Sprintf(`{"state":"merged","merge_strategy":%q}`, defKey) }
-			hx-target="closest section"
-			hx-swap="outerHTML"
+			hx-swap="none"
+			hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request merged'}));location.reload();}"
 			class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground rounded-md hover:opacity-90 inline-flex items-center gap-1.5"
 		>
 			@mergeStrategyIcon(defKey)
@@ -132,8 +132,8 @@ templ mergeSplitButton(d MergeabilityBoxData) {
 					hx-patch={ d.PatchURL }
 					hx-vals={ `{"state":"merged"}` }
 					:hx-vals="JSON.stringify({ state: 'merged', merge_strategy: strategy })"
-					hx-target="closest section"
-					hx-swap="outerHTML"
+					hx-swap="none"
+					hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request merged'}));location.reload();}"
 					class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5"
 				>
 					@mergeStrategyIcon(defKey)

@@ -75,11 +75,9 @@ func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 	if !strings.Contains(out, "merge_strategy: strategy") {
 		t.Errorf("expected :hx-vals binding carrying merge_strategy, got: %s", out)
 	}
-	if !strings.Contains(out, `hx-target="closest section"`) {
-		t.Errorf("expected hx-target=closest section, got: %s", out)
-	}
-	if !strings.Contains(out, `hx-swap="outerHTML"`) {
-		t.Errorf("expected hx-swap=outerHTML, got: %s", out)
+	// The response has no body: the page reloads, so the merge box is never replaced by a stale fragment.
+	if !strings.Contains(out, `hx-swap="none"`) || !strings.Contains(out, "location.reload()") {
+		t.Errorf("expected hx-swap=none and a reload after merging, got: %s", out)
 	}
 }
 

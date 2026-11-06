@@ -1,0 +1,34 @@
+# Merge box states and Close confirm
+
+Created: 2026-11-06
+Category: enhancement
+Status: ready-for-agent
+
+Spec: [../spec.md](../spec.md)
+
+| Branch | Worktree | PR title |
+| --- | --- | --- |
+| `feat/pr-merge-box-states` | `.worktrees/feat+pr-merge-box-states` | `feat(pulls): merge box review states and auto-merge` |
+
+## What to build
+
+- `mergeStateOf` gains "needs approvals" (warning header, `1 of 2`) and "checks failing" (destructive header, Merge
+  disabled, "View checks →", no auto-merge). Data: `PullReviewService.Counts` and the commit's required statuses.
+- Auto-merge: "Enable auto-merge" split button in the needs-approvals and checks-pending states, and an enabled state
+  naming who armed it and the strategy, with Disable. Uses `PATCH` `auto_merge=enable|disable` and
+  `auto_merge_strategy`.
+- Approving in the needs state flips the box to ready after the reload.
+- `MergeabilityBoxData` gains `AutoMergeEnabled`, `AutoMergeStrategy` and `AutoMergeByName` (looked up from
+  `AutoMergeBy`), filled by `PagePullDetail`. The Close button already opens `close-pull-dialog`.
+
+## Acceptance criteria
+
+- [ ] Needs-approvals, ready, checks-failing, conflicts and auto-merge-enabled each render for a writer (view-model tests)
+- [ ] Read-only viewers see the lock line only
+- [ ] With no branch protection rule there is no "X of N" line
+- [ ] `mockups/pr.html` shows every state; checked under `make mockups`
+- [ ] Verified at 1440 px in light and dark
+
+## Blocked by
+
+01, 02

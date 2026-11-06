@@ -29,11 +29,9 @@ type (
 	PullDetailData            = view.PullDetailData
 	IssueNewData              = view.IssueNewData
 	PullNewData               = view.PullNewData
-	PRReviewsFragData         = view.PRReviewsFragData
 	SettingsData              = view.SettingsData
 	NotificationsData         = view.NotificationsData
 	IssueDetailFragData       = view.IssueDetailFragData
-	PullDetailFragData        = view.PullDetailFragData
 	CommentFragData           = view.CommentFragData
 	CommentsFragData          = view.CommentsFragData
 	RefsData                  = view.RefsData

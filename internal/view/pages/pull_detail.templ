@@ -46,6 +46,7 @@ templ pullDetailBody(data view.PullDetailData) {
 							"hx-vals":  `{"is_draft":"false"}`,
 							"hx-swap":  "none",
 							"type":     "button",
+							"hx-on::after:request": templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Marked ready for review'}));location.reload();}"),
 						}) {
 							Ready for review
 						}

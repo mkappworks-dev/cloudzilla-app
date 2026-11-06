@@ -13,12 +13,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
 type createPRRequest struct {
@@ -260,23 +257,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		draftEvent := model.PullEventReadied
-		toastMsg := "Marked ready for review"
 		if newDraft {
 			draftEvent = model.PullEventDrafted
-			toastMsg = "Converted to draft"
 		}
 		h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, draftEvent, "")
-		toast(w, "success", toastMsg)
 		if r.Header.Get("HX-Request") == "true" {
-			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
-				Pull:              *pr,
-				Owner:             owner,
-				Repo:              repoName,
-				BodyHTML:          markdown.RenderCtx(r.Context(), pr.Body),
-				CanWrite:          true, // already verified above
-				AutoMergeEnabled:  pr.AutoMergeEnabled,
-				AutoMergeStrategy: pr.AutoMergeStrategy,
-			}))
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		writeJSON(w, http.StatusOK, pr)
@@ -306,15 +292,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
-			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
-				Pull:              *pr,
-				Owner:             owner,
-				Repo:              repoName,
-				BodyHTML:          markdown.RenderCtx(r.Context(), pr.Body),
-				CanWrite:          true, // already verified above
-				AutoMergeEnabled:  pr.AutoMergeEnabled,
-				AutoMergeStrategy: pr.AutoMergeStrategy,
-			}))
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		writeJSON(w, http.StatusOK, pr)
@@ -340,12 +318,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
-		toast(w, "success", "Pull request merged")
 		if r.Header.Get("HX-Request") == "true" {
-			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
-				Pull: *pr, Owner: owner, Repo: repoName,
-				BodyHTML: markdown.RenderCtx(r.Context(), pr.Body),
-			}))
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		writeJSON(w, http.StatusOK, pr)
@@ -366,7 +340,6 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventClosed, "")
 		case model.PRStateOpen:
 			h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventReopened, "")
-			toast(w, "success", "Pull request reopened")
 		}
 	}
 
@@ -378,10 +351,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventPRClosed, map[string]any{"number": pr.Number})
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
-			Pull: *pr, Owner: owner, Repo: repoName,
-			BodyHTML: markdown.RenderCtx(r.Context(), pr.Body),
-		}))
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	writeJSON(w, http.StatusOK, pr)
