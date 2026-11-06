@@ -23,6 +23,8 @@ Tick what applies; strike through what does not (`- [ ] ~~item~~`) so a reviewer
 - [ ] `go test ./...` passes
 - [ ] If `.templ` files were changed, `make generate-templ` was re-run and generated `*_templ.go` files are committed
       alongside their sources
+- [ ] If the UI changed, the matching mocks in `mockups/` (and `shell.js`, `index.html` or `COVERAGE.md` where affected)
+      were updated and checked under `make mockups` in light and dark
 - [ ] If templates were added outside `internal/view/`, `tailwind/input.css` has an `@source` for them
 - [ ] If a new page was added, it's registered in `internal/router/router.go`
 - [ ] If a route must be reachable before setup is complete, it's in the path check in `internal/middleware/setup.go`

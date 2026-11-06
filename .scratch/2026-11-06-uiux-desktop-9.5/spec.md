@@ -118,7 +118,12 @@ tracks the effort. The spec sessions can start at step 1; the build PRs come aft
 
 Rules for every UI ticket:
 
-- Change the page's mock in `mockups/` in the same PR (CLAUDE.md).
+- Update the standing mocks in `mockups/` (served by `make mockups`) in the same PR wherever the change is visible
+  there: the page's `.html`, `shell.js` for header, subnav or footer changes, `COVERAGE.md` when a state gains or loses
+  a mock, `index.html` for a new page. Copy classes from the templ, and check the mock under `make mockups`. A change
+  with nothing the mocks draw (server-only, or an unmocked state already listed in `COVERAGE.md`) says so in the PR.
+- `.scratch/` feature mocks are design input, not served by `make mockups`. When a feature from one ships (09, 10,
+  15–19), its pages get standing mocks in `mockups/` in the PR that ships them.
 - Every visual check, of the mock and of the real page, covers **both light and dark mode** at 1440px, and the PR
   evidence shows both.
 
