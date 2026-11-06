@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: needs-info
+Status: ready-for-human
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -15,8 +15,17 @@ The seeded superadmin gets 403 on other users' repo settings and org settings. A
 
 ## Scope
 
-- Decide first (needs a human): should superadmin imply `CanManage` everywhere, or only via an explicit "act as admin" step that is audit-logged?
-- Show an "Acting as instance admin" banner on those pages.
+Decided 2026-11-06: no blanket override. An explicit, time-boxed admin mode, modelled on GitLab's Admin Mode:
+
+- "Enter admin mode" reuses the identity-confirm dialog (password plus 2FA or provider factor), as `admin.org.owner_add`
+  does (`.scratch/2026-10-06-superadmin-org-owner/`).
+- While active (1 hour, held server-side per session), `CanRead`, `CanWrite` and `CanManage` in
+  `internal/service/repo_service_access.go` and the org permission checks return true for that superadmin.
+- Audit entries for entering and leaving admin mode and for every change made under it.
+- An "Acting as instance admin" banner with "Leave admin mode" on every page while active.
+- Outside admin mode a superadmin is a normal user for repos and orgs; admin pages (`superadminMW`) are unchanged.
+- Correct `docs/access-control.md`, which says superadmin can do "Everything" although no repo or org check has a
+  superadmin case today.
 
 ## Files
 
@@ -28,8 +37,10 @@ The seeded superadmin gets 403 on other users' repo settings and org settings. A
 ## Acceptance criteria
 
 - [ ] Decision recorded as an ADR in docs/adr/
-- [ ] Superadmin can open settings per that decision
-- [ ] Audit log entry for admin-acting changes
+- [ ] Superadmin can open any repo or org settings only while in admin mode
+- [ ] Admin mode expires after 1 hour and can be left early
+- [ ] Audit entries for entering, leaving and each change
+- [ ] `docs/access-control.md` describes admin mode
 
 ## Verification
 
@@ -42,3 +53,6 @@ Changes an authorization check: do it in the main session, not a subagent (memor
 ## Comments
 
 2026-11-06 (triage): needs-info; blocked on the superadmin access decision (see spec Comments).
+
+2026-11-06 (maintainer): decided admin mode over a blanket override; ready-for-human because it changes authorization
+checks. Prior art: GitLab Admin Mode (re-auth, 6 h expiry), GitHub Enterprise Server repo unlock (audited, temporary).

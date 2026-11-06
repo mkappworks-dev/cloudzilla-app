@@ -139,3 +139,6 @@ Desktop screenshots of every mock/real pair at 1440px, light and dark, against a
 2026-11-06 (triage): Wave 1 tickets (01–08), 11–13, 20 and 22 are `ready-for-agent`. 09, 10, 15–19 and 21 are
 `ready-for-human`: each needs a `/grill-with-docs` + `/to-spec` session first. 14 is `needs-info` until the superadmin
 access model is decided.
+
+2026-11-06 (maintainer): 14 decided as a time-boxed, audited admin mode (no blanket override), now `ready-for-human`.
+18: built-in CI gets an Actions repo tab; the PR Checks tab stays the results view.
