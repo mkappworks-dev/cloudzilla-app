@@ -46,8 +46,10 @@ Mocks show the happy path. These real states are not drawn:
 - **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
   `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
   a mock button draws the real busy state.
-- **Filters and navigation.** `?category=` on discussions, the command palette, organization people and repository tabs, and the profile README call to action.
-- **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, the issue template picker, and PR diff error states.
+- **Filters and navigation.** `?category=` on discussions, the command palette, organization people and repository tabs,
+  and the profile README call to action.
+- **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, the issue template picker, and PR
+  diff error states.
 - **Admin.** The identity-confirm dialog (password, two-factor and provider factors), the SSO success and error banners,
   and users and audit-log pages beyond the first. The mock uses the generic confirm dialog instead.
 
@@ -66,8 +68,9 @@ empty states.
 
 Some controls and forms have no behaviour. In particular:
 
-- **Add forms and saves** in `settings.html`, `org_settings.html`, and `account_settings.html` (Add key, label, rule and webhook, Save changes,
-  member Role selects, and Save profile): these do not persist changes; several forms suppress submission without feedback.
+- **Add forms and saves** in `settings.html`, `org_settings.html`, and `account_settings.html` (Add key, label, rule and
+  webhook, Save changes, member Role selects, and Save profile): these do not persist changes; several forms suppress
+  submission without feedback.
 - **File deletion** in `blob.html`: confirmation shows feedback but leaves the file displayed.
 - **Disabled in the real app too:** the Teams and org webhooks panels in `org_settings.html`.
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
