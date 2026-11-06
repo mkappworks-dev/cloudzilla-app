@@ -46,3 +46,6 @@ Thumbs.db
 # Prettier
 node_modules/
 mockups/.cache/
+
+# Ticket 12 visual evidence is regenerated locally.
+.scratch/2026-11-06-uiux-desktop-9.5/evidence/12/*.png

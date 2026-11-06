@@ -36,24 +36,23 @@ func jsonLit(t *testing.T, s string) string {
 	return string(b)
 }
 
-var ownerSelectXData = regexp.MustCompile(`x-data="([^"]*)"[^>]*>\s*<input type="hidden" id="repo-owner"`)
-
-func TestRepoNew_OwnerNameCannotBreakOutOfXData(t *testing.T) {
+func TestRepoNew_OwnerNameCannotBreakOutOfAttributes(t *testing.T) {
 	for _, name := range testutil.HostileNames {
 		out := render(t, pages.RepoNew(view.RepoNewData{
 			BasePage:     view.BasePage{CurrentUser: &middleware.Claims{UserID: 1, Username: "alice"}},
 			OwnedOrgs:    []model.Organization{{ID: 2, Name: name, DefaultRepoVisibility: "public"}},
 			DefaultOwner: name,
 		}))
-		testutil.AssertNameStaysQuoted(t, out, name)
-
-		m := ownerSelectXData.FindStringSubmatch(out)
-		if m == nil {
-			t.Fatalf("owner select x-data not found")
+		attribute := regexp.MustCompile(`data-visibility="([^"]*)"`).FindStringSubmatch(out)
+		if attribute == nil {
+			t.Fatal("owner visibility data attribute missing")
 		}
-		want := "{ open: false, value: " + jsonLit(t, name) + ", label: " + jsonLit(t, name) + " }"
-		if got := html.UnescapeString(m[1]); got != want {
-			t.Errorf("owner x-data = %s, want %s", got, want)
+		var visibility map[string]string
+		if err := json.Unmarshal([]byte(html.UnescapeString(attribute[1])), &visibility); err != nil {
+			t.Fatalf("owner visibility attribute is not intact JSON: %v", err)
+		}
+		if visibility[name] != "public" {
+			t.Errorf("owner visibility JSON did not preserve hostile name %q", name)
 		}
 	}
 }

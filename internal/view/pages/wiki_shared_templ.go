@@ -89,7 +89,7 @@ func wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMet
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</a>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</a> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -120,72 +120,104 @@ func wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMet
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</a>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</a> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</li>")
+			if canReorder {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"wiki-move-controls hidden px-2 pb-1 space-x-1\"><button type=\"button\" data-move=\"up\" class=\"rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring\" aria-label=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var7 string
+				templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression("Move " + pg.Slug + " up").Resolve(ctx)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 24, Col: 169}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\">↑</button> <button type=\"button\" data-move=\"down\" class=\"rounded px-2 py-1 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring\" aria-label=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var8 string
+				templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression("Move " + pg.Slug + " down").Resolve(ctx)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 25, Col: 173}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\">↓</button></span>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</ul>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</ul>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if canWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<a href=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var7 string
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + owner + "/" + repoName + "/wiki/new")).ResolveURL(ctx)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 26, Col: 70}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" class=\"inline-block mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5\">+ New page</a> ")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		if canReorder {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<button type=\"button\" id=\"wiki-reorder-toggle\" data-owner=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var8 string
-			templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(owner).Resolve(ctx)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 32, Col: 22}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" data-repo=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(repoName).Resolve(ctx)
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + owner + "/" + repoName + "/wiki/new")).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 33, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 32, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"mt-2 inline-block text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5\">Reorder pages</button><script>\n\t\t\t(function() {\n\t\t\t\tvar list    = document.getElementById('wiki-page-list');\n\t\t\t\tvar toggle  = document.getElementById('wiki-reorder-toggle');\n\t\t\t\tvar owner   = toggle.dataset.owner;\n\t\t\t\tvar repo    = toggle.dataset.repo;\n\t\t\t\tvar active  = false;\n\t\t\t\tvar dragged = null;\n\n\t\t\t\tfunction setMode(on) {\n\t\t\t\t\tactive = on;\n\t\t\t\t\ttoggle.textContent = on ? 'Done' : 'Reorder pages';\n\t\t\t\t\tlist.querySelectorAll('li[data-slug]').forEach(function(li) {\n\t\t\t\t\t\tli.draggable = on;\n\t\t\t\t\t\tif (on) {\n\t\t\t\t\t\t\tli.classList.add('cursor-move');\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tli.classList.remove('cursor-move', 'opacity-50');\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t\tif (on) {\n\t\t\t\t\t\tlist.classList.add('ring-1', 'ring-border', 'rounded-md', 'p-1');\n\t\t\t\t\t} else {\n\t\t\t\t\t\tlist.classList.remove('ring-1', 'ring-border', 'rounded-md', 'p-1');\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\ttoggle.addEventListener('click', function() { setMode(!active); });\n\n\t\t\t\tlist.addEventListener('click', function(e) {\n\t\t\t\t\tif (!active) return;\n\t\t\t\t\tvar a = e.target.closest('a');\n\t\t\t\t\tif (a) e.preventDefault();\n\t\t\t\t});\n\n\t\t\t\tlist.addEventListener('dragstart', function(e) {\n\t\t\t\t\tvar li = e.target.closest('li[data-slug]');\n\t\t\t\t\tif (!li) return;\n\t\t\t\t\tdragged = li;\n\t\t\t\t\tli.classList.add('opacity-50');\n\t\t\t\t\te.dataTransfer.effectAllowed = 'move';\n\t\t\t\t});\n\n\t\t\t\tlist.addEventListener('dragend', function(e) {\n\t\t\t\t\tvar li = e.target.closest('li[data-slug]');\n\t\t\t\t\tif (li) li.classList.remove('opacity-50');\n\t\t\t\t\tdragged = null;\n\t\t\t\t\tsaveOrder();\n\t\t\t\t});\n\n\t\t\t\tlist.addEventListener('dragover', function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\te.dataTransfer.dropEffect = 'move';\n\t\t\t\t\tvar target = e.target.closest('li[data-slug]');\n\t\t\t\t\tif (!target || target === dragged) return;\n\t\t\t\t\tvar rect = target.getBoundingClientRect();\n\t\t\t\t\tvar after = e.clientY > rect.top + rect.height / 2;\n\t\t\t\t\tif (after) {\n\t\t\t\t\t\ttarget.after(dragged);\n\t\t\t\t\t} else {\n\t\t\t\t\t\ttarget.before(dragged);\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\tfunction getCsrf() {\n\t\t\t\t\treturn (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t}\n\n\t\t\t\tfunction saveOrder() {\n\t\t\t\t\tvar slugs = Array.from(list.querySelectorAll('li[data-slug]'))\n\t\t\t\t\t\t.map(function(li) { return li.dataset.slug; });\n\t\t\t\t\tvar body = new URLSearchParams();\n\t\t\t\t\tbody.set('order', slugs.join(','));\n\t\t\t\t\tfetch('/api/repos/' + owner + '/' + repo + '/wiki/order', {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {\n\t\t\t\t\t\t\t'Content-Type': 'application/x-www-form-urlencoded',\n\t\t\t\t\t\t\t'X-CSRF-Token': getCsrf(),\n\t\t\t\t\t\t},\n\t\t\t\t\t\tbody: body.toString(),\n\t\t\t\t\t}).then(function(res) {\n\t\t\t\t\t\tif (!res.ok) { location.reload(); }\n\t\t\t\t\t}).catch(function() { location.reload(); });\n\t\t\t\t}\n\t\t\t})();\n\t\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"inline-block mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5\">+ New page</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</aside>")
+		if canReorder {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<p id=\"wiki-order-status\" class=\"sr-only\" role=\"status\"></p><button type=\"button\" id=\"wiki-reorder-toggle\" data-owner=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var10 string
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(owner).Resolve(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 39, Col: 22}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" data-repo=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var11 string
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(repoName).Resolve(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 40, Col: 24}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"mt-2 inline-block text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5\">Reorder pages</button><script>\n\t\t\t(function() {\n\t\t\t\tvar list    = document.getElementById('wiki-page-list');\n\t\t\t\tvar toggle  = document.getElementById('wiki-reorder-toggle');\n\t\t\t\tvar owner   = toggle.dataset.owner;\n\t\t\t\tvar repo    = toggle.dataset.repo;\n\t\t\t\tvar active  = false;\n\t\t\t\tvar dragged = null;\n\t\t\t\tvar saveQueue = Promise.resolve();\n\n\t\t\t\tfunction setMode(on) {\n\t\t\t\t\tactive = on;\n\t\t\t\t\ttoggle.textContent = on ? 'Done' : 'Reorder pages';\n\t\t\t\t\tlist.querySelectorAll('li[data-slug]').forEach(function(li) {\n\t\t\t\t\t\tli.draggable = on;\n\t\t\t\t\t\tli.querySelector('.wiki-move-controls').classList.toggle('hidden', !on);\n\t\t\t\t\t\tif (on) {\n\t\t\t\t\t\t\tli.classList.add('cursor-move');\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tli.classList.remove('cursor-move', 'opacity-50');\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t\tif (on) {\n\t\t\t\t\t\tlist.classList.add('ring-1', 'ring-border', 'rounded-md', 'p-1');\n\t\t\t\t\t} else {\n\t\t\t\t\t\tlist.classList.remove('ring-1', 'ring-border', 'rounded-md', 'p-1');\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\ttoggle.addEventListener('click', function() { setMode(!active); });\n\n\t\t\t\tlist.addEventListener('click', function(e) {\n\t\t\t\t\tif (!active) return;\n\t\t\t\t\tvar button = e.target.closest('button[data-move]');\n\t\t\t\t\tif (button) {\n\t\t\t\t\t\tvar li = button.closest('li[data-slug]');\n\t\t\t\t\t\tvar sibling = button.dataset.move === 'up' ? li.previousElementSibling : li.nextElementSibling;\n\t\t\t\t\t\tif (sibling) {\n\t\t\t\t\t\t\tif (button.dataset.move === 'up') sibling.before(li); else sibling.after(li);\n\t\t\t\t\t\t\tbutton.focus();\n\t\t\t\t\t\t\tdocument.getElementById('wiki-order-status').textContent = li.dataset.slug + ' moved ' + button.dataset.move;\n\t\t\t\t\t\t\tsaveOrder();\n\t\t\t\t\t\t}\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tvar a = e.target.closest('a');\n\t\t\t\t\tif (a) e.preventDefault();\n\t\t\t\t});\n\n\t\t\t\tlist.addEventListener('dragstart', function(e) {\n\t\t\t\t\tvar li = e.target.closest('li[data-slug]');\n\t\t\t\t\tif (!li) return;\n\t\t\t\t\tdragged = li;\n\t\t\t\t\tli.classList.add('opacity-50');\n\t\t\t\t\te.dataTransfer.effectAllowed = 'move';\n\t\t\t\t});\n\n\t\t\t\tlist.addEventListener('dragend', function(e) {\n\t\t\t\t\tvar li = e.target.closest('li[data-slug]');\n\t\t\t\t\tif (li) li.classList.remove('opacity-50');\n\t\t\t\t\tdragged = null;\n\t\t\t\t\tsaveOrder();\n\t\t\t\t});\n\n\t\t\t\tlist.addEventListener('dragover', function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\te.dataTransfer.dropEffect = 'move';\n\t\t\t\t\tvar target = e.target.closest('li[data-slug]');\n\t\t\t\t\tif (!dragged || !target || target === dragged) return;\n\t\t\t\t\tvar rect = target.getBoundingClientRect();\n\t\t\t\t\tvar after = e.clientY > rect.top + rect.height / 2;\n\t\t\t\t\tif (after) {\n\t\t\t\t\t\ttarget.after(dragged);\n\t\t\t\t\t} else {\n\t\t\t\t\t\ttarget.before(dragged);\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\tfunction getCsrf() {\n\t\t\t\t\treturn (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t}\n\n\t\t\t\tfunction saveOrder() {\n\t\t\t\t\tvar slugs = Array.from(list.querySelectorAll('li[data-slug]'))\n\t\t\t\t\t\t.map(function(li) { return li.dataset.slug; });\n\t\t\t\t\tvar body = new URLSearchParams();\n\t\t\t\t\tbody.set('order', slugs.join(','));\n\t\t\t\t\tsaveQueue = saveQueue.then(function() { return fetch('/api/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo) + '/wiki/order', {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {\n\t\t\t\t\t\t\t'Content-Type': 'application/x-www-form-urlencoded',\n\t\t\t\t\t\t\t'X-CSRF-Token': getCsrf(),\n\t\t\t\t\t\t},\n\t\t\t\t\t\tbody: body.toString(),\n\t\t\t\t\t}); }).then(function(res) {\n\t\t\t\t\t\tif (!res.ok) { location.reload(); }\n\t\t\t\t\t}).catch(function() { location.reload(); });\n\t\t\t\t}\n\t\t\t})();\n\t\t\t</script>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</aside>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

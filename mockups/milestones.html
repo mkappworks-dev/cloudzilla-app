@@ -28,7 +28,7 @@
       <button type="button" id="ms-tab-open" role="tab" aria-selected="true" aria-controls="ms-list-open" class="cz-ms-tab px-3 py-2.5 -mb-px border-b-2 border-foreground font-medium text-foreground">
         Open <span class="font-mono text-[11px] text-muted-foreground ml-0.5">3</span>
       </button>
-      <button type="button" id="ms-tab-closed" role="tab" aria-selected="false" aria-controls="ms-list-closed" class="cz-ms-tab px-3 py-2.5 -mb-px border-b-2 border-transparent text-muted-foreground hover:text-foreground">
+      <button type="button" id="ms-tab-closed" tabindex="-1" role="tab" aria-selected="false" aria-controls="ms-list-closed" class="cz-ms-tab px-3 py-2.5 -mb-px border-b-2 border-transparent text-muted-foreground hover:text-foreground">
         Closed <span class="font-mono text-[11px] text-muted-foreground ml-0.5">2</span>
       </button>
     </div>
@@ -161,6 +161,7 @@
       var active = k === which;
       lists[k].classList.toggle('hidden', !active);
       tabs[k].setAttribute('aria-selected', String(active));
+					tabs[k].tabIndex = active ? 0 : -1;
       tabs[k].classList.toggle('border-foreground', active);
       tabs[k].classList.toggle('text-foreground', active);
       tabs[k].classList.toggle('font-medium', active);
@@ -170,6 +171,15 @@
   }
   tabs.open.addEventListener('click', function () { show('open'); });
   tabs.closed.addEventListener('click', function () { show('closed'); });
+			['open', 'closed'].forEach(function (key) {
+				tabs[key].addEventListener('keydown', function (event) {
+					var next = event.key === 'Home' ? 'open' : event.key === 'End' ? 'closed' : (event.key === 'ArrowLeft' || event.key === 'ArrowRight') ? (key === 'open' ? 'closed' : 'open') : null;
+					if (!next) return;
+					event.preventDefault();
+					show(next);
+					tabs[next].focus();
+				});
+			});
 })();
 </script>
 </body>
