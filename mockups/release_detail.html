@@ -9,12 +9,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
-<body class="min-h-screen antialiased">
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
 
 <div id="cz-header" data-repo-tab="releases"></div>
 <script src="shell.js"></script>
 
-<main class="max-w-[1400px] mx-auto px-6 pt-6 pb-20">
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
 <div class="space-y-6">
 
   <section aria-labelledby="rel-title">
@@ -164,6 +165,7 @@ No migrations are required. The dependency graph is computed on first view and c
 
 </div>
 </main>
+<div id="cz-footer"></div>
 
 <dialog id="rel-demote-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="rel-demote-dialog-title">
   <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">

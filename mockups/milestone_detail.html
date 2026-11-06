@@ -9,11 +9,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
-<body class="min-h-screen antialiased">
+<body class="min-h-screen flex flex-col antialiased font-sans">
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
 <div id="cz-header" data-repo-tab="milestones"></div>
-<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20">
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
   <div class="space-y-6">
     <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
       <a href="repo.html" class="hover:underline">cloudzilla</a>
@@ -103,20 +103,20 @@ Exit criteria:
 
         <section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Issues and pull requests in this milestone">
           <nav class="flex items-center gap-1 border-b border-border px-2 text-sm" aria-label="Milestone items">
-            <button type="button" data-tab="issues" class="px-3 py-2.5 -mb-px border-b-2 border-foreground font-medium text-foreground">
+            <a href="#" data-tab="issues" class="px-3 py-2.5 -mb-px border-b-2 border-foreground font-medium text-foreground">
               Issues <span class="font-mono text-[11px] text-muted-foreground ml-0.5">11</span>
-            </button>
-            <button type="button" data-tab="pulls" class="px-3 py-2.5 -mb-px border-b-2 border-transparent text-muted-foreground hover:text-foreground">
+            </a>
+            <a href="#" data-tab="pulls" class="px-3 py-2.5 -mb-px border-b-2 border-transparent text-muted-foreground hover:text-foreground">
               Pull requests <span class="font-mono text-[11px] text-muted-foreground ml-0.5">5</span>
-            </button>
+            </a>
             <div class="ml-auto flex items-center py-1.5">
               <div class="inline-flex border border-border rounded-md overflow-hidden text-[12px]" role="group" aria-label="Filter by state">
-                <button type="button" data-state="open" class="px-2.5 py-1 bg-muted text-foreground">
+                <a href="#" data-state="open" class="px-2.5 py-1 bg-muted text-foreground">
                   Open <span class="font-mono text-muted-foreground" data-count="open">6</span>
-                </button>
-                <button type="button" data-state="closed" class="px-2.5 py-1 text-muted-foreground hover:text-foreground border-l border-border">
+                </a>
+                <a href="#" data-state="closed" class="px-2.5 py-1 border-l border-border text-muted-foreground hover:text-foreground">
                   Closed <span class="font-mono text-muted-foreground" data-count="closed">5</span>
-                </button>
+                </a>
               </div>
             </div>
           </nav>
@@ -441,10 +441,12 @@ Exit criteria:
         <section aria-labelledby="ms-manage" class="border-t border-border pt-5">
           <h2 id="ms-manage" class="text-[12px] font-medium text-muted-foreground mb-2">Manage</h2>
           <div class="space-y-1.5">
-            <button type="button" id="ms-toggle" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground">
+            <form id="ms-toggle-form" onsubmit="return false">
+            <button type="submit" id="ms-toggle" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground">
               <span id="ms-toggle-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
               <span id="ms-toggle-label">Close milestone</span>
             </button>
+            </form>
             <button type="button" onclick="document.getElementById('ms-delete-dialog').showModal()" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path></svg>
               <span>Delete milestone</span>
@@ -456,7 +458,7 @@ Exit criteria:
     </div>
   </div>
 
-<dialog id="ms-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="ms-delete-dialog-title">
+<dialog id="ms-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="ms-delete-dialog-title">
   <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="ms-delete-dialog-title" class="text-base font-semibold leading-tight">Delete this milestone?</h2>
     <p class="text-[13px] text-muted-foreground leading-snug">Delete <strong class="text-foreground">Milestone 2: Public beta</strong>. It will be unassigned from all issues and pull requests. This cannot be undone.</p>
@@ -465,7 +467,9 @@ Exit criteria:
     <form method="dialog" class="contents">
       <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     </form>
-    <button type="button" onclick="location.href='milestones.html'" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete milestone</button>
+    <form onsubmit="location.href='milestones.html';return false">
+      <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete milestone</button>
+    </form>
   </div>
 </dialog>
 </main>
@@ -553,13 +557,14 @@ Exit criteria:
     document.querySelector('[data-count="open"]').textContent = counts[tab].open;
     document.querySelector('[data-count="closed"]').textContent = counts[tab].closed;
   }
-  document.querySelectorAll('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { tab = b.dataset.tab; render(); }); });
-  document.querySelectorAll('[data-state]').forEach(function (b) { b.addEventListener('click', function () { state = b.dataset.state; render(); }); });
+  document.querySelectorAll('[data-tab]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); tab = b.dataset.tab; render(); }); });
+  document.querySelectorAll('[data-state]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); state = b.dataset.state; render(); }); });
 
   var isOpen = true;
   var CLOSE_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>';
   var REOPEN_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 0115-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 01-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>';
-  $('ms-toggle').addEventListener('click', function () {
+  $('ms-toggle-form').addEventListener('submit', function (e) {
+    e.preventDefault();
     isOpen = !isOpen;
     $('ms-toggle-label').textContent = isOpen ? 'Close milestone' : 'Reopen milestone';
     $('ms-toggle-icon').innerHTML = isOpen ? CLOSE_ICON : REOPEN_ICON;

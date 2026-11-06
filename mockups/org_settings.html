@@ -30,7 +30,7 @@
       <h1 class="text-2xl font-semibold tracking-tight">Manage acme-corp</h1>
       <p class="mt-1 text-[13px] text-muted-foreground">Members, repository defaults, webhooks, and danger zone.</p>
     </div>
-    <a href="org_profile.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"></path></svg> Back to organization</a>
+    <a href="org_profile.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"></path></svg> Back to organization</a>
   </section>
 
   <div class="grid grid-cols-12 gap-8">
@@ -42,7 +42,7 @@
         <a href="#teams" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Teams</a>
         <a href="#repo-defaults" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Repository defaults</a>
         <a href="#webhooks" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Webhooks</a>
-        <a href="#audit-log" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Audit log</a>
+        <a href="#audit" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Audit log</a>
         <p class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-4 mb-1 px-2.5">Danger zone</p>
         <a href="#transfer" class="px-2.5 py-1.5 rounded-md text-destructive hover:bg-accent">Transfer ownership</a>
         <a href="#delete" class="px-2.5 py-1.5 rounded-md text-destructive hover:bg-accent">Delete organization</a>
@@ -68,17 +68,17 @@
         </div>
         </div>
 
-        <form class="space-y-5" onsubmit="return false">
+        <form class="space-y-5">
           <div>
             <label for="org-display-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">Display name</label>
-            <input id="org-display-name" type="text" name="display_name" value="Acme Corporation" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+            <input id="org-display-name" type="text" name="display_name" value="Acme Corporation" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
           </div>
 
           <div>
             <label for="org-slug" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">URL slug</label>
             <div class="flex items-center gap-2">
               <span class="text-[13px] text-muted-foreground font-mono">/</span>
-              <input id="org-slug" type="text" value="acme-corp" disabled class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
+              <input id="org-slug" type="text" value="acme-corp" disabled class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
             </div>
             <p class="mt-1 text-[11.5px] text-muted-foreground">Organization names can't be changed yet.</p>
           </div>
@@ -91,17 +91,17 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="org-website" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">Website</label>
-              <input id="org-website" type="url" name="website" value="https://acme.example.com" placeholder="https://example.com" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
+              <input id="org-website" type="url" name="website" value="https://acme.example.com" placeholder="https://example.com" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
             </div>
             <div>
               <label for="org-location" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">Location</label>
-              <input id="org-location" type="text" name="location" value="Berlin · Remote" placeholder="City · Remote" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+              <input id="org-location" type="text" name="location" value="Berlin · Remote" placeholder="City · Remote" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
             </div>
           </div>
 
           <div>
             <label for="org-contact-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">Contact email</label>
-            <input id="org-contact-email" type="email" name="contact_email" value="hello@acme.example.com" placeholder="hello@example.com" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
+            <input id="org-contact-email" type="email" name="contact_email" value="hello@acme.example.com" placeholder="hello@example.com" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
             <p class="mt-1 text-[11.5px] text-muted-foreground">Shown on the public organization profile.</p>
           </div>
 
@@ -118,7 +118,7 @@
             <h2 class="text-base font-semibold tracking-tight mb-1">Members</h2>
             <p class="text-[12.5px] text-muted-foreground"><span id="member-count">47</span> people. Owners create repositories and manage the org; members need a collaborator role on each repository they work on.</p>
           </div>
-          <button type="button" onclick="document.getElementById('invite-member-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm shrink-0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg> Invite member</button>
+          <button type="button" onclick="document.getElementById('invite-member-dialog').showModal()" class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg> Invite member</button>
         </div>
 
         <div class="flex items-center gap-2 mb-3">
@@ -212,7 +212,7 @@
         <h2 class="text-base font-semibold tracking-tight mb-1">Repository defaults</h2>
         <p class="text-[12.5px] text-muted-foreground mb-6">Applied to new repositories created under acme-corp.</p>
 
-        <form class="space-y-5" onsubmit="return false">
+        <form class="space-y-5">
           <div>
             <label for="org-default-visibility" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">Default visibility</label>
             <select id="org-default-visibility" name="default_repo_visibility" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">
@@ -222,7 +222,7 @@
           </div>
           <div>
             <label for="org-default-branch" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">Default branch name</label>
-            <input id="org-default-branch" type="text" name="default_branch_name" value="main" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
+            <input id="org-default-branch" type="text" name="default_branch_name" value="main" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
             <p class="mt-1 text-[11.5px] text-muted-foreground">Used as the initial branch when an owner creates a repo here.</p>
           </div>
 
@@ -247,7 +247,7 @@
 </div>
       </section>
 
-      <section id="audit-log" class="rounded-md border border-border bg-card p-6">
+      <section id="audit" class="rounded-md border border-border bg-card p-6">
         <h2 class="text-base font-semibold tracking-tight mb-1">Audit log</h2>
         <p class="text-[12.5px] text-muted-foreground mb-6">Recent admin actions on acme-corp — profile edits and repository-default changes.</p>
 

@@ -6,6 +6,8 @@
  *                                                          pulls issues attention activity settings)
  *   <div id="cz-header"></div>                             no subnav
  *   <div id="cz-header" data-anon></div>                   signed-out header
+ *   data-owner="acme-corp" data-repo="x"                   workspace and repo shown in the switchers; the signed-in
+ *                                                          user stays mkappworks
  *   <div id="cz-footer"></div>                             optional; renders the layout footer
  *
  * All markup is a fixed build-time template; nothing here takes runtime or user input. */
@@ -61,7 +63,8 @@
   }
   var DIVIDER = '<div role="separator" class="my-1 h-px bg-border"></div>';
   function link(href, inner, cls) {
-    return '<a href="' + href + '" role="menuitem" class="' + ITEM + (cls ? ' ' + cls : '') + '">' + inner + '</a>';
+    var ext = /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : '';
+    return '<a href="' + href + '"' + ext + ' role="menuitem" class="' + ITEM + (cls ? ' ' + cls : '') + '">' + inner + '</a>';
   }
   function menu(trigger, triggerCls, aria, align, body) {
     return '<div class="relative inline-block" data-shell-menu>' +
@@ -71,29 +74,31 @@
   }
 
   var mount = document.getElementById('cz-header');
-  var footerMount = document.getElementById('cz-footer');
   var ds = mount ? mount.dataset : {};
   var anon = mount && mount.hasAttribute('data-anon');
   var repoTab = ds.repoTab || '';
   var accountTab = ds.accountTab || '';
-  var owner = ds.owner || 'mkappworks';
+  var me = 'mkappworks';
+  var owner = ds.owner || me;
   var repo = ds.repo || 'cloudzilla';
+  var ORGS = { 'acme-corp': 1, 'stitch-labs': 1 };
+  var ownerPage = ORGS[owner] ? 'org_profile.html' : 'profile.html';
 
   var workspaceBlock = '';
   if (!anon) {
     workspaceBlock = SEP + menu(
-      chip('M') + '<span class="font-medium">' + owner + '</span>' + CHEVRON,
+      chip(owner.charAt(0).toUpperCase()) + '<span class="font-medium">' + owner + '</span>' + CHEVRON,
       'flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:bg-accent text-sm font-medium',
       'Switch account or organization, current: ' + owner, 'start',
       label('Account / orgs') +
-      link('profile.html', chip('M') + '<span class="flex-1 truncate max-w-64">' + owner + '</span>' +
+      link('profile.html', chip('M') + '<span class="flex-1 truncate max-w-64">' + me + '</span>' +
         '<span class="text-[10px] text-muted-foreground">Personal</span>') +
       link('org_profile.html', chip('A') + '<span class="flex-1 truncate max-w-64">acme-corp</span>' +
         '<span class="text-[10px] text-muted-foreground">Member</span>') +
       link('org_profile.html', chip('S') + '<span class="flex-1 truncate max-w-64">stitch-labs</span>' +
         '<span class="text-[10px] text-muted-foreground">Owner</span>') +
       DIVIDER +
-      link('new_organization.html', svg('plus', 13, ' class="text-muted-foreground"') + 'New organization') +
+      link('new_organization.html', svg('plus', 13, ' class="text-muted-foreground"').replace('stroke-width="1.75"', 'stroke-width="2"') + 'New organization') +
       link('organizations.html', svg('org', 13, ' class="text-muted-foreground"') + 'Your organizations'));
   }
   var repoBlock = '';
@@ -109,7 +114,7 @@
       link('repo.html', '<span class="truncate max-w-64">benchlabs-site</span>') +
       link('repo.html', '<span class="truncate max-w-64">go-service-starter</span>') +
       DIVIDER +
-      link('my_repositories.html', 'All repositories')) +
+      link(ownerPage + '?tab=repositories', 'All repositories')) +
       '<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm ' +
       'text-muted-foreground">Public</span>';
   }
@@ -142,13 +147,13 @@
 
   var userMenu = '<div class="ml-1">' + menu(
     '<span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" aria-hidden="true">' +
-      escHtml(initialsOf(owner)) + '</span>',
+      escHtml(initialsOf(me)) + '</span>',
     'grid rounded-full [&:hover>span]:border-foreground/30',
-    'User menu for ' + owner, 'end',
+    'User menu for ' + me, 'end',
     '<div class="px-2.5 py-2"><p class="text-[12px] text-muted-foreground">Signed in as</p>' +
-    '<p class="text-[13px] font-medium">' + owner + '</p></div>' + DIVIDER +
+    '<p class="text-[13px] font-medium">' + me + '</p></div>' + DIVIDER +
     link('profile.html', svg('user', 13, ' class="text-muted-foreground"') + 'Your profile') +
-    link('stars.html', svg('star', 13, ' class="text-muted-foreground"') + 'Your stars') + DIVIDER +
+    link('profile.html?tab=stars', svg('star', 13, ' class="text-muted-foreground"') + 'Your stars') + DIVIDER +
     link('account_settings.html', svg('settings', 13, ' class="text-muted-foreground"') + 'Settings') +
     link('admin_settings.html', svg('shield', 13, ' class="text-muted-foreground"') + 'Admin') +
     link(DOCS_URL, svg('book', 13, ' class="text-muted-foreground"') + 'Docs') +
@@ -167,8 +172,8 @@
   }
   var SUBNAV_CLS = 'max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto ' +
     '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
-  function count(n) {
-    return n ? ' <span class="font-mono text-[11px] text-muted-foreground ml-0.5">' + n + '</span>' : '';
+  function count(n, text) {
+    return n ? ' <span class="font-mono text-[11px] text-muted-foreground ml-0.5" aria-label="' + n + ' ' + text + '">' + n + '</span>' : '';
   }
 
   var REPO_TABS = [
@@ -179,20 +184,20 @@
     ['releases', 'Releases', 'releases.html', 3], ['settings', 'Settings', 'settings.html', 0, 'ml-auto'],
   ];
   var ACCOUNT_TABS = [
-    ['overview', 'Overview', 'home.html'], ['repositories', 'Repositories', 'my_repositories.html'],
-    ['gists', 'Gists', 'gists.html'], ['pulls', 'Pull requests', 'my_pulls.html'],
-    ['issues', 'Issues', 'my_issues.html'], ['attention', 'Attention', 'attention.html'],
+    ['overview', 'Overview', 'home.html'], ['repositories', 'Repositories', 'my_repositories.html', 14],
+    ['gists', 'Gists', 'gists.html', 3], ['pulls', 'Pull requests', 'my_pulls.html', 4],
+    ['issues', 'Issues', 'my_issues.html', 7], ['attention', 'Attention', 'attention.html', 5],
     ['activity', 'Activity', 'activity.html'], ['settings', 'Settings', 'account_settings.html'],
   ];
 
   var subnav = '';
   if (repoTab) {
     subnav = '<nav aria-label="Repository sections" class="' + SUBNAV_CLS + '">' + REPO_TABS.map(function (t) {
-      return tab(t[0], svg(t[0], 14) + ' ' + t[1] + count(t[3]), t[2], t[0] === repoTab, t[4]);
+      return tab(t[0], svg(t[0], 14) + ' ' + t[1] + count(t[3], t[1]), t[2], t[0] === repoTab, t[4]);
     }).join('') + '</nav>';
   } else if (accountTab) {
     subnav = '<nav aria-label="Primary" class="' + SUBNAV_CLS + '">' + ACCOUNT_TABS.map(function (t) {
-      return tab(t[0], t[1], t[2], t[0] === accountTab);
+      return tab(t[0], t[1] + count(t[3], t[1]), t[2], t[0] === accountTab);
     }).join('') + '</nav>';
   }
 
@@ -208,14 +213,21 @@
   var footer =
     '<footer role="contentinfo" class="mt-20 w-full max-w-[1400px] mx-auto px-6 text-[11px] text-muted-foreground">' +
     '<div class="border-t border-border py-6 flex items-center justify-between"><p class="font-mono">cloudzilla / dev</p>' +
-    '<nav aria-label="Footer"><ul class="flex gap-4 list-none"><li><a href="' + DOCS_URL + '" class="hover:text-foreground">Docs</a></li>' +
-    '<li><a href="' + API_URL + '" class="hover:text-foreground">API</a></li><li><a href="' + CHANGELOG_URL + '" class="hover:text-foreground">Changelog</a></li></ul></nav></div></footer>';
+    '<nav aria-label="Footer"><ul class="flex gap-4 list-none"><li><a href="' + DOCS_URL + '" target="_blank" rel="noopener" class="hover:text-foreground">Docs</a></li>' +
+    '<li><a href="' + API_URL + '" target="_blank" rel="noopener" class="hover:text-foreground">API</a></li>' +
+    '<li><a href="' + CHANGELOG_URL + '" target="_blank" rel="noopener" class="hover:text-foreground">Changelog</a></li></ul></nav></div></footer>';
 
   function parse(html) {
     return new DOMParser().parseFromString(html, 'text/html').body.firstChild;
   }
   if (mount) mount.replaceWith(parse(header));
-  if (footerMount) footerMount.replaceWith(parse(footer));
+  function mountFooter() {
+    var m = document.getElementById('cz-footer');
+    if (m) m.replaceWith(parse(footer));
+  }
+  // Most pages load this script above their footer mount, which doesn't exist yet.
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountFooter);
+  else mountFooter();
 
   // Search suggestions, mirroring fragments/search_suggestions.templ: repos, users and orgs whose name contains the
   // typed text (two characters minimum), then a "Search for" row. The real fragment has no issue or code rows.
@@ -361,6 +373,9 @@
 
   // Theme: same storage key and class polarity as the layout's bootstrap (dark by default, `light` opts out).
   var root = document.documentElement;
+  // highlight.DefaultLight and DefaultDark: code-themes.css keys its .hl colours off these attributes.
+  if (!root.dataset.codeLight) root.dataset.codeLight = 'github';
+  if (!root.dataset.codeDark) root.dataset.codeDark = 'github-dark';
   var toggle = document.getElementById('theme-toggle');
   try {
     var saved = localStorage.getItem('cz-theme');
@@ -377,6 +392,12 @@
     toggle.querySelector('.dark-only').classList.toggle('hidden', light);
     toggle.querySelector('.light-only').classList.toggle('hidden', !light);
   }
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'l' && toggle) {
+      e.preventDefault();
+      toggle.click();
+    }
+  });
   if (toggle) {
     toggle.addEventListener('click', function () {
       var light = !root.classList.contains('light');
@@ -445,6 +466,6 @@
   document.addEventListener('submit', function (e) {
     if (e.defaultPrevented) return;
     e.preventDefault();
-    toast('Submitted. The mock stays on this page.');
+    toast(e.target.dataset.toast || 'Submitted. The mock stays on this page.');
   });
 })();

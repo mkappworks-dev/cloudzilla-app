@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
-<body class="min-h-screen antialiased flex flex-col">
+<body class="min-h-screen flex flex-col antialiased font-sans">
 
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -24,7 +24,7 @@
         <h1 class="text-2xl font-semibold tracking-tight">mkappworks</h1>
       </div>
       <div class="flex items-center gap-1.5">
-        <a href="new_repo.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">
+        <a href="repo_import.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
           Import
         </a>
@@ -331,20 +331,28 @@
 <script>
 (function () {
   var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   var weeks = 53, months = document.getElementById('heatmap-months'), cells = document.getElementById('heatmap-cells');
+  var labels = [];
+  for (var w = 0; w < weeks; w++) labels.push('');
+  for (var k = 0; k < 12; k++) labels[Math.floor((k * weeks + 6) / 12)] = MONTHS[k];
   for (var w = 0; w < weeks; w++) {
     var m = document.createElement('div');
     m.className = 'whitespace-nowrap';
-    m.textContent = w % 4 === 0 ? MONTHS[Math.min(11, Math.floor(w / 4.4))] : '';
+    m.textContent = labels[w];
     months.appendChild(m);
   }
   var seed = 7;
   function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  var day = new Date(Date.UTC(2025, 11, 28));
   for (var i = 0; i < weeks * 7; i++) {
     var r = rnd(), level = r < 0.35 ? 0 : r < 0.6 ? 1 : r < 0.8 ? 2 : r < 0.92 ? 3 : 4;
+    var n = [0, 2, 4, 8, 12][level];
     var c = document.createElement('div');
     c.className = 'aspect-square rounded-[2px] heatmap-cell-' + level;
+    c.title = DAYS[day.getUTCDay()] + ', ' + MONTHS[day.getUTCMonth()] + ' ' + day.getUTCDate() + ' ' + day.getUTCFullYear() + ' — ' + n + (n === 1 ? ' commit' : ' commits');
     cells.appendChild(c);
+    day.setUTCDate(day.getUTCDate() + 1);
   }
 })();
 </script>

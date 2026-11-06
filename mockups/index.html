@@ -21,7 +21,7 @@
   <section aria-labelledby="index-title">
     <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Design mockups</p>
     <h1 id="index-title" class="text-2xl font-semibold tracking-tight">Cloudzilla mockups</h1>
-    <p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">Static pages styled with the app's own Tailwind build and shell. 86 mockups, grouped by area; each card shows the real route it stands for.</p>
+    <p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">Static pages styled with the app's own Tailwind build and shell. 87 mockups, grouped by area; each card shows the real route it stands for.</p>
   </section>
 
   <section aria-labelledby="g-account">
@@ -60,7 +60,7 @@
       </li>
       <li>
         <a href="my_repositories.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{user}?tab=repositories</p>
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/repos</p>
           <h3 class="mt-1 text-sm font-medium">Your repositories</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">my_repositories.html</p>
         </a>
@@ -120,7 +120,7 @@
   <section aria-labelledby="g-repository">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-repository" class="text-sm font-semibold tracking-tight">Repository</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">16</span>
+      <span class="font-mono text-[11px] text-muted-foreground">17</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li>
@@ -152,8 +152,15 @@
         </a>
       </li>
       <li>
+        <a href="raw.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/raw/…</p>
+          <h3 class="mt-1 text-sm font-medium">Raw file</h3>
+          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">raw.html</p>
+        </a>
+      </li>
+      <li>
         <a href="commits.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/commits</p>
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/commits/{ref}</p>
           <h3 class="mt-1 text-sm font-medium">Commits</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">commits.html</p>
         </a>
@@ -167,14 +174,14 @@
       </li>
       <li>
         <a href="contributors.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/contributors</p>
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/graphs/contributors</p>
           <h3 class="mt-1 text-sm font-medium">Contributors</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">contributors.html</p>
         </a>
       </li>
       <li>
         <a href="dependencies.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/dependencies</p>
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/network/dependencies</p>
           <h3 class="mt-1 text-sm font-medium">Dependencies</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">dependencies.html</p>
         </a>
@@ -398,7 +405,7 @@
       <li>
         <a href="discussion_detail_locked.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
           <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/discussions/{n}</p>
-          <h3 class="mt-1 text-sm font-medium">Discussion detail, closed</h3>
+          <h3 class="mt-1 text-sm font-medium">Discussion detail, locked</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">discussion_detail_locked.html</p>
         </a>
       </li>
@@ -415,7 +422,7 @@
   <section aria-labelledby="g-projects">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-projects" class="text-sm font-semibold tracking-tight">Projects</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">3</span>
+      <span class="font-mono text-[11px] text-muted-foreground">2</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li>
@@ -427,7 +434,7 @@
       </li>
       <li>
         <a href="project_board.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/projects/{n}</p>
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/projects/{id}</p>
           <h3 class="mt-1 text-sm font-medium">Project board</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">project_board.html</p>
         </a>
@@ -603,7 +610,7 @@
       </li>
       <li>
         <a href="topic.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/topics/{topic}</p>
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/topic/{name}</p>
           <h3 class="mt-1 text-sm font-medium">Topic</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">topic.html</p>
         </a>
