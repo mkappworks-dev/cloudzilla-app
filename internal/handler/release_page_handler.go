@@ -13,6 +13,9 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
+// line-clamp-2 does the visible cut; this only bounds how much text each card sends.
+const releaseExcerptRunes = 300
+
 func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -46,7 +49,7 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 
 	releaseViews := make([]view.ReleaseView, len(rawReleases))
 	for i, rel := range rawReleases {
-		rv := view.ReleaseView{Release: rel}
+		rv := view.ReleaseView{Release: rel, Excerpt: markdown.Excerpt(rel.Body, releaseExcerptRunes)}
 		if latest != nil && rel.ID == latest.ID {
 			rv.IsLatest = true
 		}

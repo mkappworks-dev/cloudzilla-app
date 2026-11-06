@@ -32,10 +32,10 @@ templ PRListRow(d PRListRowData) {
 		<a href={ templ.SafeURL(fmt.Sprintf("/%s/%s/pulls/%d", d.OwnerName, d.RepoName, d.Number)) }
 			class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
 			<div class="flex items-start gap-3 mb-1.5">
-				@prStateIcon(d.State)
+				@PRStateIcon(d.State)
 				<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
 					<p class="text-[13.5px] font-medium leading-snug group-hover:underline">@Highlight(d.Title, d.Query)</p>
-					@prStateBadge(d.State)
+					@PRStateBadge(d.State)
 				</div>
 			</div>
 			<div class="flex items-center justify-between gap-3 pl-[27px]">
@@ -77,7 +77,7 @@ templ PRListRow(d PRListRowData) {
 	</li>
 }
 
-templ prStateBadge(state string) {
+templ PRStateBadge(state string) {
 	switch state {
 	case "merged":
 		@Badge(BadgeMerged) {
@@ -98,7 +98,7 @@ templ prStateBadge(state string) {
 	}
 }
 
-templ prStateIcon(state string) {
+templ PRStateIcon(state string) {
 	switch state {
 	case "merged":
 		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-[hsl(270_70%_70%)]" aria-hidden="true">

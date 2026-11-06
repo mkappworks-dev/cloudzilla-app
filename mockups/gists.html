@@ -57,6 +57,7 @@
   <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="gist-list">
     <h2 id="gist-list" class="sr-only">Public gists</h2>
     <ol id="gist-rows" class="divide-y divide-border">
+      <li id="gist-no-match" hidden class="border-b-0 px-4 py-6 text-center text-[13px] text-muted-foreground">No gists match this filter.</li>
       <li data-name="Go retry helper with jitter mkappworks">
         <a href="gist_detail.html" class="relative block px-4 py-3 hover:bg-accent group transition-[padding] hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-foreground before:opacity-0 hover:before:opacity-100 before:transition-opacity before:rounded-xs">
           <div class="flex items-start gap-3 mb-1.5">
@@ -231,9 +232,12 @@
   var q = document.getElementById('gist-filter');
   q.addEventListener('input', function () {
     var needle = q.value.toLowerCase();
-    document.querySelectorAll('#gist-rows > li').forEach(function (li) {
+    var shown = 0;
+    document.querySelectorAll('#gist-rows > li[data-name]').forEach(function (li) {
       li.hidden = needle !== '' && li.dataset.name.toLowerCase().indexOf(needle) === -1;
+      if (!li.hidden) shown++;
     });
+    document.getElementById('gist-no-match').hidden = shown > 0;
   });
   document.querySelectorAll('[data-sort]').forEach(function (a) {
     a.addEventListener('click', function (e) {

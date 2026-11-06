@@ -255,15 +255,15 @@ func Releases(data view.ReleasesData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if release.Body != "" {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<p class=\"mt-2 text-[13px] text-muted-foreground leading-relaxed\">")
+					if release.Excerpt != "" {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<p class=\"mt-2 text-[13px] text-muted-foreground leading-relaxed line-clamp-2\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var13 string
-						templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(release.Body)
+						templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(release.Excerpt)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/releases.templ`, Line: 73, Col: 90}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/releases.templ`, Line: 73, Col: 106}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 						if templ_7745c5c3_Err != nil {

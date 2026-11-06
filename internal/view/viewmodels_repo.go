@@ -104,6 +104,7 @@ type ReleaseView struct {
 	model.Release
 	IsLatest bool   // true for the single newest published, non-draft, non-prerelease release
 	DiffURL  string // compare URL vs the previous release; "" if no compare route
+	Excerpt  string // plain text of Body for the list card
 }
 
 // ReleasesData holds template data for the releases list page.

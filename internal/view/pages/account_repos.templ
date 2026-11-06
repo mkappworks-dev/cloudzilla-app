@@ -59,6 +59,7 @@ templ AccountRepos(data view.AccountReposData) {
 				<section class="border border-border rounded-md bg-card overflow-hidden" aria-labelledby="repo-list">
 					<h2 id="repo-list" class="sr-only">Repositories</h2>
 					<ol class="divide-y divide-border">
+						@components.FilterNoMatchRow("No repositories match this filter.")
 						for _, repo := range data.Repos {
 							@components.RepoListRow(components.RepoListRowData{
 								Owner:     repo.OwnerName,

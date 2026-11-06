@@ -150,3 +150,31 @@ func TestBase_UserMenuAvatarUsesSharedInitials(t *testing.T) {
 		t.Errorf("user menu avatar should show S, got %s", trigger)
 	}
 }
+
+func TestBase_BellBadgeCapsAt99(t *testing.T) {
+	for _, tc := range []struct {
+		unread    int
+		badge     string
+		ariaLabel string
+	}{
+		{99, ">99</span>", `aria-label="Notifications, 99 unread"`},
+		{100, ">99+</span>", `aria-label="Notifications, 100 unread"`},
+		{1492, ">99+</span>", `aria-label="Notifications, 1492 unread"`},
+	} {
+		t.Run(fmt.Sprint(tc.unread), func(t *testing.T) {
+			base := view.BasePage{CurrentUser: &middleware.Claims{Username: "alice"}, UnreadNotifCount: tc.unread}
+			var page strings.Builder
+			if err := layout.Base(base, "Home").Render(context.Background(), &page); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+			html := page.String()
+			bell := html[strings.Index(html, `<a href="/notifications"`):]
+			bell = bell[:strings.Index(bell, "</a>")]
+			for _, want := range []string{tc.badge, tc.ariaLabel} {
+				if !strings.Contains(bell, want) {
+					t.Errorf("bell lacks %s: %s", want, bell)
+				}
+			}
+		})
+	}
+}

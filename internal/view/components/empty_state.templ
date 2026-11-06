@@ -14,3 +14,9 @@ templ EmptyStateWithHint(message, hint string) {
 		<p class="text-sm text-muted-foreground mt-2">{ hint }</p>
 	</div>
 }
+
+// FilterNoMatchRow shows when the page's Alpine `q` matches no sibling's data-name. It goes first in the list so
+// divide-y and last:border-b-0 keep treating the real last row as last.
+templ FilterNoMatchRow(message string) {
+	<li x-cloak x-show="q && ![...$el.parentElement.children].some(r => r.dataset.name?.toLowerCase().includes(q.toLowerCase()))" class="border-b-0 px-4 py-6 text-center text-[13px] text-muted-foreground">{ message }</li>
+}

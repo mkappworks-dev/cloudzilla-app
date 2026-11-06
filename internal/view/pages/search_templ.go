@@ -319,7 +319,7 @@ func Search(data view.SearchData) templ.Component {
 									Number:    pr.Number,
 									Title:     pr.Title,
 									Author:    pr.AuthorName,
-									State:     pullRowState(pr),
+									State:     pullRowState(string(pr.State), pr.IsDraft),
 									OpenedAt:  formatRelative(pr.CreatedAt),
 									Query:     data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
@@ -492,11 +492,11 @@ func orgSubtitle(o model.Organization) string {
 	return o.Description
 }
 
-func pullRowState(pr model.PullRequest) string {
-	if pr.State == model.PRStateOpen && pr.IsDraft {
+func pullRowState(state string, isDraft bool) string {
+	if state == string(model.PRStateOpen) && isDraft {
 		return "draft"
 	}
-	return string(pr.State)
+	return state
 }
 
 func searchTitle(data view.SearchData) string {

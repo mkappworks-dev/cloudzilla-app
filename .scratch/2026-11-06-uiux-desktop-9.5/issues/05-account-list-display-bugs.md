@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: 03, 04
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -32,10 +32,10 @@ Verified in code: `/issues` never passes `Private` to `IssueListRow` (`account_i
 
 ## Acceptance criteria
 
-- [ ] Private issues and draft PRs are marked on account lists
-- [ ] Release cards show an excerpt, never Markdown syntax
-- [ ] Bell caps at 99+
-- [ ] Each client filter shows a no-match row
+- [x] Private issues and draft PRs are marked on account lists
+- [x] Release cards show an excerpt, never Markdown syntax
+- [x] Bell caps at 99+
+- [x] Each client filter shows a no-match row
 
 ## Verification
 
@@ -44,3 +44,7 @@ Seeded server: siteadmin has private issues and draft PRs in the seed.
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (implementation): done on `fix/account-list-display-bugs`. The seed gives siteadmin private issues but no
+draft PRs in any `/pulls` tab; the visual check assigned two public drafts to siteadmin on the scratch DB. The bell
+badge moved to the button's corner (`-top-1 -right-1`): at `top-1 right-1` a "99+" covered the whole icon.

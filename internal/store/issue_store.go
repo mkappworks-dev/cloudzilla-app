@@ -615,6 +615,7 @@ type IssueListItem struct {
 	AuthorID     int64
 	AuthorName   string
 	Priority     *string
+	Visibility   string // "public" | "private"
 	RepoFullName string // "<owner_name>/<repo_name>"
 	UpdatedAt    time.Time
 	CreatedAt    time.Time
@@ -688,7 +689,7 @@ func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state 
 		cond = `i.author_id = $1`
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
-	             au.username AS author_name, i.priority,
+	             au.username AS author_name, i.priority, i.visibility,
 	             r.owner_name || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
@@ -712,7 +713,7 @@ func (s *IssueStore) ListByIDs(ctx context.Context, userID int64, ids []int64, s
 		args = append(args, id)
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
-	             au.username AS author_name, i.priority,
+	             au.username AS author_name, i.priority, i.visibility,
 	             r.owner_name || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
@@ -763,7 +764,7 @@ func (s *IssueStore) scanIssueListItems(ctx context.Context, q string, args ...a
 	for rows.Next() {
 		var it IssueListItem
 		var priority sql.NullString
-		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.AuthorName, &priority, &it.RepoFullName, &it.UpdatedAt, &it.CreatedAt); err != nil {
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.AuthorName, &priority, &it.Visibility, &it.RepoFullName, &it.UpdatedAt, &it.CreatedAt); err != nil {
 			return nil, err
 		}
 		if priority.Valid {

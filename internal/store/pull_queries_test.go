@@ -425,7 +425,7 @@ func TestPullStore_ListForUserAndByIDs_Visibility(t *testing.T) {
 	testutil.Exec(t, f.db, `UPDATE repositories SET deleted_at = NOW() WHERE id = $1`, deletedRepo)
 	f.assign(t, public.ID, f.otherID)
 	f.assign(t, hidden.ID, f.otherID)
-	testutil.Exec(t, f.db, `UPDATE pull_requests SET updated_at = NOW() - interval '1 hour' WHERE id = $1`, public.ID)
+	testutil.Exec(t, f.db, `UPDATE pull_requests SET updated_at = NOW() - interval '1 hour', is_draft = TRUE WHERE id = $1`, public.ID)
 
 	titles := func(items []store.PullListItem) []string {
 		out := []string{}
@@ -443,7 +443,7 @@ func TestPullStore_ListForUserAndByIDs_Visibility(t *testing.T) {
 		if want := []string{"hidden pr", "public pr"}; !slices.Equal(titles(got), want) {
 			t.Errorf("titles = %v, want %v (newest update first, deleted repo excluded)", titles(got), want)
 		}
-		if got[1].RepoFullName != "testuser_"+f.suffix+"_o/testrepo_"+f.suffix || got[1].AuthorID != f.ownerID || got[1].Number != public.Number {
+		if got[1].RepoFullName != "testuser_"+f.suffix+"_o/testrepo_"+f.suffix || got[1].AuthorID != f.ownerID || got[1].Number != public.Number || !got[1].IsDraft || got[0].IsDraft {
 			t.Errorf("item = %+v", got[1])
 		}
 	})
