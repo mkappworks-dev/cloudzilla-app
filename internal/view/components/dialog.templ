@@ -7,10 +7,15 @@ package components
 // Close via a <form method="dialog"> button (see DialogClose) or .close().
 //
 // Compose with DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter, DialogClose.
+//
+// The dialog itself scrolls under a sticky header and footer: Chrome would give a
+// scrolling body showModal's initial focus, ahead of the first field. A dialog too
+// tall for the space below its 28vh margin moves up until its bottom is 1rem from
+// the viewport's; translate's 100% is the dialog's own height.
 templ Dialog(id string) {
 	<dialog
 		id={ id }
-		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in"
+		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in"
 		aria-labelledby={ id + "-title" }
 	>
 		{ children... }
@@ -19,7 +24,7 @@ templ Dialog(id string) {
 
 // DialogHeader is the top section — typically holds DialogTitle + DialogDescription.
 templ DialogHeader() {
-	<div class="flex flex-col gap-1 p-5 border-b border-border">
+	<div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
 		{ children... }
 	</div>
 }
@@ -43,7 +48,7 @@ templ DialogBody() {
 
 // DialogFooter is the bottom action row — right-aligned by default.
 templ DialogFooter() {
-	<div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+	<div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
 		{ children... }
 	</div>
 }

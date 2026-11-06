@@ -78,6 +78,7 @@ Small PRs, under a day each.
 | 2    | 06  | htmx fragment parity        | `fix/htmx-fragment-parity`        | 02             | Interaction +0.2, Edge +0.3 |
 | 2    | 07  | Accessibility quick fixes   | `fix/a11y-quick-fixes`            | 01             | A11y +0.5                   |
 | 3    | 08  | Copy pass                   | `tech/ui-copy-pass`               | 04, 05, 06, 07 | Content +1.35               |
+| 3    | 23  | Same-page reload, dialog scroll | `fix/settings-redirect-dialog-scroll` | 06        | Interaction +0.2, Edge +0.2 |
 
 ### Wave 2 — core workflows (≈7.6 → 8.2)
 
@@ -149,6 +150,9 @@ Desktop screenshots of every mock/real pair at 1440px, in **both light and dark 
    `paper-planes` org; use those for owner-only pages, `ada-silva/hollow-atlas` for busy repo pages.
 
 ## Comments
+
+2026-11-06: added 23 (same-page `HX-Redirect` does not reload; `components.Dialog` does not scroll), found in
+#270's live check.
 
 2026-11-06: lanes replaced by **Depends on** and **Step**. Added 05 → 04 (`layout.templ`), 09 → 07
 (merge box) and 10 → 08 (account pages) so tickets sharing a hotspot file never run at once.

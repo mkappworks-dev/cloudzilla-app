@@ -522,9 +522,9 @@
     </div>
   </div>
 
-  <dialog id="change-password-dialog" aria-labelledby="change-password-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <dialog id="change-password-dialog" aria-labelledby="change-password-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
     <form onsubmit="return false">
-      <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
         <h2 id="change-password-dialog-title" class="text-base font-semibold leading-tight">Change password</h2>
         <p class="text-[13px] text-muted-foreground leading-snug">Every session signed in to your account is signed out. This browser stays signed in.</p>
       </div>
@@ -545,16 +545,16 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
         <button type="button" data-close class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
         <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Change password</button>
       </div>
     </form>
   </dialog>
 
-  <dialog id="add-ssh-key-dialog" aria-labelledby="add-ssh-key-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <dialog id="add-ssh-key-dialog" aria-labelledby="add-ssh-key-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
     <form id="add-ssh-key-form" onsubmit="return false">
-      <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
         <h2 id="add-ssh-key-dialog-title" class="text-base font-semibold leading-tight">Add SSH key</h2>
         <p class="text-[13px] text-muted-foreground leading-snug">A key gives any system holding the private half full git access to your repos.</p>
       </div>
@@ -576,16 +576,16 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
         <button type="button" data-close class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
         <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Add key</button>
       </div>
     </form>
   </dialog>
 
-  <dialog id="generate-token-dialog" aria-labelledby="generate-token-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <dialog id="generate-token-dialog" aria-labelledby="generate-token-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
     <form id="generate-token-form" onsubmit="return false">
-      <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
         <h2 id="generate-token-dialog-title" class="text-base font-semibold leading-tight">Generate personal access token</h2>
         <p class="text-[13px] text-muted-foreground leading-snug">Treat tokens like passwords — they grant API and git access on your behalf.</p>
       </div>
@@ -629,16 +629,16 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
         <button type="button" data-close class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
         <button type="submit" id="generate-token-submit" disabled class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none">Generate token</button>
       </div>
     </form>
   </dialog>
 
-  <dialog id="register-oauth-app-dialog" aria-labelledby="register-oauth-app-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <dialog id="register-oauth-app-dialog" aria-labelledby="register-oauth-app-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
     <form onsubmit="return false">
-      <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
         <h2 id="register-oauth-app-dialog-title" class="text-base font-semibold leading-tight">Register OAuth application</h2>
         <p class="text-[13px] text-muted-foreground leading-snug">You'll get a client ID and a client secret. The secret is shown once.</p>
       </div>
@@ -663,16 +663,16 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
         <button type="button" data-close class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
         <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Register app</button>
       </div>
     </form>
   </dialog>
 
-  <dialog id="new-saved-reply-dialog" aria-labelledby="new-saved-reply-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <dialog id="new-saved-reply-dialog" aria-labelledby="new-saved-reply-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
     <form onsubmit="return false">
-      <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
         <h2 id="new-saved-reply-dialog-title" class="text-base font-semibold leading-tight">New saved reply</h2>
         <p class="text-[13px] text-muted-foreground leading-snug">Pick it from the saved replies menu when writing a comment.</p>
       </div>
@@ -688,7 +688,7 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
         <button type="button" data-close class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
         <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Add reply</button>
       </div>

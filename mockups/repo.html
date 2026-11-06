@@ -684,8 +684,8 @@ make dev</code></pre>
     </div>
   </div>
 
-  <dialog id="repo-edit-modal" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="repo-edit-modal-title">
-    <div class="flex flex-col gap-1 p-5 border-b border-border">
+  <dialog id="repo-edit-modal" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="repo-edit-modal-title">
+    <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
       <h2 id="repo-edit-modal-title" class="text-base font-semibold leading-tight">Edit repository details</h2>
     </div>
     <form method="dialog">
@@ -705,7 +705,7 @@ make dev</code></pre>
           </div>
         </div>
       </div>
-      <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
         <button type="submit" value="cancel" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Cancel</button>
         <button type="submit" value="save" class="h-8 px-3 text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Save changes</button>
       </div>

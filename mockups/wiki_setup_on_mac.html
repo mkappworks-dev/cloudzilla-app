@@ -104,12 +104,12 @@ make dev</code></pre>
   });
 })();
 </script>
-<dialog id="wiki-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="wiki-delete-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="wiki-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="wiki-delete-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="wiki-delete-dialog-title" class="text-base font-semibold leading-tight">Delete this page?</h2>
     <p class="text-[13px] text-muted-foreground leading-snug">This permanently removes the "Setup-on-mac" page from the wiki. This cannot be undone.</p>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <form method="dialog" class="contents">
       <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     </form>

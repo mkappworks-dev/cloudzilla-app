@@ -469,8 +469,8 @@
   </div>
 </div>
 
-<dialog id="deploy-key-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="deploy-key-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="deploy-key-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="deploy-key-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="deploy-key-dialog-title" class="text-base font-semibold leading-tight">Add deploy key</h2>
   </div>
   <div class="p-5 text-sm">
@@ -493,14 +493,14 @@
           </div>
     </form>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     <button type="submit" form="deploy-key-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Deploy Key</button>
   </div>
 </dialog>
 
-<dialog id="label-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="label-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="label-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="label-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="label-dialog-title" class="text-base font-semibold leading-tight">New label</h2>
   </div>
   <div class="p-5 text-sm">
@@ -519,14 +519,14 @@
       </div>
     </form>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     <button type="submit" form="label-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Create label</button>
   </div>
 </dialog>
 
-<dialog id="protection-rule-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="protection-rule-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="protection-rule-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="protection-rule-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="protection-rule-dialog-title" class="text-base font-semibold leading-tight">Add rule</h2>
   </div>
   <div class="p-5 text-sm">
@@ -556,14 +556,14 @@
       </label>
     </form>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     <button type="submit" form="protection-rule-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Rule</button>
   </div>
 </dialog>
 
-<dialog id="webhook-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="webhook-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="webhook-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="webhook-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="webhook-dialog-title" class="text-base font-semibold leading-tight">Add webhook</h2>
   </div>
   <div class="p-5 text-sm">
@@ -586,14 +586,14 @@
           </div>
     </form>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     <button type="submit" form="webhook-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add Webhook</button>
   </div>
 </dialog>
 
-<dialog id="make-public-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="make-public-dialog-title">
-  <div class="flex flex-col gap-1 p-5 border-b border-border">
+<dialog id="make-public-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="make-public-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="make-public-dialog-title" class="text-base font-semibold leading-tight">Make this repository public?</h2>
       <p class="text-[13px] text-muted-foreground leading-snug">Anyone on the internet will be able to view and clone cloudzilla, including its history.</p>
   </div>
@@ -605,7 +605,7 @@
           </div>
     </form>
   </div>
-  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
     <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
     <button type="submit" form="make-public-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Make public</button>
   </div>

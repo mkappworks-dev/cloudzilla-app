@@ -148,8 +148,8 @@ I build developer tooling and self-hosted infrastructure.</textarea>
           </div>
         </section>
 
-        <dialog id="pin-modal" aria-labelledby="pin-modal-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
-          <div class="flex flex-col gap-1 p-5 border-b border-border">
+        <dialog id="pin-modal" aria-labelledby="pin-modal-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+          <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
             <h2 id="pin-modal-title" class="text-base font-semibold leading-tight">Pin repositories</h2>
             <p class="text-[13px] text-muted-foreground leading-snug">Choose up to 6 repositories to feature on your profile. Pinned <span data-pin-count>3</span> / 6.</p>
           </div>
@@ -157,7 +157,7 @@ I build developer tooling and self-hosted infrastructure.</textarea>
             <ul class="divide-y divide-border max-h-[400px] overflow-y-auto -mx-5" id="pin-list"></ul>
             <p id="pin-warn" class="mt-3 text-[12px] text-warning" hidden>You've reached the 6-pin limit. Unpin one to add another.</p>
           </div>
-          <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+          <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
             <span class="mr-auto text-[12px] text-muted-foreground font-mono">Pinned <span data-pin-count>3</span> / 6</span>
             <form method="dialog" class="contents">
               <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Close</button>

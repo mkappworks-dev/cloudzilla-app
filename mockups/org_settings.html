@@ -306,9 +306,9 @@
   </div>
 </div>
 
-<dialog id="invite-member-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="invite-member-dialog-title">
+<dialog id="invite-member-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="invite-member-dialog-title">
   <form method="dialog">
-    <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
       <h2 id="invite-member-dialog-title" class="text-base font-semibold leading-tight">Invite member to acme-corp</h2>
       <p class="text-[13px] text-muted-foreground leading-snug">By @handle. They'll get access to org-wide resources immediately. If you also want them on a team, add them there afterward.</p>
     </div>
@@ -335,16 +335,16 @@
         </div>
       </div>
     </div>
-    <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
       <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
       <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Send invitation</button>
     </div>
   </form>
 </dialog>
 
-<dialog id="transfer-org-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="transfer-org-dialog-title">
+<dialog id="transfer-org-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="transfer-org-dialog-title">
   <form method="dialog">
-    <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
       <h2 id="transfer-org-dialog-title" class="text-base font-semibold leading-tight"><span class="text-destructive">Transfer acme-corp</span></h2>
       <p class="text-[13px] text-muted-foreground leading-snug">Ownership moves to the new user immediately. You'll be downgraded to Member and lose owner access.</p>
     </div>
@@ -364,7 +364,7 @@
         </div>
       </div>
     </div>
-    <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
       <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
       <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Transfer ownership</button>
     </div>

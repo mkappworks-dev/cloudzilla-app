@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/a-h/templ"
@@ -72,14 +73,34 @@ func settingsError(w http.ResponseWriter, r *http.Request, status int, msg strin
 }
 
 // redirectAfterSave answers a saved settings form. Its data-toast stashes the
-// message for the next page only when the response carries HX-Redirect.
+// message for the next page only when the response carries HX-Redirect or HX-Refresh.
 func redirectAfterSave(w http.ResponseWriter, r *http.Request, to string) {
 	if r.Header.Get("HX-Request") == "true" {
-		w.Header().Set("HX-Redirect", to)
+		if onlyHashDiffers(r.Header.Get("HX-Current-URL"), to) {
+			// htmx's HX-Redirect sets location.href, which the browser treats as a scroll
+			// here; the reload keeps the scroll position, so the page stays on the form's section.
+			w.Header().Set("HX-Refresh", "true")
+		} else {
+			w.Header().Set("HX-Redirect", to)
+		}
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	http.Redirect(w, r, to, http.StatusSeeOther)
+}
+
+// onlyHashDiffers reports whether navigating from current to to would be a
+// same-document fragment navigation.
+func onlyHashDiffers(current, to string) bool {
+	from, err := url.Parse(current)
+	if err != nil || current == "" {
+		return false
+	}
+	dest, err := url.Parse(to)
+	if err != nil || dest.Fragment == "" {
+		return false
+	}
+	return from.EscapedPath() == dest.EscapedPath() && from.RawQuery == dest.RawQuery
 }
 
 const branchMovedMsg = "branch was updated while saving; reload and try again"
