@@ -7,7 +7,7 @@ type MultiSelectOption struct {
 	Value  string
 	Label  string
 	Avatar bool   // render Label as a username with its avatar
-	Style  string // validated inline colour style: a pill in the trigger, a swatch in the list
+	Color  string // label hex: a LabelChip in the trigger, a swatch in the list
 }
 
 type MultiSelectProps struct {
@@ -54,7 +54,9 @@ templ MultiSelect(p MultiSelectProps) {
 							<span class="truncate">{ o.Label }</span>
 						</span>
 					} else {
-						<span x-show="has($el.dataset.value)" x-cloak data-value={ o.Value } class="inline-flex max-w-full items-center truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium" style={ o.Style }>{ o.Label }</span>
+						<span x-show="has($el.dataset.value)" x-cloak data-value={ o.Value } class="inline-flex min-w-0 max-w-full">
+							@LabelChip(o.Label, o.Color)
+						</span>
 					}
 				}
 				<template x-for="o in extra" x-bind:key="o.value">
@@ -119,7 +121,7 @@ templ MultiSelect(p MultiSelectProps) {
 						if o.Avatar {
 							@Avatar(o.Label, AvatarSizeXS, "")
 						} else {
-							<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" style={ o.Style }></span>
+							<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-muted" style={ labelSwatchStyle(o.Color) }></span>
 						}
 						<span class="min-w-0 flex-1 truncate">{ o.Label }</span>
 					</li>

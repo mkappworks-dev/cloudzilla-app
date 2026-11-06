@@ -90,9 +90,9 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 			rowState = "draft"
 		}
 
-		labelChips := make([]components.LabelChip, 0, len(sr.LabelChips))
+		labelChips := make([]components.LabelChipData, 0, len(sr.LabelChips))
 		for _, l := range sr.LabelChips {
-			labelChips = append(labelChips, components.LabelChip{Name: l.Name, Color: l.Color})
+			labelChips = append(labelChips, components.LabelChipData{Name: l.Name, Color: l.Color})
 		}
 
 		reviewerAvatars := make([]string, 0, len(sr.Reviewers))

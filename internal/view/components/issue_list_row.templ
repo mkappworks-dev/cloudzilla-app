@@ -11,7 +11,7 @@ type IssueListRowData struct {
 	State    string // "open" or "closed"
 	Private  bool
 	Time     string // pre-formatted relative
-	Labels   []LabelChip
+	Labels   []LabelChipData
 	Priority string
 	Comments int
 	Query    string // highlights matching words in the title
@@ -48,7 +48,7 @@ templ IssueListRow(d IssueListRowData) {
 					if len(d.Labels) > 0 {
 						<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
 						for _, l := range d.Labels {
-							<span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style={ labelChipStyle(l.Color) }>{ l.Name }</span>
+							@LabelChip(l.Name, l.Color)
 						}
 					}
 				</div>

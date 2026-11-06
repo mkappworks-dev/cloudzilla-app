@@ -272,13 +272,8 @@ templ issueNewLabels(data view.IssueNewData) {
 		<div class="flex flex-wrap gap-1">
 			for _, lbl := range data.Labels {
 				{{ id := strconv.FormatInt(lbl.ID, 10) }}
-				<span
-					x-show={ "labels.includes(" + components.JSLiteral(id) + ")" }
-					x-cloak
-					class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border"
-					style={ "background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55" }
-				>
-					{ lbl.Name }
+				<span x-show={ "labels.includes(" + components.JSLiteral(id) + ")" } x-cloak class="contents">
+					@components.LabelChip(lbl.Name, lbl.Color)
 				</span>
 			}
 			<span x-show="labels.length === 0" class="text-xs text-muted-foreground">None yet</span>
