@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Access denied — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="max-w-md mx-auto mt-20 rounded-md border border-border bg-card overflow-hidden relative">
+  <div class="absolute inset-0 pointer-events-none opacity-40" style="background-image: linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);" aria-hidden="true"></div>
+  <div class="relative p-10 text-center">
+    <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">403 · Forbidden</p>
+    <p class="mt-4 font-mono text-[7rem] font-semibold leading-none tracking-tight text-muted-foreground/70">403</p>
+    <h1 class="mt-2 text-xl font-semibold tracking-tight">Access denied</h1>
+    <p class="mt-2 text-[13px] text-muted-foreground max-w-xs mx-auto">You don't have permission to view this page. Ask the owner if you think this is a mistake.</p>
+    <!-- Mock only: shown with ?admin_hint=1, the state a superadmin sees on repo and org settings outside admin mode. -->
+    <p id="admin-hint" hidden class="mt-3 text-[13px] text-muted-foreground max-w-xs mx-auto">You're an instance admin. To manage this as one, enter admin mode; it is time-limited and every change is logged.</p>
+    <div class="mt-5 flex items-center justify-center gap-2">
+      <a id="admin-hint-link" hidden href="admin_mode.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90">Enter admin mode</a>
+      <a id="home-link" href="home.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90">Go home</a>
+    </div>
+  </div>
+</div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+<script>
+  if (/[?&]admin_hint=1(&|$)/.test(location.search)) {
+    document.getElementById('admin-hint').hidden = false;
+    document.getElementById('admin-hint-link').hidden = false;
+    document.getElementById('home-link').className = document.getElementById('home-link').className
+      .replace('bg-primary text-primary-foreground hover:bg-primary/90', 'border border-border bg-background hover:bg-accent hover:text-accent-foreground');
+  }
+</script>
+</body>
+</html>

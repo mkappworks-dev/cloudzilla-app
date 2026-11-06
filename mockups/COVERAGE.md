@@ -11,7 +11,6 @@ in November 2026; update it when a mock is added.
 | `setup.templ`           | `/setup`                                 | First-run setup |
 | `oauth_authorize.templ` | `/oauth/authorize`                       |                 |
 | `device_login.templ`    | `/login/device`, `/login/device/confirm` |                 |
-| `forbidden.templ`       | any 403                                  |                 |
 | `not_found.templ`       | any 404                                  |                 |
 
 ## Pages covered by a differently named mock
@@ -52,8 +51,8 @@ Mocks show the happy path. These real states are not drawn:
   diff error states.
 - **Admin mode.** `admin_mode.html` draws the page in both states (add `?admin_mode=1` for the running one), and any
   mock with `?admin_mode=1` or `data-admin-mode` on `#cz-header` shows the "Acting as instance admin" banner and drops
-  "Enter admin mode" from the user menu. Not drawn: the 403 page's admin-mode hint (`forbidden.templ`, see the table
-  above) and the identity dialog it opens.
+  "Enter admin mode" from the user menu. `forbidden.html` draws the 403 page, with the superadmin hint behind
+  `?admin_hint=1`. Not drawn: the identity dialog that "Enter admin mode" opens.
 - **Admin.** The identity-confirm dialog (password, two-factor and provider factors), the SSO success and error banners,
   and users and audit-log pages beyond the first. The mock uses the generic confirm dialog instead.
 
