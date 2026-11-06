@@ -35,7 +35,11 @@ function findTailwind() {
 
 function sources() {
   const pages = fs.readdirSync(ROOT).filter((f) => /\.(html|js)$/.test(f) && f !== "server.js");
-  return [path.join(ROOT, "input.css"), path.join(ROOT, "..", "tailwind", "input.css")].concat(
+  return [
+    path.join(ROOT, "input.css"),
+    path.join(ROOT, "..", "tailwind", "input.css"),
+    path.join(ROOT, "..", "cmd", "server", "frontend", "static", "code-themes.css"),
+  ].concat(
     pages.map((f) => path.join(ROOT, f)),
   );
 }

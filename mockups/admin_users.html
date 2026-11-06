@@ -31,12 +31,12 @@
   <form id="users-filter" method="GET" action="admin_users.html" class="flex flex-wrap gap-4 items-end">
     <div class="space-y-1.5">
       <label for="users-q" class="block text-xs font-medium text-muted-foreground">Username or email starts with</label>
-      <input id="users-q" type="search" name="q" placeholder="e.g. alice" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 w-56" />
+      <input id="users-q" type="search" name="q" placeholder="e.g. alice" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 w-56" />
     </div>
     <div class="space-y-1.5">
       <label for="users-role" class="block text-xs font-medium text-muted-foreground">Role</label>
       <div class="relative">
-        <select id="users-role" name="role" class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50 w-36">
+        <select id="users-role" name="role" class="appearance-none flex h-9 rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50 w-36">
           <option value="" selected>All</option>
           <option value="superadmin">Superadmins</option>
           <option value="user">Users</option>
@@ -47,7 +47,7 @@
     <div class="space-y-1.5">
       <label for="users-status" class="block text-xs font-medium text-muted-foreground">Status</label>
       <div class="relative">
-        <select id="users-status" name="status" class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50 w-36">
+        <select id="users-status" name="status" class="appearance-none flex h-9 rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50 w-36">
           <option value="" selected>All</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>

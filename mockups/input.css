@@ -1,3 +1,4 @@
 @import "../tailwind/input.css";
+@import "../cmd/server/frontend/static/code-themes.css";
 @source "./*.html";
 @source "./*.js";

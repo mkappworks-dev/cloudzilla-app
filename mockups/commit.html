@@ -111,13 +111,13 @@ Adds an is_private column with an index, and tightens the visibility check in Re
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">19</td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">19</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	if err != nil {</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	<span class="hl-k">if</span> err != <span class="hl-kc">nil</span> {</td>
 </tr>
 <tr>
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">20</td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">20</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">		return nil, err</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">		<span class="hl-k">return</span> <span class="hl-kc">nil</span>, err</td>
 </tr>
 <tr>
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">21</td>
@@ -129,19 +129,19 @@ Adds an is_private column with an index, and tightens the visibility check in Re
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">22</td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-destructive">-</td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	return repo, nil</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	<span class="hl-k">return</span> repo, <span class="hl-kc">nil</span></td>
 </tr>
 <tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">22</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	if repo.IsPrivate &amp;&amp; !s.canRead(ctx, repo) {</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	<span class="hl-k">if</span> repo.IsPrivate &amp;&amp; !s.canRead(ctx, repo) {</td>
 </tr>
 <tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">23</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">		return nil, ErrNotFound</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">		<span class="hl-k">return</span> <span class="hl-kc">nil</span>, ErrNotFound</td>
 </tr>
 <tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
@@ -153,7 +153,7 @@ Adds an is_private column with an index, and tightens the visibility check in Re
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">25</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	return repo, nil</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	<span class="hl-k">return</span> repo, <span class="hl-kc">nil</span></td>
 </tr>
 <tr>
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">23</td>
@@ -171,7 +171,7 @@ Adds an is_private column with an index, and tightens the visibility check in Re
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">25</td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">28</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">func (s *RepoService) List(ctx context.Context, owner string) ([]model.Repository, error) {</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"><span class="hl-k">func</span> (s *RepoService) List(ctx context.Context, owner string) ([]model.Repository, error) {</td>
 </tr>
 </tbody>
 </table>
@@ -196,25 +196,25 @@ Adds an is_private column with an index, and tightens the visibility check in Re
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">1</td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">1</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground"> </td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">-- 0042_repo_visibility.sql</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"><span class="hl-c1">-- 0042_repo_visibility.sql</span></td>
 </tr>
 <tr class="bg-destructive/6 dark:bg-destructive/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">2</td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-destructive">-</td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">ALTER TABLE repositories ADD COLUMN visibility TEXT;</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"><span class="hl-k">ALTER TABLE</span> repositories <span class="hl-k">ADD COLUMN</span> visibility <span class="hl-kt">TEXT</span>;</td>
 </tr>
 <tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">2</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">ALTER TABLE repositories ADD COLUMN is_private BOOLEAN NOT NULL DEFAULT FALSE;</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"><span class="hl-k">ALTER TABLE</span> repositories <span class="hl-k">ADD COLUMN</span> is_private <span class="hl-kt">BOOLEAN</span> <span class="hl-k">NOT NULL</span> <span class="hl-k">DEFAULT</span> <span class="hl-kc">FALSE</span>;</td>
 </tr>
 <tr class="bg-success/6 dark:bg-success/10">
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td>
 <td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">3</td>
 <td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td>
-<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">CREATE INDEX idx_repositories_is_private ON repositories (is_private);</td>
+<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"><span class="hl-k">CREATE INDEX</span> idx_repositories_is_private <span class="hl-k">ON</span> repositories (is_private);</td>
 </tr>
 <tr>
 <td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">3</td>

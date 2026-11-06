@@ -67,7 +67,7 @@
           </div>
           </div>
           <p class="mt-3 text-[12px] text-muted-foreground">
-            Comparing <span id="cmp-head" class="font-mono text-foreground">daisy/oauth-scopes</span> → <span id="cmp-base" class="font-mono text-foreground">main</span>.
+            Comparing <span class="font-mono text-foreground">daisy/oauth-scopes</span> → <span class="font-mono text-foreground">main</span>.
           </p>
         </fieldset>
 
@@ -288,15 +288,6 @@
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePickers(null); });
   syncPickers();
-  var base = document.getElementById('base_branch');
-  var head = document.getElementById('head_branch');
-  function syncCompare() {
-    document.getElementById('cmp-base').textContent = base.value;
-    document.getElementById('cmp-head').textContent = head.value;
-  }
-  base.addEventListener('change', syncCompare);
-  head.addEventListener('change', syncCompare);
-  document.querySelector('form').addEventListener('submit', function (e) { e.preventDefault(); });
 </script>
 </body>
 </html>

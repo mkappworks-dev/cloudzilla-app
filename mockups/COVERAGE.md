@@ -40,14 +40,14 @@ Mocks show the happy path. These real states are not drawn:
   cannot comment on; the `pr.html` merge box's lock line ("Only collaborators with write access…") in place of Merge and
   Close.
 - **Other states.** Draft, merged and closed pull requests outside `my_pulls.html`; merge conflicts; failing and pending
-  checks; a draft or pre-release release; archived and mirror repo banners; binary file in `blob`; private-issue badge
-  outside `my_issues.html`; hidden-issue project card; form validation errors (`Alert` destructive) on every create page
-  but `new_file.html` (submit a blank, `.git` or slash-ended path, or open `#error`); one-time token and backup-code
-  reveals.
+  checks; archived and mirror repo banners; binary file in `blob`; hidden-issue project card; form validation errors
+  (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or slash-ended path, or open
+  `#error`); one-time token and backup-code reveals.
 - **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
   `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
   a mock button draws the real busy state.
-- **Filters.** `?category=` on discussions.
+- **Filters and navigation.** `?category=` on discussions, the command palette, organization people and repository tabs, and the profile README call to action.
+- **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, the issue template picker, and PR diff error states.
 - **Admin.** The identity-confirm dialog (password, two-factor and provider factors), the SSO success and error banners,
   and users and audit-log pages beyond the first. The mock uses the generic confirm dialog instead.
 
@@ -64,11 +64,11 @@ revoking a key, webhook deliveries, archive and unarchive, leaving an org, delet
 transfer, create and delete branch or tag, and Watch and Star toggles. They use the real confirm dialogs, toasts and
 empty states.
 
-A control with no behaviour shows an "isn't wired up in the mock" toast, and a form with no handler shows "Submitted".
-Still in that state:
+Some controls and forms have no behaviour. In particular:
 
-- **Add forms and saves** in `settings.html` and `org_settings.html` (Add key, label, rule and webhook, Save changes,
-  member Role selects): they submit and toast but add no row.
+- **Add forms and saves** in `settings.html`, `org_settings.html`, and `account_settings.html` (Add key, label, rule and webhook, Save changes,
+  member Role selects, and Save profile): these do not persist changes; several forms suppress submission without feedback.
+- **File deletion** in `blob.html`: confirmation shows feedback but leaves the file displayed.
 - **Disabled in the real app too:** the Teams and org webhooks panels in `org_settings.html`.
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
 - **Auth states:** the sign-in error banner, the email-first signup flow, expired and invalid reset or verify links, and

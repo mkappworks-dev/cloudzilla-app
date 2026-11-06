@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
-<body class="min-h-screen antialiased flex flex-col">
+<body class="min-h-screen flex flex-col antialiased font-sans">
 
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -60,10 +60,10 @@
     </section>
 
     <nav aria-label="Profile sections" class="flex flex-wrap items-center gap-1 text-sm" id="profile-tabs">
-      <a href="#overview" data-tab="overview" aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">Overview</a>
-      <a href="#repositories" data-tab="repositories" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Repositories <span class="font-mono text-[11px] text-muted-foreground ml-0.5">14</span></a>
-      <a href="#stars" data-tab="stars" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Stars <span class="font-mono text-[11px] text-muted-foreground ml-0.5">6</span></a>
-      <a href="#gists" data-tab="gists" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Gists <span class="font-mono text-[11px] text-muted-foreground ml-0.5">3</span></a>
+      <a href="profile.html" data-tab="overview" aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">Overview</a>
+      <a href="?tab=repositories" data-tab="repositories" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Repositories <span class="font-mono text-[11px] text-muted-foreground ml-0.5">14</span></a>
+      <a href="?tab=stars" data-tab="stars" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Stars <span class="font-mono text-[11px] text-muted-foreground ml-0.5">6</span></a>
+      <a href="?tab=gists" data-tab="gists" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Gists <span class="font-mono text-[11px] text-muted-foreground ml-0.5">3</span></a>
     </nav>
 
     <div data-panel="overview" class="grid gap-8 lg:grid-cols-[1fr_240px]">
@@ -415,9 +415,9 @@ I build developer tooling and self-hosted infrastructure.</textarea>
     panels.forEach(function (p) { p.hidden = p.dataset.panel !== name; });
   }
   tabs.forEach(function (t) {
-    t.addEventListener('click', function (e) { e.preventDefault(); history.replaceState(null, '', '#' + t.dataset.tab); show(t.dataset.tab); });
+    t.addEventListener('click', function (e) { e.preventDefault(); history.replaceState(null, '', t.getAttribute('href')); show(t.dataset.tab); });
   });
-  show(location.hash.slice(1) || 'overview');
+  show(new URLSearchParams(location.search).get('tab') || 'overview');
 
   document.getElementById('share-btn').addEventListener('click', function () {
     var label = this.querySelector('span'); label.textContent = 'Copied';
