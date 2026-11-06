@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -30,10 +30,10 @@ No htmx control has a loading or disabled state (zero `hx-indicator`/`hx-disable
 
 ## Acceptance criteria
 
-- [ ] Every htmx button is disabled and announced busy while its request runs
-- [ ] A failed request re-enables the control
-- [ ] No `alert(` left in `internal/view`
-- [ ] Merge cannot be double-submitted
+- [x] Every htmx button is disabled and announced busy while its request runs
+- [x] A failed request re-enables the control
+- [x] No `alert(` left in `internal/view`
+- [x] Merge cannot be double-submitted
 
 ## Verification
 
@@ -42,3 +42,7 @@ Live check on a throwaway server with network throttled; `grep -rn "alert(" inte
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (implement): done. Busy state keys on `button[aria-busy]`, not `.htmx-request`: htmx puts that class on the
+form for a form submit, not on its button. `grep -rn "alert(" internal/view` still matches `alert(1)` XSS fixtures in
+`_test.go` files; no template calls `alert(`.

@@ -251,7 +251,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 				templ_7745c5c3_Err = components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 					"hx-delete":            "/api/gists/" + data.Gist.ID,
 					"hx-confirm":           "Delete this gist?",
-					"hx-on::after:request": templ.JSUnsafeFuncCall("if(ctx.response.status<400){window.location.href='/gists'}else{alert('Failed to delete gist.')}"),
+					"hx-on::after:request": templ.JSUnsafeFuncCall("if(ctx.response.status<400){window.location.href='/gists'}"),
 				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

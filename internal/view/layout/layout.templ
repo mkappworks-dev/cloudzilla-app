@@ -523,6 +523,7 @@ templ Base(base view.BasePage, title string) {
 				})();
 			</script>
 			<script src={ assets.URL("/htmx.min.js") } defer></script>
+			<script src={ assets.URL("/static/htmx-busy.js") } defer></script>
 			<!-- Before Alpine: it registers its component on alpine:init. -->
 			<script src={ assets.URL("/static/select-menu.js") } defer></script>
 			<script src={ assets.URL("/static/topnav-search.js") } defer></script>
