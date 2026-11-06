@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+var ErrReviewBodyRequired = errors.New("a summary is required to comment or request changes")
 
 var ErrOwnPullVerdict = errors.New("you can comment on your own pull request, but not approve it or request changes")
 
@@ -48,6 +51,9 @@ func (s *PullReviewService) SubmitReview(ctx context.Context, owner, repoName st
 	case model.PRReviewCommented:
 	default:
 		return nil, fmt.Errorf("review state must be approved, changes_requested or commented")
+	}
+	if state != string(model.PRReviewApproved) && strings.TrimSpace(body) == "" {
+		return nil, ErrReviewBodyRequired
 	}
 	r := &model.PullReview{
 		PullID:     pr.ID,

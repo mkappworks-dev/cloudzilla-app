@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -122,7 +123,10 @@ templ pullDetailBody(data view.PullDetailData) {
 			</ol>
 
 			if data.Pull.State == model.PRStateOpen && !data.Pull.IsDraft {
-				<div class="mt-8">
+				<div class="mt-8 flex flex-col gap-3">
+					if canReviewPull(data.BasePage, data.CanWrite, data.Pull) {
+						@reviewPrompt(data)
+					}
 					@components.MergeabilityBox(data.Mergeability)
 				</div>
 			}
@@ -299,6 +303,9 @@ templ pullDetailBody(data view.PullDetailData) {
 			}
 		</aside>
 	</div>
+	if canReviewPull(data.BasePage, data.CanWrite, data.Pull) {
+		@components.ReviewDialog(reviewDialogData(data.BasePage, data.Owner, data.RepoName, data.Pull))
+	}
 	@components.Dialog("close-pull-dialog") {
 		@components.DialogHeader() {
 			@components.DialogTitle("close-pull-dialog") {
@@ -325,6 +332,56 @@ templ pullDetailBody(data view.PullDetailData) {
 		}
 	}
 }
+templ reviewPrompt(data view.PullDetailData) {
+	<div class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3">
+		<p class="text-[13px] text-muted-foreground">{ reviewPromptText(data) }</p>
+		@components.ReviewButton(components.ButtonOutline, components.ButtonSizeDefault) {
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+			Review changes
+		}
+	</div>
+}
+
+func reviewPromptText(data view.PullDetailData) string {
+	if !isPullAuthor(data.BasePage, data.Pull) {
+		for _, r := range data.Reviews {
+			if r.State == model.PRReviewPending && r.AuthorID == data.CurrentUser.UserID {
+				return "Your review was requested on this pull request."
+			}
+		}
+		return "Reviewed the changes? Approve, request changes or leave a summary."
+	}
+	const note = "You can reply to review comments, but not approve your own pull request."
+	var waiting []string
+	for _, r := range data.Reviews {
+		if r.State == model.PRReviewPending {
+			waiting = append(waiting, "@"+r.AuthorName)
+		}
+	}
+	if len(waiting) == 0 {
+		return note
+	}
+	return "Waiting on " + strings.Join(waiting, ", ") + " to review. " + note
+}
+
+func isPullAuthor(base view.BasePage, pull model.PullRequest) bool {
+	return base.CurrentUser != nil && base.CurrentUser.UserID == pull.AuthorID
+}
+
+// canReviewPull: reviewing needs write access, so a read-only viewer gets neither the prompt nor the dialog.
+func canReviewPull(base view.BasePage, canWrite bool, pull model.PullRequest) bool {
+	return base.CurrentUser != nil && canWrite && pull.State == model.PRStateOpen && !pull.IsDraft
+}
+
+func reviewDialogData(base view.BasePage, owner, repo string, pull model.PullRequest) components.ReviewDialogData {
+	return components.ReviewDialogData{
+		ReviewsURL: "/api/repos/" + owner + "/" + repo + "/pulls/" + strconv.Itoa(pull.Number) + "/reviews",
+		Number:     pull.Number,
+		BaseBranch: pull.BaseBranch,
+		IsAuthor:   isPullAuthor(base, pull),
+	}
+}
+
 templ sidebarPlusIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
 }

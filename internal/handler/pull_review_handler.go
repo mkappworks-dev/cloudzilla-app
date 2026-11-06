@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 func (h *Handler) ListReviews(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +80,13 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pr, _ := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if state == string(model.PRReviewCommented) && review.State != model.PRReviewCommented && pr != nil && repo != nil {
+		// The reviewer's standing verdict was kept, so the note goes to the timeline as a plain comment.
+		if _, err := h.Services.Comment.CreateForPull(r.Context(), *repo, pr.ID, pr.Number, claims.UserID, claims.Username, body); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to post comment")
+			return
+		}
+	}
 	if repo != nil && pr != nil {
 		go h.Services.Notification.NotifyPRReview(context.WithoutCancel(r.Context()), *repo, *pr, claims.UserID, claims.Username)
 		go h.tryAutoMerge(owner, repoName, pr.ID)

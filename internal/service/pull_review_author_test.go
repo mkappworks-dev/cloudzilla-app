@@ -52,3 +52,44 @@ func TestSubmitReview_AuthorMayOnlyComment(t *testing.T) {
 		t.Fatalf("want one stored commented review, got %+v", reviews)
 	}
 }
+
+func TestSubmitReview_CommentKeepsStandingVerdict(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	authorID := testutil.SeedUser(t, db, suffix)
+	reviewerID := testutil.SeedUser(t, db, suffix+"_rv")
+	owner, repo := "testuser_"+suffix, "testrepo_"+suffix
+	testutil.SeedRepo(t, db, authorID, owner, suffix)
+	repoSvc := service.NewRepoService(
+		store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db),
+		nil, nil, config.GitConfig{},
+	)
+	pulls := service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc)
+	pr, err := pulls.Create(context.Background(), owner, repo, authorID, "PR", "", "feature-branch", "main", false, nil)
+	if err != nil {
+		t.Fatalf("Create PR: %v", err)
+	}
+	svc := service.NewPullReviewService(store.NewPullReviewStore(db), store.NewPullStore(db), store.NewRepoStore(db), nil)
+	ctx := context.Background()
+	name := "testuser_" + suffix + "_rv"
+
+	if _, err := svc.SubmitReview(ctx, owner, repo, pr.Number, reviewerID, name, "changes_requested", "fix the tests"); err != nil {
+		t.Fatalf("request changes: %v", err)
+	}
+	got, err := svc.SubmitReview(ctx, owner, repo, pr.Number, reviewerID, name, "commented", "one more thought")
+	if err != nil {
+		t.Fatalf("comment: %v", err)
+	}
+	if got.State != model.PRReviewChangesRequested || got.Body != "fix the tests" {
+		t.Errorf("comment replaced the verdict: %+v", got)
+	}
+	if ok, _, _ := svc.CanMerge(ctx, pr.ID); ok {
+		t.Error("changes-requested block was lifted by a comment")
+	}
+	if _, err := svc.SubmitReview(ctx, owner, repo, pr.Number, reviewerID, name, "commented", "  "); !errors.Is(err, service.ErrReviewBodyRequired) {
+		t.Errorf("blank comment: want ErrReviewBodyRequired, got %v", err)
+	}
+	if got, err := svc.SubmitReview(ctx, owner, repo, pr.Number, reviewerID, name, "approved", ""); err != nil || got.State != model.PRReviewApproved {
+		t.Errorf("approve with no summary: %+v, %v", got, err)
+	}
+}
