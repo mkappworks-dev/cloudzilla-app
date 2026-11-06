@@ -103,7 +103,7 @@ func forbiddenPage(base view.BasePage, adminModeNext string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if adminModeNext != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<p class=\"mt-3 text-[13px] text-muted-foreground max-w-xs mx-auto\">You're an instance admin. To manage this as one, enter admin mode; it ends after an hour and every change is logged.</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<p class=\"mt-3 text-[13px] text-muted-foreground max-w-xs mx-auto\">You're an instance admin. To manage this as one, enter admin mode; it is time-limited and every change is logged.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -196,7 +196,6 @@ func forbiddenPage(base view.BasePage, adminModeNext string) templ.Component {
 	})
 }
 
-// homeButtonVariant steps "Go home" back when "Enter admin mode" is the primary action.
 func homeButtonVariant(adminModeNext string) components.ButtonVariant {
 	if adminModeNext != "" {
 		return components.ButtonOutline

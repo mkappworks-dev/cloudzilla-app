@@ -11,17 +11,13 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/adminmode"
 )
 
-// AdminModes is implemented by AdminModeService.
 type AdminModes interface {
 	Resolve(ctx context.Context, r *http.Request, raw string, userID int64, username string, sessionVersion int) (time.Time, bool)
 	RecordAction(ctx context.Context, r *http.Request, userID int64, username, targetType, targetName string, status int)
 }
 
-// WithAdminMode lets a superadmin's browser session act with admin rights while
-// the cookie named cookieName holds a running admin mode. Tokens and a session
-// JWT sent as a bearer header never get it, so API clients and git can't enter
-// it; routes that must not honour it (git smart HTTP) use an auth middleware
-// built without this option.
+// WithAdminMode honours the admin-mode cookie for browser sessions only; routes that must not (git smart HTTP)
+// use an auth middleware built without it.
 func WithAdminMode(cookieName string, v AdminModes) AuthOption {
 	return func(o *authOptions) {
 		o.adminModes = v
@@ -41,7 +37,7 @@ func isMutating(method string) bool {
 // browser session and its admin-mode cookie is running. A mutating request that
 // the override let through is audited after it finishes.
 func (o authOptions) withAdminMode(w http.ResponseWriter, r *http.Request, claims Claims, sessionCookie string, next http.Handler) {
-	if o.adminModes == nil || !claims.IsSuperadmin || claims.Scoped || !cameByCookie(r, sessionCookie) {
+	if o.adminModes == nil || !claims.IsSuperadmin || claims.Scoped || !CameByCookie(r, sessionCookie) {
 		next.ServeHTTP(w, r)
 		return
 	}
@@ -59,14 +55,18 @@ func (o authOptions) withAdminMode(w http.ResponseWriter, r *http.Request, claim
 	ww := chiMiddleware.NewWrapResponseWriter(w, r.ProtoMajor)
 	next.ServeHTTP(ww, r.WithContext(ctx))
 	if st.Used() && isMutating(r.Method) {
+		status := ww.Status()
+		if status == 0 {
+			status = http.StatusOK // net/http's implicit status when a handler only writes a body
+		}
 		targetType, target := adminTarget(r)
-		o.adminModes.RecordAction(context.WithoutCancel(ctx), r, claims.UserID, claims.Username, targetType, target, ww.Status())
+		o.adminModes.RecordAction(context.WithoutCancel(ctx), r, claims.UserID, claims.Username, targetType, target, status)
 	}
 }
 
-// cameByCookie reports whether the session token was read from the cookie, not
+// CameByCookie reports whether the session token was read from the cookie, not
 // a bearer header, which extractToken prefers.
-func cameByCookie(r *http.Request, cookieName string) bool {
+func CameByCookie(r *http.Request, cookieName string) bool {
 	if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
 		return false
 	}

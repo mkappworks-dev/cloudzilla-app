@@ -16,7 +16,7 @@ templ AdminMode(data view.AdminModeData) {
 				<h1 class="text-2xl font-semibold tracking-tight">Admin mode</h1>
 				<p class="text-muted-foreground text-sm mt-1">
 					Outside admin mode you are a normal user on every repository and organization. Admin mode lets this browser
-					open and change any of them for one hour.
+					open and change any of them for a limited time.
 				</p>
 			</div>
 			<ul class="list-disc pl-5 text-sm text-muted-foreground space-y-1">
@@ -30,7 +30,7 @@ templ AdminMode(data view.AdminModeData) {
 					<input type="hidden" name="next" value={ data.Next }/>
 					<p class="text-sm mb-3">
 						You are in admin mode until
-						<time datetime={ data.AdminMode.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z") } class="font-medium">{ data.AdminMode.ExpiresAt.UTC().Format("15:04") } UTC</time>.
+						<time datetime={ data.AdminMode.ISO() } class="font-medium">{ data.AdminMode.Clock() } UTC</time>.
 					</p>
 					@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 						Leave admin mode

@@ -12,7 +12,6 @@ import (
 
 type ctxKey struct{}
 
-// State is the admin mode of one request.
 type State struct {
 	userID    int64
 	expiresAt time.Time
@@ -26,7 +25,6 @@ func With(ctx context.Context, userID int64, expiresAt time.Time) (context.Conte
 	return context.WithValue(ctx, ctxKey{}, st), st
 }
 
-// FromContext returns the request's admin mode, or nil outside it.
 func FromContext(ctx context.Context) *State {
 	st, _ := ctx.Value(ctxKey{}).(*State)
 	return st

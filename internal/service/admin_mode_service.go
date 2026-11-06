@@ -15,8 +15,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// AdminModeService runs the time-boxed admin mode of a superadmin: one
-// server-side session per browser, found by a random cookie token.
 type AdminModeService struct {
 	store *store.AdminModeStore
 	audit *AuditService
@@ -45,8 +43,7 @@ func hashAdminModeToken(raw string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// Enter starts admin mode for a user who has already confirmed their identity.
-// sessionVersion is the one their session carries; a later bump ends the mode.
+// Enter expects the caller to have confirmed the user's identity; a later sessionVersion bump ends the mode.
 func (s *AdminModeService) Enter(ctx context.Context, r *http.Request, userID int64, username string, sessionVersion int) (string, time.Time, error) {
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {
@@ -61,9 +58,7 @@ func (s *AdminModeService) Enter(ctx context.Context, r *http.Request, userID in
 	return raw, expiresAt, nil
 }
 
-// Resolve reports whether raw is a running admin mode for this user and session.
-// One that has run out, or whose session or role is gone, is ended here and audited,
-// so the log shows how each admin mode finished.
+// Resolve ends and audits a dead admin mode it finds, so the log shows how each one finished.
 func (s *AdminModeService) Resolve(ctx context.Context, r *http.Request, raw string, userID int64, username string, sessionVersion int) (time.Time, bool) {
 	if raw == "" {
 		return time.Time{}, false
@@ -82,7 +77,6 @@ func (s *AdminModeService) Resolve(ctx context.Context, r *http.Request, raw str
 	return time.Time{}, false
 }
 
-// Leave ends the admin mode for raw at the user's request, or at logout.
 func (s *AdminModeService) Leave(ctx context.Context, r *http.Request, raw string, userID int64, username string) {
 	if raw == "" {
 		return
@@ -111,10 +105,10 @@ func (s *AdminModeService) end(ctx context.Context, r *http.Request, hash string
 
 // RecordAction audits a mutating request that only passed because of admin mode.
 func (s *AdminModeService) RecordAction(ctx context.Context, r *http.Request, userID int64, username, targetType, targetName string, status int) {
-	meta := map[string]any{"method": r.Method, "path": r.URL.Path, "target_type": targetType, "target": targetName, "status": status}
 	if s.audit == nil || r == nil {
 		return
 	}
+	meta := map[string]any{"method": r.Method, "path": r.URL.Path, "target_type": targetType, "target": targetName, "status": status}
 	if targetType == "" {
 		s.record(ctx, r, userID, username, model.AuditActionAdminModeAction, meta)
 		return

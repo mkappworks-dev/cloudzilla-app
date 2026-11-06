@@ -54,7 +54,7 @@ func AdminMode(data view.AdminModeData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div><h1 class=\"text-2xl font-semibold tracking-tight\">Admin mode</h1><p class=\"text-muted-foreground text-sm mt-1\">Outside admin mode you are a normal user on every repository and organization. Admin mode lets this browser open and change any of them for one hour.</p></div><ul class=\"list-disc pl-5 text-sm text-muted-foreground space-y-1\"><li>It needs your password or second factor again.</li><li>It applies to this browser only, and ends when you leave it, sign out or change your password.</li><li>Every change made because of it is written to the audit log.</li><li>It never applies to API tokens, git or SSH.</li></ul>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div><h1 class=\"text-2xl font-semibold tracking-tight\">Admin mode</h1><p class=\"text-muted-foreground text-sm mt-1\">Outside admin mode you are a normal user on every repository and organization. Admin mode lets this browser open and change any of them for a limited time.</p></div><ul class=\"list-disc pl-5 text-sm text-muted-foreground space-y-1\"><li>It needs your password or second factor again.</li><li>It applies to this browser only, and ends when you leave it, sign out or change your password.</li><li>Every change made because of it is written to the audit log.</li><li>It never applies to API tokens, git or SSH.</li></ul>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -77,9 +77,9 @@ func AdminMode(data view.AdminModeData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
-				templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.AdminMode.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z")).Resolve(ctx)
+				templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.AdminMode.ISO()).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/admin_mode.templ`, Line: 33, Col: 84}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/admin_mode.templ`, Line: 33, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 				if templ_7745c5c3_Err != nil {
@@ -90,9 +90,9 @@ func AdminMode(data view.AdminModeData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
-				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.AdminMode.ExpiresAt.UTC().Format("15:04"))
+				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.AdminMode.Clock())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/admin_mode.templ`, Line: 33, Col: 155}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/admin_mode.templ`, Line: 33, Col: 90}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {

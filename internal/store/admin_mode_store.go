@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// AdminModeStore provides database operations for superadmin admin-mode sessions.
 type AdminModeStore struct{ db *sql.DB }
 
 func NewAdminModeStore(db *sql.DB) *AdminModeStore { return &AdminModeStore{db: db} }

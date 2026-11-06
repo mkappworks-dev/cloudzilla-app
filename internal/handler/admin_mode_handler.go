@@ -3,7 +3,6 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -13,22 +12,10 @@ import (
 
 const adminModeFormError = "#admin-mode-error"
 
-// AdminModeCookie is the cookie that holds a browser's admin-mode token. It
-// derives from the session cookie's name, so servers that share a host keep
-// distinct ones.
+// Derived from the session cookie's name so servers sharing a host keep distinct ones.
 func AdminModeCookie(sessionCookie string) string { return sessionCookie + "_admin" }
 
 func (h *Handler) adminModeCookieName() string { return AdminModeCookie(h.Cfg.Auth.CookieName) }
-
-// sessionByCookie reports whether the request is a browser session: its token
-// came from the cookie, not from an Authorization header.
-func (h *Handler) sessionByCookie(r *http.Request) bool {
-	if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
-		return false
-	}
-	_, err := r.Cookie(h.Cfg.Auth.CookieName)
-	return err == nil
-}
 
 // setAdminModeCookie sets the cookie until expiresAt; a zero expiresAt clears it.
 func (h *Handler) setAdminModeCookie(w http.ResponseWriter, value string, expiresAt time.Time) {
@@ -44,8 +31,6 @@ func (h *Handler) setAdminModeCookie(w http.ResponseWriter, value string, expire
 	http.SetCookie(w, c)
 }
 
-// PageAdminMode renders GET /admin/mode: what admin mode is, the confirmation to
-// enter it, or the way to leave it.
 func (h *Handler) PageAdminMode(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok || !claims.IsSuperadmin {
@@ -59,12 +44,10 @@ func (h *Handler) PageAdminMode(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// EnterAdminMode handles POST /admin/mode: after the identity confirmation, this
-// browser (and only this one) gets an admin-mode cookie. Tokens and bearer
-// sessions are refused, since the cookie would be useless to them anyway.
+// EnterAdminMode handles POST /admin/mode; tokens and bearer sessions are refused because they never honour the cookie.
 func (h *Handler) EnterAdminMode(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok || !claims.IsSuperadmin || claims.Scoped || !h.sessionByCookie(r) {
+	if !ok || !claims.IsSuperadmin || claims.Scoped || !middleware.CameByCookie(r, h.Cfg.Auth.CookieName) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -81,18 +64,14 @@ func (h *Handler) EnterAdminMode(w http.ResponseWriter, r *http.Request) {
 	redirectAfterAdminMode(w, r)
 }
 
-// LeaveAdminMode handles POST /admin/mode/leave. It works for any signed-in
-// session so a demoted user can still drop the cookie.
+// LeaveAdminMode works for any signed-in session so a demoted user can still drop the cookie.
 func (h *Handler) LeaveAdminMode(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	if ck, err := r.Cookie(h.adminModeCookieName()); err == nil {
-		h.Services.AdminMode.Leave(r.Context(), r, ck.Value, claims.UserID, claims.Username)
-	}
-	h.setAdminModeCookie(w, "", time.Time{})
+	h.endAdminMode(w, r, claims)
 	redirectAfterAdminMode(w, r)
 }
 
@@ -115,4 +94,12 @@ func (h *Handler) forbiddenSettings(w http.ResponseWriter, r *http.Request, isSu
 	}
 	w.WriteHeader(http.StatusForbidden)
 	h.render(w, r, pages.ForbiddenAdminMode(basePage(r, h.Services), r.URL.RequestURI()))
+}
+
+// endAdminMode ends this browser's admin mode, if any, and clears its cookie.
+func (h *Handler) endAdminMode(w http.ResponseWriter, r *http.Request, claims middleware.Claims) {
+	if ck, err := r.Cookie(h.adminModeCookieName()); err == nil {
+		h.Services.AdminMode.Leave(r.Context(), r, ck.Value, claims.UserID, claims.Username)
+	}
+	h.setAdminModeCookie(w, "", time.Time{})
 }
