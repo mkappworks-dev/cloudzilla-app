@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -27,9 +27,9 @@ See audit.md "Systemic drift causes": two-letter initials, side-by-side base+cal
 
 ## Acceptance criteria
 
-- [ ] Each systemic cause fixed
-- [ ] COVERAGE.md claims verified one by one
-- [ ] index.html routes match router.go
+- [x] Each systemic cause fixed
+- [x] COVERAGE.md claims verified one by one
+- [x] index.html routes match router.go
 
 ## Verification
 
@@ -43,3 +43,6 @@ Screenshot every mock/real pair at 1440 light and dark and compare.
 subtitle), `pr_files.html` (diff header `role=button` and keyboard toggle), `register.html` (password hint),
 `admin_settings.html` (setting labels), `new_organization.html` (terms text, no link). Issue-list empty state and toast
 dismiss are not drawn in the mocks.
+
+2026-11-07: merged as #276 without closing the ticket. Spot-checked on main: skip link, `<main>` and footer on the
+releases and wiki mocks; code blocks use code-theme tokens; COVERAGE no longer claims mock forms submit and toast.
