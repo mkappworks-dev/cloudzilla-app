@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CI #145 · Checks · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="./mock.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="checks"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="flex flex-col gap-6">
+
+    <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
+      <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
+      <button type="button" data-mock-state="queued" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Queued</button>
+      <button type="button" data-mock-state="running" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Running (live)</button>
+      <button type="button" data-mock-state="failed" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Failed step</button>
+      <button type="button" data-mock-state="success" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Succeeded</button>
+      <button type="button" data-mock-state="cancelled" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Cancelled</button>
+      <button type="button" data-mock-state="yaml-error" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Workflow YAML error</button>
+      <span class="ml-auto"><a href="mock.html" class="underline hover:text-foreground">← runs list</a></span>
+    </div>
+
+    <section aria-labelledby="run-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="#" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="mock.html" class="hover:underline">Checks</a>
+        <span aria-hidden="true">·</span>
+        <span aria-current="page" data-f="crumb">CI #145</span>
+      </p>
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2 min-w-0">
+          <h1 id="run-title" class="text-2xl font-semibold tracking-tight min-w-0" data-f="title">fix: retry webhook deliveries with backoff</h1>
+          <span data-f="badge"></span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" data-when="queued running" data-cancel-open class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="1"></rect></svg>
+            Cancel run
+          </button>
+          <div class="relative inline-block" data-dropdown data-when="failed success cancelled yaml-error">
+            <button type="button" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]" aria-haspopup="menu" aria-expanded="false">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path></svg>
+              Re-run
+              <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </button>
+            <div role="menu" class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[12rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm">
+              <button type="button" role="menuitem" data-rerun="failed" data-when="failed cancelled" class="flex w-full items-center gap-2 px-2 py-1.5 rounded-xs text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none">Re-run failed jobs</button>
+              <button type="button" role="menuitem" data-rerun="all" class="flex w-full items-center gap-2 px-2 py-1.5 rounded-xs text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none">Re-run all jobs</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="mt-2 text-[13px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <span class="font-medium text-foreground" data-f="wfname">CI</span>
+        <a href="#" class="font-mono hover:text-foreground hover:underline" data-f="wfpath">.cloudzilla/workflows/ci.yml</a>
+        <span aria-hidden="true">·</span>
+        <span data-f="trigger">Pull request <a href="#" class="hover:text-foreground hover:underline">#349</a> by daisy</span>
+        <span aria-hidden="true">·</span>
+        <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]" data-f="branch">daisy/webhook-retry</span>
+        <a href="#" class="font-mono hover:text-foreground hover:underline" data-f="sha">0cfa3e4</a>
+        <span aria-hidden="true">·</span>
+        <span data-f="timing">3m 02s · finished 3 hours ago</span>
+      </p>
+    </section>
+
+    <div class="grid lg:grid-cols-[260px_1fr] gap-6 items-start">
+
+      <aside class="order-last lg:order-first flex flex-col gap-6 min-w-0 lg:sticky lg:top-4" aria-label="Run">
+        <nav aria-label="Jobs" class="hidden lg:flex flex-col gap-0.5 text-[13px] lg:pb-5 lg:border-b lg:border-border" data-when="queued running failed success cancelled">
+          <p class="font-mono text-[10px] uppercase tracking-wider mb-1 px-2.5 text-muted-foreground">Jobs</p>
+          <div data-f="jobs-nav" class="contents"></div>
+        </nav>
+        <dl class="flex flex-col gap-3 text-[12.5px]">
+          <div>
+            <dt class="text-[12px] font-medium text-muted-foreground mb-1">Runner</dt>
+            <dd class="font-mono">host · runner-01</dd>
+          </div>
+          <div>
+            <dt class="text-[12px] font-medium text-muted-foreground mb-1">Attempt</dt>
+            <dd data-f="attempt">1</dd>
+          </div>
+          <div>
+            <dt class="text-[12px] font-medium text-muted-foreground mb-1">Reported as</dt>
+            <dd>Commit statuses <span class="font-mono">ci/&lt;job&gt;</span> on <a href="#" class="font-mono hover:underline" data-f="sha2">0cfa3e4</a></dd>
+          </div>
+        </dl>
+      </aside>
+
+      <div class="flex flex-col gap-6 min-w-0">
+
+        <div data-when="cancelled" role="alert" class="relative w-full rounded-md border p-4 border-border bg-card text-card-foreground">
+          <h5 class="mb-1 font-medium leading-none tracking-tight">Cancelled by malith after 48s</h5>
+          <div class="text-sm [&_p]:leading-relaxed opacity-90"><p>Running jobs were stopped and their logs so far are kept. Jobs that hadn't started are skipped.</p></div>
+        </div>
+
+        <section data-when="queued running failed success cancelled" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="graph-heading">
+          <header class="px-4 py-3 border-b border-border bg-muted/30 flex items-center gap-2">
+            <h2 id="graph-heading" class="text-[13px] font-medium">Jobs</h2>
+            <span class="text-[12px] text-muted-foreground font-mono">on: [push, pull_request]</span>
+          </header>
+          <div class="p-4 overflow-x-auto">
+            <ol class="flex items-center gap-3 w-max" aria-label="Job graph" data-f="graph"></ol>
+          </div>
+        </section>
+
+        <section data-when="queued running failed success cancelled" data-f="job" class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden" aria-labelledby="job-title"></section>
+
+        <section data-when="failed success" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="artifacts-heading">
+          <header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+            <h2 id="artifacts-heading" class="text-[13px] font-medium">Artifacts</h2>
+            <span class="text-[12px] text-muted-foreground">kept 30 days</span>
+          </header>
+          <ul class="divide-y divide-border" data-f="artifacts"></ul>
+        </section>
+
+        <div data-when="yaml-error" class="flex flex-col gap-4">
+          <div role="alert" class="relative w-full rounded-md border p-4 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:pl-7 [&>svg~*]:pl-7 border-destructive/40 bg-destructive/10 text-destructive">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <h5 class="mb-1 font-medium leading-none tracking-tight">Invalid workflow file</h5>
+            <div class="text-sm [&_p]:leading-relaxed opacity-90">
+              <p>No jobs ran. <span class="font-mono">.cloudzilla/workflows/deploy.yml</span> line 11: step 2 has <span class="font-mono">uses</span> but no <span class="font-mono">run</span>. Steps run shell commands only.</p>
+            </div>
+          </div>
+          <article class="rounded-md border border-border bg-card overflow-hidden">
+            <div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between gap-3">
+              <code class="text-sm font-mono text-foreground truncate">.cloudzilla/workflows/deploy.yml</code>
+              <a href="#" class="text-xs text-muted-foreground hover:text-foreground shrink-0">View file at 5be12f0</a>
+            </div>
+            <div class="overflow-x-auto bg-card">
+              <table class="w-full font-mono text-[12.5px] leading-[1.6]">
+                <caption class="sr-only">deploy.yml, lines 1 to 14</caption>
+                <tbody>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">1</td><td class="pl-4 pr-4 py-0 whitespace-pre">name: Deploy</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">2</td><td class="pl-4 pr-4 py-0 whitespace-pre">on: [push]</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">3</td><td class="pl-4 pr-4 py-0 whitespace-pre">jobs:</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">4</td><td class="pl-4 pr-4 py-0 whitespace-pre">  deploy:</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">5</td><td class="pl-4 pr-4 py-0 whitespace-pre">    runs-on: host</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">6</td><td class="pl-4 pr-4 py-0 whitespace-pre">    env:</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">7</td><td class="pl-4 pr-4 py-0 whitespace-pre">      TARGET: staging</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">8</td><td class="pl-4 pr-4 py-0 whitespace-pre">    steps:</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">9</td><td class="pl-4 pr-4 py-0 whitespace-pre">      - name: Build</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">10</td><td class="pl-4 pr-4 py-0 whitespace-pre">        run: make build</td></tr>
+                  <tr class="bg-destructive/10"><td class="select-none text-destructive pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">11</td><td class="pl-4 pr-4 py-0 whitespace-pre">      - uses: docker/setup-buildx-action@v3</td></tr>
+                  <tr class="bg-destructive/10"><td class="select-none pr-4 pl-4 py-0 w-12 border-r border-border"></td><td class="pl-4 pr-4 py-1 font-sans text-[12px] text-destructive">Step 2 needs <span class="font-mono">run</span>. <span class="font-mono">uses</span> isn't supported: the runner executes shell commands only.</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">12</td><td class="pl-4 pr-4 py-0 whitespace-pre">      - name: Push image</td></tr>
+                  <tr class="hover:bg-muted/50"><td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">13</td><td class="pl-4 pr-4 py-0 whitespace-pre">        run: make push</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<dialog id="cancel-run-dialog" aria-labelledby="cancel-run-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="p-5">
+    <h2 id="cancel-run-title" class="text-base font-semibold tracking-tight mb-1">Cancel this run?</h2>
+    <p class="text-[13px] text-muted-foreground leading-relaxed mb-5">Running jobs are stopped and keep the log they have so far. Jobs that haven't started are skipped. The commit status for each job becomes an error.</p>
+    <div class="flex justify-end gap-2">
+      <button type="button" data-cancel-dismiss class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Keep running</button>
+      <button type="button" data-cancel-confirm class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Cancel run</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="cz-footer"></div>
+<script src="../../mockups/shell.js"></script>
+<script>
+(function () {
+  // Icons: checkRowIcon in pages/pr_checks.templ, plus running/queued/cancelled/skipped.
+  var ICON = {
+    success: ['text-success', 'Succeeded', '<path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle>'],
+    failure: ['text-destructive', 'Failed', '<path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle>'],
+    running: ['text-warning motion-safe:animate-pulse', 'Running', '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle>'],
+    queued: ['text-muted-foreground', 'Queued', '<circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 2"></path>'],
+    cancelled: ['text-muted-foreground', 'Cancelled', '<circle cx="12" cy="12" r="10"></circle><path d="M4.93 4.93l14.14 14.14"></path>'],
+    skipped: ['text-muted-foreground', 'Skipped', '<circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path>'],
+  };
+  function icon(st, size) {
+    var i = ICON[st];
+    size = size || 14;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 ' + i[0] + '" aria-label="' + i[1] + '">' + i[2] + '</svg>';
+  }
+  var BADGE = {
+    queued: 'bg-muted text-muted-foreground border-transparent',
+    running: 'bg-warning/15 text-warning border-warning/30',
+    failure: 'bg-destructive/15 text-destructive border-destructive/30',
+    success: 'bg-success/15 text-success border-success/30',
+    cancelled: 'bg-muted text-muted-foreground border-transparent',
+  };
+  function badge(st, text) {
+    return '<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium ' + BADGE[st] + '">' + text + '</span>';
+  }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+  var RUNS = {
+    queued: { crumb: 'CI #147', title: 'docs: document the runner sandbox', trigger: 'Pull request <a href="#" class="hover:text-foreground hover:underline">#352</a> by kiyo', branch: 'kiyo/runner-docs', sha: 'e41b0c9', timing: 'queued 40s ago', run: 'queued', label: 'Queued' },
+    running: { crumb: 'CI #146', title: 'feat(ci): cache Go modules between runs', trigger: 'Push by malith', branch: 'main', sha: '7d1e0a2', timing: 'running for <span data-elapsed class="font-mono">1m 12s</span>', run: 'running', label: 'Running' },
+    failed: { crumb: 'CI #145', title: 'fix: retry webhook deliveries with backoff', trigger: 'Pull request <a href="#" class="hover:text-foreground hover:underline">#349</a> by daisy', branch: 'daisy/webhook-retry', sha: '0cfa3e4', timing: '3m 02s · finished 3 hours ago', run: 'failure', label: 'Failed' },
+    success: { crumb: 'CI #144', title: 'Add OAuth scopes to access tokens', trigger: 'Pull request <a href="#" class="hover:text-foreground hover:underline">#341</a> by daisy', branch: 'daisy/oauth-scopes', sha: '9c8e2a4', timing: '2m 14s · finished 5 hours ago', run: 'success', label: 'Succeeded' },
+    cancelled: { crumb: 'CI #143', title: 'wip: try the arm64 runner image', trigger: 'Push by daisy', branch: 'daisy/arm64', sha: 'b7f20d1', timing: '48s · cancelled 2 days ago', run: 'cancelled', label: 'Cancelled' },
+    'yaml-error': { crumb: 'Deploy', title: 'ci: add a deploy workflow', trigger: 'Push by malith', branch: 'main', sha: '5be12f0', timing: '2 minutes ago', run: 'failure', label: 'Invalid workflow' },
+  };
+
+  var STAGES = [['lint', 'vet'], ['test', 'migrations'], ['build']];
+  var JOBS = {
+    queued: { lint: ['queued'], vet: ['queued'], test: ['queued'], migrations: ['queued'], build: ['queued'] },
+    running: { lint: ['success', '18s'], vet: ['success', '12s'], test: ['running', '54s'], migrations: ['running', '40s'], build: ['queued'] },
+    failed: { lint: ['success', '18s'], vet: ['success', '12s'], test: ['failure', '2m 41s'], migrations: ['success', '1m 10s'], build: ['skipped'] },
+    success: { lint: ['success', '17s'], vet: ['success', '11s'], test: ['success', '1m 22s'], migrations: ['success', '1m 04s'], build: ['success', '34s'] },
+    cancelled: { lint: ['success', '18s'], vet: ['success', '12s'], test: ['cancelled', '18s'], migrations: ['cancelled', '16s'], build: ['skipped'] },
+  };
+
+  // Each log line: [timestamp, html]. Colours are token classes standing in for ANSI SGR codes.
+  var C = {
+    cmd: function (t) { return '<span class="text-ring font-medium">' + esc(t) + '</span>'; },
+    ok: function (t) { return '<span class="text-success">' + esc(t) + '</span>'; },
+    bad: function (t) { return '<span class="text-destructive">' + esc(t) + '</span>'; },
+    warn: function (t) { return '<span class="text-warning">' + esc(t) + '</span>'; },
+    dim: function (t) { return '<span class="text-muted-foreground">' + esc(t) + '</span>'; },
+    txt: esc,
+  };
+  function setupLog(sha) {
+    return [
+      ['10:02:11.204', C.dim('Runner runner-01 (host), Cloudzilla runner v0.5.0')],
+      ['10:02:11.207', C.txt('Workspace /var/lib/cloudzilla/runner/work/cloudzilla/145')],
+      ['10:02:11.340', C.txt('Checking out ' + sha + ' (daisy/webhook-retry)')],
+      ['10:02:11.912', C.ok('Checked out 412 files in 0.57s')],
+    ];
+  }
+  var TEST_FAIL = [
+    ['10:02:20.001', C.cmd('$ go test ./...')],
+    ['10:02:24.118', C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/auth\t1.204s')],
+    ['10:02:31.502', C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/service\t4.212s')],
+    ['10:02:33.010', C.dim('=== RUN   TestDispatchRetry')],
+    ['10:02:33.420', C.txt('    dispatch_test.go:88: attempt 3: got status 500, want 200')],
+    ['10:02:33.421', C.bad('--- FAIL: TestDispatchRetry (0.41s)')],
+    ['10:02:33.422', C.dim('=== RUN   TestDispatchBackoff')],
+    ['10:02:34.440', C.txt('    dispatch_test.go:131: backoff 2s, want 4s')],
+    ['10:02:34.441', C.bad('--- FAIL: TestDispatchBackoff (1.02s)')],
+    ['10:02:34.442', C.bad('FAIL')],
+    ['10:02:34.443', C.bad('FAIL') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/webhook\t1.611s')],
+    ['10:02:39.870', C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/store\t6.902s')],
+    ['10:02:39.871', C.warn('?   ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/cmd/server\t[no test files]')],
+    ['10:02:39.874', C.bad('FAIL')],
+    ['10:02:39.875', C.bad('Error: process exited with code 1')],
+  ];
+  var TEST_OK = [TEST_FAIL[0], TEST_FAIL[1], TEST_FAIL[2], ['10:02:34.443', C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/webhook\t1.611s')], TEST_FAIL[11], TEST_FAIL[12]];
+  var LIVE = [
+    ['10:02:20.001', C.cmd('$ go test ./...')],
+    ['10:02:24.118', C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/auth\t1.204s')],
+    ['10:02:31.502', C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/service\t4.212s')],
+  ];
+  var LIVE_MORE = [
+    C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/webhook\t1.611s'),
+    C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/codeurl\t0.088s'),
+    C.dim('=== RUN   TestMirrorSync'),
+    C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/mirror\t3.410s'),
+    C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/router\t5.774s'),
+    C.ok('ok  ') + C.txt('\tgithub.com/mkappworks-dev/cloudzilla-app/internal/store\t6.902s'),
+  ];
+
+  function stepsFor(job, st, sha) {
+    var run = job === 'test' ? 'go test ./...' : job === 'lint' ? 'golangci-lint run' : job === 'vet' ? 'go vet ./...' : job === 'migrations' ? 'make migrate-check' : 'make build';
+    var main = job === 'test' ? (st === 'failure' ? TEST_FAIL : st === 'running' ? LIVE : TEST_OK) : [['10:02:20.001', C.cmd('$ ' + run)], ['10:02:31.000', C.ok('done')]];
+    var mainSt = st, after = st === 'success' ? 'success' : st === 'failure' ? 'skipped' : st === 'cancelled' ? 'skipped' : 'queued';
+    var cache = job === 'test' ? [['Restore Go module cache', 'success', '3s', [['10:02:12.010', C.txt('Restoring cache key go-mod-7f3a91…')], ['10:02:14.880', C.ok('Cache hit: 214 MB in 2.87s')]]]] : [];
+    var steps = [['Set up job', 'success', '1s', setupLog(sha).slice(0, 2)], ['Check out ' + sha, 'success', '1s', setupLog(sha).slice(2)]]
+      .concat(cache)
+      .concat([[run, mainSt, st === 'running' ? '' : (job === 'test' ? (st === 'failure' ? '2m 12s' : '58s') : '11s'), main]]);
+    if (job === 'test') steps.push(['Upload coverage.out', after, after === 'success' ? '2s' : '', after === 'success' ? [['10:04:41.300', C.txt('Uploaded artifact coverage.out (412 KB)')]] : []]);
+    steps.push(['Clean up', st === 'running' || st === 'queued' ? 'queued' : 'success', st === 'running' ? '' : '1s', st === 'running' ? [] : [['10:04:42.002', C.dim('Removed workspace')]]]);
+    return steps;
+  }
+
+  var state = 'failed', job = 'test', showTs = false, query = '', liveTimer = null;
+
+  function renderGraph() {
+    var j = JOBS[state];
+    document.querySelector('[data-f=graph]').innerHTML = STAGES.map(function (stage, i) {
+      var col = '<li class="flex flex-col gap-2">' + stage.map(function (name) {
+        var s = j[name], on = name === job;
+        return '<a href="#job-' + name + '" data-job="' + name + '"' + (on ? ' aria-current="true"' : '') + ' class="flex items-center gap-2 h-8 w-44 px-2.5 rounded-md border border-border text-[12.5px] ' +
+          (on ? 'bg-accent font-medium text-foreground' : 'bg-background text-muted-foreground hover:text-foreground hover:bg-accent') + '">' +
+          icon(s[0]) + '<span class="font-mono truncate">' + name + '</span>' +
+          (s[1] ? '<span class="ml-auto font-mono text-[11px] text-muted-foreground">' + s[1] + '</span>' : '') + '</a>';
+      }).join('') + '</li>';
+      var arrow = i < STAGES.length - 1 ? '<li aria-hidden="true" class="text-muted-foreground"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></li>' : '';
+      return col + arrow;
+    }).join('');
+  }
+
+  function renderNav() {
+    var j = JOBS[state];
+    document.querySelector('[data-f=jobs-nav]').innerHTML = STAGES.reduce(function (a, s) { return a.concat(s); }, []).map(function (name) {
+      var s = j[name], on = name === job;
+      return '<a href="#job-' + name + '" data-job="' + name + '"' + (on ? ' aria-current="page"' : '') + ' class="flex items-center gap-2 px-3 py-1.5 rounded-sm ' +
+        (on ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent') + '">' +
+        icon(s[0]) + '<span class="font-mono truncate">' + name + '</span>' +
+        (s[1] ? '<span class="ml-auto font-mono text-[11px] text-muted-foreground">' + s[1] + '</span>' : '') + '</a>';
+    }).join('');
+  }
+
+  function logTable(stepIdx, lines) {
+    return '<div class="overflow-x-auto bg-background border-t border-border"><table class="w-full font-mono text-[12px] leading-[1.6]"><tbody data-log="' + stepIdx + '">' +
+      lines.map(function (l, n) { return logRow(stepIdx, n + 1, l); }).join('') + '</tbody></table></div>';
+  }
+  function logRow(stepIdx, n, l) {
+    var id = job + '-' + stepIdx + '-L' + n;
+    var err = /Error: process exited/.test(l[1]);
+    return '<tr id="' + id + '" class="target:bg-accent/30 hover:bg-muted/50' + (err ? ' bg-destructive/10' : '') + '">' +
+      '<td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border"><a href="#' + id + '" class="hover:text-foreground">' + n + '</a></td>' +
+      '<td data-ts class="select-none text-muted-foreground pl-4 py-0 whitespace-nowrap align-top"' + (showTs ? '' : ' hidden') + '>' + l[0] + '</td>' +
+      '<td data-line class="pl-4 pr-4 py-0 whitespace-pre">' + l[1] + '</td></tr>';
+  }
+
+  function renderJob() {
+    var s = JOBS[state][job], r = RUNS[state];
+    var sec = document.querySelector('[data-f=job]');
+    var sub = s[0] === 'queued' ? 'Waiting for a runner' : s[0] === 'running' ? 'Running for <span data-job-elapsed class="font-mono">' + s[1] + '</span> on runner-01' :
+      s[0] === 'skipped' ? 'Skipped: a job it needs didn\'t succeed' : (ICON[s[0]][1] + ' after ' + s[1] + ' on runner-01');
+    var header = '<header class="px-4 py-3 bg-muted/30 flex flex-wrap items-center gap-3">' + icon(s[0], 16) +
+      '<div class="min-w-0"><h2 id="job-title" class="text-[13.5px] font-medium font-mono">' + job + '</h2><p class="text-[12px] text-muted-foreground mt-0.5">' + sub + '</p></div>' +
+      (s[0] === 'running' ? '<span class="inline-flex items-center gap-1.5 text-[12px] text-warning"><span class="h-2 w-2 rounded-full bg-warning motion-safe:animate-pulse" aria-hidden="true"></span>Live</span>' : '') +
+      '<div class="ml-auto flex flex-wrap items-center gap-1.5">' +
+      '<label for="log-search" class="sr-only">Search this job\'s log</label><div class="relative">' +
+      '<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>' +
+      '<input id="log-search" type="search" placeholder="Search log" class="w-44 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/></div>' +
+      '<span data-match-count role="status" class="text-[12px] text-muted-foreground font-mono empty:hidden"></span>' +
+      '<button type="button" data-ts-toggle aria-pressed="' + showTs + '" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground inline-flex items-center gap-1.5">' +
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 2"></path></svg>Timestamps</button>' +
+      '<a href="#" data-download class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5">' +
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Download log</a>' +
+      '</div></header>';
+    var body;
+    if (s[0] === 'queued' && state === 'queued') {
+      body = '<div class="p-8 text-center"><p class="text-muted-foreground">Waiting for a runner.</p><p class="text-sm text-muted-foreground mt-2">2 runs are ahead of this one. The page updates when it starts.</p></div>';
+    } else if (s[0] === 'queued' || s[0] === 'skipped') {
+      body = '<div class="p-8 text-center"><p class="text-muted-foreground">' + (s[0] === 'skipped' ? 'This job didn\'t run.' : 'This job hasn\'t started.') + '</p><p class="text-sm text-muted-foreground mt-2">It needs <span class="font-mono">test</span> and <span class="font-mono">migrations</span>.</p></div>';
+    } else {
+      body = stepsFor(job, s[0], r.sha).map(function (st, i) {
+        var open = st[1] === 'failure' || st[1] === 'running';
+        return '<details class="group" data-step="' + i + '"' + (open ? ' open' : '') + '>' +
+          '<summary class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted/50 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring">' +
+          '<span class="flex items-center gap-2 min-w-0">' + icon(st[1]) + '<span class="truncate">' + esc(st[0]) + '</span></span>' +
+          '<span class="flex items-center gap-3 shrink-0"><span class="font-mono text-[11px] text-muted-foreground">' + st[2] + '</span>' +
+          '<svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"></polyline></svg></span>' +
+          '</summary>' + (st[3].length ? logTable(i, st[3]) : '<p class="px-4 pb-3 text-[12px] text-muted-foreground">No output.</p>') + '</details>';
+      }).join('');
+    }
+    sec.innerHTML = header + body;
+    sec.querySelector('#log-search').value = query;
+    applySearch();
+  }
+
+  function renderArtifacts() {
+    var list = state === 'success'
+      ? [['cloudzilla-linux-amd64.tar.gz', '18.4 MB'], ['cloudzilla-darwin-arm64.tar.gz', '17.9 MB'], ['coverage.out', '412 KB']]
+      : [['coverage.out', '398 KB']];
+    document.querySelector('[data-f=artifacts]').innerHTML = list.map(function (a) {
+      return '<li class="flex items-center gap-3 px-5 py-3">' +
+        '<svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>' +
+        '<span class="font-mono text-[13px] min-w-0 truncate">' + a[0] + '</span>' +
+        '<span class="ml-auto font-mono text-[12px] text-muted-foreground shrink-0">' + a[1] + '</span>' +
+        '<a href="#" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Download</a></li>';
+    }).join('');
+  }
+
+  function applySearch() {
+    var count = 0, q = query.toLowerCase();
+    document.querySelectorAll('[data-line]').forEach(function (td) {
+      if (!td.dataset.orig) td.dataset.orig = td.innerHTML;
+      td.innerHTML = td.dataset.orig;
+      if (!q) return;
+      var walker = document.createTreeWalker(td, NodeFilter.SHOW_TEXT), nodes = [], n;
+      while ((n = walker.nextNode())) nodes.push(n);
+      nodes.forEach(function (node) {
+        var t = node.nodeValue, i = t.toLowerCase().indexOf(q);
+        if (i < 0) return;
+        var frag = document.createDocumentFragment(), last = 0;
+        while (i >= 0) {
+          frag.appendChild(document.createTextNode(t.slice(last, i)));
+          var m = document.createElement('mark');
+          m.className = 'bg-warning/30 text-foreground rounded-xs';
+          m.textContent = t.slice(i, i + q.length);
+          frag.appendChild(m);
+          count++;
+          last = i + q.length;
+          i = t.toLowerCase().indexOf(q, last);
+        }
+        frag.appendChild(document.createTextNode(t.slice(last)));
+        node.parentNode.replaceChild(frag, node);
+      });
+      if (td.querySelector('mark')) td.closest('details').open = true;
+    });
+    var c = document.querySelector('[data-match-count]');
+    if (c) c.textContent = q ? count + (count === 1 ? ' match' : ' matches') : '';
+  }
+
+  function stopLive() { if (liveTimer) { clearInterval(liveTimer); liveTimer = null; } }
+  function startLive() {
+    stopLive();
+    var i = 0, secs = 72, jobSecs = 54;
+    liveTimer = setInterval(function () {
+      secs++; jobSecs++;
+      var el = document.querySelector('[data-elapsed]');
+      if (el) el.textContent = Math.floor(secs / 60) + 'm ' + String(secs % 60).padStart(2, '0') + 's';
+      var je = document.querySelector('[data-job-elapsed]');
+      if (je) je.textContent = jobSecs + 's';
+      if (job !== 'test' || i >= LIVE_MORE.length) return;
+      var tb = document.querySelector('[data-log="3"]');
+      if (!tb) return;
+      var n = tb.rows.length + 1;
+      tb.insertAdjacentHTML('beforeend', logRow(3, n, ['10:02:' + (32 + n * 2) + '.000', LIVE_MORE[i++]]));
+      applySearch();
+    }, 1200);
+  }
+
+  function show(s) {
+    state = s;
+    var r = RUNS[s];
+    document.querySelector('[data-f=crumb]').textContent = r.crumb;
+    document.querySelector('[data-f=title]').textContent = r.title;
+    document.title = r.crumb + ' · Checks · mkappworks/cloudzilla — Cloudzilla';
+    document.querySelector('[data-f=badge]').innerHTML = badge(r.run, r.label);
+    document.querySelector('[data-f=trigger]').innerHTML = r.trigger;
+    document.querySelector('[data-f=branch]').textContent = r.branch;
+    document.querySelector('[data-f=sha]').textContent = r.sha;
+    document.querySelector('[data-f=sha2]').textContent = r.sha;
+    document.querySelector('[data-f=timing]').innerHTML = r.timing;
+    var deploy = s === 'yaml-error';
+    document.querySelector('[data-f=wfname]').textContent = deploy ? 'Deploy' : 'CI';
+    document.querySelector('[data-f=wfpath]').textContent = deploy ? '.cloudzilla/workflows/deploy.yml' : '.cloudzilla/workflows/ci.yml';
+    document.querySelectorAll('[data-when]').forEach(function (el) {
+      el.toggleAttribute('hidden', el.dataset.when.split(' ').indexOf(s) < 0);
+    });
+    document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.mockState === s));
+    });
+    stopLive();
+    if (JOBS[s]) {
+      job = s === 'queued' ? 'lint' : 'test';
+      renderGraph(); renderNav(); renderJob();
+    }
+    if (s === 'failed' || s === 'success') renderArtifacts();
+    if (s === 'running') startLive();
+  }
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-job]');
+    if (a) { e.preventDefault(); job = a.dataset.job; renderGraph(); renderNav(); renderJob(); return; }
+    var t = e.target.closest('[data-ts-toggle]');
+    if (t) {
+      showTs = !showTs;
+      t.setAttribute('aria-pressed', String(showTs));
+      document.querySelectorAll('[data-ts]').forEach(function (td) { td.hidden = !showTs; });
+      return;
+    }
+    var m = e.target.closest('[data-mock-state]');
+    if (m) { show(m.dataset.mockState); return; }
+    var rr = e.target.closest('[data-rerun]');
+    if (rr) { document.querySelector('[data-f=attempt]').textContent = '2'; show('running'); return; }
+    if (e.target.closest('[data-cancel-open]')) { document.getElementById('cancel-run-dialog').showModal(); return; }
+    if (e.target.closest('[data-cancel-dismiss]')) { document.getElementById('cancel-run-dialog').close(); return; }
+    if (e.target.closest('[data-cancel-confirm]')) { document.getElementById('cancel-run-dialog').close(); show('cancelled'); return; }
+    if (e.target.closest('[data-download]')) { e.preventDefault(); window.czToast('Downloads ' + job + '.log (plain text, no colour codes).'); }
+  });
+  document.addEventListener('input', function (e) {
+    if (e.target.id !== 'log-search') return;
+    query = e.target.value;
+    applySearch();
+  });
+
+  var p = new URLSearchParams(location.search);
+  show(p.get('state') || 'failed');
+  if (p.get('q')) { query = p.get('q'); renderJob(); }
+  if (p.get('ts')) { document.querySelector('[data-ts-toggle]').click(); }
+})();
+</script>
+</body>
+</html>

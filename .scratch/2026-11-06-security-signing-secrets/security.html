@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Security · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="./mock.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+<template id="mock-subnav">
+<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg> Pull requests <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">12</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg> Issues <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">23</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Milestones</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg> Checks</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> Discussions <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">5</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg> Projects</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg> Wiki</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> Releases <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="security.html" aria-current="page" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  bg-accent font-medium text-foreground"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Security <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 ml-auto text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg> Settings</a>
+</nav>
+</template>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="flex flex-col gap-6">
+
+    <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
+      <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
+      <button type="button" data-mock-state="open" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Open alerts</button>
+      <button type="button" data-mock-state="closed" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Closed alerts</button>
+      <button type="button" data-mock-state="empty" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">No alerts</button>
+      <button type="button" data-mock-state="push" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">git push rejected (terminal)</button>
+      <span class="ml-auto"><a href="alert.html" class="underline hover:text-foreground">alert.html</a></span>
+    </div>
+
+    <section aria-labelledby="security-title">
+      <h1 id="security-title" class="text-2xl font-semibold tracking-tight">Security</h1>
+      <p class="mt-1 text-[13px] text-muted-foreground">Secrets found in pushes to this repository. Every push is scanned; pushes that add a known secret type are rejected. Only people with write access see this page.</p>
+    </section>
+
+    <div data-when="open closed" class="flex flex-col gap-4">
+      <form onsubmit="return false">
+        <nav class="flex flex-wrap items-center gap-1 border-b border-border text-sm" aria-label="Alert state">
+          <a href="security.html?state=open" data-tab="open" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">
+            Open
+            <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="3 items">3</span>
+          </a>
+          <a href="security.html?state=closed" data-tab="closed" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">
+            Closed
+            <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="3 items">3</span>
+          </a>
+          <div class="ml-auto flex items-center gap-1.5 pb-1.5">
+            <div class="relative">
+              <select name="type" aria-label="Filter by secret type" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+                <option value="">All secret types</option>
+                <option value="aws_key">AWS access key ID</option>
+                <option value="private_key">Private key</option>
+                <option value="cloudzilla_token">Cloudzilla access token</option>
+                <option value="generic_api_key">Generic API key</option>
+              </select>
+              <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+            </div>
+          </div>
+        </nav>
+      </form>
+
+      <section data-when="open" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Open secret scanning alerts">
+        <ul class="divide-y divide-border">
+          <li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-destructive" aria-label="Open"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <a href="alert.html?state=open" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">AWS access key ID</a>
+                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">AKIA…7QXZ</code>
+              </div>
+              <p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span class="font-mono">#12</span><span aria-hidden="true">·</span>
+                <span class="font-mono break-all">config/deploy.env:14</span><span aria-hidden="true">·</span>
+                <span>commit <a href="commit.html" class="relative z-10 font-mono hover:text-foreground hover:underline">9c8e2a4</a> by daisy</span><span aria-hidden="true">·</span>
+                <span>detected <time datetime="2026-11-03T10:00:00Z">3 days ago</time></span>
+              </p>
+            </div>
+          </li>
+          <li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-destructive" aria-label="Open"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <a href="alert.html?state=open" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">Private key</a>
+                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">-----BEGIN OPENSSH PRIVATE KEY-----</code>
+              </div>
+              <p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span class="font-mono">#11</span><span aria-hidden="true">·</span>
+                <span class="font-mono break-all">deploy/keys/staging_ed25519:1</span><span aria-hidden="true">·</span>
+                <span>commit <a href="commit.html" class="relative z-10 font-mono hover:text-foreground hover:underline">b7f20d1</a> by daisy</span><span aria-hidden="true">·</span>
+                <span>detected <time datetime="2026-11-04T10:00:00Z">2 days ago</time></span>
+              </p>
+            </div>
+          </li>
+          <li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-destructive" aria-label="Open"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <a href="alert.html?state=open" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">Cloudzilla access token</a>
+                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">czp_…e8f0</code>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Auto-revoked</span>
+              </div>
+              <p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span class="font-mono">#10</span><span aria-hidden="true">·</span>
+                <span class="font-mono break-all">scripts/smoke.sh:7</span><span aria-hidden="true">·</span>
+                <span>commit <a href="commit.html" class="relative z-10 font-mono hover:text-foreground hover:underline">e2c7714</a> by kiyo</span><span aria-hidden="true">·</span>
+                <span>detected <time datetime="2026-11-01T10:00:00Z">5 days ago</time></span>
+              </p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section data-when="closed" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Closed secret scanning alerts">
+        <ul class="divide-y divide-border">
+          <li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-label="Closed"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <a href="alert.html?state=revoked" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">Generic API key</a>
+                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">sk_l…9a1c</code>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">Revoked</span>
+              </div>
+              <p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span class="font-mono">#9</span><span aria-hidden="true">·</span>
+                <span class="font-mono break-all">internal/billing/client_test.go:22</span><span aria-hidden="true">·</span>
+                <span>closed by malith <time datetime="2026-10-30T10:00:00Z">Oct 30</time></span>
+              </p>
+            </div>
+          </li>
+          <li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-label="Closed"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <a href="alert.html?state=false-positive" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">Generic API key</a>
+                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">AAAA…AAAA</code>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">False positive</span>
+              </div>
+              <p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span class="font-mono">#8</span><span aria-hidden="true">·</span>
+                <span class="font-mono break-all">docs/api-reference.md:310</span><span aria-hidden="true">·</span>
+                <span>closed by daisy <time datetime="2026-10-21T10:00:00Z">Oct 21</time></span>
+              </p>
+            </div>
+          </li>
+          <li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-label="Closed"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <a href="alert.html?state=used-in-tests" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">Private key</a>
+                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">-----BEGIN RSA PRIVATE KEY-----</code>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">Used in tests</span>
+              </div>
+              <p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span class="font-mono">#7</span><span aria-hidden="true">·</span>
+                <span class="font-mono break-all">internal/ssh/testdata/host_rsa:1</span><span aria-hidden="true">·</span>
+                <span>closed by malith <time datetime="2026-10-12T10:00:00Z">Oct 12</time></span>
+              </p>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <div data-when="empty" class="bg-background border border-border rounded-lg p-8 text-center">
+      <p class="text-muted-foreground">No secrets found.</p>
+      <p class="text-sm text-muted-foreground mt-2">Pushes are scanned for AWS keys, private keys, Cloudzilla access tokens, JWT signing secrets and generic API key patterns.</p>
+    </div>
+
+    <section data-when="push" class="flex flex-col gap-3" aria-labelledby="push-heading">
+      <p id="push-heading" class="text-[13px] text-muted-foreground">What the pusher sees. The <span class="font-mono">remote:</span> lines are the server's; the rest is git.</p>
+      <article class="rounded-md border border-border bg-card overflow-hidden">
+        <div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between">
+          <code class="text-sm font-mono text-foreground">Terminal</code>
+        </div>
+        <pre class="px-4 py-3 overflow-x-auto font-mono text-[12px] leading-[1.6] whitespace-pre"><span class="text-ring">$ git push origin main</span>
+Enumerating objects: 7, done.
+Writing objects: 100% (4/4), 412 bytes | 412.00 KiB/s, done.
+Total 4 (delta 3), reused 0 (delta 0)
+<span class="text-destructive">remote: error: push rejected: 1 secret found</span>
+remote:
+remote:   AWS access key ID   AKIA…7QXZ
+remote:     9c8e2a4  config/deploy.env:14
+remote:
+remote: Remove it from the commit and push again:
+remote:   git rebase -i 9c8e2a4~1     # edit 9c8e2a4, delete the key
+remote:
+remote: If it isn't a live secret, someone with write access can allow it:
+remote:   <span class="text-ring">http://localhost:8080/mkappworks/cloudzilla/security/secrets/12</span>
+remote:
+To http://localhost:8080/mkappworks/cloudzilla.git
+<span class="text-destructive"> ! [remote rejected] main -> main (secret detected)</span>
+<span class="text-destructive">error: failed to push some refs to 'http://localhost:8080/mkappworks/cloudzilla.git'</span></pre>
+      </article>
+      <p class="text-[12px] text-muted-foreground">The link opens the alert in its <a href="alert.html?state=blocked" class="text-foreground hover:underline">blocked push</a> state, where a writer can allow the secret and the pusher retries.</p>
+    </section>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="../../mockups/shell.js"></script>
+<script>
+  (function () {
+    document.querySelector('nav[aria-label="Repository sections"]').replaceWith(document.getElementById('mock-subnav').content.cloneNode(true));
+    var ACTIVE = ['border-foreground', 'text-foreground', 'font-medium'];
+    var IDLE = ['border-transparent', 'text-muted-foreground', 'hover:text-foreground'];
+    function show(s) {
+      document.querySelectorAll('[data-when]').forEach(function (el) {
+        el.toggleAttribute('hidden', el.dataset.when.split(' ').indexOf(s) < 0);
+      });
+      document.querySelectorAll('[data-tab]').forEach(function (t) {
+        var on = t.dataset.tab === s;
+        ACTIVE.forEach(function (c) { t.classList.toggle(c, on); });
+        IDLE.forEach(function (c) { t.classList.toggle(c, !on); });
+        if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+      });
+      document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.mockState === s));
+      });
+    }
+    document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+      b.addEventListener('click', function () { show(b.dataset.mockState); });
+    });
+    show(new URLSearchParams(location.search).get('state') || 'open');
+  })();
+</script>
+</body>
+</html>

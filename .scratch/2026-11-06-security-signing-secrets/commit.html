@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>feat(ci): cache Go modules between runs · 7d1e0a2 · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="./mock.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="code"></div>
+<template id="mock-subnav">
+<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <a href="mock.html" aria-current="page" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  bg-accent font-medium text-foreground"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg> Pull requests <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">12</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg> Issues <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">23</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Milestones</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg> Checks</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> Discussions <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">5</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg> Projects</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg> Wiki</a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> Releases <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="security.html" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5  text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Security <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
+  <a href="#" class="px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 ml-auto text-muted-foreground hover:text-foreground hover:bg-accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg> Settings</a>
+</nav>
+</template>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="flex flex-col gap-6">
+
+    <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
+      <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
+      <button type="button" data-mock-state="verified" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Verified (SSH)</button>
+      <button type="button" data-mock-state="verified-gpg" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Verified (GPG)</button>
+      <button type="button" data-mock-state="partial" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Partially verified</button>
+      <button type="button" data-mock-state="unverified" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unverified</button>
+      <button type="button" data-mock-state="unsigned" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unsigned</button>
+      <span class="ml-auto"><a href="mock.html" class="underline hover:text-foreground">← commits</a></span>
+    </div>
+
+    <section aria-labelledby="commit-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="#" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="mock.html" class="hover:underline">Commits</a>
+        <span aria-hidden="true">·</span>
+        <span class="font-mono" data-f="short">7d1e0a2</span>
+      </p>
+      <h1 id="commit-title" class="text-xl font-semibold tracking-tight" data-f="title">feat(ci): cache Go modules between runs</h1>
+      <div class="mt-4 flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
+        <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" data-f="initials">MK</span>
+        <span>
+          <span class="font-medium text-foreground" data-f="name">Malith Kuruppu</span>
+          <span class="text-muted-foreground/80 ml-1" data-f="email">&lt;malith@example.com&gt;</span>
+        </span>
+        <span aria-hidden="true">·</span>
+        <time datetime="2026-11-06T09:40:00Z">2026-11-06 09:40:00 UTC</time>
+        <span aria-hidden="true">·</span>
+        <code class="font-mono px-2 py-0.5 rounded-sm text-[12px] bg-muted text-foreground border border-border break-all" data-f="sha">7d1e0a2c41b9f08e3d5a6c7b2e91f04d8a3c5e67</code>
+        <div class="relative inline-block" data-sig>
+          <button type="button" data-sig-btn aria-expanded="false" aria-haspopup="dialog"></button>
+          <div hidden data-sig-panel role="dialog" aria-label="Commit signature" class="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left"></div>
+        </div>
+      </div>
+      <div class="mt-2 text-[12px] text-muted-foreground">
+        Parents:
+        <a href="#" class="font-mono ml-1 hover:text-foreground hover:underline">420b44b</a>
+      </div>
+    </section>
+
+    <section class="rounded-md border border-border bg-card px-4 py-3 text-[13px] text-muted-foreground" aria-label="Diff stats">
+      <span class="font-mono">2</span>
+      files changed,
+      <span class="font-mono text-success font-medium">+18</span>
+      <span class="font-mono text-destructive font-medium">−3</span>
+    </section>
+
+    <p class="text-[12px] text-muted-foreground border border-dashed border-border rounded-md px-3 py-2">Diff omitted in this mock; the page below the header is unchanged.</p>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+<script src="../../mockups/shell.js"></script>
+<script>
+  (function () {
+    document.querySelector('nav[aria-label="Repository sections"]').replaceWith(document.getElementById('mock-subnav').content.cloneNode(true));
+
+    var SHIELD_OK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-[3px] text-success" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>';
+    var SHIELD = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-[3px] text-muted-foreground" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>';
+    var WARN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-[3px] text-warning" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+    var BTN = {
+      success: 'inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30 hover:bg-success/25',
+      outline: 'inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground hover:bg-accent',
+      warning: 'inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-warning/15 text-warning border-warning/30 hover:bg-warning/25',
+    };
+    function signer(initials, user, extra) {
+      return '<div class="mt-3 flex items-center gap-2"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">' + initials + '</span>' +
+        '<a href="#" class="text-[13px] font-medium hover:underline">' + user + '</a><span class="text-[12px] text-muted-foreground truncate">' + extra + '</span></div>';
+    }
+    function dl(rows) {
+      return '<dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">' + rows.map(function (r) {
+        return '<dt class="text-muted-foreground">' + r[0] + '</dt><dd' + (r[2] ? ' class="font-mono break-all"' : '') + '>' + r[1] + '</dd>';
+      }).join('') + '</dl>';
+    }
+    var FOOT = '<div role="separator" class="my-2 h-px bg-border"></div><a href="settings.html" class="text-[12px] text-muted-foreground hover:text-foreground">About signing keys →</a>';
+    var S = {
+      verified: { badge: 'success', label: 'Verified', commit: ['feat(ci): cache Go modules between runs', '7d1e0a2', '7d1e0a2c41b9f08e3d5a6c7b2e91f04d8a3c5e67', 'MK', 'Malith Kuruppu', 'malith@example.com'],
+        body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + SHIELD_OK + 'Signed by the committer with a key on their account.</p>' + signer('MK', 'malith', 'malith@example.com') +
+          dl([['Key type', 'SSH · ed25519'], ['Key', 'MacBook Pro'], ['Fingerprint', 'SHA256:Zk1p7vQ3nXh0e9LwYb2sAq5cT8uRfJdM4oGiNxVa6Hw', 1]]) + FOOT },
+      'verified-gpg': { badge: 'success', label: 'Verified', commit: ['fix: retry webhook deliveries with backoff', '0cfa3e4', '0cfa3e4b7d21a9c05e8f3b6d4a17c290e5b8d3f1', 'DK', 'Daisy K.', 'daisy@example.com'],
+        body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + SHIELD_OK + 'Signed by the committer with a key on their account.</p>' + signer('DK', 'daisy', 'daisy@example.com') +
+          dl([['Key type', 'GPG · RSA 4096'], ['Key ID', '3AA5C34371567BD2', 1], ['Fingerprint', '4AEE 18F8 3AFD EB23 B1C9 7D04 3AA5 C343 7156 7BD2', 1]]) + FOOT },
+      partial: { badge: 'outline', label: 'Partially verified', commit: ['docs: clarify the mirror lease timeout', '5a90c2e', '5a90c2e18f4b7d3a6c0e9b2f5d81a4c7e3b06d92', 'RH', 'Rhea', 'rhea@contractor.dev'],
+        body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + SHIELD + 'The signature is valid and the key is rhea\'s, but the committer email isn\'t one of rhea\'s verified emails.</p>' + signer('RH', 'rhea', 'committed as rhea@contractor.dev') +
+          dl([['Key type', 'SSH · ecdsa-sk (hardware key)'], ['Key', 'YubiKey 5C'], ['Fingerprint', 'SHA256:p0Qe2Vx8nLk4TzR7cYb1sWm9uHgJdA3oFiNyVa5Kt2E', 1]]) +
+          '<p class="mt-2 text-[12px] text-muted-foreground">Verifying rhea@contractor.dev on rhea\'s account makes this Verified.</p>' + FOOT },
+      unverified: { badge: 'warning', label: 'Unverified', commit: ['chore: bump x/crypto to v0.31.0', 'e2c7714', 'e2c7714a09d3b8f61c5e2a7d4b90f38c1e6a5d27', 'KI', 'Kiyo', 'kiyo@example.com'],
+        body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + WARN + 'The commit is signed, but no account on this server has the key.</p>' +
+          dl([['Key type', 'GPG'], ['Key ID', 'B5690EEEBB952194', 1], ['Committer', 'kiyo@example.com']]) +
+          '<p class="mt-2 text-[12px] text-muted-foreground">If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view.</p>' + FOOT },
+      unsigned: { commit: ['chore: release v0.4.1', '420b44b', '420b44b9e3c17d05a8f2b6e4c91d07a3f5e8b2c6', 'MK', 'Malith Kuruppu', 'malith@example.com'] },
+    };
+    var wrap = document.querySelector('[data-sig]');
+    var btn = wrap.querySelector('[data-sig-btn]');
+    var panel = wrap.querySelector('[data-sig-panel]');
+    function setOpen(open) { panel.hidden = !open; btn.setAttribute('aria-expanded', String(open)); }
+    btn.addEventListener('click', function (e) { e.stopPropagation(); setOpen(panel.hidden); });
+    document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) setOpen(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+
+    function show(s) {
+      var d = S[s], c = d.commit;
+      document.querySelector('[data-f=title]').textContent = c[0];
+      document.querySelector('[data-f=short]').textContent = c[1];
+      document.querySelector('[data-f=sha]').textContent = c[2];
+      document.querySelector('[data-f=initials]').textContent = c[3];
+      document.querySelector('[data-f=initials]').setAttribute('aria-label', c[4]);
+      document.querySelector('[data-f=name]').textContent = c[4];
+      document.querySelector('[data-f=email]').textContent = '<' + c[5] + '>';
+      wrap.hidden = !d.badge;
+      if (d.badge) { btn.className = BTN[d.badge]; btn.textContent = d.label; panel.innerHTML = d.body; }
+      setOpen(!!d.badge);
+      document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.mockState === s));
+      });
+    }
+    document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); show(b.dataset.mockState); });
+    });
+    show(new URLSearchParams(location.search).get('state') || 'verified');
+  })();
+</script>
+</body>
+</html>

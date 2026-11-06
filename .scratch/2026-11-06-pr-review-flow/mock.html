@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Add OAuth scopes to access tokens · PR #341 · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="./mock.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- Mock-only: not part of the page. -->
+<div class="max-w-[1400px] mx-auto w-full px-6 pt-3" data-mock-bar>
+  <div class="rounded-md border border-dashed border-border-strong px-3 py-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px]">
+    <span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Mock state</span>
+    <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Viewer">
+      <span class="text-muted-foreground mr-1">Viewer</span>
+      <button type="button" data-set="viewer=reviewer" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Reviewer (write)</button>
+      <button type="button" data-set="viewer=author" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Author</button>
+      <button type="button" data-set="viewer=readonly" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Read-only</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Pull request">
+      <span class="text-muted-foreground mr-1">PR</span>
+      <button type="button" data-set="pr=open" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Open</button>
+      <button type="button" data-set="pr=draft" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Draft</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Merge box">
+      <span class="text-muted-foreground mr-1">Merge box</span>
+      <button type="button" data-set="merge=needs" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Needs approvals</button>
+      <button type="button" data-set="merge=ready" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Ready</button>
+      <button type="button" data-set="merge=failing" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Checks failing</button>
+      <button type="button" data-set="merge=conflicts" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Conflicts</button>
+      <button type="button" data-set="merge=auto" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Auto-merge on</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Suggestion">
+      <span class="text-muted-foreground mr-1">Suggestion</span>
+      <button type="button" data-set="sugg=pending" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Pending</button>
+      <button type="button" data-set="sugg=batched" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">In batch</button>
+      <button type="button" data-set="sugg=applied" class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:border-border-strong">Applied</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Dialog">
+      <button type="button" data-open-review class="h-6 px-2 rounded-sm border border-border text-muted-foreground hover:text-foreground">Open review dialog</button>
+    </div>
+  </div>
+</div>
+
+<div id="cz-header" data-repo-tab="pull_requests"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div>
+    <section class="mb-3 border-b border-border pb-3" aria-labelledby="pull-title">
+      <p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+        <a href="#" class="hover:underline">cloudzilla</a>
+        <span aria-hidden="true">·</span>
+        <a href="#" class="hover:underline">Pull requests</a>
+        <span aria-hidden="true">·</span>
+        <span aria-current="page">#341</span>
+      </p>
+      <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+        <h1 id="pull-title" class="text-2xl tracking-tight font-medium min-w-0">
+          <span id="pr-title-text">Add OAuth scopes to access tokens</span>
+          <span class="text-muted-foreground font-normal" aria-label="Pull request number 341">#341</span>
+        </h1>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" data-when="viewer=reviewer|author" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Edit</button>
+          <button type="button" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5" aria-haspopup="menu" aria-expanded="false">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            Code
+            <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <span data-when="pr=open" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+        <span data-when="pr=draft" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-transparent">Draft</span>
+        <p class="text-[13px] text-muted-foreground">
+          <a href="#" class="text-primary hover:underline">@daisy</a>
+          wants to merge
+          <strong class="text-foreground font-medium">3 commits</strong>
+          into
+          <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">main</span>
+          from
+          <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">daisy/oauth-scopes</span>
+        </p>
+      </div>
+    </section>
+    <nav class="border-b border-border mb-6 py-1.5 flex flex-wrap items-center gap-1 text-sm" aria-label="Pull request views">
+      <a href="#" data-tab="conversation" class="px-3 py-1.5 rounded-md bg-accent text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap" aria-current="page">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+        Conversation
+        <span class="font-mono text-[11px] text-muted-foreground">6</span>
+      </a>
+      <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="M12 9v6"></path></svg>
+        Commits
+        <span class="font-mono text-[11px] text-muted-foreground">3</span>
+      </a>
+      <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M9 12h6M15 6L9 10M15 18l-6-4"></path></svg>
+        Checks
+        <span data-when="merge=needs|ready|conflicts" class="inline-flex items-center gap-1 h-[18px] px-1.5 rounded-full text-[10px] font-medium bg-success/15 text-success">✓ 6</span>
+        <span data-when="merge=failing|auto" class="font-mono text-[11px] text-muted-foreground">4/6</span>
+      </a>
+      <a href="#" data-tab="files" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        Files changed
+        <span class="font-mono text-[11px] text-muted-foreground">3</span>
+        <span class="font-mono text-[10px] font-medium text-success">+41</span>
+        <span class="font-mono text-[10px] font-medium text-destructive">−5</span>
+      </a>
+    </nav>
+
+    <!-- ===================== Conversation tab ===================== -->
+    <div data-when="tab=conversation" class="grid lg:grid-cols-[1fr_280px] gap-8">
+      <div class="min-w-0">
+        <div data-when="pr=draft" role="status" class="mb-6 px-4 py-3 rounded-md border border-warning/40 bg-warning/10 flex items-center justify-between gap-4">
+          <p class="text-sm text-warning">This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
+          <button type="button" data-when="viewer=reviewer|author" data-ready class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px] shrink-0">Ready for review</button>
+        </div>
+
+        <article id="pr-description" class="rounded-md border border-border bg-card overflow-hidden mb-6" aria-label="Pull request description">
+          <header class="px-4 py-2.5 border-b border-border bg-blue-500/10 flex items-center gap-2 flex-wrap">
+            <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="daisy">D</span>
+            <a href="#" class="text-[13px] font-medium hover:underline">@daisy</a>
+            <span class="text-[12px] text-muted-foreground">opened this pull request <time datetime="2026-11-03">Nov 3, 2026</time></span>
+            <span class="ml-auto text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Author</span>
+          </header>
+          <div class="px-5 py-4">
+            <div class="prose prose-sm dark:prose-invert max-w-none">
+              <p>Adds OAuth scope support to access tokens (PATs). Closes <a href="#">#298</a>.</p>
+              <p>Middleware now enforces the token's scope on every API request; legacy tokens are backfilled with <code>*</code>.</p>
+            </div>
+          </div>
+        </article>
+
+        <ol id="pr-timeline" class="cz-timeline space-y-4" aria-label="Pull request timeline">
+          <li class="text-[13px] text-muted-foreground">
+            <span class="cz-timeline-icon text-muted-foreground bg-muted" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg></span>
+            <div class="flex-1 min-w-0">
+              <article class="rounded-md border border-border bg-card overflow-hidden">
+                <header class="px-4 py-2.5 border-b border-border bg-muted/40 flex items-center gap-2">
+                  <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="malith">M</span>
+                  <a href="#" class="text-[13px] font-medium hover:underline">malith</a>
+                  <span class="text-[12px] text-muted-foreground">commented <time datetime="2026-11-03">Nov 3, 2026</time></span>
+                </header>
+                <div class="px-4 py-3 prose prose-sm dark:prose-invert max-w-none">
+                  <p>If a token has no scopes assigned, do we treat that as "all scopes" or "no scopes"?</p>
+                </div>
+              </article>
+            </div>
+          </li>
+          <li class="text-[13px] text-muted-foreground">
+            <span class="cz-timeline-icon text-warning bg-warning/15" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg></span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm flex items-center gap-1.5 flex-wrap">
+                <a href="#" class="font-medium text-foreground hover:text-primary">yumi</a>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Changes requested</span>
+                <time class="text-muted-foreground text-xs" datetime="2026-11-04">Nov 4, 2026</time>
+              </p>
+              <div class="mt-1.5 rounded-md border border-border bg-card px-4 py-3 text-sm text-foreground/85">Legacy tokens should explicitly migrate to scopes=* before this ships. One suggestion inline on scope.go.</div>
+            </div>
+          </li>
+          <li data-when="merge=auto" class="text-[13px] text-muted-foreground">
+            <span class="cz-timeline-icon text-muted-foreground bg-muted" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-muted-foreground">
+                <a href="#" class="font-medium text-foreground hover:text-primary">malith</a>
+                enabled auto-merge (squash)
+                <time class="ml-1" datetime="2026-11-06">Nov 6, 2026</time>
+              </p>
+            </div>
+          </li>
+          <li class="text-[13px] text-muted-foreground">
+            <span class="cz-timeline-icon text-success bg-success/15" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm flex items-center gap-1.5 flex-wrap">
+                <a href="#" class="font-medium text-foreground hover:text-primary">yumi</a>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Approved</span>
+                <time class="text-muted-foreground text-xs" datetime="2026-11-05">Nov 5, 2026</time>
+              </p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="mt-8 flex flex-col gap-3">
+        <!-- Review prompt: a writer who isn't the author, or the author (comment-only). -->
+        <div data-when="viewer=reviewer pr=open" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3">
+          <p class="text-[13px] text-muted-foreground"><a href="#" class="font-medium text-foreground hover:underline">@daisy</a> requested your review on this pull request.</p>
+          <button type="button" data-open-review class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Review changes
+          </button>
+        </div>
+        <div data-when="viewer=author pr=open" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3">
+          <p class="text-[13px] text-muted-foreground">Waiting on <a href="#" class="font-medium text-foreground hover:underline">aki</a> to review. You can reply to review comments, but not approve your own pull request.</p>
+          <button type="button" data-open-review class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Review changes
+          </button>
+        </div>
+
+        <!-- Merge box: Needs approvals -->
+        <section data-when="pr=open merge=needs" aria-label="Mergeability" class="border border-border rounded-md">
+          <header class="px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3 bg-warning/10">
+            <span class="h-8 w-8 rounded-full grid place-items-center shrink-0 bg-warning text-warning-foreground"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg></span>
+            <div class="min-w-0">
+              <h3 class="text-[14px] font-semibold text-warning">Review required</h3>
+              <p class="text-[12px] text-muted-foreground mt-0.5">1 more approving review is needed before this can merge.</p>
+            </div>
+          </header>
+          <ul class="divide-y divide-border text-[13px]">
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 0 behind the base branch</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 6 required checks passed</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-warning shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="flex-1">1 of 2 required reviews approved</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">This branch has no conflicts with <span class="font-mono">main</span></span></li>
+          </ul>
+          <footer data-when="viewer=reviewer|author" class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
+            <div class="relative inline-flex" data-merge data-merge-auto>
+              <div class="inline-flex rounded-md overflow-hidden">
+                <button type="button" data-enable-auto class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                  <span>Enable auto-merge</span>
+                </button>
+                <button type="button" data-merge-toggle aria-expanded="false" aria-haspopup="menu" aria-label="Choose merge strategy" class="h-9 px-2.5 grid place-items-center bg-success text-success-foreground hover:opacity-90 border-l border-success-foreground/25">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg>
+                </button>
+              </div>
+              <div role="menu" aria-label="Merge strategy" data-merge-menu class="hidden absolute left-0 top-full mt-1.5 z-50 min-w-[18rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm"></div>
+            </div>
+            <p class="text-[12px] text-muted-foreground">Merges with <span data-strategy-name>squash</span> once the review requirement is met.</p>
+            <button type="button" data-close-pull class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
+          </footer>
+          <footer data-when="viewer=readonly" class="px-5 py-4 border-t border-border">
+            <p class="text-[12px] text-muted-foreground inline-flex items-center gap-1.5"><svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>Only collaborators with write access can merge or close this pull request.</p>
+          </footer>
+        </section>
+
+        <!-- Merge box: Ready -->
+        <section data-when="pr=open merge=ready" aria-label="Mergeability" class="border border-border rounded-md">
+          <header class="px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3 bg-success/10">
+            <span class="h-8 w-8 rounded-full grid place-items-center shrink-0 bg-success text-success-foreground"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+            <div class="min-w-0">
+              <h3 class="text-[14px] font-semibold text-success">Ready to merge</h3>
+              <p class="text-[12px] text-muted-foreground mt-0.5">All checks have passed and reviewers have approved.</p>
+            </div>
+          </header>
+          <ul class="divide-y divide-border text-[13px]">
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 0 behind the base branch</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 6 required checks passed</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 2 required reviews approved</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">This branch has no conflicts with <span class="font-mono">main</span></span></li>
+          </ul>
+          <footer data-when="viewer=reviewer|author" class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
+            <div class="relative inline-flex" data-merge>
+              <div class="inline-flex rounded-md overflow-hidden">
+                <button type="button" data-do-merge class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5">
+                  <span data-merge-icon><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg></span>
+                  <span data-merge-label>Squash and merge</span>
+                </button>
+                <button type="button" data-merge-toggle aria-expanded="false" aria-haspopup="menu" aria-label="Choose merge strategy" class="h-9 px-2.5 grid place-items-center bg-success text-success-foreground hover:opacity-90 border-l border-success-foreground/25">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg>
+                </button>
+              </div>
+              <div role="menu" aria-label="Merge strategy" data-merge-menu class="hidden absolute left-0 top-full mt-1.5 z-50 min-w-[18rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm"></div>
+            </div>
+            <button type="button" data-close-pull class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
+          </footer>
+          <footer data-when="viewer=readonly" class="px-5 py-4 border-t border-border">
+            <p class="text-[12px] text-muted-foreground inline-flex items-center gap-1.5"><svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>Only collaborators with write access can merge or close this pull request.</p>
+          </footer>
+        </section>
+
+        <!-- Merge box: Checks failing -->
+        <section data-when="pr=open merge=failing" aria-label="Mergeability" class="border border-border rounded-md">
+          <header class="px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3 bg-destructive/10">
+            <span class="h-8 w-8 rounded-full grid place-items-center shrink-0 bg-destructive text-destructive-foreground"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+            <div class="min-w-0">
+              <h3 class="text-[14px] font-semibold text-destructive">Checks failing</h3>
+              <p class="text-[12px] text-muted-foreground mt-0.5">2 required checks failed on the latest commit.</p>
+            </div>
+          </header>
+          <ul class="divide-y divide-border text-[13px]">
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 0 behind the base branch</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-destructive shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span class="flex-1">4 of 6 required checks passed</span><a href="#" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">View checks →</a></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 2 required reviews approved</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">This branch has no conflicts with <span class="font-mono">main</span></span></li>
+          </ul>
+          <footer data-when="viewer=reviewer|author" class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
+            <button type="button" disabled class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground rounded-md inline-flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg>
+              Squash and merge
+            </button>
+            <p class="text-[12px] text-muted-foreground">Required checks must pass before merging. Re-run them from the Checks tab.</p>
+            <button type="button" data-close-pull class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
+          </footer>
+          <footer data-when="viewer=readonly" class="px-5 py-4 border-t border-border">
+            <p class="text-[12px] text-muted-foreground inline-flex items-center gap-1.5"><svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>Only collaborators with write access can merge or close this pull request.</p>
+          </footer>
+        </section>
+
+        <!-- Merge box: Conflicts -->
+        <section data-when="pr=open merge=conflicts" aria-label="Mergeability" class="border border-border rounded-md">
+          <header class="px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3 bg-destructive/10">
+            <span class="h-8 w-8 rounded-full grid place-items-center shrink-0 bg-destructive text-destructive-foreground"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+            <div class="min-w-0">
+              <h3 class="text-[14px] font-semibold text-destructive">Merge conflicts</h3>
+              <p class="text-[12px] text-muted-foreground mt-0.5">Resolve the conflicts on the head branch before this can merge.</p>
+            </div>
+          </header>
+          <ul class="divide-y divide-border text-[13px]">
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 4 behind the base branch</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 6 required checks passed</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 2 required reviews approved</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-warning shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="flex-1">This branch has conflicts with <span class="font-mono">main</span></span></li>
+          </ul>
+          <footer data-when="viewer=reviewer|author" class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
+            <p class="text-[12px] text-muted-foreground">Merge <span class="font-mono">main</span> into <span class="font-mono">daisy/oauth-scopes</span> locally, fix the conflicts and push. This box updates on the next push.</p>
+            <button type="button" data-close-pull class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
+          </footer>
+          <footer data-when="viewer=readonly" class="px-5 py-4 border-t border-border">
+            <p class="text-[12px] text-muted-foreground inline-flex items-center gap-1.5"><svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>Only collaborators with write access can merge or close this pull request.</p>
+          </footer>
+        </section>
+
+        <!-- Merge box: Auto-merge enabled -->
+        <section data-when="pr=open merge=auto" aria-label="Mergeability" class="border border-border rounded-md">
+          <header class="px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3 bg-muted/40">
+            <span class="h-8 w-8 rounded-full grid place-items-center shrink-0 bg-primary text-primary-foreground"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+            <div class="min-w-0">
+              <h3 class="text-[14px] font-semibold text-foreground">Auto-merge enabled</h3>
+              <p class="text-[12px] text-muted-foreground mt-0.5"><span class="text-foreground">malith</span> armed squash and merge. This will merge when checks pass.</p>
+            </div>
+          </header>
+          <ul class="divide-y divide-border text-[13px]">
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 0 behind the base branch</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-warning shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="flex-1">4 of 6 required checks passed, 2 in progress</span><a href="#" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">View checks →</a></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 2 required reviews approved</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">This branch has no conflicts with <span class="font-mono">main</span></span></li>
+          </ul>
+          <footer data-when="viewer=reviewer|author" class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
+            <button type="button" data-disable-auto class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Disable auto-merge</button>
+            <button type="button" data-close-pull class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
+          </footer>
+          <footer data-when="viewer=readonly" class="px-5 py-4 border-t border-border">
+            <p class="text-[12px] text-muted-foreground inline-flex items-center gap-1.5"><svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>Only collaborators with write access can merge or close this pull request.</p>
+          </footer>
+        </section>
+
+        <!-- Merge box: Draft -->
+        <section data-when="pr=draft" aria-label="Mergeability" class="border border-border rounded-md">
+          <header class="px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3 bg-muted/40">
+            <span class="h-8 w-8 rounded-full grid place-items-center shrink-0 bg-muted text-muted-foreground"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path></svg></span>
+            <div class="min-w-0">
+              <h3 class="text-[14px] font-semibold text-muted-foreground">Draft</h3>
+              <p class="text-[12px] text-muted-foreground mt-0.5">Mark this ready for review to notify reviewers and allow merging.</p>
+            </div>
+          </header>
+          <footer data-when="viewer=reviewer|author" class="px-5 py-4 flex flex-wrap items-center gap-2">
+            <button type="button" data-ready class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Ready for review</button>
+            <button type="button" data-close-pull class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
+          </footer>
+          <footer data-when="viewer=readonly" class="px-5 py-4">
+            <p class="text-[12px] text-muted-foreground inline-flex items-center gap-1.5"><svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>Only collaborators with write access can mark this ready or close it.</p>
+          </footer>
+        </section>
+        </div>
+      </div>
+
+      <aside class="space-y-6" aria-label="Pull request metadata">
+        <section aria-labelledby="reviewers-heading">
+          <div class="flex items-center justify-between mb-2">
+            <h3 id="reviewers-heading" class="text-[12px] font-medium text-muted-foreground">Reviewers</h3>
+            <button type="button" data-when="viewer=reviewer|author" aria-label="Request a reviewer" class="text-muted-foreground hover:text-foreground"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg></button>
+          </div>
+          <ul class="space-y-1.5">
+            <li class="flex items-center gap-2 text-[13px]">
+              <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="yumi">Y</span>
+              <a href="#" class="hover:underline truncate">yumi</a>
+              <span class="ml-auto"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Approved</span></span>
+            </li>
+            <li class="flex items-center gap-2 text-[13px]">
+              <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="aki">A</span>
+              <a href="#" class="hover:underline truncate">aki</a>
+              <span class="ml-auto" data-when="merge=needs"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">Awaiting review</span></span>
+              <span class="ml-auto" data-when="merge=ready|failing|conflicts|auto"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Approved</span></span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="border-t border-border pt-5">
+          <h3 class="text-[12px] font-medium text-muted-foreground mb-2">Assignees</h3>
+          <div class="flex items-center gap-2 text-[13px]">
+            <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="daisy">D</span>
+            <a href="#" class="font-medium hover:underline truncate">daisy</a>
+          </div>
+        </section>
+
+        <section class="border-t border-border pt-5">
+          <h3 class="text-[12px] font-medium text-muted-foreground mb-2">Labels</h3>
+          <div class="flex flex-wrap gap-1">
+            <span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #22c55e26; color: #22c55e; border-color: #22c55e59">feature</span>
+            <span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style="background-color: #3b82f626; color: #3b82f6; border-color: #3b82f659">auth</span>
+          </div>
+        </section>
+
+        <!-- New: only for an open, non-draft PR the viewer can write to (or authored). -->
+        <section data-when="pr=open viewer=reviewer|author" class="border-t border-border pt-5">
+          <button type="button" data-convert-draft class="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path></svg>
+            Convert to draft
+          </button>
+          <p class="mt-1 text-[11px] text-muted-foreground">Blocks merging and auto-merge until it's marked ready again.</p>
+        </section>
+      </aside>
+    </div>
+
+    <!-- ===================== Files changed tab ===================== -->
+    <div data-when="tab=files">
+      <section class="mb-4 flex items-center justify-between gap-3 flex-wrap" aria-label="Diff summary">
+        <div class="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+          <span><strong class="text-foreground">3</strong> changed files</span>
+          <span aria-hidden="true" class="opacity-50">·</span>
+          <span class="font-mono text-success">+41</span>
+          <span class="font-mono text-destructive">−5</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <div class="inline-flex items-center border border-border rounded-md overflow-hidden" role="group" aria-label="Diff layout">
+            <button type="button" aria-pressed="true" class="h-8 px-3 text-[12.5px] inline-flex items-center gap-1.5 hover:bg-accent bg-muted">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+              Unified
+            </button>
+            <button type="button" aria-pressed="false" class="h-8 px-3 text-[12.5px] inline-flex items-center gap-1.5 hover:bg-accent text-muted-foreground border-l border-border">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="8" height="18" rx="1"></rect><rect x="13" y="3" width="8" height="18" rx="1"></rect></svg>
+              Split
+            </button>
+          </div>
+          <button type="button" aria-pressed="false" class="h-8 px-3 text-[12.5px] rounded-md border border-border hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5">Hide whitespace</button>
+          <!-- New: the batch commit, then the review entry point. -->
+          <button type="button" data-when="sugg=batched viewer=reviewer|author" data-commit-batch class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">
+            Commit suggestions
+            <span class="font-mono text-[11px] text-muted-foreground">1</span>
+          </button>
+          <button type="button" data-when="viewer=reviewer|author" data-open-review class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">
+            Review changes
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg>
+          </button>
+        </div>
+      </section>
+      <div class="grid lg:grid-cols-[260px_1fr] gap-4">
+        <aside class="border border-border rounded-md bg-card p-3 lg:sticky lg:top-4 self-start max-h-[80vh] overflow-auto" aria-label="Files in this pull request">
+          <p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2 px-1">Changed files</p>
+          <ul class="text-[12.5px] space-y-0.5">
+            <li><a href="#diff-0" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"><span class="truncate flex-1 font-mono">internal/middleware/scope.go</span><span class="font-mono text-[10px] text-success">+12</span></a></li>
+            <li><a href="#diff-1" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"><span class="truncate flex-1 font-mono">internal/store/token_store.go</span><span class="font-mono text-[10px] text-success">+20</span><span class="font-mono text-[10px] text-destructive">−5</span></a></li>
+            <li><a href="#diff-2" class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"><span class="truncate flex-1 font-mono">docs/api-reference.md</span><span class="font-mono text-[10px] text-success">+9</span></a></li>
+          </ul>
+        </aside>
+        <div class="space-y-6 min-w-0">
+          <section id="diff-0" class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
+            <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+              <svg class="shrink-0 text-muted-foreground" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <span class="font-mono font-medium truncate">internal/middleware/scope.go</span>
+              <span class="ml-auto font-mono text-[11px] shrink-0"><span class="text-success">+12</span></span>
+              <a href="#" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">View file →</a>
+            </header>
+            <div class="hl overflow-x-auto">
+              <table class="w-full border-collapse text-xs font-mono">
+                <tbody>
+                  <tr><td colspan="2" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">@@ -72,6 +72,18 @@ func RequireAuth(next http.Handler) http.Handler {</td></tr>
+                  <tr class="diff-line"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">72<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-foreground/85"> 	})</td></tr>
+                  <tr class="diff-line"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">73<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-foreground/85"> }</td></tr>
+                  <tr class="diff-line"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">74<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-foreground/85"> </td></tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">75<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+// RequireScope rejects requests whose token lacks the scope.</td></tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">76<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+func RequireScope(scope string) func(http.Handler) http.Handler {</td></tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">77<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+	return func(next http.Handler) http.Handler {</td></tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">78<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {</td></tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">79<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+			token := TokenFromContext(r.Context())</td></tr>
+                  <tr class="diff-line bg-success/10" data-when="sugg=pending|batched"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">80<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+			if !slices.Contains(token.Scopes, scope) &amp;&amp; !slices.Contains(token.Scopes, "*") {</td></tr>
+                  <tr class="diff-line bg-success/10" data-when="sugg=applied"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">80<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+			if !token.HasScope(scope) {</td></tr>
+                  <!-- Line-comment thread (fragments/line_comments.templ) carrying a suggestion. -->
+                  <tr class="bg-primary/10 border-t border-primary/20">
+                    <td colspan="2" class="px-4 py-0">
+                      <div class="flex items-start gap-2 py-2 border-b border-primary/20 last:border-0">
+                        <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-background text-xs font-bold shrink-0 mt-0.5">y</div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2">
+                            <a href="#" class="text-xs font-semibold hover:underline">yumi</a>
+                            <span class="text-xs text-muted-foreground">Nov 4, 2026</span>
+                          </div>
+                          <div class="text-xs text-foreground mt-0.5 prose prose-xs max-w-none font-sans"><p>Token already has a helper for this, and it handles the wildcard.</p></div>
+                          <div class="mt-2 mb-1 rounded-md border border-border bg-card overflow-hidden font-sans">
+                            <div class="px-3 py-1.5 border-b border-border bg-muted/40 flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                              Suggested change
+                              <span data-when="sugg=batched" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">In batch</span>
+                              <span data-when="sugg=applied" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Applied</span>
+                              <span class="ml-auto font-mono">line 80</span>
+                            </div>
+                            <table class="w-full border-collapse text-xs font-mono">
+                              <tbody>
+                                <tr class="bg-destructive/10"><td class="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5">80</td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-destructive">-			if !slices.Contains(token.Scopes, scope) &amp;&amp; !slices.Contains(token.Scopes, "*") {</td></tr>
+                                <tr class="bg-success/10"><td class="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5">80</td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+			if !token.HasScope(scope) {</td></tr>
+                              </tbody>
+                            </table>
+                            <div data-when="sugg=pending viewer=reviewer|author" class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
+                              <button type="button" data-apply class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">Apply suggestion</button>
+                              <button type="button" data-batch-add class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add to batch</button>
+                            </div>
+                            <div data-when="sugg=batched viewer=reviewer|author" class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
+                              <button type="button" data-batch-remove class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Remove from batch</button>
+                              <p class="text-[12px] text-muted-foreground">Committed together with the other batched suggestions.</p>
+                            </div>
+                            <div data-when="sugg=applied" class="px-3 py-2 border-t border-border">
+                              <p class="text-[12px] text-muted-foreground"><span class="text-foreground">daisy</span> applied this in <a href="#" class="font-mono text-foreground hover:underline">4e1c0d2</a> · just now</p>
+                            </div>
+                          </div>
+                        </div>
+                        <button type="button" data-when="viewer=reviewer|author" class="text-muted-foreground/60 hover:text-destructive text-xs shrink-0" aria-label="Delete comment">&times;</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">81<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+				http.Error(w, "missing scope", http.StatusForbidden)</td></tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">82<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+				return</td></tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">83<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+			}</td></tr>
+                  <tr class="diff-line bg-success/10"><td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">84<button type="button" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+			next.ServeHTTP(w, r)</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section id="diff-1" class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
+            <header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+              <svg class="shrink-0 text-muted-foreground -rotate-90" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <span class="font-mono font-medium truncate">internal/store/token_store.go</span>
+              <span class="ml-auto font-mono text-[11px] shrink-0"><span class="text-success">+20</span><span class="text-destructive ml-1">−5</span></span>
+              <a href="#" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">View file →</a>
+            </header>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Review dialog: components.Dialog. The form wraps only the body so DialogClose's own form isn't nested. -->
+<dialog id="review-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[20vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="review-dialog-title">
+  <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="review-dialog-title" class="text-base font-semibold leading-tight">Review changes</h2>
+    <p class="text-[13px] text-muted-foreground leading-snug">Your line comments on <strong class="text-foreground">#341</strong> are posted with this review.</p>
+  </div>
+  <form id="review-form" method="dialog">
+    <div class="p-5 text-sm">
+      <label for="review-body" class="sr-only">Review summary</label>
+      <div class="rounded-md border border-border overflow-hidden">
+        <textarea id="review-body" name="body" rows="4" placeholder="Leave a summary — Markdown supported" class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground"></textarea>
+      </div>
+      <div role="radiogroup" aria-label="Review type" class="grid gap-3 mt-4">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="radio" name="state" value="commented" checked class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5"/>
+          <span class="text-sm">
+            <span class="font-medium block">Comment</span>
+            <span class="text-muted-foreground text-[12px]">General feedback, without approving or blocking.</span>
+          </span>
+        </label>
+        <label data-review-gated class="flex items-start gap-3 cursor-pointer">
+          <input type="radio" name="state" value="approved" class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5"/>
+          <span class="text-sm">
+            <span data-gated-title class="font-medium block">Approve</span>
+            <span class="text-muted-foreground text-[12px]">Counts toward the required approvals for <span class="font-mono">main</span>.</span>
+          </span>
+        </label>
+        <label data-review-gated class="flex items-start gap-3 cursor-pointer">
+          <input type="radio" name="state" value="changes_requested" class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5"/>
+          <span class="text-sm">
+            <span data-gated-title class="font-medium block">Request changes</span>
+            <span class="text-muted-foreground text-[12px]">Blocks merging until you approve or your review is dismissed.</span>
+          </span>
+        </label>
+        <p data-when="viewer=author" class="text-[12px] text-muted-foreground inline-flex items-start gap-1.5"><svg class="shrink-0 mt-px" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>You opened this pull request, so you can only comment on it.</p>
+      </div>
+    </div>
+  </form>
+  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <form method="dialog" class="contents">
+      <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    </form>
+    <button type="submit" form="review-form" data-submit-review class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Submit review</button>
+  </div>
+</dialog>
+
+<!-- Close confirm: the dialog pull_detail.templ already renders for the comment editor's Close button. -->
+<dialog id="close-pull-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="close-pull-dialog-title">
+  <div class="flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="close-pull-dialog-title" class="text-base font-semibold leading-tight">Close this pull request?</h2>
+    <p class="text-[13px] text-muted-foreground leading-snug">Close pull request <strong class="text-foreground">#341</strong> — <strong class="text-foreground">Add OAuth scopes to access tokens</strong>. You can reopen it later if needed.</p>
+  </div>
+  <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+    <form method="dialog" class="contents">
+      <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    </form>
+    <form method="dialog" class="contents">
+      <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Close pull request</button>
+    </form>
+  </div>
+</dialog>
+
+<!-- components.ToastContainer -->
+<div id="toast-root" aria-live="polite" aria-atomic="true" class="pointer-events-none fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2"></div>
+<template id="toast-template">
+  <div role="status" class="cz-toast-in pointer-events-auto inline-flex items-center gap-2 rounded-lg border border-border-strong bg-popover px-3.5 py-2.5 text-[13px] text-popover-foreground shadow-lg">
+    <span class="shrink-0 grid place-items-center"><svg class="text-success" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span>
+    <span data-toast-title></span>
+  </div>
+</template>
+
+<template id="merge-menu-items">
+  <div class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">Merge strategy</div>
+  <button type="button" role="menuitemradio" data-strategy="squash" data-label="Squash and merge" aria-checked="true" class="group flex w-full items-start gap-2 px-2 py-1.5 rounded-xs text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden">
+    <span class="mt-px shrink-0 text-muted-foreground"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg></span>
+    <span class="flex-1 min-w-0"><span class="block">Squash and merge</span><span class="block text-[11px] text-muted-foreground">Collapse the commits into one new commit</span></span>
+    <svg class="hidden group-aria-checked:block mt-px shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  </button>
+  <button type="button" role="menuitemradio" data-strategy="merge" data-label="Create merge commit" aria-checked="false" class="group flex w-full items-start gap-2 px-2 py-1.5 rounded-xs text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden">
+    <span class="mt-px shrink-0 text-muted-foreground"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 9v3a9 9 0 009 9"></path></svg></span>
+    <span class="flex-1 min-w-0"><span class="block">Create merge commit</span><span class="block text-[11px] text-muted-foreground">Keep every commit under a two-parent merge commit</span></span>
+    <svg class="hidden group-aria-checked:block mt-px shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  </button>
+  <button type="button" role="menuitemradio" data-strategy="ff" data-label="Fast-forward" aria-checked="false" class="group flex w-full items-start gap-2 px-2 py-1.5 rounded-xs text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-hidden">
+    <span class="mt-px shrink-0 text-muted-foreground"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="3" y1="12" x2="16" y2="12"></line><polyline points="12 6 18 12 12 18"></polyline></svg></span>
+    <span class="flex-1 min-w-0"><span class="block">Fast-forward</span><span class="block text-[11px] text-muted-foreground">Advance the base branch — no new commit</span></span>
+    <svg class="hidden group-aria-checked:block mt-px shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  </button>
+</template>
+
+<script src="../../mockups/shell.js"></script>
+<script>
+  var TAB_ON = 'px-3 py-1.5 rounded-md bg-accent text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap';
+  var TAB_OFF = 'px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap';
+  var state = { viewer: 'reviewer', pr: 'open', merge: 'needs', sugg: 'pending', tab: 'conversation' };
+  function readHash() {
+    (location.hash.slice(1) || '').split('&').forEach(function (kv) {
+      var p = kv.split('=');
+      if (p.length === 2 && p[0] in state) state[p[0]] = p[1];
+    });
+  }
+  readHash();
+  window.addEventListener('hashchange', function () { readHash(); render(); });
+
+  function holds(when) {
+    return when.split(' ').every(function (c) {
+      var p = c.split('=');
+      return p[1].split('|').indexOf(state[p[0]]) >= 0;
+    });
+  }
+  function render() {
+    document.querySelectorAll('[data-when]').forEach(function (el) { el.hidden = !holds(el.dataset.when); });
+    document.querySelectorAll('[data-set]').forEach(function (b) {
+      var p = b.dataset.set.split('=');
+      b.setAttribute('aria-pressed', state[p[0]] === p[1]);
+    });
+    document.querySelectorAll('[data-tab]').forEach(function (a) {
+      var on = a.dataset.tab === state.tab;
+      a.className = on ? TAB_ON : TAB_OFF;
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    var author = state.viewer === 'author';
+    document.querySelectorAll('[data-review-gated]').forEach(function (l) {
+      var input = l.querySelector('input');
+      input.disabled = author;
+      if (author && input.checked) document.querySelector('#review-form input[value=commented]').checked = true;
+      l.classList.toggle('cursor-pointer', !author);
+      l.querySelector('[data-gated-title]').classList.toggle('text-muted-foreground', author);
+    });
+  }
+  function set(k, v) { state[k] = v; render(); }
+  function toast(msg) {
+    var node = document.getElementById('toast-template').content.firstElementChild.cloneNode(true);
+    node.querySelector('[data-toast-title]').textContent = msg;
+    document.getElementById('toast-root').appendChild(node);
+    setTimeout(function () { node.remove(); }, 3000);
+  }
+
+  document.querySelectorAll('[data-set]').forEach(function (b) {
+    b.addEventListener('click', function () { var p = b.dataset.set.split('='); set(p[0], p[1]); });
+  });
+  document.querySelectorAll('[data-tab]').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); set('tab', a.dataset.tab); });
+  });
+
+  var reviewDialog = document.getElementById('review-dialog');
+  document.querySelectorAll('[data-open-review]').forEach(function (b) {
+    b.addEventListener('click', function () { render(); reviewDialog.showModal(); });
+  });
+  document.getElementById('review-form').addEventListener('submit', function () {
+    var picked = document.querySelector('#review-form input[name=state]:checked').value;
+    if (picked === 'approved' && state.merge === 'needs') set('merge', 'ready');
+    toast(picked === 'approved' ? 'Approved' : picked === 'changes_requested' ? 'Changes requested' : 'Review submitted');
+  });
+  document.querySelectorAll('[data-close-pull]').forEach(function (b) {
+    b.addEventListener('click', function () { document.getElementById('close-pull-dialog').showModal(); });
+  });
+  document.querySelectorAll('[data-ready]').forEach(function (b) {
+    b.addEventListener('click', function () { set('pr', 'open'); toast('Marked ready for review'); });
+  });
+  document.querySelector('[data-convert-draft]').addEventListener('click', function () { set('pr', 'draft'); toast('Converted to draft'); });
+  document.querySelector('[data-enable-auto]').addEventListener('click', function () { set('merge', 'auto'); toast('Auto-merge enabled'); });
+  document.querySelector('[data-disable-auto]').addEventListener('click', function () { set('merge', 'needs'); toast('Auto-merge disabled'); });
+  document.querySelector('[data-batch-add]').addEventListener('click', function () { set('sugg', 'batched'); });
+  document.querySelector('[data-batch-remove]').addEventListener('click', function () { set('sugg', 'pending'); });
+  document.querySelector('[data-apply]').addEventListener('click', function () { set('sugg', 'applied'); toast('Suggestion committed to daisy/oauth-scopes'); });
+  document.querySelector('[data-commit-batch]').addEventListener('click', function () { set('sugg', 'applied'); toast('1 suggestion committed to daisy/oauth-scopes'); });
+
+  var itemsTpl = document.getElementById('merge-menu-items');
+  document.querySelectorAll('[data-merge]').forEach(function (merge) {
+    var menu = merge.querySelector('[data-merge-menu]');
+    var toggle = merge.querySelector('[data-merge-toggle]');
+    menu.appendChild(itemsTpl.content.cloneNode(true));
+    function setMenu(open) { menu.classList.toggle('hidden', !open); toggle.setAttribute('aria-expanded', open); }
+    toggle.addEventListener('click', function (e) { e.stopPropagation(); setMenu(menu.classList.contains('hidden')); });
+    menu.querySelectorAll('[data-strategy]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        menu.querySelectorAll('[data-strategy]').forEach(function (o) { o.setAttribute('aria-checked', o === item); });
+        if (merge.hasAttribute('data-merge-auto')) {
+          document.querySelectorAll('[data-strategy-name]').forEach(function (s) { s.textContent = item.dataset.label.toLowerCase(); });
+        } else {
+          merge.querySelector('[data-merge-label]').textContent = item.dataset.label;
+          merge.querySelector('[data-merge-icon]').innerHTML = item.querySelector('svg').outerHTML;
+        }
+        setMenu(false);
+      });
+    });
+    document.addEventListener('click', function (e) { if (!merge.contains(e.target)) setMenu(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
+  });
+  render();
+</script>
+</body>
+</html>
