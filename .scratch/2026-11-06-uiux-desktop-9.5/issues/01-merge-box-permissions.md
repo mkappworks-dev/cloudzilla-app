@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -31,10 +31,10 @@ The merge box (merge buttons and Close) renders for any viewer of an open PR; ne
 
 ## Acceptance criteria
 
-- [ ] A reader sees no Merge or Close in the merge box
-- [ ] A writer sees both; Close asks for confirmation
-- [ ] Test covers reader and writer
-- [ ] `mockups/pr.html` shows the writer state and COVERAGE lists the reader state
+- [x] A reader sees no Merge or Close in the merge box
+- [x] A writer sees both; Close asks for confirmation
+- [x] Test covers reader and writer
+- [x] `mockups/pr.html` shows the writer state and COVERAGE lists the reader state
 
 ## Verification
 

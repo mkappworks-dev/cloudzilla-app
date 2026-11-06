@@ -9,6 +9,7 @@ import (
 
 func TestMergeabilityBox_ConflictsHidesButtons(t *testing.T) {
 	d := MergeabilityBoxData{
+		CanWrite:         true,
 		PatchURL:         "/api/repos/owner/repo/pulls/1",
 		HasConflicts:     true,
 		Mergeable:        false,
@@ -37,6 +38,7 @@ func TestMergeabilityBox_ConflictsHidesButtons(t *testing.T) {
 
 func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 	d := MergeabilityBoxData{
+		CanWrite:         true,
 		PatchURL:         "/api/repos/owner/repo/pulls/1",
 		Mergeable:        true,
 		HasConflicts:     false,
@@ -49,10 +51,10 @@ func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	out := buf.String()
-	// With multiple strategies the merge action is a split button: one primary
-	// button + a caret, plus the Close button — two hx-patch attrs to PatchURL.
-	if patchCount := strings.Count(out, `hx-patch="/api/repos/owner/repo/pulls/1"`); patchCount != 2 {
-		t.Errorf("expected 2 hx-patch attrs to PatchURL (primary merge + close), got %d. out: %s", patchCount, out)
+	// With multiple strategies the merge action is a split button: only the
+	// primary button patches; the caret opens the menu.
+	if patchCount := strings.Count(out, `hx-patch="/api/repos/owner/repo/pulls/1"`); patchCount != 1 {
+		t.Errorf("expected 1 hx-patch attr to PatchURL (primary merge), got %d. out: %s", patchCount, out)
 	}
 	// All three strategies are offered as radio items in the caret menu.
 	if radioCount := strings.Count(out, `role="menuitemradio"`); radioCount != 3 {
@@ -83,6 +85,7 @@ func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 
 func TestMergeabilityBox_SingleStrategyPlainButton(t *testing.T) {
 	d := MergeabilityBoxData{
+		CanWrite:  true,
 		PatchURL:  "/api/repos/owner/repo/pulls/1",
 		Mergeable: true,
 		CanSquash: true, // only one strategy available
@@ -104,6 +107,47 @@ func TestMergeabilityBox_SingleStrategyPlainButton(t *testing.T) {
 	}
 	if !strings.Contains(out, "Squash and merge") {
 		t.Errorf("expected the Squash and merge label, got: %s", out)
+	}
+}
+
+func TestMergeabilityBox_WriterCloseAsksFirst(t *testing.T) {
+	d := MergeabilityBoxData{CanWrite: true, PatchURL: "/api/repos/owner/repo/pulls/1", Mergeable: true, CanSquash: true}
+	var buf bytes.Buffer
+	if err := MergeabilityBox(d).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "document.getElementById('close-pull-dialog').showModal()") {
+		t.Errorf("expected Close to open close-pull-dialog, got: %s", out)
+	}
+	if strings.Contains(out, "&#34;state&#34;:&#34;closed&#34;") {
+		t.Errorf("expected Close not to patch the pull directly, got: %s", out)
+	}
+}
+
+func TestMergeabilityBox_ReaderSeesNoActions(t *testing.T) {
+	d := MergeabilityBoxData{
+		PatchURL:         "/api/repos/owner/repo/pulls/1",
+		Mergeable:        true,
+		CanFastForward:   true,
+		CanThreeWayMerge: true,
+		CanSquash:        true,
+	}
+	var buf bytes.Buffer
+	if err := MergeabilityBox(d).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	out := buf.String()
+	for _, unwanted := range []string{"<button", "hx-patch", "Close pull request"} {
+		if strings.Contains(out, unwanted) {
+			t.Errorf("expected no %q for a reader, got: %s", unwanted, out)
+		}
+	}
+	if !strings.Contains(out, "Ready to merge") {
+		t.Errorf("expected the mergeability status for a reader, got: %s", out)
+	}
+	if !strings.Contains(out, "Only collaborators with write access can merge or close this pull request.") {
+		t.Errorf("expected the read-only line, got: %s", out)
 	}
 }
 
