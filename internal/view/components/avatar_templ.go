@@ -9,7 +9,10 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 // AvatarSize controls the diameter of the avatar.
 type AvatarSize string
@@ -18,6 +21,7 @@ const (
 	AvatarSizeXS      AvatarSize = "xs"      // 20px — inline with text
 	AvatarSizeSM      AvatarSize = "sm"      // 24px — list rows
 	AvatarSizeDefault AvatarSize = "default" // 28px — nav bar
+	AvatarSizeMD      AvatarSize = "md"      // 32px — activity feed
 	AvatarSizeLG      AvatarSize = "lg"      // 40px — profile chrome
 	AvatarSizeXL      AvatarSize = "xl"      // 64px — settings
 )
@@ -28,6 +32,8 @@ func avatarSizeClass(s AvatarSize) string {
 		return "h-5 w-5 text-[10px]"
 	case AvatarSizeSM:
 		return "h-6 w-6 text-[10px]"
+	case AvatarSizeMD:
+		return "h-8 w-8 text-[11px]"
 	case AvatarSizeLG:
 		return "h-10 w-10 text-sm"
 	case AvatarSizeXL:
@@ -43,6 +49,8 @@ func avatarSizePx(s AvatarSize) string {
 		return "20"
 	case AvatarSizeSM:
 		return "24"
+	case AvatarSizeMD:
+		return "32"
 	case AvatarSizeLG:
 		return "40"
 	case AvatarSizeXL:
@@ -60,9 +68,14 @@ func initials(name string) string {
 	}
 	parts := strings.Fields(name)
 	if len(parts) == 1 {
-		return strings.ToUpper(parts[0][:1])
+		return strings.ToUpper(firstRune(parts[0]))
 	}
-	return strings.ToUpper(parts[0][:1] + parts[len(parts)-1][:1])
+	return strings.ToUpper(firstRune(parts[0]) + firstRune(parts[len(parts)-1]))
+}
+
+func firstRune(s string) string {
+	_, size := utf8.DecodeRuneInString(s)
+	return s[:size]
 }
 
 // Avatar renders the uploaded avatar of the user or org called name, looked up
@@ -162,7 +175,7 @@ func AvatarImage(name, url string, size AvatarSize, alt string) templ.Component 
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(initials(name))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 73, Col: 44}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 86, Col: 44}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -175,7 +188,7 @@ func AvatarImage(name, url string, size AvatarSize, alt string) templ.Component 
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(url).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 76, Col: 13}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 89, Col: 13}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
@@ -188,7 +201,7 @@ func AvatarImage(name, url string, size AvatarSize, alt string) templ.Component 
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression(avatarSizePx(size)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 78, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 91, Col: 30}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -201,7 +214,7 @@ func AvatarImage(name, url string, size AvatarSize, alt string) templ.Component 
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(avatarSizePx(size)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 79, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 92, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -291,7 +304,7 @@ func Initials(name string, size AvatarSize, alt string) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(initials(name))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 104, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 117, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -331,7 +344,7 @@ func Initials(name string, size AvatarSize, alt string) templ.Component {
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templruntime.NewAttributeExpression(alt).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 109, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 122, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 				if templ_7745c5c3_Err != nil {
@@ -358,7 +371,7 @@ func Initials(name string, size AvatarSize, alt string) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(initials(name))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 110, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/avatar.templ`, Line: 123, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {

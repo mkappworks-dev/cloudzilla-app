@@ -141,8 +141,9 @@
     '<svg class="light-only hidden" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>';
 
   var userMenu = '<div class="ml-1">' + menu(
-    'MK',
-    'relative h-7 w-7 rounded-full overflow-hidden bg-muted border border-border grid place-items-center text-xs font-medium hover:bg-accent',
+    '<span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" aria-hidden="true">' +
+      escHtml(initialsOf(owner)) + '</span>',
+    'grid rounded-full [&:hover>span]:bg-accent',
     'User menu for ' + owner, 'end',
     '<div class="px-2.5 py-2"><p class="text-[12px] text-muted-foreground">Signed in as</p>' +
     '<p class="text-[13px] font-medium">' + owner + '</p></div>' + DIVIDER +
@@ -241,7 +242,11 @@
     d.textContent = t;
     return d.innerHTML;
   }
-  function initialsOf(n) { return n.split('/').pop().slice(0, 2).toUpperCase(); }
+  // components.initials: first letters of the first and last words, so one letter for a username.
+  function initialsOf(n) {
+    var w = n.trim().split(/\s+/);
+    return w[0] ? (w.length > 1 ? w[0][0] + w[w.length - 1][0] : w[0][0]).toUpperCase() : '?';
+  }
 
   // Pages with their own search box (search.html) attach the same behaviour: czAttachSuggest(input, panel).
   function attachSuggest(input, panel) {

@@ -137,3 +137,23 @@ func TestActivityRow_Star(t *testing.T) {
 		t.Errorf("unexpected # ref in star row")
 	}
 }
+
+func TestActivityRow_ActorAvatarUsesSharedInitialsAndUploadedImage(t *testing.T) {
+	row := ActivityRowData{Kind: "star", Actor: "siteadmin", RepoName: "acme/foo", When: "1d ago"}
+	var buf bytes.Buffer
+	if err := ActivityRow(row).Render(context.Background(), &buf); err != nil {
+		t.Fatal(err)
+	}
+	if s := buf.String(); !strings.Contains(s, ">S</span>") || strings.Contains(s, "<img") {
+		t.Errorf("want initials S and no image, got %s", s)
+	}
+
+	buf.Reset()
+	ctx := WithAvatarKeys(context.Background(), map[string]string{"siteadmin": testKey})
+	if err := ActivityRow(row).Render(ctx, &buf); err != nil {
+		t.Fatal(err)
+	}
+	if s := buf.String(); !strings.Contains(s, `src="/`+testKey+`"`) {
+		t.Errorf("want the uploaded avatar, got %s", s)
+	}
+}

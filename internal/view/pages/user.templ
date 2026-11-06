@@ -426,7 +426,7 @@ templ userStarRow(data view.UserData, repo model.Repository) {
 	<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class={ rowCardClass }>
 		<div class="flex items-start gap-3 mb-1.5">
 			<span class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true">
-				@repoIcon(repo.Private)
+				@repoIcon()
 			</span>
 			<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
 				<p class="text-[13.5px] font-medium leading-snug group-hover:underline">
@@ -563,7 +563,7 @@ templ userRepoRow(data view.UserData, repo model.Repository) {
 	<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class={ rowCardClass }>
 		<div class="flex items-start gap-3 mb-1.5">
 			<span class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true">
-				@repoIcon(repo.Private)
+				@repoIcon()
 			</span>
 			<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
 				<p class="text-[13.5px] font-medium leading-snug group-hover:underline">
@@ -725,7 +725,7 @@ templ pinReposModal(data view.UserData) {
 						{{ pinURL := "/api/users/" + userIDStr + "/pinned-repos/" + strconv.FormatInt(repo.ID, 10) }}
 						<li class="px-5 py-2.5 flex items-center gap-3">
 							<span class="shrink-0 text-muted-foreground" aria-hidden="true">
-								@repoIcon(repo.Private)
+								@repoIcon()
 							</span>
 							<div class="min-w-0 flex-1">
 								<p class="text-[13px] font-medium leading-snug">{ repo.Name }</p>

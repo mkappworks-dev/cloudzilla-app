@@ -136,3 +136,17 @@ func TestBase_SwitchersCapEntriesAndLinkToFullList(t *testing.T) {
 		}
 	}
 }
+
+func TestBase_UserMenuAvatarUsesSharedInitials(t *testing.T) {
+	base := view.BasePage{CurrentUser: &middleware.Claims{Username: "siteadmin"}}
+	var page strings.Builder
+	if err := layout.Base(base, "Home").Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	html := page.String()
+	trigger := html[strings.Index(html, `aria-label="User menu for siteadmin"`):]
+	trigger = trigger[:strings.Index(trigger, "</button>")]
+	if !strings.Contains(trigger, ">S</span>") {
+		t.Errorf("user menu avatar should show S, got %s", trigger)
+	}
+}

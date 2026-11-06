@@ -50,3 +50,17 @@ func TestWithAvatarKeys_MergesWithEarlierKeys(t *testing.T) {
 		t.Error("a later WithAvatarKeys dropped earlier keys")
 	}
 }
+
+func TestInitials_Rule(t *testing.T) {
+	for name, want := range map[string]string{
+		"siteadmin":      "S",
+		"ada-silva":      "A",
+		"Malith Kuruppu": "MK",
+		"émile zola":     "ÉZ",
+		"  ":             "?",
+	} {
+		if got := initials(name); got != want {
+			t.Errorf("initials(%q) = %q, want %q", name, got, want)
+		}
+	}
+}
