@@ -757,7 +757,7 @@ func Base(base view.BasePage, title string) templ.Component {
 					return nil
 				})
 				templ_7745c5c3_Err = components.DropdownMenuTrigger(templ.Attributes{
-					"class":      "grid rounded-full [&:hover>span]:bg-accent",
+					"class":      "grid rounded-full [&:hover>span]:border-foreground/30",
 					"aria-label": "User menu for " + base.CurrentUser.Username,
 				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var40), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {

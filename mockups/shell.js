@@ -143,7 +143,7 @@
   var userMenu = '<div class="ml-1">' + menu(
     '<span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" aria-hidden="true">' +
       escHtml(initialsOf(owner)) + '</span>',
-    'grid rounded-full [&:hover>span]:bg-accent',
+    'grid rounded-full [&:hover>span]:border-foreground/30',
     'User menu for ' + owner, 'end',
     '<div class="px-2.5 py-2"><p class="text-[12px] text-muted-foreground">Signed in as</p>' +
     '<p class="text-[13px] font-medium">' + owner + '</p></div>' + DIVIDER +

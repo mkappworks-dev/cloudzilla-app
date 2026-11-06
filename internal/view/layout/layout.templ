@@ -209,7 +209,7 @@ templ Base(base view.BasePage, title string) {
 							<div class="ml-1">
 								@components.DropdownMenu() {
 									@components.DropdownMenuTrigger(templ.Attributes{
-										"class":      "grid rounded-full [&:hover>span]:bg-accent",
+										"class":      "grid rounded-full [&:hover>span]:border-foreground/30",
 										"aria-label": "User menu for " + base.CurrentUser.Username,
 									}) {
 										@components.AvatarImage(base.CurrentUser.Username, components.AvatarURL(base.AvatarKey), components.AvatarSizeDefault, "")
