@@ -56,3 +56,9 @@ in `../evidence/12/README.md`; screenshots are generated locally and are not com
 
 2026-11-06 (maintainer scope change): removed the accessibility CI workflow and committed evidence PNGs. The local axe,
 keyboard and screenshot harnesses remain available; the CI acceptance criterion is no longer applicable.
+
+2026-11-06 (wave 1 re-score, ticket 22): Manual findings that axe will not catch, for the gate's allow-list review: muted
+11–12px text on tinted rows looks under 4.5:1 in light (notifications actor line, "Showing 20 of 20", footer links,
+heatmap legend; Claude, measure `--muted-foreground` against `--card` and `--muted`); pills and counters at 9–11px;
+heatmap days with no text alternative (ticket 24); custom widget keyboard patterns (ticket 25). The polish PR made the
+PR files diff headers real buttons (`role=button`, `tabindex`, `aria-expanded`).

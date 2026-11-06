@@ -42,3 +42,8 @@ Read docs/notifications.md first.
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (wave 1 re-score, ticket 22): Findings in this ticket's files, left for it: row checkboxes all read
+"Select notification" instead of naming the item (`notifications.templ:279`); "Done" and unsubscribe are revealed only
+on hover or focus (`:294`, Codex +0.2); no filter by repository, reason or text on 1,346 notifications (Codex +0.5);
+per-repo groups repeat the same discussion title five times with no collapse; no clear-older action (Claude).

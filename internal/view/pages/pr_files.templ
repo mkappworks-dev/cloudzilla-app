@@ -38,7 +38,7 @@ templ PullFiles(data view.PullFilesData) {
 
 templ pullFilesBody(data view.PullFilesData) {
 	if data.LoadError {
-		@components.EmptyState("The diff couldn't be loaded.")
+		@components.EmptyState("The diff couldn't be loaded. Reload the page to try again.")
 	} else if data.Diff == nil || len(data.Diff.Files) == 0 {
 		@components.EmptyState("No changes.")
 	} else {
@@ -106,7 +106,7 @@ templ pullFilesBody(data view.PullFilesData) {
 			<div class="space-y-6 min-w-0">
 				for i, f := range data.Diff.Files {
 					<section id={ "diff-" + strconv.Itoa(i) } class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
-						<header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+						<header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring" role="button" tabindex="0" aria-expanded="true">
 							<svg class="diff-file-caret shrink-0 text-muted-foreground transition-transform" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
 							<span class="font-mono font-medium truncate">{ f.DisplayPath() }</span>
 							if !f.IsBinary {
@@ -147,13 +147,23 @@ templ pullFilesBody(data view.PullFilesData) {
 					var caret = section.querySelector('.diff-file-caret');
 					if (body) body.classList.toggle('hidden', collapsed);
 					if (caret) caret.style.transform = collapsed ? 'rotate(-90deg)' : '';
+					var head = section.querySelector('.diff-file-header');
+					if (head) head.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
 				}
 				document.querySelectorAll('.diff-file-header').forEach(function (h) {
-					h.addEventListener('click', function (e) {
-						if (e.target.closest('a')) return;
+					function toggle() {
 						var s = h.closest('.diff-file');
 						var collapsed = s.querySelector('.diff-file-body').classList.contains('hidden');
 						setCollapsed(s, !collapsed);
+					}
+					h.addEventListener('click', function (e) {
+						if (e.target.closest('a')) return;
+						toggle();
+					});
+					h.addEventListener('keydown', function (e) {
+						if (e.target !== h || (e.key !== 'Enter' && e.key !== ' ')) return;
+						e.preventDefault();
+						toggle();
 					});
 				});
 				var sections = Array.prototype.slice.call(document.querySelectorAll('.diff-file'));

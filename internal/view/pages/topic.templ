@@ -85,8 +85,12 @@ templ Topic(data view.TopicData) {
 						<span></span>
 					}
 					<span class="text-muted-foreground font-mono">page { strconv.Itoa(data.Page) }</span>
-					@components.LinkButton("?page="+strconv.Itoa(data.Page+1)+"&sort="+data.Sort, components.ButtonOutline, components.ButtonSizeSM, nil) {
-						Next →
+					if data.HasNext {
+						@components.LinkButton("?page="+strconv.Itoa(data.Page+1)+"&sort="+data.Sort, components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Next →
+						}
+					} else {
+						<span></span>
 					}
 				</nav>
 			} else {

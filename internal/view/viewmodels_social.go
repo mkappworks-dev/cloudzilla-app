@@ -125,6 +125,7 @@ type TopicData struct {
 	Total     int
 	Sort      string
 	Page      int
+	HasNext   bool
 }
 
 type CodeSearchData struct {

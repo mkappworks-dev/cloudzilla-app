@@ -22,7 +22,7 @@ templ AdminSettings(data view.AdminSettingsFragData) {
 					<input type="hidden" name="key" value={ setting.Key }/>
 					<input type="hidden" name="value" value={ settingNextValue(setting.Value) }/>
 					<label class="flex flex-1 items-center justify-between gap-4 cursor-pointer">
-						<span class="text-sm font-medium text-foreground">{ setting.Key }</span>
+						<span class="text-sm font-medium text-foreground">{ settingLabel(setting.Key) }</span>
 						@components.Switch(templ.Attributes{
 							"id":       "setting-" + setting.Key,
 							"checked":  setting.Value == "true",
@@ -42,6 +42,16 @@ func settingNextValue(current string) string {
 		return "false"
 	}
 	return "true"
+}
+
+func settingLabel(key string) string {
+	switch key {
+	case "allow_registration":
+		return "Allow sign-ups"
+	case "allow_login":
+		return "Allow sign-in"
+	}
+	return key
 }
 
 func settingToggleLabel(current string) string {

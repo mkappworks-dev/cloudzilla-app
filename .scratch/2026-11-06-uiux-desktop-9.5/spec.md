@@ -104,6 +104,21 @@ tracks the effort. The spec sessions can start at step 1; the build PRs come aft
 | 1    | 18  | CI pipelines (Actions tab) | `feat/phase-18.1-ci-runner`          | 00         | 18.1–18.3 | Features +0.6 |
 | 1    | 19  | Package registry           | `feat/phase-16.1-container-registry` | 00         | 16.1–16.2 | Features +0.4 |
 
+### Polish findings (ticket 22)
+
+Opened by the wave 1 re-score. All `needs-triage`; each is one PR and one session like the rest.
+
+| Step | #   | Ticket                                      | Branch                                | Depends on | Gain                           |
+| ---- | --- | ------------------------------------------- | ------------------------------------- | ---------- | ------------------------------ |
+| 1    | 24  | Home priority, heatmap text alternative     | `fix/home-priority-heatmap-text`      | —          | Visual +0.2, A11y +0.2         |
+| 1    | 25  | Keyboard and ARIA for custom widgets        | `fix/widget-aria-patterns`            | —          | A11y +0.5                      |
+| 1    | 26  | Gist scope, privacy wording, revision copy  | `fix/gist-scope-and-wording`          | —          | IA +0.2, Content +0.3          |
+| 1    | 29  | Dark surface elevation                      | `fix/dark-surface-elevation`          | —          | Dark +0.5, Visual +0.1         |
+| 1    | 31  | Heading, timestamp, excerpt consistency     | `tech/ui-consistency-sweep`           | —          | Visual +0.2, Content +0.2      |
+| 2    | 27  | Edit conflict, branch commits, release assets | `feat/edit-and-release-workflows`   | 11         | Features +0.4, Edge +0.2       |
+| 2    | 28  | Navigation context, search peers, explore   | `feat/navigation-context-and-discovery` | 14       | IA +0.4, Features +0.2         |
+| 3    | 30  | Merged-PR summary, merge confirmation       | `fix/pr-merge-accuracy`               | 09         | Interaction +0.3, Edge +0.2    |
+
 ### Mocks track
 
 | Step | #   | Ticket                    | Branch                     | Depends on | Gain                            |
@@ -163,3 +178,39 @@ access model is decided.
 
 2026-11-06 (maintainer): 14 decided as a time-boxed, audited admin mode (no blanket override), now `ready-for-human`.
 18: built-in CI gets an Actions repo tab; the PR Checks tab stays the results view.
+
+2026-11-06 (wave 1 re-score, ticket 22): real app, desktop, 1440 light and dark, at origin/main 7ce58dbb (tickets
+01–08 and 23 merged), seeded throwaway server. Two independent reviewers with one brief: Claude (Sonnet 5.5, medium) and
+Codex (GPT-6.1 Sol). Neither was told the baseline or the target.
+
+| Dimension                | Baseline | Wave 1 target | Claude | Codex | Mean of both |
+| ------------------------ | -------- | ------------- | ------ | ----- | ------------ |
+| Visual design            | 7.9      | 8.6           | 8.0    | 8.0   | 8.0          |
+| Information architecture | 7.75     | 7.75          | 8.25   | 7.5   | 7.88         |
+| Interaction & feedback   | 6.0      | 7.5           | 7.75   | 7.0   | 7.38         |
+| Empty / error / edge     | 6.2      | 7.1           | 7.5    | 7.0   | 7.25         |
+| Accessibility            | 6.6      | 7.4           | 8.0    | 7.0   | 7.5          |
+| Content & microcopy      | 6.85     | 8.2           | 8.0    | 7.0   | 7.5          |
+| Dark mode                | 8.25     | 8.25          | 8.5    | 8.0   | 8.25         |
+| Feature completeness     | 6.2      | 6.2           | 8.0    | 6.5   | 7.25         |
+| **Overall**              | **7.0**  | **7.6**       | **8.00** | **7.25** | **7.63**  |
+
+Wave 1 met its 7.6 target on the mean of both reviewers (Claude above it, Codex below). The reviewers disagree most on
+Feature completeness (1.5 points) and Accessibility (1.0): Claude counted what exists, Codex counted what a forge user
+expects (PR discovery, notification triage, editing workflows). Neither reviewer is near 9.5 on any dimension.
+
+Limits of this pass:
+
+- The harness cropped pages taller than 3200px to the viewport (a `clip` without `fullPage`), so 31 of the 75 light
+  shots are 900px tall and the long ones (settings, org and account settings, admin users, audit log, projects) lost
+  their lower parts. Codex also read the source for each page; Claude viewed 15 of the shots. Fixed for wave 2.
+- Claude viewed about 15 of the 150 shots (mostly light) and sampled the rest by route; Codex viewed all of them. Findings
+  Claude could not confirm are marked "(unverified)" in the tickets.
+- The Codex reviewer did not run the app; interaction scores come from source reading.
+
+Findings: 54 from Claude and 38 from Codex. Fixed in the polish PR: merge-ready subtitle claimed passed checks and
+approvals it never checked; topic "Next" always shown; native controls stayed light in dark mode (`color-scheme`);
+error toasts vanished in 4s with no dismiss; the wiki header offered Edit on a missing page; PR files diff headers were
+mouse-only; the diff-load failure gave no next step; admin settings showed raw keys; the register form hid the
+8-character rule; a filtered issue list said "No open issues" with no way back. Opened as tickets: 24–31. Left as
+comments on running tickets: 10, 11, 12, 13, 14, 20.

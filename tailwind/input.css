@@ -149,6 +149,7 @@
 
   /* Dark theme — activated by adding `dark` class to <html>. */
   .dark {
+    color-scheme: dark; /* native checkboxes, radios and date pickers otherwise stay light */
     --background: 0 0% 0%;
     --foreground: 0 0% 93%;
 

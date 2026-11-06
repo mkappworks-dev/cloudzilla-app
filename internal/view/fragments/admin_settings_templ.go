@@ -81,9 +81,9 @@ func AdminSettings(data view.AdminSettingsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
-				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(setting.Key)
+				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(settingLabel(setting.Key))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_settings.templ`, Line: 25, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_settings.templ`, Line: 25, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -125,6 +125,16 @@ func settingNextValue(current string) string {
 		return "false"
 	}
 	return "true"
+}
+
+func settingLabel(key string) string {
+	switch key {
+	case "allow_registration":
+		return "Allow sign-ups"
+	case "allow_login":
+		return "Allow sign-in"
+	}
+	return key
 }
 
 func settingToggleLabel(current string) string {

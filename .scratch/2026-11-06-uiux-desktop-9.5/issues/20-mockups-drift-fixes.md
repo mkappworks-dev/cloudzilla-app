@@ -38,3 +38,8 @@ Screenshot every mock/real pair at 1440 light and dark and compare.
 ## Comments
 
 2026-11-06 (triage): ready-for-agent.
+
+2026-11-06 (wave 1 re-score, ticket 22): The polish PR edits these mocks, so expect a small merge: `pr.html` (merge
+subtitle), `pr_files.html` (diff header `role=button` and keyboard toggle), `register.html` (password hint),
+`admin_settings.html` (setting labels), `new_organization.html` (terms text, no link). Issue-list empty state and toast
+dismiss are not drawn in the mocks.

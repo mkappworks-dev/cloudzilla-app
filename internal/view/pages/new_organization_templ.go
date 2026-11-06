@@ -156,7 +156,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"text-sm\">I understand I'm responsible for this organization's content and conduct, and I agree to the <a href=\"#\" class=\"text-primary hover:underline\">Cloudzilla Terms of Service</a>.</span></label></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"text-sm\">I understand I'm responsible for this organization's content and conduct, and I agree to the Cloudzilla Terms of Service.</span></label></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

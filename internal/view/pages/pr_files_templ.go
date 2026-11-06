@@ -100,7 +100,7 @@ func pullFilesBody(data view.PullFilesData) templ.Component {
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
 		if data.LoadError {
-			templ_7745c5c3_Err = components.EmptyState("The diff couldn't be loaded.").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.EmptyState("The diff couldn't be loaded. Reload the page to try again.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -266,7 +266,7 @@ func pullFilesBody(data view.PullFilesData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"diff-file border border-border rounded-md overflow-hidden scroll-mt-6\"><header class=\"diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none\"><svg class=\"diff-file-caret shrink-0 text-muted-foreground transition-transform\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><polyline points=\"6 9 12 15 18 9\"></polyline></svg> <span class=\"font-mono font-medium truncate\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"diff-file border border-border rounded-md overflow-hidden scroll-mt-6\"><header class=\"diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring\" role=\"button\" tabindex=\"0\" aria-expanded=\"true\"><svg class=\"diff-file-caret shrink-0 text-muted-foreground transition-transform\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><polyline points=\"6 9 12 15 18 9\"></polyline></svg> <span class=\"font-mono font-medium truncate\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -416,7 +416,7 @@ func pullFilesBody(data view.PullFilesData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div></div><script>\n\t\t\t(function () {\n\t\t\t\tvar STORE_NS = 'cz:pr-files:';\n\t\t\t\tfunction store(key, val) { try { localStorage.setItem(STORE_NS + key, val); } catch (e) {} }\n\t\t\t\tfunction load(key) { try { return localStorage.getItem(STORE_NS + key); } catch (e) { return null; } }\n\t\t\t\tfunction setCollapsed(section, collapsed) {\n\t\t\t\t\tvar body = section.querySelector('.diff-file-body');\n\t\t\t\t\tvar caret = section.querySelector('.diff-file-caret');\n\t\t\t\t\tif (body) body.classList.toggle('hidden', collapsed);\n\t\t\t\t\tif (caret) caret.style.transform = collapsed ? 'rotate(-90deg)' : '';\n\t\t\t\t}\n\t\t\t\tdocument.querySelectorAll('.diff-file-header').forEach(function (h) {\n\t\t\t\t\th.addEventListener('click', function (e) {\n\t\t\t\t\t\tif (e.target.closest('a')) return;\n\t\t\t\t\t\tvar s = h.closest('.diff-file');\n\t\t\t\t\t\tvar collapsed = s.querySelector('.diff-file-body').classList.contains('hidden');\n\t\t\t\t\t\tsetCollapsed(s, !collapsed);\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t\tvar sections = Array.prototype.slice.call(document.querySelectorAll('.diff-file'));\n\t\t\t\tvar fileLinks = {};\n\t\t\t\tdocument.querySelectorAll('#diff-files-list a[href^=\"#diff-\"], #diff-files-tree a[href^=\"#diff-\"]').forEach(function (a) {\n\t\t\t\t\tvar fid = a.getAttribute('href').slice(1);\n\t\t\t\t\t(fileLinks[fid] = fileLinks[fid] || []).push(a);\n\t\t\t\t});\n\t\t\t\tvar activeId = sections.length ? sections[0].id : null;\n\t\t\t\tvar singleBtn = document.getElementById('diff-single-file');\n\t\t\t\tfunction singleOn() { return singleBtn && singleBtn.dataset.state === 'on'; }\n\t\t\t\tfunction highlight(id) {\n\t\t\t\t\tObject.keys(fileLinks).forEach(function (k) {\n\t\t\t\t\t\tfileLinks[k].forEach(function (a) {\n\t\t\t\t\t\t\ta.classList.toggle('bg-accent', k === id);\n\t\t\t\t\t\t\ta.classList.toggle('text-foreground', k === id);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tfunction applySingle() {\n\t\t\t\t\tvar on = singleOn();\n\t\t\t\t\tsections.forEach(function (s) {\n\t\t\t\t\t\ts.classList.toggle('hidden', on && s.id !== activeId);\n\t\t\t\t\t});\n\t\t\t\t\t// Single-file mode shows one file at full height with the\n\t\t\t\t\t// whole page scrollable; entering it or clicking a file in\n\t\t\t\t\t// the sidebar jumps the page back to the top.\n\t\t\t\t\tif (on) window.scrollTo(0, 0);\n\t\t\t\t}\n\t\t\t\tfunction setActive(id) {\n\t\t\t\t\tif (!id) return;\n\t\t\t\t\tactiveId = id;\n\t\t\t\t\thighlight(id);\n\t\t\t\t\tapplySingle();\n\t\t\t\t}\n\t\t\t\tObject.keys(fileLinks).forEach(function (id) {\n\t\t\t\t\tfileLinks[id].forEach(function (a) {\n\t\t\t\t\t\ta.addEventListener('click', function (e) {\n\t\t\t\t\t\t\t// In single-file mode the anchor jump would scroll the\n\t\t\t\t\t\t\t// shown file into view; keep the page pinned to top.\n\t\t\t\t\t\t\tif (singleOn()) e.preventDefault();\n\t\t\t\t\t\t\tsetActive(id);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t\tfunction setSingle(on) {\n\t\t\t\t\tsingleBtn.dataset.state = on ? 'on' : 'off';\n\t\t\t\t\tsingleBtn.setAttribute('aria-pressed', on);\n\t\t\t\t\tsingleBtn.classList.toggle('bg-muted', on);\n\t\t\t\t\tsingleBtn.classList.toggle('text-muted-foreground', !on);\n\t\t\t\t\tapplySingle();\n\t\t\t\t}\n\t\t\t\tif (singleBtn) {\n\t\t\t\t\tsingleBtn.addEventListener('click', function () {\n\t\t\t\t\t\tvar on = !singleOn();\n\t\t\t\t\t\tstore('single', on ? 'on' : 'off');\n\t\t\t\t\t\tsetSingle(on);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\t// Scroll-spy: highlight the file nearest the top while scrolling.\n\t\t\t\tif ('IntersectionObserver' in window && sections.length) {\n\t\t\t\t\tvar spy = new IntersectionObserver(function (entries) {\n\t\t\t\t\t\tif (singleOn()) return;\n\t\t\t\t\t\tentries.forEach(function (e) {\n\t\t\t\t\t\t\tif (e.isIntersecting) { activeId = e.target.id; highlight(e.target.id); }\n\t\t\t\t\t\t});\n\t\t\t\t\t}, { rootMargin: '-8% 0px -82% 0px' });\n\t\t\t\t\tsections.forEach(function (s) { spy.observe(s); });\n\t\t\t\t}\n\t\t\t\thighlight(activeId);\n\n\t\t\t\tvar root = document.getElementById('diff-root');\n\t\t\t\tvar unifiedBtn = document.getElementById('diff-view-unified');\n\t\t\t\tvar splitBtn = document.getElementById('diff-view-split');\n\t\t\t\tfunction setView(view) {\n\t\t\t\t\troot.dataset.view = view;\n\t\t\t\t\tunifiedBtn.setAttribute('aria-pressed', view === 'unified');\n\t\t\t\t\tsplitBtn.setAttribute('aria-pressed', view === 'split');\n\t\t\t\t\tunifiedBtn.classList.toggle('bg-muted', view === 'unified');\n\t\t\t\t\tunifiedBtn.classList.toggle('text-muted-foreground', view !== 'unified');\n\t\t\t\t\tsplitBtn.classList.toggle('bg-muted', view === 'split');\n\t\t\t\t\tsplitBtn.classList.toggle('text-muted-foreground', view !== 'split');\n\t\t\t\t}\n\t\t\t\tif (unifiedBtn) unifiedBtn.addEventListener('click', function () { setView('unified'); });\n\t\t\t\tif (splitBtn) splitBtn.addEventListener('click', function () { setView('split'); });\n\n\t\t\t\tvar wsBtn = document.getElementById('diff-ws-toggle');\n\t\t\t\tif (wsBtn) {\n\t\t\t\t\twsBtn.addEventListener('click', function () {\n\t\t\t\t\t\tvar on = !root.classList.contains('hide-ws');\n\t\t\t\t\t\troot.classList.toggle('hide-ws', on);\n\t\t\t\t\t\twsBtn.setAttribute('aria-pressed', on);\n\t\t\t\t\t\twsBtn.classList.toggle('bg-muted', on);\n\t\t\t\t\t\twsBtn.classList.toggle('text-muted-foreground', !on);\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tvar listUl = document.getElementById('diff-files-list');\n\t\t\t\tvar treeUl = document.getElementById('diff-files-tree');\n\t\t\t\tvar listBtn = document.getElementById('diff-files-list-btn');\n\t\t\t\tvar treeBtn = document.getElementById('diff-files-tree-btn');\n\t\t\t\tfunction setFileLayout(mode) {\n\t\t\t\t\tvar tree = mode === 'tree';\n\t\t\t\t\tlistUl.classList.toggle('hidden', tree);\n\t\t\t\t\ttreeUl.classList.toggle('hidden', !tree);\n\t\t\t\t\tlistBtn.setAttribute('aria-pressed', !tree);\n\t\t\t\t\ttreeBtn.setAttribute('aria-pressed', tree);\n\t\t\t\t\tlistBtn.classList.toggle('bg-muted', !tree);\n\t\t\t\t\tlistBtn.classList.toggle('text-muted-foreground', tree);\n\t\t\t\t\ttreeBtn.classList.toggle('bg-muted', tree);\n\t\t\t\t\ttreeBtn.classList.toggle('text-muted-foreground', !tree);\n\t\t\t\t}\n\t\t\t\tif (listBtn) listBtn.addEventListener('click', function () { store('layout', 'list'); setFileLayout('list'); });\n\t\t\t\tif (treeBtn) treeBtn.addEventListener('click', function () { store('layout', 'tree'); setFileLayout('tree'); });\n\t\t\t\tif (treeUl) {\n\t\t\t\t\ttreeUl.querySelectorAll('.diff-tree-folder').forEach(function (b) {\n\t\t\t\t\t\tb.addEventListener('click', function () {\n\t\t\t\t\t\t\tvar li = b.closest('li');\n\t\t\t\t\t\t\tvar open = li.dataset.open !== 'false';\n\t\t\t\t\t\t\tli.dataset.open = open ? 'false' : 'true';\n\t\t\t\t\t\t\tvar caret = b.querySelector('.diff-tree-caret');\n\t\t\t\t\t\t\tif (caret) caret.style.transform = open ? 'rotate(-90deg)' : '';\n\t\t\t\t\t\t\tvar group = li.querySelector(':scope > ul');\n\t\t\t\t\t\t\tif (group) group.classList.toggle('hidden', open);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tif (load('layout') === 'tree') setFileLayout('tree');\n\t\t\t\tif (singleBtn && load('single') === 'on') setSingle(true);\n\t\t\t})();\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div></div><script>\n\t\t\t(function () {\n\t\t\t\tvar STORE_NS = 'cz:pr-files:';\n\t\t\t\tfunction store(key, val) { try { localStorage.setItem(STORE_NS + key, val); } catch (e) {} }\n\t\t\t\tfunction load(key) { try { return localStorage.getItem(STORE_NS + key); } catch (e) { return null; } }\n\t\t\t\tfunction setCollapsed(section, collapsed) {\n\t\t\t\t\tvar body = section.querySelector('.diff-file-body');\n\t\t\t\t\tvar caret = section.querySelector('.diff-file-caret');\n\t\t\t\t\tif (body) body.classList.toggle('hidden', collapsed);\n\t\t\t\t\tif (caret) caret.style.transform = collapsed ? 'rotate(-90deg)' : '';\n\t\t\t\t\tvar head = section.querySelector('.diff-file-header');\n\t\t\t\t\tif (head) head.setAttribute('aria-expanded', collapsed ? 'false' : 'true');\n\t\t\t\t}\n\t\t\t\tdocument.querySelectorAll('.diff-file-header').forEach(function (h) {\n\t\t\t\t\tfunction toggle() {\n\t\t\t\t\t\tvar s = h.closest('.diff-file');\n\t\t\t\t\t\tvar collapsed = s.querySelector('.diff-file-body').classList.contains('hidden');\n\t\t\t\t\t\tsetCollapsed(s, !collapsed);\n\t\t\t\t\t}\n\t\t\t\t\th.addEventListener('click', function (e) {\n\t\t\t\t\t\tif (e.target.closest('a')) return;\n\t\t\t\t\t\ttoggle();\n\t\t\t\t\t});\n\t\t\t\t\th.addEventListener('keydown', function (e) {\n\t\t\t\t\t\tif (e.target !== h || (e.key !== 'Enter' && e.key !== ' ')) return;\n\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\ttoggle();\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t\tvar sections = Array.prototype.slice.call(document.querySelectorAll('.diff-file'));\n\t\t\t\tvar fileLinks = {};\n\t\t\t\tdocument.querySelectorAll('#diff-files-list a[href^=\"#diff-\"], #diff-files-tree a[href^=\"#diff-\"]').forEach(function (a) {\n\t\t\t\t\tvar fid = a.getAttribute('href').slice(1);\n\t\t\t\t\t(fileLinks[fid] = fileLinks[fid] || []).push(a);\n\t\t\t\t});\n\t\t\t\tvar activeId = sections.length ? sections[0].id : null;\n\t\t\t\tvar singleBtn = document.getElementById('diff-single-file');\n\t\t\t\tfunction singleOn() { return singleBtn && singleBtn.dataset.state === 'on'; }\n\t\t\t\tfunction highlight(id) {\n\t\t\t\t\tObject.keys(fileLinks).forEach(function (k) {\n\t\t\t\t\t\tfileLinks[k].forEach(function (a) {\n\t\t\t\t\t\t\ta.classList.toggle('bg-accent', k === id);\n\t\t\t\t\t\t\ta.classList.toggle('text-foreground', k === id);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tfunction applySingle() {\n\t\t\t\t\tvar on = singleOn();\n\t\t\t\t\tsections.forEach(function (s) {\n\t\t\t\t\t\ts.classList.toggle('hidden', on && s.id !== activeId);\n\t\t\t\t\t});\n\t\t\t\t\t// Single-file mode shows one file at full height with the\n\t\t\t\t\t// whole page scrollable; entering it or clicking a file in\n\t\t\t\t\t// the sidebar jumps the page back to the top.\n\t\t\t\t\tif (on) window.scrollTo(0, 0);\n\t\t\t\t}\n\t\t\t\tfunction setActive(id) {\n\t\t\t\t\tif (!id) return;\n\t\t\t\t\tactiveId = id;\n\t\t\t\t\thighlight(id);\n\t\t\t\t\tapplySingle();\n\t\t\t\t}\n\t\t\t\tObject.keys(fileLinks).forEach(function (id) {\n\t\t\t\t\tfileLinks[id].forEach(function (a) {\n\t\t\t\t\t\ta.addEventListener('click', function (e) {\n\t\t\t\t\t\t\t// In single-file mode the anchor jump would scroll the\n\t\t\t\t\t\t\t// shown file into view; keep the page pinned to top.\n\t\t\t\t\t\t\tif (singleOn()) e.preventDefault();\n\t\t\t\t\t\t\tsetActive(id);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t\tfunction setSingle(on) {\n\t\t\t\t\tsingleBtn.dataset.state = on ? 'on' : 'off';\n\t\t\t\t\tsingleBtn.setAttribute('aria-pressed', on);\n\t\t\t\t\tsingleBtn.classList.toggle('bg-muted', on);\n\t\t\t\t\tsingleBtn.classList.toggle('text-muted-foreground', !on);\n\t\t\t\t\tapplySingle();\n\t\t\t\t}\n\t\t\t\tif (singleBtn) {\n\t\t\t\t\tsingleBtn.addEventListener('click', function () {\n\t\t\t\t\t\tvar on = !singleOn();\n\t\t\t\t\t\tstore('single', on ? 'on' : 'off');\n\t\t\t\t\t\tsetSingle(on);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\t// Scroll-spy: highlight the file nearest the top while scrolling.\n\t\t\t\tif ('IntersectionObserver' in window && sections.length) {\n\t\t\t\t\tvar spy = new IntersectionObserver(function (entries) {\n\t\t\t\t\t\tif (singleOn()) return;\n\t\t\t\t\t\tentries.forEach(function (e) {\n\t\t\t\t\t\t\tif (e.isIntersecting) { activeId = e.target.id; highlight(e.target.id); }\n\t\t\t\t\t\t});\n\t\t\t\t\t}, { rootMargin: '-8% 0px -82% 0px' });\n\t\t\t\t\tsections.forEach(function (s) { spy.observe(s); });\n\t\t\t\t}\n\t\t\t\thighlight(activeId);\n\n\t\t\t\tvar root = document.getElementById('diff-root');\n\t\t\t\tvar unifiedBtn = document.getElementById('diff-view-unified');\n\t\t\t\tvar splitBtn = document.getElementById('diff-view-split');\n\t\t\t\tfunction setView(view) {\n\t\t\t\t\troot.dataset.view = view;\n\t\t\t\t\tunifiedBtn.setAttribute('aria-pressed', view === 'unified');\n\t\t\t\t\tsplitBtn.setAttribute('aria-pressed', view === 'split');\n\t\t\t\t\tunifiedBtn.classList.toggle('bg-muted', view === 'unified');\n\t\t\t\t\tunifiedBtn.classList.toggle('text-muted-foreground', view !== 'unified');\n\t\t\t\t\tsplitBtn.classList.toggle('bg-muted', view === 'split');\n\t\t\t\t\tsplitBtn.classList.toggle('text-muted-foreground', view !== 'split');\n\t\t\t\t}\n\t\t\t\tif (unifiedBtn) unifiedBtn.addEventListener('click', function () { setView('unified'); });\n\t\t\t\tif (splitBtn) splitBtn.addEventListener('click', function () { setView('split'); });\n\n\t\t\t\tvar wsBtn = document.getElementById('diff-ws-toggle');\n\t\t\t\tif (wsBtn) {\n\t\t\t\t\twsBtn.addEventListener('click', function () {\n\t\t\t\t\t\tvar on = !root.classList.contains('hide-ws');\n\t\t\t\t\t\troot.classList.toggle('hide-ws', on);\n\t\t\t\t\t\twsBtn.setAttribute('aria-pressed', on);\n\t\t\t\t\t\twsBtn.classList.toggle('bg-muted', on);\n\t\t\t\t\t\twsBtn.classList.toggle('text-muted-foreground', !on);\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tvar listUl = document.getElementById('diff-files-list');\n\t\t\t\tvar treeUl = document.getElementById('diff-files-tree');\n\t\t\t\tvar listBtn = document.getElementById('diff-files-list-btn');\n\t\t\t\tvar treeBtn = document.getElementById('diff-files-tree-btn');\n\t\t\t\tfunction setFileLayout(mode) {\n\t\t\t\t\tvar tree = mode === 'tree';\n\t\t\t\t\tlistUl.classList.toggle('hidden', tree);\n\t\t\t\t\ttreeUl.classList.toggle('hidden', !tree);\n\t\t\t\t\tlistBtn.setAttribute('aria-pressed', !tree);\n\t\t\t\t\ttreeBtn.setAttribute('aria-pressed', tree);\n\t\t\t\t\tlistBtn.classList.toggle('bg-muted', !tree);\n\t\t\t\t\tlistBtn.classList.toggle('text-muted-foreground', tree);\n\t\t\t\t\ttreeBtn.classList.toggle('bg-muted', tree);\n\t\t\t\t\ttreeBtn.classList.toggle('text-muted-foreground', !tree);\n\t\t\t\t}\n\t\t\t\tif (listBtn) listBtn.addEventListener('click', function () { store('layout', 'list'); setFileLayout('list'); });\n\t\t\t\tif (treeBtn) treeBtn.addEventListener('click', function () { store('layout', 'tree'); setFileLayout('tree'); });\n\t\t\t\tif (treeUl) {\n\t\t\t\t\ttreeUl.querySelectorAll('.diff-tree-folder').forEach(function (b) {\n\t\t\t\t\t\tb.addEventListener('click', function () {\n\t\t\t\t\t\t\tvar li = b.closest('li');\n\t\t\t\t\t\t\tvar open = li.dataset.open !== 'false';\n\t\t\t\t\t\t\tli.dataset.open = open ? 'false' : 'true';\n\t\t\t\t\t\t\tvar caret = b.querySelector('.diff-tree-caret');\n\t\t\t\t\t\t\tif (caret) caret.style.transform = open ? 'rotate(-90deg)' : '';\n\t\t\t\t\t\t\tvar group = li.querySelector(':scope > ul');\n\t\t\t\t\t\t\tif (group) group.classList.toggle('hidden', open);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tif (load('layout') === 'tree') setFileLayout('tree');\n\t\t\t\tif (singleBtn && load('single') === 'on') setSingle(true);\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -458,7 +458,7 @@ func prFileDiff(data view.PullFilesData, f service.FileDiff) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(hunk.Header)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 301, Col: 126}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 311, Col: 126}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
@@ -515,7 +515,7 @@ func prFileDiff(data view.PullFilesData, f service.FileDiff) templ.Component {
 				var templ_7745c5c3_Var23 string
 				templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(lineNum))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 308, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 318, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 				if templ_7745c5c3_Err != nil {
@@ -533,7 +533,7 @@ func prFileDiff(data view.PullFilesData, f service.FileDiff) templ.Component {
 					var templ_7745c5c3_Var24 string
 					templ_7745c5c3_Var24, templ_7745c5c3_Err = templruntime.NewAttributeExpression(prLineCommentFormURL(data, filePath, lineNum)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 310, Col: 85}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 320, Col: 85}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
 					if templ_7745c5c3_Err != nil {
@@ -546,7 +546,7 @@ func prFileDiff(data view.PullFilesData, f service.FileDiff) templ.Component {
 					var templ_7745c5c3_Var25 string
 					templ_7745c5c3_Var25, templ_7745c5c3_Err = templruntime.NewAttributeExpression("#" + view.LineCommentFormID(right)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 310, Col: 135}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 320, Col: 135}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
 					if templ_7745c5c3_Err != nil {
@@ -673,7 +673,7 @@ func prLineThread(data view.PullFilesData, k view.LineCommentKey) templ.Componen
 			var templ_7745c5c3_Var29 string
 			templ_7745c5c3_Var29, templ_7745c5c3_Err = templruntime.NewAttributeExpression(view.LineCommentID(k)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 340, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 350, Col: 32}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var29)
 			if templ_7745c5c3_Err != nil {
@@ -686,7 +686,7 @@ func prLineThread(data view.PullFilesData, k view.LineCommentKey) templ.Componen
 			var templ_7745c5c3_Var30 string
 			templ_7745c5c3_Var30, templ_7745c5c3_Err = templruntime.NewAttributeExpression(view.LineCommentFormID(k)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 341, Col: 66}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 351, Col: 66}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var30)
 			if templ_7745c5c3_Err != nil {
@@ -737,7 +737,7 @@ func prFileSplitDiff(f service.FileDiff) templ.Component {
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(hunk.Header)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 361, Col: 127}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 371, Col: 127}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 				if templ_7745c5c3_Err != nil {
@@ -841,7 +841,7 @@ func prFileWholeDiff(f service.FileDiff) templ.Component {
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(hunk.Header)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 381, Col: 126}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 391, Col: 126}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 			if templ_7745c5c3_Err != nil {
@@ -895,7 +895,7 @@ func prFileWholeDiff(f service.FileDiff) templ.Component {
 				var templ_7745c5c3_Var39 string
 				templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(prDiffLineNum(line)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 384, Col: 149}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 394, Col: 149}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 				if templ_7745c5c3_Err != nil {
@@ -1034,7 +1034,7 @@ func prSplitCell(c prSplitCellData, right bool) templ.Component {
 				var templ_7745c5c3_Var45 string
 				templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(c.Num))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 401, Col: 25}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 411, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 				if templ_7745c5c3_Err != nil {
@@ -1282,7 +1282,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var49 string
 				templ_7745c5c3_Var49, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("padding-left: " + strconv.Itoa(8+depth*12) + "px")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 570, Col: 223}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 580, Col: 223}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 				if templ_7745c5c3_Err != nil {
@@ -1295,7 +1295,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var50 string
 				templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 572, Col: 46}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 582, Col: 46}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 				if templ_7745c5c3_Err != nil {
@@ -1321,7 +1321,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var51 string
 				templ_7745c5c3_Var51, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("#" + n.Item.Anchor)).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 580, Col: 48}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 590, Col: 48}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var51)
 				if templ_7745c5c3_Err != nil {
@@ -1334,7 +1334,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var52 string
 				templ_7745c5c3_Var52, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("padding-left: " + strconv.Itoa(8+depth*12) + "px")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 580, Col: 224}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 590, Col: 224}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 				if templ_7745c5c3_Err != nil {
@@ -1347,7 +1347,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var53 string
 				templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 582, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 592, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 				if templ_7745c5c3_Err != nil {
@@ -1365,7 +1365,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 					var templ_7745c5c3_Var54 string
 					templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(n.Item.Added))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 584, Col: 84}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 594, Col: 84}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 					if templ_7745c5c3_Err != nil {
@@ -1384,7 +1384,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 					var templ_7745c5c3_Var55 string
 					templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(n.Item.Deleted))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 587, Col: 92}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 597, Col: 92}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 					if templ_7745c5c3_Err != nil {
