@@ -59,64 +59,68 @@ git fetch origin && git worktree add .worktrees/<type>+<slug> -b <type>/<slug> o
 Ticket 00 must merge first: worktrees branch from `origin/main`, so these tickets and mocks are invisible to them
 until committed there.
 
+Ticket numbers are IDs, not an order. Start a ticket once every ticket in **Depends on** has merged. **Step** is the
+earliest point it can start: rows with the same step can run as parallel sessions. Within a step, take wave 1 first,
+because the waves are ordered by score gain per effort.
+
 ### Wave 1 — quick wins (≈7.0 → 7.6)
 
-Small PRs, under a day each. Lanes run in parallel; tickets in the same lane touch the same files, so run them in order.
+Small PRs, under a day each.
 
-| #   | Ticket                     | Branch                            | Lane | Blocked by     | Gain                  |
-| --- | -------------------------- | --------------------------------- | ---- | -------------- | --------------------- |
-| 00  | Commit plan and mocks      | `tech/uiux-plan-and-mocks`        | —    | —              | —                     |
-| 01  | Merge box permissions      | `fix/pr-merge-box-permissions`    | A    | 00             | Interaction +0.3      |
-| 02  | htmx loading states, toasts | `feat/htmx-loading-states`       | B    | 00             | Interaction +1.0      |
-| 03  | Shared LabelChip           | `feat/label-chip-component`       | C    | 00             | Visual +0.4, A11y +0.3 |
-| 04  | Avatar/initials consistency | `fix/avatar-initials-consistency` | D    | 00             | Visual +0.3           |
-| 05  | List display bugs          | `fix/account-list-display-bugs`   | C    | 03             | Edge +0.6             |
-| 06  | htmx fragment parity       | `fix/htmx-fragment-parity`        | B    | 02             | Interaction +0.2, Edge +0.3 |
-| 07  | Accessibility quick fixes  | `fix/a11y-quick-fixes`            | A    | 01             | A11y +0.5             |
-| 08  | Copy pass                  | `tech/ui-copy-pass`               | D    | 04, 05, 06, 07 | Content +1.35         |
+| Step | #   | Ticket                      | Branch                            | Depends on     | Gain                        |
+| ---- | --- | --------------------------- | --------------------------------- | -------------- | --------------------------- |
+| 0    | 00  | Commit plan and mocks       | `tech/uiux-plan-and-mocks`        | —              | —                           |
+| 1    | 01  | Merge box permissions       | `fix/pr-merge-box-permissions`    | 00             | Interaction +0.3            |
+| 1    | 02  | htmx loading states, toasts | `feat/htmx-loading-states`        | 00             | Interaction +1.0            |
+| 1    | 03  | Shared LabelChip            | `feat/label-chip-component`       | 00             | Visual +0.4, A11y +0.3      |
+| 1    | 04  | Avatar/initials consistency | `fix/avatar-initials-consistency` | 00             | Visual +0.3                 |
+| 2    | 05  | List display bugs           | `fix/account-list-display-bugs`   | 03, 04         | Edge +0.6                   |
+| 2    | 06  | htmx fragment parity        | `fix/htmx-fragment-parity`        | 02             | Interaction +0.2, Edge +0.3 |
+| 2    | 07  | Accessibility quick fixes   | `fix/a11y-quick-fixes`            | 01             | A11y +0.5                   |
+| 3    | 08  | Copy pass                   | `tech/ui-copy-pass`               | 04, 05, 06, 07 | Content +1.35               |
 
 ### Wave 2 — core workflows (≈7.6 → 8.2)
 
-| #   | Ticket                   | Branch                       | Blocked by | Gain                           |
-| --- | ------------------------ | ---------------------------- | ---------- | ------------------------------ |
-| 09  | PR review flow           | `feat/pr-review-flow`        | 01, 02     | Features +0.8, Interaction +0.5 |
-| 10  | Issue & PR list filters  | `feat/issue-pr-list-filters` | 03, 05     | Features +0.4, IA +0.5         |
-| 11  | Error recovery           | `fix/form-error-recovery`    | 02, 06     | Edge +0.8                      |
-| 12  | Accessibility gate       | `tech/a11y-axe-gate`         | 07         | A11y +1.0                      |
-| 13  | Notifications triage     | `feat/notifications-triage`  | 02         | IA +0.3, Features +0.2         |
-| 14  | Superadmin settings access | `fix/superadmin-settings-access` | 00    | IA +0.2                        |
+| Step | #   | Ticket                     | Branch                           | Depends on | Gain                            |
+| ---- | --- | -------------------------- | -------------------------------- | ---------- | ------------------------------- |
+| 1    | 14  | Superadmin admin mode      | `fix/superadmin-settings-access` | 00         | IA +0.2                         |
+| 2    | 13  | Notifications triage       | `feat/notifications-triage`      | 02         | IA +0.3, Features +0.2          |
+| 3    | 09  | PR review flow             | `feat/pr-review-flow`            | 01, 02, 07 | Features +0.8, Interaction +0.5 |
+| 3    | 11  | Error recovery             | `fix/form-error-recovery`        | 02, 06     | Edge +0.8                       |
+| 3    | 12  | Accessibility gate         | `tech/a11y-axe-gate`             | 07         | A11y +1.0                       |
+| 4    | 10  | Issue & PR list filters    | `feat/issue-pr-list-filters`     | 03, 05, 08 | Features +0.4, IA +0.5          |
 
 ### Wave 3 — roadmap features (≈8.2 → 8.4)
 
 Each starts with `/grill-with-docs` and `/to-spec` inside its mock folder, then `/to-tickets`; the ticket here only
-tracks the effort.
+tracks the effort. The spec sessions can start at step 1; the build PRs come after wave 2.
 
-| #   | Ticket                     | Branch (first PR)                 | Phase      | Gain          |
-| --- | -------------------------- | --------------------------------- | ---------- | ------------- |
-| 15  | Repository rename          | `feat/repo-rename`                | —          | Features +0.2 |
-| 16  | Signed commit verification | `feat/phase-17.2-signed-commits`  | 17.2       | Features +0.3 |
-| 17  | Secret scanning            | `feat/phase-17.3-secret-scanning` | 17.3       | Features +0.3 |
-| 18  | CI pipelines               | `feat/phase-18.1-ci-runner`       | 18.1–18.3  | Features +0.6 |
-| 19  | Package registry           | `feat/phase-16.1-container-registry` | 16.1–16.2 | Features +0.4 |
+| Step | #   | Ticket                     | Branch (first PR)                    | Depends on | Phase     | Gain          |
+| ---- | --- | -------------------------- | ------------------------------------ | ---------- | --------- | ------------- |
+| 1    | 15  | Repository rename          | `feat/repo-rename`                   | 00         | —         | Features +0.2 |
+| 1    | 16  | Signed commit verification | `feat/phase-17.2-signed-commits`     | 00         | 17.2      | Features +0.3 |
+| 1    | 17  | Secret scanning            | `feat/phase-17.3-secret-scanning`    | 00         | 17.3      | Features +0.3 |
+| 1    | 18  | CI pipelines (Actions tab) | `feat/phase-18.1-ci-runner`          | 00         | 18.1–18.3 | Features +0.6 |
+| 1    | 19  | Package registry           | `feat/phase-16.1-container-registry` | 00         | 16.1–16.2 | Features +0.4 |
 
-### Mocks track (any time, after 00)
+### Mocks track
 
-| #   | Ticket                    | Branch                    | Gain                       |
-| --- | ------------------------- | ------------------------- | -------------------------- |
-| 20  | Mock drift and COVERAGE   | `tech/mockups-drift-fixes` | Mocks 7.0 → 8.3, fidelity → 8.8 |
-| 21  | Generate mocks from templ | `tech/mockgen`            | Mocks → 9.5, fidelity → 9.5 |
+| Step | #   | Ticket                    | Branch                     | Depends on | Gain                            |
+| ---- | --- | ------------------------- | -------------------------- | ---------- | ------------------------------- |
+| 1    | 20  | Mock drift and COVERAGE   | `tech/mockups-drift-fixes` | 00         | Mocks 7.0 → 8.3, fidelity → 8.8 |
+| 2    | 21  | Generate mocks from templ | `tech/mockgen`             | 20         | Mocks → 9.5, fidelity → 9.5     |
 
-### Polish loop (after each wave)
+### Polish loop
 
-| #   | Ticket                 | Branch                       | Gain                      |
-| --- | ---------------------- | ---------------------------- | ------------------------- |
-| 22  | Re-score and polish    | `fix/uiux-polish-wave-<n>`   | Closes the gap to 9.5     |
+| Step           | #   | Ticket              | Branch                     | Depends on                        | Gain                  |
+| -------------- | --- | ------------------- | -------------------------- | --------------------------------- | --------------------- |
+| after each wave | 22 | Re-score and polish | `fix/uiux-polish-wave-<n>` | the wave's last ticket (08, 10, 19) | Closes the gap to 9.5 |
 
 Rule for every UI ticket: change the page's mock in `mockups/` in the same PR (CLAUDE.md).
 
 ## Hotspot files
 
-Two tickets editing these at once will conflict; the lanes above already serialise them.
+Two tickets editing these at once will conflict, so **Depends on** orders every pair that shares one.
 
 - `internal/view/layout/layout.templ` — 04 (header initials), 05 (bell badge), 08 (footer)
 - `components/pr_list_row.templ`, `components/issue_list_row.templ` — 03, 05, 10
@@ -135,6 +139,9 @@ Desktop screenshots of every mock/real pair at 1440px, light and dark, against a
    `paper-planes` org; use those for owner-only pages, `ada-silva/hollow-atlas` for busy repo pages.
 
 ## Comments
+
+2026-11-06: lanes replaced by **Depends on** and **Step**. Added 05 → 04 (`layout.templ`), 09 → 07
+(merge box) and 10 → 08 (account pages) so tickets sharing a hotspot file never run at once.
 
 2026-11-06 (triage): Wave 1 tickets (01–08), 11–13, 20 and 22 are `ready-for-agent`. 09, 10, 15–19 and 21 are
 `ready-for-human`: each needs a `/grill-with-docs` + `/to-spec` session first. 14 is `needs-info` until the superadmin

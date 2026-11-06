@@ -7,7 +7,7 @@ Blocked by: 04, 05, 06, 07
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
 | --- | --- | --- | --- | --- | --- |
-| `tech/ui-copy-pass` | `.worktrees/tech+ui-copy-pass` | `tech(ui): sentence case, pluralisation and footer copy` | 1, lane D | S | Content +1.35 |
+| `tech/ui-copy-pass` | `.worktrees/tech+ui-copy-pass` | `tech(ui): sentence case, pluralisation and footer copy` | 1, step 3 | S | Content +1.35 |
 
 ## Problem
 
@@ -39,7 +39,7 @@ Screenshot pass over every page in the harness list.
 
 ## Notes
 
-Touches many files: start it only after lanes A–C merge, and keep it copy-only.
+Touches many files: start it only after 04, 05, 06 and 07 merge, and keep it copy-only.
 
 ## Comments
 
