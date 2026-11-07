@@ -133,7 +133,7 @@ posted to the timeline instead.
 
 A `suggestion` fence in a line comment renders as a diff of the line it replaces. Writers see Apply suggestion on a
 right-side suggestion of an open PR. Applying commits to the head branch through `CodeService.ApplySuggestions` and
-records `applied_at`, `applied_sha` and `applied_by` on the comment (migration 118), so a second apply gets `409`.
+records `applied_at`, `applied_sha` and `applied_by` on the comment (migration 119), so a second apply gets `409`.
 
 "Add to batch" is client-side state. "Commit suggestions" posts the ids to `POST …/pulls/{n}/suggestions/apply`, which
 applies them in one commit, bottom-up per file so a replacement that changes the line count doesn't shift the next one.
