@@ -19,11 +19,11 @@ assignee filters, sorting (PRs) or pagination.
   `page=N`. Tabs, menus and chips all write `q`. The old `state=`, `label=`, `milestone=` and `sort=` params keep working
   as aliases (read, then folded into `q`).
 - **Qualifiers**, shared by both lists: `is:open|closed` (`is:draft|merged` on PRs), `author:`, `assignee:`, `label:`
-  (repeatable, AND), `milestone:` (by title), `no:label|milestone|assignee`, `sort:`, free text (title substring).
+  (repeatable, AND), `milestone:` (by title), `no:label|milestone|assignee`, `sort:`, free text (title substring). PRs also take
+  `review:none|required|approved|changes_requested`.
   `author:@me` and `assignee:@me` resolve to the signed-in user and match nothing for anonymous visitors.
 - **Sorts**: `newest` (default), `oldest`, `updated`; issues also `comments`.
-- **Out of scope**: `review:` filter and the PR review-state indicator (needs the protection rule per base branch and
-  collides with ticket 09; follow-up after 09 merges), saved filters (the URL is the saved filter), configurable page
+- **Out of scope**: saved filters (the URL is the saved filter), configurable page
   size, cursor pagination.
 - **Pagination**: offset, fixed page size 25, `page` param, filtering and paging in SQL. `PaginationWithCount` shows the
   filtered total. Tab counts stay unfiltered. A `page` past the end clamps to the last page.
@@ -58,14 +58,14 @@ assignee filters, sorting (PRs) or pagination.
 
 ## Tickets
 
-Maintainer decision 2026-11-07: all three ship as one PR on `feat/issue-pr-list-filters` (`feat(issues,pulls): qualifier
+Maintainer decision 2026-11-07: all four ship as one PR on `feat/issue-pr-list-filters` (`feat(issues,pulls): qualifier
 search, filter menus and pagination`), one commit per ticket.
 
 1. `01-listquery-parser` — parser package, tests, glossary entry. No UI.
 2. `02-issue-list-filters` — issues SQL filter and paging, comment and priority rows, shared filter components, index
    migration, placeholder copy, standing mocks, benchmark. Blocked by 01.
 3. `03-pr-list-filters` — PRs on the same pieces. Blocked by 01, 02.
-4. `04-pr-review-filter` — `review:` filter and review-state indicator. Blocked by 09; not part of this PR.
+4. `04-pr-review-filter` — `review:` filter, Review menu and review-state badge on PRs.
 
 ## Verification
 

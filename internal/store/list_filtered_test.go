@@ -222,3 +222,85 @@ func TestPullStore_ListFiltered(t *testing.T) {
 		}
 	})
 }
+
+func TestPullStore_ReviewFilterAndStates(t *testing.T) {
+	ctx := context.Background()
+	f := seedListFixture(t, ctx)
+	pull := func(number int, base string) int64 {
+		var id int64
+		if err := f.db.QueryRowContext(ctx,
+			`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch)
+			 VALUES ($1, $2, $3, 'pr', '', 'open', 'feat', $4) RETURNING id`,
+			f.repoID, number, f.aliceID, base).Scan(&id); err != nil {
+			t.Fatalf("insert pull %d: %v", number, err)
+		}
+		return id
+	}
+	review := func(pullID, author int64, name, state string) {
+		f.exec(t, ctx, `INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state, body) VALUES ($1, $2, $3, $4, $5, '')`,
+			pullID, f.repoID, author, name, state)
+	}
+	p1 := pull(1, "main")
+	pull(2, "main")
+	p3 := pull(3, "release")
+	p4 := pull(4, "main")
+	p5 := pull(5, "release")
+	review(p1, f.bobID, f.bob, "approved")
+	review(p3, f.bobID, f.bob, "approved")
+	review(p4, f.bobID, f.bob, "changes_requested")
+	review(p4, f.aliceID, f.alice, "approved")
+	review(p5, f.bobID, f.bob, "approved")
+	review(p5, f.aliceID, f.alice, "approved")
+	review(p1, f.aliceID, f.alice, "commented")
+
+	s := store.NewPullStore(f.db)
+	required := map[string]int{"release": 2}
+	byReview := func(state string) []int {
+		t.Helper()
+		got, total, err := s.ListFiltered(ctx, f.repoID, store.ListFilter{Review: state, ReviewRequired: required, Sort: "oldest"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []int
+		for _, p := range got {
+			out = append(out, p.Number)
+		}
+		if total != len(out) {
+			t.Errorf("review:%s total = %d for %d rows", state, total, len(out))
+		}
+		return out
+	}
+	for state, want := range map[string][]int{
+		"approved":          {1, 5},
+		"none":              {2},
+		"required":          {3},
+		"changes_requested": {4},
+	} {
+		if got := byReview(state); !reflect.DeepEqual(got, want) {
+			t.Errorf("review:%s = %v, want %v", state, got, want)
+		}
+	}
+
+	states, err := s.ReviewStates(ctx, []int64{p1, p3, p4, p5}, required)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[int64]string{p1: "approved", p3: "required", p4: "changes_requested", p5: "approved"}; !reflect.DeepEqual(states, want) {
+		t.Errorf("ReviewStates = %v, want %v", states, want)
+	}
+
+	// Without a protection rule the same release PR with one approval reads as approved.
+	got, _, _ := s.ListFiltered(ctx, f.repoID, store.ListFilter{Review: "approved", Sort: "oldest"})
+	var nums []int
+	for _, p := range got {
+		nums = append(nums, p.Number)
+	}
+	if want := []int{1, 3, 5}; !reflect.DeepEqual(nums, want) {
+		t.Errorf("no rule: review:approved = %v, want %v", nums, want)
+	}
+
+	branches, err := s.BaseBranches(ctx, f.repoID)
+	if err != nil || len(branches) != 2 {
+		t.Errorf("BaseBranches = %v, %v", branches, err)
+	}
+}

@@ -18,6 +18,10 @@ type ListFilter struct {
 	Sort string
 	// State is "open"/"closed" for issues. For pulls it is "open" (non-draft), "draft", "merged" or "closed".
 	State string
+	// Review is a pull request review state: "none", "required", "approved" or "changes_requested".
+	Review string
+	// ReviewRequired is the approvals each base branch needs, from its protection rule; absent means none.
+	ReviewRequired map[string]int
 	// NoMatch short-circuits to an empty result, for a qualifier that cannot match, such as @me when signed out.
 	NoMatch bool
 	// Limit 0 means no limit.
@@ -68,6 +72,9 @@ func (f ListFilter) where(t listTable, b *listBuilder) []string {
 	}
 	if f.MilestoneID != 0 {
 		w = append(w, a+`.milestone_id = `+b.arg(f.MilestoneID))
+	}
+	if f.Review != "" && t == pullListTable {
+		w = append(w, reviewStateExpr(b, f.ReviewRequired)+" = "+b.arg(f.Review))
 	}
 	for _, n := range f.No {
 		switch n {

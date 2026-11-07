@@ -29,7 +29,7 @@ Spec: [../spec.md](../spec.md).
 - [x] Standing mocks updated and checked under `make mockups`; verified at 1440 in light and dark on a throwaway server
 - [x] Benchmark shows before/after for the list query
 - [x] Store and handler tests cover the filters; `/code-review` run
-- [ ] On merge, parent ticket 10 set to `done` and its criteria ticked (waits for ticket 04)
+- [x] On merge, parent ticket 10 set to `done` and its criteria ticked
 
 ## Verification
 

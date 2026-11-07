@@ -2,15 +2,15 @@
 
 Created: 2026-11-07
 Category: enhancement
-Status: ready-for-human
-Blocked by: 09 (`../../2026-11-06-uiux-desktop-9.5/issues/09-pr-review-flow.md`)
+Status: done
+Blocked by: none (it read the protection rule that already exists, so it did not wait for 09)
 
 | Branch | Worktree | PR title |
 | --- | --- | --- |
-| `feat/pr-review-filter` | `.worktrees/feat+pr-review-filter` | `feat(pulls): review filter and review-state indicator` |
+| `feat/issue-pr-list-filters` | `.worktrees/feat+issue-pr-list-filters` | same PR as 01-03 |
 
-Spec: [../spec.md](../spec.md). Split out of the list-filters PR because review state needs the protection rule per base
-branch and 09 is reworking the merge box and review flow.
+Spec: [../spec.md](../spec.md). Shipped in the same PR as 01-03. Review state reads `branch_protections.require_review_count` per base branch and
+`pull_reviews`, neither of which 09 changes.
 
 ## Scope
 
@@ -19,18 +19,20 @@ branch and 09 is reworking the merge box and review flow.
   whatever 09 settles on.
 - A `review:` qualifier in `listquery` (`none`, `required`, `approved`, `changes_requested`), a Review menu on the PR list
   only, and a `ReviewState` field on `PRListRowData` drawn as an indicator shaped like the CI badge.
-- Decide in the grill whether the state is computed in SQL (needed to filter and page correctly) or per page.
+- Computed in SQL, so the filter and the row badge share one expression (`reviewStateExpr`); the per-base-branch
+  requirement is resolved in Go (`filepath.Match`, as the merge check does) and passed in as arrays.
 - Standing mocks: `mockups/pulls.html`; `COVERAGE.md`.
 
 ## Acceptance criteria
 
-- [ ] `review:` filters the PR list in SQL and pages correctly; tab counts stay unfiltered
-- [ ] Rows show the review state; the collapse rule has table-driven tests
-- [ ] Works with JavaScript disabled; back/forward and shared URLs reproduce the view
-- [ ] Standing mock updated and checked under `make mockups`; verified at 1440 in light and dark on a throwaway server
-- [ ] `/code-review` run
+- [x] `review:` filters the PR list in SQL and pages correctly; tab counts stay unfiltered
+- [x] Rows show the review state; the collapse rule has table-driven tests
+- [x] Works with JavaScript disabled; back/forward and shared URLs reproduce the view
+- [x] Standing mock updated and checked under `make mockups`; verified at 1440 in light and dark on a throwaway server
+- [x] `/code-review` run
 
 ## Comments
 
-2026-11-07 (Claude): open question from the mock README: does "required" read the protection rule per base branch, or a
-repo-wide setting? Settle it once 09 merges.
+2026-11-07 (maintainer): implement now instead of waiting for 09. Rule, as the merge check counts: any changes requested
+→ `changes_requested`; else approvals ≥ max(required, 1) → `approved`; else required > 0 → `required`; else `none`. The
+ghost user's reviews do not count. The row badge shows only on open, non-draft PRs.

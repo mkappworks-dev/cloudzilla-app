@@ -29,6 +29,8 @@ func TestParse(t *testing.T) {
 		{"bad no stays text", "no:author", Query{Text: "no:author"}},
 		{"sort", "sort:updated", Query{Sort: "updated"}},
 		{"default sort is dropped", "sort:newest", Query{}},
+		{"review", "review:Changes_Requested", Query{Review: "changes_requested"}},
+		{"bad review stays text", "review:maybe", Query{Text: "review:maybe"}},
 		{"bad sort stays text", "sort:random", Query{Text: "sort:random"}},
 		{"unknown key stays text", "foo:bar", Query{Text: "foo:bar"}},
 		{"empty value stays text", "label:", Query{Text: "label:"}},
@@ -69,7 +71,7 @@ func TestRoundTrip(t *testing.T) {
 	for _, raw := range []string{
 		"",
 		"fix crash",
-		"is:closed author:@me label:ui label:bug milestone:v0.3 no:assignee sort:oldest login",
+		"is:closed author:@me label:ui label:bug milestone:v0.3 no:assignee review:approved sort:oldest login",
 		`label:"good first issue" label:"help wanted" milestone:"Q4 2026"`,
 		"foo:bar is:bogus",
 	} {

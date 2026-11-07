@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: done
 Blocked by: 03, 05, 08
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -27,7 +27,7 @@ The repo issue and PR lists load every row, the PR list has no search or filters
 ## Acceptance criteria
 
 - [x] Spec and tickets exist in the mock folder
-- [ ] All its tickets done (04, the PR review filter, waits for 09)
+- [x] All its tickets done
 - [x] `mockups/issues.html`, `pulls.html` updated
 
 ## Verification
@@ -48,5 +48,4 @@ tickets 01 (parser), 02 (issues), 03 (PRs). `review:` and the PR review-state in
 saved filters are out. Close this ticket when 03 merges.
 
 2026-11-07 (Claude): all three tickets ship in one PR (#279); `mockups/issues.html`, `issues_closed.html`, `pulls.html`
-and a new `issues_filtered.html` are updated. Ticket 04 (`review:` filter and review-state indicator) is split out and blocked by 09, so this ticket stays open until
-it merges.
+and a new `issues_filtered.html` are updated. Ticket 04 (`review:` filter and review-state indicator) shipped in the same PR; all four tickets are done.

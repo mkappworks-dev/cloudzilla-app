@@ -73,6 +73,7 @@ func listStoreFilter(viewer *middleware.Claims, q listquery.Query, state string,
 		Milestone:   q.Milestone,
 		MilestoneID: q.MilestoneID,
 		No:          q.No,
+		Review:      q.Review,
 		Sort:        q.Sort,
 		State:       state,
 		Limit:       listPageSize,
@@ -108,7 +109,7 @@ func listMilestoneTitle(q listquery.Query, milestones []model.Milestone) listque
 }
 
 // listFilterData builds the search field, menus and chips for the list at base. q has its is: set to the active tab.
-func listFilterData(base, noun string, q listquery.Query, total int, people []string, signedIn bool, labels []model.Label, milestones []model.Milestone) components.ListFilterData {
+func listFilterData(base, noun string, withReview bool, q listquery.Query, total int, people []string, signedIn bool, labels []model.Label, milestones []model.Milestone) components.ListFilterData {
 	link := func(q listquery.Query) string { return listURL(base, q, 1) }
 	d := components.ListFilterData{
 		Action:      base,
@@ -186,6 +187,18 @@ func listFilterData(base, noun string, q listquery.Query, total int, people []st
 		return q.Without(listquery.KeyAssignee, "").Without(listquery.KeyNo, "assignee")
 	}, assigneeOpts))
 
+	if withReview {
+		var reviewOpts []components.ListFilterOption
+		for _, r := range []struct{ value, label string }{
+			{"required", "Review required"}, {"approved", "Approved"}, {"changes_requested", "Changes requested"}, {"none", "No reviews"},
+		} {
+			reviewOpts = append(reviewOpts, opt(listquery.KeyReview, r.value, r.label))
+		}
+		d.Menus = append(d.Menus, menu("Review", false, func(q listquery.Query) listquery.Query {
+			return q.Without(listquery.KeyReview, "")
+		}, reviewOpts))
+	}
+
 	var sortOpts []components.ListFilterOption
 	for _, s := range []struct{ value, label string }{
 		{"newest", "Newest"}, {"oldest", "Oldest"}, {"updated", "Recently updated"}, {"comments", "Most commented"},
@@ -220,6 +233,9 @@ func listChips(link func(listquery.Query) string, q listquery.Query) []component
 	}
 	for _, n := range q.No {
 		add(listquery.KeyNo, n)
+	}
+	if q.Review != "" {
+		add(listquery.KeyReview, q.Review)
 	}
 	if q.Sort != "" {
 		add(listquery.KeySort, q.Sort)

@@ -16,6 +16,7 @@ const (
 	KeyLabel     = "label"
 	KeyMilestone = "milestone"
 	KeyNo        = "no"
+	KeyReview    = "review"
 	KeySort      = "sort"
 	KeyText      = "text"
 )
@@ -28,6 +29,7 @@ const defaultSort = "newest"
 var (
 	validStates = []string{"open", "closed", "draft", "merged"}
 	validNo     = []string{KeyLabel, KeyMilestone, KeyAssignee}
+	validReview = []string{"none", "required", "approved", "changes_requested"}
 	validSorts  = []string{"newest", "oldest", "updated", "comments"}
 )
 
@@ -40,7 +42,9 @@ type Query struct {
 	Labels    []string
 	Milestone string
 	No        []string
-	Sort      string
+	// Review is a pull request list qualifier; the issue list ignores it.
+	Review string
+	Sort   string
 
 	// MilestoneID comes only from the legacy milestone= param, which names an ID, and String drops it: the caller must
 	// resolve it to a title before building links.
@@ -110,6 +114,9 @@ func (q Query) String() string {
 	for _, n := range q.No {
 		parts = append(parts, KeyNo+":"+n)
 	}
+	if q.Review != "" {
+		parts = append(parts, KeyReview+":"+q.Review)
+	}
 	if q.Sort != "" {
 		parts = append(parts, KeySort+":"+q.Sort)
 	}
@@ -127,7 +134,7 @@ func Token(key, value string) string {
 // HasFilters reports whether q narrows the list beyond its state tab and sort.
 func (q Query) HasFilters() bool {
 	return q.Text != "" || q.Author != "" || q.Assignee != "" || len(q.Labels) > 0 || q.Milestone != "" ||
-		q.MilestoneID != 0 || len(q.No) > 0
+		q.MilestoneID != 0 || len(q.No) > 0 || q.Review != ""
 }
 
 // With returns q with the qualifier added; a single-valued one replaces its current value. An invalid key or value
@@ -156,6 +163,8 @@ func (q Query) Without(key, value string) Query {
 		q.Milestone, q.MilestoneID = "", 0
 	case KeyNo:
 		q.No = without(q.No, value)
+	case KeyReview:
+		q.Review = ""
 	case KeySort:
 		q.Sort = ""
 	case KeyText:
@@ -179,6 +188,8 @@ func (q Query) Has(key, value string) bool {
 		return strings.EqualFold(q.Milestone, value)
 	case KeyNo:
 		return containsFold(q.No, value)
+	case KeyReview:
+		return q.Review != "" && q.Review == strings.ToLower(value)
 	case KeySort:
 		return q.Sort != "" && q.Sort == strings.ToLower(value)
 	case KeyText:
@@ -196,6 +207,8 @@ func (q *Query) set(key, val string) bool {
 	switch key {
 	case KeyIs:
 		return setEnum(&q.State, validStates, val)
+	case KeyReview:
+		return setEnum(&q.Review, validReview, val)
 	case KeySort:
 		if !setEnum(&q.Sort, validSorts, val) {
 			return false

@@ -55,7 +55,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("issues: participants failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
-	q := listMilestoneTitle(listquery.FromValues(r.URL.Query()), allMilestones)
+	q := listMilestoneTitle(listquery.FromValues(r.URL.Query()), allMilestones).Without(listquery.KeyReview, "")
 	state := "open"
 	if q.State == "closed" {
 		state = "closed"
@@ -126,7 +126,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		StateFilter:   state,
 		OpenTabURL:    listURL(base, q.Without(listquery.KeyIs, ""), 1),
 		ClosedTabURL:  listURL(base, q.With(listquery.KeyIs, "closed"), 1),
-		Filter:        listFilterData(base, "issue", q, total, people, signedIn, allLabels, allMilestones),
+		Filter:        listFilterData(base, "issue", false, q, total, people, signedIn, allLabels, allMilestones),
 		ClearURL:      listURL(base, listquery.Query{State: q.State}, 1),
 		Page:          page,
 		TotalPages:    totalPages,

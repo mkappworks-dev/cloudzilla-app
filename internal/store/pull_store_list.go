@@ -75,3 +75,67 @@ func (s *PullStore) CountByState(ctx context.Context, repoID int64) (PullStateCo
 	}
 	return c, nil
 }
+
+// reviewStateExpr is the SQL for a pull request's review state, as the merge check reads it: any changes requested wins,
+// then enough approvals (at least one), then "required" when its base branch demands approvals it lacks. The ghost user's
+// reviews do not count.
+func reviewStateExpr(b *listBuilder, required map[string]int) string {
+	branches := make([]string, 0, len(required))
+	counts := make([]int32, 0, len(required))
+	for br, n := range required {
+		branches = append(branches, br)
+		counts = append(counts, int32(n))
+	}
+	req := `COALESCE((SELECT t.n FROM unnest(` + b.arg(branches) + `::text[], ` + b.arg(counts) + `::int[]) AS t(branch, n)
+		WHERE t.branch = pr.base_branch), 0)`
+	return `(CASE
+		WHEN EXISTS (SELECT 1 FROM pull_reviews rv WHERE rv.pull_id = pr.id AND rv.state = 'changes_requested' AND rv.author_id <> ghost_user_id())
+			THEN 'changes_requested'
+		WHEN (SELECT COUNT(*) FROM pull_reviews rv WHERE rv.pull_id = pr.id AND rv.state = 'approved' AND rv.author_id <> ghost_user_id())
+			>= GREATEST(` + req + `, 1) THEN 'approved'
+		WHEN ` + req + ` > 0 THEN 'required'
+		ELSE 'none' END)`
+}
+
+// ReviewStates returns each pull request's review state, keyed by ID.
+func (s *PullStore) ReviewStates(ctx context.Context, pullIDs []int64, required map[string]int) (map[int64]string, error) {
+	out := make(map[int64]string, len(pullIDs))
+	if len(pullIDs) == 0 {
+		return out, nil
+	}
+	b := &listBuilder{}
+	expr := reviewStateExpr(b, required)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT pr.id, `+expr+` FROM pull_requests pr WHERE pr.id = ANY(`+b.arg(pullIDs)+`::bigint[])`, b.args...)
+	if err != nil {
+		return nil, fmt.Errorf("pr review states: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var state string
+		if err := rows.Scan(&id, &state); err != nil {
+			return nil, fmt.Errorf("pr review states scan: %w", err)
+		}
+		out[id] = state
+	}
+	return out, rows.Err()
+}
+
+// BaseBranches returns the distinct base branches of the repo's pull requests.
+func (s *PullStore) BaseBranches(ctx context.Context, repoID int64) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT DISTINCT base_branch FROM pull_requests WHERE repo_id = $1`, repoID)
+	if err != nil {
+		return nil, fmt.Errorf("pr base branches: %w", err)
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var br string
+		if err := rows.Scan(&br); err != nil {
+			return nil, fmt.Errorf("pr base branches scan: %w", err)
+		}
+		out = append(out, br)
+	}
+	return out, rows.Err()
+}

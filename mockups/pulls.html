@@ -128,6 +128,21 @@
           </form>
         </details>
         <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Review <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="pulls.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Review</legend>
+              <div class="border-b border-border p-1.5"><input type="text" aria-label="Filter Review" autocomplete="off" placeholder="Filter Review" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"></div>
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="Review required"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="review:required" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Review required</span></span></label></li>
+                <li data-name="Approved"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="review:approved" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Approved</span></span></label></li>
+                <li data-name="Changes requested"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="review:changes_requested" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Changes requested</span></span></label></li>
+                <li data-name="No reviews"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="review:none" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">No reviews</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
           <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Sort <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
           <form method="GET" action="pulls.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
             <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Sort</legend>
@@ -171,6 +186,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 <div class="flex -space-x-1.5" aria-label="2 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">Y</span><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">A</span></div>
+                <span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Review approved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="text-[11px]">Approved</span></span>
                 <span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="6 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 6</span>
               </div>
@@ -200,6 +216,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 <div class="flex -space-x-1.5" aria-label="1 reviewer"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">N</span></div>
+                <span class="text-warning inline-flex items-center gap-1" title="Review required" aria-label="Review required"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="text-[11px]">Review required</span></span>
                 <span class="text-warning inline-flex items-center gap-1" title="Checks in progress" aria-label="CI pending"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="font-mono text-[11px]">3/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="3 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 3</span>
               </div>
@@ -228,6 +245,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 
+                <span class="text-destructive inline-flex items-center gap-1" title="Changes requested" aria-label="Review changes requested"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="text-[11px]">Changes requested</span></span>
                 <span class="text-destructive inline-flex items-center gap-1" title="Some checks failing" aria-label="CI failing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="font-mono text-[11px]">4/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="1 comment"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 1</span>
               </div>
@@ -256,6 +274,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 
+                <span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Review approved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="text-[11px]">Approved</span></span>
                 <span class="text-warning inline-flex items-center gap-1" title="Checks in progress" aria-label="CI pending"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="font-mono text-[11px]">0/6</span></span>
                 
               </div>
@@ -285,6 +304,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 <div class="flex -space-x-1.5" aria-label="2 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">Y</span><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">M</span></div>
+                <span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Review approved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="text-[11px]">Approved</span></span>
                 <span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="8 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 8</span>
               </div>
@@ -313,6 +333,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 
+                <span class="text-warning inline-flex items-center gap-1" title="Review required" aria-label="Review required"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="text-[11px]">Review required</span></span>
                 <span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span>
                 
               </div>
@@ -339,6 +360,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 <div class="flex -space-x-1.5" aria-label="1 reviewer"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">M</span></div>
+                <span class="text-destructive inline-flex items-center gap-1" title="Changes requested" aria-label="Review changes requested"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="text-[11px]">Changes requested</span></span>
                 <span class="text-destructive inline-flex items-center gap-1" title="Some checks failing" aria-label="CI failing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="font-mono text-[11px]">2/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="4 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 4</span>
               </div>

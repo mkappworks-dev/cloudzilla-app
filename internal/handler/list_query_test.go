@@ -86,7 +86,7 @@ func TestListStoreFilterResolvesMe(t *testing.T) {
 }
 
 func TestListFilterDataPlaceholderOnlyAdvertisesParsedQualifiers(t *testing.T) {
-	d := listFilterData("/o/r/issues", "issue", listquery.Query{}, 0, nil, false, nil, nil)
+	d := listFilterData("/o/r/issues", "issue", false, listquery.Query{}, 0, nil, false, nil, nil)
 	example := strings.TrimPrefix(d.Placeholder, "Search or filter, e.g. ")
 	q := listquery.Parse(example)
 	if q.Text != "" || q.State != "open" || !q.Has(listquery.KeyLabel, "bug") || q.Author != listquery.Me {
@@ -97,7 +97,7 @@ func TestListFilterDataPlaceholderOnlyAdvertisesParsedQualifiers(t *testing.T) {
 func TestListFilterDataChipsAndMenus(t *testing.T) {
 	q := listquery.Parse("label:bug label:ui author:priya no:milestone sort:updated crash")
 	labels := []model.Label{{Name: "bug", Color: "#f00"}, {Name: "ui", Color: "#00f"}, {Name: "docs", Color: "#0f0"}}
-	d := listFilterData("/o/r/issues", "issue", q, 4, []string{"priya", "ada"}, true, labels, []model.Milestone{{Title: "v1"}})
+	d := listFilterData("/o/r/issues", "issue", true, q, 4, []string{"priya", "ada"}, true, labels, []model.Milestone{{Title: "v1"}})
 
 	if !d.HasFilters || d.Total != 4 || d.Text != "crash" || d.ClearHref != "/o/r/issues" {
 		t.Errorf("summary: %+v", d)
@@ -147,5 +147,33 @@ func TestListMilestoneTitle(t *testing.T) {
 	}
 	if got := listMilestoneTitle(q, nil); got.Milestone != "12" || got.MilestoneID != 0 {
 		t.Errorf("unknown ID should become a visible milestone that matches nothing: %+v", got)
+	}
+}
+
+func TestListFilterDataReviewMenuIsPullOnly(t *testing.T) {
+	q := listquery.Parse("review:approved")
+	has := func(withReview bool) (menu bool, chips []string, checked string) {
+		d := listFilterData("/o/r/pulls", "pull request", withReview, q, 1, nil, false, nil, nil)
+		for _, m := range d.Menus {
+			if m.Title == "Review" {
+				menu = true
+				for _, o := range m.Options {
+					if o.Checked {
+						checked = o.Label
+					}
+				}
+			}
+		}
+		for _, c := range d.Chips {
+			chips = append(chips, c.Label)
+		}
+		return
+	}
+	menu, chips, checked := has(true)
+	if !menu || checked != "Approved" || !reflect.DeepEqual(chips, []string{"review:approved"}) {
+		t.Errorf("pulls: menu=%v checked=%q chips=%v", menu, checked, chips)
+	}
+	if menu, _, _ := has(false); menu {
+		t.Error("issues must not get a Review menu")
 	}
 }
