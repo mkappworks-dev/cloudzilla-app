@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"slices"
 	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"

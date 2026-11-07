@@ -695,9 +695,9 @@ func mergePrimaryButton(d MergeabilityBoxData, auto bool, defKey, defLabel, roun
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var26 string
-				templ_7745c5c3_Var26, templ_7745c5c3_Err = templruntime.NewAttributeExpression(mergeVals(auto, defKey)).Resolve(ctx)
+				templ_7745c5c3_Var26, templ_7745c5c3_Err = templruntime.NewAttributeExpression(autoMergeVals(defKey)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mergeability_box.templ`, Line: 241, Col: 36}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mergeability_box.templ`, Line: 241, Col: 34}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
 				if templ_7745c5c3_Err != nil {
@@ -708,9 +708,9 @@ func mergePrimaryButton(d MergeabilityBoxData, auto bool, defKey, defLabel, roun
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var27 string
-				templ_7745c5c3_Var27, templ_7745c5c3_Err = templruntime.NewAttributeExpression(mergeValsExpr(auto)).Resolve(ctx)
+				templ_7745c5c3_Var27, templ_7745c5c3_Err = templruntime.NewAttributeExpression(autoMergeValsExpr).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mergeability_box.templ`, Line: 242, Col: 33}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mergeability_box.templ`, Line: 242, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 				if templ_7745c5c3_Err != nil {
@@ -1391,26 +1391,11 @@ func reviewsDescription(approved, required int) string {
 	return fmt.Sprintf("%d of %s approved", approved, Count(required, "required review", "required reviews"))
 }
 
-func mergeVals(auto bool, strategy string) string {
-	if auto {
-		return fmt.Sprintf(`{"auto_merge":"enable","auto_merge_strategy":%q}`, strategy)
-	}
-	return fmt.Sprintf(`{"state":"merged","merge_strategy":%q}`, strategy)
+func autoMergeVals(strategy string) string {
+	return fmt.Sprintf(`{"auto_merge":"enable","auto_merge_strategy":%q}`, strategy)
 }
 
-func mergeValsExpr(auto bool) string {
-	if auto {
-		return "JSON.stringify({ auto_merge: 'enable', auto_merge_strategy: strategy })"
-	}
-	return "JSON.stringify({ state: 'merged', merge_strategy: strategy })"
-}
-
-func mergeLabel(auto bool, label string) string {
-	if auto {
-		return "Enable auto-merge · " + label
-	}
-	return label
-}
+const autoMergeValsExpr = "JSON.stringify({ auto_merge: 'enable', auto_merge_strategy: strategy })"
 
 func autoMergeSummary(d MergeabilityBoxData) string {
 	s := "Auto-merge is on (" + strategyName(d.AutoMergeStrategy) + ")"

@@ -1,12 +1,15 @@
 package handler_test
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
@@ -177,5 +180,31 @@ func TestMergePull_UsesTheEditedCommitMessageAndRecordsTheCommitCount(t *testing
 	var detail string
 	if err := db.QueryRow(`SELECT detail FROM pull_events WHERE pull_id=$1 AND event_type='merged'`, pullID).Scan(&detail); err != nil || detail != "1" {
 		t.Errorf("merged event detail = %q (%v), want the 1 commit that merged", detail, err)
+	}
+}
+
+func TestEditedSuggestionBodyRefreshesTheStoredSuggestion(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	r := seedRaceRepo(t, db, t.TempDir())
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO pull_line_comments (pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body)
+		 VALUES ($1, $2, $3, $4, 'f.txt', 'right', 1, 'x', true, 'old') RETURNING id`,
+		seedOpenPull(t, db, r.seededRepo), r.id, r.owner.id, r.owner.name,
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("seed suggestion: %v", err)
+	}
+	svc := service.NewPullLineCommentService(store.NewPullLineCommentStore(db), store.NewPullStore(db), store.NewRepoStore(db))
+	c, err := svc.Update(context.Background(), id, r.owner.id, "```suggestion\nnew\n```")
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if !c.IsSuggestion || c.SuggestionBody != "new" {
+		t.Errorf("after edit = (%v, %q), want the new suggestion", c.IsSuggestion, c.SuggestionBody)
+	}
+	c, err = svc.Update(context.Background(), id, r.owner.id, "never mind")
+	if err != nil || c.IsSuggestion {
+		t.Errorf("removing the block: suggestion=%v err=%v, want a plain comment", c != nil && c.IsSuggestion, err)
 	}
 }

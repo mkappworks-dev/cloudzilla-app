@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -25,11 +25,11 @@ Spec: [../spec.md](../spec.md)
 
 ## Acceptance criteria
 
-- [ ] Needs-approvals, ready, checks-failing, conflicts and auto-merge-enabled each render for a writer (view-model tests)
-- [ ] Read-only viewers see the lock line only
-- [ ] With no branch protection rule there is no "X of N" line
-- [ ] `mockups/pr.html` shows every state; checked under `make mockups`
-- [ ] Verified at 1440 px in light and dark
+- [x] Needs-approvals, ready, checks-failing, conflicts and auto-merge-enabled each render for a writer (view-model tests)
+- [x] Read-only viewers see the lock line only
+- [x] With no branch protection rule there is no "X of N" line
+- [x] `mockups/pr.html` shows every state; checked under `make mockups`
+- [x] Verified at 1440 px in light and dark
 
 ## Blocked by
 

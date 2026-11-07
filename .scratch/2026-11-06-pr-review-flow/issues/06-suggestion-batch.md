@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -21,11 +21,11 @@ Spec: [../spec.md](../spec.md)
 
 ## Acceptance criteria
 
-- [ ] Three suggestions across two files become one commit, all marked applied
-- [ ] Overlapping suggestions fail the batch and change nothing
-- [ ] A moved head branch returns 409 and changes nothing
-- [ ] `mockups/pr_files.html` shows the batch states; checked under `make mockups`
-- [ ] Verified at 1440 px in light and dark
+- [x] Three suggestions across two files become one commit, all marked applied
+- [x] Overlapping suggestions fail the batch and change nothing
+- [x] A moved head branch returns 409 and changes nothing
+- [x] `mockups/pr_files.html` shows the batch states; checked under `make mockups`
+- [x] Verified at 1440 px in light and dark
 
 ## Comments
 

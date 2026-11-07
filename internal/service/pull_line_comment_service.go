@@ -127,5 +127,6 @@ func (s *PullLineCommentService) Update(ctx context.Context, id, callerID int64,
 	if c.AuthorID != callerID {
 		return nil, fmt.Errorf("forbidden")
 	}
-	return s.comments.Update(ctx, id, body)
+	isSuggestion, suggestionBody := parseSuggestion(body)
+	return s.comments.Update(ctx, id, body, isSuggestion, suggestionBody)
 }

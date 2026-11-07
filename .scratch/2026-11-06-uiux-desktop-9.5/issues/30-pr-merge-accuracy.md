@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: needs-triage
+Status: done
 Blocked by: 09
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -47,4 +47,4 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 
 2026-11-07 (Malith Kuruppu): folded into the PR review flow spec as
 [ticket 07](../../2026-11-06-pr-review-flow/issues/07-merge-accuracy-confirm.md), which ships both fixes after the merge
-box states. Set this ticket to `done` when that PR merges.
+box states. Done in the PR review flow PR.

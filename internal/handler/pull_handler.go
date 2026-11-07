@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -316,7 +317,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "the merge commit message is too long")
 			return
 		}
-		pr, err := h.mergePull(r.Context(), repo, existingPR, mergeStrategy, mergeCommitMessage(mergeTitle, mergeMessage), actor, nil)
+		commitMessage, err := mergeCommitMessage(mergeTitle, mergeMessage)
+		if err != nil {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+		pr, err := h.mergePull(r.Context(), repo, existingPR, mergeStrategy, commitMessage, actor, nil)
 		var refusal *mergeRefusal
 		if errors.As(err, &refusal) {
 			writeError(w, refusal.status, refusal.msg)
@@ -385,16 +391,18 @@ func (e *mergeRefusal) Error() string { return e.msg }
 
 const maxMergeMessage = 10000
 
-// mergeCommitMessage joins the merge dialog's title and body; a blank title leaves the default message.
-func mergeCommitMessage(title, body string) string {
+// mergeCommitMessage joins the merge dialog's title and body; both blank leaves the default message.
+func mergeCommitMessage(title, body string) (string, error) {
 	title, body = strings.TrimSpace(title), strings.TrimSpace(body)
-	if title == "" {
-		return ""
+	switch {
+	case title == "" && body == "":
+		return "", nil
+	case title == "":
+		return "", errors.New("the merge commit title can't be blank when a message is given")
+	case body == "":
+		return title, nil
 	}
-	if body == "" {
-		return title
-	}
-	return title + "\n\n" + body
+	return title + "\n\n" + body, nil
 }
 
 // mergePull merges pr into its base as actor and does everything a merge
@@ -438,12 +446,16 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	}
 
 	// Counted before the merge: afterwards a fast-forward or merge commit leaves nothing between base and head.
-	mergedCommits := 0
+	mergedCommits := ""
 	if commits, err := h.Services.Code.PullCommits(owner, repoName, pr.BaseBranch, pr.HeadBranch); err == nil {
-		mergedCommits = len(commits)
+		mergedCommits = strconv.Itoa(len(commits))
 	}
 	if (strategy == "merge" || strategy == "squash") && pr.BaseBranch == repo.DefaultBranch {
-		commitRefs = append(commitRefs, service.ParseClosingRefs(message)...)
+		for _, ref := range service.ParseClosingRefs(message) {
+			if !slices.Contains(commitRefs, ref) {
+				commitRefs = append(commitRefs, ref)
+			}
+		}
 	}
 
 	var err error
@@ -466,7 +478,7 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	if err != nil {
 		return nil, fmt.Errorf("set merged state: %w", err)
 	}
-	h.recordPullEvent(ctx, owner, repoName, merged, actor.UserID, actor.Username, model.PullEventMerged, strconv.Itoa(mergedCommits))
+	h.recordPullEvent(ctx, owner, repoName, merged, actor.UserID, actor.Username, model.PullEventMerged, mergedCommits)
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("merged", *repo, *merged))
 	bg := context.WithoutCancel(ctx)
 	go h.Services.Notification.NotifyPRStateChange(bg, *repo, *merged, actor.UserID, actor.Username)

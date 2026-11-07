@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Parent: [ticket 09](../2026-11-06-uiux-desktop-9.5/issues/09-pr-review-flow.md). Design input: [mock.html](./mock.html)
 and [README.md](./README.md). Docs to read first: [pr-merge](../../docs/pr-merge.md),

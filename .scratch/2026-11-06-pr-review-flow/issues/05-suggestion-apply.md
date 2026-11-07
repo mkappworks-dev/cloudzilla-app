@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -21,12 +21,12 @@ Spec: [../spec.md](../spec.md)
 
 ## Acceptance criteria
 
-- [ ] A pending suggestion renders with Apply; applying creates one commit on the head branch and marks it applied
-- [ ] The applied state survives a reload and hides Apply
-- [ ] A left-side or closed-PR suggestion shows no Apply
-- [ ] Inline `code` is readable in dark mode
-- [ ] `mockups/pr_files.html` shows pending and applied; checked under `make mockups`
-- [ ] Verified at 1440 px in light and dark
+- [x] A pending suggestion renders with Apply; applying creates one commit on the head branch and marks it applied
+- [x] The applied state survives a reload and hides Apply
+- [x] A left-side or closed-PR suggestion shows no Apply
+- [x] Inline `code` is readable in dark mode
+- [x] `mockups/pr_files.html` shows pending and applied; checked under `make mockups`
+- [x] Verified at 1440 px in light and dark
 
 ## Blocked by
 

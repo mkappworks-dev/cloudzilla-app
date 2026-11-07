@@ -38,10 +38,12 @@ Mocks show the happy path. These real states are not drawn:
 - **Read-only and signed-out views.** No Edit, Delete or Manage controls; "Sign in to reply."; a locked issue the viewer
   cannot comment on; the `pr.html` merge box's lock line ("Only collaborators with write access…") in place of Merge and
   Close.
-- **Other states.** Draft, merged and closed pull requests outside `my_pulls.html`; merge conflicts; failing and pending
-  checks; archived and mirror repo banners; binary file in `blob`; hidden-issue project card; form validation errors
-  (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or slash-ended path, or open
-  `#error`); one-time token and backup-code reveals.
+- **PR states.** `pr.html` opens in other states through hashes: `#pr=open|draft|merged`,
+  `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly` (join with
+  `&`).
+- **Other states.** Closed pull requests; archived and mirror repo banners; binary file in `blob`; hidden-issue project
+  card; form validation errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or
+  slash-ended path, or open `#error`); one-time token and backup-code reveals.
 - **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
   `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
   a mock button draws the real busy state.

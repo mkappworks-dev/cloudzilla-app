@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -26,13 +26,13 @@ Spec: [../spec.md](../spec.md)
 
 ## Acceptance criteria
 
-- [ ] Each of the three verdicts can be submitted and shows in the reviews list after the reload
-- [ ] A Comment after Request changes leaves the merge blocked (service test)
-- [ ] The author sees Approve and Request changes disabled and can submit Comment
-- [ ] A read-only viewer sees neither the strip nor the button
-- [ ] Empty summary is allowed for Approve, required for Comment and Request changes, with inline error text
-- [ ] `mockups/pr.html` and `pr_files.html` show the dialog and entry points; checked under `make mockups`
-- [ ] Verified at 1440 px in light and dark
+- [x] Each of the three verdicts can be submitted and shows in the reviews list after the reload
+- [x] A Comment after Request changes leaves the merge blocked (service test)
+- [x] The author sees Approve and Request changes disabled and can submit Comment
+- [x] A read-only viewer sees neither the strip nor the button
+- [x] Empty summary is allowed for Approve, required for Comment and Request changes, with inline error text
+- [x] `mockups/pr.html` and `pr_files.html` show the dialog and entry points; checked under `make mockups`
+- [x] Verified at 1440 px in light and dark
 
 ## Blocked by
 

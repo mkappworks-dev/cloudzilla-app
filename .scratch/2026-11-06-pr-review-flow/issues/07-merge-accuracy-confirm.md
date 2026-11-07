@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -23,12 +23,12 @@ Folds in [ticket 30](../2026-11-06-uiux-desktop-9.5/issues/30-pr-merge-accuracy.
 
 ## Acceptance criteria
 
-- [ ] A merged PR names its merger and the number of commits that merged
-- [ ] Merging shows the strategy and message before it runs, and the commit carries the edited message
-- [ ] Closing keywords in the edited message still close issues
-- [ ] `mockups/pr.html` updated; checked under `make mockups`
-- [ ] Ticket 30 `Status: done` with a comment pointing here
-- [ ] Verified at 1440 px in light and dark
+- [x] A merged PR names its merger and the number of commits that merged
+- [x] Merging shows the strategy and message before it runs, and the commit carries the edited message
+- [x] Closing keywords in the edited message still close issues
+- [x] `mockups/pr.html` updated; checked under `make mockups`
+- [x] Ticket 30 `Status: done` with a comment pointing here
+- [x] Verified at 1440 px in light and dark
 
 ## Blocked by
 

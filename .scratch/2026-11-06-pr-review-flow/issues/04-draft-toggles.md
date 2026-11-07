@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Spec: [../spec.md](../spec.md)
 
@@ -18,11 +18,11 @@ Spec: [../spec.md](../spec.md)
 
 ## Acceptance criteria
 
-- [ ] Both toggles work for a writer and for the author; a reader sees neither
-- [ ] A drafted PR shows the Draft badge, banner and muted box, with no Merge button
-- [ ] `docs/pr-merge.md` "Draft Pull Requests" matches the UI
-- [ ] `mockups/pr.html` shows the draft states; checked under `make mockups`
-- [ ] Verified at 1440 px in light and dark
+- [x] Both toggles work for a writer and for the author; a reader sees neither
+- [x] A drafted PR shows the Draft badge, banner and muted box, with no Merge button
+- [x] `docs/pr-merge.md` "Draft Pull Requests" matches the UI
+- [x] `mockups/pr.html` shows the draft states; checked under `make mockups`
+- [x] Verified at 1440 px in light and dark
 
 ## Blocked by
 

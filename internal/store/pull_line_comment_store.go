@@ -64,12 +64,15 @@ FROM pull_line_comments WHERE id=$1`
 	return &c, nil
 }
 
-func (s *PullLineCommentStore) Update(ctx context.Context, id int64, body string) (*model.PullLineComment, error) {
+func (s *PullLineCommentStore) Update(ctx context.Context, id int64, body string, isSuggestion bool, suggestionBody string) (*model.PullLineComment, error) {
 	const q = `
-UPDATE pull_line_comments SET body=$2, updated_at=NOW() WHERE id=$1
+UPDATE pull_line_comments SET body=$2,
+  is_suggestion = CASE WHEN applied_at IS NULL THEN $3 ELSE is_suggestion END,
+  suggestion_body = CASE WHEN applied_at IS NULL THEN $4 ELSE suggestion_body END,
+  updated_at=NOW() WHERE id=$1
 RETURNING id, pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body, applied_at, applied_sha, applied_by, created_at, updated_at`
 	var c model.PullLineComment
-	err := s.db.QueryRowContext(ctx, q, id, body).Scan(
+	err := s.db.QueryRowContext(ctx, q, id, body, isSuggestion, suggestionBody).Scan(
 		&c.ID, &c.PullID, &c.RepoID, &c.AuthorID, &c.AuthorName,
 		&c.Path, &c.DiffSide, &c.Line, &c.Body, &c.IsSuggestion, &c.SuggestionBody, &c.AppliedAt, &c.AppliedSHA, &c.AppliedBy, &c.CreatedAt, &c.UpdatedAt,
 	)
