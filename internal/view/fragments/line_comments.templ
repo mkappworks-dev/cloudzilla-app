@@ -69,12 +69,15 @@ templ LineCommentForm(data view.LineCommentFormFragData) {
 }
 
 templ suggestionBlock(data view.LineCommentsFragData, c view.RenderedLineComment) {
-	<div class="mt-2 mb-1 rounded-md border border-border bg-card overflow-hidden font-sans">
+	<div x-data={ "{ id: " + strconv.FormatInt(c.ID, 10) + " }" } class="mt-2 mb-1 rounded-md border border-border bg-card overflow-hidden font-sans">
 		<div class="px-3 py-1.5 border-b border-border bg-muted/40 flex items-center gap-2 text-[11px] text-muted-foreground">
 			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
 			Suggested change
 			if c.AppliedAt != nil {
 				<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Applied</span>
+			}
+			if c.AppliedAt == nil && canApplySuggestion(data, c) {
+				<span x-cloak x-show="$store.suggestionBatch.has(id)" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">In batch</span>
 			}
 			<span class="ml-auto font-mono">line { strconv.Itoa(c.Line) }</span>
 		</div>
@@ -96,8 +99,8 @@ templ suggestionBlock(data view.LineCommentsFragData, c view.RenderedLineComment
 					· { c.AppliedAt.Format("Jan 2, 2006") }
 				</p>
 			</div>
-		} else if data.CanWrite && data.PullOpen && c.DiffSide == "right" {
-			<div class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
+		} else if canApplySuggestion(data, c) {
+			<div x-show="!$store.suggestionBatch.has(id)" class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
 				<button
 					type="button"
 					hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10) + "/apply" }
@@ -107,6 +110,11 @@ templ suggestionBlock(data view.LineCommentsFragData, c view.RenderedLineComment
 				>
 					Apply suggestion
 				</button>
+				<button type="button" x-on:click="$store.suggestionBatch.add(id)" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add to batch</button>
+			</div>
+			<div x-cloak x-show="$store.suggestionBatch.has(id)" class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
+				<button type="button" x-on:click="$store.suggestionBatch.remove(id)" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Remove from batch</button>
+				<p class="text-[12px] text-muted-foreground">Committed together with the other batched suggestions.</p>
 			</div>
 		}
 	</div>
@@ -117,4 +125,9 @@ func shortSHA(sha string) string {
 		return sha[:7]
 	}
 	return sha
+}
+
+// Only a right-side suggestion on an open PR can be committed to its head branch.
+func canApplySuggestion(data view.LineCommentsFragData, c view.RenderedLineComment) bool {
+	return data.CanWrite && data.PullOpen && c.DiffSide == "right"
 }

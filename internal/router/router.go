@@ -440,6 +440,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 			r.With(authMW).Patch("/{number}/line_comments/{id}", h.UpdateLineComment)
 			r.With(authMW).Delete("/{number}/line_comments/{id}", h.DeleteLineComment)
 			r.With(authMW).Post("/{number}/line_comments/{id}/apply", h.ApplySuggestion)
+			r.With(authMW).Post("/{number}/suggestions/apply", h.ApplySuggestionBatch)
 		})
 
 		// Webhooks

@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -325,6 +327,108 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 			"owner", owner, "repo", repoName, "pull_number", number, "comment_id", id, "error", err)
 	}
 
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// maxSuggestionBatch bounds one commit's size; more suggestions than this are not a review comment's worth.
+const maxSuggestionBatch = 50
+
+// ApplySuggestionBatch commits several suggestions to the head branch as one commit: all of them or none.
+func (h *Handler) ApplySuggestionBatch(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+
+	var ids []int64
+	if isFormEncoded(r) || r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
+		for _, f := range strings.Split(r.FormValue("ids"), ",") {
+			if id, err := strconv.ParseInt(strings.TrimSpace(f), 10, 64); err == nil {
+				ids = append(ids, id)
+			}
+		}
+	} else {
+		var req struct {
+			IDs []int64 `json:"ids"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		ids = req.IDs
+	}
+	ids = slices.Compact(slices.Sorted(slices.Values(ids)))
+	if len(ids) == 0 || len(ids) > maxSuggestionBatch {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("send between 1 and %d suggestion ids", maxSuggestionBatch))
+		return
+	}
+
+	var pr *model.PullRequest
+	comments := make([]*model.PullLineComment, 0, len(ids))
+	edits := make([]service.SuggestionEdit, 0, len(ids))
+	for _, id := range ids {
+		var c *model.PullLineComment
+		pr, c, ok = h.lineCommentOnURLPull(r.Context(), owner, repoName, number, id)
+		if !ok {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("comment %d not found", id))
+			return
+		}
+		if !c.IsSuggestion || c.DiffSide != "right" {
+			writeError(w, http.StatusUnprocessableEntity, fmt.Sprintf("comment %d is not a right-side suggestion", id))
+			return
+		}
+		if c.AppliedAt != nil {
+			writeError(w, http.StatusConflict, fmt.Sprintf("suggestion %d was already applied", id))
+			return
+		}
+		comments = append(comments, c)
+		edits = append(edits, service.SuggestionEdit{Path: c.Path, Line: c.Line, Replacement: c.SuggestionBody})
+	}
+	if pr.State != model.PRStateOpen {
+		writeError(w, http.StatusUnprocessableEntity, "cannot apply suggestions to a closed or merged pull request")
+		return
+	}
+
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	upd, err := h.Services.Code.ApplySuggestions(owner, repoName, pr.HeadBranch, edits, author)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrRefMoved):
+			writeError(w, http.StatusConflict, branchMovedMsg)
+		case errors.Is(err, service.ErrSuggestionConflict):
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+		default:
+			writeError(w, http.StatusInternalServerError, "failed to apply suggestions: "+err.Error())
+		}
+		return
+	}
+	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
+	for _, c := range comments {
+		if _, err := h.Services.PullLineComment.MarkApplied(r.Context(), c.ID, upd.New.String(), claims.UserID, claims.Username); err != nil {
+			slog.Warn("apply suggestions: committed but not marked applied; the suggestion will still offer Apply",
+				"owner", owner, "repo", repoName, "pull_number", number, "comment_id", c.ID, "error", err)
+		}
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 

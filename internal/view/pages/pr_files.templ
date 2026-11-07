@@ -68,6 +68,32 @@ templ pullFilesBody(data view.PullFilesData) {
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
 					Single file
 				</button>
+				if data.CanWrite && data.Pull.State == model.PRStateOpen {
+					<button
+						type="button"
+						x-data
+						x-cloak
+						x-show="$store.suggestionBatch.ids.length > 0"
+						hx-post={ "/api/repos/" + data.OwnerName + "/" + data.Repo.Name + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/suggestions/apply" }
+						hx-swap="none"
+						:hx-vals="JSON.stringify({ ids: $store.suggestionBatch.ids.join(',') })"
+						hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Suggestions committed'}));location.reload();}"
+						class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]"
+					>
+						Commit suggestions
+						<span class="font-mono text-[11px] text-muted-foreground" x-text="$store.suggestionBatch.ids.length"></span>
+					</button>
+					<script>
+						document.addEventListener('alpine:init', function () {
+							Alpine.store('suggestionBatch', {
+								ids: [],
+								has: function (id) { return this.ids.includes(id); },
+								add: function (id) { if (!this.has(id)) this.ids.push(id); },
+								remove: function (id) { this.ids = this.ids.filter(function (i) { return i !== id; }); }
+							});
+						});
+					</script>
+				}
 				if canReviewPull(data.BasePage, data.CanWrite, *data.Pull) {
 					@components.ReviewButton(components.ButtonSuccess, components.ButtonSizeSM) {
 						Review changes
