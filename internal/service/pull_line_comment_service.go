@@ -71,6 +71,26 @@ func parseSuggestion(body string) (isSuggestion bool, suggestionBody string) {
 	return true, content[:end]
 }
 
+// WithoutSuggestion returns body with its ```suggestion block removed, for rendering the block separately.
+func WithoutSuggestion(body string) string {
+	const open = "```suggestion\n"
+	const close = "\n```"
+	start := strings.Index(body, open)
+	if start == -1 {
+		return body
+	}
+	end := strings.Index(body[start+len(open):], close)
+	if end == -1 {
+		return body
+	}
+	return strings.TrimSpace(body[:start] + body[start+len(open)+end+len(close):])
+}
+
+// MarkApplied records the commit that applied a suggestion; false means it was already applied.
+func (s *PullLineCommentService) MarkApplied(ctx context.Context, id int64, sha string, byID int64, by string) (bool, error) {
+	return s.comments.MarkApplied(ctx, id, sha, byID, by)
+}
+
 func (s *PullLineCommentService) ListByPull(ctx context.Context, owner, repoName string, pullNumber int) ([]model.PullLineComment, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
@@ -107,5 +127,6 @@ func (s *PullLineCommentService) Update(ctx context.Context, id, callerID int64,
 	if c.AuthorID != callerID {
 		return nil, fmt.Errorf("forbidden")
 	}
-	return s.comments.Update(ctx, id, body)
+	isSuggestion, suggestionBody := parseSuggestion(body)
+	return s.comments.Update(ctx, id, body, isSuggestion, suggestionBody)
 }

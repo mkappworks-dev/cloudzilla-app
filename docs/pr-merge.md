@@ -42,9 +42,13 @@ scripts make it, can still be read to the root.
 4. `UpdatePull` calls `h.mergePull`, which runs the checks and dispatches to `MergePullRequest`,
    `ThreeWayMergePullRequest`, or `SquashMergePullRequest`
 5. On success → `PullService.SetState(merged)`, the `merged` timeline event, the `pull_request` webhook, the
-   notification and activity event, then [closing issues](#closing-issues) → fragment returned
-6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert. If a push moved the base
-   branch mid-merge, or the head branch since its statuses were checked → 409 and the PR stays open (see below)
+   notification and activity event, then [closing issues](#closing-issues) → HTMX callers get `204 No Content`
+6. On failure (conflict, missing branch, etc.) → 422 → the layout shows an error toast. If a push moved the base branch
+   mid-merge, or the head branch since its statuses were checked → 409 and the PR stays open (see below)
+
+**HTMX responses:** `UpdatePull` (merge, close, reopen, draft toggle, auto-merge) and `SubmitReview` answer an HTMX
+request with `204 No Content`. The page's `hx-on::after:request` stashes a toast in `sessionStorage` and reloads, so
+every box, badge and the timeline are rendered fresh instead of by a partial that can go stale.
 
 **Concurrent pushes:** every server-side commit (merges, applied suggestions, web file commits, wiki edits) advances its
 branch through `gitref.Move`, a compare-and-swap against the tip it read. If a push moved the branch in between, the
@@ -91,6 +95,49 @@ compares as its name plus `/`, so `docs.md` comes before `docs/`. go-git refuses
 
 `UpdatePull` gets the `GitAuthor` from `UserService.CommitAuthor`, which honours the merger's keep-email-private setting
 (see [api-reference](./api-reference.md#commit-email-privacy)).
+
+## The PR page's merge box
+
+`MergeabilityBox` (`components/mergeability_box.templ`) picks one state, first match wins:
+
+| State             | When                                                   | Footer                          |
+| ----------------- | ------------------------------------------------------ | ------------------------------- |
+| Draft             | the PR is a draft                                      | Ready for review                |
+| Conflicts         | head and base changed the same path                    | Close only                      |
+| Up to date        | head has nothing base lacks                            | Close only                      |
+| Changes requested | a reviewer's standing verdict is `changes_requested`   | Close only                      |
+| Checks failing    | a required check failed or errored with none passing   | disabled Merge, "View checks →" |
+| Review required   | approvals are below the branch protection rule's count | Enable auto-merge               |
+| Waiting on checks | a required check has not reported success yet          | Enable auto-merge               |
+| Ready             | otherwise                                              | Merge split button              |
+
+Auto-merge is offered only in "Review required" and "Waiting on checks": failing required checks need a push or a re-run
+first. Once armed, any non-draft state shows who armed it and the strategy, with Disable. With no branch protection rule
+there are no required reviews or checks, so the box goes from Ready straight to Merge.
+
+**Confirm step:** the Merge button opens a dialog showing the strategy and, for `merge` and `squash`, an editable commit
+title and message. They default to `Merge branch 'head' into 'base'` and `Squash merge branch 'head' into 'base'`
+(`service.DefaultMergeMessage`, `DefaultSquashMessage`), and a fast-forward shows no fields because it creates no
+commit. The dialog patches `merge_title` and `merge_message`; closing keywords in them close issues like those in commit
+messages. Enabling auto-merge patches at once and keeps the default message.
+
+**Merged header:** the merged event's `detail` holds the commits that merged, counted before the merge, since a
+fast-forward or merge commit leaves no range between base and head afterwards. The header names the event's actor, not
+the author. A PR merged before the count was recorded falls back to its author and the live commit range.
+
+**Reviewing:** the "Review changes" dialog posts to `/reviews`. Write access is required, and the PR author may only
+comment. A `commented` review never replaces the reviewer's standing Approve or Request changes, so their comment is
+posted to the timeline instead.
+
+## Suggestions
+
+A `suggestion` fence in a line comment renders as a diff of the line it replaces. Writers see Apply suggestion on a
+right-side suggestion of an open PR. Applying commits to the head branch through `CodeService.ApplySuggestions` and
+records `applied_at`, `applied_sha` and `applied_by` on the comment (migration 119), so a second apply gets `409`.
+
+"Add to batch" is client-side state. "Commit suggestions" posts the ids to `POST …/pulls/{n}/suggestions/apply`, which
+applies them in one commit, bottom-up per file so a replacement that changes the line count doesn't shift the next one.
+Two suggestions on one line fail the whole batch with `422`, and nothing changes.
 
 ## Closing Issues
 
@@ -171,9 +218,11 @@ When `is_draft = true`:
 - A yellow "Draft" badge appears next to the PR title
 - A yellow banner is shown: "This pull request is still a work in progress."
 - All merge strategy buttons are hidden
-- The review submission form is hidden
-- A "Ready for review" button is shown (calls `PATCH` with `{"is_draft":"false"}`)
+- The review prompt and "Review changes" dialog are hidden
+- A muted "Draft" merge box and the banner both offer "Ready for review" (calls `PATCH` with `{"is_draft":"false"}`)
 - The "Close PR" button remains available
+
+An open, non-draft PR gets "Convert to draft" at the bottom of the sidebar, for writers.
 
 ### API
 

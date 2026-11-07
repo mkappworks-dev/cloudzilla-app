@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -100,26 +101,7 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-		key := view.LineCommentKeyOf(*comment)
-		var lineComments []RenderedLineComment
-		for _, c := range allComments {
-			if view.LineCommentKeyOf(c) == key {
-				lineComments = append(lineComments, RenderedLineComment{
-					PullLineComment: c,
-					BodyHTML:        markdown.RenderCtx(r.Context(), c.Body),
-				})
-			}
-		}
-		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		h.render(w, h.withAvatars(r, lineCommentAuthors(allComments)...), fragments.LineComments(view.LineCommentsFragData{
-			Owner:      owner,
-			RepoName:   repoName,
-			PullNumber: number,
-			Key:        key,
-			Comments:   lineComments,
-			CanWrite:   canWrite,
-		}))
+		h.renderLineCommentThread(w, r, repo, owner, repoName, number, view.LineCommentKeyOf(*comment), claims.UserID)
 		return
 	}
 	writeJSON(w, http.StatusCreated, comment)
@@ -199,26 +181,7 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-		key := view.LineCommentKeyOf(*existing)
-		var lineComments []RenderedLineComment
-		for _, c := range allComments {
-			if view.LineCommentKeyOf(c) == key {
-				lineComments = append(lineComments, RenderedLineComment{
-					PullLineComment: c,
-					BodyHTML:        markdown.RenderCtx(r.Context(), c.Body),
-				})
-			}
-		}
-		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		h.render(w, h.withAvatars(r, lineCommentAuthors(allComments)...), fragments.LineComments(view.LineCommentsFragData{
-			Owner:      owner,
-			RepoName:   repoName,
-			PullNumber: number,
-			Key:        key,
-			Comments:   lineComments,
-			CanWrite:   canWrite,
-		}))
+		h.renderLineCommentThread(w, r, repo, owner, repoName, number, view.LineCommentKeyOf(*existing), claims.UserID)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -287,26 +250,7 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-		key := view.LineCommentKeyOf(*comment)
-		var lineComments []RenderedLineComment
-		for _, c := range allComments {
-			if view.LineCommentKeyOf(c) == key {
-				lineComments = append(lineComments, RenderedLineComment{
-					PullLineComment: c,
-					BodyHTML:        markdown.RenderCtx(r.Context(), c.Body),
-				})
-			}
-		}
-		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		h.render(w, h.withAvatars(r, lineCommentAuthors(allComments)...), fragments.LineComments(view.LineCommentsFragData{
-			Owner:      owner,
-			RepoName:   repoName,
-			PullNumber: number,
-			Key:        key,
-			Comments:   lineComments,
-			CanWrite:   canWrite,
-		}))
+		h.renderLineCommentThread(w, r, repo, owner, repoName, number, view.LineCommentKeyOf(*comment), claims.UserID)
 		return
 	}
 	writeJSON(w, http.StatusOK, comment)
@@ -354,6 +298,10 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "cannot apply suggestion to a closed or merged pull request")
 		return
 	}
+	if comment.AppliedAt != nil {
+		writeError(w, http.StatusConflict, "this suggestion was already applied")
+		return
+	}
 
 	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
@@ -374,13 +322,163 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
+	if _, err := h.Services.PullLineComment.MarkApplied(r.Context(), id, upd.New.String(), claims.UserID, claims.Username); err != nil {
+		slog.Warn("apply suggestion: committed but not marked applied; the suggestion will still offer Apply",
+			"owner", owner, "repo", repoName, "pull_number", number, "comment_id", id, "error", err)
+	}
 
-	if r.Header.Get("HX-Request") == "true" {
-		w.Header().Set("HX-Redirect", fmt.Sprintf("/%s/%s/pulls/%d", owner, repoName, number))
-		w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// maxSuggestionBatch bounds one commit's size; more suggestions than this are not a review comment's worth.
+const maxSuggestionBatch = 50
+
+// ApplySuggestionBatch commits several suggestions to the head branch as one commit: all of them or none.
+func (h *Handler) ApplySuggestionBatch(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+
+	var ids []int64
+	if isFormEncoded(r) || r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
+		for _, f := range strings.Split(r.FormValue("ids"), ",") {
+			if id, err := strconv.ParseInt(strings.TrimSpace(f), 10, 64); err == nil {
+				ids = append(ids, id)
+			}
+		}
+	} else {
+		var req struct {
+			IDs []int64 `json:"ids"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		ids = req.IDs
+	}
+	ids = slices.Compact(slices.Sorted(slices.Values(ids)))
+	if len(ids) == 0 || len(ids) > maxSuggestionBatch {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("send between 1 and %d suggestion ids", maxSuggestionBatch))
+		return
+	}
+
+	var pr *model.PullRequest
+	comments := make([]*model.PullLineComment, 0, len(ids))
+	edits := make([]service.SuggestionEdit, 0, len(ids))
+	for _, id := range ids {
+		var c *model.PullLineComment
+		pr, c, ok = h.lineCommentOnURLPull(r.Context(), owner, repoName, number, id)
+		if !ok {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("comment %d not found", id))
+			return
+		}
+		if !c.IsSuggestion || c.DiffSide != "right" {
+			writeError(w, http.StatusUnprocessableEntity, fmt.Sprintf("comment %d is not a right-side suggestion", id))
+			return
+		}
+		if c.AppliedAt != nil {
+			writeError(w, http.StatusConflict, fmt.Sprintf("suggestion %d was already applied", id))
+			return
+		}
+		comments = append(comments, c)
+		edits = append(edits, service.SuggestionEdit{Path: c.Path, Line: c.Line, Replacement: c.SuggestionBody})
+	}
+	if pr.State != model.PRStateOpen {
+		writeError(w, http.StatusUnprocessableEntity, "cannot apply suggestions to a closed or merged pull request")
+		return
+	}
+
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	upd, err := h.Services.Code.ApplySuggestions(owner, repoName, pr.HeadBranch, edits, author)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrRefMoved):
+			writeError(w, http.StatusConflict, branchMovedMsg)
+		case errors.Is(err, service.ErrSuggestionConflict):
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+		default:
+			writeError(w, http.StatusInternalServerError, "failed to apply suggestions: "+err.Error())
+		}
+		return
+	}
+	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
+	for _, c := range comments {
+		if _, err := h.Services.PullLineComment.MarkApplied(r.Context(), c.ID, upd.New.String(), claims.UserID, claims.Username); err != nil {
+			slog.Warn("apply suggestions: committed but not marked applied; the suggestion will still offer Apply",
+				"owner", owner, "repo", repoName, "pull_number", number, "comment_id", c.ID, "error", err)
+		}
+	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// renderLineCommentThread answers a line-comment write with the thread at key, re-rendered.
+func (h *Handler) renderLineCommentThread(w http.ResponseWriter, r *http.Request, repo *model.Repository, owner, repoName string, number int, key view.LineCommentKey, userID int64) {
+	allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
+	var inThread []model.PullLineComment
+	for _, c := range allComments {
+		if view.LineCommentKeyOf(c) == key {
+			inThread = append(inThread, c)
+		}
+	}
+	pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "pull request not found")
+		return
+	}
+	h.render(w, h.withAvatars(r, lineCommentAuthors(allComments)...), fragments.LineComments(view.LineCommentsFragData{
+		Owner:      owner,
+		RepoName:   repoName,
+		PullNumber: number,
+		Key:        key,
+		Comments:   h.lineCommentViews(r.Context(), owner, repoName, pr.HeadBranch, inThread),
+		CanWrite:   h.Services.Repo.CanWrite(r.Context(), repo, userID),
+		PullOpen:   pr.State == model.PRStateOpen,
+	}))
+}
+
+// lineCommentViews renders each comment's markdown with its suggestion block taken out of the body, and for a pending
+// suggestion reads the head-branch line it would replace.
+func (h *Handler) lineCommentViews(ctx context.Context, owner, repoName, headBranch string, comments []model.PullLineComment) []RenderedLineComment {
+	files := map[string][]string{}
+	views := make([]RenderedLineComment, 0, len(comments))
+	for _, c := range comments {
+		v := RenderedLineComment{PullLineComment: c, BodyHTML: markdown.RenderCtx(ctx, service.WithoutSuggestion(c.Body))}
+		if c.IsSuggestion && c.AppliedAt == nil && c.DiffSide == "right" {
+			lines, read := files[c.Path]
+			if !read {
+				if raw, err := h.Services.Code.GetRawBlob(owner, repoName, headBranch, c.Path); err == nil {
+					lines = strings.Split(string(raw), "\n")
+				}
+				files[c.Path] = lines
+			}
+			if c.Line >= 1 && c.Line <= len(lines) {
+				v.Original, v.HasOriginal = lines[c.Line-1], true
+			}
+		}
+		views = append(views, v)
+	}
+	return views
 }
 
 // lineCommentOnURLPull loads the pull request the URL names and line comment id,

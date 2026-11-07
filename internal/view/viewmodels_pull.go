@@ -68,6 +68,10 @@ type PullChromeCounts struct {
 	FilesCount   int
 	Added        int
 	Deleted      int
+	// MergedBy and MergedCommits describe a merged PR as it merged: afterwards its commit range is empty, and the
+	// author may not be who merged it. MergedCommits is 0 for a PR merged before the count was recorded.
+	MergedBy      string
+	MergedCommits int
 }
 
 // PullDetailData holds template data for the pull request detail page.
@@ -156,29 +160,6 @@ type PullNewData struct {
 	Error        string
 }
 
-// PRReviewsFragData holds template data for the PR reviews HTMX fragment.
-type PRReviewsFragData struct {
-	Owner            string
-	RepoName         string
-	PullNumber       int
-	Reviews          []model.PullReview
-	CanWrite         bool
-	PullOpen         bool
-	CanMerge         bool
-	MergeBlockReason string
-}
-
-// PullDetailFragData holds template data for the pull request detail HTMX fragment.
-type PullDetailFragData struct {
-	Pull              model.PullRequest
-	Owner             string
-	Repo              string
-	BodyHTML          string
-	CanWrite          bool
-	AutoMergeEnabled  bool
-	AutoMergeStrategy string
-}
-
 // PullLabelSidebarData holds template data for the PR label sidebar HTMX fragment.
 type PullLabelSidebarData struct {
 	Owner      string
@@ -220,6 +201,8 @@ type LineCommentsFragData struct {
 	Key        LineCommentKey
 	Comments   []RenderedLineComment
 	CanWrite   bool
+	// PullOpen gates Apply suggestion: a suggestion can only be committed to an open PR's head branch.
+	PullOpen bool
 }
 
 // LineCommentFormFragData holds template data for the inline comment form HTMX fragment.

@@ -23,6 +23,8 @@ type PullChromeData struct {
 	FilesCount     int
 	Added          int
 	Deleted        int
+	MergedBy       string
+	MergedCommits  int
 }
 
 templ PullChrome(data PullChromeData, children templ.Component) {
@@ -71,9 +73,9 @@ git checkout { data.Pull.HeadBranch }</pre>
 			<div class="flex flex-wrap items-center gap-3">
 				@components.PullStateBadge(data.Pull.State, data.Pull.IsDraft)
 				<p class="text-[13px] text-muted-foreground">
-					<a href={ templ.SafeURL("/" + chromeAuthor(data)) } class="font-medium text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">{ "@" + chromeAuthor(data) }</a>
+					<a href={ templ.SafeURL("/" + chromeActor(data)) } class="font-medium text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">{ "@" + chromeActor(data) }</a>
 					{ " " + chromeMergeVerb(data.Pull.State) + " " }
-					<strong class="text-foreground font-medium">{ components.Count(data.CommitsCount, "commit", "commits") }</strong>
+					<strong class="text-foreground font-medium">{ components.Count(chromeCommits(data), "commit", "commits") }</strong>
 					{ " into " }
 					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ data.Pull.BaseBranch }</span>
 					{ " from " }
@@ -176,6 +178,21 @@ func chromeAuthor(d PullChromeData) string {
 		return d.AuthorUsername
 	}
 	return d.Pull.AuthorName
+}
+
+// chromeActor is who the header's sentence is about: whoever merged a merged PR, otherwise its author.
+func chromeActor(d PullChromeData) string {
+	if d.Pull.State == model.PRStateMerged && d.MergedBy != "" {
+		return d.MergedBy
+	}
+	return chromeAuthor(d)
+}
+
+func chromeCommits(d PullChromeData) int {
+	if d.Pull.State == model.PRStateMerged && d.MergedCommits > 0 {
+		return d.MergedCommits
+	}
+	return d.CommitsCount
 }
 
 func chromeMergeVerb(state model.PRState) string {

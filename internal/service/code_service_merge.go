@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
@@ -390,8 +391,18 @@ func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.
 	return hash, err == nil, err
 }
 
-// ThreeWayMergePullRequest creates a merge commit combining head, at headHash, into base.
-func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor) error {
+// DefaultMergeMessage and DefaultSquashMessage are the commit messages a merge gets unless its merger edits them.
+func DefaultMergeMessage(head, base string) string {
+	return "Merge branch '" + head + "' into '" + base + "'"
+}
+
+func DefaultSquashMessage(head, base string) string {
+	return "Squash merge branch '" + head + "' into '" + base + "'"
+}
+
+// ThreeWayMergePullRequest creates a merge commit combining head, at headHash, into base. An empty message gets the
+// default one.
+func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor, message string) error {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
@@ -427,7 +438,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
-		Message:      "Merge branch '" + head + "' into '" + base + "'",
+		Message:      cmp.Or(strings.TrimSpace(message), DefaultMergeMessage(head, base)),
 		TreeHash:     mergedTreeHash,
 		ParentHashes: []plumbing.Hash{baseCommit.Hash, headCommit.Hash},
 	}
@@ -444,7 +455,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 
 // SquashMergePullRequest creates a single squash commit on base incorporating all
 // head changes, up to headHash.
-func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor) error {
+func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor, message string) error {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
@@ -482,7 +493,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
-		Message:      "Squash merge branch '" + head + "' into '" + base + "'",
+		Message:      cmp.Or(strings.TrimSpace(message), DefaultSquashMessage(head, base)),
 		TreeHash:     treeHash,
 		ParentHashes: []plumbing.Hash{baseCommit.Hash},
 	}
@@ -497,9 +508,28 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, h)
 }
 
+// SuggestionEdit replaces Line (1-based) of Path with Replacement, which may span several lines.
+type SuggestionEdit struct {
+	Path        string
+	Line        int
+	Replacement string
+}
+
+// ErrSuggestionConflict marks a batch where two suggestions target the same line.
+var ErrSuggestionConflict = errors.New("suggestions conflict")
+
 // ApplySuggestion replaces targetLine (1-based) in filePath on branch with the replacement
 // text and creates a new commit on that branch.
 func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement string, author GitAuthor) (RefUpdate, error) {
+	return s.ApplySuggestions(owner, repoName, branch, []SuggestionEdit{{Path: filePath, Line: targetLine, Replacement: replacement}}, author)
+}
+
+// ApplySuggestions applies every edit in one commit on branch. Edits to a file are applied from the bottom up, so a
+// replacement that changes the line count doesn't shift the lines the next edit points at.
+func (s *CodeService) ApplySuggestions(owner, repoName, branch string, edits []SuggestionEdit, author GitAuthor) (RefUpdate, error) {
+	if len(edits) == 0 {
+		return RefUpdate{}, errors.New("no suggestions to apply")
+	}
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return RefUpdate{}, err
@@ -508,41 +538,6 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 	if err != nil {
 		return RefUpdate{}, err
 	}
-
-	// Read current file content.
-	raw, err := s.GetRawBlob(owner, repoName, branch, filePath)
-	if err != nil {
-		return RefUpdate{}, fmt.Errorf("read file: %w", err)
-	}
-	lines := strings.Split(string(raw), "\n")
-	if targetLine < 1 || targetLine > len(lines) {
-		return RefUpdate{}, fmt.Errorf("line %d out of range (file has %d lines)", targetLine, len(lines))
-	}
-	// Replace the target line with the suggestion content.
-	replacementLines := strings.Split(replacement, "\n")
-	updated := make([]string, 0, len(lines)+len(replacementLines)-1)
-	updated = append(updated, lines[:targetLine-1]...)
-	updated = append(updated, replacementLines...)
-	updated = append(updated, lines[targetLine:]...)
-	newContent := strings.Join(updated, "\n")
-
-	// Write the new blob.
-	blobObj := repo.Storer.NewEncodedObject()
-	blobObj.SetType(plumbing.BlobObject)
-	w, err := blobObj.Writer()
-	if err != nil {
-		return RefUpdate{}, err
-	}
-	if _, err := w.Write([]byte(newContent)); err != nil {
-		return RefUpdate{}, err
-	}
-	_ = w.Close()
-	blobHash, err := repo.Storer.SetEncodedObject(blobObj)
-	if err != nil {
-		return RefUpdate{}, err
-	}
-
-	// Rebuild the tree with the updated file.
 	tree, err := headCommit.Tree()
 	if err != nil {
 		return RefUpdate{}, err
@@ -551,23 +546,75 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 	if err != nil {
 		return RefUpdate{}, err
 	}
-	existing, ok := files[filePath]
-	if !ok {
-		existing = mergeFile{mode: filemode.Regular}
+
+	byPath := map[string][]SuggestionEdit{}
+	var paths []string
+	for _, e := range edits {
+		if _, seen := byPath[e.Path]; !seen {
+			paths = append(paths, e.Path)
+		}
+		byPath[e.Path] = append(byPath[e.Path], e)
 	}
-	files[filePath] = mergeFile{hash: blobHash, mode: existing.mode}
+	for _, filePath := range paths {
+		fileEdits := byPath[filePath]
+		sort.SliceStable(fileEdits, func(i, j int) bool { return fileEdits[i].Line > fileEdits[j].Line })
+		for i := 1; i < len(fileEdits); i++ {
+			if fileEdits[i].Line == fileEdits[i-1].Line {
+				return RefUpdate{}, fmt.Errorf("%w: %s line %d has more than one suggestion", ErrSuggestionConflict, filePath, fileEdits[i].Line)
+			}
+		}
+		file, err := headCommit.File(filePath)
+		if err != nil {
+			return RefUpdate{}, fmt.Errorf("read file: %w", err)
+		}
+		content, err := file.Contents()
+		if err != nil {
+			return RefUpdate{}, fmt.Errorf("read file: %w", err)
+		}
+		lines := strings.Split(content, "\n")
+		for _, e := range fileEdits {
+			if e.Line < 1 || e.Line > len(lines) {
+				return RefUpdate{}, fmt.Errorf("line %d out of range (file has %d lines)", e.Line, len(lines))
+			}
+			replacementLines := strings.Split(e.Replacement, "\n")
+			updated := make([]string, 0, len(lines)+len(replacementLines)-1)
+			updated = append(updated, lines[:e.Line-1]...)
+			updated = append(updated, replacementLines...)
+			updated = append(updated, lines[e.Line:]...)
+			lines = updated
+		}
+
+		blobObj := repo.Storer.NewEncodedObject()
+		blobObj.SetType(plumbing.BlobObject)
+		w, err := blobObj.Writer()
+		if err != nil {
+			return RefUpdate{}, err
+		}
+		if _, err := w.Write([]byte(strings.Join(lines, "\n"))); err != nil {
+			return RefUpdate{}, err
+		}
+		_ = w.Close()
+		blobHash, err := repo.Storer.SetEncodedObject(blobObj)
+		if err != nil {
+			return RefUpdate{}, err
+		}
+		existing, ok := files[filePath]
+		if !ok {
+			existing = mergeFile{mode: filemode.Regular}
+		}
+		files[filePath] = mergeFile{hash: blobHash, mode: existing.mode}
+	}
 	newTreeHash, err := buildTree(repo, files)
 	if err != nil {
 		return RefUpdate{}, err
 	}
 
-	// Create new commit.
 	now := time.Now()
 	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
-		Message:      "Apply suggestion to " + filePath,
+		Message:      suggestionCommitMessage(paths, len(edits)),
 		TreeHash:     newTreeHash,
 		ParentHashes: []plumbing.Hash{headCommit.Hash},
 	}
@@ -585,4 +632,11 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 		return RefUpdate{}, err
 	}
 	return RefUpdate{Branch: branch, Old: headCommit.Hash, New: newHash}, nil
+}
+
+func suggestionCommitMessage(paths []string, n int) string {
+	if n == 1 {
+		return "Apply suggestion to " + paths[0]
+	}
+	return fmt.Sprintf("Apply %d suggestions\n\n- %s", n, strings.Join(paths, "\n- "))
 }

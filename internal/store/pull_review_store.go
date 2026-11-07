@@ -16,16 +16,24 @@ type PullReviewStore struct{ db *sql.DB }
 // NewPullReviewStore creates a PullReviewStore backed by the given database.
 func NewPullReviewStore(db *sql.DB) *PullReviewStore { return &PullReviewStore{db: db} }
 
+// A 'commented' review never replaces a standing verdict: the row keeps its state and body, and r comes back as stored,
+// so the caller can tell the comment was not recorded.
 func (s *PullReviewStore) Upsert(ctx context.Context, r *model.PullReview) error {
 	const q = `
 INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state, body, submitted_at)
 VALUES ($1, $2, $3, $4, $5, $6, NOW())
 ON CONFLICT (pull_id, author_id) WHERE author_id <> ghost_user_id() DO UPDATE
-  SET state=$5, body=$6, submitted_at=NOW(), updated_at=NOW()
-RETURNING id, submitted_at, created_at, updated_at`
+  SET state = CASE WHEN $5 = 'commented' AND pull_reviews.state IN ('approved', 'changes_requested')
+                   THEN pull_reviews.state ELSE $5 END,
+      body = CASE WHEN $5 = 'commented' AND pull_reviews.state IN ('approved', 'changes_requested')
+                  THEN pull_reviews.body ELSE $6 END,
+      submitted_at = CASE WHEN $5 = 'commented' AND pull_reviews.state IN ('approved', 'changes_requested')
+                          THEN pull_reviews.submitted_at ELSE NOW() END,
+      updated_at = NOW()
+RETURNING id, state, body, submitted_at, created_at, updated_at`
 	return s.db.QueryRowContext(ctx, q,
 		r.PullID, r.RepoID, r.AuthorID, r.AuthorName, r.State, r.Body,
-	).Scan(&r.ID, &r.SubmittedAt, &r.CreatedAt, &r.UpdatedAt)
+	).Scan(&r.ID, &r.State, &r.Body, &r.SubmittedAt, &r.CreatedAt, &r.UpdatedAt)
 }
 
 func (s *PullReviewStore) ListByPull(ctx context.Context, pullID int64) ([]model.PullReview, error) {

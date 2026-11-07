@@ -1,0 +1,93 @@
+package components
+
+import "strconv"
+
+type ReviewDialogData struct {
+	ReviewsURL string
+	Number     int
+	BaseBranch string
+	// IsAuthor limits the dialog to Comment: a PR's author can't approve or block their own PR.
+	IsAuthor bool
+}
+
+// ReviewDialogOpenScript is the onclick of every control that opens the dialog.
+const ReviewDialogOpenScript = "document.getElementById('review-dialog').showModal()"
+
+// The form wraps only the body, so DialogClose's own form isn't nested in it; the footer submit reaches it by id.
+templ ReviewDialog(d ReviewDialogData) {
+	@Dialog("review-dialog") {
+		@DialogHeader() {
+			@DialogTitle("review-dialog") {
+				Review changes
+			}
+			@DialogDescription() {
+				Line comments you add on the Files tab are posted as you write them. This adds your summary and verdict to
+				<strong class="text-foreground">#{ strconv.Itoa(d.Number) }</strong>.
+			}
+		}
+		<form
+			id="review-form"
+			x-data="{ state: 'commented' }"
+			hx-post={ d.ReviewsURL }
+			hx-swap="none"
+			hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review submitted'}));location.reload();}"
+		>
+			@DialogBody() {
+				<label for="review-body" class="sr-only">Review summary</label>
+				<div class="rounded-md border border-border overflow-hidden">
+					<textarea
+						id="review-body"
+						name="body"
+						rows="4"
+						:required="state !== 'approved'"
+						placeholder="Leave a summary — Markdown supported"
+						class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground"
+					></textarea>
+				</div>
+				<div role="radiogroup" aria-label="Review type" class="grid gap-3 mt-4">
+					@reviewRadio("commented", "Comment", "General feedback, without approving or blocking.", false)
+					@reviewRadio("approved", "Approve", "Counts toward the required approvals for "+mergeBase(MergeabilityBoxData{BaseBranch: d.BaseBranch})+".", d.IsAuthor)
+					@reviewRadio("changes_requested", "Request changes", "Blocks merging until you approve or your review is dismissed.", d.IsAuthor)
+					if d.IsAuthor {
+						<p class="text-[12px] text-muted-foreground inline-flex items-start gap-1.5">
+							<svg class="shrink-0 mt-px" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+							You opened this pull request, so you can only comment on it.
+						</p>
+					}
+				</div>
+			}
+		</form>
+		@DialogFooter() {
+			@DialogClose() {
+				Cancel
+			}
+			@Button(ButtonSuccess, ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "review-form"}) {
+				Submit review
+			}
+		}
+	}
+}
+
+templ reviewRadio(value, title, desc string, disabled bool) {
+	<label class={ "flex items-start gap-3", templ.KV("cursor-pointer", !disabled), templ.KV("opacity-50 cursor-not-allowed", disabled) }>
+		<input
+			type="radio"
+			name="state"
+			value={ value }
+			x-model="state"
+			disabled?={ disabled }
+			checked?={ value == "commented" }
+			class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5"
+		/>
+		<span class="text-sm">
+			<span class="font-medium block">{ title }</span>
+			<span class="text-muted-foreground text-[12px]">{ desc }</span>
+		</span>
+	</label>
+}
+
+templ ReviewButton(variant ButtonVariant, size ButtonSize) {
+	@Button(variant, size, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall(ReviewDialogOpenScript)}) {
+		{ children... }
+	}
+}

@@ -110,8 +110,59 @@ git checkout daisy/oauth-scopes</pre>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
           Single file
         </button>
+        <button type="button" id="commit-suggestions" data-when="batched" data-needs-write hidden class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">
+          Commit suggestions
+          <span class="font-mono text-[11px] text-muted-foreground">1</span>
+        </button>
+        <button type="button" data-needs-write onclick="document.getElementById('review-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">
+          Review changes
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg>
+        </button>
       </div>
     </section>
+    <dialog id="review-dialog" aria-labelledby="review-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+        <h2 id="review-dialog-title" class="text-base font-semibold leading-tight">Review changes</h2>
+        <p class="text-[13px] text-muted-foreground leading-snug">Line comments you add on the Files tab are posted as you write them. This adds your summary and verdict to <strong class="text-foreground">#341</strong>.</p>
+      </div>
+      <form id="review-form" onsubmit="document.getElementById('review-dialog').close(); czToast('Review submitted'); return false">
+        <div class="p-5 text-sm">
+          <label for="review-body" class="sr-only">Review summary</label>
+          <div class="rounded-md border border-border overflow-hidden">
+            <textarea id="review-body" name="body" rows="4" required placeholder="Leave a summary — Markdown supported" class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground"></textarea>
+          </div>
+          <div role="radiogroup" aria-label="Review type" class="grid gap-3 mt-4">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input type="radio" name="state" value="commented" checked class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
+              <span class="text-sm">
+                <span class="font-medium block">Comment</span>
+                <span class="text-muted-foreground text-[12px]">General feedback, without approving or blocking.</span>
+              </span>
+            </label>
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input type="radio" name="state" value="approved" class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
+              <span class="text-sm">
+                <span class="font-medium block">Approve</span>
+                <span class="text-muted-foreground text-[12px]">Counts toward the required approvals for main.</span>
+              </span>
+            </label>
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input type="radio" name="state" value="changes_requested" class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
+              <span class="text-sm">
+                <span class="font-medium block">Request changes</span>
+                <span class="text-muted-foreground text-[12px]">Blocks merging until you approve or your review is dismissed.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </form>
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+        <form method="dialog" class="contents">
+          <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+        </form>
+        <button type="submit" form="review-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Submit review</button>
+      </div>
+    </dialog>
     <div id="diff-root" data-view="unified" class="grid lg:grid-cols-[260px_1fr] gap-4">
       <aside class="border border-border rounded-md bg-card p-3 lg:sticky lg:top-4 self-start max-h-[80vh] overflow-auto" aria-label="Files in this pull request">
         <div class="flex items-center justify-between gap-2 mb-2 px-1">
@@ -269,7 +320,52 @@ git checkout daisy/oauth-scopes</pre>
 </tr>
 <tr class="diff-line bg-success/6 dark:bg-success/10">
 <td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">122<button type="button" data-comment class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td>
-<td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+A token carries a set of scopes. A request outside the token&#x27;s scopes is rejected with `403`.</td>
+<td id="sugg-target" class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+A token carries a set of scopes. A request outside the token&#x27;s scopes is rejected with `403`.</td>
+</tr>
+<tr data-thread class="bg-primary/10 border-t border-primary/20">
+<td colspan="2" class="px-4 py-0">
+<div class="flex items-start gap-2 py-2 border-b border-primary/20 last:border-0">
+<span class="flex shrink-0 mt-0.5"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" aria-hidden="true">Y</span></span>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<a href="profile.html" class="text-xs font-semibold hover:underline">yumi</a>
+<span class="text-xs text-muted-foreground">Nov 6, 2026</span>
+</div>
+<div class="text-xs text-foreground mt-0.5 prose prose-xs dark:prose-invert max-w-none"><p>Token already has a helper for this, and it handles the wildcard.</p></div>
+<div class="mt-2 mb-1 rounded-md border border-border bg-card overflow-hidden font-sans">
+<div class="px-3 py-1.5 border-b border-border bg-muted/40 flex items-center gap-2 text-[11px] text-muted-foreground">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+Suggested change
+<span data-when="applied" hidden class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Applied</span>
+<span data-when="batched" hidden class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">In batch</span>
+<span class="ml-auto font-mono">line 122</span>
+</div>
+<table class="w-full border-collapse text-xs font-mono">
+<tbody>
+<tr class="bg-destructive/10"><td class="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5">122</td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-destructive">-A token carries a set of scopes. A request outside the token&#x27;s scopes is rejected with `403`.</td></tr>
+<tr class="bg-success/10"><td class="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5">122</td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">+A token carries a set of scopes (`*` grants all). A request outside them is rejected with `403`.</td></tr>
+</tbody>
+</table>
+<div data-when="applied" hidden class="px-3 py-2 border-t border-border">
+<p class="text-[12px] text-muted-foreground">
+<span class="text-foreground">daisy</span> applied this in
+<a href="commit.html" class="font-mono text-foreground hover:underline">4e1c0d2</a>
+· Nov 7, 2026
+</p>
+</div>
+<div data-when="pending" data-needs-write class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
+<button type="button" data-set="applied" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">Apply suggestion</button>
+<button type="button" data-set="batched" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add to batch</button>
+</div>
+<div data-when="batched" data-needs-write hidden class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
+<button type="button" data-set="pending" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Remove from batch</button>
+<p class="text-[12px] text-muted-foreground">Committed together with the other batched suggestions.</p>
+</div>
+</div>
+</div>
+<button type="button" class="text-muted-foreground/60 hover:text-destructive text-xs shrink-0" aria-label="Delete comment">&times;</button>
+</div>
+</td>
 </tr>
 <tr class="diff-line bg-success/6 dark:bg-success/10">
 <td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">123<button type="button" data-comment class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button></td>
@@ -889,6 +985,41 @@ git checkout daisy/oauth-scopes</pre>
         });
       });
     });
+  })();
+</script>
+<script>
+  (function () {
+    var ORIGINAL = document.getElementById('sugg-target').textContent;
+    var UPDATED = '+A token carries a set of scopes (`*` grants all). A request outside them is rejected with `403`.';
+    function params() {
+      var h = location.hash.slice(1).split('&'), out = {};
+      h.forEach(function (p) { var kv = p.split('='); out[kv[0]] = kv[1]; });
+      return out;
+    }
+    function render() {
+      var p = params();
+      var state = ['pending', 'batched', 'applied'].indexOf(p.sugg) >= 0 ? p.sugg : 'pending';
+      var readonly = p.viewer === 'readonly';
+      document.querySelectorAll('[data-when]').forEach(function (el) {
+        el.hidden = el.getAttribute('data-when').split(' ').indexOf(state) < 0 || (readonly && el.hasAttribute('data-needs-write'));
+      });
+      document.querySelectorAll('[data-needs-write]:not([data-when])').forEach(function (el) { el.hidden = readonly; });
+      document.getElementById('sugg-target').textContent = state === 'applied' ? UPDATED : ORIGINAL;
+    }
+    function set(state) {
+      var p = params();
+      location.hash = 'sugg=' + state + (p.viewer ? '&viewer=' + p.viewer : '');
+    }
+    document.querySelectorAll('[data-set]').forEach(function (b) {
+      b.addEventListener('click', function () { set(b.getAttribute('data-set')); });
+    });
+    document.getElementById('commit-suggestions').addEventListener('click', function () { set('applied'); });
+    var body = document.getElementById('review-body');
+    document.querySelectorAll('#review-form input[name=state]').forEach(function (r) {
+      r.addEventListener('change', function () { body.required = r.value !== 'approved'; });
+    });
+    window.addEventListener('hashchange', render);
+    render();
   })();
 </script>
 <script>

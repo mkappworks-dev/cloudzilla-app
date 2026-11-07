@@ -28,7 +28,7 @@ RETURNING id, created_at, updated_at`
 
 func (s *PullLineCommentStore) ListByPull(ctx context.Context, pullID int64) ([]model.PullLineComment, error) {
 	const q = `
-SELECT id, pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body, created_at, updated_at
+SELECT id, pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body, applied_at, applied_sha, applied_by, created_at, updated_at
 FROM pull_line_comments WHERE pull_id=$1 ORDER BY path, line, created_at`
 	rows, err := s.db.QueryContext(ctx, q, pullID)
 	if err != nil {
@@ -40,7 +40,7 @@ FROM pull_line_comments WHERE pull_id=$1 ORDER BY path, line, created_at`
 		var c model.PullLineComment
 		if err := rows.Scan(
 			&c.ID, &c.PullID, &c.RepoID, &c.AuthorID, &c.AuthorName,
-			&c.Path, &c.DiffSide, &c.Line, &c.Body, &c.IsSuggestion, &c.SuggestionBody, &c.CreatedAt, &c.UpdatedAt,
+			&c.Path, &c.DiffSide, &c.Line, &c.Body, &c.IsSuggestion, &c.SuggestionBody, &c.AppliedAt, &c.AppliedSHA, &c.AppliedBy, &c.CreatedAt, &c.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -51,12 +51,12 @@ FROM pull_line_comments WHERE pull_id=$1 ORDER BY path, line, created_at`
 
 func (s *PullLineCommentStore) GetByID(ctx context.Context, id int64) (*model.PullLineComment, error) {
 	const q = `
-SELECT id, pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body, created_at, updated_at
+SELECT id, pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body, applied_at, applied_sha, applied_by, created_at, updated_at
 FROM pull_line_comments WHERE id=$1`
 	var c model.PullLineComment
 	err := s.db.QueryRowContext(ctx, q, id).Scan(
 		&c.ID, &c.PullID, &c.RepoID, &c.AuthorID, &c.AuthorName,
-		&c.Path, &c.DiffSide, &c.Line, &c.Body, &c.IsSuggestion, &c.SuggestionBody, &c.CreatedAt, &c.UpdatedAt,
+		&c.Path, &c.DiffSide, &c.Line, &c.Body, &c.IsSuggestion, &c.SuggestionBody, &c.AppliedAt, &c.AppliedSHA, &c.AppliedBy, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("pull line comment get: %w", err)
@@ -64,14 +64,17 @@ FROM pull_line_comments WHERE id=$1`
 	return &c, nil
 }
 
-func (s *PullLineCommentStore) Update(ctx context.Context, id int64, body string) (*model.PullLineComment, error) {
+func (s *PullLineCommentStore) Update(ctx context.Context, id int64, body string, isSuggestion bool, suggestionBody string) (*model.PullLineComment, error) {
 	const q = `
-UPDATE pull_line_comments SET body=$2, updated_at=NOW() WHERE id=$1
-RETURNING id, pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body, created_at, updated_at`
+UPDATE pull_line_comments SET body=$2,
+  is_suggestion = CASE WHEN applied_at IS NULL THEN $3 ELSE is_suggestion END,
+  suggestion_body = CASE WHEN applied_at IS NULL THEN $4 ELSE suggestion_body END,
+  updated_at=NOW() WHERE id=$1
+RETURNING id, pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body, applied_at, applied_sha, applied_by, created_at, updated_at`
 	var c model.PullLineComment
-	err := s.db.QueryRowContext(ctx, q, id, body).Scan(
+	err := s.db.QueryRowContext(ctx, q, id, body, isSuggestion, suggestionBody).Scan(
 		&c.ID, &c.PullID, &c.RepoID, &c.AuthorID, &c.AuthorName,
-		&c.Path, &c.DiffSide, &c.Line, &c.Body, &c.IsSuggestion, &c.SuggestionBody, &c.CreatedAt, &c.UpdatedAt,
+		&c.Path, &c.DiffSide, &c.Line, &c.Body, &c.IsSuggestion, &c.SuggestionBody, &c.AppliedAt, &c.AppliedSHA, &c.AppliedBy, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("pull line comment update: %w", err)
@@ -85,4 +88,16 @@ func (s *PullLineCommentStore) Delete(ctx context.Context, id, repoID int64) err
 		id, repoID,
 	)
 	return err
+}
+
+// MarkApplied records the commit that applied a suggestion. It reports false when the suggestion was already applied.
+func (s *PullLineCommentStore) MarkApplied(ctx context.Context, id int64, sha string, byID int64, by string) (bool, error) {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE pull_line_comments SET applied_at=NOW(), applied_sha=$2, applied_by_id=$3, applied_by=$4 WHERE id=$1 AND applied_at IS NULL`,
+		id, sha, byID, by)
+	if err != nil {
+		return false, fmt.Errorf("pull line comment mark applied: %w", err)
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
 }

@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: done
 Blocked by: 01, 02, 07
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -26,9 +26,9 @@ The PR page has no Approve / Request changes control though `POST /reviews` exis
 
 ## Acceptance criteria
 
-- [ ] Spec and tickets exist in the mock folder
-- [ ] All its tickets done
-- [ ] `mockups/pr.html`, `pr_files.html` updated
+- [x] Spec and tickets exist in the mock folder
+- [x] All its tickets done
+- [x] `mockups/pr.html`, `pr_files.html` updated
 
 ## Verification
 
@@ -41,3 +41,8 @@ Split into several PRs via its own tickets: review dialog, merge box states, dra
 ## Comments
 
 2026-11-06 (triage): ready-for-human; spec needs a `/grill-with-docs` session with the maintainer first.
+
+2026-11-07 (Malith Kuruppu): grilled; spec and 7 tickets in `../../2026-11-06-pr-review-flow/` (ticket 30 folded in as
+07). Close this ticket when 07 merges (06 is droppable).
+
+2026-11-07 (Malith Kuruppu): all 7 tickets done in one PR (#281); 06 shipped too.

@@ -50,10 +50,10 @@ var pullMerges = []struct {
 	merge func(t *testing.T, r *tipTestRepo) error
 }{
 	{"three-way", func(t *testing.T, r *tipTestRepo) error {
-		return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", branchTip(t, r.repo, "feature"), tipTestAuthor)
+		return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", branchTip(t, r.repo, "feature"), tipTestAuthor, "")
 	}},
 	{"squash", func(t *testing.T, r *tipTestRepo) error {
-		return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", branchTip(t, r.repo, "feature"), tipTestAuthor)
+		return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", branchTip(t, r.repo, "feature"), tipTestAuthor, "")
 	}},
 }
 

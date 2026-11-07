@@ -19,6 +19,9 @@ type RenderedComment struct {
 type RenderedLineComment struct {
 	model.PullLineComment
 	BodyHTML string
+	// Original is the head-branch line a pending suggestion would replace; HasOriginal is false when it couldn't be read.
+	Original    string
+	HasOriginal bool
 }
 
 type BasePage struct {

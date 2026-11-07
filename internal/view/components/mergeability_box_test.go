@@ -51,10 +51,12 @@ func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	out := buf.String()
-	// With multiple strategies the merge action is a split button: only the
-	// primary button patches; the caret opens the menu.
+	// Merging asks for confirmation: the primary button opens the dialog, whose Confirm button is the one that patches.
 	if patchCount := strings.Count(out, `hx-patch="/api/repos/owner/repo/pulls/1"`); patchCount != 1 {
-		t.Errorf("expected 1 hx-patch attr to PatchURL (primary merge), got %d. out: %s", patchCount, out)
+		t.Errorf("expected 1 hx-patch attr to PatchURL (the dialog's Confirm), got %d. out: %s", patchCount, out)
+	}
+	if !strings.Contains(out, `x-on:click="begin()"`) || !strings.Contains(out, "Confirm merge") {
+		t.Errorf("expected the primary button to open the confirm dialog: %s", out)
 	}
 	// All three strategies are offered as radio items in the caret menu.
 	if radioCount := strings.Count(out, `role="menuitemradio"`); radioCount != 3 {
@@ -72,14 +74,12 @@ func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 		}
 	}
 	// The selected strategy reaches the merge request through the Alpine-bound hx-vals.
-	if !strings.Contains(out, "merge_strategy: strategy") {
-		t.Errorf("expected :hx-vals binding carrying merge_strategy, got: %s", out)
+	if !strings.Contains(out, "merge_strategy: strategy, merge_title: title, merge_message: message") {
+		t.Errorf("expected :hx-vals binding carrying the strategy, title and message, got: %s", out)
 	}
-	if !strings.Contains(out, `hx-target="closest section"`) {
-		t.Errorf("expected hx-target=closest section, got: %s", out)
-	}
-	if !strings.Contains(out, `hx-swap="outerHTML"`) {
-		t.Errorf("expected hx-swap=outerHTML, got: %s", out)
+	// The response has no body: the page reloads, so the merge box is never replaced by a stale fragment.
+	if !strings.Contains(out, `hx-swap="none"`) || !strings.Contains(out, "location.reload()") {
+		t.Errorf("expected hx-swap=none and a reload after merging, got: %s", out)
 	}
 }
 
@@ -102,8 +102,8 @@ func TestMergeabilityBox_SingleStrategyPlainButton(t *testing.T) {
 	if strings.Contains(out, "Choose merge strategy") {
 		t.Errorf("expected no caret trigger with a single strategy, got: %s", out)
 	}
-	if !strings.Contains(out, `merge_strategy&#34;:&#34;squash`) {
-		t.Errorf("expected the squash strategy wired into hx-vals, got: %s", out)
+	if !strings.Contains(out, "strategy&#34;:&#34;squash") {
+		t.Errorf("expected the squash strategy in the dialog's scope, got: %s", out)
 	}
 	if !strings.Contains(out, "Squash and merge") {
 		t.Errorf("expected the Squash and merge label, got: %s", out)
@@ -184,5 +184,105 @@ func TestAheadBehindDescription_Pluralizes(t *testing.T) {
 		if got := aheadBehindDescription(tc.ahead, tc.behind); got != tc.want {
 			t.Errorf("aheadBehindDescription(%d,%d) = %q, want %q", tc.ahead, tc.behind, got, tc.want)
 		}
+	}
+}
+
+func renderBox(t *testing.T, d MergeabilityBoxData) string {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := MergeabilityBox(d).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	return buf.String()
+}
+
+func writerBox() MergeabilityBoxData {
+	return MergeabilityBoxData{
+		CanWrite: true, PatchURL: "/api/repos/o/r/pulls/1", ChecksURL: "/o/r/pulls/1/checks",
+		Mergeable: true, Ahead: 2, CanFastForward: true, CanThreeWayMerge: true, CanSquash: true,
+	}
+}
+
+func TestMergeabilityBox_NeedsReviewOffersAutoMergeOnly(t *testing.T) {
+	d := writerBox()
+	d.RequiredReviews, d.ApprovedReviews = 2, 1
+	out := renderBox(t, d)
+	for _, want := range []string{"Review required", "1 of 2 required reviews approved", `auto_merge&#34;:&#34;enable`, "Enable auto-merge"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in %s", want, out)
+		}
+	}
+	if strings.Contains(out, `state&#34;:&#34;merged`) {
+		t.Error("merge must not be offered while a review is missing")
+	}
+}
+
+func TestMergeabilityBox_ChecksFailingDisablesMergeAndLinksChecks(t *testing.T) {
+	d := writerBox()
+	d.RequiredChecks, d.PassingChecks, d.FailingChecks = 2, 1, 1
+	out := renderBox(t, d)
+	for _, want := range []string{"Checks failing", "View checks →", `href="/o/r/pulls/1/checks"`, "disabled"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	if strings.Contains(out, "Enable auto-merge") || strings.Contains(out, "auto_merge") {
+		t.Error("failing checks must not offer auto-merge")
+	}
+}
+
+func TestMergeabilityBox_ChecksPendingOffersAutoMerge(t *testing.T) {
+	d := writerBox()
+	d.RequiredChecks, d.PassingChecks = 2, 1
+	out := renderBox(t, d)
+	if !strings.Contains(out, "Waiting on checks") || !strings.Contains(out, "Enable auto-merge") {
+		t.Errorf("pending checks should offer auto-merge: %s", out)
+	}
+}
+
+func TestMergeabilityBox_ChangesRequestedBlocksEverything(t *testing.T) {
+	d := writerBox()
+	d.ChangesRequested = true
+	out := renderBox(t, d)
+	if !strings.Contains(out, "Changes requested") {
+		t.Error("missing the changes-requested header")
+	}
+	if strings.Contains(out, "hx-patch") || strings.Contains(out, "Enable auto-merge") {
+		t.Errorf("no merge or auto-merge while changes are requested: %s", out)
+	}
+}
+
+func TestMergeabilityBox_AutoMergeEnabledNamesWhoAndHow(t *testing.T) {
+	d := writerBox()
+	d.AutoMergeEnabled, d.AutoMergeStrategy, d.AutoMergeByName = true, "squash", "ada"
+	out := renderBox(t, d)
+	for _, want := range []string{"squash and merge", "armed by @ada", "Disable auto-merge", `auto_merge&#34;:&#34;disable`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+}
+
+func TestMergeabilityBox_ReadOnlyViewerHasNoActions(t *testing.T) {
+	d := writerBox()
+	d.CanWrite = false
+	d.RequiredReviews, d.ApprovedReviews = 2, 1
+	out := renderBox(t, d)
+	if strings.Contains(out, "hx-patch") || !strings.Contains(out, "Only collaborators with write access") {
+		t.Errorf("read-only viewer must get the lock line only: %s", out)
+	}
+}
+
+func TestMergeabilityBox_DraftOffersReadyForReviewNotMerge(t *testing.T) {
+	d := writerBox()
+	d.Draft = true
+	out := renderBox(t, d)
+	for _, want := range []string{">Draft<", "Ready for review", `is_draft&#34;:&#34;false`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in %s", want, out)
+		}
+	}
+	if strings.Contains(out, "merge_strategy") || strings.Contains(out, "Enable auto-merge") {
+		t.Error("a draft must not offer merge or auto-merge")
 	}
 }

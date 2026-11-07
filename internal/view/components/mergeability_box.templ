@@ -1,8 +1,11 @@
 package components
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 type MergeabilityBoxData struct {
@@ -24,6 +27,22 @@ type MergeabilityBoxData struct {
 	CanFastForward   bool
 	CanThreeWayMerge bool
 	CanSquash        bool
+
+	// The merge dialog prefills the commit title with the default message for the chosen strategy.
+	HeadBranch string
+
+	// Draft swaps the merge actions for Ready for review.
+	Draft bool
+
+	// FailingChecks counts required checks that failed or errored with no passing status.
+	FailingChecks    int
+	ChangesRequested bool
+	ChecksURL        string
+
+	AutoMergeEnabled  bool
+	AutoMergeStrategy string
+	// AutoMergeByName is empty when the arming user is unknown or deleted.
+	AutoMergeByName string
 }
 
 type mergeState int
@@ -34,16 +53,31 @@ const (
 	mergeUpToDate
 	mergeReady
 	mergeChecking
+	mergeChangesRequested
+	mergeChecksFailing
+	mergeNeedsReview
+	mergeChecksPending
+	mergeDraft
 )
 
 func mergeStateOf(d MergeabilityBoxData) mergeState {
 	switch {
 	case d.Unavailable:
 		return mergeUnavailable
+	case d.Draft:
+		return mergeDraft
 	case d.HasConflicts:
 		return mergeConflicts
 	case d.UpToDate:
 		return mergeUpToDate
+	case d.ChangesRequested:
+		return mergeChangesRequested
+	case d.FailingChecks > 0:
+		return mergeChecksFailing
+	case d.RequiredReviews > d.ApprovedReviews:
+		return mergeNeedsReview
+	case d.RequiredChecks > d.PassingChecks:
+		return mergeChecksPending
 	case d.Mergeable:
 		return mergeReady
 	default:
@@ -93,8 +127,44 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 		}
 		if d.CanWrite {
 			<footer class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
-				if d.Mergeable && !d.HasConflicts {
-					@mergeSplitButton(d)
+				switch {
+					case d.Draft:
+						<button
+							type="button"
+							hx-patch={ d.PatchURL }
+							hx-vals={ `{"is_draft":"false"}` }
+							hx-swap="none"
+							hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Marked ready for review'}));location.reload();}"
+							class="h-9 px-4 text-[13px] font-medium rounded-md bg-success text-success-foreground hover:bg-success/90"
+						>
+							Ready for review
+						</button>
+					case d.AutoMergeEnabled:
+						<p class="text-[13px] text-muted-foreground inline-flex items-center gap-2">
+							<svg class="text-success shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+							{ autoMergeSummary(d) }
+						</p>
+						<button
+							type="button"
+							hx-patch={ d.PatchURL }
+							hx-vals={ `{"auto_merge":"disable"}` }
+							hx-swap="none"
+							hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Auto-merge disabled'}));location.reload();}"
+							class="h-9 px-3 text-[13px] rounded-md border border-border text-muted-foreground hover:bg-accent"
+						>
+							Disable auto-merge
+						</button>
+					case st == mergeReady:
+						@mergeSplitButton(d, false)
+					case st == mergeNeedsReview || st == mergeChecksPending:
+						if !d.HasConflicts {
+							@mergeSplitButton(d, true)
+						}
+					case st == mergeChecksFailing:
+						<button type="button" disabled class="h-9 px-4 text-[13px] font-medium rounded-md bg-muted text-muted-foreground cursor-not-allowed">Merge</button>
+						if d.ChecksURL != "" {
+							<a href={ templ.SafeURL(d.ChecksURL) } class="text-[13px] text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">View checks →</a>
+						}
 				}
 				<button type="button" onclick="document.getElementById('close-pull-dialog').showModal()" class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
 			</footer>
@@ -110,35 +180,19 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 }
 
 // The selected strategy lives in Alpine scope and is fed to the action via :hx-vals.
-templ mergeSplitButton(d MergeabilityBoxData) {
+templ mergeSplitButton(d MergeabilityBoxData, auto bool) {
 	{{ defKey, defLabel := defaultMergeStrategy(d) }}
 	if mergeStrategyCount(d) == 1 {
-		<button
-			type="button"
-			hx-patch={ d.PatchURL }
-			hx-vals={ fmt.Sprintf(`{"state":"merged","merge_strategy":%q}`, defKey) }
-			hx-target="closest section"
-			hx-swap="outerHTML"
-			class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground rounded-md hover:opacity-90 inline-flex items-center gap-1.5"
-		>
-			@mergeStrategyIcon(defKey)
-			{ defLabel }
-		</button>
+		<div x-data={ mergeScope(d, defKey, defLabel) } class="inline-flex">
+			@mergePrimaryButton(d, auto, defKey, defLabel, "rounded-md")
+			if !auto {
+				@mergeConfirmDialog(d)
+			}
+		</div>
 	} else if mergeStrategyCount(d) > 1 {
-		<div x-data={ "{ open: false, strategy: '" + defKey + "', label: '" + defLabel + "' }" } class="relative inline-flex">
+		<div x-data={ mergeScope(d, defKey, defLabel) } class="relative inline-flex">
 			<div class="inline-flex rounded-md overflow-hidden">
-				<button
-					type="button"
-					hx-patch={ d.PatchURL }
-					hx-vals={ `{"state":"merged"}` }
-					:hx-vals="JSON.stringify({ state: 'merged', merge_strategy: strategy })"
-					hx-target="closest section"
-					hx-swap="outerHTML"
-					class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5"
-				>
-					@mergeStrategyIcon(defKey)
-					<span x-text="label">{ defLabel }</span>
-				</button>
+				@mergePrimaryButton(d, auto, defKey, defLabel, "")
 				<button
 					type="button"
 					x-on:click="open = !open"
@@ -171,7 +225,77 @@ templ mergeSplitButton(d MergeabilityBoxData) {
 					@mergeStrategyMenuItem("ff", "Fast-forward", "Advance the base branch — no new commit")
 				}
 			</div>
+			if !auto {
+				@mergeConfirmDialog(d)
+			}
 		</div>
+	}
+}
+
+// Merging opens the confirm dialog; enabling auto-merge patches at once, since that merge's message isn't known yet.
+templ mergePrimaryButton(d MergeabilityBoxData, auto bool, defKey, defLabel, rounded string) {
+	<button
+		type="button"
+		if auto {
+			hx-patch={ d.PatchURL }
+			hx-vals={ autoMergeVals(defKey) }
+			:hx-vals={ autoMergeValsExpr }
+			hx-swap="none"
+			hx-on::after:request={ templ.JSUnsafeFuncCall(mergeAfter(auto)) }
+		} else {
+			x-on:click="begin()"
+		}
+		class={ "h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5", rounded }
+	>
+		@mergeStrategyIcon(defKey)
+		if auto {
+			<span>Enable auto-merge · </span>
+		}
+		<span x-text="label">{ defLabel }</span>
+	</button>
+}
+
+templ mergeConfirmDialog(d MergeabilityBoxData) {
+	@Dialog("merge-confirm-dialog") {
+		@DialogHeader() {
+			@DialogTitle("merge-confirm-dialog") {
+				Confirm merge
+			}
+			@DialogDescription() {
+				<span x-text="strategyNote()"></span>
+			}
+		}
+		@DialogBody() {
+			<div x-show="strategy !== 'ff'" class="grid gap-3">
+				<div class="grid gap-1.5">
+					<label for="merge-title" class="text-[12px] font-medium">Commit title</label>
+					<input id="merge-title" type="text" x-model="title" maxlength="200" class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-[13px] focus:outline-hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring"/>
+				</div>
+				<div class="grid gap-1.5">
+					<label for="merge-message" class="text-[12px] font-medium">Commit message <span class="font-normal text-muted-foreground">(optional)</span></label>
+					<textarea id="merge-message" x-model="message" rows="4" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-[13px] font-mono leading-relaxed resize-none focus:outline-hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring"></textarea>
+				</div>
+			</div>
+			<p x-show="strategy === 'ff'" class="text-[13px] text-muted-foreground">
+				Fast-forward moves <span class="font-mono text-foreground">{ mergeBase(d) }</span> to the head commit. It creates no new commit, so there is no message to edit.
+			</p>
+		}
+		@DialogFooter() {
+			@DialogClose() {
+				Cancel
+			}
+			<button
+				type="button"
+				hx-patch={ d.PatchURL }
+				hx-vals={ `{"state":"merged"}` }
+				:hx-vals="JSON.stringify({ state: 'merged', merge_strategy: strategy, merge_title: title, merge_message: message })"
+				hx-swap="none"
+				hx-on::after:request={ templ.JSUnsafeFuncCall(mergeAfter(false)) }
+				class="inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium h-9 px-4 bg-success text-success-foreground hover:bg-success/90"
+			>
+				Confirm merge
+			</button>
+		}
 	}
 }
 
@@ -236,6 +360,8 @@ func mergeStrategyCount(d MergeabilityBoxData) int {
 
 templ mergeStateIcon(st mergeState) {
 	switch st {
+	case mergeDraft:
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path></svg>
 	case mergeReady:
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
 	case mergeConflicts:
@@ -264,9 +390,9 @@ func mergeHeaderClass(st mergeState) string {
 	switch st {
 	case mergeReady:
 		return "bg-success/10"
-	case mergeConflicts:
+	case mergeConflicts, mergeChangesRequested, mergeChecksFailing:
 		return "bg-destructive/10"
-	case mergeChecking:
+	case mergeChecking, mergeNeedsReview, mergeChecksPending:
 		return "bg-warning/10"
 	default:
 		return "bg-muted/40"
@@ -277,9 +403,9 @@ func mergeIconClass(st mergeState) string {
 	switch st {
 	case mergeReady:
 		return "bg-success text-success-foreground"
-	case mergeConflicts:
+	case mergeConflicts, mergeChangesRequested, mergeChecksFailing:
 		return "bg-destructive text-destructive-foreground"
-	case mergeChecking:
+	case mergeChecking, mergeNeedsReview, mergeChecksPending:
 		return "bg-warning text-warning-foreground"
 	default:
 		return "bg-muted text-muted-foreground"
@@ -290,9 +416,9 @@ func mergeTitleClass(st mergeState) string {
 	switch st {
 	case mergeReady:
 		return "text-success"
-	case mergeConflicts:
+	case mergeConflicts, mergeChangesRequested, mergeChecksFailing:
 		return "text-destructive"
-	case mergeChecking:
+	case mergeChecking, mergeNeedsReview, mergeChecksPending:
 		return "text-warning"
 	default:
 		return "text-muted-foreground"
@@ -307,6 +433,16 @@ func mergeTitle(st mergeState) string {
 		return "Merge conflicts"
 	case mergeUpToDate:
 		return "Nothing to merge"
+	case mergeDraft:
+		return "Draft"
+	case mergeChangesRequested:
+		return "Changes requested"
+	case mergeChecksFailing:
+		return "Checks failing"
+	case mergeNeedsReview:
+		return "Review required"
+	case mergeChecksPending:
+		return "Waiting on checks"
 	case mergeChecking:
 		return "Checking mergeability…"
 	default:
@@ -322,6 +458,16 @@ func mergeSubtitle(d MergeabilityBoxData, st mergeState) string {
 		return "Resolve the conflicts on the head branch before this can merge."
 	case mergeUpToDate:
 		return "This branch is already up to date with the base."
+	case mergeDraft:
+		return "Mark this ready for review to notify reviewers and allow merging."
+	case mergeChangesRequested:
+		return "A reviewer asked for changes. Merging is blocked until they approve or the review is dismissed."
+	case mergeChecksFailing:
+		return fmt.Sprintf("%s failed. Fix them and push before this can merge.", Count(d.FailingChecks, "required check", "required checks"))
+	case mergeNeedsReview:
+		return reviewsDescription(d.ApprovedReviews, d.RequiredReviews) + "."
+	case mergeChecksPending:
+		return checksDescription(d.PassingChecks, d.RequiredChecks) + "."
 	case mergeChecking:
 		return "Mergeability is still being computed — refresh in a moment."
 	default:
@@ -347,3 +493,54 @@ func reviewsDescription(approved, required int) string {
 	return fmt.Sprintf("%d of %s approved", approved, Count(required, "required review", "required reviews"))
 }
 
+
+func autoMergeVals(strategy string) string {
+	return fmt.Sprintf(`{"auto_merge":"enable","auto_merge_strategy":%q}`, strategy)
+}
+
+const autoMergeValsExpr = "JSON.stringify({ auto_merge: 'enable', auto_merge_strategy: strategy })"
+
+func autoMergeSummary(d MergeabilityBoxData) string {
+	s := "Auto-merge is on (" + strategyName(d.AutoMergeStrategy) + ")"
+	if d.AutoMergeByName != "" {
+		s += ", armed by @" + d.AutoMergeByName
+	}
+	return s + ". It merges once the requirements are met."
+}
+
+func strategyName(key string) string {
+	switch key {
+	case "squash":
+		return "squash and merge"
+	case "merge":
+		return "merge commit"
+	default:
+		return "fast-forward"
+	}
+}
+
+// The page reloads after the request so the merge box, badge and timeline are rendered fresh.
+func mergeAfter(auto bool) string {
+	msg := "Pull request merged"
+	if auto {
+		msg = "Auto-merge enabled"
+	}
+	return "if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'" + msg + "'}));location.reload();}"
+}
+
+// mergeScope is the Alpine state the merge button, strategy menu and confirm dialog share.
+func mergeScope(d MergeabilityBoxData, defKey, defLabel string) string {
+	scope, _ := json.Marshal(map[string]any{
+		"strategy": defKey,
+		"label":    defLabel,
+		"base":     mergeBase(d),
+		"defaults": map[string]string{
+			"merge":  service.DefaultMergeMessage(d.HeadBranch, d.BaseBranch),
+			"squash": service.DefaultSquashMessage(d.HeadBranch, d.BaseBranch),
+		},
+	})
+	// json.Marshal output is a JS object literal; its closing brace takes the methods.
+	return string(scope[:len(scope)-1]) + `, open: false, title: '', message: '', ` +
+		`begin() { this.title = this.defaults[this.strategy] || ''; this.message = ''; document.getElementById('merge-confirm-dialog').showModal(); }, ` +
+		`strategyNote() { return this.strategy === 'ff' ? 'Fast-forward the base branch.' : (this.label + ' into ' + this.base + '.'); } }`
+}

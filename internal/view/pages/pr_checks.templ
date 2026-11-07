@@ -25,6 +25,8 @@ templ PullChecks(data view.PullChecksData) {
 			FilesCount:     data.FilesCount,
 			Added:          data.Added,
 			Deleted:        data.Deleted,
+			MergedBy:       data.MergedBy,
+			MergedCommits: data.MergedCommits,
 		}, pullChecksBody(data))
 	}
 }
