@@ -65,6 +65,7 @@ search, filter menus and pagination`), one commit per ticket.
 2. `02-issue-list-filters` — issues SQL filter and paging, comment and priority rows, shared filter components, index
    migration, placeholder copy, standing mocks, benchmark. Blocked by 01.
 3. `03-pr-list-filters` — PRs on the same pieces. Blocked by 01, 02.
+4. `04-pr-review-filter` — `review:` filter and review-state indicator. Blocked by 09; not part of this PR.
 
 ## Verification
 
