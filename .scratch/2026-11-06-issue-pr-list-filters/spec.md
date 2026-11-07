@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Mock: [README.md](./README.md), [mock.html](./mock.html). Parent ticket:
 `../2026-11-06-uiux-desktop-9.5/issues/10-issue-pr-list-filters.md`.
