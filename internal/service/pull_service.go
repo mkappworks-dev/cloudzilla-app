@@ -42,17 +42,14 @@ func (s *PullService) WithBranchProtections(p *store.BranchProtectionStore) *Pul
 	return s
 }
 
-// reviewRequirements maps each base branch with pull requests to the approvals its protection rule demands.
-func (s *PullService) reviewRequirements(ctx context.Context, repoID int64) (map[string]int, error) {
+// reviewRequirements maps each of branches to the approvals its protection rule demands; branches without a rule or
+// with none required are absent.
+func (s *PullService) reviewRequirements(ctx context.Context, repoID int64, branches []string) (map[string]int, error) {
 	if s.protections == nil {
 		return nil, nil
 	}
 	rules, err := s.protections.ListByRepo(ctx, repoID)
 	if err != nil || len(rules) == 0 {
-		return nil, err
-	}
-	branches, err := s.pulls.BaseBranches(ctx, repoID)
-	if err != nil {
 		return nil, err
 	}
 	required := map[string]int{}
@@ -133,14 +130,27 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 	if err != nil {
 		return nil, 0, fmt.Errorf("repo not found: %w", err)
 	}
-	required, err := s.reviewRequirements(ctx, repo.ID)
-	if err != nil {
-		return nil, 0, fmt.Errorf("review requirements: %w", err)
+	// Only the review filter needs the requirement of every base branch; the rows' badges need just the page's own.
+	if f.Review != "" {
+		branches, err := s.pulls.BaseBranches(ctx, repo.ID)
+		if err != nil {
+			return nil, 0, err
+		}
+		if f.ReviewRequired, err = s.reviewRequirements(ctx, repo.ID, branches); err != nil {
+			return nil, 0, fmt.Errorf("review requirements: %w", err)
+		}
 	}
-	f.ReviewRequired = required
 	pulls, total, err := s.pulls.ListFiltered(ctx, repo.ID, f)
 	if err != nil {
 		return nil, 0, err
+	}
+	pageBranches := make([]string, len(pulls))
+	for i, p := range pulls {
+		pageBranches[i] = p.BaseBranch
+	}
+	required, err := s.reviewRequirements(ctx, repo.ID, pageBranches)
+	if err != nil {
+		return nil, 0, fmt.Errorf("review requirements: %w", err)
 	}
 	rows, err := s.listRows(ctx, owner, repoName, pulls, required)
 	return rows, total, err

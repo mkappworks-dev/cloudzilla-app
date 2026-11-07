@@ -299,6 +299,11 @@ func TestPullStore_ReviewFilterAndStates(t *testing.T) {
 		t.Errorf("no rule: review:approved = %v, want %v", nums, want)
 	}
 
+	f.exec(t, ctx, `UPDATE pull_requests SET state = 'merged' WHERE repo_id = $1 AND number = 1`, f.repoID)
+	if got, _, _ := s.ListFiltered(ctx, f.repoID, store.ListFilter{Review: "approved", State: "merged"}); len(got) != 0 {
+		t.Errorf("review filter must not match a merged PR, got %d", len(got))
+	}
+
 	branches, err := s.BaseBranches(ctx, f.repoID)
 	if err != nil || len(branches) != 2 {
 		t.Errorf("BaseBranches = %v, %v", branches, err)

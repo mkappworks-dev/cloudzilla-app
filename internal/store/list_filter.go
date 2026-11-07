@@ -74,7 +74,8 @@ func (f ListFilter) where(t listTable, b *listBuilder) []string {
 		w = append(w, a+`.milestone_id = `+b.arg(f.MilestoneID))
 	}
 	if f.Review != "" && t == pullListTable {
-		w = append(w, reviewStateExpr(b, f.ReviewRequired)+" = "+b.arg(f.Review))
+		// Review state means something only while a PR can still be reviewed.
+		w = append(w, "pr.state = 'open' AND NOT pr.is_draft AND "+reviewStateExpr(b, f.ReviewRequired)+" = "+b.arg(f.Review))
 	}
 	for _, n := range f.No {
 		switch n {
