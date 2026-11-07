@@ -37,7 +37,7 @@ func TestSubmitReview_HTMXAnswersWithoutBody_AuthorMayOnlyComment(t *testing.T) 
 		if err != nil {
 			t.Fatalf("post review: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		b, _ := io.ReadAll(resp.Body)
 		return resp, string(b)
 	}
