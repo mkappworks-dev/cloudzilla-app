@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
@@ -390,8 +391,18 @@ func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.
 	return hash, err == nil, err
 }
 
-// ThreeWayMergePullRequest creates a merge commit combining head, at headHash, into base.
-func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor) error {
+// DefaultMergeMessage and DefaultSquashMessage are the commit messages a merge gets unless its merger edits them.
+func DefaultMergeMessage(head, base string) string {
+	return "Merge branch '" + head + "' into '" + base + "'"
+}
+
+func DefaultSquashMessage(head, base string) string {
+	return "Squash merge branch '" + head + "' into '" + base + "'"
+}
+
+// ThreeWayMergePullRequest creates a merge commit combining head, at headHash, into base. An empty message gets the
+// default one.
+func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor, message string) error {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
@@ -427,7 +438,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
-		Message:      "Merge branch '" + head + "' into '" + base + "'",
+		Message:      cmp.Or(strings.TrimSpace(message), DefaultMergeMessage(head, base)),
 		TreeHash:     mergedTreeHash,
 		ParentHashes: []plumbing.Hash{baseCommit.Hash, headCommit.Hash},
 	}
@@ -444,7 +455,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 
 // SquashMergePullRequest creates a single squash commit on base incorporating all
 // head changes, up to headHash.
-func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor) error {
+func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor, message string) error {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
@@ -482,7 +493,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
-		Message:      "Squash merge branch '" + head + "' into '" + base + "'",
+		Message:      cmp.Or(strings.TrimSpace(message), DefaultSquashMessage(head, base)),
 		TreeHash:     treeHash,
 		ParentHashes: []plumbing.Hash{baseCommit.Hash},
 	}

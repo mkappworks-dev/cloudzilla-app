@@ -30,6 +30,8 @@ templ PullDetail(data view.PullDetailData) {
 			FilesCount:     data.FilesCount,
 			Added:          data.Added,
 			Deleted:        data.Deleted,
+			MergedBy:       data.MergedBy,
+			MergedCommits: data.MergedCommits,
 		}, pullDetailBody(data))
 	}
 }
@@ -472,6 +474,8 @@ templ pullEventEntry(ev model.PullEvent) {
 							<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-muted border border-border text-foreground">{ ev.Detail }</span>
 						case model.PullEventRenamed:
 							<span class="text-foreground font-medium">{ ev.Detail }</span>
+						case model.PullEventMerged:
+							<span class="text-foreground font-medium">{ mergedCommitsLabel(ev.Detail) }</span>
 						default:
 							<a href={ templ.SafeURL("/" + ev.Detail) } class="text-foreground font-medium hover:underline">{ ev.Detail }</a>
 					}
@@ -622,4 +626,13 @@ func participantsNoun(n int) string {
 		return "participant"
 	}
 	return "participants"
+}
+
+// mergedCommitsLabel reads the commit count a merge event stores in its detail; older events store none.
+func mergedCommitsLabel(detail string) string {
+	n, err := strconv.Atoi(detail)
+	if err != nil || n < 1 {
+		return ""
+	}
+	return "(" + components.Count(n, "commit", "commits") + ")"
 }

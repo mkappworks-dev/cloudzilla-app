@@ -55,6 +55,10 @@ type PullChromeCounts struct {
 	FilesCount   int
 	Added        int
 	Deleted      int
+	// MergedBy and MergedCommits describe a merged PR as it merged: afterwards its commit range is empty, and the
+	// author may not be who merged it. MergedCommits is 0 for a PR merged before the count was recorded.
+	MergedBy      string
+	MergedCommits int
 }
 
 // PullDetailData holds template data for the pull request detail page.

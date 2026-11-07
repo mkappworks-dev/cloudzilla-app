@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"slices"
 	"context"
 	"fmt"
 	"log/slog"
@@ -289,6 +290,19 @@ func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, 
 	logFail := func(what string, err error) {
 		slog.Warn("pull chrome counts: "+what+" failed; tab badge may be wrong",
 			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+	}
+	if pull.State == model.PRStateMerged {
+		if events, err := h.Services.PullEvent.ListByPull(ctx, pull.ID); err == nil {
+			for _, ev := range slices.Backward(events) {
+				if ev.Type == model.PullEventMerged {
+					c.MergedBy = ev.ActorName
+					c.MergedCommits, _ = strconv.Atoi(ev.Detail)
+					break
+				}
+			}
+		} else {
+			logFail("event list", err)
+		}
 	}
 	if own&commitsBadge == 0 {
 		if commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {

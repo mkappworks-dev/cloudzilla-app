@@ -51,10 +51,12 @@ func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	out := buf.String()
-	// With multiple strategies the merge action is a split button: only the
-	// primary button patches; the caret opens the menu.
+	// Merging asks for confirmation: the primary button opens the dialog, whose Confirm button is the one that patches.
 	if patchCount := strings.Count(out, `hx-patch="/api/repos/owner/repo/pulls/1"`); patchCount != 1 {
-		t.Errorf("expected 1 hx-patch attr to PatchURL (primary merge), got %d. out: %s", patchCount, out)
+		t.Errorf("expected 1 hx-patch attr to PatchURL (the dialog's Confirm), got %d. out: %s", patchCount, out)
+	}
+	if !strings.Contains(out, `x-on:click="begin()"`) || !strings.Contains(out, "Confirm merge") {
+		t.Errorf("expected the primary button to open the confirm dialog: %s", out)
 	}
 	// All three strategies are offered as radio items in the caret menu.
 	if radioCount := strings.Count(out, `role="menuitemradio"`); radioCount != 3 {
@@ -72,8 +74,8 @@ func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 		}
 	}
 	// The selected strategy reaches the merge request through the Alpine-bound hx-vals.
-	if !strings.Contains(out, "merge_strategy: strategy") {
-		t.Errorf("expected :hx-vals binding carrying merge_strategy, got: %s", out)
+	if !strings.Contains(out, "merge_strategy: strategy, merge_title: title, merge_message: message") {
+		t.Errorf("expected :hx-vals binding carrying the strategy, title and message, got: %s", out)
 	}
 	// The response has no body: the page reloads, so the merge box is never replaced by a stale fragment.
 	if !strings.Contains(out, `hx-swap="none"`) || !strings.Contains(out, "location.reload()") {
@@ -100,8 +102,8 @@ func TestMergeabilityBox_SingleStrategyPlainButton(t *testing.T) {
 	if strings.Contains(out, "Choose merge strategy") {
 		t.Errorf("expected no caret trigger with a single strategy, got: %s", out)
 	}
-	if !strings.Contains(out, `merge_strategy&#34;:&#34;squash`) {
-		t.Errorf("expected the squash strategy wired into hx-vals, got: %s", out)
+	if !strings.Contains(out, "strategy&#34;:&#34;squash") {
+		t.Errorf("expected the squash strategy in the dialog's scope, got: %s", out)
 	}
 	if !strings.Contains(out, "Squash and merge") {
 		t.Errorf("expected the Squash and merge label, got: %s", out)

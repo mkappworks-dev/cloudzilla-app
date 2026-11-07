@@ -97,10 +97,10 @@ func TestWebCommits_PushLandsMidCommit(t *testing.T) {
 			return err
 		}},
 		{"three-way merge", "main", func(r *tipTestRepo) error {
-			return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", r.featureTip, tipTestAuthor)
+			return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", r.featureTip, tipTestAuthor, "")
 		}},
 		{"squash merge", "main", func(r *tipTestRepo) error {
-			return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", r.featureTip, tipTestAuthor)
+			return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", r.featureTip, tipTestAuthor, "")
 		}},
 	}
 	for _, tt := range tests {
@@ -134,10 +134,10 @@ func TestPullMerges_HeadMovedSinceCheck(t *testing.T) {
 			return r.svc.MergePullRequest(r.owner, r.name, "main", "feature", checked)
 		}},
 		{"three-way", func(r *tipTestRepo, checked plumbing.Hash) error {
-			return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", checked, tipTestAuthor)
+			return r.svc.ThreeWayMergePullRequest(r.owner, r.name, "main", "feature", checked, tipTestAuthor, "")
 		}},
 		{"squash", func(r *tipTestRepo, checked plumbing.Hash) error {
-			return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", checked, tipTestAuthor)
+			return r.svc.SquashMergePullRequest(r.owner, r.name, "main", "feature", checked, tipTestAuthor, "")
 		}},
 	}
 	for _, tt := range tests {

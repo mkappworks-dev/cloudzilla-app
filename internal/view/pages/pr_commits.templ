@@ -28,6 +28,8 @@ templ PullCommits(data view.PullCommitsData) {
 			FilesCount:     data.FilesCount,
 			Added:          data.Added,
 			Deleted:        data.Deleted,
+			MergedBy:       data.MergedBy,
+			MergedCommits: data.MergedCommits,
 		}, pullCommitsBody(data))
 	}
 }

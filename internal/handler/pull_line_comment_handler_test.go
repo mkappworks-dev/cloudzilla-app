@@ -154,3 +154,28 @@ func TestApplySuggestionBatch_OverlapChangesNothing(t *testing.T) {
 		t.Errorf("feature = %s, want it left at %s", got, r.featureTip)
 	}
 }
+
+func TestMergePull_UsesTheEditedCommitMessageAndRecordsTheCommitCount(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	pullID := seedOpenPull(t, db, r.seededRepo)
+
+	rr := requestAPIBody(api, http.MethodPatch, "/api/repos"+r.path+"/pulls/1", r.owner.token,
+		`{"state":"merged","merge_strategy":"squash","merge_title":"  Tidy the fixtures ","merge_message":"Covers f.txt.\n"}`)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("merge: want 200, got %d %s", rr.Code, rr.Body.String())
+	}
+	tip, err := r.git.CommitObject(branchHash(t, r.git, "main"))
+	if err != nil {
+		t.Fatalf("read main tip: %v", err)
+	}
+	if want := "Tidy the fixtures\n\nCovers f.txt."; tip.Message != want {
+		t.Errorf("commit message = %q, want %q", tip.Message, want)
+	}
+	var detail string
+	if err := db.QueryRow(`SELECT detail FROM pull_events WHERE pull_id=$1 AND event_type='merged'`, pullID).Scan(&detail); err != nil || detail != "1" {
+		t.Errorf("merged event detail = %q (%v), want the 1 commit that merged", detail, err)
+	}
+}

@@ -1,8 +1,11 @@
 package components
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 type MergeabilityBoxData struct {
@@ -24,6 +27,9 @@ type MergeabilityBoxData struct {
 	CanFastForward   bool
 	CanThreeWayMerge bool
 	CanSquash        bool
+
+	// The merge dialog prefills the commit title with the default message for the chosen strategy.
+	HeadBranch string
 
 	// Draft swaps the merge actions for Ready for review.
 	Draft bool
@@ -177,35 +183,16 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 templ mergeSplitButton(d MergeabilityBoxData, auto bool) {
 	{{ defKey, defLabel := defaultMergeStrategy(d) }}
 	if mergeStrategyCount(d) == 1 {
-		<button
-			type="button"
-			hx-patch={ d.PatchURL }
-			hx-vals={ mergeVals(auto, defKey) }
-			hx-swap="none"
-			hx-on::after:request={ templ.JSUnsafeFuncCall(mergeAfter(auto)) }
-			class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground rounded-md hover:opacity-90 inline-flex items-center gap-1.5"
-		>
-			@mergeStrategyIcon(defKey)
-			{ mergeLabel(auto, defLabel) }
-		</button>
+		<div x-data={ mergeScope(d, defKey, defLabel) } class="inline-flex">
+			@mergePrimaryButton(d, auto, defKey, defLabel, "rounded-md")
+			if !auto {
+				@mergeConfirmDialog(d)
+			}
+		</div>
 	} else if mergeStrategyCount(d) > 1 {
-		<div x-data={ "{ open: false, strategy: '" + defKey + "', label: '" + defLabel + "' }" } class="relative inline-flex">
+		<div x-data={ mergeScope(d, defKey, defLabel) } class="relative inline-flex">
 			<div class="inline-flex rounded-md overflow-hidden">
-				<button
-					type="button"
-					hx-patch={ d.PatchURL }
-					hx-vals={ mergeVals(auto, defKey) }
-					:hx-vals={ mergeValsExpr(auto) }
-					hx-swap="none"
-					hx-on::after:request={ templ.JSUnsafeFuncCall(mergeAfter(auto)) }
-					class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5"
-				>
-					@mergeStrategyIcon(defKey)
-					if auto {
-						<span>Enable auto-merge · </span>
-					}
-					<span x-text="label">{ defLabel }</span>
-				</button>
+				@mergePrimaryButton(d, auto, defKey, defLabel, "")
 				<button
 					type="button"
 					x-on:click="open = !open"
@@ -238,7 +225,77 @@ templ mergeSplitButton(d MergeabilityBoxData, auto bool) {
 					@mergeStrategyMenuItem("ff", "Fast-forward", "Advance the base branch — no new commit")
 				}
 			</div>
+			if !auto {
+				@mergeConfirmDialog(d)
+			}
 		</div>
+	}
+}
+
+// Merging opens the confirm dialog; enabling auto-merge patches at once, since that merge's message isn't known yet.
+templ mergePrimaryButton(d MergeabilityBoxData, auto bool, defKey, defLabel, rounded string) {
+	<button
+		type="button"
+		if auto {
+			hx-patch={ d.PatchURL }
+			hx-vals={ mergeVals(auto, defKey) }
+			:hx-vals={ mergeValsExpr(auto) }
+			hx-swap="none"
+			hx-on::after:request={ templ.JSUnsafeFuncCall(mergeAfter(auto)) }
+		} else {
+			x-on:click="begin()"
+		}
+		class={ "h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5", rounded }
+	>
+		@mergeStrategyIcon(defKey)
+		if auto {
+			<span>Enable auto-merge · </span>
+		}
+		<span x-text="label">{ defLabel }</span>
+	</button>
+}
+
+templ mergeConfirmDialog(d MergeabilityBoxData) {
+	@Dialog("merge-confirm-dialog") {
+		@DialogHeader() {
+			@DialogTitle("merge-confirm-dialog") {
+				Confirm merge
+			}
+			@DialogDescription() {
+				<span x-text="strategyNote()"></span>
+			}
+		}
+		@DialogBody() {
+			<div x-show="strategy !== 'ff'" class="grid gap-3">
+				<div class="grid gap-1.5">
+					<label for="merge-title" class="text-[12px] font-medium">Commit title</label>
+					<input id="merge-title" type="text" x-model="title" maxlength="200" class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-[13px] focus:outline-hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring"/>
+				</div>
+				<div class="grid gap-1.5">
+					<label for="merge-message" class="text-[12px] font-medium">Commit message <span class="font-normal text-muted-foreground">(optional)</span></label>
+					<textarea id="merge-message" x-model="message" rows="4" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-[13px] font-mono leading-relaxed resize-none focus:outline-hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring"></textarea>
+				</div>
+			</div>
+			<p x-show="strategy === 'ff'" class="text-[13px] text-muted-foreground">
+				Fast-forward moves <span class="font-mono text-foreground">{ mergeBase(d) }</span> to the head commit. It creates no new commit, so there is no message to edit.
+			</p>
+		}
+		@DialogFooter() {
+			@DialogClose() {
+				Cancel
+			}
+			<button
+				type="button"
+				hx-patch={ d.PatchURL }
+				hx-vals={ `{"state":"merged"}` }
+				:hx-vals="JSON.stringify({ state: 'merged', merge_strategy: strategy, merge_title: title, merge_message: message })"
+				hx-swap="none"
+				hx-on::after:request={ templ.JSUnsafeFuncCall(mergeAfter(false)) }
+				class="inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium h-9 px-4 bg-success text-success-foreground hover:bg-success/90"
+			>
+				Confirm merge
+			</button>
+		}
 	}
 }
 
@@ -484,4 +541,21 @@ func mergeAfter(auto bool) string {
 		msg = "Auto-merge enabled"
 	}
 	return "if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'" + msg + "'}));location.reload();}"
+}
+
+// mergeScope is the Alpine state the merge button, strategy menu and confirm dialog share.
+func mergeScope(d MergeabilityBoxData, defKey, defLabel string) string {
+	scope, _ := json.Marshal(map[string]any{
+		"strategy": defKey,
+		"label":    defLabel,
+		"base":     mergeBase(d),
+		"defaults": map[string]string{
+			"merge":  service.DefaultMergeMessage(d.HeadBranch, d.BaseBranch),
+			"squash": service.DefaultSquashMessage(d.HeadBranch, d.BaseBranch),
+		},
+	})
+	// json.Marshal output is a JS object literal; its closing brace takes the methods.
+	return string(scope[:len(scope)-1]) + `, open: false, title: '', message: '', ` +
+		`begin() { this.title = this.defaults[this.strategy] || ''; this.message = ''; document.getElementById('merge-confirm-dialog').showModal(); }, ` +
+		`strategyNote() { return this.strategy === 'ff' ? 'Fast-forward the base branch.' : (this.label + ' into ' + this.base + '.'); } }`
 }

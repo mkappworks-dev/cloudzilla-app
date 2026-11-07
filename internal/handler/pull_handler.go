@@ -31,6 +31,8 @@ type updatePRRequest struct {
 	Title             *string `json:"title"`
 	Body              *string `json:"body"`
 	MergeStrategy     string  `json:"merge_strategy"` // "ff" | "merge" | "squash"
+	MergeTitle        string  `json:"merge_title"`
+	MergeMessage      string  `json:"merge_message"`
 	IsDraft           *bool   `json:"is_draft"`
 	AutoMerge         string  `json:"auto_merge"`          // "enable" | "disable"
 	AutoMergeStrategy string  `json:"auto_merge_strategy"` // "ff" | "merge" | "squash"
@@ -150,7 +152,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var state, prTitle, mergeStrategy, isDraftStr, autoMergeAction, autoMergeStrategy string
+	var state, prTitle, mergeStrategy, mergeTitle, mergeMessage, isDraftStr, autoMergeAction, autoMergeStrategy string
 	var titlePresent bool
 	var req *updatePRRequest
 	if r.Header.Get("HX-Request") == "true" {
@@ -162,6 +164,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		prTitle = r.FormValue("title")
 		titlePresent = r.PostForm.Has("title")
 		mergeStrategy = r.FormValue("merge_strategy")
+		mergeTitle = r.FormValue("merge_title")
+		mergeMessage = r.FormValue("merge_message")
 		isDraftStr = r.FormValue("is_draft")
 		autoMergeAction = r.FormValue("auto_merge")
 		autoMergeStrategy = r.FormValue("auto_merge_strategy")
@@ -178,6 +182,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			titlePresent = true
 		}
 		mergeStrategy = req.MergeStrategy
+		mergeTitle = req.MergeTitle
+		mergeMessage = req.MergeMessage
 		autoMergeAction = req.AutoMerge
 		autoMergeStrategy = req.AutoMergeStrategy
 	}
@@ -306,7 +312,11 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		actor := service.CloseActor{UserID: claims.UserID, Username: claims.Username, Targets: claims.Targets}
-		pr, err := h.mergePull(r.Context(), repo, existingPR, mergeStrategy, actor, nil)
+		if len(mergeTitle)+len(mergeMessage) > maxMergeMessage {
+			writeError(w, http.StatusUnprocessableEntity, "the merge commit message is too long")
+			return
+		}
+		pr, err := h.mergePull(r.Context(), repo, existingPR, mergeStrategy, mergeCommitMessage(mergeTitle, mergeMessage), actor, nil)
 		var refusal *mergeRefusal
 		if errors.As(err, &refusal) {
 			writeError(w, refusal.status, refusal.msg)
@@ -373,10 +383,24 @@ type mergeRefusal struct {
 
 func (e *mergeRefusal) Error() string { return e.msg }
 
+const maxMergeMessage = 10000
+
+// mergeCommitMessage joins the merge dialog's title and body; a blank title leaves the default message.
+func mergeCommitMessage(title, body string) string {
+	title, body = strings.TrimSpace(title), strings.TrimSpace(body)
+	if title == "" {
+		return ""
+	}
+	if body == "" {
+		return title
+	}
+	return title + "\n\n" + body
+}
+
 // mergePull merges pr into its base as actor and does everything a merge
 // entails, so no merge path can skip a step. author, when nil, is actor's
 // commit identity.
-func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *model.PullRequest, strategy string, actor service.CloseActor, author *service.GitAuthor) (*model.PullRequest, error) {
+func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *model.PullRequest, strategy, message string, actor service.CloseActor, author *service.GitAuthor) (*model.PullRequest, error) {
 	owner, repoName := repo.OwnerName, repo.Name
 	if pr.State != model.PRStateOpen {
 		return nil, &mergeRefusal{http.StatusUnprocessableEntity, "only an open pull request can be merged"}
@@ -413,12 +437,21 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 		commitRefs = refs
 	}
 
+	// Counted before the merge: afterwards a fast-forward or merge commit leaves nothing between base and head.
+	mergedCommits := 0
+	if commits, err := h.Services.Code.PullCommits(owner, repoName, pr.BaseBranch, pr.HeadBranch); err == nil {
+		mergedCommits = len(commits)
+	}
+	if (strategy == "merge" || strategy == "squash") && pr.BaseBranch == repo.DefaultBranch {
+		commitRefs = append(commitRefs, service.ParseClosingRefs(message)...)
+	}
+
 	var err error
 	switch strategy {
 	case "merge":
-		err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author)
+		err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author, message)
 	case "squash":
-		err = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author)
+		err = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author, message)
 	default:
 		err = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash)
 	}
@@ -433,7 +466,7 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	if err != nil {
 		return nil, fmt.Errorf("set merged state: %w", err)
 	}
-	h.recordPullEvent(ctx, owner, repoName, merged, actor.UserID, actor.Username, model.PullEventMerged, "")
+	h.recordPullEvent(ctx, owner, repoName, merged, actor.UserID, actor.Username, model.PullEventMerged, strconv.Itoa(mergedCommits))
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("merged", *repo, *merged))
 	bg := context.WithoutCancel(ctx)
 	go h.Services.Notification.NotifyPRStateChange(bg, *repo, *merged, actor.UserID, actor.Username)
@@ -480,7 +513,7 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 
 	actor := service.CloseActor{UserID: user.ID, Username: user.Username}
 	author := autoMergeAuthor
-	if _, err := h.mergePull(ctx, repo, pr, pr.AutoMergeStrategy, actor, &author); err != nil {
+	if _, err := h.mergePull(ctx, repo, pr, pr.AutoMergeStrategy, "", actor, &author); err != nil {
 		var refusal *mergeRefusal
 		if !errors.As(err, &refusal) {
 			slog.Error("auto-merge failed", "owner", owner, "repo", repoName, "pull_number", pr.Number, "error", err)
