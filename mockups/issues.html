@@ -26,8 +26,7 @@
       </a>
     </section>
 
-    <form onsubmit="return false">
-      <nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Issue filters">
+    <nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Issue state">
         <a href="issues.html" class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5" aria-current="page">
           Open
           <span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label="18 open">18</span>
@@ -36,40 +35,103 @@
           Closed
           <span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label="142 closed">142</span>
         </a>
-        <div class="ml-auto flex items-center gap-1.5 pb-1.5">
-          <label for="filter-search" class="sr-only">Search issues</label>
-          <div class="relative">
-            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
-            <input id="filter-search" type="search" name="q" placeholder="Search open issues" class="w-56 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
-          </div>
-          <div class="relative">
-            <select name="label" aria-label="Filter by label" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
-              <option value="">Labels 6</option>
-              <option value="bug">bug</option><option value="performance">performance</option><option value="db">db</option><option value="docs">docs</option><option value="enhancement">enhancement</option><option value="ui">ui</option>
-            </select>
-            <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
-          </div>
-          <div class="relative">
-            <select name="milestone" aria-label="Filter by milestone" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
-              <option value="">Milestones</option>
-              <option value="1">v0.3 — UI overhaul</option>
-              <option value="2">v0.4 — Mirrors &amp; imports</option>
-            </select>
-            <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
-          </div>
-          <div class="relative">
-            <select name="sort" aria-label="Sort issues" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
-              <option value="newest" selected>Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="recently-updated">Recently updated</option>
-            </select>
-            <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
-          </div>
-          <button type="submit" class="h-8 px-3 text-[13px] bg-accent text-accent-foreground border border-border rounded-md hover:bg-accent/80">Apply</button>
-        </div>
-      </nav>
-      <input type="hidden" name="state" value="open"/>
-    </form>
+    </nav>
+    <div class="space-y-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <form method="GET" action="issues.html" onsubmit="return false" role="search" class="relative min-w-56 flex-1">
+          <label for="list-filter-search" class="sr-only">Search or filter issues</label>
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+          <input id="list-filter-search" type="search" name="q" value="" placeholder="Search or filter, e.g. is:open label:bug author:@me" autocomplete="off" class="h-8 w-full pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+        </form>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Author <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="issues.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Author</legend>
+              <div class="border-b border-border p-1.5"><input type="text" aria-label="Filter Author" autocomplete="off" placeholder="Filter Author" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"></div>
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="@me"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:@me" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">@me</span></span></label></li>
+                <li data-name="alan-kowalski"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:alan-kowalski" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">alan-kowalski</span></span></label></li>
+                <li data-name="amara-silva"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:amara-silva" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">amara-silva</span></span></label></li>
+                <li data-name="daisy"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:daisy" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">daisy</span></span></label></li>
+                <li data-name="malith"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:malith" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">malith</span></span></label></li>
+                <li data-name="priya"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:priya" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">priya</span></span></label></li>
+                <li data-name="yumi"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:yumi" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">yumi</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Label <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="issues.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Label</legend>
+              
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="bug"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:bug" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #d73a4a;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">bug</span></span></label></li>
+                <li data-name="db"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:db" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #a855f7;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">db</span></span></label></li>
+                <li data-name="docs"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:docs" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #0075ca;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">docs</span></span></label></li>
+                <li data-name="enhancement"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:enhancement" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #a2eeef;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">enhancement</span></span></label></li>
+                <li data-name="performance"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:performance" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #3b82f6;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">performance</span></span></label></li>
+                <li data-name="ui"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:ui" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #06b6d4;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">ui</span></span></label></li>
+                <li role="separator" class="my-1 h-px bg-border"></li>
+                <li data-name="No label"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="no:label" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="min-w-0 flex-1"><span class="block truncate">No label</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Milestone <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="issues.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Milestone</legend>
+              
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="v0.4 — Mirrors &amp; imports"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="milestone:v0.4" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">v0.4 — Mirrors &amp; imports</span></span></label></li>
+                <li data-name="v0.3 — UI overhaul"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="milestone:v0.3" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">v0.3 — UI overhaul</span></span></label></li>
+                <li role="separator" class="my-1 h-px bg-border"></li>
+                <li data-name="No milestone"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="no:milestone" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">No milestone</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Assignee <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="issues.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Assignee</legend>
+              <div class="border-b border-border p-1.5"><input type="text" aria-label="Filter Assignee" autocomplete="off" placeholder="Filter Assignee" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"></div>
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="@me"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:@me" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">@me</span></span></label></li>
+                <li data-name="alan-kowalski"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:alan-kowalski" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">alan-kowalski</span></span></label></li>
+                <li data-name="amara-silva"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:amara-silva" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">amara-silva</span></span></label></li>
+                <li data-name="daisy"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:daisy" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">daisy</span></span></label></li>
+                <li data-name="malith"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:malith" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">malith</span></span></label></li>
+                <li data-name="priya"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:priya" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">priya</span></span></label></li>
+                <li data-name="yumi"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:yumi" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">yumi</span></span></label></li>
+                <li role="separator" class="my-1 h-px bg-border"></li>
+                <li data-name="No assignee"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="no:assignee" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">No assignee</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Sort <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="issues.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Sort</legend>
+              
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="Newest"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="sort:newest" checked class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Newest</span></span></label></li>
+                <li data-name="Oldest"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="sort:oldest" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Oldest</span></span></label></li>
+                <li data-name="Recently updated"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="sort:updated" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Recently updated</span></span></label></li>
+                <li data-name="Most commented"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="sort:comments" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Most commented</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+      </div>
+    </div>
 
     <section aria-labelledby="pinned-heading">
       <h2 id="pinned-heading" class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -120,7 +182,7 @@
                 <time>4 days ago</time>
                 <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="--label-bg:#4588f6;--label-fg:#1f2328;--label-border:#3d78d8;--label-dark-bg:#3b82f62e;--label-dark-border:#3b82f666;--label-dark-fg:#5895f7">performance</span><span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="--label-bg:#b166f8;--label-fg:#1f2328;--label-border:#9c5ada;--label-dark-bg:#a855f72e;--label-dark-border:#a855f766;--label-dark-fg:#b977f9">db</span>
               </div>
-              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"></div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 text-blue-500 border-blue-500/30 whitespace-nowrap">P1</span><span class="inline-flex items-center gap-1" title="4 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 4</span></div>
             </div>
           </a>
         </li>
@@ -144,7 +206,7 @@
                 <time>1 week ago</time>
                 
               </div>
-              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"></div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="2 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 2</span></div>
             </div>
           </a>
         </li>
@@ -167,7 +229,7 @@
                 <time>2 weeks ago</time>
                 <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="--label-bg:#f15757;--label-fg:#1f2328;--label-border:#d44d4d;--label-dark-bg:#ef44442e;--label-dark-border:#ef444466;--label-dark-fg:#f26969">bug</span>
               </div>
-              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"></div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-destructive/10 text-destructive border-destructive/30 whitespace-nowrap">P0</span><span class="inline-flex items-center gap-1" title="9 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 9</span></div>
             </div>
           </a>
         </li>
@@ -190,7 +252,7 @@
                 <time>3 weeks ago</time>
                 <span class="opacity-50 mx-0.5" aria-hidden="true">·</span><span class="inline-block max-w-full truncate align-middle rounded-full border px-2 py-px text-[11px] leading-4 font-medium border-(color:--label-border) bg-(color:--label-bg) text-(color:--label-fg) dark:border-(color:--label-dark-border) dark:bg-(color:--label-dark-bg) dark:text-(color:--label-dark-fg)" style="--label-bg:#f15757;--label-fg:#1f2328;--label-border:#d44d4d;--label-dark-bg:#ef44442e;--label-dark-border:#ef444466;--label-dark-fg:#f26969">bug</span>
               </div>
-              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"></div>
+              <div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0"><span class="inline-flex items-center gap-1" title="3 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 3</span></div>
             </div>
           </a>
         </li>
@@ -219,6 +281,11 @@
         </li>
       </ol>
     </section>
+
+    <div class="flex justify-between items-center text-sm">
+      <span class="text-muted-foreground">Page 1 of 2</span>
+      <div class="flex gap-2"><a href="#" class="px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted transition-colors">Next →</a></div>
+    </div>
 
   </div>
 </main>

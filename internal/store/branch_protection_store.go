@@ -100,18 +100,23 @@ func (s *BranchProtectionStore) MatchForBranch(ctx context.Context, repoID int64
 	if err != nil {
 		return nil, err
 	}
+	return MatchProtection(rules, branchName), nil
+}
+
+// MatchProtection returns the first of rules whose pattern matches branchName, or nil.
+func MatchProtection(rules []*model.BranchProtection, branchName string) *model.BranchProtection {
 	for _, rule := range rules {
 		matched, err := filepath.Match(rule.Pattern, branchName)
 		if err != nil {
 			// Rows stored before create validated patterns; a migration to fix them is deferred.
 			if _, seen := warnedPatterns.LoadOrStore(rule.Pattern, struct{}{}); !seen {
-				slog.Warn("branch protection rule skipped: malformed pattern", "rule_id", rule.ID, "repo_id", repoID, "pattern", rule.Pattern)
+				slog.Warn("branch protection rule skipped: malformed pattern", "rule_id", rule.ID, "repo_id", rule.RepoID, "pattern", rule.Pattern)
 			}
 			continue
 		}
 		if matched {
-			return rule, nil
+			return rule
 		}
 	}
-	return nil, nil
+	return nil
 }

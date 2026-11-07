@@ -27,12 +27,38 @@ type PullService struct {
 	userStore     *store.UserStore
 	mentions      *store.MentionStore
 	issues        *store.IssueStore
+	protections   *store.BranchProtectionStore
 	threads       threadAutoSubscriber
 }
 
 // NewPullService creates a PullService backed by the given stores.
 func NewPullService(pulls *store.PullStore, repos *store.RepoStore, repoSvc *RepoService) *PullService {
 	return &PullService{pulls: pulls, repos: repos, repoSvc: repoSvc}
+}
+
+// WithBranchProtections lets the list read how many approvals each base branch requires.
+func (s *PullService) WithBranchProtections(p *store.BranchProtectionStore) *PullService {
+	s.protections = p
+	return s
+}
+
+// reviewRequirements maps each of branches to the approvals its protection rule demands; branches without a rule or
+// with none required are absent.
+func (s *PullService) reviewRequirements(ctx context.Context, repoID int64, branches []string) (map[string]int, error) {
+	if s.protections == nil {
+		return nil, nil
+	}
+	rules, err := s.protections.ListByRepo(ctx, repoID)
+	if err != nil || len(rules) == 0 {
+		return nil, err
+	}
+	required := map[string]int{}
+	for _, br := range branches {
+		if rule := store.MatchProtection(rules, br); rule != nil && rule.RequireReviewCount > 0 {
+			required[br] = rule.RequireReviewCount
+		}
+	}
+	return required, nil
 }
 
 // WithThreadSubscriptions makes participation subscribe the user to the thread.
@@ -76,29 +102,69 @@ func (s *PullService) WithCIDeps(code *CodeService, commitStatus *CommitStatusSe
 
 type PullListRow struct {
 	model.PullRequest
-	HeadSHA       string
-	CIStatus      string
-	CIPassing     int
-	CITotal       int
-	CommentCount  int
+	HeadSHA      string
+	CIStatus     string
+	CIPassing    int
+	CITotal      int
+	CommentCount int
+	// ReviewState is "changes_requested", "approved", "required" or "none"; empty unless the PR is open and not a draft.
+	ReviewState   string
 	Reviewers     []model.PullReview
 	LabelChips    []model.Label
 	AssigneeChips []model.User
 }
 
-func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName string, state model.PRState, offset, limit int) ([]PullListRow, error) {
+// CountByState returns the per-tab pull request totals, ignoring any filter.
+func (s *PullService) CountByState(ctx context.Context, owner, repoName string) (store.PullStateCounts, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
-		return nil, fmt.Errorf("repo not found: %w", err)
+		return store.PullStateCounts{}, fmt.Errorf("repo not found: %w", err)
 	}
-	pulls, err := s.pulls.ListByState(ctx, repo.ID, state, offset, limit)
-	if err != nil {
-		return nil, err
-	}
+	return s.pulls.CountByState(ctx, repo.ID)
+}
 
+// ListWithCIStatus returns one page of the repo's pull requests that f matches and the total across all pages. CI
+// status resolves a ref per row, so f's Limit is what keeps it cheap.
+func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName string, f store.ListFilter) ([]PullListRow, int, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, 0, fmt.Errorf("repo not found: %w", err)
+	}
+	// Only the review filter needs the requirement of every base branch; the rows' badges need just the page's own.
+	if f.Review != "" {
+		branches, err := s.pulls.BaseBranches(ctx, repo.ID)
+		if err != nil {
+			return nil, 0, err
+		}
+		if f.ReviewRequired, err = s.reviewRequirements(ctx, repo.ID, branches); err != nil {
+			return nil, 0, fmt.Errorf("review requirements: %w", err)
+		}
+	}
+	pulls, total, err := s.pulls.ListFiltered(ctx, repo.ID, f)
+	if err != nil {
+		return nil, 0, err
+	}
+	pageBranches := make([]string, len(pulls))
+	for i, p := range pulls {
+		pageBranches[i] = p.BaseBranch
+	}
+	required, err := s.reviewRequirements(ctx, repo.ID, pageBranches)
+	if err != nil {
+		return nil, 0, fmt.Errorf("review requirements: %w", err)
+	}
+	rows, err := s.listRows(ctx, owner, repoName, pulls, required)
+	return rows, total, err
+}
+
+func (s *PullService) listRows(ctx context.Context, owner, repoName string, pulls []model.PullRequest, required map[string]int) ([]PullListRow, error) {
+	var err error
 	pullIDs := make([]int64, len(pulls))
 	for i, p := range pulls {
 		pullIDs[i] = p.ID
+	}
+	reviewStates, err := s.pulls.ReviewStates(ctx, pullIDs, required)
+	if err != nil {
+		return nil, fmt.Errorf("review states: %w", err)
 	}
 
 	// Batch the per-PR sidebar lookups so the list page issues a constant
@@ -136,6 +202,9 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 			LabelChips:    labelsByPull[p.ID],
 			AssigneeChips: assigneesByPull[p.ID],
 			CommentCount:  commentsByPull[p.ID],
+		}
+		if p.State == model.PRStateOpen && !p.IsDraft {
+			row.ReviewState = reviewStates[p.ID]
 		}
 		if s.code != nil {
 			if commit, _, err := s.code.ResolveRef(owner, repoName, p.HeadBranch); err == nil {

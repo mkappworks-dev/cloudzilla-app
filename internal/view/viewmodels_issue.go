@@ -5,28 +5,32 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // IssuesData holds template data for the issue list page.
 type IssuesData struct {
 	BasePage
-	Repo            model.Repository
-	Issues          []model.Issue
-	PinnedIssues    []model.Issue
-	Owner           string
-	RepoName        string
-	IssueLabels     map[int64][]model.Label
-	AllMilestones   []model.Milestone
-	ActiveMilestone *model.Milestone
+	Repo          model.Repository
+	Issues        []model.Issue
+	PinnedIssues  []model.Issue
+	Owner         string
+	RepoName      string
+	IssueLabels   map[int64][]model.Label
+	CommentCounts map[int64]int
 
-	StateFilter     string
-	SearchQuery     string
-	LabelFilter     string
-	MilestoneFilter string
-	Sort            string
+	StateFilter  string
+	OpenTabURL   string
+	ClosedTabURL string
+	Filter       components.ListFilterData
+	ClearURL     string
 
-	Labels []model.Label
+	Page       int
+	TotalPages int
+	PrevURL    string
+	NextURL    string
 
+	RepoEmpty   bool // no item in any state: the toolbar is hidden
 	OpenCount   int
 	ClosedCount int
 }

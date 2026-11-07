@@ -250,32 +250,6 @@ func TestPullStore_Lists(t *testing.T) {
 		}
 	})
 
-	t.Run("ListByState", func(t *testing.T) {
-		tests := []struct {
-			name          string
-			state         model.PRState
-			offset, limit int
-			want          []int
-		}{
-			{"open", model.PRStateOpen, 0, 0, []int{4, 1}},
-			{"closed", model.PRStateClosed, 0, 0, []int{2}},
-			{"merged", model.PRStateMerged, 0, 0, []int{3}},
-			{"empty state means all", "", 0, 0, []int{4, 3, 2, 1}},
-			{"limit", "", 0, 2, []int{4, 3}},
-			{"offset+limit", "", 2, 1, []int{2}},
-			{"offset past end", "", 10, 5, []int{}},
-		}
-		for _, tc := range tests {
-			got, err := f.ps.ListByState(ctx, f.repoID, tc.state, tc.offset, tc.limit)
-			if err != nil {
-				t.Fatalf("%s: %v", tc.name, err)
-			}
-			if !slices.Equal(prNumbers(got), tc.want) {
-				t.Errorf("%s: got %v, want %v", tc.name, prNumbers(got), tc.want)
-			}
-		}
-	})
-
 	t.Run("ListOpen", func(t *testing.T) {
 		got, err := f.ps.ListOpen(ctx, f.repoID)
 		if err != nil {

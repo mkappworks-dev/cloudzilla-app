@@ -15,6 +15,19 @@ type PullsData struct {
 	Owner       string
 	RepoName    string
 	StateFilter string
+	OpenURL     string
+	DraftURL    string
+	MergedURL   string
+	ClosedURL   string
+	Filter      components.ListFilterData
+	ClearURL    string
+
+	Page       int
+	TotalPages int
+	PrevURL    string
+	NextURL    string
+
+	RepoEmpty   bool // no item in any state: the toolbar is hidden
 	OpenCount   int
 	DraftCount  int
 	MergedCount int

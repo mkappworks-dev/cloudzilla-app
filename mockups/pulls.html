@@ -48,6 +48,118 @@
       </a>
     </nav>
 
+    <div class="space-y-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <form method="GET" action="pulls.html" onsubmit="return false" role="search" class="relative min-w-56 flex-1">
+          <label for="list-filter-search" class="sr-only">Search or filter pull requests</label>
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+          <input id="list-filter-search" type="search" name="q" value="" placeholder="Search or filter, e.g. is:open label:bug author:@me" autocomplete="off" class="h-8 w-full pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+        </form>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Author <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="pulls.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Author</legend>
+              <div class="border-b border-border p-1.5"><input type="text" aria-label="Filter Author" autocomplete="off" placeholder="Filter Author" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"></div>
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="@me"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:@me" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">@me</span></span></label></li>
+                <li data-name="alan-kowalski"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:alan-kowalski" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">alan-kowalski</span></span></label></li>
+                <li data-name="amara-silva"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:amara-silva" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">amara-silva</span></span></label></li>
+                <li data-name="daisy"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:daisy" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">daisy</span></span></label></li>
+                <li data-name="malith"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:malith" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">malith</span></span></label></li>
+                <li data-name="priya"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:priya" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">priya</span></span></label></li>
+                <li data-name="yumi"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="author:yumi" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">yumi</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Label <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="pulls.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Label</legend>
+              
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="bug"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:bug" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #d73a4a;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">bug</span></span></label></li>
+                <li data-name="db"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:db" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #a855f7;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">db</span></span></label></li>
+                <li data-name="docs"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:docs" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #0075ca;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">docs</span></span></label></li>
+                <li data-name="enhancement"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:enhancement" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #a2eeef;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">enhancement</span></span></label></li>
+                <li data-name="performance"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:performance" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #3b82f6;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">performance</span></span></label></li>
+                <li data-name="ui"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="label:ui" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: #06b6d4;" aria-hidden="true"></span><span class="min-w-0 flex-1"><span class="block truncate">ui</span></span></label></li>
+                <li role="separator" class="my-1 h-px bg-border"></li>
+                <li data-name="No label"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="checkbox" name="v" value="no:label" class="h-4 w-4 shrink-0 rounded-sm border-border"><span class="min-w-0 flex-1"><span class="block truncate">No label</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Milestone <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="pulls.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Milestone</legend>
+              
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="v0.4 — Mirrors &amp; imports"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="milestone:v0.4" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">v0.4 — Mirrors &amp; imports</span></span></label></li>
+                <li data-name="v0.3 — UI overhaul"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="milestone:v0.3" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">v0.3 — UI overhaul</span></span></label></li>
+                <li role="separator" class="my-1 h-px bg-border"></li>
+                <li data-name="No milestone"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="no:milestone" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">No milestone</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Assignee <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="pulls.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Assignee</legend>
+              <div class="border-b border-border p-1.5"><input type="text" aria-label="Filter Assignee" autocomplete="off" placeholder="Filter Assignee" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"></div>
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="@me"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:@me" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">@me</span></span></label></li>
+                <li data-name="alan-kowalski"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:alan-kowalski" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">alan-kowalski</span></span></label></li>
+                <li data-name="amara-silva"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:amara-silva" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">amara-silva</span></span></label></li>
+                <li data-name="daisy"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:daisy" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">daisy</span></span></label></li>
+                <li data-name="malith"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:malith" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">malith</span></span></label></li>
+                <li data-name="priya"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:priya" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">priya</span></span></label></li>
+                <li data-name="yumi"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="assignee:yumi" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">yumi</span></span></label></li>
+                <li role="separator" class="my-1 h-px bg-border"></li>
+                <li data-name="No assignee"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="no:assignee" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">No assignee</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Review <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="pulls.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Review</legend>
+              <div class="border-b border-border p-1.5"><input type="text" aria-label="Filter Review" autocomplete="off" placeholder="Filter Review" class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"></div>
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="Review required"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="review:required" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Review required</span></span></label></li>
+                <li data-name="Approved"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="review:approved" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Approved</span></span></label></li>
+                <li data-name="Changes requested"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="review:changes_requested" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Changes requested</span></span></label></li>
+                <li data-name="No reviews"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="review:none" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">No reviews</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+        <details class="relative">
+          <summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">Sort <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg></summary>
+          <form method="GET" action="pulls.html" onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+            <fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by Sort</legend>
+              
+              <ul class="max-h-64 overflow-y-auto p-1">
+                <li data-name="Newest"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="sort:newest" checked class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Newest</span></span></label></li>
+                <li data-name="Oldest"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="sort:oldest" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Oldest</span></span></label></li>
+                <li data-name="Recently updated"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="sort:updated" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Recently updated</span></span></label></li>
+                <li data-name="Most commented"><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="v" value="sort:comments" class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">Most commented</span></span></label></li>
+              </ul>
+            </fieldset>
+            <div class="flex justify-end border-t border-border p-1.5" hidden><button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button></div>
+          </form>
+        </details>
+      </div>
+    </div>
+
     <section id="pull-list-card" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="pull-list">
       <h2 id="pull-list" class="sr-only">Pull requests</h2>
       <ul>
@@ -74,6 +186,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 <div class="flex -space-x-1.5" aria-label="2 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">Y</span><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">A</span></div>
+                <span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Review approved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="text-[11px]">Approved</span></span>
                 <span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="6 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 6</span>
               </div>
@@ -103,6 +216,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 <div class="flex -space-x-1.5" aria-label="1 reviewer"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">N</span></div>
+                <span class="text-warning inline-flex items-center gap-1" title="Review required" aria-label="Review required"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="text-[11px]">Review required</span></span>
                 <span class="text-warning inline-flex items-center gap-1" title="Checks in progress" aria-label="CI pending"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="font-mono text-[11px]">3/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="3 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 3</span>
               </div>
@@ -131,6 +245,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 
+                <span class="text-destructive inline-flex items-center gap-1" title="Changes requested" aria-label="Review changes requested"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="text-[11px]">Changes requested</span></span>
                 <span class="text-destructive inline-flex items-center gap-1" title="Some checks failing" aria-label="CI failing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="font-mono text-[11px]">4/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="1 comment"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 1</span>
               </div>
@@ -159,6 +274,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 
+                <span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Review approved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="text-[11px]">Approved</span></span>
                 <span class="text-warning inline-flex items-center gap-1" title="Checks in progress" aria-label="CI pending"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="font-mono text-[11px]">0/6</span></span>
                 
               </div>
@@ -188,6 +304,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 <div class="flex -space-x-1.5" aria-label="2 reviewers"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">Y</span><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">M</span></div>
+                <span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Review approved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="text-[11px]">Approved</span></span>
                 <span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="8 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 8</span>
               </div>
@@ -216,6 +333,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 
+                <span class="text-warning inline-flex items-center gap-1" title="Review required" aria-label="Review required"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span class="text-[11px]">Review required</span></span>
                 <span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg><span class="font-mono text-[11px]">6/6</span></span>
                 
               </div>
@@ -242,6 +360,7 @@
               </div>
               <div class="flex items-center gap-3 text-xs shrink-0">
                 <div class="flex -space-x-1.5" aria-label="1 reviewer"><span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">M</span></div>
+                <span class="text-destructive inline-flex items-center gap-1" title="Changes requested" aria-label="Review changes requested"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="text-[11px]">Changes requested</span></span>
                 <span class="text-destructive inline-flex items-center gap-1" title="Some checks failing" aria-label="CI failing"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg><span class="font-mono text-[11px]">2/6</span></span>
                 <span class="text-muted-foreground inline-flex items-center gap-1" title="4 comments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg> 4</span>
               </div>
@@ -250,6 +369,11 @@
         </li>
       </ul>
     </section>
+
+    <div class="flex justify-between items-center text-sm">
+      <span class="text-muted-foreground">Page 1 of 2</span>
+      <div class="flex gap-2"><a href="#" class="px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted transition-colors">Next →</a></div>
+    </div>
   </div>
 </main>
 

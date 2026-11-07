@@ -34,6 +34,9 @@ revoke `admin`.
 
 **Pull request** — a request to merge a head branch into a base branch, merged by fast-forward, merge commit or squash.
 
+**Qualifier** — a `key:value` token in an issue or pull request list's search (`label:bug`, `author:@me`) that the
+server parses into a filter. Text with no qualifier matches titles.
+
 **Wiki** — a Repository's Markdown pages, stored in a separate bare Git repository named `<repo>.wiki.git`.
 
 **Import** — a one-off background copy of a Git repository from another host into a new Repository.

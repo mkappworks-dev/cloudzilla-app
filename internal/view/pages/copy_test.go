@@ -9,22 +9,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// The issues handler matches q against text only, so the page must not
-// advertise qualifiers until it parses them.
-func TestIssues_SearchPlaceholderMatchesTabWithoutQualifiers(t *testing.T) {
-	for _, state := range []string{"open", "closed"} {
-		out := render(t, pages.Issues(view.IssuesData{Owner: "alice", RepoName: "r", StateFilter: state}))
-		if want := `placeholder="Search ` + state + ` issues"`; !strings.Contains(out, want) {
-			t.Errorf("%s tab: missing %s", state, want)
-		}
-		for _, claim := range []string{"is:open", "label:bug", "milestone:v", "author:", "Filter syntax"} {
-			if strings.Contains(out, claim) {
-				t.Errorf("%s tab advertises unsupported qualifier %q", state, claim)
-			}
-		}
-	}
-}
-
 func TestCodeSearch_CopyMatchesScopeAndHidesRank(t *testing.T) {
 	empty := render(t, pages.CodeSearch(view.CodeSearchData{}))
 	if !strings.Contains(empty, "repositories you can read") || strings.Contains(empty, "public repositories") {

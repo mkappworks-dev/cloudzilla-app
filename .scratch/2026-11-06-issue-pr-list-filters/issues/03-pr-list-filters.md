@@ -1,0 +1,42 @@
+# PR list filters, chips, menus and pagination
+
+Created: 2026-11-06
+Category: enhancement
+Status: done
+Blocked by: 01, 02
+
+| Branch | Worktree | PR title |
+| --- | --- | --- |
+| `feat/issue-pr-list-filters` | `.worktrees/feat+issue-pr-list-filters` | same PR as 01 and 02 |
+
+Spec: [../spec.md](../spec.md).
+
+## Scope
+
+- `PullStore`: filtered, sorted, paged list with `(rows, total)` in SQL (text, author, assignee, label AND, milestone,
+  `no:`, `is:open|draft|merged|closed` as SQL predicates, sort); unfiltered per-state counts replacing the Go bucketing.
+- `PullService.ListWithCIStatus` takes real `limit, offset`; CI status runs only for the page.
+- `PagePulls`: parse `q` plus the `state=` alias, page size 25, clamp `page`; reuse the shared filter components from
+  ticket 02 (no Review menu or review-state indicator; both wait for the follow-up after ticket 09).
+- Placeholder `Search or filter, e.g. is:open label:bug author:@me`; filter-aware empty state and repo-empty state.
+- Standing mocks: `mockups/pulls.html` (and any other changed page); `COVERAGE.md`.
+
+## Acceptance criteria
+
+- [x] Every qualifier in the spec filters PRs correctly; `is:draft` / `is:merged` match the old tabs
+- [x] Filtering, sorting and paging run in SQL; tab counts stay unfiltered; CI resolves for at most 25 rows per page
+- [x] Works with JavaScript disabled; back/forward and shared URLs reproduce the view
+- [x] Standing mocks updated and checked under `make mockups`; verified at 1440 in light and dark on a throwaway server
+- [x] Benchmark shows before/after for the list query
+- [x] Store and handler tests cover the filters; `/code-review` run
+- [x] On merge, parent ticket 10 set to `done` and its criteria ticked
+
+## Verification
+
+Throwaway server per the parent spec's harness.
+
+## Comments
+
+2026-11-07 (Claude): benchmark on a scratch DB with 100k PRs in one repo (`go test -bench`, 20 iterations): the old
+`PullStore.List` the page loaded took 637 ms (every PR, then Go bucketing); the new paged query takes 8.7 ms for page 1,
+14 ms with `author:`, 63 ms with free text, and the unfiltered tab counts 12 ms.

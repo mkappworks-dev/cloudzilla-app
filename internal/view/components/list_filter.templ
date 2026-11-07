@@ -1,0 +1,142 @@
+package components
+
+import "strconv"
+
+// ListFilterOption is one choice of a filter menu. Token is the qualifier it submits, e.g. label:bug.
+type ListFilterOption struct {
+	Token   string
+	Label   string
+	Sub     string // second line
+	Color   string // hex dot before the label
+	Checked bool
+	Divider bool // draws a rule above, to set apart the no: choice
+}
+
+type ListFilterMenu struct {
+	Title string
+	Multi bool // checkboxes; otherwise radios
+	// Base is the query without this menu's qualifiers, so unchecking everything clears them.
+	Base     string
+	Selected int
+	Options  []ListFilterOption
+}
+
+type ListFilterChip struct {
+	Label      string
+	RemoveHref string
+}
+
+// ListFilterData drives the search field, filter menus and chips above an issue or pull request list.
+// Every control is a plain GET, so the list works without JavaScript.
+type ListFilterData struct {
+	Action      string
+	Placeholder string
+	Text        string
+	// SearchBase is the query without its free text; the search form resubmits it.
+	SearchBase string
+	Menus      []ListFilterMenu
+	Chips      []ListFilterChip
+	ClearHref  string
+	HasFilters bool
+	Total      int
+	Noun       string // "issue" or "pull request"
+}
+
+templ ListFilterBar(d ListFilterData) {
+	<div class="space-y-2">
+		<div class="flex flex-wrap items-center gap-2">
+			<form method="GET" action={ templ.SafeURL(d.Action) } role="search" class="relative min-w-56 flex-1">
+				<input type="hidden" name="f" value={ d.SearchBase }/>
+				<label for="list-filter-search" class="sr-only">Search or filter { d.Noun }s</label>
+				<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+					<circle cx="11" cy="11" r="7"></circle>
+					<path d="M21 21l-4.3-4.3"></path>
+				</svg>
+				<input id="list-filter-search" type="search" name="q" value={ d.Text } placeholder={ d.Placeholder } autocomplete="off" class="h-8 w-full pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+			</form>
+			for _, m := range d.Menus {
+				@listFilterMenu(d.Action, m)
+			}
+		</div>
+		if len(d.Chips) > 0 || d.HasFilters {
+			<div class="flex flex-wrap items-center gap-1.5 text-[12px]">
+				for _, c := range d.Chips {
+					<a href={ templ.SafeURL(c.RemoveHref) } class="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 font-mono text-foreground hover:bg-accent" aria-label={ "Remove filter " + c.Label }>
+						{ c.Label }
+						<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+					</a>
+				}
+				<span class="text-muted-foreground">
+					{ Count(d.Total, "result", "results") }
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL(d.ClearHref) } class="text-primary hover:underline">Clear filters</a>
+				</span>
+			</div>
+		}
+	</div>
+}
+
+templ listFilterMenu(action string, m ListFilterMenu) {
+	<details
+		class="relative"
+		x-data="{ dirty: false, q: '' }"
+		x-on:click.outside="$el.open = false"
+		x-on:keydown.escape="$el.open = false"
+		x-on:toggle="if (!$el.open && dirty) $refs.form.requestSubmit()"
+	>
+		<summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">
+			{ m.Title }
+			if m.Selected > 0 {
+				<span class="rounded-full bg-muted px-1.5 font-mono text-[11px] text-muted-foreground">{ strconv.Itoa(m.Selected) }</span>
+			}
+			<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+		</summary>
+		<form x-ref="form" method="GET" action={ templ.SafeURL(action) } class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+			<input type="hidden" name="f" value={ m.Base }/>
+			<fieldset class="m-0 border-0 p-0">
+				<legend class="sr-only">Filter by { m.Title }</legend>
+				if len(m.Options) > 8 {
+					<div x-cloak class="border-b border-border p-1.5">
+						<input type="text" x-model="q" aria-label={ "Filter " + m.Title } autocomplete="off" placeholder={ "Filter " + m.Title } class="h-8 w-full rounded border border-input bg-card px-2 text-[13px] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+					</div>
+				}
+				<ul class="max-h-64 overflow-y-auto p-1" x-on:change="dirty = true; if ($event.target.type === 'radio') $refs.form.requestSubmit()">
+					for _, o := range m.Options {
+						if o.Divider {
+							<li role="separator" class="my-1 h-px bg-border"></li>
+						}
+						<li data-name={ o.Label } x-show="!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
+							<label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground">
+								if m.Multi {
+									if o.Checked {
+										<input type="checkbox" name="v" value={ o.Token } checked class="h-4 w-4 shrink-0 rounded-sm border-border"/>
+									} else {
+										<input type="checkbox" name="v" value={ o.Token } class="h-4 w-4 shrink-0 rounded-sm border-border"/>
+									}
+								} else {
+									if o.Checked {
+										<input type="radio" name="v" value={ o.Token } checked class="h-4 w-4 shrink-0 border-border"/>
+									} else {
+										<input type="radio" name="v" value={ o.Token } class="h-4 w-4 shrink-0 border-border"/>
+									}
+								}
+								if o.Color != "" {
+									<span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={ templ.SafeCSS("background-color: " + o.Color) } aria-hidden="true"></span>
+								}
+								<span class="min-w-0 flex-1">
+									<span class="block truncate">{ o.Label }</span>
+									if o.Sub != "" {
+										<span class="block text-[11px] text-muted-foreground">{ o.Sub }</span>
+									}
+								</span>
+							</label>
+						</li>
+					}
+				</ul>
+			</fieldset>
+			<div class="flex justify-end border-t border-border p-1.5" x-bind:hidden="true">
+				<button type="submit" class="h-7 rounded-md border border-border bg-accent px-3 text-[12px] text-accent-foreground hover:bg-accent/80">Apply</button>
+			</div>
+		</form>
+	</details>
+}

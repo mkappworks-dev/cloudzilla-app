@@ -16,6 +16,7 @@ type PRListRowData struct {
 	CIPassing           int
 	CITotal             int
 	CommentCount        int
+	ReviewState         string // "approved", "changes_requested", "required"; empty draws nothing
 	LabelChips          []LabelChipData
 	ReviewerAvatars     []string // initials
 	OpenedAt            string   // pre-formatted relative
@@ -64,6 +65,7 @@ templ PRListRow(d PRListRowData) {
 							}
 						</div>
 					}
+					@prReviewBadge(d.ReviewState)
 					@prCIBadge(d.CIStatus, d.CIPassing, d.CITotal)
 					if d.CommentCount > 0 {
 						<span class="text-muted-foreground inline-flex items-center gap-1" title={ Count(d.CommentCount, "comment", "comments") }>
@@ -116,6 +118,26 @@ templ PRStateIcon(state string) {
 		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-success" aria-hidden="true">
 			<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path>
 		</svg>
+	}
+}
+
+templ prReviewBadge(state string) {
+	switch state {
+	case "approved":
+		<span class="text-success inline-flex items-center gap-1" title="Approved" aria-label="Review approved">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+			<span class="text-[11px]">Approved</span>
+		</span>
+	case "changes_requested":
+		<span class="text-destructive inline-flex items-center gap-1" title="Changes requested" aria-label="Review changes requested">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+			<span class="text-[11px]">Changes requested</span>
+		</span>
+	case "required":
+		<span class="text-warning inline-flex items-center gap-1" title="Review required" aria-label="Review required">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+			<span class="text-[11px]">Review required</span>
+		</span>
 	}
 }
 
