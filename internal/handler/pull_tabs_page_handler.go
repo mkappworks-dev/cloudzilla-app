@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -233,12 +232,9 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 
 	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
 	lineComments := map[view.LineCommentKey][]RenderedLineComment{}
-	for _, c := range rawLineComments {
-		key := view.LineCommentKeyOf(c)
-		lineComments[key] = append(lineComments[key], RenderedLineComment{
-			PullLineComment: c,
-			BodyHTML:        markdown.RenderCtx(r.Context(), c.Body),
-		})
+	for _, v := range h.lineCommentViews(r.Context(), owner, repoName, pull.HeadBranch, rawLineComments) {
+		key := view.LineCommentKeyOf(v.PullLineComment)
+		lineComments[key] = append(lineComments[key], v)
 	}
 
 	var authorUsername string

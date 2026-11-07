@@ -2,6 +2,7 @@ package fragments
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -20,7 +21,12 @@ templ LineComments(data view.LineCommentsFragData) {
 							<a href={ templ.SafeURL("/" + c.AuthorName) } class="text-xs font-semibold hover:underline">{ c.AuthorName }</a>
 							<span class="text-xs text-muted-foreground">{ c.CreatedAt.Format("Jan 2, 2006") }</span>
 						</div>
-						<div class="text-xs text-foreground mt-0.5 prose prose-xs dark:prose-invert max-w-none">@templ.Raw(c.BodyHTML)</div>
+						if c.BodyHTML != "" {
+							<div class="text-xs text-foreground mt-0.5 prose prose-xs dark:prose-invert max-w-none">@templ.Raw(c.BodyHTML)</div>
+						}
+						if c.IsSuggestion {
+							@suggestionBlock(data, c)
+						}
 					</div>
 					if data.CanWrite {
 						<button
@@ -60,4 +66,55 @@ templ LineCommentForm(data view.LineCommentFormFragData) {
 			</button>
 		</div>
 	</form>
+}
+
+templ suggestionBlock(data view.LineCommentsFragData, c view.RenderedLineComment) {
+	<div class="mt-2 mb-1 rounded-md border border-border bg-card overflow-hidden font-sans">
+		<div class="px-3 py-1.5 border-b border-border bg-muted/40 flex items-center gap-2 text-[11px] text-muted-foreground">
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+			Suggested change
+			if c.AppliedAt != nil {
+				<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Applied</span>
+			}
+			<span class="ml-auto font-mono">line { strconv.Itoa(c.Line) }</span>
+		</div>
+		<table class="w-full border-collapse text-xs font-mono">
+			<tbody>
+				if c.HasOriginal {
+					<tr class="bg-destructive/10"><td class="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5">{ strconv.Itoa(c.Line) }</td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-destructive">{ "-" + c.Original }</td></tr>
+				}
+				for _, l := range strings.Split(c.SuggestionBody, "\n") {
+					<tr class="bg-success/10"><td class="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5">{ strconv.Itoa(c.Line) }</td><td class="pl-3 pr-4 py-0.5 whitespace-pre text-success">{ "+" + l }</td></tr>
+				}
+			</tbody>
+		</table>
+		if c.AppliedAt != nil {
+			<div class="px-3 py-2 border-t border-border">
+				<p class="text-[12px] text-muted-foreground">
+					<span class="text-foreground">{ c.AppliedBy }</span> applied this in
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + c.AppliedSHA) } class="font-mono text-foreground hover:underline">{ shortSHA(c.AppliedSHA) }</a>
+					· { c.AppliedAt.Format("Jan 2, 2006") }
+				</p>
+			</div>
+		} else if data.CanWrite && data.PullOpen && c.DiffSide == "right" {
+			<div class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
+				<button
+					type="button"
+					hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10) + "/apply" }
+					hx-swap="none"
+					hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Suggestion applied'}));location.reload();}"
+					class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]"
+				>
+					Apply suggestion
+				</button>
+			</div>
+		}
+	</div>
+}
+
+func shortSHA(sha string) string {
+	if len(sha) > 7 {
+		return sha[:7]
+	}
+	return sha
 }

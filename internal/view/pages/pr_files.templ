@@ -354,6 +354,7 @@ templ prLineThread(data view.PullFilesData, k view.LineCommentKey) {
 			Key:        k,
 			Comments:   cs,
 			CanWrite:   data.CanWrite,
+			PullOpen:   data.Pull.State == model.PRStateOpen,
 		})
 	} else if k.Side == "right" {
 		<tr id={ view.LineCommentID(k) }>

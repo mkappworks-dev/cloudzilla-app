@@ -184,6 +184,8 @@ type LineCommentsFragData struct {
 	Key        LineCommentKey
 	Comments   []RenderedLineComment
 	CanWrite   bool
+	// PullOpen gates Apply suggestion: a suggestion can only be committed to an open PR's head branch.
+	PullOpen bool
 }
 
 // LineCommentFormFragData holds template data for the inline comment form HTMX fragment.
