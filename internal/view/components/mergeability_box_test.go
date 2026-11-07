@@ -184,3 +184,89 @@ func TestAheadBehindDescription_Pluralizes(t *testing.T) {
 		}
 	}
 }
+
+func renderBox(t *testing.T, d MergeabilityBoxData) string {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := MergeabilityBox(d).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	return buf.String()
+}
+
+func writerBox() MergeabilityBoxData {
+	return MergeabilityBoxData{
+		CanWrite: true, PatchURL: "/api/repos/o/r/pulls/1", ChecksURL: "/o/r/pulls/1/checks",
+		Mergeable: true, Ahead: 2, CanFastForward: true, CanThreeWayMerge: true, CanSquash: true,
+	}
+}
+
+func TestMergeabilityBox_NeedsReviewOffersAutoMergeOnly(t *testing.T) {
+	d := writerBox()
+	d.RequiredReviews, d.ApprovedReviews = 2, 1
+	out := renderBox(t, d)
+	for _, want := range []string{"Review required", "1 of 2 required reviews approved", `auto_merge&#34;:&#34;enable`, "Enable auto-merge"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in %s", want, out)
+		}
+	}
+	if strings.Contains(out, `state&#34;:&#34;merged`) {
+		t.Error("merge must not be offered while a review is missing")
+	}
+}
+
+func TestMergeabilityBox_ChecksFailingDisablesMergeAndLinksChecks(t *testing.T) {
+	d := writerBox()
+	d.RequiredChecks, d.PassingChecks, d.FailingChecks = 2, 1, 1
+	out := renderBox(t, d)
+	for _, want := range []string{"Checks failing", "View checks →", `href="/o/r/pulls/1/checks"`, "disabled"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	if strings.Contains(out, "Enable auto-merge") || strings.Contains(out, "auto_merge") {
+		t.Error("failing checks must not offer auto-merge")
+	}
+}
+
+func TestMergeabilityBox_ChecksPendingOffersAutoMerge(t *testing.T) {
+	d := writerBox()
+	d.RequiredChecks, d.PassingChecks = 2, 1
+	out := renderBox(t, d)
+	if !strings.Contains(out, "Waiting on checks") || !strings.Contains(out, "Enable auto-merge") {
+		t.Errorf("pending checks should offer auto-merge: %s", out)
+	}
+}
+
+func TestMergeabilityBox_ChangesRequestedBlocksEverything(t *testing.T) {
+	d := writerBox()
+	d.ChangesRequested = true
+	out := renderBox(t, d)
+	if !strings.Contains(out, "Changes requested") {
+		t.Error("missing the changes-requested header")
+	}
+	if strings.Contains(out, "hx-patch") || strings.Contains(out, "Enable auto-merge") {
+		t.Errorf("no merge or auto-merge while changes are requested: %s", out)
+	}
+}
+
+func TestMergeabilityBox_AutoMergeEnabledNamesWhoAndHow(t *testing.T) {
+	d := writerBox()
+	d.AutoMergeEnabled, d.AutoMergeStrategy, d.AutoMergeByName = true, "squash", "ada"
+	out := renderBox(t, d)
+	for _, want := range []string{"squash and merge", "armed by @ada", "Disable auto-merge", `auto_merge&#34;:&#34;disable`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+}
+
+func TestMergeabilityBox_ReadOnlyViewerHasNoActions(t *testing.T) {
+	d := writerBox()
+	d.CanWrite = false
+	d.RequiredReviews, d.ApprovedReviews = 2, 1
+	out := renderBox(t, d)
+	if strings.Contains(out, "hx-patch") || !strings.Contains(out, "Only collaborators with write access") {
+		t.Errorf("read-only viewer must get the lock line only: %s", out)
+	}
+}

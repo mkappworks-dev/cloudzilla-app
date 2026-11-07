@@ -108,7 +108,17 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	mergeabilityBox := components.MergeabilityBoxData{
 		PatchURL:   fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
 		BaseBranch: pull.BaseBranch,
+		ChecksURL:  fmt.Sprintf("/%s/%s/pulls/%d/checks", owner, repoName, pull.Number),
 		CanWrite:   canWrite2,
+
+		ChangesRequested:  !canMerge,
+		AutoMergeEnabled:  pull.AutoMergeEnabled,
+		AutoMergeStrategy: pull.AutoMergeStrategy,
+	}
+	if pull.AutoMergeEnabled && pull.AutoMergeBy != nil {
+		if armer, err := h.Services.User.GetByID(r.Context(), *pull.AutoMergeBy); err == nil {
+			mergeabilityBox.AutoMergeByName = armer.Username
+		}
 	}
 	mg, mgErr := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
 	if mgErr != nil {
@@ -128,12 +138,13 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	if repo.ContentReadOnly() {
 		mergeabilityBox.CanFastForward, mergeabilityBox.CanThreeWayMerge, mergeabilityBox.CanSquash = false, false, false
 	}
-	if requiredChecks, passingChecks, err := h.Services.CommitStatus.Counts(r.Context(), pull.ID); err != nil {
+	if requiredChecks, passingChecks, failingChecks, err := h.Services.CommitStatus.RequiredCheckCounts(r.Context(), pull.ID); err != nil {
 		slog.Warn("pull detail: commit status counts failed; hiding checks signal",
 			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
 	} else {
 		mergeabilityBox.RequiredChecks = requiredChecks
 		mergeabilityBox.PassingChecks = passingChecks
+		mergeabilityBox.FailingChecks = failingChecks
 	}
 	if requiredReviews, approvedReviews, err := h.Services.PullReview.Counts(r.Context(), pull.ID); err != nil {
 		slog.Warn("pull detail: review counts failed; hiding reviews signal",
