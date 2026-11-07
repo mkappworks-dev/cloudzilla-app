@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: done
 Blocked by: 03, 05, 08
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -26,9 +26,9 @@ The repo issue and PR lists load every row, the PR list has no search or filters
 
 ## Acceptance criteria
 
-- [ ] Spec and tickets exist in the mock folder
-- [ ] All its tickets done
-- [ ] `mockups/issues.html`, `pulls.html` updated
+- [x] Spec and tickets exist in the mock folder
+- [x] All its tickets done
+- [x] `mockups/issues.html`, `pulls.html` updated
 
 ## Verification
 
@@ -42,3 +42,10 @@ Per the spec; benchmark with the large-repo harness (memory: large-repo-benchmar
 pagination (Codex, `pulls.templ:29`, `:48`, +0.6 Features); issue filters need the Apply button, so they could submit on
 change (Claude, `issues.templ`). The polish PR only made the empty state filter-aware ("No open issues match these
 filters." with a Clear filters link); keep it when the filters land.
+
+2026-11-07 (maintainer grill + Claude): decisions are in `.scratch/2026-11-06-issue-pr-list-filters/spec.md`, split into
+tickets 01 (parser), 02 (issues), 03 (PRs). `review:` and the PR review-state indicator are deferred until 09 merges;
+saved filters are out. Close this ticket when 03 merges.
+
+2026-11-07 (Claude): all three tickets ship in one PR (#279); `mockups/issues.html`, `issues_closed.html`, `pulls.html`
+and a new `issues_filtered.html` are updated. Ticket 04 (`review:` filter and review-state indicator) shipped in the same PR; all four tickets are done.

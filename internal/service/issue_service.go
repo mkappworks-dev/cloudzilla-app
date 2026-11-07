@@ -106,6 +106,33 @@ func (s *IssueService) List(ctx context.Context, owner, repoName string, visible
 	return s.issues.ListByRepo(ctx, repo.ID, nil, visibleToUserID, 1, 500)
 }
 
+// ListFiltered returns one page of the repo's issues that f matches and the total across all pages.
+func (s *IssueService) ListFiltered(ctx context.Context, owner, repoName string, visibleToUserID *int64, f store.ListFilter) ([]model.Issue, int, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, 0, fmt.Errorf("repo not found: %w", err)
+	}
+	return s.issues.ListFiltered(ctx, repo.ID, visibleToUserID, f)
+}
+
+// CountByState returns the open and closed totals the viewer can see, ignoring any filter.
+func (s *IssueService) CountByState(ctx context.Context, owner, repoName string, visibleToUserID *int64) (open, closed int, err error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return 0, 0, fmt.Errorf("repo not found: %w", err)
+	}
+	return s.issues.CountByState(ctx, repo.ID, visibleToUserID)
+}
+
+// Participants returns the usernames that authored or were assigned an item in the repo.
+func (s *IssueService) Participants(ctx context.Context, owner, repoName string, visibleToUserID *int64) ([]string, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	return s.issues.ListParticipants(ctx, repo.ID, visibleToUserID)
+}
+
 func (s *IssueService) LinkPull(ctx context.Context, pullID, issueID int64) error {
 	return s.issues.LinkToPull(ctx, pullID, issueID)
 }

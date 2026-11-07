@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/listquery"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -17,13 +18,16 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PageIssues renders the paginated issue list for a repository.
+// PageIssues renders the filtered, paginated issue list for a repository.
 func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
 	repo, ok := h.readableRepoPage(w, r, owner, repoName)
 	if !ok {
+		return
+	}
+	if redirectListForm(w, r, "/"+url.PathEscape(owner)+"/"+url.PathEscape(repoName)+"/issues") {
 		return
 	}
 	if !repo.AllowIssues {
@@ -38,48 +42,47 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 
-	stateFilter := r.URL.Query().Get("state")
-	if stateFilter != "closed" {
-		stateFilter = "open"
+	allMilestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, callerID)
+	if err != nil {
+		slog.Warn("issues: milestone list failed", "owner", owner, "repo", repoName, "error", err)
 	}
-	searchQuery := r.URL.Query().Get("q")
-	labelFilter := r.URL.Query().Get("label")
-	milestoneFilter := r.URL.Query().Get("milestone")
-	sortOrder := r.URL.Query().Get("sort")
-	if sortOrder == "" {
-		sortOrder = "newest"
+	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("issues: label list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	people, err := h.Services.Issue.Participants(r.Context(), owner, repoName, callerID)
+	if err != nil {
+		slog.Warn("issues: participants failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
-	allIssues, err := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
+	q := listMilestoneTitle(listquery.FromValues(r.URL.Query()), allMilestones).Without(listquery.KeyReview, "")
+	state := "open"
+	if q.State == "closed" {
+		state = "closed"
+	} else {
+		q = q.Without(listquery.KeyIs, "")
+	}
+
+	page := listPage(r)
+	issues, total, err := h.Services.Issue.ListFiltered(r.Context(), owner, repoName, callerID, listStoreFilter(listViewer(r), q, state, page))
+	if err == nil && len(issues) == 0 && total > 0 && page > 1 {
+		page = listTotalPages(total)
+		issues, total, err = h.Services.Issue.ListFiltered(r.Context(), owner, repoName, callerID, listStoreFilter(listViewer(r), q, state, page))
+	}
 	if err != nil {
 		slog.Error("issues: list failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "failed to load issues", http.StatusInternalServerError)
 		return
 	}
-	if allIssues == nil {
-		allIssues = []model.Issue{}
+	openCount, closedCount, countErr := h.Services.Issue.CountByState(r.Context(), owner, repoName, callerID)
+	if countErr != nil {
+		slog.Warn("issues: tab counts failed; showing 0", "owner", owner, "repo", repoName, "error", countErr)
 	}
 
-	openCount := 0
-	closedCount := 0
-	for _, iss := range allIssues {
-		if string(iss.State) == "open" {
-			openCount++
-		} else {
-			closedCount++
-		}
+	issueIDs := make([]int64, len(issues))
+	for i, iss := range issues {
+		issueIDs[i] = iss.ID
 	}
-
-	var issues []model.Issue
-	for _, iss := range allIssues {
-		if string(iss.State) == stateFilter {
-			issues = append(issues, iss)
-		}
-	}
-	if issues == nil {
-		issues = []model.Issue{}
-	}
-
 	issueLabels, err := h.Services.Label.BatchForIssues(r.Context(), issues)
 	if err != nil {
 		slog.Warn("issues: label batch failed", "owner", owner, "repo", repoName, "error", err)
@@ -87,108 +90,51 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	if issueLabels == nil {
 		issueLabels = map[int64][]model.Label{}
 	}
-
-	if searchQuery != "" {
-		q := strings.ToLower(searchQuery)
-		filtered := issues[:0]
-		for _, iss := range issues {
-			if strings.Contains(strings.ToLower(iss.Title), q) {
-				filtered = append(filtered, iss)
-			}
-		}
-		issues = filtered
+	commentCounts, err := h.Services.Comment.CountByIssueIDs(r.Context(), issueIDs)
+	if err != nil {
+		slog.Warn("issues: comment counts failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
-	if labelFilter != "" {
-		filtered := issues[:0]
-		for _, iss := range issues {
-			for _, l := range issueLabels[iss.ID] {
-				if l.Name == labelFilter {
-					filtered = append(filtered, iss)
-					break
-				}
-			}
-		}
-		issues = filtered
-	}
-
-	if milestoneFilter != "" {
-		if milestoneID, convErr := strconv.ParseInt(milestoneFilter, 10, 64); convErr == nil {
-			filtered := issues[:0]
-			for _, iss := range issues {
-				if iss.MilestoneID != nil && *iss.MilestoneID == milestoneID {
-					filtered = append(filtered, iss)
-				}
-			}
-			issues = filtered
+	var pinnedIssues []model.Issue
+	if !q.HasFilters() && page == 1 {
+		pinnedIssues, err = h.Services.Issue.ListPinned(r.Context(), owner, repoName, callerID)
+		if err != nil {
+			slog.Warn("issues: pinned list failed", "owner", owner, "repo", repoName, "error", err)
 		}
 	}
 
-	switch sortOrder {
-	case "oldest":
-		sort.SliceStable(issues, func(i, j int) bool {
-			return issues[i].CreatedAt.Before(issues[j].CreatedAt)
-		})
-	case "recently-updated":
-		sort.SliceStable(issues, func(i, j int) bool {
-			return issues[i].UpdatedAt.After(issues[j].UpdatedAt)
-		})
-	default:
-		sort.SliceStable(issues, func(i, j int) bool {
-			return issues[i].CreatedAt.After(issues[j].CreatedAt)
-		})
+	base := "/" + owner + "/" + repoName + "/issues"
+	totalPages := listTotalPages(total)
+	var prevURL, nextURL string
+	if page > 1 {
+		prevURL = listURL(base, q, page-1)
 	}
-
-	// Second pass: the label map must cover only the post-filter slice.
-	issueLabels, err = h.Services.Label.BatchForIssues(r.Context(), issues)
-	if err != nil {
-		slog.Warn("issues: label batch failed", "owner", owner, "repo", repoName, "error", err)
+	if page < totalPages {
+		nextURL = listURL(base, q, page+1)
 	}
-	if issueLabels == nil {
-		issueLabels = map[int64][]model.Label{}
-	}
-
-	allMilestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, callerID)
-	if err != nil {
-		slog.Warn("issues: milestone list failed", "owner", owner, "repo", repoName, "error", err)
-	}
-	if allMilestones == nil {
-		allMilestones = []model.Milestone{}
-	}
-
-	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
-	if err != nil {
-		slog.Warn("issues: label list failed", "owner", owner, "repo", repoName, "error", err)
-	}
-	if allLabels == nil {
-		allLabels = []model.Label{}
-	}
-
-	pinnedIssues, err := h.Services.Issue.ListPinned(r.Context(), owner, repoName, callerID)
-	if err != nil {
-		slog.Warn("issues: pinned list failed", "owner", owner, "repo", repoName, "error", err)
-	}
-	if pinnedIssues == nil {
-		pinnedIssues = []model.Issue{}
-	}
+	_, signedIn := middleware.ClaimsFromContext(r.Context())
 
 	h.render(w, r, pages.Issues(view.IssuesData{
-		BasePage:        h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
-		Repo:            *repo,
-		Issues:          issues,
-		PinnedIssues:    pinnedIssues,
-		Owner:           owner,
-		RepoName:        repoName,
-		IssueLabels:     issueLabels,
-		AllMilestones:   allMilestones,
-		StateFilter:     stateFilter,
-		SearchQuery:     searchQuery,
-		LabelFilter:     labelFilter,
-		MilestoneFilter: milestoneFilter,
-		Sort:            sortOrder,
-		Labels:          allLabels,
-		OpenCount:       openCount,
-		ClosedCount:     closedCount,
+		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
+		Repo:          *repo,
+		Issues:        issues,
+		PinnedIssues:  pinnedIssues,
+		Owner:         owner,
+		RepoName:      repoName,
+		IssueLabels:   issueLabels,
+		CommentCounts: commentCounts,
+		StateFilter:   state,
+		OpenTabURL:    listURL(base, q.Without(listquery.KeyIs, ""), 1),
+		ClosedTabURL:  listURL(base, q.With(listquery.KeyIs, "closed"), 1),
+		Filter:        listFilterData(base, "issue", false, q, total, people, signedIn, allLabels, allMilestones),
+		ClearURL:      listURL(base, listquery.Query{State: q.State}, 1),
+		Page:          page,
+		TotalPages:    totalPages,
+		PrevURL:       prevURL,
+		NextURL:       nextURL,
+		RepoEmpty:     countErr == nil && openCount+closedCount == 0,
+		OpenCount:     openCount,
+		ClosedCount:   closedCount,
 	}))
 }
 

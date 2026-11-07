@@ -155,12 +155,12 @@ func TestPullService_ListWithCIStatus(t *testing.T) {
 		store.NewCommentStore(db),
 	)
 
-	rows, err := fullSvc.ListWithCIStatus(ctx, ownerName, repoName, model.PRStateOpen, 0, 50)
+	rows, total, err := fullSvc.ListWithCIStatus(ctx, ownerName, repoName, store.ListFilter{State: "open", Limit: 50})
 	if err != nil {
 		t.Fatalf("ListWithCIStatus: %v", err)
 	}
-	if len(rows) != 1 {
-		t.Fatalf("expected 1 row, got %d", len(rows))
+	if len(rows) != 1 || total != 1 {
+		t.Fatalf("expected 1 row and total 1, got %d and %d", len(rows), total)
 	}
 	if rows[0].CIStatus != "failure" {
 		t.Errorf("expected combined CI status 'failure', got %q", rows[0].CIStatus)

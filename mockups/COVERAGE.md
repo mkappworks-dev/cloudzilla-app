@@ -28,13 +28,15 @@ in November 2026; update it when a mock is added.
 | `wiki*.html` (six pages)                  | `wiki_page.templ`, `wiki_shared.templ`            |
 | `discussion_detail_locked.html`           | The locked state of `discussion_detail.templ`     |
 | `issues_closed.html`, `*_closed/answered` | Tab states of the list pages                      |
+| `issues_filtered.html`                    | `issues.templ` with filter chips and a menu open  |
 
 ## States with no mock
 
 Mocks show the happy path. These real states are not drawn:
 
-- **Empty states.** Repo with no commits ("This repository is empty."), empty directory, no releases, no milestones, no
-  projects, no wiki page ("This page does not exist yet."), empty discussion and PR lists, no checks (the curl example).
+- **Empty states.** Issue and PR lists with no match ("No open issues match these filters."); repo with no commits
+  ("This repository is empty."), empty directory, no releases, no milestones, no projects, no wiki page ("This page does
+  not exist yet."), empty discussion and PR lists, no checks (the curl example).
 - **Read-only and signed-out views.** No Edit, Delete or Manage controls; "Sign in to reply."; a locked issue the viewer
   cannot comment on; the `pr.html` merge box's lock line ("Only collaborators with write access…") in place of Merge and
   Close.

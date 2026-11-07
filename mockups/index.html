@@ -260,9 +260,16 @@
       </li>
       <li>
         <a href="issues_closed.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/issues?state=closed</p>
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/issues?q=is:closed</p>
           <h3 class="mt-1 text-sm font-medium">Issues, closed</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">issues_closed.html</p>
+        </a>
+      </li>
+      <li>
+        <a href="issues_filtered.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
+          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/issues?q=label:bug</p>
+          <h3 class="mt-1 text-sm font-medium">Issues, filtered</h3>
+          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">issues_filtered.html</p>
         </a>
       </li>
       <li>

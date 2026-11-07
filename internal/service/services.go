@@ -123,7 +123,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
-	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue).WithThreadSubscriptions(threadSubSvc)
+	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue).WithBranchProtections(stores.BranchProtection).WithThreadSubscriptions(threadSubSvc)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
