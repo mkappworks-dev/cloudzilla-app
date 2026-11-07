@@ -110,6 +110,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		BaseBranch: pull.BaseBranch,
 		ChecksURL:  fmt.Sprintf("/%s/%s/pulls/%d/checks", owner, repoName, pull.Number),
 		CanWrite:   canWrite2,
+		Draft:      pull.IsDraft,
 
 		ChangesRequested:  !canMerge,
 		AutoMergeEnabled:  pull.AutoMergeEnabled,

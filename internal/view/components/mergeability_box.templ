@@ -25,6 +25,9 @@ type MergeabilityBoxData struct {
 	CanThreeWayMerge bool
 	CanSquash        bool
 
+	// Draft swaps the merge actions for Ready for review.
+	Draft bool
+
 	// FailingChecks counts required checks that failed or errored with no passing status.
 	FailingChecks    int
 	ChangesRequested bool
@@ -48,12 +51,15 @@ const (
 	mergeChecksFailing
 	mergeNeedsReview
 	mergeChecksPending
+	mergeDraft
 )
 
 func mergeStateOf(d MergeabilityBoxData) mergeState {
 	switch {
 	case d.Unavailable:
 		return mergeUnavailable
+	case d.Draft:
+		return mergeDraft
 	case d.HasConflicts:
 		return mergeConflicts
 	case d.UpToDate:
@@ -116,6 +122,17 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 		if d.CanWrite {
 			<footer class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
 				switch {
+					case d.Draft:
+						<button
+							type="button"
+							hx-patch={ d.PatchURL }
+							hx-vals={ `{"is_draft":"false"}` }
+							hx-swap="none"
+							hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Marked ready for review'}));location.reload();}"
+							class="h-9 px-4 text-[13px] font-medium rounded-md bg-success text-success-foreground hover:bg-success/90"
+						>
+							Ready for review
+						</button>
 					case d.AutoMergeEnabled:
 						<p class="text-[13px] text-muted-foreground inline-flex items-center gap-2">
 							<svg class="text-success shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -286,6 +303,8 @@ func mergeStrategyCount(d MergeabilityBoxData) int {
 
 templ mergeStateIcon(st mergeState) {
 	switch st {
+	case mergeDraft:
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path></svg>
 	case mergeReady:
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
 	case mergeConflicts:
@@ -357,6 +376,8 @@ func mergeTitle(st mergeState) string {
 		return "Merge conflicts"
 	case mergeUpToDate:
 		return "Nothing to merge"
+	case mergeDraft:
+		return "Draft"
 	case mergeChangesRequested:
 		return "Changes requested"
 	case mergeChecksFailing:
@@ -380,6 +401,8 @@ func mergeSubtitle(d MergeabilityBoxData, st mergeState) string {
 		return "Resolve the conflicts on the head branch before this can merge."
 	case mergeUpToDate:
 		return "This branch is already up to date with the base."
+	case mergeDraft:
+		return "Mark this ready for review to notify reviewers and allow merging."
 	case mergeChangesRequested:
 		return "A reviewer asked for changes. Merging is blocked until they approve or the review is dismissed."
 	case mergeChecksFailing:

@@ -270,3 +270,17 @@ func TestMergeabilityBox_ReadOnlyViewerHasNoActions(t *testing.T) {
 		t.Errorf("read-only viewer must get the lock line only: %s", out)
 	}
 }
+
+func TestMergeabilityBox_DraftOffersReadyForReviewNotMerge(t *testing.T) {
+	d := writerBox()
+	d.Draft = true
+	out := renderBox(t, d)
+	for _, want := range []string{">Draft<", "Ready for review", `is_draft&#34;:&#34;false`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in %s", want, out)
+		}
+	}
+	if strings.Contains(out, "merge_strategy") || strings.Contains(out, "Enable auto-merge") {
+		t.Error("a draft must not offer merge or auto-merge")
+	}
+}
