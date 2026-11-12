@@ -201,10 +201,12 @@ func TestRepoAlias_LivePathWinsAndNewRepoAtOldNameIsServed(t *testing.T) {
 	}
 }
 
-func TestRepoAlias_GitPathsAreLeftToTheGitHandlers(t *testing.T) {
+// The web middleware skips git paths; the git handler answers them with its own 301 that keeps the query.
+func TestRepoAlias_GitPathsAreAnsweredByTheGitHandlers(t *testing.T) {
 	e := newAliasEnv(t)
 	rr := e.get(http.MethodGet, "/"+e.owner.name+"/oldproj/info/refs?service=git-upload-pack", "")
-	if rr.Code == http.StatusMovedPermanently || rr.Code == http.StatusPermanentRedirect {
-		t.Errorf("git path redirected: %d %s", rr.Code, rr.Header().Get("Location"))
+	wantStatus(t, rr, http.StatusMovedPermanently)
+	if loc := rr.Header().Get("Location"); !strings.HasSuffix(loc, "/proj/info/refs?service=git-upload-pack") {
+		t.Errorf("Location = %q, want the repo's current git URL with the query kept", loc)
 	}
 }
