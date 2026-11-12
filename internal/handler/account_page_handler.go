@@ -201,9 +201,10 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 	}
 	q, notices := accountListQuery(r.URL.Query(), false)
 	state := q.State
-	if state == "" {
+	switch state {
+	case "":
 		state = "open"
-	} else if state == "open" {
+	case "open":
 		q = q.Without(listquery.KeyIs, "")
 	}
 
