@@ -8,6 +8,8 @@ const { execFileSync } = require("node:child_process");
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 4000);
 const CSS_ROUTE = "/assets/tailwind.css";
+const VALIDATION_ROUTE = "/assets/field-validation.js";
+const VALIDATION_FILE = path.join(ROOT, "..", "cmd", "server", "frontend", "static", "field-validation.js");
 const CACHE_DIR = path.join(ROOT, ".cache");
 const CSS_OUT = path.join(CACHE_DIR, "tailwind.css");
 
@@ -74,6 +76,8 @@ http
       if (pathname === CSS_ROUTE) {
         buildCSS();
         file = CSS_OUT;
+      } else if (pathname === VALIDATION_ROUTE) {
+        file = VALIDATION_FILE;
       } else {
         file = resolveFile(pathname);
       }

@@ -44,17 +44,17 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	ldapEnabled, samlEnabled := h.ssoEnabled(r)
 	allowReg := h.Services.SiteSetting.AllowRegistration(r.Context())
 
-	renderLoginError := func(msg string) {
-		h.render(w, r, pages.Login(view.LoginData{
-			BasePage:          basePage(r, h.Services),
-			LDAPEnabled:       ldapEnabled,
-			SAMLEnabled:       samlEnabled,
-			AllowRegistration: allowReg,
-			ForgotPassword:    h.Services.PasswordReset.Available(),
-			Error:             msg,
-			Next:              next,
-		}))
+	renderLogin := func(data view.LoginData) {
+		data.BasePage = basePage(r, h.Services)
+		data.LDAPEnabled = ldapEnabled
+		data.SAMLEnabled = samlEnabled
+		data.AllowRegistration = allowReg
+		data.ForgotPassword = h.Services.PasswordReset.Available()
+		data.Email = email
+		data.Next = next
+		h.render(w, r, pages.Login(data))
 	}
+	renderLoginError := func(msg string) { renderLogin(view.LoginData{Error: msg}) }
 
 	user, token, err := h.Services.User.Authenticate(r.Context(), email, password)
 	if errors.Is(err, service.ErrAccountSuspended) {
@@ -62,7 +62,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		renderLoginError("Invalid credentials")
+		renderLogin(view.LoginData{PasswordError: "Invalid credentials"})
 		return
 	}
 

@@ -51,30 +51,36 @@ templ Login(data view.LoginData) {
 					{ data.Error }
 				</div>
 			}
-			<form method="POST" action="/login" class="space-y-4">
+			<form method="POST" action="/login" data-validate class="space-y-4">
 				@nextInput(data.Next)
-				<div class="space-y-1.5">
-					<label for="email" class="block text-sm font-medium">Email</label>
+				<div data-field class="space-y-1.5">
+					@components.Label("email", true, templ.Attributes{"class": "block text-sm font-medium"}) {
+						Email
+					}
 					@components.Input(templ.Attributes{
 						"type":     "email",
 						"id":       "email",
 						"name":     "email",
 						"required": "required",
+						"value":    data.Email,
 					})
 				</div>
-				<div class="space-y-1.5">
+				<div data-field class="space-y-1.5">
 					<div class="flex items-baseline justify-between gap-3">
-						<label for="password" class="block text-sm font-medium">Password</label>
+						@components.Label("password", true, templ.Attributes{"class": "block text-sm font-medium"}) {
+							Password
+						}
 						if data.ForgotPassword {
 							<a href="/auth/password/forgot" class="text-[12px] text-muted-foreground hover:text-foreground hover:underline">Forgot password?</a>
 						}
 					</div>
-					@components.PasswordInput(templ.Attributes{
+					@components.PasswordInput(components.Invalid(templ.Attributes{
 						"id":       "password",
 						"name":     "password",
 						"required": "required",
 						"class":    authPasswordClass,
-					})
+					}, "password", data.PasswordError))
+					@components.FieldError("password", data.PasswordError)
 				</div>
 				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
 					Sign in
@@ -110,10 +116,12 @@ templ Login(data view.LoginData) {
 								Sign in with LDAP
 							</summary>
 							<div class="p-4 border-t border-border space-y-3">
-								<form method="POST" action="/auth/ldap" class="space-y-3">
+								<form method="POST" action="/auth/ldap" data-validate class="space-y-3">
 									@nextInput(data.Next)
-									<div class="space-y-1.5">
-										<label for="ldap-username" class="block text-xs font-medium">Username</label>
+									<div data-field class="space-y-1.5">
+										@components.Label("ldap-username", true, templ.Attributes{"class": "block text-xs font-medium"}) {
+											Username
+										}
 										@components.Input(templ.Attributes{
 											"type":     "text",
 											"id":       "ldap-username",
@@ -121,8 +129,10 @@ templ Login(data view.LoginData) {
 											"required": "required",
 										})
 									</div>
-									<div class="space-y-1.5">
-										<label for="ldap-password" class="block text-xs font-medium">Password</label>
+									<div data-field class="space-y-1.5">
+										@components.Label("ldap-password", true, templ.Attributes{"class": "block text-xs font-medium"}) {
+											Password
+										}
 										@components.PasswordInput(templ.Attributes{
 											"id":       "ldap-password",
 											"name":     "password",

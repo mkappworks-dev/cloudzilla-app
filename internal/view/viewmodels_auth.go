@@ -12,6 +12,10 @@ type LoginData struct {
 	// ForgotPassword shows the reset link; it is off when no reset email could be sent.
 	ForgotPassword bool
 	Notice         string
+	// Email is the address typed on the failed attempt.
+	Email string
+	// PasswordError sits on the password field; Error is for a refusal that is not about a field.
+	PasswordError string
 	// Next is the unvalidated return path; handlers run it through safeNextPath
 	// before redirecting.
 	Next string
@@ -20,9 +24,10 @@ type LoginData struct {
 // RegisterData holds template data for the public registration page.
 type RegisterData struct {
 	BasePage
-	Error    string
 	Username string
 	Email    string
+	// FieldErrors maps a field name (username, email, password) to its message.
+	FieldErrors map[string]string
 }
 
 // SetupData holds template data for the first-run setup wizard page.

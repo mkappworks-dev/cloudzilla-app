@@ -33,16 +33,16 @@ templ RepoNew(data view.RepoNewData) {
 		</section>
 		<div class="grid lg:grid-cols-[1fr_280px] gap-8">
 			<div class="min-w-0">
-				<form id="repo-form" class="border border-border rounded-lg bg-card p-6 space-y-6" data-username={ me }>
-					<div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
+				<form id="repo-form" data-validate class="border border-border rounded-lg bg-card p-6 space-y-6" data-username={ me }>
+					<div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-start">
 						<div>
-							<label for="repo-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner *</label>
+							<label for="repo-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner <span class="text-destructive" aria-hidden="true">*</span></label>
 							@repoNewCustomSelect("repo-owner", "owner", ownerOpts, repoNewSelectOption{Value: initialOwner, Label: initialOwner})
 						</div>
-						<span class="text-muted-foreground pb-2.5" aria-hidden="true">/</span>
-						<div>
-							<label for="repo-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
-							<input id="repo-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" placeholder="my-new-repo" autofocus value={ data.DefaultName } class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground focus:outline-hidden focus:border-ring"/>
+						<span class="text-muted-foreground pt-8" aria-hidden="true">/</span>
+						<div data-field>
+							<label for="repo-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name <span class="text-destructive" aria-hidden="true">*</span></label>
+							<input id="repo-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" data-pattern-message="Use letters, numbers, . - and _ only." placeholder="my-new-repo" autofocus value={ data.DefaultName } class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground focus:outline-hidden focus:border-ring aria-invalid:border-destructive aria-invalid:focus:border-destructive"/>
 						</div>
 					</div>
 					<p class="text-[12px] text-muted-foreground">Great repository names are short and memorable. Need inspiration? <span class="font-mono">turbo-octo-meme</span>.</p>
@@ -139,7 +139,18 @@ templ RepoNew(data view.RepoNewData) {
 					}
 					const text = await res.text();
 					let msg = text;
-					try { msg = JSON.parse(text).error || text; } catch (_) {}
+					let field = '';
+					try {
+						const body = JSON.parse(text);
+						msg = body.error || text;
+						field = body.field || '';
+					} catch (_) {}
+					const target = field && form.elements[field];
+					if (target && target.id) {
+						CzFields.show(target, msg.charAt(0).toUpperCase() + msg.slice(1));
+						target.focus();
+						return;
+					}
 					errBox.textContent = msg || ('Failed to create repository (HTTP ' + res.status + ')');
 					errBox.classList.remove('hidden');
 				});

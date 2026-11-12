@@ -185,13 +185,15 @@ func TestPageRegisterSubmit_UsernameTaken_LogsAtInfo(t *testing.T) {
 	}
 }
 
-// A NUL byte is rejected by Postgres itself, standing in for any unexpected DB failure.
+// A trigger that always raises stands in for any unexpected DB failure.
 func TestPageRegisterSubmit_DBFailure_GenericErrorLoggedAtError(t *testing.T) {
-	db := testutil.OpenTestDB(t)
+	db := testutil.OpenFreshTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	logs := captureLogs(t)
+	testutil.Exec(t, db, `CREATE FUNCTION refuse_user() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'users_username_key SQLSTATE'; END $$`)
+	testutil.Exec(t, db, `CREATE TRIGGER refuse_user BEFORE INSERT ON users FOR EACH ROW EXECUTE FUNCTION refuse_user()`)
 
-	body := postRegister(t, db, "nul_"+suffix, "nul\x00_"+suffix+"@test.invalid")
+	body := postRegister(t, db, "boom_"+suffix, "boom_"+suffix+"@test.invalid")
 
 	assertNoDBErrorText(t, body)
 	if !strings.Contains(body, "Could not create account") {

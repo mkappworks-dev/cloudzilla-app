@@ -540,10 +540,10 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, err.Error())
 		return
 	case errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved):
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		writeFieldError(w, http.StatusUnprocessableEntity, "name", err.Error())
 		return
 	case errors.Is(err, service.ErrInvalidRepoName):
-		writeError(w, http.StatusUnprocessableEntity, invalidRepoNameMessage)
+		writeFieldError(w, http.StatusUnprocessableEntity, "name", invalidRepoNameMessage)
 		return
 	case errors.Is(err, service.ErrInvalidRepoPath):
 		slog.Warn("create org repo: unsafe repository path", "org", orgName, "error", err)

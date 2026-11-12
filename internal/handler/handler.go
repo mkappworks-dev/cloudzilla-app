@@ -39,6 +39,11 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
+// writeFieldError is writeError for a message about one form field, which the page shows beside that field.
+func writeFieldError(w http.ResponseWriter, status int, field, msg string) {
+	writeJSON(w, status, map[string]string{"error": msg, "field": field})
+}
+
 // isFormEncoded reports whether r carries a URL-encoded form. fetch() sends the
 // media type with ";charset=UTF-8" appended, so only the media type is compared.
 func isFormEncoded(r *http.Request) bool {

@@ -49,17 +49,21 @@ templ IssueNew(data view.IssueNewData) {
 				<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
 					<section aria-labelledby="composer" class="rounded-md border border-border bg-card p-6">
 						<h2 id="composer" class="text-[13px] font-medium mb-4">Compose</h2>
-						<form id="issue-new-form" method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="space-y-5">
-							<div class="space-y-1.5">
-								<label for="title" class="block text-sm font-medium">Title</label>
-								@components.Input(templ.Attributes{
+						<form id="issue-new-form" method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } data-validate class="space-y-5">
+							<div data-field class="space-y-1.5">
+								@components.Label("title", true, templ.Attributes{"class": "block text-sm font-medium"}) {
+									Title
+								}
+								@components.Input(components.Invalid(templ.Attributes{
 									"id":          "title",
 									"name":        "title",
 									"type":        "text",
 									"required":    "required",
 									"autofocus":   "autofocus",
 									"placeholder": "Short summary of the issue",
-								})
+									"value":       data.Title,
+								}, "title", data.TitleError))
+								@components.FieldError("title", data.TitleError)
 							</div>
 
 							<div class="space-y-1.5">

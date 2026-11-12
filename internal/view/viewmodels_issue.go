@@ -106,6 +106,9 @@ type IssueNewData struct {
 	ShowForm bool
 	CanWrite bool
 	Error    string
+	// Title is what the user typed, kept across a failed submit; TitleError sits on the title field.
+	Title      string
+	TitleError string
 	// Sidebar metadata picker options — populated only when CanWrite.
 	Collaborators []string
 	Labels        []model.Label
