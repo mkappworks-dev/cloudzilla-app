@@ -749,7 +749,7 @@ verification (`POST /api/admin/users/verify-email`). Both must match the account
 otherwise), so an address changed since the admin checked it is not vouched for. It writes `user.email.verify` (method
 `admin`, with the email) to the audit log, with the admin as actor.
 
-**Additional emails.** Settings → Email lists extra addresses besides the account's (`user_emails`, migration 124). They
+**Additional emails.** Settings → Email lists extra addresses besides the account's (`user_emails`, migration 125). They
 credit commits and nothing else: sign-in, notifications and password reset use `users.email`. `userByAuthorEmail`
 (`internal/service/commit_email.go`) resolves an author as noreply address, then primary address, then a _verified_
 additional address; an unverified one credits nobody, and removing one stops crediting at once. Adding

@@ -29,7 +29,7 @@ func (s *UserStore) UpdateProfile(ctx context.Context, userID int64, name, email
 		 WHERE id=$6`,
 		name, email, bio, company, location, userID,
 	); err != nil {
-		// The email trigger of 124 raises this for an address held in user_emails.
+		// The email trigger of 125 raises this for an address held in user_emails.
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == usersEmailLowerKey {
 			return false, ErrEmailTaken
