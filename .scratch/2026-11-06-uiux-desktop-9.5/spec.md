@@ -269,8 +269,9 @@ Harness notes for wave 3:
 - Claude's first reads of many images returned "request limit"; it re-read them (notes file) and listed the shots whose
   valid view came last. Treat its per-shot claims as seen.
 
-Findings: 35 from Claude and 22 from Codex. Fixed in the polish PR: unrecognized qualifiers (`sort:comments-desc`,
-`bogus:value`) searched as text with no explanation; "Clear filters" shown twice in an empty list; code search showed
+Findings: 35 from Claude and 22 from Codex. Fixed in the polish PR: a known qualifier with a bad value (`sort:comments-desc`)
+searched as text with no explanation (unknown keys such as `bogus:value` stay silent: `std::vector` and `12:30` are
+ordinary text); "Clear filters" shown twice in an empty list; code search showed
 literal `**` around matches (now `<mark>`); org settings said "Teams aren't wired up yet" and showed disabled buttons;
 the release form placeholder named a roadmap phase; the merge box listed only the conflicts when changes were also
 requested. Opened as tickets: 32–40. Added as comments on open tickets: 24, 25, 27, 28, 29, 31. Not bugs: the admin

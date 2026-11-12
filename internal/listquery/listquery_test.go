@@ -223,7 +223,7 @@ func TestToken(t *testing.T) {
 }
 
 func TestUnrecognized(t *testing.T) {
-	q := Parse("is:open sort:comments-desc bogus:value crash https://x.test/a note:")
+	q := Parse("is:open sort:comments-desc review:maybe crash std::vector 12:30 https://x.test/a note:")
 	got := q.Unrecognized()
 	if len(got) != 2 {
 		t.Fatalf("want 2 notices, got %q", got)
@@ -231,8 +231,8 @@ func TestUnrecognized(t *testing.T) {
 	if !strings.Contains(got[0], "sort: takes newest, oldest, updated, comments") {
 		t.Errorf("sort hint missing: %q", got[0])
 	}
-	if !strings.Contains(got[1], "bogus:value") {
-		t.Errorf("bogus token missing: %q", got[1])
+	if !strings.Contains(got[1], "review:maybe") {
+		t.Errorf("review token missing: %q", got[1])
 	}
 	if n := Parse("is:open label:bug fix").Unrecognized(); n != nil {
 		t.Errorf("valid query has notices: %q", n)

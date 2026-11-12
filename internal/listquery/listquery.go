@@ -312,18 +312,18 @@ func tokenize(raw string) []string {
 	return tokens
 }
 
-// Unrecognized lists the free-text tokens that look like a qualifier (word:value) but were not one, each with what the
-// list accepts. Parse keeps them as text, so without this a typo such as sort:comments-desc just empties the list.
+// Unrecognized lists the free-text tokens that name a qualifier but carry a value it rejects, each with what the list
+// accepts. Parse keeps them as text, so without this a typo such as sort:comments-desc just empties the list. Other
+// word:value tokens (std::vector, 12:30) are ordinary search text and are not reported.
 func (q Query) Unrecognized() []string {
 	var out []string
 	for _, tok := range tokenize(q.Text) {
 		key, val, ok := strings.Cut(tok, ":")
-		key = strings.ToLower(key)
-		if !ok || val == "" || key == "" || strings.HasPrefix(val, "//") || strings.ContainsAny(key, "/.@") {
+		if !ok || val == "" {
 			continue
 		}
-		hint := "Use is:, author:, assignee:, label:, milestone:, no:, review: or sort:."
-		switch key {
+		var hint string
+		switch strings.ToLower(key) {
 		case KeyIs:
 			hint = "is: takes " + strings.Join(validStates, ", ") + "."
 		case KeyReview:
@@ -332,8 +332,10 @@ func (q Query) Unrecognized() []string {
 			hint = "sort: takes " + strings.Join(validSorts, ", ") + "."
 		case KeyNo:
 			hint = "no: takes " + strings.Join(validNo, ", ") + "."
+		default:
+			continue
 		}
-		out = append(out, "“"+tok+"” isn’t a filter, so it was searched as text. "+hint)
+		out = append(out, "“"+tok+"” isn’t a valid filter, so it was searched as text. "+hint)
 	}
 	return out
 }
