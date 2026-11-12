@@ -228,6 +228,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
+	r.With(authMW).Get("/orgs/{org}/teams/{slug}", h.PageOrgTeam)
 	// Outside /api/orgs, whose 1 MB body limit is smaller than an avatar.
 	r.With(authMW, middleware.MaxBodySize(handler.AvatarBodyBytes)).Post("/orgs/{org}/settings/avatar", h.UploadOrgAvatar)
 	r.With(authMW).Post("/orgs/{org}/settings/avatar/delete", h.RemoveOrgAvatar)
@@ -346,6 +347,16 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(authMW).Post("/{org}/profile", h.UpdateOrgProfile)
 		r.With(authMW).Post("/{org}/repo-defaults", h.UpdateOrgRepoDefaults)
 		r.With(authMW).Post("/{org}/delete", h.DeleteOrg)
+		r.Route("/{org}/teams", func(r chi.Router) {
+			r.Use(authMW)
+			r.Get("/", h.ListTeams)
+			r.Post("/", h.CreateTeam)
+			r.Post("/{slug}", h.UpdateTeam)
+			r.Delete("/{slug}", h.DeleteTeam)
+			r.Get("/{slug}/members", h.ListTeamMembers)
+			r.Post("/{slug}/members", h.AddTeamMember)
+			r.Delete("/{slug}/members/{username}", h.RemoveTeamMember)
+		})
 		r.Route("/{org}/hooks", func(r chi.Router) {
 			r.Use(authMW)
 			r.Get("/", h.ListOrgWebhooks)

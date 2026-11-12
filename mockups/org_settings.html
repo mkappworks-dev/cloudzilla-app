@@ -28,7 +28,7 @@
         <span class="text-foreground">Manage</span>
       </p>
       <h1 class="text-2xl font-semibold tracking-tight">Manage acme-corp</h1>
-      <p class="mt-1 text-[13px] text-muted-foreground">Members, repository defaults, webhooks, and danger zone.</p>
+      <p class="mt-1 text-[13px] text-muted-foreground">Members, teams, repository defaults, webhooks, and danger zone.</p>
     </div>
     <a href="org_profile.html" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"></path></svg> Back to organization</a>
   </section>
@@ -198,13 +198,38 @@
         <div class="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 class="text-base font-semibold tracking-tight mb-1">Teams</h2>
-            <p class="text-[12.5px] text-muted-foreground">Group members and grant batch access to repositories.</p>
+            <p class="text-[12.5px] text-muted-foreground">Name a group of members. Any member of acme-corp can see teams; only owners change them.</p>
+          </div>
+          <button type="button" onclick="document.getElementById('team-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">New team</button>
+        </div>
+        <div id="org-teams-list">
+          <ul id="teams-rows" class="divide-y divide-border border border-border rounded-md">
+          <li class="px-4 py-3 flex items-center gap-3">
+            <div class="min-w-0 flex-1">
+              <a href="org_team.html" class="text-[13.5px] font-medium hover:underline">Platform</a>
+              <p class="text-[12px] text-muted-foreground truncate">Build, CI and release tooling.</p>
+            </div>
+            <span class="font-mono text-[11.5px] text-muted-foreground shrink-0">6 members</span>
+          </li>
+          <li class="px-4 py-3 flex items-center gap-3">
+            <div class="min-w-0 flex-1">
+              <a href="org_team.html" class="text-[13.5px] font-medium hover:underline">Docs</a>
+            </div>
+            <span class="font-mono text-[11.5px] text-muted-foreground shrink-0">3 members</span>
+          </li>
+          <li class="px-4 py-3 flex items-center gap-3">
+            <div class="min-w-0 flex-1">
+              <a href="org_team.html" class="text-[13.5px] font-medium hover:underline">Design</a>
+              <p class="text-[12px] text-muted-foreground truncate">Brand and product design.</p>
+            </div>
+            <span class="font-mono text-[11.5px] text-muted-foreground shrink-0">1 member</span>
+          </li>
+          </ul>
+          <div id="teams-empty" hidden class="bg-background border border-border rounded-lg p-8 text-center">
+            <p class="text-muted-foreground">No teams yet.</p>
+            <p class="text-sm text-muted-foreground mt-2">A team groups members of acme-corp under one name. It doesn't change anyone's access to repositories yet.</p>
           </div>
         </div>
-        <div class="bg-background border border-border rounded-lg p-8 text-center">
-  <p class="text-muted-foreground">No teams in this version.</p>
-  <p class="text-sm text-muted-foreground mt-2">Give members access one repository at a time, from each repository's collaborator settings.</p>
-</div>
       </section>
 
       <section id="repo-defaults" class="rounded-md border border-border bg-card p-6">
@@ -419,6 +444,31 @@
 </dialog>
 </main>
 
+<dialog id="team-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="team-dialog-title">
+  <form id="team-form" method="dialog">
+    <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+      <h2 id="team-dialog-title" class="text-base font-semibold leading-tight">New team in acme-corp</h2>
+      <p class="text-[13px] text-muted-foreground leading-snug">Add members after you create it.</p>
+    </div>
+    <div class="p-5 text-sm">
+      <div class="flex flex-col gap-4">
+        <div>
+          <label for="team-create-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
+          <input id="team-create-name" type="text" name="name" required maxlength="64" autocomplete="off" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground" />
+        </div>
+        <div>
+          <label for="team-create-description" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Description <span class="font-normal">(optional)</span></label>
+          <textarea id="team-create-description" name="description" rows="3" maxlength="500" class="w-full bg-background border border-input rounded-md px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+      <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Create team</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="webhook-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="webhook-dialog-title">
   <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="webhook-dialog-title" class="text-base font-semibold leading-tight">Add webhook</h2>
@@ -519,6 +569,16 @@
         czToast(b.dataset.toast);
       });
     });
+  });
+
+  // Mock-only: ?teams=none shows the empty state.
+  if (/[?&]teams=none\b/.test(location.search)) {
+    document.getElementById('teams-rows').hidden = true;
+    document.getElementById('teams-empty').hidden = false;
+  }
+
+  document.getElementById('team-form').addEventListener('submit', function () {
+    czToast('Team created');
   });
 
   var invRole = document.getElementById('invite-role');

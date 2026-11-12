@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 04 (`org_settings.templ`)
 Parallel: none with 06 or 07 (same file or a dependency). Safe with 01–03.
 
@@ -39,10 +39,10 @@ User leaves no `team_members` row; deleting the Organization cascades. Handler: 
 
 ## Acceptance criteria
 
-- [ ] Owners create teams and edit members; members see them; outsiders cannot
-- [ ] Leaving or being removed from the Organization removes Team membership
-- [ ] No change to `CanRead`/`CanWrite`/`CanManage` yet
-- [ ] Docs and mocks updated, light and dark
+- [x] Owners create teams and edit members; members see them; outsiders cannot
+- [x] Leaving or being removed from the Organization removes Team membership
+- [x] No change to `CanRead`/`CanWrite`/`CanManage` yet
+- [x] Docs and mocks updated, light and dark
 
 ## Verification
 

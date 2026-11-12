@@ -26,7 +26,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 						<span class="text-foreground">Manage</span>
 					</p>
 					<h1 class="text-2xl font-semibold tracking-tight">Manage { data.Org.Name }</h1>
-					<p class="mt-1 text-[13px] text-muted-foreground">Members, repository defaults, webhooks, and danger zone.</p>
+					<p class="mt-1 text-[13px] text-muted-foreground">Members, teams, repository defaults, webhooks, and danger zone.</p>
 				</div>
 				@components.LinkButton("/"+data.Org.Name, components.ButtonOutline, components.ButtonSizeSM, nil) {
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
@@ -241,10 +241,13 @@ templ OrgSettings(data view.OrgSettingsData) {
 						<div class="flex items-start justify-between gap-4 mb-4">
 							<div>
 								<h2 class="text-base font-semibold tracking-tight mb-1">Teams</h2>
-								<p class="text-[12.5px] text-muted-foreground">Group members and grant batch access to repositories.</p>
+								<p class="text-[12.5px] text-muted-foreground">Name a group of members. Any member of { data.Org.Name } can see teams; only owners change them.</p>
 							</div>
+							@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('team-dialog').showModal()")}) {
+								New team
+							}
 						</div>
-						@components.EmptyStateWithHint("No teams in this version.", "Give members access one repository at a time, from each repository's collaborator settings.")
+						@fragments.OrgTeams(view.OrgTeamsFragData{OrgName: data.Org.Name, Teams: data.Teams})
 					</section>
 
 					<section id="repo-defaults" class="rounded-md border border-border bg-card p-6">
@@ -454,6 +457,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 
 		@orgInviteMemberDialog(data.Org.Name, data.Confirm)
 		@orgWebhookDialog(data.Org.Name, data.Confirm)
+		@orgTeamDialog(data.Org.Name)
 		@orgTransferDialog(data.Org.Name, data.Confirm)
 		if data.RepoCount == 0 {
 			@orgDeleteDialog(data.Org.Name, data.MemberCount, data.Confirm)
@@ -510,6 +514,44 @@ templ orgWebhookDialog(orgName string, confirm components.ConfirmFactors) {
 				Add webhook
 			}
 		}
+	}
+}
+
+templ orgTeamDialog(orgName string) {
+	@components.Dialog("team-dialog") {
+		<form
+			hx-post={ "/api/orgs/" + orgName + "/teams" }
+			hx-target="#org-teams-list"
+			hx-swap="outerHTML"
+			data-toast="Team created"
+			hx-on::after:request="if(event.target===this&&ctx.response.status<400&&!ctx.hx.retarget){this.closest('dialog').close();this.reset();this.querySelector('#team-create-form-error').textContent='';}"
+		>
+			@components.DialogHeader() {
+				@components.DialogTitle("team-dialog") {
+					{ "New team in " + orgName }
+				}
+				@components.DialogDescription() {
+					Add members after you create it.
+				}
+			}
+			@components.DialogBody() {
+				<div class="flex flex-col gap-4">
+					<div id="team-create-form-error" class="empty:hidden"></div>
+					<div>
+						<label for="team-create-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
+						@components.Input(templ.Attributes{"id": "team-create-name", "type": "text", "name": "name", "required": true, "maxlength": "64", "autocomplete": "off"})
+					</div>
+					<div>
+						<label for="team-create-description" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Description <span class="font-normal">(optional)</span></label>
+						@components.Textarea(templ.Attributes{"id": "team-create-description", "name": "description", "rows": "3", "maxlength": "500"})
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Create team</button>
+			}
+		</form>
 	}
 }
 
@@ -700,9 +742,9 @@ func viewerUserID(base view.BasePage) int64 {
 
 func auditActionClass(action string) string {
 	switch action {
-	case model.AuditActionOrgDelete:
+	case model.AuditActionOrgDelete, model.AuditActionTeamDelete:
 		return "bg-destructive/15 text-destructive border-destructive/30"
-	case model.AuditActionOrgProfileUpdate, model.AuditActionOrgDefaultsUpdate:
+	case model.AuditActionOrgProfileUpdate, model.AuditActionOrgDefaultsUpdate, model.AuditActionTeamCreate, model.AuditActionTeamUpdate, model.AuditActionTeamMemberAdd, model.AuditActionTeamMemberRemove:
 		return "bg-accent text-foreground border-border"
 	case model.AuditActionRepoCreate:
 		return "bg-success/15 text-success border-success/30"
@@ -722,6 +764,16 @@ func auditActionVerb(action string) string {
 		return "updated repository defaults on"
 	case model.AuditActionOrgDelete:
 		return "deleted"
+	case model.AuditActionTeamCreate:
+		return "created a team in"
+	case model.AuditActionTeamUpdate:
+		return "edited a team in"
+	case model.AuditActionTeamDelete:
+		return "deleted a team in"
+	case model.AuditActionTeamMemberAdd:
+		return "added a team member in"
+	case model.AuditActionTeamMemberRemove:
+		return "removed a team member in"
 	case model.AuditActionRepoCreate:
 		return "created"
 	case model.AuditActionRepoDelete:

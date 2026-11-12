@@ -51,15 +51,16 @@ or a superadmin [adds an owner](./access-control.md#adding-an-organization-owner
 
 ## Pages
 
-| Route                     | Auth       | Description                                                                                                                  |
-| ------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `/organizations`          | Required   | The orgs you belong to, with your role and each org's member count                                                           |
-| `/organizations/new`      | Required   | Create-org form (`name`, `description`, `accept_tos`); the terms checkbox is enforced server-side                            |
-| `/{org}`                  | Optional   | Org profile: header, README, most-starred and recently updated repos, people, top languages                                  |
-| `/{org}?tab=repositories` | Optional   | Every org repo the viewer can see                                                                                            |
-| `/{org}?tab=people`       | Optional   | Every org member with their role; the profile sidebar shows the first 12                                                     |
-| `/orgs/{org}/settings`    | Owner only | General (profile), Members, Repository defaults, Webhooks, Audit log, Danger zone (transfer, delete); Teams is a placeholder |
-| `/repos/new?owner={org}`  | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                            |
+| Route                      | Auth       | Description                                                                                                        |
+| -------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| `/organizations`           | Required   | The orgs you belong to, with your role and each org's member count                                                 |
+| `/organizations/new`       | Required   | Create-org form (`name`, `description`, `accept_tos`); the terms checkbox is enforced server-side                  |
+| `/{org}`                   | Optional   | Org profile: header, README, most-starred and recently updated repos, people, top languages                        |
+| `/{org}?tab=repositories`  | Optional   | Every org repo the viewer can see                                                                                  |
+| `/{org}?tab=people`        | Optional   | Every org member with their role; the profile sidebar shows the first 12                                           |
+| `/orgs/{org}/settings`     | Owner only | General (profile), Members, Teams, Repository defaults, Webhooks, Audit log, Danger zone (transfer, delete)        |
+| `/orgs/{org}/teams/{slug}` | Member     | A [team](#teams): its members, and for an owner the add, rename and delete controls; 404 to anyone outside the org |
+| `/repos/new?owner={org}`   | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                  |
 
 The `/{owner}` route first checks if `owner` is a user; if not, falls back to org lookup. Org profile and user profile
 share the same URL pattern, so a name belongs to a user or an org, never both: org creation refuses a user's name, every
@@ -105,32 +106,57 @@ Owners set these on the settings page (`POST /api/orgs/{org}/repo-defaults`):
   created, transferred in or restored meanwhile blocks the delete instead of being cascaded away. Member rows cascade.
   Audit-log entries for the org are kept.
 
+## Teams
+
+A team is a named group of org members: `teams(org_id, name, slug, description)` and `team_members(team_id, user_id)`.
+It grants nothing yet; `CanRead`, `CanWrite` and `CanManage` ignore teams.
+
+- The slug is the name lowercased with every run of characters other than ASCII letters and digits collapsed to one
+  hyphen, so `Core Team` and `core-team` collide. It is unique within the org (`ErrTeamSlugTaken`), not globally, and a
+  name with no letter or digit is refused (`ErrInvalidTeamName`). Names are at most 64 characters, descriptions 500.
+- Renaming re-derives the slug, so the page address changes and the old one 404s.
+- Only an owner creates, renames and deletes teams and edits their members. Any org member can list teams and read a
+  team's roster; an outsider gets `ErrTeamNotFound` (404), never a 403.
+- Only a current org member joins (`ErrNotOrgMember`). `TeamStore.AddMember` share-locks the org row that
+  `OrgStore.changeMember` locks exclusively, so a join can't land after the removal that should have dropped it.
+- Leaving or being removed from the org deletes the person's `team_members` rows for that org in the same statement as
+  their `org_members` row. Deleting a user cascades through the `user_id` foreign key, and deleting a team or the org
+  cascades through `team_id` and `org_id`.
+
 ## Audit log
 
 Profile edits, repository-default changes, and deletes write audit entries (`org.profile.update`, `org.defaults.update`,
-`org.delete`) with `target_type = 'org'` and `target_id` set to the org ID. The settings page lists the 25 most recent
-entries for the org.
+`org.delete`); team changes write `org.team.create`, `org.team.update`, `org.team.delete`, `org.team.member_add` and
+`org.team.member_remove`, with the team's slug in the details with `target_type = 'org'` and `target_id` set to the org
+ID. The settings page lists the 25 most recent entries for the org.
 
 ## API Endpoints
 
-| Method | Path                                      | Auth       | Description                                                                                                                                                 |
-| ------ | ----------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/orgs/`                              | Required   | Create org (`name`, `display_name`, `description`)                                                                                                          |
-| GET    | `/api/orgs/{org}`                         | —          | Get org by name, including profile fields and repository defaults                                                                                           |
-| GET    | `/api/orgs/{org}/members`                 | —          | List org members                                                                                                                                            |
-| POST   | `/api/orgs/{org}/members`                 | Required   | Add member (`username`, `role`); owner only                                                                                                                 |
-| DELETE | `/api/orgs/{org}/members/{username}`      | Required   | Remove member; owner only, except a member may remove themselves; last owner blocked                                                                        |
-| POST   | `/api/orgs/{org}/members/{username}/role` | Required   | Change a member's role (`role`: `owner` or `member`); owner only; last owner cannot be demoted                                                              |
-| POST   | `/api/orgs/{org}/repos`                   | Required   | Create a repo under the org; owner only; omitted `private` falls back to `default_repo_visibility`                                                          |
-| POST   | `/api/orgs/{org}/transfer`                | Required   | Transfer org ownership (`new_owner`, optional `confirm_name` form fields); owner only; demotes self to member                                               |
-| POST   | `/api/orgs/{org}/profile`                 | Required   | Update profile fields (form post); owner only                                                                                                               |
-| POST   | `/api/orgs/{org}/repo-defaults`           | Required   | Update repository defaults (form post); owner only                                                                                                          |
-| POST   | `/api/admin/orgs/{org}/owners`            | Superadmin | Make a user an owner without being one (`username`); needs the admin's confirmation; see [access-control](./access-control.md#adding-an-organization-owner) |
-| POST   | `/api/orgs/{org}/delete`                  | Required   | Delete the org (`confirm_name` form field); owner only; refused while the org owns repositories                                                             |
+| Method | Path                                              | Auth       | Description                                                                                                                                                 |
+| ------ | ------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/orgs/`                                      | Required   | Create org (`name`, `display_name`, `description`)                                                                                                          |
+| GET    | `/api/orgs/{org}`                                 | —          | Get org by name, including profile fields and repository defaults                                                                                           |
+| GET    | `/api/orgs/{org}/members`                         | —          | List org members                                                                                                                                            |
+| POST   | `/api/orgs/{org}/members`                         | Required   | Add member (`username`, `role`); owner only                                                                                                                 |
+| DELETE | `/api/orgs/{org}/members/{username}`              | Required   | Remove member; owner only, except a member may remove themselves; last owner blocked                                                                        |
+| POST   | `/api/orgs/{org}/members/{username}/role`         | Required   | Change a member's role (`role`: `owner` or `member`); owner only; last owner cannot be demoted                                                              |
+| POST   | `/api/orgs/{org}/repos`                           | Required   | Create a repo under the org; owner only; omitted `private` falls back to `default_repo_visibility`                                                          |
+| POST   | `/api/orgs/{org}/transfer`                        | Required   | Transfer org ownership (`new_owner`, optional `confirm_name` form fields); owner only; demotes self to member                                               |
+| POST   | `/api/orgs/{org}/profile`                         | Required   | Update profile fields (form post); owner only                                                                                                               |
+| POST   | `/api/orgs/{org}/repo-defaults`                   | Required   | Update repository defaults (form post); owner only                                                                                                          |
+| GET    | `/api/orgs/{org}/teams`                           | Required   | List the org's teams with member counts; any member, 404 to others                                                                                          |
+| POST   | `/api/orgs/{org}/teams`                           | Required   | Create a team (`name`, `description`); owner only; 422 for a taken or empty slug                                                                            |
+| POST   | `/api/orgs/{org}/teams/{slug}`                    | Required   | Rename or re-describe a team (`name`, `description`); owner only                                                                                            |
+| DELETE | `/api/orgs/{org}/teams/{slug}`                    | Required   | Delete a team; owner only                                                                                                                                   |
+| GET    | `/api/orgs/{org}/teams/{slug}/members`            | Required   | List a team's members; any org member                                                                                                                       |
+| POST   | `/api/orgs/{org}/teams/{slug}/members`            | Required   | Add an org member to the team (`username`); owner only; 422 for someone outside the org                                                                     |
+| DELETE | `/api/orgs/{org}/teams/{slug}/members/{username}` | Required   | Remove a member from the team; owner only                                                                                                                   |
+| POST   | `/api/admin/orgs/{org}/owners`                    | Superadmin | Make a user an owner without being one (`username`); needs the admin's confirmation; see [access-control](./access-control.md#adding-an-organization-owner) |
+| POST   | `/api/orgs/{org}/delete`                          | Required   | Delete the org (`confirm_name` form field); owner only; refused while the org owns repositories                                                             |
 
-HTMX requests to add, remove, or change the role of a member respond with the `OrgMembers` fragment, which the settings
-page swaps into `#org-members-list`. See [api-reference.md](api-reference.md#organizations) for redirects and field
-validation.
+Team endpoints need `repo:read` (list) or `repo:admin` (change) on a scoped token. HTMX requests to add, remove, or
+change the role of a member respond with the `OrgMembers` fragment, which the settings page swaps into
+`#org-members-list`. See [api-reference.md](api-reference.md#organizations) for redirects and field validation.
 
 ## OrgService (`internal/service/org_service.go`)
 
@@ -172,3 +198,13 @@ validation.
 - `TransferOrg(ctx, orgID, requestingUserID, newOwnerUsername)` → `error` — owner-only; promotes new user to `owner`,
   demotes requesting user to `member`; adds new user as member if not already one; the demotion is refused if it would
   leave no owner, for example when the new owner's account was deleted in between
+
+## TeamService (`internal/service/team_service.go`)
+
+- `Create(ctx, orgID, requestingUserID, name, description)` → `(*Team, error)` — owner-only
+- `List(ctx, orgID, viewerID)` → `([]Team, error)` — any member; `ErrTeamNotFound` for an outsider
+- `Get(ctx, orgID, viewerID, slug)` → `(*Team, error)`
+- `Update(ctx, orgID, requestingUserID, slug, name, description)` → `(*Team, error)` — owner-only; moves the slug
+- `Delete(ctx, orgID, requestingUserID, slug)` → `(*Team, error)` — owner-only
+- `ListMembers(ctx, orgID, viewerID, slug)` → `([]TeamMember, error)`
+- `AddMember` / `RemoveMember(ctx, orgID, requestingUserID, slug, targetUserID)` → `(*Team, error)` — owner-only

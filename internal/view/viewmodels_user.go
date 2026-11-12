@@ -112,6 +112,7 @@ type OrgSettingsData struct {
 	QuotaSummary string
 	AuditEntries []model.AuditEntry
 	Webhooks     []model.Webhook
+	Teams        []model.Team
 	// What the viewer confirms making someone an owner with.
 	Confirm components.ConfirmFactors
 }
@@ -123,6 +124,32 @@ type OrgMembersFragData struct {
 	CanManage bool
 	ViewerID  int64 // for marking the viewer's own row with a "You" badge
 	Confirm   components.ConfirmFactors
+}
+
+// OrgTeamsFragData holds template data for the org settings team list.
+type OrgTeamsFragData struct {
+	OrgName string
+	Teams   []model.Team
+}
+
+// TeamMembersFragData holds template data for the team members HTMX fragment.
+type TeamMembersFragData struct {
+	OrgName  string
+	TeamSlug string
+	Members  []model.TeamMember
+	// Candidates are the usernames of org members not yet in the team; only filled for an owner.
+	Candidates []string
+	CanManage  bool
+}
+
+// OrgTeamData holds template data for a team page.
+type OrgTeamData struct {
+	BasePage
+	Org       model.Organization
+	Team      model.Team
+	Teams     []model.Team
+	Members   TeamMembersFragData
+	CanManage bool
 }
 
 // NewOrganizationData holds template data for the new-organization form page.

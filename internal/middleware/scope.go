@@ -96,6 +96,10 @@ func acceptedScopes(r *http.Request) []string {
 				return readScopes
 			case !read && len(seg) == 4 && seg[3] == "repos":
 				return writeScopes
+			case read && len(seg) >= 4 && seg[3] == "teams":
+				return readScopes
+			case !read && len(seg) >= 4 && seg[3] == "teams":
+				return adminScopes
 			case len(seg) >= 4 && seg[3] == "hooks": // list included: it returns webhook URLs
 				return adminScopes
 			case !read && len(seg) >= 4 && (seg[3] == "members" || seg[3] == "transfer" || seg[3] == "delete"):

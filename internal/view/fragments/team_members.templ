@@ -1,0 +1,69 @@
+package fragments
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+templ TeamMembers(data view.TeamMembersFragData) {
+	{{ base := "/api/orgs/" + data.OrgName + "/teams/" + data.TeamSlug + "/members" }}
+	<div id="team-members" class="flex flex-col gap-4">
+		if data.CanManage {
+			if len(data.Candidates) > 0 {
+				<form
+					hx-post={ base }
+					hx-target="#team-members"
+					hx-swap="outerHTML"
+					data-toast="Member added"
+					class="flex flex-col gap-2"
+				>
+					<div id="team-member-form-error" class="empty:hidden"></div>
+					<div class="flex items-center gap-2">
+						<label for="team-add-username" class="sr-only">Add a member</label>
+						<select id="team-add-username" name="username" required class="flex h-9 flex-1 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs">
+							for _, u := range data.Candidates {
+								<option value={ u }>{ u }</option>
+							}
+						</select>
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Add to team
+						}
+					</div>
+				</form>
+			} else {
+				<p class="text-[12px] text-muted-foreground">Every member of the organization is already on this team. Invite someone to the organization first to add more.</p>
+			}
+		}
+		if len(data.Members) > 0 {
+			<ul class="divide-y divide-border border border-border rounded-md">
+				for _, m := range data.Members {
+					<li class="px-4 py-3 flex items-center gap-3">
+						@components.Avatar(m.Username, components.AvatarSizeDefault, m.Username)
+						<div class="min-w-0 flex-1">
+							<a href={ templ.SafeURL("/" + m.Username) } class="text-[13.5px] font-medium hover:underline">{ m.Username }</a>
+							<p class="text-[11.5px] text-muted-foreground font-mono">{ "@" + m.Username }</p>
+						</div>
+						if data.CanManage {
+							<button
+								type="button"
+								hx-delete={ base + "/" + m.Username }
+								hx-target="#team-members"
+								hx-swap="outerHTML"
+								hx-confirm={ m.Username + " stays in the organization but leaves this team." }
+								data-confirm-title={ "Remove " + m.Username + " from this team?" }
+								data-confirm-label="Remove"
+								data-confirm-danger="true"
+								data-toast="Member removed"
+								class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0"
+							>
+								Remove
+							</button>
+						}
+					</li>
+				}
+			</ul>
+		} else {
+			@components.EmptyState("No one is on this team yet.")
+		}
+	</div>
+}
