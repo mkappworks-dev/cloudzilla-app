@@ -444,6 +444,7 @@ templ Base(base view.BasePage, title string) {
 							t.classList.toggle('border-transparent', !on);
 							t.classList.toggle('text-muted-foreground', !on);
 							t.setAttribute('aria-selected', on ? 'true' : 'false');
+							t.tabIndex = on ? 0 : -1;
 						});
 						ed.querySelector('[data-md-pane="write"]').classList.toggle('hidden', mode !== 'write');
 						ed.querySelector('[data-md-pane="preview"]').classList.toggle('hidden', mode !== 'preview');
@@ -456,6 +457,18 @@ templ Base(base view.BasePage, title string) {
 						ta.setRangeText(out, s, e, 'end');
 						ta.focus();
 					}
+					document.addEventListener('keydown', function(e) {
+						var tab = e.target.closest && e.target.closest('[data-md-tab]');
+						if (!tab || e.altKey || e.ctrlKey || e.metaKey) return;
+						var tabs = Array.prototype.slice.call(tab.closest('[role=tablist]').querySelectorAll('[role=tab]'));
+						var i = tabs.indexOf(tab);
+						var next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+						if (next === undefined) return;
+						e.preventDefault();
+						var to = tabs[(next + tabs.length) % tabs.length];
+						to.focus();
+						to.click();
+					});
 					document.addEventListener('click', function(e) {
 						var tab = e.target.closest('[data-md-tab]');
 						if (tab) { setMode(tab.closest('[data-md-editor]'), tab.dataset.mdTab); return; }

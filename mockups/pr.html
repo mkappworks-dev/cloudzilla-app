@@ -947,8 +947,13 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
     <div class="p-5 text-sm">
       <label for="review-body" class="sr-only">Review summary</label>
       <div class="rounded-md border border-border overflow-hidden">
-        <textarea id="review-body" name="body" rows="4" placeholder="Leave a summary — Markdown supported" class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground"></textarea>
+        <textarea id="review-body" name="body" rows="4" aria-describedby="review-body-hint" placeholder="Leave a summary — Markdown supported" class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground"></textarea>
       </div>
+      <p id="review-body-hint" class="mt-1.5 text-[12px] text-muted-foreground" data-review-hint>
+        <span data-hint="commented">A comment needs a summary.</span>
+        <span data-hint="changes_requested" hidden>Request changes needs a summary of what to fix.</span>
+        <span data-hint="approved" hidden>A summary is optional when you approve.</span>
+      </p>
       <div role="radiogroup" aria-label="Review type" class="grid gap-3 mt-4">
       <label class="flex items-start gap-3 cursor-pointer">
         <input type="radio" name="state" value="commented" checked class="h-4 w-4 shrink-0 border border-input bg-transparent accent-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50 mt-0.5" />
@@ -1215,6 +1220,13 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
     subBtn.querySelector('span').textContent = on ? 'Unsubscribe' : 'Subscribe';
     document.getElementById('sub-muted').hidden = true;
     subText.textContent = on ? 'You’re receiving notifications.' : 'You’re not receiving notifications from this thread.';
+  });
+</script>
+<script>
+  document.querySelectorAll('#review-form input[name=state]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      document.querySelectorAll('[data-review-hint] [data-hint]').forEach(function (h) { h.hidden = h.dataset.hint !== r.value; });
+    });
   });
 </script>
 </body>

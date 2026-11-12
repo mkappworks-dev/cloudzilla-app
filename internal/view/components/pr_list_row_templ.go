@@ -200,14 +200,14 @@ func PRListRow(d PRListRowData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if len(d.ReviewerAvatars) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div class=\"flex -space-x-1.5\" aria-label=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div class=\"flex -space-x-1.5\" role=\"img\" aria-label=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(Count(len(d.ReviewerAvatars), "reviewer", "reviewers")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/pr_list_row.templ`, Line: 62, Col: 104}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/pr_list_row.templ`, Line: 62, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {

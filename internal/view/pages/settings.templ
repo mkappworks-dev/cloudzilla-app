@@ -807,15 +807,18 @@ templ settingsDangerSection(data view.SettingsData) {
 					onsubmit={ confirmDeleteAccount(data.User.Username) }
 				>
 					@components.ConfirmFields("delete-account", data.Confirm, true)
-					<input
-						type="text"
-						name="confirm_username"
-						placeholder="type your username"
-						aria-label="Type your username to confirm"
-						required
-						autocomplete="off"
-						class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring"
-					/>
+					<div class="space-y-1">
+						<label for="delete-account-username" class="block text-[11.5px] text-muted-foreground">Type your username to confirm</label>
+						<input
+							id="delete-account-username"
+							type="text"
+							name="confirm_username"
+							placeholder={ data.User.Username }
+							required
+							autocomplete="off"
+							class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring"
+						/>
+					</div>
 					<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete account</button>
 				</form>
 			</li>

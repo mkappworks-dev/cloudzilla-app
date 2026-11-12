@@ -255,7 +255,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<form hx-post=\"/api/admin/invitations\" hx-target=\"#admin-invitations-list\" hx-swap=\"outerHTML\" data-toast=\"Invitation sent\" data-confirm-identity=\"Send invite\" class=\"flex gap-3 mb-6\"><label for=\"invite-email\" class=\"sr-only\">Invitee email</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<form hx-post=\"/api/admin/invitations\" hx-target=\"#admin-invitations-list\" hx-swap=\"outerHTML\" data-toast=\"Invitation sent\" data-confirm-identity=\"Send invite\" class=\"flex items-end gap-3 mb-6\"><div class=\"flex-1 space-y-1.5\"><label for=\"invite-email\" class=\"block text-xs font-medium text-muted-foreground\">Invitee email</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -265,8 +265,11 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 						"name":        "email",
 						"placeholder": "user@example.com",
 						"required":    "required",
-						"class":       "flex-1",
 					}).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -282,7 +285,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "Send invite")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "Send invite")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -292,7 +295,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</form>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</form>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -348,7 +351,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "Email verification")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "Email verification")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -370,7 +373,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "Mark a user's email address verified by hand, for instances that can't send the verification link. A verified address lets the Google account with that address sign in to the user's account, so only vouch for addresses you know are theirs.")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "Mark a user's email address verified by hand, for instances that can't send the verification link. A verified address lets the Google account with that address sign in to the user's account, so only vouch for addresses you know are theirs.")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -398,7 +401,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<form method=\"POST\" action=\"/api/admin/users/verify-email\" hx-post=\"/api/admin/users/verify-email\" hx-swap=\"none\" hx-on::after:request=\"if(ctx.response.status<400){this.reset();}\" data-toast=\"Email marked verified\" data-confirm-identity=\"Mark verified\" class=\"flex flex-col sm:flex-row gap-3\"><label for=\"verify-username\" class=\"sr-only\">Username</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<form method=\"POST\" action=\"/api/admin/users/verify-email\" hx-post=\"/api/admin/users/verify-email\" hx-swap=\"none\" hx-on::after:request=\"if(ctx.response.status<400){this.reset();}\" data-toast=\"Email marked verified\" data-confirm-identity=\"Mark verified\" class=\"flex flex-col sm:flex-row sm:items-end gap-3\"><div class=\"flex-1 space-y-1.5\"><label for=\"verify-username\" class=\"block text-xs font-medium text-muted-foreground\">Username</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -409,12 +412,11 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 						"placeholder":  "username",
 						"required":     "required",
 						"autocomplete": "off",
-						"class":        "flex-1",
 					}).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<label for=\"verify-email\" class=\"sr-only\">Email</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div><div class=\"flex-1 space-y-1.5\"><label for=\"verify-email\" class=\"block text-xs font-medium text-muted-foreground\">Email</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -425,8 +427,11 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 						"placeholder":  "user@example.com",
 						"required":     "required",
 						"autocomplete": "off",
-						"class":        "flex-1",
 					}).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -442,7 +447,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "Mark verified")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "Mark verified")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -452,7 +457,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</form>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</form>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -468,7 +473,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

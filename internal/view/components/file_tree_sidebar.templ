@@ -155,8 +155,8 @@ templ treeItem(n TreeNode, depth int) {
 						hx-target="next ol"
 						hx-swap="innerHTML"
 					}
-					class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50"
-					aria-label="Toggle folder"
+					class="shrink-0 h-6 w-6 flex items-center justify-center text-muted-foreground/50"
+					aria-label={ "Toggle folder " + n.Name }
 				>
 					<svg class={ chevronClass(n.IsOpen) } :class="{ 'rotate-90': open || revealsChildren($el.closest('li')) }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 						<path d="M9 6l6 6-6 6"></path>

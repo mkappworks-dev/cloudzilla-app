@@ -55,9 +55,11 @@
     <p class="text-[12px] text-muted-foreground">Invite users to join this instance by email.</p>
   </div>
   <div class="p-5">
-    <form id="invite-form" class="flex gap-3 mb-6">
-      <label for="invite-email" class="sr-only">Invitee email</label>
-      <input id="invite-email" type="email" name="email" placeholder="user@example.com" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+    <form id="invite-form" class="flex items-end gap-3 mb-6">
+      <div class="flex-1 space-y-1.5">
+        <label for="invite-email" class="block text-xs font-medium text-muted-foreground">Invitee email</label>
+        <input id="invite-email" type="email" name="email" placeholder="user@example.com" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+      </div>
       <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90">Send invite</button>
     </form>
     <div id="admin-invitations-list" class="space-y-2">
@@ -92,11 +94,15 @@
     <p class="text-[12px] text-muted-foreground">Mark a user's email address verified by hand, for instances that can't send the verification link. A verified address lets the Google account with that address sign in to the user's account, so only vouch for addresses you know are theirs.</p>
   </div>
   <div class="p-5">
-    <form id="verify-form" class="flex flex-col sm:flex-row gap-3">
-      <label for="verify-username" class="sr-only">Username</label>
-      <input id="verify-username" type="text" name="username" placeholder="username" required autocomplete="off" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
-      <label for="verify-email" class="sr-only">Email</label>
-      <input id="verify-email" type="email" name="email" placeholder="user@example.com" required autocomplete="off" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+    <form id="verify-form" class="flex flex-col sm:flex-row sm:items-end gap-3">
+      <div class="flex-1 space-y-1.5">
+        <label for="verify-username" class="block text-xs font-medium text-muted-foreground">Username</label>
+        <input id="verify-username" type="text" name="username" placeholder="username" required autocomplete="off" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+      </div>
+      <div class="flex-1 space-y-1.5">
+        <label for="verify-email" class="block text-xs font-medium text-muted-foreground">Email</label>
+        <input id="verify-email" type="email" name="email" placeholder="user@example.com" required autocomplete="off" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+      </div>
       <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90">Mark verified</button>
     </form>
   </div>

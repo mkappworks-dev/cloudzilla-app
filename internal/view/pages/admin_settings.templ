@@ -42,16 +42,17 @@ templ AdminSettings(data view.AdminSettingsData) {
 					}
 				}
 				@components.CardContent() {
-					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" data-toast="Invitation sent" data-confirm-identity="Send invite" class="flex gap-3 mb-6">
-						<label for="invite-email" class="sr-only">Invitee email</label>
-						@components.Input(templ.Attributes{
-							"id":          "invite-email",
-							"type":        "email",
-							"name":        "email",
-							"placeholder": "user@example.com",
-							"required":    "required",
-							"class":       "flex-1",
-						})
+					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" data-toast="Invitation sent" data-confirm-identity="Send invite" class="flex items-end gap-3 mb-6">
+						<div class="flex-1 space-y-1.5">
+							<label for="invite-email" class="block text-xs font-medium text-muted-foreground">Invitee email</label>
+							@components.Input(templ.Attributes{
+								"id":          "invite-email",
+								"type":        "email",
+								"name":        "email",
+								"placeholder": "user@example.com",
+								"required":    "required",
+							})
+						</div>
 						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 							Send invite
 						}
@@ -77,28 +78,30 @@ templ AdminSettings(data view.AdminSettingsData) {
 						hx-on::after:request="if(ctx.response.status<400){this.reset();}"
 						data-toast="Email marked verified"
 						data-confirm-identity="Mark verified"
-						class="flex flex-col sm:flex-row gap-3"
+						class="flex flex-col sm:flex-row sm:items-end gap-3"
 					>
-						<label for="verify-username" class="sr-only">Username</label>
-						@components.Input(templ.Attributes{
-							"id":           "verify-username",
-							"type":         "text",
-							"name":         "username",
-							"placeholder":  "username",
-							"required":     "required",
-							"autocomplete": "off",
-							"class":        "flex-1",
-						})
-						<label for="verify-email" class="sr-only">Email</label>
-						@components.Input(templ.Attributes{
-							"id":           "verify-email",
-							"type":         "email",
-							"name":         "email",
-							"placeholder":  "user@example.com",
-							"required":     "required",
-							"autocomplete": "off",
-							"class":        "flex-1",
-						})
+						<div class="flex-1 space-y-1.5">
+							<label for="verify-username" class="block text-xs font-medium text-muted-foreground">Username</label>
+							@components.Input(templ.Attributes{
+								"id":           "verify-username",
+								"type":         "text",
+								"name":         "username",
+								"placeholder":  "username",
+								"required":     "required",
+								"autocomplete": "off",
+							})
+						</div>
+						<div class="flex-1 space-y-1.5">
+							<label for="verify-email" class="block text-xs font-medium text-muted-foreground">Email</label>
+							@components.Input(templ.Attributes{
+								"id":           "verify-email",
+								"type":         "email",
+								"name":         "email",
+								"placeholder":  "user@example.com",
+								"required":     "required",
+								"autocomplete": "off",
+							})
+						</div>
 						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 							Mark verified
 						}

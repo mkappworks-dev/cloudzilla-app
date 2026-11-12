@@ -26,23 +26,26 @@ templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 				data-toast="Collaborator added"
 				class="flex flex-wrap items-end gap-3 mb-4"
 			>
-				<label for="collab-username" class="sr-only">Username</label>
-				@components.Input(templ.Attributes{
-					"id":          "collab-username",
-					"type":        "text",
-					"name":        "username",
-					"placeholder": "Username",
-					"required":    "required",
-					"class":       "flex-1",
-				})
-				<label for="collab-role" class="sr-only">Role</label>
-				<select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">
-					<option value="reader">Reader</option>
-					<option value="writer">Writer</option>
-					if data.IsOwner {
-						<option value="admin">Admin</option>
-					}
-				</select>
+				<div class="flex-1 space-y-1.5">
+					<label for="collab-username" class="block text-xs font-medium text-muted-foreground">Username</label>
+					@components.Input(templ.Attributes{
+						"id":          "collab-username",
+						"type":        "text",
+						"name":        "username",
+						"placeholder": "e.g. ada-silva",
+						"required":    "required",
+					})
+				</div>
+				<div class="space-y-1.5">
+					<label for="collab-role" class="block text-xs font-medium text-muted-foreground">Role</label>
+					<select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">
+						<option value="reader">Reader</option>
+						<option value="writer">Writer</option>
+						if data.IsOwner {
+							<option value="admin">Admin</option>
+						}
+					</select>
+				</div>
 				@components.ConfirmFields("collab", data.Confirm, true)
 				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 					Add

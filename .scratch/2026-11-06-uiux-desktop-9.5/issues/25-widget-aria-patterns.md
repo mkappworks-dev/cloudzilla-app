@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: 24
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -35,9 +35,9 @@ Ticket 12 gates what axe can detect; none of these are automated findings, so th
 
 ## Acceptance criteria
 
-- [ ] Editor tabs: arrow keys move between tabs, `aria-controls`/`aria-labelledby` pair tab and panel
-- [ ] Every menu opens, navigates and closes by keyboard and returns focus to its trigger
-- [ ] Keyboard pass on the editor and home menus, recorded in the PR
+- [x] Editor tabs: arrow keys move between tabs, `aria-controls`/`aria-labelledby` pair tab and panel
+- [x] Every menu opens, navigates and closes by keyboard and returns focus to its trigger
+- [x] Keyboard pass on the editor and home menus, recorded in the PR
 
 ## Verification
 
@@ -52,3 +52,10 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-12 (wave 2 re-score): Wave 2 re-score, same area: icon-only controls (the ~8px × on review comments, copy buttons, tree/list toggles, edit and add icons) have no visible name and small targets, accessible names unverified (Claude and Codex); inputs that rely on a placeholder as their label (collaborator Username, gist filename, "type your username", admin invitation fields); unnamed initials avatars in Participants and Reviewers (`pull-*`, `repo-settings`, `gist-new`); the review dialog textarea has a screen-reader label but no hint that a summary is required for Request changes. Check each for an accessible name, a 24px target and a visible label.
 
 2026-11-12: waits for 24, which also edits `home.templ`.
+
+2026-11-12 (done): editor tabs follow the WAI-ARIA tabs pattern with automatic activation; one delegated handler in
+`select-menu.js` gives every `role=menu` popup arrows, Home/End, Escape, Tab and focus return. Item 3 needed no change:
+every `focus:ring` is on a text control, which always matches `:focus-visible`, and no button or link uses `focus:`.
+Wave 2: every icon-only control already had an accessible name; targets raised to 24px, placeholder-only inputs got
+visible labels (collaborator, invite, verify email, delete account), reviewer initials are named, and the review dialog
+says a summary is needed.

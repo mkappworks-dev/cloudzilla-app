@@ -992,7 +992,7 @@ func Repo(data view.RepoData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.CanManage {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "<button type=\"button\" onclick=\"document.getElementById('repo-edit-modal').showModal()\" class=\"text-muted-foreground hover:text-foreground\" aria-haspopup=\"dialog\" aria-label=\"Edit repository details\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7\"></path><path d=\"M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z\"></path></svg></button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "<button type=\"button\" onclick=\"document.getElementById('repo-edit-modal').showModal()\" class=\"inline-grid h-6 w-6 place-items-center rounded-sm hover:bg-accent text-muted-foreground hover:text-foreground\" aria-haspopup=\"dialog\" aria-label=\"Edit repository details\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7\"></path><path d=\"M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z\"></path></svg></button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

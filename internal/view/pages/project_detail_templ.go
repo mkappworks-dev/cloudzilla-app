@@ -483,7 +483,7 @@ func ProjectDetail(data view.ProjectDetailData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" aria-haspopup=\"menu\" x-bind:aria-expanded=\"open.toString()\" @click=\"toggle()\" class=\"rounded px-1.5 text-muted-foreground hover:bg-muted hover:text-foreground\">⋯</button><div x-show=\"open\" x-cloak class=\"absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-md\"><div x-show=\"!confirming\" role=\"menu\"><button type=\"button\" role=\"menuitem\" x-ref=\"deleteItem\" @click=\"ask()\" class=\"w-full rounded px-2 py-1.5 text-left text-[13px] text-destructive hover:bg-muted\">Delete column</button></div><div x-show=\"confirming\" x-cloak role=\"group\" aria-labelledby=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" aria-haspopup=\"menu\" x-bind:aria-expanded=\"open.toString()\" @click=\"toggle()\" class=\"h-6 min-w-6 rounded px-1.5 text-muted-foreground hover:bg-muted hover:text-foreground\">⋯</button><div x-show=\"open\" x-cloak class=\"absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-md\"><div x-show=\"!confirming\" role=\"menu\"><button type=\"button\" role=\"menuitem\" x-ref=\"deleteItem\" @click=\"ask()\" class=\"w-full rounded px-2 py-1.5 text-left text-[13px] text-destructive hover:bg-muted\">Delete column</button></div><div x-show=\"confirming\" x-cloak role=\"group\" aria-labelledby=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
