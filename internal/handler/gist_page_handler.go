@@ -107,7 +107,7 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 			slog.Warn("gists: private count failed; hiding badge", "user_id", claims.UserID, "error", err)
 			data.PrivateCount = -1
 		}
-		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
+		data.BasePage = withAccountSubnav(data.BasePage, "explore-gists", h.accountCounts(ctx, claims.UserID))
 	}
 	owners := make([]string, len(data.Gists))
 	for i, g := range data.Gists {
@@ -155,7 +155,11 @@ func (h *Handler) PageGistDetail(w http.ResponseWriter, r *http.Request) {
 		IsOwner:  isOwner,
 	}
 	if signedIn {
-		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
+		active := "explore-gists"
+		if isOwner {
+			active = "gists"
+		}
+		data.BasePage = withAccountSubnav(data.BasePage, active, h.accountCounts(ctx, claims.UserID))
 	}
 	h.render(w, h.withAvatars(r, g.OwnerName), pages.GistDetail(data))
 }
@@ -175,6 +179,10 @@ func (h *Handler) PageGistEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if g.OwnerID != claims.UserID {
+		if !g.Public {
+			http.Error(w, "gist not found", http.StatusNotFound)
+			return
+		}
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}

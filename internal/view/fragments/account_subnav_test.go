@@ -52,3 +52,17 @@ func TestAccountSubnav_OmitsZeroCount(t *testing.T) {
 		t.Errorf("zero count should not render a badge")
 	}
 }
+
+func TestAccountSubnav_GistsTabLeadsToOwnProfileTab(t *testing.T) {
+	var buf bytes.Buffer
+	if err := AccountSubnav(AccountSubnavData{Active: "overview", Username: "ada"}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, `href="/ada?tab=gists"`) {
+		t.Error("Gists tab should lead to the user's profile Gists tab")
+	}
+	if !strings.Contains(out, `href="/gists"`) || !strings.Contains(out, "Explore gists") {
+		t.Error("Explore gists should be its own entry leading to /gists")
+	}
+}

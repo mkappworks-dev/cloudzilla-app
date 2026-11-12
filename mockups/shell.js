@@ -189,7 +189,7 @@
   ];
   var ACCOUNT_TABS = [
     ['overview', 'Overview', 'home.html'], ['repositories', 'Repositories', 'my_repositories.html', 14],
-    ['gists', 'Gists', 'gists.html', 3], ['pulls', 'Pull requests', 'my_pulls.html', 4],
+    ['gists', 'Gists', 'profile.html?tab=gists', 3], ['explore-gists', 'Explore gists', 'gists.html'], ['pulls', 'Pull requests', 'my_pulls.html', 4],
     ['issues', 'Issues', 'my_issues.html', 7], ['attention', 'Attention', 'attention.html', 5],
     ['activity', 'Activity', 'activity.html'], ['settings', 'Settings', 'account_settings.html'],
   ];

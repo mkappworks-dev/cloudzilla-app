@@ -96,8 +96,10 @@ type RepoRef struct {
 
 // A missing or zero Counts entry hides that tab's badge.
 type AccountSubnavInfo struct {
-	Active string // "overview" | "repositories" | "gists" | "pulls" | "issues"
-	Counts map[string]int
+	Active string // "overview" | "repositories" | "gists" | "explore-gists" | "pulls" | "issues"
+	// Username is the signed-in user; the Gists tab leads to their profile's Gists tab.
+	Username string
+	Counts   map[string]int
 }
 
 type HomeData struct {

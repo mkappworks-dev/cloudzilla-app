@@ -131,6 +131,29 @@ func TestGists_PrivateGistIsHiddenFromOthers(t *testing.T) {
 	}
 }
 
+func TestGists_PrivateGistStaysOwnerOnlyOnEveryReadPath(t *testing.T) {
+	e := newTransferEnv(t)
+	me, other := e.account(t), e.account(t)
+	marker := "secret_" + testutil.UniqueSuffix(t) + ".go"
+	private := createGist(t, e, me, false, marker)
+
+	if rr := serve(e.h, browserRequest(http.MethodGet, "/gists/"+private+"/edit", other.session, nil)); rr.Code != http.StatusNotFound {
+		t.Errorf("another user's edit form for a private gist: got %d, want 404", rr.Code)
+	}
+	for _, session := range []string{"", other.session} {
+		for _, path := range []string{"/gists", "/gists?tab=private", "/" + me.name + "?tab=gists"} {
+			rr := serve(e.h, browserRequest(http.MethodGet, path, session, nil))
+			if strings.Contains(rr.Body.String(), marker) {
+				t.Errorf("GET %s leaked a private gist (session %q)", path, session)
+			}
+		}
+	}
+	rr := serve(e.h, browserRequest(http.MethodGet, "/"+me.name+"?tab=gists", me.session, nil))
+	if !strings.Contains(rr.Body.String(), marker) {
+		t.Error("the owner's profile Gists tab should list their private gist")
+	}
+}
+
 func TestGists_Pages(t *testing.T) {
 	e := newTransferEnv(t)
 	me, other := e.account(t), e.account(t)

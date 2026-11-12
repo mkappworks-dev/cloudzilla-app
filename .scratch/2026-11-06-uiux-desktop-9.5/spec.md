@@ -58,9 +58,8 @@ The current order, updated after each re-score. Rows in one step run as parallel
 
 | Step | Tickets                    | Runs as                                         | Status                                      |
 | ---- | -------------------------- | ----------------------------------------------- | ------------------------------------------- |
-| ✅    | 00–14, 20, 22 (waves 1–2), 23–25, 30–33, 35–40 | —                  | merged (24, 32, 33, 38, 39: #291–#295; 25, 31, 35, 36, 37, 40: #296–#301) |
-| 5    | 29 dark surfaces           | alone (restyles every page)                     | running                                     |
-| 6    | 26, 28                     | parallel                                        | needs-info: Unlisted vs private gists (26); terms page or drop it (28 item 6) |
+| ✅    | 00–14, 20, 22 (waves 1–2), 23–25, 29–33, 35–40 | —                  | merged (24, 32, 33, 38, 39: #291–#295; 25, 31, 35, 36, 37, 40: #296–#301; 29: #302) |
+| 6    | 26, 28                     | parallel                                        | running (26 decided: private is enforced, copy-only fix; 28 decided: add a terms page) |
 | 6    | 27, 34, 15–19              | spec sessions any time; builds here             | ready-for-human                             |
 | 7    | 22 (wave 3)                | after 19                                        | re-score and polish                         |
 | —    | 21 mock generator          | —                                               | wontfix: mocks stay hand-written            |

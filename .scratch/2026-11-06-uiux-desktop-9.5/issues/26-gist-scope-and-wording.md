@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: needs-info
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -24,7 +24,7 @@ Found by the wave 1 re-score (Codex).
 ## Scope
 
 - Point the account tab at the user's own gists (`/{owner}/gists`) and keep Explore as its own entry.
-- Decide Unlisted vs enforced private (needs a maintainer call), then align copy on all three gist pages.
+- Private gists are enforced (maintainer call, see Comments): align copy on every gist page as owner-only.
 - Remove the revision promise or ship a history view.
 
 ## Files
@@ -35,9 +35,9 @@ Found by the wave 1 re-score (Codex).
 
 ## Acceptance criteria
 
-- [ ] The profile's Gists tab lists that user's gists
-- [ ] One term for link-only gists across list, new, edit and detail
-- [ ] No copy promises revision history unless it is browsable
+- [x] The profile's Gists tab lists that user's gists
+- [x] Private gists are described as owner-only on list, new, edit and detail
+- [x] No copy promises revision history unless it is browsable
 
 ## Verification
 
@@ -48,3 +48,10 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-06 (wave 1 re-score): opened by ticket 22. Run `/triage` before any code.
 
 2026-11-12 (triage): needs-info: maintainer to decide "Unlisted" vs enforced private gists before any copy change.
+
+2026-11-12 (maintainer): decided private gists ARE enforced, replacing the Unlisted-vs-private question. The label stays
+"Private" and the copy says private gists are visible only to the owner. Re-verified every read path: the detail page,
+the Explore list, the profile Gists tab and the counts only expose a private gist to its owner, and there are no raw,
+fork, star, search or API read routes for gists. One existence leak found and fixed: the edit form answered a non-owner
+`403` for a private gist (`404` for a missing one); it now answers `404`. Also fixed a third term, "Secret", on the
+profile Gists tab.
