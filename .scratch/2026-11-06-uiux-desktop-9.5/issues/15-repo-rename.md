@@ -23,7 +23,7 @@ Repo settings render the name read-only ("Renaming from settings is not yet avai
 
 ## Acceptance criteria
 
-- [ ] Spec and tickets exist
+- [x] Spec and tickets exist
 - [ ] All its tickets done
 - [ ] ROADMAP status updated
 
@@ -34,3 +34,7 @@ Per its spec.
 ## Comments
 
 2026-11-06 (triage): ready-for-human; needs a spec first.
+
+2026-11-12 (spec session): spec written at [`.scratch/2026-11-12-repo-rename/spec.md`](../../2026-11-12-repo-rename/spec.md).
+The build tickets (01–07) live there, not here; this ticket is done when they are, and ticket 07 marks it `done`.
+Status stays `ready-for-human` until then. Org name change stays with ticket 34.
