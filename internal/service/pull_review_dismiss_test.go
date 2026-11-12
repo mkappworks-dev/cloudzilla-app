@@ -17,11 +17,11 @@ import (
 )
 
 type dismissFixture struct {
-	svc                *service.PullReviewService
-	owner, repo        string
-	pull               *model.PullRequest
-	reviewer, outsider string
-	reviewerID         int64
+	svc         *service.PullReviewService
+	owner, repo string
+	pull        *model.PullRequest
+	reviewer    string
+	reviewerID  int64
 }
 
 func newDismissFixture(t *testing.T, db *sql.DB) dismissFixture {
