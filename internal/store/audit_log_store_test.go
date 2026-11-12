@@ -66,3 +66,38 @@ func TestAuditLogStore_List_PagesNewestFirst(t *testing.T) {
 		}
 	}
 }
+
+func TestAuditLogStore_List_Sorts(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+	testutil.Exec(t, db, `INSERT INTO audit_log (actor_name, action, target_name, created_at) VALUES
+		('bob',   'repo.create', 'z-repo', now() - interval '3 minutes'),
+		('Alice', 'login',       'a-repo', now() - interval '2 minutes'),
+		('carol', 'login',       'm-repo', now() - interval '1 minute')`)
+	s := store.NewAuditLogStore(db)
+
+	for _, tc := range []struct {
+		name   string
+		filter model.AuditFilter
+		want   []string
+	}{
+		{"default", model.AuditFilter{}, []string{"carol", "Alice", "bob"}},
+		{"time asc", model.AuditFilter{Sort: "time"}, []string{"bob", "Alice", "carol"}},
+		{"actor ignores case", model.AuditFilter{Sort: "actor"}, []string{"Alice", "bob", "carol"}},
+		{"action then newest", model.AuditFilter{Sort: "action", Desc: true}, []string{"bob", "carol", "Alice"}},
+		{"target desc", model.AuditFilter{Sort: "target", Desc: true}, []string{"bob", "carol", "Alice"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			entries, err := s.List(context.Background(), tc.filter, 1, 10)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			for _, e := range entries {
+				got = append(got, e.ActorName)
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("order = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

@@ -233,4 +233,14 @@ func TestUserStore_ListForAdmin(t *testing.T) {
 	if got, _ := ids(model.AdminUserFilter{Query: "%"}, 1, 50); len(got) != 0 {
 		t.Errorf("percent = %v, want none", got)
 	}
+	// Sorting is by lower-cased name with ties broken by id in the same direction.
+	if got, _ := ids(model.AdminUserFilter{Sort: "username"}, 1, 50); !slices.Equal(got, []int64{admin, plain, suspended, wild}) {
+		t.Errorf("username asc = %v", got)
+	}
+	if got, _ := ids(model.AdminUserFilter{Sort: "email", Desc: true}, 1, 50); !slices.Equal(got, []int64{wild, suspended, plain, admin}) {
+		t.Errorf("email desc = %v", got)
+	}
+	if got, _ := ids(model.AdminUserFilter{Sort: "created"}, 1, 50); !slices.Equal(got, []int64{wild, suspended, plain, admin}) {
+		t.Errorf("created asc = %v", got)
+	}
 }

@@ -284,7 +284,7 @@ templ Base(base view.BasePage, title string) {
 				<div role="status" class="border-b border-warning/40 bg-warning/10 text-sm">
 					<form method="POST" action="/admin/mode/leave" class="max-w-[1400px] mx-auto px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
 						<span class="font-medium text-warning">Acting as instance admin</span>
-						<span class="text-muted-foreground">· expires <time datetime={ base.AdminMode.ISO() }>{ base.AdminMode.Clock() } UTC</time> ·</span>
+						<span class="text-muted-foreground">· expires <time datetime={ base.AdminMode.ISO() }>{ base.AdminMode.Clock() } UTC</time> ({ view.In(base.AdminMode.ExpiresAt) }) ·</span>
 						<button type="submit" class="underline underline-offset-2 hover:no-underline">Leave admin mode</button>
 					</form>
 				</div>

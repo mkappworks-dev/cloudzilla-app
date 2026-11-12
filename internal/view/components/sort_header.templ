@@ -1,0 +1,23 @@
+package components
+
+// SortHeader is a column header that links to its own sorting. dir is "ascending" or "descending" for the sorted
+// column and "" for the rest.
+templ SortHeader(label, href, dir string) {
+	<th scope="col" class="px-4 py-3 font-medium" if dir != "" {
+		aria-sort={ dir }
+	}>
+		<a href={ templ.SafeURL(href) } class={ "inline-flex items-center gap-1 hover:text-foreground", templ.KV("text-foreground", dir != "") }>
+			{ label }
+			<span aria-hidden="true" class="text-[10px]">
+				switch dir {
+					case "ascending":
+						↑
+					case "descending":
+						↓
+					default:
+						<span class="opacity-40">↕</span>
+				}
+			</span>
+		</a>
+	</th>
+}

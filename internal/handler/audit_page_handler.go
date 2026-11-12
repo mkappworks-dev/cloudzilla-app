@@ -27,6 +27,8 @@ func (h *Handler) PageAuditLog(w http.ResponseWriter, r *http.Request) {
 		TargetType: r.URL.Query().Get("target_type"),
 	}
 
+	filter.Sort, filter.Desc = model.AuditSort.Resolve(r.URL.Query().Get("sort"), r.URL.Query().Get("dir"))
+
 	entries, total, err := h.Services.AuditLog.List(ctx, filter, page, perPage)
 	if err != nil {
 		slog.Error("failed to list audit log entries", "error", err)

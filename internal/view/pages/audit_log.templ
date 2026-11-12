@@ -1,8 +1,6 @@
 package pages
 
 import (
-	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -59,11 +57,12 @@ templ AuditLog(data view.AuditLogData) {
 					<table class="w-full text-sm">
 						<thead>
 							<tr class="text-left text-muted-foreground border-b border-border bg-muted">
-								<th class="px-4 py-3 font-medium">Time</th>
-								<th class="px-4 py-3 font-medium">Actor</th>
-								<th class="px-4 py-3 font-medium">Action</th>
-								<th class="px-4 py-3 font-medium">Target</th>
-								<th class="px-4 py-3 font-medium">IP address</th>
+								@components.SortHeader("Time", auditSortURL(data.Filter, "time"), auditAriaSort(data.Filter, "time"))
+								@components.SortHeader("Actor", auditSortURL(data.Filter, "actor"), auditAriaSort(data.Filter, "actor"))
+								@components.SortHeader("Action", auditSortURL(data.Filter, "action"), auditAriaSort(data.Filter, "action"))
+								@components.SortHeader("Target", auditSortURL(data.Filter, "target"), auditAriaSort(data.Filter, "target"))
+								<th scope="col" class="px-4 py-3 font-medium">Details</th>
+								<th scope="col" class="px-4 py-3 font-medium">IP address</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-border">
@@ -82,6 +81,20 @@ templ AuditLog(data view.AuditLogData) {
 										}
 										{ e.TargetName }
 									</td>
+									<td class="px-4 py-3 text-xs">
+										if details := auditDetails(e.Metadata); len(details) > 0 {
+											<dl class="space-y-0.5">
+												for _, d := range details {
+													<div class="flex gap-1.5">
+														<dt class="text-muted-foreground shrink-0">{ d.Key }</dt>
+														<dd class="font-mono text-foreground break-all">{ d.Value }</dd>
+													</div>
+												}
+											</dl>
+										} else {
+											<span class="text-muted-foreground">—</span>
+										}
+									</td>
 									<td class="px-4 py-3 text-muted-foreground font-mono text-xs">{ e.IPAddress }</td>
 								</tr>
 							}
@@ -96,11 +109,11 @@ templ AuditLog(data view.AuditLogData) {
 			{{ totalPages := (data.TotalCount + data.PerPage - 1) / data.PerPage }}
 			{{ auditPrevURL := "" }}
 			if data.Page > 1 {
-				{{ auditPrevURL = "/admin/audit-log?page=" + strconv.Itoa(data.Page-1) + "&action=" + url.QueryEscape(data.Filter.Action) + "&target_type=" + url.QueryEscape(data.Filter.TargetType) }}
+				{{ auditPrevURL = auditPageURL(data.Filter, data.Page-1) }}
 			}
 			{{ auditNextURL := "" }}
 			if data.Page*data.PerPage < data.TotalCount {
-				{{ auditNextURL = "/admin/audit-log?page=" + strconv.Itoa(data.Page+1) + "&action=" + url.QueryEscape(data.Filter.Action) + "&target_type=" + url.QueryEscape(data.Filter.TargetType) }}
+				{{ auditNextURL = auditPageURL(data.Filter, data.Page+1) }}
 			}
 			@components.PaginationWithCount(auditPrevURL, auditNextURL, data.Page, totalPages)
 		</div>

@@ -66,13 +66,13 @@
   <table id="users-table" class="w-full text-sm">
     <thead>
       <tr class="text-left text-muted-foreground border-b border-border bg-muted">
-        <th class="px-4 py-3 font-medium">User</th>
-        <th class="px-4 py-3 font-medium">Email</th>
-        <th class="px-4 py-3 font-medium">Role</th>
-        <th class="px-4 py-3 font-medium">Status</th>
-        <th class="px-4 py-3 font-medium">2FA</th>
-        <th class="px-4 py-3 font-medium">Sign-in</th>
-        <th class="px-4 py-3 font-medium">Created</th>
+        <th scope="col" class="px-4 py-3 font-medium"><a href="#" data-sort="username" class="inline-flex items-center gap-1 hover:text-foreground">User <span aria-hidden="true" class="text-[10px]"><span class="opacity-40">↕</span></span></a></th>
+        <th scope="col" class="px-4 py-3 font-medium"><a href="#" data-sort="email" class="inline-flex items-center gap-1 hover:text-foreground">Email <span aria-hidden="true" class="text-[10px]"><span class="opacity-40">↕</span></span></a></th>
+        <th scope="col" class="px-4 py-3 font-medium">Role</th>
+        <th scope="col" class="px-4 py-3 font-medium">Status</th>
+        <th scope="col" class="px-4 py-3 font-medium">2FA</th>
+        <th scope="col" class="px-4 py-3 font-medium">Sign-in</th>
+        <th scope="col" class="px-4 py-3 font-medium" aria-sort="descending"><a href="#" data-sort="created" class="inline-flex items-center gap-1 hover:text-foreground text-foreground">Created <span aria-hidden="true" class="text-[10px]">↓</span></a></th>
       </tr>
     </thead>
     <tbody class="divide-y divide-border">
@@ -190,6 +190,40 @@
     document.getElementById('users-empty').classList.toggle('hidden', shown !== 0);
     document.getElementById('users-count').textContent = shown + (shown === 1 ? ' account' : ' accounts');
   }
+
+  // Mirrors the SortHeader links: the sorted column flips, a new one starts newest first (dates) or A to Z.
+  var sortKey = 'created', sortDesc = true;
+  var tbody = document.querySelector('#users-table tbody');
+  var heads = document.querySelectorAll('#users-table th a[data-sort]');
+  var cells = {
+    username: function (r) { return r.dataset.user; },
+    email: function (r) { return r.dataset.email; },
+    created: function (r) { return r.querySelector('time').getAttribute('datetime'); }
+  };
+  function sortRows() {
+    var sign = sortDesc ? -1 : 1;
+    Array.prototype.slice.call(rows).sort(function (a, b) {
+      var x = cells[sortKey](a), y = cells[sortKey](b);
+      return x < y ? -sign : x > y ? sign : 0;
+    }).forEach(function (r) { tbody.appendChild(r); });
+    heads.forEach(function (a) {
+      var on = a.dataset.sort === sortKey;
+      var th = a.parentNode;
+      if (on) th.setAttribute('aria-sort', sortDesc ? 'descending' : 'ascending'); else th.removeAttribute('aria-sort');
+      a.classList.toggle('text-foreground', on);
+      a.querySelector('span').innerHTML = on ? (sortDesc ? '\u2193' : '\u2191') : '<span class="opacity-40">\u2195</span>';
+    });
+  }
+  heads.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var key = a.dataset.sort;
+      sortDesc = key === sortKey ? !sortDesc : key === 'created';
+      sortKey = key;
+      sortRows();
+    });
+  });
+  sortRows();
   document.getElementById('users-filter').addEventListener('submit', function (e) { e.preventDefault(); apply(); });
   document.getElementById('users-reset').addEventListener('click', function (e) {
     e.preventDefault();

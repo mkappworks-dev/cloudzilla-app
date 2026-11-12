@@ -48,11 +48,12 @@
   <table id="audit-table" class="w-full text-sm">
     <thead>
       <tr class="text-left text-muted-foreground border-b border-border bg-muted">
-        <th class="px-4 py-3 font-medium">Time</th>
-        <th class="px-4 py-3 font-medium">Actor</th>
-        <th class="px-4 py-3 font-medium">Action</th>
-        <th class="px-4 py-3 font-medium">Target</th>
-        <th class="px-4 py-3 font-medium">IP address</th>
+        <th scope="col" class="px-4 py-3 font-medium" aria-sort="descending"><a href="#" data-sort="time" class="inline-flex items-center gap-1 hover:text-foreground text-foreground">Time <span aria-hidden="true" class="text-[10px]">↓</span></a></th>
+        <th scope="col" class="px-4 py-3 font-medium"><a href="#" data-sort="actor" class="inline-flex items-center gap-1 hover:text-foreground">Actor <span aria-hidden="true" class="text-[10px]"><span class="opacity-40">↕</span></span></a></th>
+        <th scope="col" class="px-4 py-3 font-medium"><a href="#" data-sort="action" class="inline-flex items-center gap-1 hover:text-foreground">Action <span aria-hidden="true" class="text-[10px]"><span class="opacity-40">↕</span></span></a></th>
+        <th scope="col" class="px-4 py-3 font-medium"><a href="#" data-sort="target" class="inline-flex items-center gap-1 hover:text-foreground">Target <span aria-hidden="true" class="text-[10px]"><span class="opacity-40">↕</span></span></a></th>
+        <th scope="col" class="px-4 py-3 font-medium">Details</th>
+        <th scope="col" class="px-4 py-3 font-medium">IP address</th>
       </tr>
     </thead>
     <tbody class="divide-y divide-border">
@@ -68,6 +69,7 @@
               <span class="text-xs text-muted-foreground mr-1">user</span>
               tomas
             </td>
+            <td class="px-4 py-3 text-xs"><dl class="space-y-0.5"><div class="flex gap-1.5"><dt class="text-muted-foreground shrink-0">reason</dt><dd class="font-mono text-foreground break-all">Spam in issues</dd></div></dl></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">203.0.113.7</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="repo.create" data-target-type="repo">
@@ -82,6 +84,7 @@
               <span class="text-xs text-muted-foreground mr-1">repo</span>
               daisy/dotfiles
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">198.51.100.23</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="user.token.create" data-target-type="user">
@@ -96,6 +99,7 @@
               <span class="text-xs text-muted-foreground mr-1">user</span>
               priya
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">192.0.2.88</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="repo.transfer.request" data-target-type="repo">
@@ -110,6 +114,7 @@
               <span class="text-xs text-muted-foreground mr-1">repo</span>
               yumi/notes
             </td>
+            <td class="px-4 py-3 text-xs"><dl class="space-y-0.5"><div class="flex gap-1.5"><dt class="text-muted-foreground shrink-0">to</dt><dd class="font-mono text-foreground break-all">acme-corp</dd></div></dl></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">198.51.100.41</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="admin.user.promote" data-target-type="user">
@@ -124,6 +129,7 @@
               <span class="text-xs text-muted-foreground mr-1">user</span>
               priya
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">203.0.113.7</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="repo.import" data-target-type="repo">
@@ -138,6 +144,7 @@
               <span class="text-xs text-muted-foreground mr-1">repo</span>
               rchen/warehouse-etl
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">192.0.2.14</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="user.password.change" data-target-type="user">
@@ -152,6 +159,7 @@
               <span class="text-xs text-muted-foreground mr-1">user</span>
               daisy
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">198.51.100.23</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="admin.user.credentials_revoke" data-target-type="user">
@@ -166,6 +174,7 @@
               <span class="text-xs text-muted-foreground mr-1">user</span>
               tomas
             </td>
+            <td class="px-4 py-3 text-xs"><dl class="space-y-0.5"><div class="flex gap-1.5"><dt class="text-muted-foreground shrink-0">access_tokens</dt><dd class="font-mono text-foreground break-all">2</dd></div><div class="flex gap-1.5"><dt class="text-muted-foreground shrink-0">oauth_authorizations</dt><dd class="font-mono text-foreground break-all">0</dd></div><div class="flex gap-1.5"><dt class="text-muted-foreground shrink-0">ssh_keys</dt><dd class="font-mono text-foreground break-all">1</dd></div></dl></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">203.0.113.7</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="org.profile.update" data-target-type="org">
@@ -180,6 +189,7 @@
               <span class="text-xs text-muted-foreground mr-1">org</span>
               acme-corp
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">192.0.2.88</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="repo.mirror.create" data-target-type="repo">
@@ -194,6 +204,7 @@
               <span class="text-xs text-muted-foreground mr-1">repo</span>
               mkappworks/cloudzilla
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">198.51.100.41</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="user.sessions.revoke" data-target-type="user">
@@ -208,6 +219,7 @@
               <span class="text-xs text-muted-foreground mr-1">user</span>
               rchen
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">192.0.2.14</td>
           </tr>
           <tr class="hover:bg-muted/40" data-action="admin.org.owner_add" data-target-type="org">
@@ -222,6 +234,7 @@
               <span class="text-xs text-muted-foreground mr-1">org</span>
               acme-corp
             </td>
+            <td class="px-4 py-3 text-xs"><span class="text-muted-foreground">—</span></td>
             <td class="px-4 py-3 text-muted-foreground font-mono text-xs">203.0.113.7</td>
           </tr>
     </tbody>
@@ -262,6 +275,40 @@
     var n = filtered ? shown : 126;
     document.getElementById('audit-count').textContent = n + (n === 1 ? ' entry' : ' entries');
   }
+
+  // Mirrors the SortHeader links: the sorted column flips, a new one starts newest first (time) or A to Z.
+  var sortKey = 'time', sortDesc = true;
+  var tbody = document.querySelector('#audit-table tbody');
+  var heads = document.querySelectorAll('#audit-table th a[data-sort]');
+  var cells = {
+    time: function (r) { return r.querySelector('time').getAttribute('datetime'); },
+    actor: function (r) { return r.cells[1].textContent.trim().toLowerCase(); },
+    action: function (r) { return r.dataset.action; },
+    target: function (r) { return r.cells[3].textContent.replace(/\s+/g, ' ').trim().toLowerCase(); }
+  };
+  function sortRows() {
+    var sign = sortDesc ? -1 : 1;
+    Array.prototype.slice.call(rows).sort(function (a, b) {
+      var x = cells[sortKey](a), y = cells[sortKey](b);
+      return x < y ? -sign : x > y ? sign : 0;
+    }).forEach(function (r) { tbody.appendChild(r); });
+    heads.forEach(function (a) {
+      var on = a.dataset.sort === sortKey;
+      var th = a.parentNode;
+      if (on) th.setAttribute('aria-sort', sortDesc ? 'descending' : 'ascending'); else th.removeAttribute('aria-sort');
+      a.classList.toggle('text-foreground', on);
+      a.querySelector('span').innerHTML = on ? (sortDesc ? '\u2193' : '\u2191') : '<span class="opacity-40">\u2195</span>';
+    });
+  }
+  heads.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var key = a.dataset.sort;
+      sortDesc = key === sortKey ? !sortDesc : key === 'time';
+      sortKey = key;
+      sortRows();
+    });
+  });
   document.getElementById('audit-filter').addEventListener('submit', function (e) { e.preventDefault(); apply(); });
   document.getElementById('audit-reset').addEventListener('click', function (e) {
     e.preventDefault();
