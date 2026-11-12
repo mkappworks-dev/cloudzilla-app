@@ -141,3 +141,23 @@ func TestCommitStatsService_Ingest_AttributesNoreplyEmail(t *testing.T) {
 		t.Errorf("attributed commits = %d, want 2", got)
 	}
 }
+
+func TestUserService_ResolveCommitAuthors(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	username := "testuser_" + suffix
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{})
+
+	noreply := fmt.Sprintf("%d+%s@users.noreply.localhost", userID, username)
+	real := username + "@test.invalid"
+	stranger := "stranger_" + suffix + "@test.invalid"
+	got, err := svc.ResolveCommitAuthors(ctx, []string{noreply, real, stranger, "", noreply})
+	if err != nil {
+		t.Fatalf("ResolveCommitAuthors: %v", err)
+	}
+	if len(got) != 2 || got[noreply] != username || got[real] != username {
+		t.Errorf("got %v, want the noreply and real addresses mapped to %q and nothing else", got, username)
+	}
+}

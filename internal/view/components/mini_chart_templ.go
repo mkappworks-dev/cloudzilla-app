@@ -9,7 +9,10 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 func MiniChart(values []int, width, height int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -41,7 +44,7 @@ func MiniChart(values []int, width, height int) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templruntime.NewAttributeExpression(miniW(width)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 9, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 12, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -54,7 +57,7 @@ func MiniChart(values []int, width, height int) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(miniH(height)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 9, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 12, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -67,7 +70,7 @@ func MiniChart(values []int, width, height int) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(miniViewBox(width, height)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 9, Col: 91}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 12, Col: 91}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -85,7 +88,7 @@ func MiniChart(values []int, width, height int) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%.1f", bar.X)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 11, Col: 40}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 14, Col: 40}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 				if templ_7745c5c3_Err != nil {
@@ -98,7 +101,7 @@ func MiniChart(values []int, width, height int) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%.1f", bar.Y)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 11, Col: 73}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 14, Col: 73}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -111,7 +114,7 @@ func MiniChart(values []int, width, height int) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%.1f", bar.W)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 11, Col: 110}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 14, Col: 110}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 				if templ_7745c5c3_Err != nil {
@@ -124,7 +127,7 @@ func MiniChart(values []int, width, height int) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(fmt.Sprintf("%.1f", bar.H)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 11, Col: 148}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/mini_chart.templ`, Line: 14, Col: 148}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 				if templ_7745c5c3_Err != nil {
@@ -176,7 +179,8 @@ func miniBars(values []int, w, h int) []miniBar {
 	gap := 1.0
 	out := make([]miniBar, 0, n)
 	for i, v := range values {
-		bh := float64(v) / float64(max) * float64(h)
+		// An empty week keeps a 1px baseline so a lone spike reads as one busy week among quiet ones, not a stray block.
+		bh := math.Max(float64(v)/float64(max)*float64(h), 1)
 		out = append(out, miniBar{
 			X: float64(i) * bw, Y: float64(h) - bh,
 			W: bw - gap, H: bh,

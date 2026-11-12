@@ -57,7 +57,7 @@ templ Blame(data view.BlameData) {
 					<table class="w-full font-mono text-[12.5px] leading-[1.6]">
 						<caption class="sr-only">Per-line blame annotations for { data.Path }</caption>
 						<colgroup>
-							<col style="width: 240px"/>
+							<col style="width: 280px"/>
 							<col style="width: 48px"/>
 							<col/>
 						</colgroup>
@@ -74,7 +74,9 @@ templ Blame(data view.BlameData) {
 									LineNumber:  line.LineNum,
 									Code:        line.Text,
 									CodeHTML:    line.HTML,
-									AuthorName:  line.Author,
+									AuthorName:  line.AuthorName,
+									AuthorUsername: data.Usernames[line.Author],
+									AuthorEmail: line.Author,
 									ShortSHA:    line.Hash,
 									CommittedAt: line.AuthorTime,
 									CommitURL:   "/" + data.Owner + "/" + data.RepoName + "/commit/" + commitHashFor(line),
@@ -87,7 +89,7 @@ templ Blame(data view.BlameData) {
 			</section>
 
 			<p class="mt-4 text-[12px] text-muted-foreground">
-				A dot (·) marks consecutive lines from the same commit — only the first row in each run shows the commit metadata.
+				A vertical bar marks consecutive lines from the same commit — only the first row in each run shows the commit metadata.
 			</p>
 		</div>
 	}

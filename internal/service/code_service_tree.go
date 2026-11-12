@@ -154,6 +154,10 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 			return nil, err
 		}
 		rawLines := strings.Split(contents, "\n")
+		// The newline ending the last line isn't a line of its own; blame counts the same way.
+		if n := len(rawLines); n > 1 && rawLines[n-1] == "" {
+			rawLines = rawLines[:n-1]
+		}
 		html := highlight.Lines(path, contents)
 		lines := make([]CodeLine, len(rawLines))
 		for i, text := range rawLines {

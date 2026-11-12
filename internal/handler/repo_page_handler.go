@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -700,13 +703,17 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
-	h.render(w, r, pages.Commit(view.CommitData{
-		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
-		Repo:     *repo,
-		Owner:    owner,
-		RepoName: repoName,
-		Commit:   commit,
-		Statuses: statuses,
+	usernames := h.commitAuthorUsernames(r.Context(), commit.AuthorEmail)
+	authorUsername := usernames[commit.AuthorEmail]
+
+	h.render(w, h.withAvatars(r, slices.Collect(maps.Values(usernames))...), pages.Commit(view.CommitData{
+		BasePage:       h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
+		Repo:           *repo,
+		Owner:          owner,
+		RepoName:       repoName,
+		Commit:         commit,
+		AuthorUsername: authorUsername,
+		Statuses:       statuses,
 	}))
 }
 
@@ -729,9 +736,14 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authors := make(map[string]struct{}, len(result.Lines))
+	var emails []string
 	for _, l := range result.Lines {
+		if _, seen := authors[l.Author]; !seen {
+			emails = append(emails, l.Author)
+		}
 		authors[l.Author] = struct{}{}
 	}
+	usernames := h.commitAuthorUsernames(r.Context(), emails...)
 
 	var canManage bool
 	if userID != nil {
@@ -739,7 +751,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
-	h.render(w, r, pages.Blame(view.BlameData{
+	h.render(w, h.withAvatars(r, slices.Collect(maps.Values(usernames))...), pages.Blame(view.BlameData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
@@ -750,10 +762,22 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		Branches:     branches,
 		Tags:         tags,
 		Lines:        result.Lines,
+		Usernames:    usernames,
 		BlobURL:      result.BlobURL,
 		Contributors: len(authors),
 		CanManage:    canManage,
 	}))
+}
+
+// commitAuthorUsernames resolves author addresses to usernames best-effort: a failure leaves the git names unlinked
+// instead of failing the page.
+func (h *Handler) commitAuthorUsernames(ctx context.Context, emails ...string) map[string]string {
+	usernames, err := h.Services.User.ResolveCommitAuthors(ctx, emails)
+	if err != nil {
+		slog.Warn("resolve commit authors failed", "error", err)
+		return nil
+	}
+	return usernames
 }
 
 // routeRefPath rejoins a "{ref}/*" route's params, since a ref like feature/x

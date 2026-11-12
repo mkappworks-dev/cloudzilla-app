@@ -27,3 +27,10 @@ func TestMiniChart_Empty(t *testing.T) {
 		t.Errorf("expected 'no data' for empty values, got: %s", buf.String())
 	}
 }
+
+func TestMiniBars_EmptyWeekKeepsABaseline(t *testing.T) {
+	bars := miniBars([]int{0, 4, 0}, 30, 32)
+	if bars[0].H != 1 || bars[2].H != 1 || bars[1].H != 32 {
+		t.Errorf("heights = %v, %v, %v; want 1, 32, 1", bars[0].H, bars[1].H, bars[2].H)
+	}
+}

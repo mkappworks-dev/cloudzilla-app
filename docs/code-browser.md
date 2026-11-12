@@ -97,7 +97,14 @@ full SHA, and every URL is built from it. Only displayed text shortens it, throu
 - `TreeResult` — `Entries []TreeEntry` (dirs first, then files, both sorted), `Ref`, `Path`, `Breadcrumbs`
 - `BlobResult` — `Lines []CodeLine`, `IsBinary bool`, `SHA`, `IsSymlink`, `IsBranch` (the ref named a branch),
   `BlameURL`, breadcrumbs
-- `BlameResult` — `Lines []BlameLine` with `ShowMeta bool` (true when commit run changes), `BlobURL`, breadcrumbs
+- `BlameResult` — `Lines []BlameLine` (`Author` is the email, `AuthorName` the name) with `ShowMeta bool` (true when
+  commit run changes), `BlobURL`, breadcrumbs
+
+The commit and blame pages show a commit's author as the account username, linked to the profile, with the address in a
+tooltip. `UserService.ResolveCommitAuthors` maps addresses to usernames through the same lookup a push uses (noreply
+address first, then a verified account email); an address that matches no account shows the git name, unlinked. A blob
+and its blame count the same lines: the newline ending the last line doesn't start another.
+
 - `CommitLog` — `Commits []CommitSummary`, `Ref`, `Page`, `PrevPage`, `NextPage`, `HasMore`
 - `CommitDetail` — full commit with `Files []FileDiff` (hunks with add/del/ctx lines), `TotalAdded`, `TotalDeleted`
 - `RefsResult` — `Branches []BranchInfo` (`Name`, `Hash`, `IsDefault`), `Tags []TagInfo` (`Name`, `Hash`)
