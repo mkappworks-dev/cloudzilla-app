@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -101,12 +102,44 @@ func (h *Handler) gitReadableRepo(w http.ResponseWriter, r *http.Request, owner,
 	if err == nil && h.Services.Repo.CanRead(r.Context(), repo, uid) {
 		return repo, gu, true
 	}
+	if err != nil {
+		// Only a caller who can read the target is told the repo moved.
+		if moved, aerr := h.Services.Repo.ResolveAlias(r.Context(), owner, repoName); aerr == nil &&
+			h.Services.Repo.CanRead(r.Context(), moved, uid) {
+			gitMovedRedirect(w, r, moved)
+			return nil, nil, false
+		}
+	}
 	if gu == nil {
 		gitAuthChallenge(w)
 	} else {
 		http.Error(w, "repository not found", http.StatusNotFound)
 	}
 	return nil, nil, false
+}
+
+// gitMovedRedirect sends git to the repo's current URL, keeping the .git suffix, the endpoint and the
+// query. info/refs is a GET, so 301 lets git rebase its remote onto the new URL; the POSTs get 308 so the
+// body is replayed.
+func gitMovedRedirect(w http.ResponseWriter, r *http.Request, moved *model.Repository) {
+	parts := strings.SplitN(strings.TrimPrefix(r.URL.EscapedPath(), "/"), "/", 3)
+	if len(parts) != 3 {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
+	loc := "/" + url.PathEscape(moved.OwnerName) + "/" + url.PathEscape(moved.Name)
+	if strings.HasSuffix(parts[1], ".git") {
+		loc += ".git"
+	}
+	loc += "/" + parts[2]
+	if r.URL.RawQuery != "" {
+		loc += "?" + r.URL.RawQuery
+	}
+	code := http.StatusPermanentRedirect
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		code = http.StatusMovedPermanently
+	}
+	http.Redirect(w, r, loc, code)
 }
 
 // gitCanPush answers a push the caller may not make. A reader gets a 403, not a

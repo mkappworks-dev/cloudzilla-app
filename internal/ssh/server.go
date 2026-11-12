@@ -188,10 +188,17 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 	ctx := session.Context()
 	repo, err := s.services.Repo.Get(ctx, owner, repoName)
+	moved := false
+	if err != nil {
+		repo, err = s.services.Repo.ResolveAlias(ctx, owner, repoName)
+		moved = true
+	}
 	if err != nil || !s.canSee(ctx, repo, userVal, dkVal) {
 		exitWithError(session, "repository not found\n")
 		return
 	}
+	// Everything below, including the disk path and log lines, uses the repo's real path.
+	owner, repoName = repo.OwnerName, repo.Name
 
 	var pusherName string
 	var pusherID int64
@@ -247,6 +254,10 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	if err != nil {
 		exitWithError(session, "failed to open repository\n")
 		return
+	}
+
+	if moved {
+		_, _ = fmt.Fprintf(session.Stderr(), "warning: repository moved to %s/%s; update your remote\n", owner, repoName)
 	}
 
 	vet := func(cmd *packp.Command) error {

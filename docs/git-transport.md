@@ -91,6 +91,21 @@ in this order, and every check before the repo lookup answers the same whether t
 An invalid or expired PAT counts as anonymous. `TestGitHTTP_PrivateRepo_LooksLikeMissingRepo` compares the status,
 challenge and body for a private and a missing repo on all three endpoints.
 
+### Renamed repositories
+
+A path that misses `RepoService.Get` is tried as a former name (`ResolveAlias`). Only a caller who can read the target
+repo is redirected; anyone else gets the missing-repo reply from the table above, so an alias never confirms a private
+repo. The check runs after the same pre-lookup checks, so those answer identically.
+
+| Request                                   | Old path, caller can read the repo |
+| ----------------------------------------- | ---------------------------------- |
+| `GET info/refs` (either service)          | `301` to the new `info/refs`       |
+| `POST git-upload-pack`/`git-receive-pack` | `308` to the new path              |
+
+The `.git` suffix and the query are kept. Git follows the `301` and rebases its remote for the rest of the operation
+(`warning: redirecting to ...`), so clone, fetch and push work unchanged; the redirect precedes the push checks, so a
+reader who can't write sees the usual `403` at the new URL.
+
 ### Example
 
 ```bash
@@ -328,6 +343,11 @@ Errors go to stderr, with exit status 1: an unsupported command, a bad path, a m
 deploy key used outside its repository or to push read-only, a push to an archived repository, or a failure during the
 transfer. git prints stderr as-is; stdout carries only the pack protocol, where git would read a message's first four
 bytes as a pkt-line length.
+
+A former name is served from the real repo, and `warning: repository moved to <owner>/<name>; update your remote` goes
+to stderr once access is granted, before the transfer starts. Access is checked against the real repo (`canSee`, deploy
+key binding by `repo.ID`), so a refusal for an alias is the same as for the live path. Branch protection, quota,
+webhooks, activity and the receive-pack log line all use the real repo's id, owner and name.
 
 A user who can't read a repo, and a deploy key for another repo that isn't public, get `repository not found`, the same
 as for a missing repo. `access denied` goes only to a reader who may not push, and
