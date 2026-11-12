@@ -20,6 +20,8 @@ const (
 	ButtonDestructive ButtonVariant = "destructive"
 	// Keeps a destructive action visually secondary next to a primary button.
 	ButtonDestructiveOutline ButtonVariant = "destructive-outline"
+	// An icon-only row action: muted until hovered, so a list of them doesn't shout.
+	ButtonDestructiveGhost ButtonVariant = "destructive-ghost"
 	// Approve, reopen and restore only; a create or save button is ButtonDefault.
 	ButtonSuccess ButtonVariant = "success"
 	ButtonLink    ButtonVariant = "link"
@@ -46,6 +48,8 @@ func buttonVariantClass(v ButtonVariant) string {
 		return "bg-destructive text-destructive-foreground hover:bg-destructive/90"
 	case ButtonDestructiveOutline:
 		return "border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive"
+	case ButtonDestructiveGhost:
+		return "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 	case ButtonSuccess:
 		return "bg-success text-success-foreground hover:bg-success/90"
 	case ButtonLink:
@@ -153,7 +157,7 @@ func LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(href)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/button.templ`, Line: 72, Col: 28}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/button.templ`, Line: 76, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -186,6 +190,31 @@ func LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</a>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func TrashIcon() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6M10 11v6M14 11v6\"></path></svg>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

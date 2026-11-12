@@ -38,6 +38,7 @@
 <li><a href="#webhooks" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Webhooks</a></li>
 <li><a href="#template" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Template</a></li>
 <li role="presentation" aria-hidden="true"><p class="font-mono text-[12px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-destructive">Danger zone</p></li>
+<li><a href="#visibility" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Visibility</a></li>
 <li><a href="#archive" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Archive</a></li>
 <li><a href="#transfer" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Transfer ownership</a></li>
 <li><a href="#delete" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Delete repository</a></li>
@@ -85,18 +86,6 @@
     <p class="text-[12px] text-muted-foreground">Control which features are enabled for this repository.</p>
   </div>
   <div class="p-5">
-    <div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
-      <div class="min-w-0">
-        <p class="text-sm font-medium text-foreground">Visibility</p>
-        <p class="text-xs text-muted-foreground mt-0.5" id="vis-text">This repository is public — anyone can view it.</p>
-      </div>
-      <div class="flex items-center gap-3 shrink-0">
-        <span id="vis-badge"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-success/15 text-success border-success/30">Public</span></span>
-        <button type="button" id="vis-toggle" aria-pressed="true" aria-label="Repository visibility" class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-success bg-success transition-colors cursor-pointer">
-          <span id="vis-knob" class="absolute left-[18px] h-3.5 w-3.5 rounded-full bg-background transition-transform"></span>
-        </button>
-      </div>
-    </div>
     <form onsubmit="return false">
         <label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
           <span class="min-w-0">
@@ -421,6 +410,19 @@
     </div>
   </div>
 </div>
+<div id="visibility" class="scroll-mt-6"></div>
+<div class="rounded-lg border border-border bg-card text-card-foreground border-destructive/40">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-base font-semibold tracking-tight text-destructive">Change repository visibility</h2>
+    <p id="vis-text" class="text-[12px] text-muted-foreground">This repository is public, so anyone can view and clone it. Making it private hides it from everyone but collaborators.</p>
+  </div>
+  <div class="p-5">
+    <div class="flex items-center justify-between gap-3">
+      <span id="vis-badge"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-success/15 text-success border-success/30">Public</span></span>
+      <button type="button" id="vis-btn" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Make private</button>
+    </div>
+  </div>
+</div>
 <div id="archive" class="scroll-mt-6"></div>
 <div class="rounded-lg border border-border bg-card text-card-foreground border-destructive/40">
   <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
@@ -429,7 +431,7 @@
   </div>
   <div class="p-5">
     <div class="flex justify-end">
-      <button type="button" id="archive-btn" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 text-[13px]">Archive</button>
+      <button type="button" id="archive-btn" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Archive</button>
     </div>
   </div>
 </div>
@@ -460,13 +462,9 @@
     <p class="text-[12px] text-muted-foreground">Permanently remove this repository and all its data. This cannot be undone.</p>
   </div>
   <div class="p-5">
-    <form class="flex flex-wrap items-end justify-end gap-3" onsubmit="return false">
-      <div class="min-w-0">
-            <label for="delete-repo-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-            <input id="delete-repo-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
-          </div>
-      <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-4 text-sm">Delete repository</button>
-    </form>
+    <div class="flex justify-end">
+      <button type="button" id="delete-btn" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-9 px-4 text-sm">Delete repository</button>
+    </div>
   </div>
 </div>
     </div>
@@ -596,23 +594,106 @@
   </div>
 </dialog>
 
-<dialog id="make-public-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="make-public-dialog-title">
-  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
-    <h2 id="make-public-dialog-title" class="text-base font-semibold leading-tight">Make this repository public?</h2>
-      <p class="text-[13px] text-muted-foreground leading-snug">Anyone on the internet will be able to view and clone cloudzilla, including its history.</p>
-  </div>
-  <div class="p-5 text-sm">
-    <form id="make-public-form" onsubmit="return false">
-      <div class="min-w-0">
-            <label for="make-public-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-            <input id="make-public-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+<dialog id="visibility-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="visibility-dialog-title">
+  <form id="visibility-dialog-form" onsubmit="return false">
+    <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+      <h2 id="visibility-dialog-title" class="text-base font-semibold leading-tight"><span id="visibility-dialog-heading">Make this repository private?</span></h2>
+      <p id="visibility-dialog-desc" class="text-[13px] text-muted-foreground leading-snug">Only collaborators with access will be able to view cloudzilla. Stars and forks by others stay.</p>
+    </div>
+    <div class="p-5 text-sm">
+      <div class="space-y-4">
+        <div>
+          <label for="visibility-confirm-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+            Type <span class="font-mono text-foreground">cloudzilla</span> to confirm
+            <span class="text-destructive" aria-hidden="true">*</span>
+          </label>
+          <input id="visibility-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+        </div>
+        <div class="flex flex-wrap items-end gap-3 hidden" id="visibility-pw">
+          <div data-field class="min-w-0 basis-full">
+            <label for="visibility-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+              Current password
+              <span class="text-destructive" aria-hidden="true">*</span>
+            </label>
+            <div class="relative">
+              <input type="password" id="visibility-password" name="password" required autocomplete="current-password" class="h-9 w-full bg-background border border-border rounded-md pl-3 pr-10 text-[13px] text-foreground focus:outline-hidden focus:border-ring aria-invalid:border-destructive aria-invalid:focus:border-destructive [&::-ms-reveal]:hidden" />
+              <button type="button" data-password-reveal aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+              </button>
+            </div>
           </div>
-    </form>
-  </div>
-  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
-    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-    <button type="submit" form="make-public-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Make public</button>
-  </div>
+        </div>
+      </div>
+    </div>
+    <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+      <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="submit" id="visibility-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Make private</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="archive-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="archive-dialog-title">
+  <form id="archive-dialog-form" onsubmit="return false">
+    <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+      <h2 id="archive-dialog-title" class="text-base font-semibold leading-tight"><span>Archive this repository?</span></h2>
+      <p class="text-[13px] text-muted-foreground leading-snug">cloudzilla will become read-only and hidden from active views. You can unarchive it later.</p>
+    </div>
+    <div class="p-5 text-sm">
+      <div class="space-y-4">
+        <div>
+          <label for="archive-confirm-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+            Type <span class="font-mono text-foreground">cloudzilla</span> to confirm
+            <span class="text-destructive" aria-hidden="true">*</span>
+          </label>
+          <input id="archive-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+        </div>
+      </div>
+    </div>
+    <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+      <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="submit" id="archive-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Archive repository</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="delete-repo-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="delete-repo-dialog-title">
+  <form id="delete-repo-dialog-form" onsubmit="return false">
+    <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+      <h2 id="delete-repo-dialog-title" class="text-base font-semibold leading-tight"><span class="text-destructive">Delete this repository?</span></h2>
+      <p class="text-[13px] text-muted-foreground leading-snug">This permanently removes cloudzilla and all of its data — issues, pull requests, and history. This cannot be undone.</p>
+    </div>
+    <div class="p-5 text-sm">
+      <div class="space-y-4">
+        <div>
+          <label for="delete-repo-confirm-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+            Type <span class="font-mono text-foreground">cloudzilla</span> to confirm
+            <span class="text-destructive" aria-hidden="true">*</span>
+          </label>
+          <input id="delete-repo-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+        </div>
+        <div class="flex flex-wrap items-end gap-3">
+          <div data-field class="min-w-0 basis-full">
+            <label for="delete-repo-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+              Current password
+              <span class="text-destructive" aria-hidden="true">*</span>
+            </label>
+            <div class="relative">
+              <input type="password" id="delete-repo-password" name="password" required autocomplete="current-password" class="h-9 w-full bg-background border border-border rounded-md pl-3 pr-10 text-[13px] text-foreground focus:outline-hidden focus:border-ring aria-invalid:border-destructive aria-invalid:focus:border-destructive [&::-ms-reveal]:hidden" />
+              <button type="button" data-password-reveal aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+      <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="submit" id="delete-repo-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete repository</button>
+    </div>
+  </form>
 </dialog>
 </main>
 
@@ -631,28 +712,42 @@
 <script>
 (function () {
   var vis = { isPublic: true };
-  var toggle = document.getElementById('vis-toggle');
-  var knob = document.getElementById('vis-knob');
-  var text = document.getElementById('vis-text');
+  var visBtn = document.getElementById('vis-btn');
+  var visText = document.getElementById('vis-text');
   var badgeBox = document.getElementById('vis-badge');
+  var visDlg = document.getElementById('visibility-dialog');
+  var visForm = document.getElementById('visibility-dialog-form');
   var PUBLIC_BADGE = badgeBox.innerHTML;
   var PRIVATE_BADGE = PUBLIC_BADGE.replace('bg-success/15 text-success border-success/30', 'bg-secondary text-secondary-foreground border-transparent').replace('Public', 'Private');
-  function render() {
-    toggle.setAttribute('aria-pressed', vis.isPublic ? 'true' : 'false');
-    toggle.className = 'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors cursor-pointer ' +
-      (vis.isPublic ? 'border-success bg-success' : 'border-border bg-muted');
-    knob.className = 'absolute h-3.5 w-3.5 rounded-full transition-transform ' +
-      (vis.isPublic ? 'left-[18px] bg-background' : 'left-0.5 bg-muted-foreground');
-    text.textContent = vis.isPublic ? 'This repository is public — anyone can view it.' : 'This repository is private — only collaborators can see it.';
-    badgeBox.innerHTML = vis.isPublic ? PUBLIC_BADGE : PRIVATE_BADGE;
+  function renderVis() {
+    var pub = vis.isPublic;
+    badgeBox.innerHTML = pub ? PUBLIC_BADGE : PRIVATE_BADGE;
+    visText.textContent = pub
+      ? 'This repository is public, so anyone can view and clone it. Making it private hides it from everyone but collaborators.'
+      : 'This repository is private, so only collaborators can see it. Making it public gives its code and history to everyone.';
+    visBtn.textContent = pub ? 'Make private' : 'Make public';
+    document.getElementById('visibility-dialog-heading').textContent = pub ? 'Make this repository private?' : 'Make this repository public?';
+    document.getElementById('visibility-dialog-desc').textContent = pub
+      ? 'Only collaborators with access will be able to view cloudzilla. Stars and forks by others stay.'
+      : 'Anyone on the internet will be able to view and clone cloudzilla, including its history.';
+    document.getElementById('visibility-dialog-submit').textContent = pub ? 'Make private' : 'Make public';
+    document.getElementById('visibility-pw').classList.toggle('hidden', pub);
+    document.getElementById('visibility-password').required = !pub;
   }
-  toggle.addEventListener('click', function () {
-    if (vis.isPublic) { vis.isPublic = false; render(); } else { document.getElementById('make-public-dialog').showModal(); }
+  visBtn.addEventListener('click', function () {
+    visForm.reset();
+    visDlg.showModal();
   });
-  document.getElementById('make-public-form').addEventListener('submit', function () {
-    vis.isPublic = true; render(); document.getElementById('make-public-dialog').close();
+  visForm.addEventListener('submit', function () {
+    if (!visForm.reportValidity()) return;
+    vis.isPublic = !vis.isPublic; renderVis(); visDlg.close(); czToast('Visibility changed');
   });
+  renderVis();
 
+  var archiveDlg = document.getElementById('archive-dialog');
+  var archiveForm = document.getElementById('archive-dialog-form');
+  var deleteDlg = document.getElementById('delete-repo-dialog');
+  var deleteForm = document.getElementById('delete-repo-dialog-form');
 
   var confirmDlg = document.getElementById('cz-confirm-dialog');
   var confirmOk = document.getElementById('cz-confirm-ok');
@@ -728,26 +823,42 @@
 
   var archived = false;
   var archiveBtn = document.getElementById('archive-btn');
-  var ARCHIVE_DANGER = 'bg-destructive text-destructive-foreground hover:bg-destructive/90';
+  var ARCHIVE_DANGER = 'border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive';
   var ARCHIVE_OK = 'bg-success text-success-foreground hover:bg-success/90';
+  function setArchived(next) {
+    archived = next;
+    var banner = document.getElementById('archived-banner');
+    banner.classList.toggle('hidden', !archived);
+    banner.classList.toggle('flex', archived);
+    document.getElementById('archive-title').textContent = archived ? 'Unarchive this repository' : 'Archive this repository';
+    document.getElementById('archive-desc').textContent = archived
+      ? 'Restore push access and return the repository to active views.'
+      : 'Make the repository read-only and hide it from active views. You can unarchive it later.';
+    archiveBtn.textContent = archived ? 'Unarchive' : 'Archive';
+    archiveBtn.className = archiveBtn.className.replace(archived ? ARCHIVE_DANGER : ARCHIVE_OK, archived ? ARCHIVE_OK : ARCHIVE_DANGER);
+  }
+  archiveForm.addEventListener('submit', function () {
+    if (!archiveForm.reportValidity()) return;
+    setArchived(true); archiveDlg.close(); czToast('Repository archived');
+  });
+  deleteForm.addEventListener('submit', function () {
+    if (!deleteForm.reportValidity()) return;
+    deleteDlg.close(); czToast('Repository deleted');
+  });
+  document.getElementById('delete-btn').addEventListener('click', function () {
+    deleteForm.reset();
+    deleteDlg.showModal();
+  });
   archiveBtn.addEventListener('click', function () {
     var was = archived;
+    if (!was) { archiveForm.reset(); archiveDlg.showModal(); return; }
     archiveBtn.dataset.confirmTitle = was ? 'Unarchive this repository?' : 'Archive this repository?';
     archiveBtn.dataset.confirm = was ? 'Push access will be restored and cloudzilla will return to active views.' : 'cloudzilla will become read-only and hidden from active views. You can unarchive it later.';
     archiveBtn.dataset.confirmLabel = was ? 'Unarchive' : 'Archive';
     if (was) archiveBtn.removeAttribute('data-confirm-danger'); else archiveBtn.setAttribute('data-confirm-danger', 'true');
     czConfirm(archiveBtn, function () {
-      archived = !was;
-      var banner = document.getElementById('archived-banner');
-      banner.classList.toggle('hidden', !archived);
-      banner.classList.toggle('flex', archived);
-      document.getElementById('archive-title').textContent = archived ? 'Unarchive this repository' : 'Archive this repository';
-      document.getElementById('archive-desc').textContent = archived
-        ? 'Restore push access and return the repository to active views.'
-        : 'Make the repository read-only and hide it from active views. You can unarchive it later.';
-      archiveBtn.textContent = archived ? 'Unarchive' : 'Archive';
-      archiveBtn.className = archiveBtn.className.replace(archived ? ARCHIVE_DANGER : ARCHIVE_OK, archived ? ARCHIVE_OK : ARCHIVE_DANGER);
-      czToast(archived ? 'Repository archived' : 'Repository unarchived');
+      setArchived(false);
+      czToast('Repository unarchived');
     });
   });
 

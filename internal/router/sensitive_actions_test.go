@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"slices"
 	"strings"
 	"testing"
@@ -330,14 +331,14 @@ func TestAccessGrants_NeedTheAccountsPassword(t *testing.T) {
 		}},
 		{"making a repo public", func(t *testing.T, a account) (func(string) *httptest.ResponseRecorder, func() int) {
 			repoID, base := newRepo(t, a)
-			return form(a, strings.TrimPrefix(base, "/api/repos")+"/settings/visibility", url.Values{"private": {"false"}}),
+			return form(a, strings.TrimPrefix(base, "/api/repos")+"/settings/visibility", url.Values{"private": {"false"}, "confirm_name": {path.Base(base)}}),
 				func() int {
 					return countRows(t, db, `SELECT COUNT(*) FROM repositories WHERE id = $1 AND NOT private`, repoID)
 				}
 		}},
 		{"deleting a repo", func(t *testing.T, a account) (func(string) *httptest.ResponseRecorder, func() int) {
 			repoID, base := newRepo(t, a)
-			return form(a, base+"/delete", url.Values{}),
+			return form(a, base+"/delete", url.Values{"confirm_name": {path.Base(base)}}),
 				func() int {
 					return countRows(t, db, `SELECT COUNT(*) FROM repositories WHERE id = $1 AND deleted_at IS NOT NULL`, repoID)
 				}
