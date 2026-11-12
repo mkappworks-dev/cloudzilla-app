@@ -286,7 +286,9 @@ password gets a link (verified address or not), and an account without one gets 
 or single sign-on), never a link. Neither the response nor its timing shows whether an account exists. An account is
 mailed at most once per 5 minutes, enforced in the store's upsert so it holds across instances. The note counts too, and
 so does a failed delivery. While a link an admin issued is still usable, the form sends nothing, so it can't cancel that
-link. Without SMTP, `/login` still shows **Forgot password?**, and both forgot routes name up to five active superadmins as links to their profiles (`PasswordResetService.AdminContacts`), or point at `cz-admin password-reset-link` when none can be read.
+link. Without SMTP, `/login` still shows **Forgot password?**, and both forgot routes name up to five active superadmins
+as links to their profiles (`PasswordResetService.AdminContacts`), or point at `cz-admin password-reset-link` when none
+can be read.
 
 **Links.** `<server.base_url>/auth/password/reset/<token>`, where the token is 32 `crypto/rand` bytes,
 base64url-encoded. `password_reset_tokens` (migration 105) keeps one row per account, so only the newest link works. The

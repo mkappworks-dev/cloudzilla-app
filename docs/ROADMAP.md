@@ -2284,8 +2284,9 @@ PostgreSQL full-text search. Complements the existing Phase 4.3 keyword search w
 _Zero-migration — aggregates from existing tables._
 
 `ExploreStore.TrendingRepos(ctx, since, limit)` counts stars gained since `since` per public repo.
-`GET /explore?tab=trending|newest|forked&period=daily|weekly|monthly&q=&language=&page=` (optAuthMW; 25 per page, `q` matches name, owner and description) renders tab bar with repo cards
-showing star count, fork count, and language. Period selector pills control the trending window. No new tables needed.
+`GET /explore?tab=trending|newest|forked&period=daily|weekly|monthly&q=&language=&page=` (optAuthMW; 25 per page, `q`
+matches name, owner and description) renders tab bar with repo cards showing star count, fork count, and language.
+Period selector pills control the trending window. No new tables needed.
 
 ---
 

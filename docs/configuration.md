@@ -235,10 +235,11 @@ environment:
 ```
 
 Verification and password reset links point at `server.base_url`, so set it to the public URL. Without SMTP, nobody can
-reset a forgotten password from `/login`; the reset page names the active superadmins, and a superadmin issues a link from `/admin/users/{username}` or prints one with
-[`cz-admin password-reset-link`](#cz-admin-password-reset-link). Without SMTP, addresses stay unverified, which keeps
-Google sign-in from linking to existing accounts by email; a superadmin can mark an address verified from
-`/admin/settings`. See [Email Verification](./access-control.md#email-verification).
+reset a forgotten password from `/login`; the reset page names the active superadmins, and a superadmin issues a link
+from `/admin/users/{username}` or prints one with [`cz-admin password-reset-link`](#cz-admin-password-reset-link).
+Without SMTP, addresses stay unverified, which keeps Google sign-in from linking to existing accounts by email; a
+superadmin can mark an address verified from `/admin/settings`. See
+[Email Verification](./access-control.md#email-verification).
 
 ### Persistent Data (Docker volumes)
 
@@ -480,6 +481,6 @@ User and repository management is handled through the web UI:
 - `/setup` -- first-run superadmin creation
 - `/admin/settings` -- site settings, invitation management and the Markdown terms of service
 - `/terms` -- the terms of service, public; the text lives in `site_settings` under `terms_content` and falls back to a
-  default for a self-hosted instance until a superadmin saves their own (50,000 characters at most; saving an empty
-  text restores the default)
+  default for a self-hosted instance until a superadmin saves their own (50,000 characters at most; saving an empty text
+  restores the default)
 - Invite system for subsequent users (when registration is disabled)
