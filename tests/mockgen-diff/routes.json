@@ -37,5 +37,161 @@
     "file": "not_found--anon",
     "route": "/this-page-does-not-exist",
     "auth": false
+  },
+  {
+    "file": "pulls",
+    "route": "/amara-silva/lazy-kiln/pulls",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allowSets": ["pulls-content"]
+  },
+  {
+    "file": "pulls--closed",
+    "route": "/beatriz-fischer/brave-relay/pulls?q=is%3Aclosed",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allowSets": ["pulls-content"]
+  },
+  {
+    "file": "pulls--no-match",
+    "route": "/amara-silva/lazy-kiln/pulls?q=zzzznomatch",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "pr",
+    "route": "/beatriz-fischer/brave-relay/pulls/1",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--author",
+    "route": "/beatriz-fischer/brave-relay/pulls/1",
+    "auth": true,
+    "email": "felix-eriksen@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--readonly",
+    "route": "/beatriz-fischer/brave-relay/pulls/1",
+    "auth": true,
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--anon",
+    "route": "/beatriz-fischer/brave-relay/pulls/1",
+    "auth": false,
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--conflicts",
+    "route": "/amara-silva/lazy-kiln/pulls/2",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--conflicts-author",
+    "route": "/amara-silva/lazy-kiln/pulls/2",
+    "auth": true,
+    "email": "anika-jansen@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--conflicts-readonly",
+    "route": "/amara-silva/lazy-kiln/pulls/2",
+    "auth": true,
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--changes-author",
+    "route": "/amara-silva/lazy-harbor/pulls/1",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--draft",
+    "route": "/amara-silva/lazy-kiln/pulls/5",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--draft-readonly",
+    "route": "/amara-silva/lazy-kiln/pulls/5",
+    "auth": true,
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--merged",
+    "route": "/amara-silva/lazy-kiln/pulls/1",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--merged-readonly",
+    "route": "/amara-silva/lazy-kiln/pulls/1",
+    "auth": true,
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--closed",
+    "route": "/beatriz-fischer/brave-relay/pulls/2",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr--closed-readonly",
+    "route": "/beatriz-fischer/brave-relay/pulls/2",
+    "auth": true,
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr_commits",
+    "route": "/beatriz-fischer/brave-relay/pulls/1/commits",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "pr_files",
+    "route": "/beatriz-fischer/brave-relay/pulls/1/files",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allowSets": ["pr-diff"]
+  },
+  {
+    "file": "pr_files--readonly",
+    "route": "/beatriz-fischer/brave-relay/pulls/1/files",
+    "auth": true,
+    "allowSets": ["pr-diff"]
+  },
+  {
+    "file": "pr_checks--empty",
+    "route": "/beatriz-fischer/brave-relay/pulls/1/checks",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allowSets": ["pr-content"]
+  },
+  {
+    "file": "actions--empty",
+    "route": "/amara-silva/lazy-kiln/checks",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "pull_new",
+    "route": "/amara-silva/lazy-kiln/pulls/new",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "pull_new--readonly",
+    "route": "/amara-silva/lazy-kiln/pulls/new",
+    "auth": true
   }
 ]

@@ -1,0 +1,352 @@
+{
+  "pulls-content": [
+    {
+      "match": "^div\\.\\-space\\-x\\-1\\.5\\ flex\\ \\[aria\\-label\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    },
+    {
+      "match": "^div\\.border\\-b\\ border\\-border\\ p\\-1\\.5\\ \\[\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    },
+    {
+      "match": "^input\\.bg\\-card\\ border\\ border\\-input\\ focus:outline\\-hidden\\ focus:ring\\-2\\ focus:ring\\-ring\\ h\\-8\\ placeholder:text\\-muted\\-foreground\\ px\\-2\\ rounded\\ text\\-\\[13px\\]\\ w\\-full\\ \\[aria\\-label,autocomplete,placeholder,type\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    },
+    {
+      "match": "^span\\.bg\\-muted\\ font\\-medium\\ grid\\ h\\-5\\ place\\-items\\-center\\ ring\\-2\\ ring\\-background\\ rounded\\-full\\ text\\-\\[9px\\]\\ text\\-muted\\-foreground\\ w\\-5\\ \\[\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    },
+    {
+      "match": "^span\\.font\\-mono\\ text\\-\\[11px\\]\\ \\[\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    },
+    {
+      "match": "^span\\.gap\\-1\\ inline\\-flex\\ items\\-center\\ text\\-destructive\\ \\[aria\\-label,title\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    },
+    {
+      "match": "^span\\.gap\\-1\\ inline\\-flex\\ items\\-center\\ text\\-muted\\-foreground\\ \\[title\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    },
+    {
+      "match": "^span\\.gap\\-1\\ inline\\-flex\\ items\\-center\\ text\\-warning\\ \\[aria\\-label,title\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    },
+    {
+      "match": "^span\\.text\\-\\[11px\\]\\ \\[\\]$",
+      "why": "list rows differ by seeded data: labels, reviewers, CI and comment counts, filter menus"
+    }
+  ],
+  "pr-content": [
+    {
+      "match": "^a\\.font\\-medium\\ hover:underline\\ text\\-foreground\\ \\[href\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^a\\.gap\\-1\\.5\\ hover:bg\\-accent\\ hover:text\\-foreground\\ inline\\-flex\\ items\\-center\\ ml\\-auto\\ px\\-3\\ py\\-1\\.5\\ rounded\\-md\\ text\\-muted\\-foreground\\ \\[href\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^a\\.hover:underline\\ text\\-blue\\-600\\ \\[href\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^article\\.bg\\-card\\ border\\ border\\-border\\ overflow\\-hidden\\ rounded\\-md\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^button\\.bg\\-accent\\ border\\ border\\-border\\ gap\\-1\\.5\\ h\\-8\\ hover:bg\\-accent/70\\ inline\\-flex\\ items\\-center\\ justify\\-center\\ rounded\\-md\\ text\\-\\[13px\\]\\ text\\-foreground\\ w\\-full\\ \\[aria\\-pressed,type\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^button\\.border\\ border\\-border\\ gap\\-1\\.5\\ h\\-8\\ hover:bg\\-accent\\ hover:text\\-foreground\\ inline\\-flex\\ items\\-center\\ justify\\-center\\ rounded\\-md\\ text\\-\\[13px\\]\\ text\\-muted\\-foreground\\ w\\-full\\ \\[aria\\-pressed,type\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^circle\\.\\ \\[cx,cy,fill,r,stroke\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^code\\.\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^div\\.bg\\-card\\ border\\ border\\-border\\ mt\\-1\\.5\\ px\\-4\\ py\\-3\\ rounded\\-md\\ text\\-foreground/85\\ text\\-sm\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^div\\.bg\\-muted\\ h\\-1\\ rounded\\-full\\ w\\-full\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^div\\.bg\\-success\\ h\\-1\\ rounded\\-full\\ \\[style\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^div\\.dark:prose\\-invert\\ max\\-w\\-none\\ prose\\ prose\\-sm\\ px\\-4\\ py\\-3\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^div\\.mt\\-1\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^div\\.text\\-sm\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^em\\.\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^h2\\.\\ \\[id\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^header\\.bg\\-muted/40\\ border\\-b\\ border\\-border\\ flex\\ gap\\-2\\ items\\-center\\ px\\-4\\ py\\-2\\.5\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^li\\.flex\\ gap\\-2\\ items\\-center\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^li\\.flex\\ gap\\-2\\ items\\-center\\ text\\-\\[13px\\]\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^p\\.bg\\-muted/40\\ border\\-b\\ border\\-border\\ border\\-t\\ font\\-mono\\ px\\-4\\ py\\-2\\ text\\-\\[11\\.5px\\]\\ text\\-muted\\-foreground\\ tracking\\-wider\\ uppercase\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^p\\.flex\\ flex\\-wrap\\ gap\\-1\\.5\\ items\\-center\\ text\\-sm\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^p\\.mt\\-0\\.5\\ text\\-muted\\-foreground\\ text\\-xs\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^p\\.text\\-muted\\-foreground\\ text\\-sm\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^p\\.text\\-muted\\-foreground\\ text\\-xs\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.align\\-middle\\ bg\\-\\(color:\\-\\-label\\-bg\\)\\ border\\ border\\-\\(color:\\-\\-label\\-border\\)\\ dark:bg\\-\\(color:\\-\\-label\\-dark\\-bg\\)\\ dark:border\\-\\(color:\\-\\-label\\-dark\\-border\\)\\ dark:text\\-\\(color:\\-\\-label\\-dark\\-fg\\)\\ font\\-medium\\ inline\\-block\\ leading\\-4\\ max\\-w\\-full\\ px\\-2\\ py\\-px\\ rounded\\-full\\ text\\-\\(color:\\-\\-label\\-fg\\)\\ text\\-\\[11px\\]\\ truncate\\ \\[style\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.bg\\-muted\\ border\\ border\\-border\\ font\\-medium\\ inline\\-flex\\ items\\-center\\ px\\-1\\.5\\ py\\-0\\.5\\ rounded\\-full\\ text\\-\\[11px\\]\\ text\\-foreground\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.bg\\-secondary\\ border\\ border\\-transparent\\ font\\-medium\\ gap\\-1\\.5\\ h\\-\\[22px\\]\\ inline\\-flex\\ items\\-center\\ px\\-2\\ rounded\\-full\\ text\\-\\[11px\\]\\ text\\-secondary\\-foreground\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.bg\\-success/15\\ border\\ border\\-success/30\\ font\\-medium\\ gap\\-1\\.5\\ h\\-\\[22px\\]\\ inline\\-flex\\ items\\-center\\ px\\-2\\ rounded\\-full\\ text\\-\\[11px\\]\\ text\\-success\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.bg\\-success/15\\ cz\\-timeline\\-icon\\ text\\-success\\ \\[aria\\-hidden\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.bg\\-success/15\\ font\\-medium\\ gap\\-1\\ h\\-\\[18px\\]\\ inline\\-flex\\ items\\-center\\ px\\-1\\.5\\ rounded\\-full\\ text\\-\\[10px\\]\\ text\\-success\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.bg\\-warning/15\\ cz\\-timeline\\-icon\\ text\\-warning\\ \\[aria\\-hidden\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.font\\-medium\\ font\\-mono\\ text\\-\\[10px\\]\\ text\\-destructive\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.font\\-medium\\ font\\-mono\\ text\\-\\[10px\\]\\ text\\-success\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.font\\-medium\\ text\\-foreground\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.font\\-mono\\ text\\-muted\\-foreground\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.ml\\-auto\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^span\\.text\\-muted\\-foreground\\ text\\-xs\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^svg\\.shrink\\-0\\ text\\-success\\ \\[aria\\-hidden,fill,focusable,height,stroke,stroke\\-width,viewBox,width\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^time\\.ml\\-1\\ \\[datetime\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^time\\.text\\-muted\\-foreground\\ text\\-xs\\ \\[datetime\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^ul\\.space\\-y\\-1\\.5\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^ul\\.space\\-y\\-1\\.5\\ text\\-\\[13px\\]\\ \\[\\]$",
+      "why": "PR content comes from seeded data: description markup, timeline, reviewers, labels, milestone, linked issues, checks and line counts, subscription state"
+    },
+    {
+      "match": "^svg\\.shrink\\-0\\ text\\-warning\\ \\[aria\\-hidden,fill,height,stroke,stroke\\-width,viewBox,width\\]$",
+      "why": "a merge-box row shows the warning icon only while a requirement is unmet, which the seeded draft has none of"
+    }
+  ],
+  "pr-diff": [
+    {
+      "match": "^a\\.font\\-semibold\\ hover:underline\\ text\\-xs\\ \\[href\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^a\\.hover:text\\-foreground\\ ml\\-auto\\ shrink\\-0\\ text\\-\\[12px\\]\\ text\\-muted\\-foreground\\ \\[href\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^button\\.hover:text\\-destructive\\ shrink\\-0\\ text\\-muted\\-foreground/60\\ text\\-xs\\ \\[aria\\-label,type\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^div\\.border\\-b\\ border\\-primary/20\\ flex\\ gap\\-2\\ items\\-start\\ last:border\\-0\\ py\\-2\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^div\\.dark:prose\\-invert\\ max\\-w\\-none\\ mt\\-0\\.5\\ prose\\ prose\\-xs\\ text\\-foreground\\ text\\-xs\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^div\\.flex\\ gap\\-2\\ items\\-center\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^div\\.flex\\-1\\ min\\-w\\-0\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^p\\.\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^p\\.px\\-4\\ py\\-3\\ text\\-muted\\-foreground\\ text\\-sm\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.bg\\-muted\\ border\\ border\\-border\\ font\\-medium\\ h\\-6\\ inline\\-grid\\ place\\-items\\-center\\ rounded\\-full\\ text\\-\\[10px\\]\\ text\\-muted\\-foreground\\ w\\-6\\ \\[aria\\-hidden\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.bg\\-success/15\\ font\\-medium\\ gap\\-1\\ h\\-\\[18px\\]\\ inline\\-flex\\ items\\-center\\ px\\-1\\.5\\ rounded\\-full\\ text\\-\\[10px\\]\\ text\\-success\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.flex\\ mt\\-0\\.5\\ shrink\\-0\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.font\\-medium\\ font\\-mono\\ text\\-\\[10px\\]\\ text\\-destructive\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.font\\-mono\\ text\\-\\[10px\\]\\ text\\-destructive\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-k\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-kd\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-kp\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-kt\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-mi\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-n\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-nb\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-nc\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-nf\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-o\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.hl\\-p\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.ml\\-1\\ text\\-destructive\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^span\\.text\\-muted\\-foreground\\ text\\-xs\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^td\\.bg\\-destructive/6\\ dark:bg\\-destructive/10\\ overflow\\-hidden\\ pl\\-3\\ pr\\-4\\ py\\-0\\.5\\ whitespace\\-pre\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^td\\.bg\\-success/6\\ border\\-border\\ border\\-l\\ dark:bg\\-success/10\\ overflow\\-hidden\\ pl\\-3\\ pr\\-4\\ py\\-0\\.5\\ text\\-success\\ whitespace\\-pre\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^td\\.px\\-4\\ py\\-0\\ \\[colspan\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^tr\\.bg\\-destructive/6\\ dark:bg\\-destructive/10\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^tr\\.bg\\-destructive/6\\ dark:bg\\-destructive/10\\ diff\\-line\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^tr\\.bg\\-primary/10\\ border\\-primary/20\\ border\\-t\\ \\[id\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    },
+    {
+      "match": "^tr\\.bg\\-success/6\\ dark:bg\\-success/10\\ \\[\\]$",
+      "why": "diff lines, syntax highlighting and line threads follow the seeded commits"
+    }
+  ]
+}

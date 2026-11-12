@@ -2,7 +2,7 @@
 // text, so seeded data and fixtures may differ. Run against a throwaway seeded server (see docs/testing.md):
 //
 //   CZ_BASE_URL=http://127.0.0.1:18641 CZ_EMAIL=admin@example.test CZ_PASSWORD=cloudzilla-seed node compare.mjs
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +16,7 @@ const password = process.env.CZ_PASSWORD ?? "cloudzilla-seed";
 // Only variants a plain GET reaches. A variant that needs a failed form post or a toggled setting has no live URL.
 // "email" names another seeded account (the seed gives the default admin no repositories on the home page).
 const pages = JSON.parse(readFileSync(join(here, "routes.json"), "utf8"));
+const allowSets = existsSync(join(here, "allow-sets.json")) ? JSON.parse(readFileSync(join(here, "allow-sets.json"), "utf8")) : {};
 
 class Jar {
   cookies = new Map();
@@ -89,7 +90,12 @@ for (const p of pages) {
   const mock = signatures(readFileSync(join(generated, `${p.file}.html`), "utf8"));
   // "allow" holds regexes for signatures that vary with seeded data (a language dot colour, a heatmap level), each
   // with the reason it is expected.
-  const allowed = (p.allow ?? []).map((a) => new RegExp(a.match));
+  // "allowSets" names lists in allow-sets.json, for differences that many pages share (a timeline, a diff).
+  const entries = [...(p.allow ?? []), ...(p.allowSets ?? []).flatMap((n) => {
+    if (!allowSets[n]) throw new Error(`${p.file}: unknown allowSet "${n}" (see allow-sets.json)`);
+    return allowSets[n];
+  })];
+  const allowed = entries.map((a) => new RegExp(a.match));
   const varies = (s) => allowed.some((re) => re.test(s));
   const onlyLive = [...live].filter((s) => !mock.has(s) && !varies(s));
   const onlyMock = [...mock].filter((s) => !live.has(s) && !varies(s));

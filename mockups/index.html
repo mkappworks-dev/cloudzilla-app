@@ -28,7 +28,7 @@
   <section aria-labelledby="g-generated">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-generated" class="text-sm font-semibold tracking-tight">Generated from the templates</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">3</span>
+      <span class="font-mono text-[11px] text-muted-foreground">10</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li class="block h-full rounded-md border border-border bg-card p-4">
@@ -57,6 +57,98 @@
         <ul class="mt-2 space-y-1">
           <li><a href="generated/not_found.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">signed in</span></li>
           <li><a href="generated/not_found--anon.html" class="font-mono text-[11px] text-primary hover:underline">anon</a> <span class="text-[11px] text-muted-foreground">signed out</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls</p>
+        <h3 class="mt-1 text-sm font-medium">Pull requests</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/pulls.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">open tab</span></li>
+          <li><a href="generated/pulls--closed.html" class="font-mono text-[11px] text-primary hover:underline">closed</a> <span class="text-[11px] text-muted-foreground">closed tab</span></li>
+          <li><a href="generated/pulls--no-match.html" class="font-mono text-[11px] text-primary hover:underline">no-match</a> <span class="text-[11px] text-muted-foreground">a search that matches nothing</span></li>
+          <li><a href="generated/pulls--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no pull requests in any state</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/{n}</p>
+        <h3 class="mt-1 text-sm font-medium">Pull request</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/pr.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">open, ready to merge; writer who did not open it</span></li>
+          <li><a href="generated/pr--author.html" class="font-mono text-[11px] text-primary hover:underline">author</a> <span class="text-[11px] text-muted-foreground">open, ready to merge; its author</span></li>
+          <li><a href="generated/pr--readonly.html" class="font-mono text-[11px] text-primary hover:underline">readonly</a> <span class="text-[11px] text-muted-foreground">open, ready to merge; signed in without write access</span></li>
+          <li><a href="generated/pr--needs.html" class="font-mono text-[11px] text-primary hover:underline">needs</a> <span class="text-[11px] text-muted-foreground">open, review required; writer who did not open it</span></li>
+          <li><a href="generated/pr--needs-author.html" class="font-mono text-[11px] text-primary hover:underline">needs-author</a> <span class="text-[11px] text-muted-foreground">open, review required; its author</span></li>
+          <li><a href="generated/pr--needs-readonly.html" class="font-mono text-[11px] text-primary hover:underline">needs-readonly</a> <span class="text-[11px] text-muted-foreground">open, review required; signed in without write access</span></li>
+          <li><a href="generated/pr--checks-pending.html" class="font-mono text-[11px] text-primary hover:underline">checks-pending</a> <span class="text-[11px] text-muted-foreground">open, waiting on required checks; writer who did not open it</span></li>
+          <li><a href="generated/pr--checks-pending-author.html" class="font-mono text-[11px] text-primary hover:underline">checks-pending-author</a> <span class="text-[11px] text-muted-foreground">open, waiting on required checks; its author</span></li>
+          <li><a href="generated/pr--checks-pending-readonly.html" class="font-mono text-[11px] text-primary hover:underline">checks-pending-readonly</a> <span class="text-[11px] text-muted-foreground">open, waiting on required checks; signed in without write access</span></li>
+          <li><a href="generated/pr--failing.html" class="font-mono text-[11px] text-primary hover:underline">failing</a> <span class="text-[11px] text-muted-foreground">open, a required check failed; writer who did not open it</span></li>
+          <li><a href="generated/pr--failing-author.html" class="font-mono text-[11px] text-primary hover:underline">failing-author</a> <span class="text-[11px] text-muted-foreground">open, a required check failed; its author</span></li>
+          <li><a href="generated/pr--failing-readonly.html" class="font-mono text-[11px] text-primary hover:underline">failing-readonly</a> <span class="text-[11px] text-muted-foreground">open, a required check failed; signed in without write access</span></li>
+          <li><a href="generated/pr--changes.html" class="font-mono text-[11px] text-primary hover:underline">changes</a> <span class="text-[11px] text-muted-foreground">open, a reviewer requested changes; writer who did not open it</span></li>
+          <li><a href="generated/pr--changes-author.html" class="font-mono text-[11px] text-primary hover:underline">changes-author</a> <span class="text-[11px] text-muted-foreground">open, a reviewer requested changes; its author</span></li>
+          <li><a href="generated/pr--changes-readonly.html" class="font-mono text-[11px] text-primary hover:underline">changes-readonly</a> <span class="text-[11px] text-muted-foreground">open, a reviewer requested changes; signed in without write access</span></li>
+          <li><a href="generated/pr--conflicts.html" class="font-mono text-[11px] text-primary hover:underline">conflicts</a> <span class="text-[11px] text-muted-foreground">open, merge conflicts; writer who did not open it</span></li>
+          <li><a href="generated/pr--conflicts-author.html" class="font-mono text-[11px] text-primary hover:underline">conflicts-author</a> <span class="text-[11px] text-muted-foreground">open, merge conflicts; its author</span></li>
+          <li><a href="generated/pr--conflicts-readonly.html" class="font-mono text-[11px] text-primary hover:underline">conflicts-readonly</a> <span class="text-[11px] text-muted-foreground">open, merge conflicts; signed in without write access</span></li>
+          <li><a href="generated/pr--auto.html" class="font-mono text-[11px] text-primary hover:underline">auto</a> <span class="text-[11px] text-muted-foreground">open, auto-merge armed; writer who did not open it</span></li>
+          <li><a href="generated/pr--auto-author.html" class="font-mono text-[11px] text-primary hover:underline">auto-author</a> <span class="text-[11px] text-muted-foreground">open, auto-merge armed; its author</span></li>
+          <li><a href="generated/pr--auto-readonly.html" class="font-mono text-[11px] text-primary hover:underline">auto-readonly</a> <span class="text-[11px] text-muted-foreground">open, auto-merge armed; signed in without write access</span></li>
+          <li><a href="generated/pr--anon.html" class="font-mono text-[11px] text-primary hover:underline">anon</a> <span class="text-[11px] text-muted-foreground">open, ready to merge; signed out</span></li>
+          <li><a href="generated/pr--draft.html" class="font-mono text-[11px] text-primary hover:underline">draft</a> <span class="text-[11px] text-muted-foreground">draft; writer who did not open it</span></li>
+          <li><a href="generated/pr--draft-readonly.html" class="font-mono text-[11px] text-primary hover:underline">draft-readonly</a> <span class="text-[11px] text-muted-foreground">draft; signed in without write access</span></li>
+          <li><a href="generated/pr--merged.html" class="font-mono text-[11px] text-primary hover:underline">merged</a> <span class="text-[11px] text-muted-foreground">merged; writer</span></li>
+          <li><a href="generated/pr--merged-readonly.html" class="font-mono text-[11px] text-primary hover:underline">merged-readonly</a> <span class="text-[11px] text-muted-foreground">merged; signed in without write access</span></li>
+          <li><a href="generated/pr--closed.html" class="font-mono text-[11px] text-primary hover:underline">closed</a> <span class="text-[11px] text-muted-foreground">closed, with Reopen; writer</span></li>
+          <li><a href="generated/pr--closed-readonly.html" class="font-mono text-[11px] text-primary hover:underline">closed-readonly</a> <span class="text-[11px] text-muted-foreground">closed; signed in without write access</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/{n}/commits</p>
+        <h3 class="mt-1 text-sm font-medium">Pull request commits</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/pr_commits.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">three commits</span></li>
+          <li><a href="generated/pr_commits--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no commits between base and head</span></li>
+          <li><a href="generated/pr_commits--error.html" class="font-mono text-[11px] text-primary hover:underline">error</a> <span class="text-[11px] text-muted-foreground">the commit list failed to load</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/{n}/files</p>
+        <h3 class="mt-1 text-sm font-medium">Pull request files changed</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/pr_files.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">modified, added, deleted and binary files with a line comment</span></li>
+          <li><a href="generated/pr_files--readonly.html" class="font-mono text-[11px] text-primary hover:underline">readonly</a> <span class="text-[11px] text-muted-foreground">signed in without write access: no review or line-comment controls</span></li>
+          <li><a href="generated/pr_files--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no changes</span></li>
+          <li><a href="generated/pr_files--error.html" class="font-mono text-[11px] text-primary hover:underline">error</a> <span class="text-[11px] text-muted-foreground">the diff failed to load</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/{n}/checks</p>
+        <h3 class="mt-1 text-sm font-medium">Pull request checks</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/pr_checks.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">one check failed</span></li>
+          <li><a href="generated/pr_checks--passing.html" class="font-mono text-[11px] text-primary hover:underline">passing</a> <span class="text-[11px] text-muted-foreground">every check passed</span></li>
+          <li><a href="generated/pr_checks--pending.html" class="font-mono text-[11px] text-primary hover:underline">pending</a> <span class="text-[11px] text-muted-foreground">checks still running</span></li>
+          <li><a href="generated/pr_checks--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no status reported yet</span></li>
+          <li><a href="generated/pr_checks--error.html" class="font-mono text-[11px] text-primary hover:underline">error</a> <span class="text-[11px] text-muted-foreground">statuses failed to load</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/checks</p>
+        <h3 class="mt-1 text-sm font-medium">Checks</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/actions.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">recent commits with statuses</span></li>
+          <li><a href="generated/actions--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">nothing reported yet, with the curl example</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/new</p>
+        <h3 class="mt-1 text-sm font-medium">Open a pull request</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/pull_new.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">writer picks reviewers and labels</span></li>
+          <li><a href="generated/pull_new--readonly.html" class="font-mono text-[11px] text-primary hover:underline">readonly</a> <span class="text-[11px] text-muted-foreground">signed in without write access: reviewers and labels are read-only</span></li>
+          <li><a href="generated/pull_new--error.html" class="font-mono text-[11px] text-primary hover:underline">error</a> <span class="text-[11px] text-muted-foreground">creating the pull request failed</span></li>
+          <li><a href="generated/pull_new--no-branches.html" class="font-mono text-[11px] text-primary hover:underline">no-branches</a> <span class="text-[11px] text-muted-foreground">the repository has no branches</span></li>
         </ul>
       </li>
     </ul>
@@ -344,64 +436,6 @@
           <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/milestones/new</p>
           <h3 class="mt-1 text-sm font-medium">New milestone</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">milestone_new.html</p>
-        </a>
-      </li>
-    </ul>
-  </section>
-
-  <section aria-labelledby="g-pull">
-    <div class="flex items-baseline justify-between mb-3">
-      <h2 id="g-pull" class="text-sm font-semibold tracking-tight">Pull requests and checks</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">7</span>
-    </div>
-    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <li>
-        <a href="pulls.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls</p>
-          <h3 class="mt-1 text-sm font-medium">Pull requests</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">pulls.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="pull_new.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/new</p>
-          <h3 class="mt-1 text-sm font-medium">New pull request</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">pull_new.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="pr.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/{n}</p>
-          <h3 class="mt-1 text-sm font-medium">Pull request</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">pr.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="pr_commits.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/{n}/commits</p>
-          <h3 class="mt-1 text-sm font-medium">Pull request commits</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">pr_commits.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="pr_files.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/{n}/files</p>
-          <h3 class="mt-1 text-sm font-medium">Pull request files</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">pr_files.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="pr_checks.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulls/{n}/checks</p>
-          <h3 class="mt-1 text-sm font-medium">Pull request checks</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">pr_checks.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="actions.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/checks</p>
-          <h3 class="mt-1 text-sm font-medium">Checks</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">actions.html</p>
         </a>
       </li>
     </ul>

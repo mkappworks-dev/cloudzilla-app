@@ -10,18 +10,68 @@ cannot render from a plain view-model is listed under "Pages with no mock" with 
 
 <!-- mockgen:start -->
 
-| Page        | Variant      | Shows                                                                | Template          |
-| ----------- | ------------ | -------------------------------------------------------------------- | ----------------- |
-| `home`      | `default`    | signed in with repositories                                          | `home.templ`      |
-| `home`      | `anon`       | signed out                                                           | `home.templ`      |
-| `home`      | `empty`      | no repositories yet                                                  | `home.templ`      |
-| `home`      | `admin-mode` | instance admin acting with elevated rights                           | `home.templ`      |
-| `login`     | `default`    | email and password; the instance cannot send email, so no reset link | `login.templ`     |
-| `login`     | `reset-link` | the instance can send email                                          | `login.templ`     |
-| `login`     | `error`      | wrong password                                                       | `login.templ`     |
-| `login`     | `sso`        | LDAP and SAML enabled                                                | `login.templ`     |
-| `not_found` | `default`    | signed in                                                            | `not_found.templ` |
-| `not_found` | `anon`       | signed out                                                           | `not_found.templ` |
+| Page         | Variant                   | Shows                                                                | Template            |
+| ------------ | ------------------------- | -------------------------------------------------------------------- | ------------------- |
+| `home`       | `default`                 | signed in with repositories                                          | `home.templ`        |
+| `home`       | `anon`                    | signed out                                                           | `home.templ`        |
+| `home`       | `empty`                   | no repositories yet                                                  | `home.templ`        |
+| `home`       | `admin-mode`              | instance admin acting with elevated rights                           | `home.templ`        |
+| `login`      | `default`                 | email and password; the instance cannot send email, so no reset link | `login.templ`       |
+| `login`      | `reset-link`              | the instance can send email                                          | `login.templ`       |
+| `login`      | `error`                   | wrong password                                                       | `login.templ`       |
+| `login`      | `sso`                     | LDAP and SAML enabled                                                | `login.templ`       |
+| `not_found`  | `default`                 | signed in                                                            | `not_found.templ`   |
+| `not_found`  | `anon`                    | signed out                                                           | `not_found.templ`   |
+| `pulls`      | `default`                 | open tab                                                             | `pulls.templ`       |
+| `pulls`      | `closed`                  | closed tab                                                           | `pulls.templ`       |
+| `pulls`      | `no-match`                | a search that matches nothing                                        | `pulls.templ`       |
+| `pulls`      | `empty`                   | no pull requests in any state                                        | `pulls.templ`       |
+| `pr`         | `default`                 | open, ready to merge; writer who did not open it                     | `pull_detail.templ` |
+| `pr`         | `author`                  | open, ready to merge; its author                                     | `pull_detail.templ` |
+| `pr`         | `readonly`                | open, ready to merge; signed in without write access                 | `pull_detail.templ` |
+| `pr`         | `needs`                   | open, review required; writer who did not open it                    | `pull_detail.templ` |
+| `pr`         | `needs-author`            | open, review required; its author                                    | `pull_detail.templ` |
+| `pr`         | `needs-readonly`          | open, review required; signed in without write access                | `pull_detail.templ` |
+| `pr`         | `checks-pending`          | open, waiting on required checks; writer who did not open it         | `pull_detail.templ` |
+| `pr`         | `checks-pending-author`   | open, waiting on required checks; its author                         | `pull_detail.templ` |
+| `pr`         | `checks-pending-readonly` | open, waiting on required checks; signed in without write access     | `pull_detail.templ` |
+| `pr`         | `failing`                 | open, a required check failed; writer who did not open it            | `pull_detail.templ` |
+| `pr`         | `failing-author`          | open, a required check failed; its author                            | `pull_detail.templ` |
+| `pr`         | `failing-readonly`        | open, a required check failed; signed in without write access        | `pull_detail.templ` |
+| `pr`         | `changes`                 | open, a reviewer requested changes; writer who did not open it       | `pull_detail.templ` |
+| `pr`         | `changes-author`          | open, a reviewer requested changes; its author                       | `pull_detail.templ` |
+| `pr`         | `changes-readonly`        | open, a reviewer requested changes; signed in without write access   | `pull_detail.templ` |
+| `pr`         | `conflicts`               | open, merge conflicts; writer who did not open it                    | `pull_detail.templ` |
+| `pr`         | `conflicts-author`        | open, merge conflicts; its author                                    | `pull_detail.templ` |
+| `pr`         | `conflicts-readonly`      | open, merge conflicts; signed in without write access                | `pull_detail.templ` |
+| `pr`         | `auto`                    | open, auto-merge armed; writer who did not open it                   | `pull_detail.templ` |
+| `pr`         | `auto-author`             | open, auto-merge armed; its author                                   | `pull_detail.templ` |
+| `pr`         | `auto-readonly`           | open, auto-merge armed; signed in without write access               | `pull_detail.templ` |
+| `pr`         | `anon`                    | open, ready to merge; signed out                                     | `pull_detail.templ` |
+| `pr`         | `draft`                   | draft; writer who did not open it                                    | `pull_detail.templ` |
+| `pr`         | `draft-readonly`          | draft; signed in without write access                                | `pull_detail.templ` |
+| `pr`         | `merged`                  | merged; writer                                                       | `pull_detail.templ` |
+| `pr`         | `merged-readonly`         | merged; signed in without write access                               | `pull_detail.templ` |
+| `pr`         | `closed`                  | closed, with Reopen; writer                                          | `pull_detail.templ` |
+| `pr`         | `closed-readonly`         | closed; signed in without write access                               | `pull_detail.templ` |
+| `pr_commits` | `default`                 | three commits                                                        | `pr_commits.templ`  |
+| `pr_commits` | `empty`                   | no commits between base and head                                     | `pr_commits.templ`  |
+| `pr_commits` | `error`                   | the commit list failed to load                                       | `pr_commits.templ`  |
+| `pr_files`   | `default`                 | modified, added, deleted and binary files with a line comment        | `pr_files.templ`    |
+| `pr_files`   | `readonly`                | signed in without write access: no review or line-comment controls   | `pr_files.templ`    |
+| `pr_files`   | `empty`                   | no changes                                                           | `pr_files.templ`    |
+| `pr_files`   | `error`                   | the diff failed to load                                              | `pr_files.templ`    |
+| `pr_checks`  | `default`                 | one check failed                                                     | `pr_checks.templ`   |
+| `pr_checks`  | `passing`                 | every check passed                                                   | `pr_checks.templ`   |
+| `pr_checks`  | `pending`                 | checks still running                                                 | `pr_checks.templ`   |
+| `pr_checks`  | `empty`                   | no status reported yet                                               | `pr_checks.templ`   |
+| `pr_checks`  | `error`                   | statuses failed to load                                              | `pr_checks.templ`   |
+| `actions`    | `default`                 | recent commits with statuses                                         | `checks.templ`      |
+| `actions`    | `empty`                   | nothing reported yet, with the curl example                          | `checks.templ`      |
+| `pull_new`   | `default`                 | writer picks reviewers and labels                                    | `pull_new.templ`    |
+| `pull_new`   | `readonly`                | signed in without write access: reviewers and labels are read-only   | `pull_new.templ`    |
+| `pull_new`   | `error`                   | creating the pull request failed                                     | `pull_new.templ`    |
+| `pull_new`   | `no-branches`             | the repository has no branches                                       | `pull_new.templ`    |
 
 <!-- mockgen:end -->
 
@@ -38,8 +88,6 @@ cannot render from a plain view-model is listed under "Pages with no mock" with 
 
 | Mock                                      | Real page                                         |
 | ----------------------------------------- | ------------------------------------------------- |
-| `actions.html`                            | `checks.templ`: the repo Checks page              |
-| `pr.html`                                 | `pull_detail.templ`                               |
 | `project.html`, `project_board.html`      | `projects.templ`, `project_detail.templ`          |
 | `profile.html`, `org_profile.html`        | `user.templ`, `org.templ`                         |
 | `settings.html`, `account_settings.html`  | `repo_settings.templ`, `settings.templ`           |
@@ -57,25 +105,20 @@ Mocks show the happy path. These real states are not drawn:
 
 - **Empty states.** Issue and PR lists with no match ("No open issues match these filters."); repo with no commits
   ("This repository is empty."), empty directory, no releases, no milestones, no projects, no wiki page ("This page does
-  not exist yet."), empty discussion and PR lists, no checks (the curl example).
+  not exist yet."), empty discussion lists.
 - **Unrecognized qualifier notice.** A list search holding a token such as `sort:comments-desc` shows a line under the
   search field saying it was searched as text (`ListFilterBar`'s `Notices`).
 - **Read-only and signed-out views.** No Edit, Delete or Manage controls; "Sign in to reply."; a locked issue the viewer
-  cannot comment on; the `pr.html` merge box's lock line ("Only collaborators with write access…") in place of Merge and
-  Close.
-- **PR states.** `pr.html` opens in other states through hashes: `#pr=open|draft|merged`,
-  `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly` (join with
-  `&`).
-- **Other states.** Closed pull requests; archived and mirror repo banners; binary file in `blob`; hidden-issue project
-  card; form validation errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or
-  slash-ended path, or open `#error`); one-time token and backup-code reveals.
+  cannot comment on.
+- **Other states.** Archived and mirror repo banners; binary file in `blob`; hidden-issue project card; form validation
+  errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or slash-ended path, or
+  open `#error`); one-time token and backup-code reveals.
 - **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
   `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
   a mock button draws the real busy state.
 - **Filters and navigation.** `?category=` on discussions, the command palette, organization people and repository tabs,
   and the profile README call to action.
-- **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, the issue template picker, and PR
-  diff error states.
+- **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, and the issue template picker.
 - **Admin mode.** `admin_mode.html` draws the page in both states (add `?admin_mode=1` for the running one), and any
   mock with `?admin_mode=1` or `data-admin-mode` on `#cz-header` shows the "Acting as instance admin" banner and drops
   "Enter admin mode" from the user menu. `forbidden.html` draws the 403 page, with the superadmin hint behind
@@ -111,4 +154,3 @@ Some controls and forms have no behaviour. In particular:
 
 - **Project board cards.** Every card opens the card dialog, with the linked issue or PR shown as a link inside it. In
   the real app only note cards open the dialog; a linked issue or PR card navigates straight to that item.
-- **PR checks page.** The repo tab bar highlights Checks. The real app keeps Pull requests highlighted on every PR tab.
