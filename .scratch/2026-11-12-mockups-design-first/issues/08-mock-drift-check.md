@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: needs-triage
+Status: done
 
 ## Problem
 
@@ -22,7 +22,11 @@ Decide whether a lighter check is worth having, and if so build the smallest one
 
 ## Acceptance criteria
 
-- [ ] A decision between A and B, recorded here
-- [ ] If A: documented in `docs/testing.md`, local only, not in CI
+- [x] A decision between A and B, recorded here
+- [x] ~~If A: documented in `docs/testing.md`, local only, not in CI~~
 
 ## Comments
+
+2026-11-12 (maintainer): option B. Hand mocks carry sample data, so a class diff needs a per-route allow-list and a seeded
+server for little gain. The PR template's mock line now says to copy classes from the templ. Reopen option A if the next
+fidelity re-score (UI/UX ticket 22) still shows drift.

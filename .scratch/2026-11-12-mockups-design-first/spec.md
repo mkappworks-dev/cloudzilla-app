@@ -23,7 +23,7 @@ order, so the mock can only ever restate what was already built.
 - **Standing mocks** of shipped pages live in `mockups/` (`make mockups`). A PR that changes a page updates its mock in
   the same PR (the rule already in `CLAUDE.md`); `mockups/COVERAGE.md` lists the pages with no mock.
 - **Fidelity is checked by review, or by a diff someone runs**, not by generation. Ticket 20 raised mock fidelity to
-  about 8.3 and the UI/UX plan wants 9.5; ticket 08 is the cheap, optional way to close part of that gap.
+  about 8.3 and the UI/UX plan wants 9.5; ticket 08 settled on review with a PR template line, no tooling.
 - **Removed:** `cmd/mockgen`, `mockups/generated/`, `mockups/mock-ui.js`, the `mockups` CI job, `make mockups-generate`,
   the `mockgen:start/end` regions, and `tests/mockgen-diff`. The hand mocks for home and login are restored;
   `not_found` never had a mock and stays in `COVERAGE.md`.
@@ -39,7 +39,7 @@ order, so the mock can only ever restate what was already built.
 | 05  | Generate settings, wiki, projects, etc.  | `wontfix`                                           |
 | 06  | Generate account and admin mocks         | `wontfix`                                           |
 | 07  | Cutover: delete hand mocks and shell.js  | `wontfix`                                           |
-| 08  | Cheap drift check for hand mocks         | `needs-triage`                                      |
+| 08  | Cheap drift check for hand mocks         | `done`: review, no tooling                          |
 
 ## Out of scope
 
