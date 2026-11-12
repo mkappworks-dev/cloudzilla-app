@@ -37,5 +37,258 @@
     "file": "not_found--anon",
     "route": "/this-page-does-not-exist",
     "auth": false
+  },
+  {
+    "file": "register",
+    "route": "/register",
+    "auth": false
+  },
+  {
+    "file": "forgot_password--unavailable",
+    "route": "/auth/password/forgot",
+    "auth": false
+  },
+  {
+    "file": "reset_password--invalid",
+    "route": "/auth/password/reset/invalid-token",
+    "auth": false
+  },
+  {
+    "file": "verify_email--invalid",
+    "route": "/verify-email?token=invalid-token",
+    "auth": false
+  },
+  {
+    "file": "signup_complete--invalid",
+    "route": "/register/complete/invalid-token",
+    "auth": false
+  },
+  {
+    "file": "invite--invalid",
+    "route": "/invite/invalid-token",
+    "auth": false
+  },
+  {
+    "file": "profile",
+    "route": "/siteadmin",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^(svg\\.mt-1 shrink-0 text-|a\\.font-mono hover:underline text-primary|blockquote\\.|p\\.mt-0\\.5 text-\\[12\\.5px\\]|path\\. \\[d,fill-rule\\]|div\\.heatmap-cell-|ul\\.mt-1 space-y-0\\.5|li\\.truncate|span\\.font-mono mr-1 text-\\[11px\\]|li\\.text-\\[11px\\] text-muted-foreground/70)",
+        "why": "activity rows, their icon tone and the heatmap level follow the seeded events"
+      },
+      {
+        "match": "^(div\\.gap-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3|a\\.bg-card block border border-border hover:border-border-strong p-4 rounded-md|div\\.flex gap-2 items-center|svg\\.text-muted-foreground \\[fill|span\\.font-medium text-sm truncate|p\\.line-clamp-2 mt-2|div\\.flex gap-3 items-center mt-2 text-\\[11px\\]|span\\.flex gap-1 items-center|span\\.h-2 inline-block rounded-full w-2 \\[style\\]|span\\.font-mono( text-muted-foreground)? \\[\\]$|div\\.flex gap-3 items-center justify-between mb-3|h2\\.font-semibold text-sm tracking-tight)",
+        "why": "pinned repositories appear only when the user has pinned some; the seed pins none"
+      },
+      {
+        "match": "^(span\\.border border-border font-medium gap-1\\.5 h-\\[22px\\]|div\\.bg-card border border-border border-dashed|div\\. \\[\\]$)",
+        "why": "the Admin badge and the empty-pins prompt follow the account, which is a seeded superadmin with no pins"
+      }
+    ]
+  },
+  {
+    "file": "profile--other",
+    "route": "/sofia-haddad",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^(svg\\.mt-1 shrink-0 text-|a\\.font-mono hover:underline text-primary|blockquote\\.|p\\.mt-0\\.5 text-\\[12\\.5px\\]|path\\. \\[d,fill-rule\\]|div\\.heatmap-cell-|ul\\.mt-1 space-y-0\\.5|li\\.truncate|span\\.font-mono mr-1 text-\\[11px\\]|li\\.text-\\[11px\\] text-muted-foreground/70)",
+        "why": "activity rows, their icon tone and the heatmap level follow the seeded events"
+      },
+      {
+        "match": "^(div\\.gap-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3|a\\.bg-card block border border-border hover:border-border-strong p-4 rounded-md|div\\.flex gap-2 items-center|svg\\.text-muted-foreground \\[fill|span\\.font-medium text-sm truncate|p\\.line-clamp-2 mt-2|div\\.flex gap-3 items-center mt-2 text-\\[11px\\]|span\\.flex gap-1 items-center|span\\.h-2 inline-block rounded-full w-2 \\[style\\]|span\\.font-mono( text-muted-foreground)? \\[\\]$|div\\.flex gap-3 items-center justify-between mb-3|h2\\.font-semibold text-sm tracking-tight)",
+        "why": "pinned repositories appear only when the user has pinned some; the seed pins none"
+      },
+      {
+        "match": "^(div\\. \\[aria-label,role\\]|div\\.border border-border flex h-2 overflow-hidden rounded-full|div\\. \\[style,title\\]|ul\\.flex flex-wrap gap-3 mt-2 text-muted-foreground text-xs|li\\.flex gap-1\\.5 items-center|span\\.h-2 inline-block rounded-full w-2 \\[aria-hidden,style\\]|span\\.text-foreground \\[\\]|span\\. \\[\\])",
+        "why": "the language bar appears only when the user's repositories have languages; the seed sets none"
+      },
+      {
+        "match": "^p\\.max-w-2xl mt-1\\.5",
+        "why": "the bio is optional and the seeded user has none"
+      }
+    ]
+  },
+  {
+    "file": "org_profile--visitor",
+    "route": "/acme-labs",
+    "auth": false,
+    "allow": [
+      {
+        "match": "^(a\\.gap-1\\.5 hover:underline inline-flex items-center text-primary|a\\.gap-1\\.5 hover:text-foreground inline-flex items-center|polyline\\.|polygon\\.)",
+        "why": "website and contact links appear only when the organization sets them"
+      },
+      {
+        "match": "^(ul\\.bg-card border border-border divide-border divide-y overflow-hidden rounded-md|a\\.flex gap-3 hover:bg-accent/50 items-start px-4 py-3\\.5|svg\\.mt-1 shrink-0 text-muted-foreground|span\\.font-medium text-\\[13\\.5px\\]|p\\.line-clamp-1 mt-0\\.5|div\\.flex gap-3 items-center mt-1\\.5 text-\\[11\\.5px\\]|span\\.gap-1 inline-flex items-center|span\\.h-2 rounded-full w-2 \\[style\\])",
+        "why": "the repository list is empty on the seeded organization"
+      },
+      {
+        "match": "^(a\\.hover:underline text-\\[11px\\] text-primary|span\\.bg-accent border border-border h-7 inline-grid)",
+        "why": "the seeded organization has more than 12 members, which adds the overflow link and tile"
+      }
+    ]
+  },
+  {
+    "file": "organizations",
+    "route": "/organizations",
+    "auth": true
+  },
+  {
+    "file": "new_organization",
+    "route": "/organizations/new",
+    "auth": true
+  },
+  {
+    "file": "org_settings--no-repos",
+    "route": "/orgs/northwind-dev/settings",
+    "auth": true
+  },
+  {
+    "file": "account_settings--fresh",
+    "route": "/settings",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^input\\.peer sr-only \\[aria-describedby",
+        "why": "a notification toggle's saved state follows the account"
+      }
+    ]
+  },
+  {
+    "file": "my_repositories",
+    "route": "/repos",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^span\\.(bg-muted border border-border inline-flex items-center leading|font-medium text-\\[#|bg-\\[#|bg-muted-foreground h-2|bg-\\[#3178C6\\])",
+        "why": "language dots and the Private badge follow the data"
+      }
+    ]
+  },
+  {
+    "file": "my_pulls--empty",
+    "route": "/pulls",
+    "auth": true
+  },
+  {
+    "file": "my_issues",
+    "route": "/issues",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^span\\.(align-middle|inline-flex items-center text-warning)",
+        "why": "label colours and the priority marker follow the data"
+      }
+    ]
+  },
+  {
+    "file": "attention",
+    "route": "/attention",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^span\\.grid h-4 place-items-center rounded-full shrink-0 text-",
+        "why": "icon tone follows the item kind"
+      }
+    ]
+  },
+  {
+    "file": "notifications",
+    "route": "/notifications",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^(span\\.bg-accent border border-border grid h-7|span\\.border border-border h-\\[7px\\]|span\\.text-\\[13\\.5px\\] text-muted-foreground|div\\.flex gap-3 has-)",
+        "why": "icon tone and the read or unread marker follow each notification"
+      },
+      {
+        "match": "^(span\\.bg-muted border border-border font-mono grid h-5|span\\. \\[aria-hidden\\]|span\\.sr-only)",
+        "why": "the group count badge appears only for grouped notifications"
+      }
+    ]
+  },
+  {
+    "file": "stars",
+    "route": "/stars",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^span\\.ml-1\\.5 text-\\[11px\\]",
+        "why": "a star count shows only above zero; the seeded repositories have none"
+      }
+    ]
+  },
+  {
+    "file": "new_repo",
+    "route": "/repos/new",
+    "auth": true
+  },
+  {
+    "file": "repo_import--mirror",
+    "route": "/repos/import",
+    "auth": true
+  },
+  {
+    "file": "repo_transfers--empty",
+    "route": "/repos/transfers",
+    "auth": true
+  },
+  {
+    "file": "admin_settings--empty",
+    "route": "/admin/settings",
+    "auth": true
+  },
+  {
+    "file": "admin_users",
+    "route": "/admin/users",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^span\\.bg-destructive/15",
+        "why": "the Suspended badge appears only on a suspended account"
+      }
+    ]
+  },
+  {
+    "file": "admin_user",
+    "route": "/admin/users/sofia-haddad",
+    "auth": true
+  },
+  {
+    "file": "audit_log",
+    "route": "/admin/audit-log",
+    "auth": true
+  },
+  {
+    "file": "sso_settings",
+    "route": "/admin/sso",
+    "auth": true
+  },
+  {
+    "file": "admin_mode",
+    "route": "/admin/mode",
+    "auth": true
+  },
+  {
+    "file": "forbidden",
+    "route": "/admin/mode",
+    "auth": true,
+    "email": "sofia-haddad@example.test"
+  },
+  {
+    "file": "explore",
+    "route": "/explore",
+    "auth": true
+  },
+  {
+    "file": "explore--anon",
+    "route": "/explore",
+    "auth": false
+  },
+  {
+    "file": "device_login",
+    "route": "/login/device",
+    "auth": true
   }
 ]

@@ -44,7 +44,7 @@ func fileStem(p page, v variant) string {
 }
 
 func registry() []page {
-	return []page{
+	all := []page{
 		{
 			Name: "home", Route: "/", Templ: "home.templ", Title: "Home",
 			Variants: []variant{
@@ -91,4 +91,5 @@ func registry() []page {
 			},
 		},
 	}
+	return append(all, accountPages()...)
 }

@@ -30,6 +30,8 @@ func staticize(html []byte) ([]byte, error) {
 	if boot == nil {
 		return nil, errors.New("theme bootstrap script not found in layout.Base; update themeBoot in render.go")
 	}
+	html = freezeHeatmaps(html)
+	html = freezeCompactAgo(html)
 	html = scriptTag.ReplaceAll(html, nil)
 	html = mainCSS.ReplaceAll(html, []byte(`<link rel="stylesheet" href="/assets/tailwind.css"/>`))
 	html = codeThemesCSS.ReplaceAll(html, nil)
