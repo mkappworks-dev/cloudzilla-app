@@ -1,4 +1,4 @@
-.PHONY: mockups dev dev-buildbuild build-backend build-cli build-cz migrate seed lint test test-db test-integration clean setup-tailwind setup-templ setup-air build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
+.PHONY: mockups mockups-generate dev dev-buildbuild build-backend build-cli build-cz migrate seed lint test test-db test-integration clean setup-tailwind setup-templ setup-air build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 DEV_BINARY := tmp/cloudzilla
@@ -77,6 +77,9 @@ dev-build:                         ## Regenerate templates and build the dev ser
 # there is no proxy, no second port and nothing polling for the restart.
 mockups: setup-tailwind                ## Serve the static UI mockups on :4000 (PORT=n to change)
 	node mockups/server.js $(PORT)
+
+mockups-generate:                     ## Regenerate mockups/generated from the templ components
+	go run ./cmd/mockgen
 
 dev: download-mermaid download-htmx build-css generate-templ  ## Rebuild, restart and refresh the browser on save
 	@(trap 'kill 0' SIGINT; \

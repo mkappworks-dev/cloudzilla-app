@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Zero-dependency static server for the mockups. Run: node mockups/server.js [port]
+// Serving needs no Go: generated/ is committed. Regenerate it with `make mockups-generate`.
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -8,6 +9,7 @@ const { execFileSync } = require("node:child_process");
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 4000);
 const CSS_ROUTE = "/assets/tailwind.css";
+const GENERATED_DIR = path.join(ROOT, "generated");
 const CACHE_DIR = path.join(ROOT, ".cache");
 const CSS_OUT = path.join(CACHE_DIR, "tailwind.css");
 
@@ -35,12 +37,13 @@ function findTailwind() {
 
 function sources() {
   const pages = fs.readdirSync(ROOT).filter((f) => /\.(html|js)$/.test(f) && f !== "server.js");
+  const generated = fs.existsSync(GENERATED_DIR) ? fs.readdirSync(GENERATED_DIR).map((f) => path.join("generated", f)) : [];
   return [
     path.join(ROOT, "input.css"),
     path.join(ROOT, "..", "tailwind", "input.css"),
     path.join(ROOT, "..", "cmd", "server", "frontend", "static", "code-themes.css"),
   ].concat(
-    pages.map((f) => path.join(ROOT, f)),
+    pages.concat(generated).map((f) => path.join(ROOT, f)),
   );
 }
 
@@ -60,7 +63,10 @@ function resolveFile(urlPath) {
   const abs = path.resolve(ROOT, rel || "index.html");
   if (abs !== ROOT && !abs.startsWith(ROOT + path.sep)) return null;
   if (abs.startsWith(CACHE_DIR)) return null;
-  for (const candidate of [abs, abs + ".html", path.join(abs, "index.html")]) {
+  // A page moved to generated/ keeps answering at its old address, so links in the hand mocks still work.
+  const candidates = [abs, abs + ".html", path.join(abs, "index.html")];
+  if (!rel.includes("/")) candidates.push(path.join(GENERATED_DIR, rel), path.join(GENERATED_DIR, rel + ".html"));
+  for (const candidate of candidates) {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
   }
   return null;
@@ -74,6 +80,8 @@ http
       if (pathname === CSS_ROUTE) {
         buildCSS();
         file = CSS_OUT;
+      } else if (pathname === "/favicon.svg") {
+        file = path.join(ROOT, "..", "cmd", "server", "frontend", "static", "favicon.svg");
       } else {
         file = resolveFile(pathname);
       }

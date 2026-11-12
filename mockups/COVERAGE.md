@@ -3,6 +3,28 @@
 Which real pages (`internal/view/pages/*.templ`) have a mock, and which do not. Checked against the router and templates
 in November 2026; update it when a mock is added.
 
+## Generated pages
+
+Rendered from the real templates by `cmd/mockgen` into `mockups/generated/`; see the [README](./README.md). A page that
+cannot render from a plain view-model is listed under "Pages with no mock" with the reason.
+
+<!-- mockgen:start -->
+
+| Page        | Variant      | Shows                                                                | Template          |
+| ----------- | ------------ | -------------------------------------------------------------------- | ----------------- |
+| `home`      | `default`    | signed in with repositories                                          | `home.templ`      |
+| `home`      | `anon`       | signed out                                                           | `home.templ`      |
+| `home`      | `empty`      | no repositories yet                                                  | `home.templ`      |
+| `home`      | `admin-mode` | instance admin acting with elevated rights                           | `home.templ`      |
+| `login`     | `default`    | email and password; the instance cannot send email, so no reset link | `login.templ`     |
+| `login`     | `reset-link` | the instance can send email                                          | `login.templ`     |
+| `login`     | `error`      | wrong password                                                       | `login.templ`     |
+| `login`     | `sso`        | LDAP and SAML enabled                                                | `login.templ`     |
+| `not_found` | `default`    | signed in                                                            | `not_found.templ` |
+| `not_found` | `anon`       | signed out                                                           | `not_found.templ` |
+
+<!-- mockgen:end -->
+
 ## Pages with no mock
 
 | Real page               | Route                                    | Notes           |
@@ -11,7 +33,6 @@ in November 2026; update it when a mock is added.
 | `setup.templ`           | `/setup`                                 | First-run setup |
 | `oauth_authorize.templ` | `/oauth/authorize`                       |                 |
 | `device_login.templ`    | `/login/device`, `/login/device/confirm` |                 |
-| `not_found.templ`       | any 404                                  |                 |
 
 ## Pages covered by a differently named mock
 

@@ -38,6 +38,24 @@ stand-in scripts in `fakepg_test.go` run.
 
 Run the backup and seed packages before changing `internal/backup`, `internal/seed` or the schema they dump.
 
+## Generated mockups
+
+CI's **Mockups** job runs `go run ./cmd/mockgen` and fails on any diff under `mockups/generated/`, `mockups/index.html`
+or `mockups/COVERAGE.md`: run `make mockups-generate` and commit the result. It proves the output is fresh, not that it
+matches the app.
+
+`tests/mockgen-diff` checks that: it compares each generated page's tags, classes and attribute names (never text) with
+the live server's render. It is local, per PR, and not part of CI. Start a throwaway server on a scratch database with a
+unique `auth.cookie_name`, seed it (`cz-admin seed --users 12 --orgs 2 --repos 10`), then:
+
+```bash
+CZ_BASE_URL=http://127.0.0.1:18641 node tests/mockgen-diff/compare.mjs
+```
+
+It signs in as `admin@example.test` / `cloudzilla-seed` unless `CZ_EMAIL` and `CZ_PASSWORD` say otherwise. A route in
+`tests/mockgen-diff/routes.json` may name another seeded account (`email`) and list differences that are data, not drift
+(`allow`, each with a reason). A variant with no plain-GET URL, such as a failed login, is not covered.
+
 ## Local desktop accessibility checks
 
 The local Playwright harness uses pinned Chromium and axe versions. It scans the desktop route list in light and dark at

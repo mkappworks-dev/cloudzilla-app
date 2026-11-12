@@ -1,0 +1,41 @@
+[
+  {
+    "file": "home",
+    "route": "/",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.bg-[\\w/\\[\\]().-]+ h-1\\.5 .*rounded-full",
+        "why": "language and activity dot colours follow the data"
+      },
+      {
+        "match": "^span\\.grid h-4 place-items-center rounded-full shrink-0 text-\\w+ w-4",
+        "why": "attention icon tone follows the item kind"
+      },
+      {
+        "match": "^div\\.aspect-square heatmap-cell-",
+        "why": "heatmap level follows commit counts"
+      },
+      {
+        "match": "^span\\.bg-muted border border-border inline-flex items-center ml-1\\.5",
+        "why": "the Private badge appears only on a private repository"
+      }
+    ]
+  },
+  {
+    "file": "login",
+    "route": "/login",
+    "auth": false
+  },
+  {
+    "file": "not_found",
+    "route": "/this-page-does-not-exist",
+    "auth": true
+  },
+  {
+    "file": "not_found--anon",
+    "route": "/this-page-does-not-exist",
+    "auth": false
+  }
+]

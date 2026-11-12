@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: needs-triage
+Status: ready-for-agent
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -43,3 +43,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 ## Comments
 
 2026-11-12 (wave 2 re-score): opened by ticket 22. Run `/triage` before any code.
+
+2026-11-12 (triage): ready-for-agent. Build on ticket 11's keep-the-input mechanism; one inline error pattern for client and server errors.

@@ -47,6 +47,29 @@ reviewers' estimates, not measurements.
 
 Mocks score 7.0; mock↔real fidelity 7.6 (Claude 7.0, Codex 8.2). The mocks track (tickets 20–21) targets 9.5 for both.
 
+Measured so far (mean of both reviewers; details under Comments): 7.0 baseline, **7.63** after wave 1, **7.42** after
+wave 2. The wave 2 pass used full-page shots of every state and both reviewers saw all of them, so it is stricter than
+wave 1's: treat 7.42 as the baseline for what follows.
+
+## Run order
+
+The current order, updated after each re-score. Rows in one step run as parallel sessions; a ticket also waits for its
+**Depends on**. Ticket numbers stay IDs.
+
+| Step | Tickets                    | Runs as                                         | Status                                      |
+| ---- | -------------------------- | ----------------------------------------------- | ------------------------------------------- |
+| ✅    | 00–14, 20, 22 (waves 1–2), 23, 30 | —                                        | merged                                      |
+| 1    | 21 mock generator          | alone: spec session with the maintainer, then build | running                                 |
+| 2    | 24, 32, 33, 38, 39         | parallel (separate pages)                       | ready-for-agent, after 21                   |
+| 3    | 25, 31, 35, 37, 40         | parallel; 25 after 24, 37 after 32              | ready-for-agent                             |
+| 4    | 36                         | after 31                                        | ready-for-agent                             |
+| 5    | 29 dark surfaces           | alone (restyles every page)                     | ready-for-agent                             |
+| 6    | 26, 28                     | parallel                                        | needs-info: Unlisted vs private gists (26); terms page or drop it (28 item 6) |
+| 6    | 27, 34, 15–19              | spec sessions any time; builds here             | ready-for-human                             |
+| 7    | 22 (wave 3)                | after 19                                        | re-score and polish                         |
+
+21 goes first so the polish tickets' mock changes come from the generator instead of hand edits.
+
 ## Plan
 
 One ticket = one PR = one branch = one worktree = one Claude Code session. Branch and worktree names follow
@@ -111,7 +134,7 @@ Opened by the wave 1 re-score. All `needs-triage`; each is one PR and one sessio
 | Step | #   | Ticket                                      | Branch                                | Depends on | Gain                           |
 | ---- | --- | ------------------------------------------- | ------------------------------------- | ---------- | ------------------------------ |
 | 1    | 24  | Home priority, heatmap text alternative     | `fix/home-priority-heatmap-text`      | —          | Visual +0.2, A11y +0.2         |
-| 1    | 25  | Keyboard and ARIA for custom widgets        | `fix/widget-aria-patterns`            | —          | A11y +0.5                      |
+| 1    | 25  | Keyboard and ARIA for custom widgets        | `fix/widget-aria-patterns`            | 24         | A11y +0.5                      |
 | 1    | 26  | Gist scope, privacy wording, revision copy  | `fix/gist-scope-and-wording`          | —          | IA +0.2, Content +0.3          |
 | 1    | 29  | Dark surface elevation                      | `fix/dark-surface-elevation`          | —          | Dark +0.5, Visual +0.1         |
 | 1    | 31  | Heading, timestamp, excerpt consistency     | `tech/ui-consistency-sweep`           | —          | Visual +0.2, Content +0.2      |
@@ -127,8 +150,8 @@ Opened by the wave 2 re-score. All `needs-triage`.
 | 1    | 33  | Inline field validation and recovery            | `fix/inline-validation-recovery`       | —          | Edge +0.4, A11y +0.2          |
 | 1    | 34  | Unfinished settings surfaces                    | `feat/unfinished-settings-surfaces`    | —          | Features +0.5, Content +0.1   |
 | 1    | 35  | Notifications inbox follow-ups                  | `fix/notifications-inbox-followups`    | —          | Interaction +0.2              |
-| 1    | 36  | Destructive actions: prominence, confirmation   | `fix/destructive-action-confirmation`  | —          | Interaction +0.3, Visual +0.1 |
-| 1    | 37  | PR merge box: dismiss, resolve, viewer state    | `feat/pr-merge-box-actions`            | —          | Features +0.3, Interaction +0.2 |
+| 1    | 36  | Destructive actions: prominence, confirmation   | `fix/destructive-action-confirmation`  | 31         | Interaction +0.3, Visual +0.1 |
+| 1    | 37  | PR merge box: dismiss, resolve, viewer state    | `feat/pr-merge-box-actions`            | 32         | Features +0.3, Interaction +0.2 |
 | 1    | 38  | Account issue and PR lists use the qualifier bar | `feat/account-lists-qualifier-bar`    | —          | IA +0.2, Features +0.1        |
 | 1    | 39  | Commit identity, pulse and blame presentation   | `fix/history-identity-pulse-blame`     | —          | Content +0.2, Visual +0.1     |
 | 1    | 40  | Admin console follow-ups                        | `fix/admin-console-followups`          | —          | Content +0.1, IA +0.1         |
@@ -277,3 +300,7 @@ the release form placeholder named a roadmap phase; the merge box listed only th
 requested. Opened as tickets: 32–40. Added as comments on open tickets: 24, 25, 27, 28, 29, 31. Not bugs: the admin
 users page outside admin mode and the empty merge-strategy menu (harness), and the sort-zeroes-list report (invalid
 sort value, see above).
+
+2026-11-12 (triage): 32, 33, 35–40 `ready-for-agent`; 34 `ready-for-human` (teams needs a spec). 36 waits for 31
+(project-row Delete moved from 31), 37 for 32 (pull pages), 25 for 24 (`home.templ`). Order: 21 builds first, then the
+polish tickets, so their mock changes come from the generator.
