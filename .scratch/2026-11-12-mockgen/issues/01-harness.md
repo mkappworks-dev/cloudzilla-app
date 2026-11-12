@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 | Branch         | Worktree                 | PR title                                              | Effort |
 | -------------- | ------------------------ | ----------------------------------------------------- | ------ |
@@ -39,14 +39,14 @@ See [spec.md](../spec.md). Nothing renders mocks from the real components yet, a
 
 ## Acceptance criteria
 
-- [ ] `go run ./cmd/mockgen` is deterministic: two runs produce no diff
-- [ ] `cmd/mockgen` is not linked into `cmd/server` (check `go list -deps ./cmd/server`)
-- [ ] Proof pages generated with their variants; `make mockups` serves them with no Go installed
-- [ ] CI job fails when generated output is stale (verified once with a deliberate change)
-- [ ] `tests/mockgen-diff` passes for the proof pages against a throwaway server
-- [ ] Proof pages checked at 1440 in light and dark under `make mockups`
-- [ ] README explains generate vs hand-write; `npm run fmt:check` passes
-- [ ] The PR summary mentions commits `80680841` (triage 32–40) and `cbe641b2` (run order and scores), kept in this PR
+- [x] `go run ./cmd/mockgen` is deterministic: two runs produce no diff
+- [x] `cmd/mockgen` is not linked into `cmd/server` (check `go list -deps ./cmd/server`)
+- [x] Proof pages generated with their variants; `make mockups` serves them with no Go installed
+- [x] CI job fails when generated output is stale (verified once with a deliberate change)
+- [x] `tests/mockgen-diff` passes for the proof pages against a throwaway server
+- [x] Proof pages checked at 1440 in light and dark under `make mockups`
+- [x] README explains generate vs hand-write; `npm run fmt:check` passes
+- [x] The PR summary mentions commits `80680841` (triage 32–40) and `cbe641b2` (run order and scores), kept in this PR
 
 ## Verification
 
