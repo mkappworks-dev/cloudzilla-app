@@ -121,6 +121,7 @@ func listFilterData(base, noun string, withReview bool, q listquery.Query, total
 		Total:       total,
 		Noun:        noun,
 		Chips:       listChips(link, q),
+		Notices:     q.Unrecognized(),
 	}
 
 	// strip removes what the menu sets, so the form's f carries everything else and unchecking all clears the menu.

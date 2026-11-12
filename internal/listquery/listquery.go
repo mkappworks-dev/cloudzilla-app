@@ -311,3 +311,29 @@ func tokenize(raw string) []string {
 	flush()
 	return tokens
 }
+
+// Unrecognized lists the free-text tokens that look like a qualifier (word:value) but were not one, each with what the
+// list accepts. Parse keeps them as text, so without this a typo such as sort:comments-desc just empties the list.
+func (q Query) Unrecognized() []string {
+	var out []string
+	for _, tok := range tokenize(q.Text) {
+		key, val, ok := strings.Cut(tok, ":")
+		key = strings.ToLower(key)
+		if !ok || val == "" || key == "" || strings.HasPrefix(val, "//") || strings.ContainsAny(key, "/.@") {
+			continue
+		}
+		hint := "Use is:, author:, assignee:, label:, milestone:, no:, review: or sort:."
+		switch key {
+		case KeyIs:
+			hint = "is: takes " + strings.Join(validStates, ", ") + "."
+		case KeyReview:
+			hint = "review: takes " + strings.Join(validReview, ", ") + "."
+		case KeySort:
+			hint = "sort: takes " + strings.Join(validSorts, ", ") + "."
+		case KeyNo:
+			hint = "no: takes " + strings.Join(validNo, ", ") + "."
+		}
+		out = append(out, "“"+tok+"” isn’t a filter, so it was searched as text. "+hint)
+	}
+	return out
+}

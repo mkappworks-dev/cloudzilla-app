@@ -252,6 +252,17 @@ func TestMergeabilityBox_ChangesRequestedBlocksEverything(t *testing.T) {
 	}
 }
 
+func TestMergeabilityBox_ListsEveryBlocker(t *testing.T) {
+	d := writerBox()
+	d.HasConflicts, d.ChangesRequested = true, true
+	out := renderBox(t, d)
+	for _, want := range []string{"This branch has conflicts with", "A reviewer requested changes"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing blocker row %q", want)
+		}
+	}
+}
+
 func TestMergeabilityBox_AutoMergeEnabledNamesWhoAndHow(t *testing.T) {
 	d := writerBox()
 	d.AutoMergeEnabled, d.AutoMergeStrategy, d.AutoMergeByName = true, "squash", "ada"

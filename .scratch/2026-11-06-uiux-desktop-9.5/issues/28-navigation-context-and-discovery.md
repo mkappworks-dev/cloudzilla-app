@@ -52,3 +52,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-06 (wave 1 re-score): opened by ticket 22. Run `/triage` before any code.
 
 2026-11-12 (triage): needs-info for item 6 only (write a terms page or drop the agreement); items 1-5 are agent work and 14 has merged.
+
+2026-11-12 (wave 2 re-score): Wave 2 re-score: (Codex) the sign-in page shows no "Forgot password?" link in the capture, and the reset page gives no way to reach an administrator (item 5, confirmed on `login`, `login-wrong-password`, `forgot-password`); general search has no Code tab beside its categories (item 2); (Claude) topic and starred-repository pages also drop their shell and sit on a narrower, offset grid (left edge 68px against the 44px gutter), as stargazers does (item 1).

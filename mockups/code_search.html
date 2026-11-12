@@ -48,7 +48,8 @@
 <script src="shell.js"></script>
 <script>
 (function () {
-  // snippet is ts_headline output: the matched term wrapped in ** **, shown verbatim inside <pre> like the real page.
+  // snippet is ts_headline output with the matched term wrapped in ** ** standing in for the page's match marks; the real
+  // page renders each match as <mark> inside <pre>.
   var HITS = [
     { owner: 'mkappworks', repo: 'cloudzilla', path: 'internal/router/router.go', rank: 0.607,
       snippet: 'func New(h *handler.Handlers, mw *middleware.Set) http.Handler {\n\tr := chi.New**Router**()\n\tr.Use(mw.RequestID, mw.Logger)\n\tr.With(optAuthMW).Get("/search", h.PageSearch)' },
@@ -64,6 +65,11 @@
       snippet: '// **Router** wires the middleware stack and mounts every handler group.\nfunc **Router**(app *App) http.Handler {\n\tr := chi.NewMux()' }
   ];
 
+  function marked(s) {
+    return s.split('**').map(function (part, i) {
+      return i % 2 ? '<mark class="rounded-xs bg-primary/20 text-foreground px-0.5">' + esc(part) + '</mark>' : esc(part);
+    }).join('');
+  }
   function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   function toks(q) { return q.toLowerCase().split(/\s+/).filter(Boolean); }
   function plain(s) { return s.replace(/\*\*/g, ''); }
@@ -106,7 +112,7 @@
         var snippet = q.toLowerCase() === 'router' ? h.snippet : mark(h.snippet, q);
         return '<div class="px-6 py-4"><div class="flex items-start justify-between gap-4 mb-1">' +
           '<a href="blob.html" class="text-foreground font-medium hover:underline text-sm font-mono">' + esc(h.owner + '/' + h.repo + '/' + h.path) + '</a></div>' +
-          '<pre class="text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap">' + esc(snippet) + '</pre></div>';
+          '<pre class="text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap">' + marked(snippet) + '</pre></div>';
       }).join('') + '</div>';
   }
 

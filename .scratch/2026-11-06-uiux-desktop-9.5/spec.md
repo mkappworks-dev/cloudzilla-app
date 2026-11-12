@@ -119,6 +119,20 @@ Opened by the wave 1 re-score. All `needs-triage`; each is one PR and one sessio
 | 2    | 28  | Navigation context, search peers, explore   | `feat/navigation-context-and-discovery` | 14       | IA +0.4, Features +0.2         |
 | 3    | 30  | Merged-PR summary, merge confirmation       | `fix/pr-merge-accuracy`               | 09         | Interaction +0.3, Edge +0.2    |
 
+Opened by the wave 2 re-score. All `needs-triage`.
+
+| Step | #   | Ticket                                          | Branch                                 | Depends on | Gain                          |
+| ---- | --- | ----------------------------------------------- | -------------------------------------- | ---------- | ----------------------------- |
+| 1    | 32  | Merged PRs keep their commits and diff          | `fix/merged-pr-keeps-diff`             | —          | Edge +0.3, Features +0.2      |
+| 1    | 33  | Inline field validation and recovery            | `fix/inline-validation-recovery`       | —          | Edge +0.4, A11y +0.2          |
+| 1    | 34  | Unfinished settings surfaces                    | `feat/unfinished-settings-surfaces`    | —          | Features +0.5, Content +0.1   |
+| 1    | 35  | Notifications inbox follow-ups                  | `fix/notifications-inbox-followups`    | —          | Interaction +0.2              |
+| 1    | 36  | Destructive actions: prominence, confirmation   | `fix/destructive-action-confirmation`  | —          | Interaction +0.3, Visual +0.1 |
+| 1    | 37  | PR merge box: dismiss, resolve, viewer state    | `feat/pr-merge-box-actions`            | —          | Features +0.3, Interaction +0.2 |
+| 1    | 38  | Account issue and PR lists use the qualifier bar | `feat/account-lists-qualifier-bar`    | —          | IA +0.2, Features +0.1        |
+| 1    | 39  | Commit identity, pulse and blame presentation   | `fix/history-identity-pulse-blame`     | —          | Content +0.2, Visual +0.1     |
+| 1    | 40  | Admin console follow-ups                        | `fix/admin-console-followups`          | —          | Content +0.1, IA +0.1         |
+
 ### Mocks track
 
 | Step | #   | Ticket                    | Branch                     | Depends on | Gain                            |
@@ -214,3 +228,51 @@ error toasts vanished in 4s with no dismiss; the wiki header offered Edit on a m
 mouse-only; the diff-load failure gave no next step; admin settings showed raw keys; the register form hid the
 8-character rule; a filtered issue list said "No open issues" with no way back. Opened as tickets: 24–31. Left as
 comments on running tickets: 10, 11, 12, 13, 14, 20.
+
+2026-11-12 (wave 2 re-score, ticket 22): real app, desktop, 1440 light and dark, at origin/main df324147 plus the wave 1
+polish (tickets 09–14 and 30 merged), seeded throwaway server. Same two reviewers and brief as wave 1: Claude (Sonnet
+5.5, medium) and Codex (GPT-6.1 Sol), neither told the baseline, target or earlier scores.
+
+| Dimension                | Baseline | After wave 1 (measured) | Wave 2 target | Claude   | Codex    | Mean of both |
+| ------------------------ | -------- | ----------------------- | ------------- | -------- | -------- | ------------ |
+| Visual design            | 7.9      | 8.0                     | 8.6           | 7.5      | 8.0      | 7.75         |
+| Information architecture | 7.75     | 7.88                    | 8.75          | 7.0      | 8.0      | 7.5          |
+| Interaction & feedback   | 6.0      | 7.38                    | 8.0           | 7.0      | 7.25     | 7.13         |
+| Empty / error / edge     | 6.2      | 7.25                    | 7.9           | 7.0      | 7.0      | 7.0          |
+| Accessibility            | 6.6      | 7.5                     | 8.4           | 6.5      | 7.25     | 6.88         |
+| Content & microcopy      | 6.85     | 7.5                     | 8.2           | 7.0      | 8.0      | 7.5          |
+| Dark mode                | 8.25     | 8.25                    | 8.25          | 8.5      | 8.0      | 8.25         |
+| Feature completeness     | 6.2      | 7.25                    | 7.6           | 7.5      | 7.25     | 7.38         |
+| **Overall**              | **7.0**  | **7.63**                | **8.2**       | **7.25** | **7.59** | **7.42**     |
+
+Wave 2 did **not** reach its 8.2 target, and the mean is 0.21 below wave 1's 7.63. Only Feature completeness rose
+(7.25 to 7.38); Content and Dark mode held; Visual, IA, Interaction, Edge and Accessibility fell. The two passes are not
+like for like: wave 1 sampled about 15 of 150 shots (Claude) and Codex read source, while this pass has full-page shots
+of 124 states per theme and both reviewers viewed all 290 slices, including the new wave 2 states. A stricter, fuller
+look explains some of the drop, but the pass cannot separate that from real regressions. Claude scored lower than Codex
+on every dimension except Edge (equal), Dark mode and Features; Visual, IA and Content differ by a full point.
+
+Harness notes for wave 3:
+
+- The brief wrongly said admin pages are refused outside admin mode. `/admin/users` and the other instance pages are
+  superadmin-only and not gated by admin mode (`docs/access-control.md`), so both reviewers' "renders without refusal"
+  finding on `admin-forbidden` is a brief error, not a bug. Say instead that repository and organization pages are
+  gated.
+- The merge-strategy menu shot (`117`) never opened: the harness selected on text and the trigger is an icon with
+  `aria-label="Choose merge strategy"`. Both reviewers flagged it as unverified; opened and checked in the polish PR.
+  A full-page shot also clips a modal overlay to the first viewport, so modal states are viewport shots (fixed).
+- The harness probed `sort:comments-desc` and `sort:updated-desc`, which are not valid sort values (`newest`, `oldest`,
+  `updated`, `comments`). Both reviewers reported the empty list as a bug; the real defect underneath was that nothing
+  told the user the token was searched as text (fixed).
+- The account lists (`/issues`, `/pulls`) take `filter`/`state`/`sort`, not `q`, so the probed URLs showed an unfiltered
+  list: a real inconsistency, ticket 38.
+- Claude's first reads of many images returned "request limit"; it re-read them (notes file) and listed the shots whose
+  valid view came last. Treat its per-shot claims as seen.
+
+Findings: 35 from Claude and 22 from Codex. Fixed in the polish PR: unrecognized qualifiers (`sort:comments-desc`,
+`bogus:value`) searched as text with no explanation; "Clear filters" shown twice in an empty list; code search showed
+literal `**` around matches (now `<mark>`); org settings said "Teams aren't wired up yet" and showed disabled buttons;
+the release form placeholder named a roadmap phase; the merge box listed only the conflicts when changes were also
+requested. Opened as tickets: 32–40. Added as comments on open tickets: 24, 25, 27, 28, 29, 31. Not bugs: the admin
+users page outside admin mode and the empty merge-strategy menu (harness), and the sort-zeroes-list report (invalid
+sort value, see above).

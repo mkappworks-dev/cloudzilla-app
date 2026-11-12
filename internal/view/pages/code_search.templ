@@ -52,7 +52,15 @@ templ CodeSearch(data view.CodeSearchData) {
 								<div class="flex items-start justify-between gap-4 mb-1">
 									<a href={ templ.SafeURL(codeurl.Path(res.OwnerName, res.RepoName, "blob", "HEAD", res.FilePath)) } class="text-foreground font-medium hover:underline text-sm font-mono">{ res.OwnerName }/{ res.RepoName }/{ res.FilePath }</a>
 								</div>
-								<pre class="text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap">{ res.Snippet }</pre>
+								<pre class="text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap">
+									for _, part := range res.SnippetParts() {
+										if part.Match {
+											<mark class="rounded-xs bg-primary/20 text-foreground px-0.5">{ part.Text }</mark>
+										} else {
+											{ part.Text }
+										}
+									}
+								</pre>
 							</div>
 						}
 					</div>

@@ -119,7 +119,7 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 				"id":          "r-name",
 				"type":        "text",
 				"name":        "name",
-				"placeholder": "Phase 16 — performance",
+				"placeholder": "Performance improvements",
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

@@ -43,3 +43,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-06 (wave 1 re-score): opened by ticket 22. Run `/triage` before any code.
 
 2026-11-12 (triage): ready-for-agent. Restyles every page: run it alone, after 24, 25 and 31, with a full before/after screenshot diff.
+
+2026-11-12 (wave 2 re-score): Wave 2 re-score: (Codex) near-black inputs, secondary buttons and nested surfaces on near-black cards have weak boundaries (`login`, `settings`, `repo-settings`); dark @mention links on comment surfaces are subdued blue, contrast unmeasured; (Claude) solid red buttons turn salmon with dark text while outlined reds keep their hue, and the blocked "Delete organization" button looks disabled-grey. Use a dedicated dark danger token with white text and measure link contrast at 4.5:1.
