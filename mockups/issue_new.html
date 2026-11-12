@@ -38,10 +38,10 @@
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
       <section aria-labelledby="composer" class="rounded-md border border-border bg-card p-6">
         <h2 id="composer" class="text-[13px] font-medium mb-4">Compose</h2>
-        <form id="issue-new-form" onsubmit="location.href='issue_detail.html';return false" class="space-y-5">
-          <div class="space-y-1.5">
-            <label for="title" class="block text-sm font-medium">Title</label>
-            <input id="title" name="title" type="text" required autofocus placeholder="Short summary of the issue" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"/>
+        <form id="issue-new-form" data-validate novalidate onsubmit="location.href='issue_detail.html';return false" class="space-y-5">
+          <div data-field class="space-y-1.5">
+            <label for="title" class="block text-sm font-medium">Title <span class="text-destructive ml-0.5" aria-hidden="true">*</span></label>
+            <input id="title" name="title" type="text" required autofocus placeholder="Short summary of the issue" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"/>
           </div>
 
           <div class="space-y-1.5">
@@ -365,6 +365,14 @@
 
 <div id="cz-footer"></div>
 <script src="shell.js"></script>
+<script src="/assets/field-validation.js"></script>
+<script>
+  // Mock only: ?error=1 draws the form after a submit with a blank title, the typed description kept.
+  if (location.search.indexOf('error=1') !== -1) {
+    CzFields.show(document.getElementById('title'), 'Title is required.');
+    document.getElementById('title').focus();
+  }
+</script>
 <script>
 (function () {
   var ON = ['border-foreground', 'text-foreground', 'font-medium'];

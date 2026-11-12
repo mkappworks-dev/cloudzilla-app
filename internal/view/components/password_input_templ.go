@@ -40,7 +40,7 @@ func PasswordInput(attrs templ.Attributes) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.RenderAttributes(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_ElementWriter, "input", withClass(attrs, "h-9 w-full bg-background border border-border rounded-md pl-3 pr-10 text-[13px] text-foreground focus:outline-hidden focus:border-ring [&::-ms-reveal]:hidden"))
+			templ_7745c5c3_Err = templruntime.RenderAttributes(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_ElementWriter, "input", withClass(attrs, "h-9 w-full bg-background border border-border rounded-md pl-3 pr-10 text-[13px] text-foreground focus:outline-hidden focus:border-ring aria-invalid:border-destructive aria-invalid:focus:border-destructive [&::-ms-reveal]:hidden"))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

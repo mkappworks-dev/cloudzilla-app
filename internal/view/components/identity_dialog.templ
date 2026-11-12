@@ -8,7 +8,7 @@ package components
 // submitted it flips back.
 templ ConfirmIdentityDialog(f ConfirmFactors) {
 	@Dialog("cz-identity-dialog") {
-		<form method="dialog">
+		<form method="dialog" data-validate>
 			@DialogHeader() {
 				@DialogTitle("cz-identity-dialog") {
 					Confirm it's you
@@ -40,6 +40,7 @@ templ ConfirmIdentityDialog(f ConfirmFactors) {
 			var okBtn = dlg.querySelector('[data-identity-ok]');
 			var pending = null;
 			var resubmitting = null;
+			var waitingForError = null;
 
 			// Capture at the document runs before htmx's own submit listener on the form.
 			document.addEventListener('submit', function (e) {
@@ -51,6 +52,7 @@ templ ConfirmIdentityDialog(f ConfirmFactors) {
 				pending = { form: form, submitter: e.submitter };
 				okBtn.textContent = form.getAttribute('data-confirm-identity') || 'Confirm';
 				box.reset();
+				CzFields.clearAll(box);
 				box.querySelectorAll('[data-password-reveal][aria-pressed="true"]').forEach(function (b) { b.click(); });
 				dlg.returnValue = '';
 				dlg.showModal();
@@ -61,23 +63,59 @@ templ ConfirmIdentityDialog(f ConfirmFactors) {
 			box.addEventListener('submit', function (e) {
 				e.preventDefault();
 				var target = pending;
-				pending = null;
-				var factors = new FormData(box);
-				box.reset();
-				dlg.close('confirmed');
 				if (!target) return;
+				var factors = new FormData(box);
 				// htmx builds its request body with new FormData(form) too, so this reaches htmx and native posts alike.
 				target.form.addEventListener('formdata', function (fe) {
 					factors.forEach(function (v, k) { fe.formData.set(k, v); });
 				}, { once: true });
+				// An htmx form answers a wrong factor in place, so the dialog stays open until the request is accepted.
+				if (target.form.matches('[hx-post],[hx-put],[hx-patch],[hx-delete]')) {
+					waitingForError = target.form;
+					okBtn.disabled = true;
+				} else {
+					pending = null;
+					dlg.close('confirmed');
+				}
 				resubmitting = target.form;
 				try { target.form.requestSubmit(target.submitter); } finally { resubmitting = null; }
 			});
+
+			// renderFormError retargets a refusal to the form's own error slot, behind the backdrop; move it into the dialog.
+			// finally:request, not after:request: htmx skips after:request when the fetch itself throws.
+			document.addEventListener('htmx:finally:request', function (e) {
+				var ctx = e.detail.ctx;
+				if (!waitingForError || ctx.sourceElement !== waitingForError) return;
+				okBtn.disabled = false;
+				if (ctx.hx && ctx.hx.retarget) return;
+				finish();
+			});
+			document.addEventListener('htmx:after:swap', function (e) {
+				var ctx = e.detail.ctx;
+				if (!waitingForError || ctx.sourceElement !== waitingForError || !(ctx.hx && ctx.hx.retarget)) return;
+				var slot = waitingForError.querySelector(ctx.hx.retarget) || document.querySelector(ctx.hx.retarget);
+				var msg = slot ? slot.textContent.trim() : '';
+				if (slot) slot.textContent = '';
+				var field = box.querySelector('input:not([type=hidden])');
+				if (field) {
+					CzFields.show(field, msg || "That didn't confirm it's you.");
+					field.focus();
+					if (field.select) field.select();
+				}
+			});
+
+			function finish() {
+				var target = pending;
+				pending = null;
+				waitingForError = null;
+				if (target) dlg.close('confirmed');
+			}
 
 			dlg.addEventListener('close', function () {
 				if (dlg.returnValue === 'confirmed') return;
 				var target = pending;
 				pending = null;
+				waitingForError = null;
 				if (target && target.form.hasAttribute('data-confirm-reset')) target.form.reset();
 			});
 		})();

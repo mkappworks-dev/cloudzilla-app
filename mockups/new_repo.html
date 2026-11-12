@@ -23,11 +23,11 @@
 
 <div class="grid lg:grid-cols-[1fr_280px] gap-8">
   <div class="min-w-0">
-    <form id="repo-form" class="border border-border rounded-lg bg-card p-6 space-y-6">
+    <form id="repo-form" data-validate novalidate class="border border-border rounded-lg bg-card p-6 space-y-6">
 
-      <div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
+      <div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-start">
         <div>
-          <label for="repo-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner *</label>
+          <label for="repo-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner <span class="text-destructive" aria-hidden="true">*</span></label>
           <div class="relative" data-cselect>
       <input type="hidden" id="repo-owner" name="owner" value="mkappworks" />
       <button type="button" id="repo-owner-btn" aria-expanded="false" aria-haspopup="listbox" class="relative flex h-9 w-full items-center gap-2 rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm text-left shadow-xs">
@@ -41,10 +41,10 @@
       </ul>
     </div>
         </div>
-        <span class="text-muted-foreground pb-2.5" aria-hidden="true">/</span>
-        <div>
-          <label for="repo-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
-          <input id="repo-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" placeholder="my-new-repo" autofocus class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:border-ring font-mono" />
+        <span class="text-muted-foreground pt-8" aria-hidden="true">/</span>
+        <div data-field>
+          <label for="repo-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name <span class="text-destructive" aria-hidden="true">*</span></label>
+          <input id="repo-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" data-pattern-message="Use letters, numbers, . - and _ only." placeholder="my-new-repo" autofocus class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:border-ring font-mono aria-invalid:border-destructive aria-invalid:focus:border-destructive" />
         </div>
       </div>
       <p class="text-[12px] text-muted-foreground">Great repository names are short and memorable. Need inspiration? <span class="font-mono">turbo-octo-meme</span>.</p>
@@ -151,6 +151,7 @@
 </main>
 
 <div id="cz-footer"></div>
+<script src="/assets/field-validation.js"></script>
 <script>
 (function () {
   document.querySelectorAll('[data-cselect]').forEach(function (box) {
@@ -204,6 +205,13 @@
     });
     document.addEventListener('click', function (e) { if (!box.contains(e.target)) close(); });
   });
+  // Mock only: ?error=1 draws the form after the server refused a duplicate name.
+  if (location.search.indexOf('error=1') !== -1) {
+    var name = document.getElementById('repo-name');
+    name.value = 'solid-parser';
+    CzFields.show(name, 'A repository with that name already exists.');
+    name.focus();
+  }
   document.getElementById('repo-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var f = e.target;

@@ -45,31 +45,43 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.FormValue("email"))
 	password := r.FormValue("password")
 
-	renderError := func(msg string) {
+	renderErrors := func(errs map[string]string) {
 		h.render(w, r, pages.Register(view.RegisterData{
-			BasePage: basePage(r, h.Services),
-			Username: username,
-			Email:    email,
-			Error:    msg,
+			BasePage:    basePage(r, h.Services),
+			Username:    username,
+			Email:       email,
+			FieldErrors: errs,
 		}))
 	}
 
-	if username == "" || email == "" || password == "" {
-		renderError("All fields are required")
-		return
+	// A form posted without the browser's checks (no script, curl) gets every missing field flagged, not the first.
+	errs := map[string]string{}
+	if username == "" {
+		errs["username"] = "Username is required."
 	}
-	if len(password) < 8 {
-		renderError("Password must be at least 8 characters")
-		return
+	if email == "" {
+		errs["email"] = "Email is required."
+	} else if !validEmail(email) {
+		errs["email"] = "Enter a valid email address."
 	}
-	if msg := passwordLengthMessage(password); msg != "" {
-		renderError(msg)
+	switch {
+	case password == "":
+		errs["password"] = "Password is required."
+	case len(password) < 8:
+		errs["password"] = "Password must be at least 8 characters."
+	default:
+		if msg := passwordLengthMessage(password); msg != "" {
+			errs["password"] = msg
+		}
+	}
+	if len(errs) > 0 {
+		renderErrors(errs)
 		return
 	}
 
 	if _, err := h.Services.User.Create(r.Context(), username, email, password); err != nil {
 		logCreateAccountFailure(r.Context(), "register: create user failed", err)
-		renderError(createAccountErrorMessage(err))
+		renderErrors(map[string]string{createAccountErrorField(err): createAccountErrorMessage(err)})
 		return
 	}
 
@@ -94,6 +106,14 @@ func createAccountErrorMessage(err error) string {
 		return invalidUsernameMessage
 	}
 	return "Could not create account. If you already have one, sign in instead."
+}
+
+// createAccountErrorField is the form field a failed create is about; the generic failure goes on email, its usual cause.
+func createAccountErrorField(err error) string {
+	if errors.Is(err, service.ErrUsernameTaken) || errors.Is(err, service.ErrInvalidOwnerName) {
+		return "username"
+	}
+	return "email"
 }
 
 // Invalid or taken usernames and taken emails are user mistakes, so they log below Error.

@@ -10,43 +10,47 @@ templ Register(data view.RegisterData) {
 	@layout.Base(data.BasePage, "Create account") {
 		<div class="max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6">
 			@authCardHero("Cloudzilla", "Create your account", "")
-			if data.Error != "" {
-				<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">
-					{ data.Error }
-				</div>
-			}
-			<form method="POST" action="/register" class="space-y-4">
-				<div class="space-y-1.5">
-					<label for="username" class="block text-sm font-medium">Username</label>
-					@components.Input(templ.Attributes{
+			<form method="POST" action="/register" data-validate class="space-y-4">
+				<div data-field class="space-y-1.5">
+					@components.Label("username", true, templ.Attributes{"class": "block text-sm font-medium"}) {
+						Username
+					}
+					@components.Input(components.Invalid(templ.Attributes{
 						"type":     "text",
 						"id":       "username",
 						"name":     "username",
 						"required": "required",
 						"value":    data.Username,
-					})
+					}, "username", data.FieldErrors["username"]))
+					@components.FieldError("username", data.FieldErrors["username"])
 				</div>
-				<div class="space-y-1.5">
-					<label for="email" class="block text-sm font-medium">Email</label>
-					@components.Input(templ.Attributes{
+				<div data-field class="space-y-1.5">
+					@components.Label("email", true, templ.Attributes{"class": "block text-sm font-medium"}) {
+						Email
+					}
+					@components.Input(components.Invalid(templ.Attributes{
 						"type":     "email",
 						"id":       "email",
 						"name":     "email",
 						"required": "required",
 						"value":    data.Email,
-					})
+					}, "email", data.FieldErrors["email"]))
+					@components.FieldError("email", data.FieldErrors["email"])
 				</div>
-				<div class="space-y-1.5">
-					<label for="password" class="block text-sm font-medium">Password</label>
-					@components.PasswordInput(templ.Attributes{
-						"id":        "password",
-						"name":      "password",
-						"required":  "required",
-						"minlength": "8",
-						"class":     authPasswordClass,
+				<div data-field class="space-y-1.5">
+					@components.Label("password", true, templ.Attributes{"class": "block text-sm font-medium"}) {
+						Password
+					}
+					@components.PasswordInput(components.Invalid(templ.Attributes{
+						"id":               "password",
+						"name":             "password",
+						"required":         "required",
+						"minlength":        "8",
+						"class":            authPasswordClass,
 						"aria-describedby": "password-hint",
-					})
+					}, "password", data.FieldErrors["password"]))
 					<p id="password-hint" class="text-xs text-muted-foreground">At least 8 characters.</p>
+					@components.FieldError("password", data.FieldErrors["password"])
 				</div>
 				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
 					Create account

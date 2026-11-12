@@ -48,7 +48,8 @@ Mocks show the happy path. These real states are not drawn:
   merge."); the Commits tab says the same for its commits and has no mock.
 - **Other states.** Closed pull requests; archived and mirror repo banners; binary file in `blob`; hidden-issue project
   card; form validation errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or
-  slash-ended path, or open `#error`); one-time token and backup-code reveals.
+  slash-ended path, or open `#error`); inline field errors on `login.html`, `register.html`, `new_repo.html` and
+  `issue_new.html` (submit a blank field, or open `?error=1`); one-time token and backup-code reveals.
 - **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
   `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
   a mock button draws the real busy state.
@@ -59,7 +60,8 @@ Mocks show the happy path. These real states are not drawn:
 - **Admin mode.** `admin_mode.html` draws the page in both states (add `?admin_mode=1` for the running one), and any
   mock with `?admin_mode=1` or `data-admin-mode` on `#cz-header` shows the "Acting as instance admin" banner and drops
   "Enter admin mode" from the user menu. `forbidden.html` draws the 403 page, with the superadmin hint behind
-  `?admin_hint=1`. Not drawn: the identity dialog that "Enter admin mode" opens.
+  `?admin_hint=1`. The identity dialog that "Enter admin mode" opens is drawn with its password factor only (type
+  `wrong` for the inline refusal, or open `?identity_error=1`).
 - **Admin.** The identity-confirm dialog (password, two-factor and provider factors), the SSO success and error banners,
   and users and audit-log pages beyond the first. The mock uses the generic confirm dialog instead.
 

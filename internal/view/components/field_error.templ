@@ -1,0 +1,8 @@
+package components
+
+// FieldError is the server-rendered twin of the error static/field-validation.js builds; the control gets Invalid.
+templ FieldError(id, msg string) {
+	if msg != "" {
+		<p id={ id + "-error" } data-field-error class="mt-1.5 text-xs text-destructive">{ msg }</p>
+	}
+}

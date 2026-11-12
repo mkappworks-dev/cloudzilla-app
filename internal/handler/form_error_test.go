@@ -154,6 +154,20 @@ func TestPageNewIssueSubmit_PrivateIssueByNonWriter_SaysSo(t *testing.T) {
 	assertContains(t, body, "Only collaborators with write access can create private issues")
 }
 
+func TestPageNewIssueSubmit_EmptyTitle_MarksTheFieldAndKeepsTheBody(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	repo := seedOwnedRepo(t, db, false)
+
+	body := submitForm(t, newPageHandler(t, db), repo.path+"/issues/new", repo.owner.token, url.Values{
+		"title": {"  "}, "body": {"steps to reproduce"},
+	})
+
+	assertContains(t, body, "Title is required.")
+	assertContains(t, body, `aria-invalid="true"`)
+	assertContains(t, body, `aria-describedby="title-error"`)
+	assertContains(t, body, "steps to reproduce")
+}
+
 func TestPageNewIssueSubmit_TitleTooLong_SaysSo(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	repo := seedOwnedRepo(t, db, false)

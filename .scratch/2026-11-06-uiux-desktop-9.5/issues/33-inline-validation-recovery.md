@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -31,10 +31,10 @@ Found by the wave 2 re-score (Claude and Codex).
 
 ## Acceptance criteria
 
-- [ ] No native validation bubble on the main create forms
-- [ ] Server errors appear next to their field and move focus
-- [ ] The identity dialog shows its error inline
-- [ ] Mocks updated, light and dark
+- [x] No native validation bubble on the main create forms
+- [x] Server errors appear next to their field and move focus
+- [x] The identity dialog shows its error inline
+- [x] Mocks updated, light and dark
 
 ## Verification
 
@@ -45,3 +45,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-12 (wave 2 re-score): opened by ticket 22. Run `/triage` before any code.
 
 2026-11-12 (triage): ready-for-agent. Build on ticket 11's keep-the-input mechanism; one inline error pattern for client and server errors.
+
+2026-11-12 (implementation): item 3 checked. The server already enforced the 8-character password; it did not check the email format on `/register` (only the browser's `type=email` did), so `PageRegisterSubmit` now runs `validEmail`. The shared pattern is `static/field-validation.js` plus `components.FieldError` and `components.Invalid`. Not covered: the settings forms that use `ConfirmFields` outside the identity dialog, and the other create pages (discussion, milestone, release, wiki).

@@ -188,6 +188,9 @@ func TestCreateRepo_TakenName_422(t *testing.T) {
 	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "already exists") {
 		t.Errorf("second create: want 422 naming the conflict, got %d: %s", rr.Code, rr.Body.String())
 	}
+	if !strings.Contains(rr.Body.String(), `"field":"name"`) {
+		t.Errorf("the conflict must name the name field so the form can mark it; body: %s", rr.Body.String())
+	}
 }
 
 // A JWT outlives its account, and the freed username can be registered again.

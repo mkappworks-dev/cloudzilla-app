@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -432,17 +434,19 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	templates, _ := h.Services.Code.GetIssueTemplates(owner, repoName, repo.DefaultBranch)
-	renderErr := func(msg string) {
+	renderErr := func(msg, titleErr string) {
 		data := view.IssueNewData{
-			BasePage:  h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
-			Repo:      *repo,
-			Owner:     owner,
-			RepoName:  repoName,
-			Templates: templates,
-			Selected:  body,
-			ShowForm:  true,
-			CanWrite:  canWrite,
-			Error:     msg,
+			BasePage:   h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
+			Repo:       *repo,
+			Owner:      owner,
+			RepoName:   repoName,
+			Templates:  templates,
+			Selected:   body,
+			ShowForm:   true,
+			CanWrite:   canWrite,
+			Error:      msg,
+			Title:      title,
+			TitleError: titleErr,
 		}
 		if canWrite {
 			h.loadIssueSidebarOptions(r, &data, repo, owner, repoName)
@@ -451,7 +455,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if title == "" {
-		renderErr("Title is required")
+		renderErr("", "Title is required.")
 		return
 	}
 
@@ -461,7 +465,12 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, title, body, vis)
 	if err != nil {
-		renderErr(createFailedMessage(err, "issue", "owner", owner, "repo", repoName))
+		msg := createFailedMessage(err, "issue", "owner", owner, "repo", repoName)
+		if errors.Is(err, service.ErrTitleTooLong) {
+			renderErr("", msg)
+			return
+		}
+		renderErr(msg, "")
 		return
 	}
 
