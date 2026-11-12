@@ -529,3 +529,29 @@ func (r *tipTestRepo) removeEntry(t *testing.T, branch, path string) {
 	}).Encode)
 	setBranch(t, r.repo, branch, tip)
 }
+
+func TestDiffContent(t *testing.T) {
+	var s CodeService
+	tests := []struct {
+		name, old, new       string
+		added, deleted, hunk int
+	}{
+		{"unchanged", "a\nb\n", "a\nb\n", 0, 0, 0},
+		{"edit", "a\nb\nc\n", "a\nB\nc\n", 1, 1, 1},
+		{"append", "a\n", "a\nb\nc\n", 2, 0, 1},
+		{"from empty", "", "a\n", 1, 0, 1},
+		{"to empty", "a\n", "", 0, 1, 1},
+		{"distant edits split", strings.Repeat("x\n", 20) + "a\n" + strings.Repeat("x\n", 20) + "b\n", strings.Repeat("x\n", 20) + "A\n" + strings.Repeat("x\n", 20) + "B\n", 2, 2, 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fd := s.DiffContent("old.txt", "new.txt", []byte(tt.old), []byte(tt.new))
+			if fd.Added != tt.added || fd.Deleted != tt.deleted || len(fd.Hunks) != tt.hunk {
+				t.Errorf("got +%d -%d in %d hunks, want +%d -%d in %d", fd.Added, fd.Deleted, len(fd.Hunks), tt.added, tt.deleted, tt.hunk)
+			}
+			if fd.OldPath != "old.txt" || fd.NewPath != "new.txt" {
+				t.Errorf("paths = %q -> %q", fd.OldPath, fd.NewPath)
+			}
+		})
+	}
+}

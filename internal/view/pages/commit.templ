@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
@@ -79,16 +80,7 @@ templ Commit(data view.CommitData) {
 			</section>
 
 			for _, f := range data.Commit.Files {
-				<article class="rounded-md border border-border bg-card overflow-hidden">
-					@components.DiffFileHeader(f)
-					if f.IsBinary {
-						<div class="px-4 py-3 text-sm text-muted-foreground italic">Binary files differ</div>
-					} else if len(f.Hunks) == 0 {
-						<div class="px-4 py-3 text-sm text-muted-foreground italic">No changes</div>
-					} else {
-						@components.DiffHunkTable(f.Hunks)
-					}
-				</article>
+				@fragments.FileDiff(f)
 			}
 		</div>
 	}

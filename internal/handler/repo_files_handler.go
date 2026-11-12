@@ -18,6 +18,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -290,6 +291,8 @@ func parseNewFileForm(r *http.Request) error {
 	return nil
 }
 
+const editUnchangedMsg = "Nothing to commit: the path and contents are unchanged."
+
 var editFileTooLargeMsg = fmt.Sprintf("files over %d MB can't be edited in the browser", maxEditFileBytes>>20)
 
 // editableRepo loads a repo the signed-in viewer may commit to from the
@@ -501,11 +504,80 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrInvalidFilePath):
 		refuse(http.StatusUnprocessableEntity, err.Error())
 	case errors.Is(err, service.ErrFileUnchanged):
-		refuse(http.StatusUnprocessableEntity, "Nothing to commit: the path and contents are unchanged.")
+		refuse(http.StatusUnprocessableEntity, editUnchangedMsg)
 	default:
 		slog.Error("edit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		http.Error(w, "failed to commit the file", http.StatusInternalServerError)
 	}
+}
+
+// EditPreview handles POST /{owner}/{repo}/edit-preview/{ref}/* from the edit
+// page's Preview changes tab: it answers with a diff of the file on the branch
+// against the form's path and content. Refusals are JSON so htmx shows a toast.
+func (h *Handler) EditPreview(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	if _, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
+		return
+	}
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
+	if path == "" {
+		writeError(w, http.StatusNotFound, "file not found")
+		return
+	}
+	if r.ContentLength > MaxEditFileBodyBytes {
+		writeError(w, http.StatusRequestEntityTooLarge, editFileTooLargeMsg)
+		return
+	}
+	if err := parseNewFileForm(r); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeError(w, http.StatusRequestEntityTooLarge, editFileTooLargeMsg)
+			return
+		}
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+	file, err := h.Services.Code.GetBranchFile(owner, repoName, ref, path, maxEditFileBytes)
+	switch {
+	case err == nil:
+	case errors.Is(err, object.ErrFileNotFound):
+		writeError(w, http.StatusNotFound, "file not found")
+		return
+	case errors.Is(err, service.ErrRefNotFound) || errors.Is(err, service.ErrEmptyRepo):
+		writeError(w, http.StatusNotFound, "branch not found")
+		return
+	default:
+		slog.Error("edit preview: read failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to read file")
+		return
+	}
+	if reason := editRefusal(file); reason != "" {
+		writeError(w, http.StatusUnprocessableEntity, reason)
+		return
+	}
+	content := textareaText(r.FormValue("content"), allCRLF(string(file.Content)))
+	if len(content) > maxEditFileBytes {
+		writeError(w, http.StatusRequestEntityTooLarge, editFileTooLargeMsg)
+		return
+	}
+	newPath := path
+	if formPath := r.FormValue("path"); formPath != path {
+		if newPath, err = service.CleanFilePath(strings.TrimSpace(formPath)); err != nil {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+	}
+	h.render(w, r, fragments.EditPreview(view.EditPreviewData{
+		Diff:             h.Services.Code.DiffContent(path, newPath, file.Content, []byte(content)),
+		Unchanged:        newPath == path && content == string(file.Content),
+		UnchangedMessage: editUnchangedMsg,
+	}))
 }
 
 // DeleteFile handles POST /{owner}/{repo}/delete/{ref}/* from the blob page's
