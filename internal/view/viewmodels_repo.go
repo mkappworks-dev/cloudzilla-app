@@ -322,6 +322,7 @@ type BlameData struct {
 	Branches     []service.BranchInfo
 	Tags         []service.TagInfo
 	Lines        []service.BlameLine
+	Usernames    map[string]string // author email -> account username
 	BlobURL      string
 	Contributors int
 	CanManage    bool
@@ -344,7 +345,9 @@ type CommitData struct {
 	Owner    string
 	RepoName string
 	Commit   *service.CommitDetail
-	Statuses []model.CommitStatus
+	// AuthorUsername is the account the author address belongs to, "" when it matches none.
+	AuthorUsername string
+	Statuses       []model.CommitStatus
 }
 
 // RepoCollaboratorsFragData holds template data for the repository collaborators HTMX fragment.

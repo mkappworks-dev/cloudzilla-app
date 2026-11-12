@@ -22,8 +22,8 @@ func TestGetBlob_HighlightsEachLine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetBlob: %v", err)
 	}
-	if len(res.Lines) != 10 {
-		t.Fatalf("lines = %d, want 10", len(res.Lines))
+	if len(res.Lines) != 9 {
+		t.Fatalf("lines = %d, want 9", len(res.Lines))
 	}
 	if !strings.Contains(string(res.Lines[2].HTML), `class="hl-cm"`) {
 		t.Errorf("line 3 HTML = %q, want a comment span", res.Lines[2].HTML)

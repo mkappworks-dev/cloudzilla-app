@@ -225,26 +225,28 @@ func Blame(data view.BlameData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</caption> <colgroup><col style=\"width: 240px\"> <col style=\"width: 48px\"> <col></colgroup> <thead class=\"sr-only\"><tr><th scope=\"col\">Last commit</th><th scope=\"col\">Line</th><th scope=\"col\">Code</th></tr></thead> <tbody>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</caption> <colgroup><col style=\"width: 280px\"> <col style=\"width: 48px\"> <col></colgroup> <thead class=\"sr-only\"><tr><th scope=\"col\">Last commit</th><th scope=\"col\">Line</th><th scope=\"col\">Code</th></tr></thead> <tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, line := range data.Lines {
 				templ_7745c5c3_Err = components.BlameRow(components.BlameLine{
-					LineNumber:  line.LineNum,
-					Code:        line.Text,
-					CodeHTML:    line.HTML,
-					AuthorName:  line.Author,
-					ShortSHA:    line.Hash,
-					CommittedAt: line.AuthorTime,
-					CommitURL:   "/" + data.Owner + "/" + data.RepoName + "/commit/" + commitHashFor(line),
-					HunkStart:   line.ShowMeta,
+					LineNumber:     line.LineNum,
+					Code:           line.Text,
+					CodeHTML:       line.HTML,
+					AuthorName:     line.AuthorName,
+					AuthorUsername: data.Usernames[line.Author],
+					AuthorEmail:    line.Author,
+					ShortSHA:       line.Hash,
+					CommittedAt:    line.AuthorTime,
+					CommitURL:      "/" + data.Owner + "/" + data.RepoName + "/commit/" + commitHashFor(line),
+					HunkStart:      line.ShowMeta,
 				}).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</tbody></table></div></section><p class=\"mt-4 text-[12px] text-muted-foreground\">A dot (·) marks consecutive lines from the same commit — only the first row in each run shows the commit metadata.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</tbody></table></div></section><p class=\"mt-4 text-[12px] text-muted-foreground\">A vertical bar marks consecutive lines from the same commit — only the first row in each run shows the commit metadata.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

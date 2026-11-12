@@ -27,11 +27,13 @@ templ Commit(data view.CommitData) {
 					<pre class="mt-3 text-sm text-muted-foreground whitespace-pre-wrap font-sans">{ data.Commit.Body }</pre>
 				}
 				<div class="mt-4 flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
-					@components.Initials(data.Commit.Author, components.AvatarSizeSM, "")
-					<span>
-						<span class="font-medium text-foreground">{ data.Commit.Author }</span>
-						<span class="text-muted-foreground/80 ml-1">&lt;{ data.Commit.AuthorEmail }&gt;</span>
-					</span>
+					if data.AuthorUsername != "" {
+						@components.Avatar(data.AuthorUsername, components.AvatarSizeSM, "")
+						<a href={ templ.SafeURL("/" + data.AuthorUsername) } title={ data.Commit.AuthorEmail } class="font-medium text-foreground hover:underline">{ data.AuthorUsername }</a>
+					} else {
+						@components.Initials(data.Commit.Author, components.AvatarSizeSM, "")
+						<span title={ data.Commit.AuthorEmail } class="font-medium text-foreground">{ data.Commit.Author }</span>
+					}
 					<span aria-hidden="true">·</span>
 					<time datetime={ data.Commit.AuthorTime.UTC().Format(time.RFC3339) }>{ data.Commit.AuthorTime.Format("2006-01-02 15:04:05 UTC") }</time>
 					<span aria-hidden="true">·</span>

@@ -82,3 +82,23 @@ func userByAuthorEmail(ctx context.Context, users *store.UserStore, email string
 	}
 	return users.GetByEmail(ctx, email)
 }
+
+// ResolveCommitAuthors maps each address in emails to the username of the account it belongs to. Addresses that
+// resolve to nobody are left out.
+func (s *UserService) ResolveCommitAuthors(ctx context.Context, emails []string) (map[string]string, error) {
+	out := make(map[string]string, len(emails))
+	for _, email := range emails {
+		if _, done := out[email]; done || email == "" {
+			continue
+		}
+		u, err := userByAuthorEmail(ctx, s.store, email)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		out[email] = u.Username
+	}
+	return out, nil
+}

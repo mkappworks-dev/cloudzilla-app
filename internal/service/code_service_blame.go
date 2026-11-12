@@ -17,7 +17,8 @@ type BlameLine struct {
 	HTML       template.HTML `json:"-"`
 	Hash       string        // short SHA (7 chars)
 	FullHash   string        // full SHA, retained for /commit/{sha} links
-	Author     string
+	Author     string        // email, as go-git reports it
+	AuthorName string
 	AuthorTime time.Time
 	ShowMeta   bool
 }
@@ -61,6 +62,7 @@ func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult,
 			Hash:       short,
 			FullHash:   fullHash,
 			Author:     l.Author,
+			AuthorName: l.AuthorName,
 			AuthorTime: l.Date,
 			ShowMeta:   showMeta,
 		}

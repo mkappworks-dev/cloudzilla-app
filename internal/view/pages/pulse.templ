@@ -8,9 +8,19 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
+// hasActivity is false for a window with no events; an all-zero chart draws only a flat baseline that reads as broken.
+func hasActivity(chart []int) bool {
+	for _, n := range chart {
+		if n > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 templ pulseStatCard(label, opened, openedLabel, closed, closedLabel string, chart []int, accentOpen, accentClosed string) {
 	<div class="rounded-md border border-border bg-card p-4 flex flex-col gap-3">
-		<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">{ label }</p>
+		<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">{ label } <span class="normal-case tracking-normal">· last 30 days</span></p>
 		<div class="flex items-end justify-between gap-4">
 			<div class="space-y-1">
 				<div class="flex items-baseline gap-2">
@@ -22,9 +32,11 @@ templ pulseStatCard(label, opened, openedLabel, closed, closedLabel string, char
 					<span class="text-[11px] text-muted-foreground">{ closedLabel }</span>
 				</div>
 			</div>
-			<div class="text-muted-foreground/50 shrink-0">
-				@components.MiniChart(chart, 80, 32)
-			</div>
+			if hasActivity(chart) {
+				<div class="text-muted-foreground/50 shrink-0">
+					@components.MiniChart(chart, 80, 32)
+				</div>
+			}
 		</div>
 	</div>
 }
@@ -59,7 +71,7 @@ templ Pulse(data view.PulseData) {
 					)
 					@pulseStatCard(
 						"Commits",
-						strconv.Itoa(data.RecentCommits), "total",
+						strconv.Itoa(data.RecentCommits), "commits",
 						"", "",
 						data.CommitsLast30,
 						"", "",
@@ -70,7 +82,7 @@ templ Pulse(data view.PulseData) {
 			if len(data.Contributors) > 0 {
 				<section class="rounded-md border border-border bg-card" aria-labelledby="top-contrib">
 					<header class="px-4 py-3 border-b border-border flex items-center justify-between">
-						<h2 id="top-contrib" class="text-[13px] font-medium">Top contributors</h2>
+						<h2 id="top-contrib" class="text-[13px] font-medium">Top contributors <span class="font-normal text-muted-foreground">· all time</span></h2>
 						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/graphs/contributors") } class="text-[12px] text-muted-foreground hover:text-foreground">View all →</a>
 					</header>
 					<ul class="divide-y divide-border">

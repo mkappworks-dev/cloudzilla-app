@@ -12,6 +12,9 @@ type BlameLine struct {
 	Code        string
 	CodeHTML    template.HTML
 	AuthorName  string
+	// AuthorUsername is the account the author address belongs to, "" when it matches none.
+	AuthorUsername string
+	AuthorEmail    string
 	ShortSHA    string
 	CommittedAt time.Time
 	CommitURL   string
@@ -22,22 +25,25 @@ type BlameLine struct {
 }
 
 templ BlameRow(line BlameLine) {
-	<tr class="hover:bg-muted/50">
-		<td
-			class="w-60 px-3 py-1.5 align-top text-[11px] border-r border-border bg-card"
-			title={ line.AuthorName + " · " + line.ShortSHA + " · " + line.CommittedAt.UTC().Format(time.RFC3339) }
-		>
+	<tr class={ "h-6 hover:bg-muted/50", templ.KV("border-t border-border", line.HunkStart && line.LineNumber > 1) }>
+		<td class="w-[280px] px-3 py-0 align-middle text-[11px] border-r border-border bg-card whitespace-nowrap">
 			if line.HunkStart {
-				<a href={ templ.SafeURL(line.CommitURL) } class="font-mono font-medium hover:underline">{ line.ShortSHA }</a>
-				<div class="text-muted-foreground truncate max-w-[12rem]">{ line.AuthorName }</div>
-				<time class="text-muted-foreground block" datetime={ line.CommittedAt.UTC().Format(time.RFC3339) }>{ line.CommittedAt.Format("2006-01-02") }</time>
+				<div class="flex items-center gap-2 overflow-hidden">
+					<a href={ templ.SafeURL(line.CommitURL) } class="font-mono font-medium hover:underline shrink-0">{ line.ShortSHA }</a>
+					if line.AuthorUsername != "" {
+						<a href={ templ.SafeURL("/" + line.AuthorUsername) } title={ line.AuthorEmail } class="truncate text-muted-foreground hover:text-foreground hover:underline">{ line.AuthorUsername }</a>
+					} else {
+						<span title={ line.AuthorEmail } class="truncate text-muted-foreground">{ line.AuthorName }</span>
+					}
+					<time class="ml-auto shrink-0 text-muted-foreground" datetime={ line.CommittedAt.UTC().Format(time.RFC3339) } title={ line.CommittedAt.UTC().Format(time.RFC3339) }>{ line.CommittedAt.Format("2006-01-02") }</time>
+				</div>
 			} else {
-				<span class="text-muted-foreground/40 select-none" aria-hidden="true">·</span>
+				<span class="block h-6 w-0.5 ml-1 bg-muted-foreground/50" aria-label="Same commit as the line above" role="img"></span>
 			}
 		</td>
-		<td class="select-none text-muted-foreground px-3 py-1.5 text-right align-top border-r border-border bg-muted/40">
+		<td class="select-none text-muted-foreground px-3 py-0 text-right align-middle border-r border-border bg-muted/40">
 			<a id={ "L" + strconv.Itoa(line.LineNumber) } href={ templ.SafeURL("#L" + strconv.Itoa(line.LineNumber)) } class="hover:text-foreground">{ strconv.Itoa(line.LineNumber) }</a>
 		</td>
-		<td class="pl-4 pr-4 py-1.5 whitespace-pre">@CodeText(line.Code, line.CodeHTML)</td>
+		<td class="pl-4 pr-4 py-0 align-middle whitespace-pre">@CodeText(line.Code, line.CodeHTML)</td>
 	</tr>
 }

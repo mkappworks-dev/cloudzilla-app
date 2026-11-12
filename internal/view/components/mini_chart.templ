@@ -1,6 +1,9 @@
 package components
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 templ MiniChart(values []int, width, height int) {
 	if len(values) == 0 {
@@ -36,7 +39,8 @@ func miniBars(values []int, w, h int) []miniBar {
 	gap := 1.0
 	out := make([]miniBar, 0, n)
 	for i, v := range values {
-		bh := float64(v) / float64(max) * float64(h)
+		// An empty week keeps a 1px baseline so a lone spike reads as one busy week among quiet ones, not a stray block.
+		bh := math.Max(float64(v)/float64(max)*float64(h), 1)
 		out = append(out, miniBar{
 			X: float64(i) * bw, Y: float64(h) - bh,
 			W: bw - gap, H: bh,
