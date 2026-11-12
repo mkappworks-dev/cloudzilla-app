@@ -229,7 +229,7 @@
     '<div role="status" class="border-b border-warning/40 bg-warning/10 text-sm">' +
     '<form method="GET" action="admin_mode.html" class="max-w-[1400px] mx-auto px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">' +
     '<span class="font-medium text-warning">Acting as instance admin</span>' +
-    '<span class="text-muted-foreground">· expires <time datetime="2026-11-07T15:32:00Z">15:32 UTC</time> ·</span>' +
+    '<span class="text-muted-foreground">· expires <time datetime="2026-11-07T15:32:00Z">15:32 UTC</time> (in 2 hours) ·</span>' +
     '<button type="submit" class="underline underline-offset-2 hover:no-underline">Leave admin mode</button></form></div>';
   if (mount) {
     var headerNode = parse(header);

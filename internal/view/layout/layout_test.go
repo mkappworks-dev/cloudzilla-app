@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -179,5 +180,18 @@ func TestBase_BellBadgeCapsAt99(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestBase_AdminModeBannerShowsExpiryAndTimeLeft(t *testing.T) {
+	expires := time.Now().Add(2*time.Hour + 10*time.Minute)
+	var page strings.Builder
+	base := view.BasePage{AdminMode: &view.AdminModeInfo{ExpiresAt: expires}}
+	if err := layout.Base(base, "Home").Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	want := expires.UTC().Format("15:04") + " UTC</time> (in 2 hours)"
+	if !strings.Contains(page.String(), want) {
+		t.Errorf("banner lacks %q", want)
 	}
 }

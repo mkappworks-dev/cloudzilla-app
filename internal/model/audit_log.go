@@ -25,7 +25,13 @@ type AuditFilter struct {
 	Action     string
 	TargetType string
 	TargetID   *int64
+	// Sort is one of AuditSort's keys; "" orders by time, newest first.
+	Sort string
+	Desc bool
 }
+
+// AuditSort lists the columns /admin/audit-log sorts by.
+var AuditSort = SortSpec{{Key: "time", DescFirst: true}, {Key: "actor"}, {Key: "action"}, {Key: "target"}}
 
 const (
 	AuditTargetOrg  = "org"

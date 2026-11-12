@@ -22,7 +22,13 @@ type AdminUserFilter struct {
 	Query  string
 	Role   string
 	Status string
+	// Sort is one of AdminUserSort's keys; "" orders by created.
+	Sort string
+	Desc bool
 }
+
+// AdminUserSort lists the columns /admin/users sorts by.
+var AdminUserSort = SortSpec{{Key: "created", DescFirst: true}, {Key: "username"}, {Key: "email"}}
 
 // RevokedCredentials counts what an admin's "revoke tokens and keys" deleted.
 type RevokedCredentials struct {

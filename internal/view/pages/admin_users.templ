@@ -63,13 +63,13 @@ templ AdminUsers(data view.AdminUsersData) {
 					<table class="w-full text-sm">
 						<thead>
 							<tr class="text-left text-muted-foreground border-b border-border bg-muted">
-								<th class="px-4 py-3 font-medium">User</th>
-								<th class="px-4 py-3 font-medium">Email</th>
-								<th class="px-4 py-3 font-medium">Role</th>
-								<th class="px-4 py-3 font-medium">Status</th>
-								<th class="px-4 py-3 font-medium">2FA</th>
-								<th class="px-4 py-3 font-medium">Sign-in</th>
-								<th class="px-4 py-3 font-medium">Created</th>
+								@components.SortHeader("User", adminUsersSortURL(data.Filter, "username"), adminUsersAriaSort(data.Filter, "username"))
+								@components.SortHeader("Email", adminUsersSortURL(data.Filter, "email"), adminUsersAriaSort(data.Filter, "email"))
+								<th scope="col" class="px-4 py-3 font-medium">Role</th>
+								<th scope="col" class="px-4 py-3 font-medium">Status</th>
+								<th scope="col" class="px-4 py-3 font-medium">2FA</th>
+								<th scope="col" class="px-4 py-3 font-medium">Sign-in</th>
+								@components.SortHeader("Created", adminUsersSortURL(data.Filter, "created"), adminUsersAriaSort(data.Filter, "created"))
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-border">

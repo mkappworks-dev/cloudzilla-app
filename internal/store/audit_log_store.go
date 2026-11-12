@@ -52,7 +52,24 @@ func (s *AuditLogStore) Count(ctx context.Context, f model.AuditFilter) (int, er
 	return n, nil
 }
 
-// List returns a page of audit entries ordered by created_at DESC.
+// auditOrder maps f's sort key to a whitelisted ORDER BY, ending in id so pages never overlap.
+func auditOrder(f model.AuditFilter) string {
+	dir, col := "ASC", "created_at"
+	if f.Desc || f.Sort == "" {
+		dir = "DESC"
+	}
+	switch f.Sort {
+	case "actor":
+		col = "lower(actor_name)"
+	case "action":
+		col = "action"
+	case "target":
+		col = "lower(target_name)"
+	}
+	return col + " " + dir + ", id " + dir
+}
+
+// List returns a page of audit entries, newest first unless f sorts otherwise.
 // page is 1-based; pageSize is the number of rows to return.
 func (s *AuditLogStore) List(ctx context.Context, f model.AuditFilter, page, pageSize int) ([]model.AuditEntry, error) {
 	if page < 1 {
@@ -66,7 +83,7 @@ func (s *AuditLogStore) List(ctx context.Context, f model.AuditFilter, page, pag
 		 FROM audit_log`,
 		f,
 	)
-	query += " ORDER BY created_at DESC"
+	query += " ORDER BY " + auditOrder(f)
 	if pageSize > 0 {
 		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
 		args = append(args, pageSize, offset)

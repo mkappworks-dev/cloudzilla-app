@@ -184,7 +184,22 @@ func likePrefix(q string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(q)) + "%"
 }
 
-// ListForAdmin returns one page of accounts, newest first, and the total that
+// adminUserOrder maps f's sort key to a whitelisted ORDER BY, ending in id so pages never overlap.
+func adminUserOrder(f model.AdminUserFilter) string {
+	dir, col := "ASC", "created_at"
+	if f.Desc || f.Sort == "" {
+		dir = "DESC"
+	}
+	switch f.Sort {
+	case "username":
+		col = "lower(username)"
+	case "email":
+		col = "lower(email)"
+	}
+	return col + " " + dir + ", id " + dir
+}
+
+// ListForAdmin returns one page of accounts, newest first unless f sorts otherwise, and the total that
 // match f. The ghost is never listed.
 func (s *UserStore) ListForAdmin(ctx context.Context, f model.AdminUserFilter, page, perPage int) ([]model.AdminUserRow, int, error) {
 	where := []string{notGhost}
@@ -221,7 +236,7 @@ func (s *UserStore) ListForAdmin(ctx context.Context, f model.AdminUserFilter, p
 	limit, offset := arg(perPage), arg((page-1)*perPage)
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT `+userColumns+`, totp_enabled, password_hash <> '', COALESCE(sso_provider, '')
-		 FROM users WHERE `+cond+` ORDER BY created_at DESC, id DESC LIMIT `+limit+` OFFSET `+offset, args...)
+		 FROM users WHERE `+cond+` ORDER BY `+adminUserOrder(f)+` LIMIT `+limit+` OFFSET `+offset, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("user list for admin: %w", err)
 	}

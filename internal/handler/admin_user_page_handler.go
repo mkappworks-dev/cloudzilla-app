@@ -31,6 +31,7 @@ func (h *Handler) PageAdminUsers(w http.ResponseWriter, r *http.Request) {
 		Role:   r.URL.Query().Get("role"),
 		Status: r.URL.Query().Get("status"),
 	}
+	f.Sort, f.Desc = model.AdminUserSort.Resolve(r.URL.Query().Get("sort"), r.URL.Query().Get("dir"))
 	users, total, err := h.Services.AdminUser.List(r.Context(), f, page, adminUsersPerPage)
 	if err != nil {
 		slog.Error("list users for admin", "error", err)

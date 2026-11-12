@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -27,10 +27,10 @@ Found by the wave 2 re-score (Claude and Codex).
 
 ## Acceptance criteria
 
-- [ ] Rows link to the user page
-- [ ] Tables sort and page both ways
-- [ ] Audit log shows what changed
-- [ ] Mocks updated, light and dark
+- [x] Rows link to the user page
+- [x] Tables sort and page both ways
+- [x] Audit log shows what changed
+- [x] Mocks updated, light and dark
 
 ## Verification
 
@@ -41,3 +41,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-12 (wave 2 re-score): opened by ticket 22. Run `/triage` before any code.
 
 2026-11-12 (triage): ready-for-agent. Show time left on the admin-mode banner.
+
+2026-11-12 (implementation): username links and Previous/Next paging already shipped, so this PR adds `sort`/`dir` on both tables, the audit Details column and the banner time left. The mock pagers stay on page 1 of 3.

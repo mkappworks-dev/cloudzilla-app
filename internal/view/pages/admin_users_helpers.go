@@ -40,7 +40,37 @@ func adminUsersPageURL(f model.AdminUserFilter, page int) string {
 	if f.Status != "" {
 		q.Set("status", f.Status)
 	}
+	if f.Sort != "" {
+		q.Set("sort", f.Sort)
+		q.Set("dir", sortDir(f.Desc))
+	}
 	return "/admin/users?" + q.Encode()
+}
+
+// adminUsersSortURL is the header link for key: page 1 of the same filter, sorted by key.
+func adminUsersSortURL(f model.AdminUserFilter, key string) string {
+	cur, desc := adminUsersSortState(f)
+	f.Desc = model.AdminUserSort.Toggle(cur, desc, key)
+	f.Sort = key
+	return adminUsersPageURL(f, 1)
+}
+
+// ariaSort is the aria-sort value for a column: "" unless it is the sorted one.
+func ariaSort(sorted, key string, desc bool) string {
+	switch {
+	case sorted != key:
+		return ""
+	case desc:
+		return "descending"
+	}
+	return "ascending"
+}
+
+func sortDir(desc bool) string {
+	if desc {
+		return "desc"
+	}
+	return "asc"
 }
 
 func adminUserAction(username, action string) string {
@@ -59,4 +89,17 @@ func adminSuspendMessage(username string, soleOwnedOrgs []string) string {
 		msg += " They are the only owner of " + strings.Join(soleOwnedOrgs, ", ") + ", which will have no active owner meanwhile."
 	}
 	return msg
+}
+
+// adminUsersSortState is the sorted column and direction, which a filter built outside the handler leaves empty.
+func adminUsersSortState(f model.AdminUserFilter) (string, bool) {
+	if f.Sort == "" {
+		return model.AdminUserSort[0].Key, model.AdminUserSort[0].DescFirst
+	}
+	return f.Sort, f.Desc
+}
+
+func adminUsersAriaSort(f model.AdminUserFilter, key string) string {
+	cur, desc := adminUsersSortState(f)
+	return ariaSort(cur, key, desc)
 }

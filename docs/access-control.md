@@ -866,9 +866,11 @@ adds such a reference must give it an `ON DELETE` action or add it to the list;
 
 `/admin/users` lists every account but the ghost, 50 a page, newest first. `q` matches a username or email prefix,
 ignoring case (`%` and `_` are literal); `role` (`superadmin`, `user`) and `status` (`active`, `suspended`) filter it.
-`/admin/users/{username}` shows one account (email and verification, role, status, 2FA, sign-in methods, created date,
-last web sign-in from the latest `login` audit entry, organizations it solely owns) and its actions. An unknown username
-or the ghost is a 404.
+`sort` (`created`, `username`, `email`) and `dir` (`asc`, `desc`) order it; an unknown value falls back to newest first.
+`/admin/audit-log` takes the same two parameters over `time`, `actor`, `action` and `target`, and shows each entry's
+metadata in a Details column. `/admin/users/{username}` shows one account (email and verification, role, status, 2FA,
+sign-in methods, created date, last web sign-in from the latest `login` audit entry, organizations it solely owns) and
+its actions. An unknown username or the ghost is a 404.
 
 Each action is a `POST /api/admin/users/{username}/…`, needs the acting admin's
 [confirmation](#confirming-sensitive-actions), refuses the admin's own account (`ErrAdminSelf`; use Settings), and
