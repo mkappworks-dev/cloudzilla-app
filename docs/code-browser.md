@@ -126,8 +126,9 @@ commits are (`UserService.CommitAuthor`, so the keep-email-private setting appli
   change: not UTF-8, or a CR outside a CRLF, per `service.IsEditableText`). Deleting a folder or submodule is 404.
 - **Protected branches:** New file, edit, rename and delete are refused with 422 on a branch whose rule has
   `require_pull_request` (`BranchProtectionService.CheckWebCommit`; the edit page re-renders with the user's text kept).
-  The check runs on submit, not when the page opens. Admins aren't exempt; the change goes in on another branch and
-  merges as a pull request. See [api-reference](./api-reference.md#branch-protections).
+  The check runs on submit, not when the page opens (the edit page also runs it to disable its direct choice). Admins
+  aren't exempt; the change goes in on another branch and merges as a pull request, which the edit page's new-branch
+  choice does for an edit. See [api-reference](./api-reference.md#branch-protections).
 - **Stale saves:** the edit page and the delete dialog carry the blob SHA they loaded. `CodeService.EditFile` and
   `DeleteFile` refuse with `ErrFileChanged` (409) unless the path on the branch still holds that blob, and otherwise
   land on the current tip, so a commit to another file doesn't block them. `gitref.Move` still turns a push mid-write
@@ -161,6 +162,18 @@ commits are (`UserService.CommitAuthor`, so the keep-email-private setting appli
   `field-validation.js`) while the text holds either label line, checked before the stale check; the `=======` divider
   is not a marker, so a file that contains it commits. On that 422 the form's `upstream_sha` brings the upstream diff
   back. Resubmitting the resolved text with the new `blob_sha` commits on the current tip.
+- **Commit target** (`EditFileOnNewBranch`): the commit section is a radio choice, `target=direct` (default) or
+  `target=branch`, with an editable `new_branch` prefilled `<username>-patch-N` (`CodeService.FreeBranchName`, the first
+  free N) and carried back as `suggested_branch`. `branch` creates the branch at the current tip of the edited branch
+  and commits the edit onto it in one operation (`gitref.Move` from the zero hash, so a name taken mid-write is
+  `ErrBranchExists`, 409), then runs `PushService.AfterWebCommit` on the new branch and redirects (303) to
+  `/{owner}/{repo}/pulls/new?head=<new>&base=<edited branch>`; the PR is not created. The stale-save check, marker check
+  and conflict flow run first for both choices, so a stale save creates no branch. A `new_branch` equal to
+  `suggested_branch` that is taken gets the next free counter; any other taken name, an invalid one
+  (`gitref.ValidateBranchName`) or one a `require_pull_request` rule matches is 422 with `FieldError` on the name field.
+  The direct choice is disabled with the rule's message on a branch whose rule requires a pull request, and the new
+  branch choice is preselected; a forged `direct` is still refused with 422 as under Protected branches. The submit
+  button reads "Propose changes" for the branch choice.
 - **Line endings:** a browser submits textarea line breaks as CRLF. `textareaText` turns them back into LF, or keeps
   CRLF when the original file used CRLF on every line. New file's textarea goes through it too; uploads are committed
   byte for byte. Content over 1 MiB after that is refused with 413, and `MaxEditFileBodyBytes` leaves room for CRLF

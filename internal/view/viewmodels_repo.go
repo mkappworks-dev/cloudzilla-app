@@ -83,6 +83,21 @@ type EditFileData struct {
 	// UpstreamSHA is the blob the user first opened, so a refusal after a
 	// conflict can show the same upstream diff again.
 	UpstreamSHA string
+	// Target is "direct" or "branch": where the commit goes. DirectRefusal is
+	// why the displayed branch takes no direct commit, "" when it does.
+	Target        string
+	DirectRefusal string
+	// NewBranch is the typed name, and SuggestedBranch the prefill the server
+	// may renumber when it is taken by submit time.
+	NewBranch       string
+	SuggestedBranch string
+	BranchError     string
+}
+
+// NewBranchSelected reports whether the commit-target radio sits on the new
+// branch choice, which a protected branch forces.
+func (d EditFileData) NewBranchSelected() bool {
+	return d.Target == "branch" || d.DirectRefusal != ""
 }
 
 // EditPreviewData holds template data for the edit page's Preview changes tab.

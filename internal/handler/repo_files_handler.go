@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -466,6 +468,15 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		NewPath:  r.FormValue("path"),
 		Content:  textareaText(r.FormValue("content"), false),
 		Message:  r.FormValue("message"),
+
+		Target:          r.FormValue("target"),
+		NewBranch:       strings.TrimSpace(r.FormValue("new_branch")),
+		SuggestedBranch: r.FormValue("suggested_branch"),
+	}
+	data.DirectRefusal = h.directRefusal(r.Context(), repo.ID, ref)
+	toBranch := data.Target == "branch"
+	if data.NewBranch == "" {
+		data.NewBranch = data.SuggestedBranch
 	}
 	refuse := func(status int, msg string) {
 		data.Error = msg
@@ -497,9 +508,11 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		refuse(http.StatusConflict, msg)
 	}
 
-	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
-		refuse(status, msg)
-		return
+	if !toBranch {
+		if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
+			refuse(status, msg)
+			return
+		}
 	}
 	if file != nil && textmerge.HasMarkers(data.Content, ref) {
 		data.ContentError = markerError(ref)
@@ -548,11 +561,28 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	upd, err := h.Services.Code.EditFile(owner, repoName, ref, path, newPath, data.BlobSHA, []byte(content), author, message)
+	var upd service.RefUpdate
+	if toBranch {
+		if data.NewBranch, data.BranchError = h.newBranchName(r.Context(), repo, claims.Username, data); data.BranchError != "" {
+			refuse(http.StatusUnprocessableEntity, "")
+			return
+		}
+		upd, err = h.Services.Code.EditFileOnNewBranch(owner, repoName, ref, data.NewBranch, path, newPath, data.BlobSHA, []byte(content), author, message)
+	} else {
+		upd, err = h.Services.Code.EditFile(owner, repoName, ref, path, newPath, data.BlobSHA, []byte(content), author, message)
+	}
 	switch {
 	case err == nil:
 		h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
+		if toBranch {
+			q := url.Values{"head": {upd.Branch}, "base": {ref}}
+			http.Redirect(w, r, "/"+owner+"/"+repoName+"/pulls/new?"+q.Encode(), http.StatusSeeOther)
+			return
+		}
 		http.Redirect(w, r, codeurl.Path(owner, repoName, "blob", ref, newPath), http.StatusSeeOther)
+	case errors.Is(err, service.ErrBranchExists):
+		data.BranchError = "A branch named " + data.NewBranch + " was just created. Pick another name."
+		refuse(http.StatusConflict, "")
 	case errors.Is(err, service.ErrRefNotFound):
 		h.NotFound(w, r)
 	case errors.Is(err, service.ErrFileChanged):
@@ -569,6 +599,55 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		slog.Error("edit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		http.Error(w, "failed to commit the file", http.StatusInternalServerError)
 	}
+}
+
+// patchBranchPrefix is the stem of the branch name an edit proposes: alice-patch-.
+func patchBranchPrefix(username string) string { return username + "-patch-" }
+
+// directRefusal is why a commit straight to ref is refused, "" when it isn't.
+// A failed rule lookup leaves the choice open: submit checks again.
+func (h *Handler) directRefusal(ctx context.Context, repoID int64, ref string) string {
+	err := h.Services.BranchProtection.CheckWebCommit(ctx, repoID, ref)
+	switch {
+	case err == nil:
+		return ""
+	case errors.Is(err, service.ErrPushRequiresPR):
+		return err.Error()
+	}
+	slog.Error("check branch protection", "repo_id", repoID, "ref", ref, "error", err)
+	return ""
+}
+
+// newBranchName settles the branch an edit goes to. The prefilled name that
+// has since been taken is renumbered; a typed one that is taken, invalid or
+// protected comes back as the inline error.
+func (h *Handler) newBranchName(ctx context.Context, repo *model.Repository, username string, data view.EditFileData) (name, problem string) {
+	name = data.NewBranch
+	if name == "" {
+		return name, "Enter a name for the new branch."
+	}
+	if err := gitref.ValidateBranchName(name); err != nil {
+		return name, err.Error()
+	}
+	exists, err := h.Services.Code.BranchExists(data.Owner, data.RepoName, name)
+	if err != nil {
+		slog.Error("edit file: branch lookup failed", "owner", data.Owner, "repo", data.RepoName, "branch", name, "error", err)
+		return name, "Couldn't check whether that branch exists."
+	}
+	if exists && name == data.SuggestedBranch {
+		if name, err = h.Services.Code.FreeBranchName(data.Owner, data.RepoName, patchBranchPrefix(username)); err != nil {
+			slog.Error("edit file: branch name failed", "owner", data.Owner, "repo", data.RepoName, "error", err)
+			return data.NewBranch, "Couldn't pick a free branch name."
+		}
+		exists = false
+	}
+	if exists {
+		return name, "A branch named " + name + " already exists. Pick another name."
+	}
+	if status, msg := h.webCommitRefusal(ctx, repo.ID, name); status != 0 {
+		return name, msg
+	}
+	return name, ""
 }
 
 // EditPreview handles POST /{owner}/{repo}/edit-preview/{ref}/* from the edit

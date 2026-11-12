@@ -11,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 // newCollisionTestRepo adds one entry of each kind to main, beside a.txt and m.txt.
@@ -553,5 +554,84 @@ func TestDiffContent(t *testing.T) {
 				t.Errorf("paths = %q -> %q", fd.OldPath, fd.NewPath)
 			}
 		})
+	}
+}
+
+func TestEditFileOnNewBranch_BranchesFromTheTip(t *testing.T) {
+	r := newCollisionTestRepo(t)
+	tip := branchTip(t, r.repo, "main")
+	base := r.entryHash(t, "main", "a.txt")
+	upd, err := r.svc.EditFileOnNewBranch(r.owner, r.name, "main", "alice-patch-1", "a.txt", "a.txt", base.String(), []byte("new\n"), tipTestAuthor, "Update a.txt")
+	if err != nil {
+		t.Fatalf("EditFileOnNewBranch: %v", err)
+	}
+	if upd.Branch != "alice-patch-1" || !upd.Old.IsZero() {
+		t.Errorf("RefUpdate = %+v, want a created alice-patch-1", upd)
+	}
+	if got := branchTip(t, r.repo, "alice-patch-1"); got != upd.New {
+		t.Errorf("alice-patch-1 = %s, want %s", got, upd.New)
+	}
+	commit, err := r.repo.CommitObject(upd.New)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commit.ParentHashes) != 1 || commit.ParentHashes[0] != tip {
+		t.Errorf("parents = %v, want the main tip %s", commit.ParentHashes, tip)
+	}
+	if got := branchTip(t, r.repo, "main"); got != tip {
+		t.Errorf("main = %s, want it left at %s", got, tip)
+	}
+}
+
+func TestEditFileOnNewBranch_RefusesATakenName(t *testing.T) {
+	r := newCollisionTestRepo(t)
+	tip := branchTip(t, r.repo, "main")
+	base := r.entryHash(t, "main", "a.txt")
+	_, err := r.svc.EditFileOnNewBranch(r.owner, r.name, "main", "main", "a.txt", "a.txt", base.String(), []byte("new\n"), tipTestAuthor, "Update")
+	if !errors.Is(err, ErrBranchExists) {
+		t.Errorf("err = %v, want ErrBranchExists", err)
+	}
+	if got := branchTip(t, r.repo, "main"); got != tip {
+		t.Errorf("main = %s, want it left at %s", got, tip)
+	}
+}
+
+func TestEditFileOnNewBranch_RefusesAnInvalidName(t *testing.T) {
+	for _, name := range []string{"", "-x", "HEAD", "a..b", "a b", "x.lock"} {
+		t.Run(name, func(t *testing.T) {
+			r := newCollisionTestRepo(t)
+			base := r.entryHash(t, "main", "a.txt")
+			_, err := r.svc.EditFileOnNewBranch(r.owner, r.name, "main", name, "a.txt", "a.txt", base.String(), []byte("new\n"), tipTestAuthor, "Update")
+			if !errors.Is(err, gitref.ErrInvalidName) {
+				t.Errorf("err = %v, want ErrInvalidName", err)
+			}
+		})
+	}
+}
+
+func TestEditFileOnNewBranch_StaleBaseCreatesNothing(t *testing.T) {
+	r := newCollisionTestRepo(t)
+	_, err := r.svc.EditFileOnNewBranch(r.owner, r.name, "main", "alice-patch-1", "a.txt", "a.txt", "0000000000000000000000000000000000000001", []byte("new\n"), tipTestAuthor, "Update")
+	if !errors.Is(err, ErrFileChanged) {
+		t.Errorf("err = %v, want ErrFileChanged", err)
+	}
+	if ok, _ := r.svc.BranchExists(r.owner, r.name, "alice-patch-1"); ok {
+		t.Error("alice-patch-1 was created")
+	}
+}
+
+func TestFreeBranchName_SkipsTakenCounters(t *testing.T) {
+	r := newCollisionTestRepo(t)
+	got, err := r.svc.FreeBranchName(r.owner, r.name, "alice-patch-")
+	if err != nil || got != "alice-patch-1" {
+		t.Fatalf("FreeBranchName = %q, %v; want alice-patch-1", got, err)
+	}
+	for _, n := range []string{"alice-patch-1", "alice-patch-2"} {
+		if err := r.svc.CreateBranch(r.owner, r.name, n, "main"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got, err = r.svc.FreeBranchName(r.owner, r.name, "alice-patch-"); err != nil || got != "alice-patch-3" {
+		t.Errorf("FreeBranchName = %q, %v; want alice-patch-3", got, err)
 	}
 }

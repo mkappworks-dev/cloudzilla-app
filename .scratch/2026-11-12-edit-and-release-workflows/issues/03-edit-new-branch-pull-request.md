@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 
 | Branch | Worktree | PR title | Effort | Score gain |
@@ -37,12 +37,12 @@ user must leave the page; elsewhere there is no way to propose a change instead 
 
 ## Acceptance criteria
 
-- [ ] An edit can go to a new branch and lands on the prefilled pull request form
-- [ ] On a protected branch the direct choice is disabled with the reason and the new-branch choice works
-- [ ] A name collision is resolved (prefill) or refused inline (typed)
-- [ ] The new branch is created from the current tip; a stale file still goes through the conflict flow
-- [ ] Tests: service (branch + commit, collision, invalid name), handler (both choices, protected branch)
-- [ ] Docs updated
+- [x] An edit can go to a new branch and lands on the prefilled pull request form
+- [x] On a protected branch the direct choice is disabled with the reason and the new-branch choice works
+- [x] A name collision is resolved (prefill) or refused inline (typed)
+- [x] The new branch is created from the current tip; a stale file still goes through the conflict flow
+- [x] Tests: service (branch + commit, collision, invalid name), handler (both choices, protected branch)
+- [x] Docs updated
 
 ## Mock updates
 
