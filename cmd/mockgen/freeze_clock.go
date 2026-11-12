@@ -15,7 +15,8 @@ var heatmapCell = regexp.MustCompile(`<div class="rounded-\[2px\] heatmap-cell-\
 // time.Now() to HeatmapLarge, so its window and its day titles move with the wall clock and CI's stale check would fail
 // the next day; the cell levels follow a fixed pattern because no fixture date can match a moving window.
 func freezeHeatmaps(html []byte) []byte {
-	return heatmapRun.ReplaceAllFunc(html, func(run []byte) []byte {
+	total := 0
+	html = heatmapRun.ReplaceAllFunc(html, func(run []byte) []byte {
 		cells := len(heatmapCell.FindAll(run, -1))
 		start := fixedNow.UTC().Truncate(24*time.Hour).AddDate(0, 0, -7*(cells/7-1))
 		for start.Weekday() != time.Sunday {
@@ -24,10 +25,25 @@ func freezeHeatmaps(html []byte) []byte {
 		out := make([]byte, 0, len(run))
 		for i := 0; i < cells; i++ {
 			commits := []int{0, 0, 1, 0, 4, 0, 7, 12, 0, 2, 0}[(i*i+i*5+i/7)%11]
+			total += commits
 			out = append(out, fmt.Sprintf(`<div class="rounded-[2px] %s" title="%s"></div>`, heatmapLevel(commits), heatmapDayTitle(start.AddDate(0, 0, i), commits))...)
 		}
 		return out
 	})
+	if total == 0 {
+		return html
+	}
+	// The grid's aria-label totals the fixture map, which no longer matches the cells.
+	return heatmapLabel.ReplaceAll(html, []byte(fmt.Sprintf(`Contribution heatmap: %s in the past `, commitCount(total))))
+}
+
+var heatmapLabel = regexp.MustCompile(`Contribution heatmap: \d+ commits? in the past `)
+
+func commitCount(n int) string {
+	if n == 1 {
+		return "1 commit"
+	}
+	return fmt.Sprintf("%d commits", n)
 }
 
 // heatmapLevel and heatmapDayTitle repeat the unexported helpers in components/heatmap.templ.

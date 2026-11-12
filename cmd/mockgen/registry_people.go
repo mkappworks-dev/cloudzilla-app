@@ -24,6 +24,12 @@ func peoplePages() []page {
 					d.User.Username = "ada-silva"
 					d.User.Name = "Ada Silva"
 					d.User.Email = ""
+					d.Orgs = []service.OrgMembership{{Org: model.Organization{ID: 2, Name: "tidepool", DisplayName: "Tidepool"}, Role: model.OrgRoleMember}}
+					d.PinnedRepos = otherPinned()
+					d.RecentActivity = []model.Event{{
+						ID: 3, ActorName: "ada-silva", RepoName: "field-notes", OwnerName: "ada-silva", EventType: "push",
+						Payload: []byte(`{"branch":"main","commit_total":2,"commits":[{"sha":"c0ffee1","message":"Add the road log"}]}`), CreatedAt: ago(days(8)),
+					}}
 					return pages.User(d)
 				}),
 				vr("empty", "new account with nothing yet", Writer, func(b view.BasePage) templ.Component {

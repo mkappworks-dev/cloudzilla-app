@@ -8,7 +8,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// vr builds a variant; the account, auth and admin registries have many, so the literal stays one line each.
 func vr(name, note string, viewer Viewer, render func(view.BasePage) templ.Component) variant {
 	return variant{Name: name, Note: note, Viewer: viewer, Render: render}
 }

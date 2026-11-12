@@ -112,12 +112,16 @@ func fixtureIssueItems() []store.IssueListItem {
 
 func fixtureNotifications() []model.NotificationGroup {
 	n := func(id int64, t model.NotificationType, actor, repo, title string, num int, kind string, read bool, age time.Duration) model.NotificationGroup {
+		unread := 1
+		if read {
+			unread = 0
+		}
 		return model.NotificationGroup{
 			Notification: model.Notification{
 				ID: id, UserID: 1, ActorName: actor, Type: t, RepoName: repo, OwnerName: fixtureUser, SubjectID: id,
 				SubjectURL: "/" + fixtureUser + "/" + repo + "/" + kind + "/" + strconv.Itoa(num), SubjectTitle: title, SubjectKind: kind, Read: read, CreatedAt: ago(age),
 			},
-			Count: 1, Unread: map[bool]int{true: 0, false: 1}[read],
+			Count: 1, Unread: unread,
 		}
 	}
 	return []model.NotificationGroup{
@@ -127,7 +131,13 @@ func fixtureNotifications() []model.NotificationGroup {
 	}
 }
 
-func orgRepos() []components.PinnedRepoData {
+func otherPinned() []components.PinnedRepoData {
+	return []components.PinnedRepoData{
+		{OwnerName: "ada-silva", Name: "field-notes", Description: "Notes from the road.", Language: "Markdown", LanguageColor: "#083fa1", Stars: 19},
+	}
+}
+
+func orgRepos()[]components.PinnedRepoData {
 	return []components.PinnedRepoData{
 		{OwnerName: "paper-planes", Name: "ledger", Description: "Double-entry bookkeeping for small co-ops.", Language: "Go", LanguageColor: "#00ADD8", Stars: 212},
 		{OwnerName: "paper-planes", Name: "signal-fence", Description: "Rate limiting sidecar with a tiny footprint.", Language: "Rust", LanguageColor: "#dea584", Stars: 87},
