@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Platform — acme-corp — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-owner="acme-corp"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-8">
+
+  <section class="flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0">
+      <p class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground mb-1 inline-flex items-center gap-2">
+        <a href="org_profile.html" class="hover:text-foreground">acme-corp</a>
+        <span class="opacity-40" aria-hidden="true">/</span>
+        <a id="teams-crumb" href="org_settings.html#teams" class="hover:text-foreground">Teams</a>
+      </p>
+      <h1 class="text-2xl font-semibold tracking-tight">Platform</h1>
+      <p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">Build, CI and release tooling.</p>
+    </div>
+  </section>
+
+  <div class="grid grid-cols-12 gap-8">
+
+    <aside class="col-span-12 lg:col-span-3" aria-label="Teams">
+      <nav class="lg:sticky lg:top-4 flex flex-col gap-0.5 text-[13px]">
+        <p class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1 px-2.5">Teams</p>
+        <a href="org_team.html" class="px-2.5 py-1.5 rounded-md bg-accent text-foreground font-medium" aria-current="page">Platform</a>
+        <a href="org_team.html" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Docs</a>
+        <a href="org_team.html" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Design</a>
+      </nav>
+    </aside>
+
+    <div class="col-span-12 lg:col-span-9 flex flex-col gap-10">
+
+      <section id="members" class="rounded-md border border-border bg-card p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">Members</h2>
+        <p class="text-[12.5px] text-muted-foreground mb-4"><span id="team-count">4</span> people on this team. A team doesn't change anyone's access to repositories yet.</p>
+        <div id="team-members" class="flex flex-col gap-4">
+          <form data-owner-only id="team-add-form" class="flex flex-col gap-2" onsubmit="return false">
+            <div class="flex items-center gap-2">
+              <label for="team-add-username" class="sr-only">Add a member</label>
+              <select id="team-add-username" name="username" required class="flex h-9 flex-1 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs"><option value="jlee">jlee</option><option value="mkappworks">mkappworks</option><option value="sana">sana</option></select>
+              <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add to team</button>
+            </div>
+          </form>
+          <ul id="team-rows" class="divide-y divide-border border border-border rounded-md">
+          <li class="px-4 py-3 flex items-center gap-3" data-team-member>
+            <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="daisy">D</span>
+            <div class="min-w-0 flex-1">
+              <a href="profile.html" class="text-[13.5px] font-medium hover:underline">daisy</a>
+              <p class="text-[11.5px] text-muted-foreground font-mono">@daisy</p>
+            </div>
+            <button type="button" data-owner-only data-remove-member data-confirm-title="Remove daisy from this team?" data-confirm="daisy stays in the organization but leaves this team." data-confirm-label="Remove" data-confirm-danger data-toast="Member removed" class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0">Remove</button>
+          </li>
+          <li class="px-4 py-3 flex items-center gap-3" data-team-member>
+            <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="rchen">R</span>
+            <div class="min-w-0 flex-1">
+              <a href="profile.html" class="text-[13.5px] font-medium hover:underline">rchen</a>
+              <p class="text-[11.5px] text-muted-foreground font-mono">@rchen</p>
+            </div>
+            <button type="button" data-owner-only data-remove-member data-confirm-title="Remove rchen from this team?" data-confirm="rchen stays in the organization but leaves this team." data-confirm-label="Remove" data-confirm-danger data-toast="Member removed" class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0">Remove</button>
+          </li>
+          <li class="px-4 py-3 flex items-center gap-3" data-team-member>
+            <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="tomas">T</span>
+            <div class="min-w-0 flex-1">
+              <a href="profile.html" class="text-[13.5px] font-medium hover:underline">tomas</a>
+              <p class="text-[11.5px] text-muted-foreground font-mono">@tomas</p>
+            </div>
+            <button type="button" data-owner-only data-remove-member data-confirm-title="Remove tomas from this team?" data-confirm="tomas stays in the organization but leaves this team." data-confirm-label="Remove" data-confirm-danger data-toast="Member removed" class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0">Remove</button>
+          </li>
+          <li class="px-4 py-3 flex items-center gap-3" data-team-member>
+            <span class="inline-grid place-items-center shrink-0 rounded-full bg-muted border border-border font-medium text-muted-foreground h-7 w-7 text-xs" role="img" aria-label="priya">P</span>
+            <div class="min-w-0 flex-1">
+              <a href="profile.html" class="text-[13.5px] font-medium hover:underline">priya</a>
+              <p class="text-[11.5px] text-muted-foreground font-mono">@priya</p>
+            </div>
+            <button type="button" data-owner-only data-remove-member data-confirm-title="Remove priya from this team?" data-confirm="priya stays in the organization but leaves this team." data-confirm-label="Remove" data-confirm-danger data-toast="Member removed" class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0">Remove</button>
+          </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="edit" data-owner-only class="rounded-md border border-border bg-card p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">Team details</h2>
+        <p class="text-[12.5px] text-muted-foreground mb-6">Renaming changes the team's address.</p>
+        <form class="space-y-5" onsubmit="return false">
+          <div>
+            <label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="team-name">Name</label>
+            <input id="team-name" type="text" name="name" value="Platform" required maxlength="64" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors" />
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="team-description">Description</label>
+            <textarea id="team-description" name="description" rows="3" maxlength="500" class="w-full bg-background border border-input rounded-md px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring">Build, CI and release tooling.</textarea>
+          </div>
+          <div class="flex items-center justify-end gap-2">
+            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Save changes</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="delete" data-owner-only class="rounded-md border border-destructive/30 bg-card p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1 text-destructive">Delete team</h2>
+        <p class="text-[12.5px] text-muted-foreground mb-4">Its members stay in the organization.</p>
+        <button type="button" data-delete-team data-confirm-title="Delete Platform?" data-confirm="Members of Platform stay in acme-corp." data-confirm-label="Delete team" data-confirm-danger data-toast="Team deleted" class="h-9 px-4 text-sm rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10">Delete team</button>
+      </section>
+
+    </div>
+  </div>
+</div>
+</main>
+
+<dialog id="cz-confirm-dialog" aria-labelledby="cz-confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="p-5">
+    <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="cz-confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="cz-confirm-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Confirm</button>
+    </div>
+  </div>
+</dialog>
+
+
+<div id="cz-footer"></div>
+<script>
+(function () {
+  var dlg = document.getElementById('cz-confirm-dialog');
+  var ok = document.getElementById('cz-confirm-ok');
+  var done = null;
+  function czConfirm(b, cb) {
+    document.getElementById('cz-confirm-title').textContent = b.dataset.confirmTitle || 'Are you sure?';
+    document.getElementById('cz-confirm-msg').textContent = b.dataset.confirm || '';
+    ok.textContent = b.dataset.confirmLabel || 'Confirm';
+    ok.className = 'inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 ' + (b.hasAttribute('data-confirm-danger')
+      ? 'bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
+    done = cb;
+    dlg.returnValue = '';
+    dlg.showModal();
+  }
+  ok.addEventListener('click', function () { dlg.close('confirm'); });
+  document.getElementById('cz-confirm-cancel').addEventListener('click', function () { dlg.close('cancel'); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close('cancel'); });
+  dlg.addEventListener('close', function () {
+    var f = done; done = null;
+    if (f && dlg.returnValue === 'confirm') f();
+  });
+
+  // Mock-only: ?viewer=member shows the read-only page a non-owner member gets.
+  if (/[?&]viewer=member\b/.test(location.search)) {
+    document.querySelectorAll('[data-owner-only]').forEach(function (el) { el.remove(); });
+    document.getElementById('teams-crumb').outerHTML = '<span>Teams</span>';
+  }
+
+  function count() {
+    document.getElementById('team-count').textContent = document.querySelectorAll('[data-team-member]').length;
+  }
+
+  document.querySelectorAll('[data-remove-member]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      czConfirm(b, function () {
+        b.closest('[data-team-member]').remove();
+        count();
+        czToast(b.dataset.toast);
+      });
+    });
+  });
+
+  var del = document.querySelector('[data-delete-team]');
+  if (del) del.addEventListener('click', function () {
+    czConfirm(del, function () { czToast(del.dataset.toast); });
+  });
+})();
+</script>
+</body>
+</html>

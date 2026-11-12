@@ -611,6 +611,11 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		webhooks = []model.Webhook{}
 	}
 
+	teams, err := h.Services.Team.List(r.Context(), org.ID, claims.UserID)
+	if err != nil {
+		slog.Warn("org settings: failed to load teams", "org", org.Name, "error", err)
+	}
+
 	base := basePage(r, h.Services)
 	base.OwnerContext = org.Name
 	h.render(w, h.withAvatars(r, memberNames(members)...), pages.OrgSettings(view.OrgSettingsData{
@@ -622,6 +627,7 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		QuotaSummary: h.quotaSummary(r.Context(), service.QuotaOwner{OrgID: org.ID}),
 		AuditEntries: auditEntries,
 		Webhooks:     webhooks,
+		Teams:        teams,
 		Confirm:      h.confirmFactors(r, claims.UserID),
 	}))
 }

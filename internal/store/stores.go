@@ -15,6 +15,7 @@ type Stores struct {
 	Comment            *CommentStore
 	SSHKey             *SSHKeyStore
 	Org                *OrgStore
+	Team               *TeamStore
 	Webhook            *WebhookStore
 	Notification       *NotificationStore
 	SiteSetting        *SiteSettingStore
@@ -79,6 +80,7 @@ func New(database *sql.DB) *Stores {
 		Comment:            NewCommentStore(database),
 		SSHKey:             NewSSHKeyStore(database),
 		Org:                NewOrgStore(database),
+		Team:               NewTeamStore(database),
 		Webhook:            NewWebhookStore(database),
 		Notification:       NewNotificationStore(database),
 		SiteSetting:        NewSiteSettingStore(database),

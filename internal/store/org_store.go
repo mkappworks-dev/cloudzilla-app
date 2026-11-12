@@ -181,7 +181,10 @@ func (s *OrgStore) SetOwner(ctx context.Context, orgID, userID int64) error {
 
 func (s *OrgStore) RemoveMember(ctx context.Context, orgID, userID int64) error {
 	return s.changeMember(ctx, orgID, userID, true,
-		`DELETE FROM org_members WHERE org_id = $1 AND user_id = $2`)
+		`WITH left_teams AS (
+		   DELETE FROM team_members WHERE user_id = $2 AND team_id IN (SELECT id FROM teams WHERE org_id = $1)
+		 )
+		 DELETE FROM org_members WHERE org_id = $1 AND user_id = $2`)
 }
 
 // changeMember applies change with the org row locked, refusing one that takes

@@ -18,6 +18,7 @@ type Services struct {
 	SSHKey             *SSHKeyService
 	Code               *CodeService
 	Org                *OrgService
+	Team               *TeamService
 	Webhook            *WebhookService
 	Notification       *NotificationService
 	SiteSetting        *SiteSettingService
@@ -148,6 +149,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SSHKey:             NewSSHKeyService(stores.SSHKey, stores.User, stores.DeployKey),
 		Code:               code,
 		Org:                orgSvc,
+		Team:               NewTeamService(stores.Team, orgSvc),
 		Webhook:            webhookSvc,
 		Notification:       notifSvc,
 		SiteSetting:        siteSettingSvc,
