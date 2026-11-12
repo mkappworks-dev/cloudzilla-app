@@ -104,6 +104,10 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	if data.AdditionalEmails, err = h.Services.EmailVerifier.Addresses(ctx, claims.UserID); err != nil {
 		slog.Error("list additional emails", "user_id", claims.UserID, "error", err)
 	}
+	if data.Export, err = h.Services.Export.Latest(ctx, claims.UserID); err != nil {
+		slog.Error("load latest export", "user_id", claims.UserID, "error", err)
+	}
+	data.ExportEmails = h.Services.Email.Enabled()
 	if !enabled && secret.Valid && secret.String != "" {
 		data.TOTPPendingSecret = secret.String
 		if data.TOTPQRCode, err = h.Services.TOTP.EnrolmentQRCode(ctx, claims.Username, "Cloudzilla", secret.String); err != nil {

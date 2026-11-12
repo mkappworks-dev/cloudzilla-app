@@ -79,6 +79,16 @@ func SettingsErrorMessage(code string) string {
 		return "You can have at most 10 additional email addresses. Remove one first."
 	case "email_missing":
 		return "That email address is already gone."
+	case "export_in_progress":
+		return "An export is already being prepared. It will appear here when it is ready."
+	case "export_too_soon":
+		return "You can request one export a day. Download the one you have, or try again tomorrow."
+	case "export_unavailable":
+		return "This instance has no storage configured for exports. Ask your administrator."
+	case "export_failed":
+		return "Couldn't start the export. Please try again."
+	case "export_gone":
+		return "That export has expired or no longer exists. Request a new one."
 	case "verification_failed":
 		return "Couldn't send the verification email. Please try again later."
 	case "google_not_configured":

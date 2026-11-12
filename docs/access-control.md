@@ -841,7 +841,8 @@ deletes the user's personal repositories (soft-deleted ones included) and everyt
 review requests, hands what the user wrote in repos they don't own, org repos included, to the
 [ghost user](#the-ghost-user), and deletes the user row, which cascades to gists, keys, tokens, stars, watches,
 reactions and activity. Org repos have no `owner_id`, so they stay with their org: their `created_by` becomes `NULL`,
-and a `deleted_by` naming the user passes to the ghost.
+and a `deleted_by` naming the user passes to the ghost. The user's export objects (`exports/<user id>/…`) are deleted
+after the transaction commits, like the avatar; see [Account export](./storage.md#account-export).
 
 `DeleteUser` first refuses (`ErrSoleOrgOwner`, shown as `sole_org_owner`) while the user is the only owner of an
 organization, and (`ErrLastSuperadmin`, shown as `last_superadmin`) while they are the only active superadmin, before
@@ -1046,6 +1047,8 @@ owns keep serving the users who authorized them.
 | POST                  | `/settings/notifications`                        | authMW    | Own user                                                                                             | UpdateNotificationSettings               |
 | POST                  | `/settings/email`                                | authMW    | Own user                                                                                             | UpdateEmailSettings                      |
 | POST                  | `/settings/email/resend-verification`            | authMW    | Own user; one link a minute                                                                          | ResendVerificationEmail                  |
+| POST                  | `/settings/export`                               | authMW    | Own user; one a day, one in flight                                                                   | RequestExport                            |
+| POST                  | `/settings/export/{id}/download`                 | authMW    | Own export; password + TOTP code (or the account's other factors)                                    | DownloadExport                           |
 | POST                  | `/settings/delete-account`                       | authMW    | Own user                                                                                             | DeleteAccount                            |
 | POST                  | `/settings/sessions/revoke`                      | authMW    | Own user                                                                                             | RevokeSessions                           |
 | POST                  | `/settings/password`                             | authMW    | Own user; current password + TOTP code; refused without a password                                   | ChangePassword                           |

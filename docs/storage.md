@@ -1,7 +1,7 @@
 # Object storage
 
 Files that live outside git and PostgreSQL go through `internal/storage`. Today that means avatars, markdown image
-attachments and release assets. Git repos, wikis and gists still live under `git.repos_root`.
+attachments, release assets and account exports. Git repos, wikis and gists still live under `git.repos_root`.
 
 ## Backends
 
@@ -87,6 +87,7 @@ avatars/user/<user id>/<sha256 of the stored bytes>.<png|jpg>
 avatars/org/<org id>/<sha256 of the stored bytes>.<png|jpg>
 attachments/repo/<repo id>/<token>.<png|jpg|gif|webp>
 releases/repo/<repo id>/<release id>/<token>.bin
+exports/<user id>/<export id>.zip
 ```
 
 - `users.avatar_key` and `organizations.avatar_key` hold the full key, or `''` for none.
@@ -193,6 +194,40 @@ Deleting an asset or a release deletes the objects after the database change com
 `RepoService.PurgeExpired`. Deleting a user or an org drops its repos' rows but not their objects. If an object delete
 fails, the failure is logged and the object stays as an orphan: any object under `releases/` that no
 `release_assets.storage_key` names is safe to delete.
+
+## Account export
+
+Settings → Danger zone → _Export your data_ (`POST /settings/export`) queues a zip of what the user wrote. The handler
+is in `internal/handler/export_handler.go`, the service in `internal/service/export_service.go`, the rows in
+`account_exports` (`requested` → `running` → `ready` or `failed`).
+
+- **Contents:** JSON files `profile.json` (with additional email addresses), `ssh_keys.json` (public keys only),
+  `issues.json`, `comments.json`, `pull_requests.json`, `pull_reviews.json`, `pull_line_comments.json`, `gists.json`
+  (with their files), `stars.json` and `watches.json`. Each file's columns are listed in
+  `internal/store/export_data_store.go`, so a new column on a source table never reaches an export until it is added
+  there. Repository and wiki git data, tokens, password hashes and TOTP secrets are never included; a test greps the zip
+  for them. Issues, comments, pull requests and reviews in a repository in the trash are left out; stars and watches are
+  listed only for repositories the user can still read.
+- **Limits:** one export in flight per user (a partial unique index) and one request a day. A failed export doesn't
+  count, so the user can ask again at once. A new request deletes the user's earlier exports.
+- **Worker:** `ExportService.Run` (`account_export.run` in `main.go`) claims queued rows with `FOR UPDATE SKIP LOCKED`,
+  one at a time per instance. `started_at` is the lease: a `running` row older than an hour is claimed again, which
+  covers a worker that died. A shutdown mid-build leaves the row for that.
+- **Streaming:** each file is written into the zip as its query's rows arrive, so memory doesn't grow with the data. The
+  zip is spooled to a temp file in the OS temp directory, then put into the backend with its exact size, because S3
+  needs the length before the first byte. Free space there must cover the largest export.
+- **Order:** the object is written before the row turns `ready`. If the row is gone by then (the account was deleted
+  during the build), the object is deleted again.
+- **Download:** `POST /settings/export/{id}/download` re-authenticates the user like any sensitive action
+  ([Confirming sensitive actions](./access-control.md#confirming-sensitive-actions)), then streams the zip with
+  `Content-Disposition: attachment` and `Cache-Control: no-store`. Another user's export, one that isn't ready and one
+  past its expiry are the same refusal. It is a POST so the password travels in the body, not a URL.
+- **Email:** with SMTP on, the user is mailed when an export is ready; the message carries a link to the settings page,
+  never to the file.
+- **Cleanup:** every export, ready or failed, expires `ExportRetention` (7 days) after it finishes. The same loop
+  deletes expired objects and rows. `UserService.DeleteUser` collects the user's export keys before the rows cascade
+  away and deletes the objects after the transaction commits. A failed object delete is logged and leaves an orphan; any
+  object under `exports/` that no `account_exports` row names is safe to delete.
 
 ### Cleanup
 

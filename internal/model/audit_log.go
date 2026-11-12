@@ -66,6 +66,8 @@ const (
 	AuditActionEmailChange         = "user.email.change"
 	AuditActionEmailAdd            = "user.email.add"
 	AuditActionEmailRemove         = "user.email.remove"
+	AuditActionExportRequest       = "user.export.request"
+	AuditActionExportDownload      = "user.export.download"
 	AuditActionSessionsRevoke      = "user.sessions.revoke"
 	AuditActionPasswordChange      = "user.password.change"
 	AuditActionPasswordReset       = "user.password.reset"

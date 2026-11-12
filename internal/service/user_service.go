@@ -69,6 +69,7 @@ type UserService struct {
 	reauth      *ReauthService
 	notices     *EmailService
 	avatars     *AvatarService
+	exports     *ExportService
 }
 
 // NewUserService creates a UserService backed by the given user store and auth config.
@@ -381,6 +382,14 @@ func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 	} else if last {
 		return ErrLastSuperadmin
 	}
+	// Read before the rows cascade away, since the object keys come from them.
+	var exportKeys []string
+	if s.exports != nil {
+		var err error
+		if exportKeys, err = s.exports.ObjectKeys(ctx, userID); err != nil {
+			return err
+		}
+	}
 	var avatarKey string
 	err := s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
 		var err error
@@ -394,6 +403,9 @@ func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 		return err
 	}
 	s.avatars.DeleteObject(ctx, avatarKey)
+	if s.exports != nil {
+		s.exports.DeleteObjects(ctx, exportKeys)
+	}
 	return nil
 }
 
@@ -431,6 +443,12 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 // WithAvatars removes a deleted user's avatar object.
 func (s *UserService) WithAvatars(a *AvatarService) *UserService {
 	s.avatars = a
+	return s
+}
+
+// WithExports removes a deleted user's export objects.
+func (s *UserService) WithExports(e *ExportService) *UserService {
+	s.exports = e
 	return s
 }
 
