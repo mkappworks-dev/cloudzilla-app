@@ -308,3 +308,61 @@ func (h *Handler) renderRepoCollaborators(w http.ResponseWriter, r *http.Request
 		Confirm:   h.confirmFactors(r, viewerID),
 	}))
 }
+
+const repoRenameFormError = "#repo-rename-form-error"
+
+// RenameRepoSettings handles POST /{owner}/{repo}/settings/rename, the settings
+// page's Rename form. PATCH /api/repos/{owner}/{repo} is the JSON counterpart.
+func (h *Handler) RenameRepoSettings(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		settingsError(w, r, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	repo, ok := h.readableRepo(w, r, chi.URLParam(r, "owner"), chi.URLParam(r, "repo"), claims.UserID)
+	if !ok {
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		settingsError(w, r, http.StatusBadRequest, "bad request")
+		return
+	}
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+		settingsError(w, r, http.StatusForbidden, "you do not have permission to rename this repository")
+		return
+	}
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), repoRenameFormError) {
+		return
+	}
+	oldName, newName := repo.Name, r.FormValue("name")
+	err := h.Services.Repo.RenameRepo(r.Context(), repo, claims.UserID, newName)
+	switch {
+	case err == nil:
+	case errors.Is(err, service.ErrForbidden):
+		settingsError(w, r, http.StatusForbidden, "you do not have permission to rename this repository")
+		return
+	case errors.Is(err, service.ErrRepoNameTaken), errors.Is(err, service.ErrRepoSyncing), errors.Is(err, service.ErrRepoChanged):
+		renameFormError(w, r, http.StatusConflict, err.Error())
+		return
+	case errors.Is(err, service.ErrRepoNameReserved), errors.Is(err, service.ErrRepoNameUnchanged):
+		renameFormError(w, r, http.StatusUnprocessableEntity, err.Error())
+		return
+	case errors.Is(err, service.ErrInvalidRepoName):
+		renameFormError(w, r, http.StatusUnprocessableEntity, invalidRepoNameMessage)
+		return
+	default:
+		slog.Error("settings: rename repo failed", "owner", repo.OwnerName, "repo", oldName, "error", err)
+		settingsError(w, r, http.StatusInternalServerError, "failed to rename repository")
+		return
+	}
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoRename, model.AuditTargetRepo, repo.ID, newName, map[string]any{"from": oldName, "to": newName})
+	redirectAfterSave(w, r, "/"+repo.OwnerName+"/"+newName+"/settings")
+}
+
+func renameFormError(w http.ResponseWriter, r *http.Request, status int, msg string) {
+	if r.Header.Get("HX-Request") == "true" {
+		renderFormError(w, repoRenameFormError, msg)
+		return
+	}
+	http.Error(w, msg, status)
+}

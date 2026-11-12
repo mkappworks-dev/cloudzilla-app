@@ -21,9 +21,14 @@ import (
 
 func newPageHandler(t *testing.T, db *sql.DB) *handler.Handler {
 	t.Helper()
+	return newPageHandlerAt(t, db, t.TempDir())
+}
+
+func newPageHandlerAt(t *testing.T, db *sql.DB, reposRoot string) *handler.Handler {
+	t.Helper()
 	cfg := &config.Config{
 		Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
-		Git:  config.GitConfig{ReposRoot: t.TempDir()},
+		Git:  config.GitConfig{ReposRoot: reposRoot},
 	}
 	return handler.New(service.New(store.New(db), cfg), cfg)
 }
@@ -44,6 +49,7 @@ func pageRouter(h *handler.Handler) http.Handler {
 	r.Post("/{owner}/{repo}/new/{ref}", h.SubmitNewFile)
 	r.Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.Post("/{owner}/{repo}/settings/general", h.UpdateRepoGeneral)
+	r.Post("/{owner}/{repo}/settings/rename", h.RenameRepoSettings)
 	r.Post("/{owner}/{repo}/settings/features", h.UpdateRepoFeatures)
 	r.Post("/{owner}/{repo}/settings/visibility", h.UpdateRepoVisibility)
 	r.Get("/{owner}/{repo}/wiki/new", h.PageWikiNew)

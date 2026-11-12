@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 
 | Branch                | Worktree                         | PR title                                       | Effort |
@@ -32,11 +32,11 @@ See [spec.md](../spec.md). The settings name field is read-only with "Renaming f
 
 ## Acceptance criteria
 
-- [ ] The real page and the mock show the same form, dialog and error state
-- [ ] Checked at 1440 in light and dark, real page and mock under `make mockups`, evidence for both in the PR
-- [ ] A viewer without `CanManage` sees no Rename control
-- [ ] Success redirects to `/{owner}/{newname}/settings`; the old settings URL then redirects there too (ticket 04)
-- [ ] `make lint`, `npm run fmt:check` pass
+- [x] The real page and the mock show the same form, dialog and error state
+- [x] Checked at 1440 in light and dark, real page and mock under `make mockups`, evidence for both in the PR
+- [x] A viewer without `CanManage` sees no Rename control
+- [x] Success redirects to `/{owner}/{newname}/settings`; the old settings URL then redirects there too (ticket 04)
+- [x] `make lint`, `npm run fmt:check` pass
 
 ## Verification
 
