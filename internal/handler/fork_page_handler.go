@@ -23,17 +23,18 @@ func (h *Handler) PageForkRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var owners []string
-	if !strings.EqualFold(claims.Username, repo.OwnerName) {
-		owners = append(owners, claims.Username)
+	me := view.ForkOwner{Name: claims.Username}
+	if strings.EqualFold(claims.Username, repo.OwnerName) {
+		me.DisabledReason = "Owns this repository"
 	}
+	owners := []view.ForkOwner{me}
 	orgs, err := h.Services.Org.ListOwnedByUser(ctx, claims.UserID)
 	if err != nil {
 		slog.Error("fork page: list owned orgs", "user_id", claims.UserID, "error", err)
 	}
 	for _, o := range orgs {
 		if !strings.EqualFold(o.Name, repo.OwnerName) {
-			owners = append(owners, o.Name)
+			owners = append(owners, view.ForkOwner{Name: o.Name})
 		}
 	}
 

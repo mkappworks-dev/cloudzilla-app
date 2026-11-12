@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 Parallel: safe with 02 and 04. Shares `new_organization.templ`, `repo_fork.templ` and the `repoNewCustomSelect` component with no other ticket.
 
@@ -40,10 +40,10 @@ at 1440. Copy classes from the templ; check under `make mockups`.
 
 ## Acceptance criteria
 
-- [ ] No disabled radio or "Not available" text in organization creation
-- [ ] Fork Owner shows the User's account disabled with a reason when they own the source
-- [ ] Tests above pass; `make lint` and `npm run fmt:check` pass
-- [ ] Mocks updated, light and dark
+- [x] No disabled radio or "Not available" text in organization creation
+- [x] Fork Owner shows the User's account disabled with a reason when they own the source
+- [x] Tests above pass; `make lint` and `npm run fmt:check` pass
+- [x] Mocks updated, light and dark
 
 ## Verification
 

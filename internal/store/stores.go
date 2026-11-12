@@ -9,6 +9,7 @@ type Stores struct {
 	User               *UserStore
 	Repo               *RepoStore
 	RepoTransfer       *RepoTransferStore
+	RepoAlias          *RepoAliasStore
 	Issue              *IssueStore
 	Pull               *PullStore
 	Comment            *CommentStore
@@ -69,6 +70,7 @@ func New(database *sql.DB) *Stores {
 		User:               NewUserStore(database),
 		Repo:               NewRepoStore(database),
 		RepoTransfer:       NewRepoTransferStore(database),
+		RepoAlias:          NewRepoAliasStore(database),
 		Issue:              NewIssueStore(database),
 		Pull:               NewPullStore(database),
 		Comment:            NewCommentStore(database),

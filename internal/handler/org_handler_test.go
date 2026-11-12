@@ -132,7 +132,9 @@ func newOrgTestRouter(t *testing.T, db *sql.DB) (http.Handler, *service.Services
 	h := handler.New(svc, cfg)
 	r := chi.NewRouter()
 	r.Post("/api/orgs/", h.CreateOrg)
+	r.Get("/organizations/new", h.PageNewOrganization)
 	r.Post("/organizations/new", h.CreateOrganization)
+	r.Get("/{owner}/{repo}/fork", h.PageForkRepo)
 	r.Post("/api/orgs/{org}/transfer", h.TransferOrg)
 	r.Get("/repos/new", h.PageNewRepo)
 	r.Post("/api/orgs/{org}/repos", h.CreateOrgRepo)
@@ -343,5 +345,37 @@ func TestCreateOrgRepo_LeftoverDir_422(t *testing.T) {
 	}
 	if _, err := svc.Repo.Get(ctx, org.Name, "left"); err == nil {
 		t.Error("a row was bound to the leftover dir")
+	}
+}
+
+func TestPageNewOrganization_HasNoDisabledChoices(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	router, _ := newOrgTestRouter(t, db)
+
+	body := getPage(t, router, makeIssueJWT(t, userID, "testuser_"+suffix), "/organizations/new")
+
+	for _, gone := range []string{`type="radio"`, "Billing", "Not available", "enterprise"} {
+		if strings.Contains(body, gone) {
+			t.Errorf("organization creation should not contain %q", gone)
+		}
+	}
+	assertContains(t, body, "You will be the owner of this organization.")
+}
+
+func TestCreateOrganizationPage_IgnoresRemovedFields(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	router, _ := newOrgTestRouter(t, db)
+	name := "noplan-" + suffix
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE name = $1`, name) })
+
+	rr := postForm(t, router, makeIssueJWT(t, userID, "testuser_"+suffix), "/organizations/new",
+		url.Values{"name": {name}, "accept_tos": {"on"}})
+
+	if rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != "/"+name {
+		t.Fatalf("want 303 to /%s, got %d %q: %s", name, rr.Code, rr.Header().Get("Location"), rr.Body)
 	}
 }

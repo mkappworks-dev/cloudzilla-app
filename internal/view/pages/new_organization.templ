@@ -7,10 +7,6 @@ import (
 )
 
 templ NewOrganization(data view.NewOrganizationData) {
-	{{ var me string }}
-	if data.CurrentUser != nil {
-		{{ me = data.CurrentUser.Username }}
-	}
 	@layout.Base(data.BasePage, "New organization") {
 		<div class="space-y-6">
 
@@ -60,41 +56,7 @@ templ NewOrganization(data view.NewOrganizationData) {
 							})
 						</div>
 
-						<fieldset class="space-y-3 border-t border-border pt-5">
-							<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">This organization belongs to</legend>
-							<label class="flex items-start gap-3 cursor-pointer">
-								@components.Radio(templ.Attributes{"value": "personal", "checked": "checked", "class": "mt-0.5"})
-								<span class="text-sm">
-									<span class="font-medium block">My personal account ({ me })</span>
-									<span class="text-muted-foreground text-[12px]">You will be the owner of this organization.</span>
-								</span>
-							</label>
-							<label class="flex items-start gap-3">
-								@components.Radio(templ.Attributes{"value": "enterprise", "disabled": "disabled", "class": "mt-0.5"})
-								<span class="text-sm">
-									<span class="font-medium block text-muted-foreground">An enterprise account</span>
-									<span class="text-muted-foreground text-[12px]">Not available.</span>
-								</span>
-							</label>
-						</fieldset>
-
-						<fieldset class="space-y-3 border-t border-border pt-5">
-							<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">Plan</legend>
-							<label class="flex items-start gap-3 cursor-pointer">
-								@components.Radio(templ.Attributes{"value": "free", "checked": "checked", "class": "mt-0.5"})
-								<span class="text-sm">
-									<span class="font-medium block">Free</span>
-									<span class="text-muted-foreground text-[12px]">Unlimited public and private repositories.</span>
-								</span>
-							</label>
-							<label class="flex items-start gap-3">
-								@components.Radio(templ.Attributes{"value": "team", "disabled": "disabled", "class": "mt-0.5"})
-								<span class="text-sm">
-									<span class="font-medium block text-muted-foreground">Team</span>
-									<span class="text-muted-foreground text-[12px]">Billing not yet supported.</span>
-								</span>
-							</label>
-						</fieldset>
+						<p class="border-t border-border pt-5 text-sm text-muted-foreground">You will be the owner of this organization.</p>
 
 						<div class="border-t border-border pt-5">
 							<label class="flex items-start gap-3 cursor-pointer">
