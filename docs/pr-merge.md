@@ -7,6 +7,15 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 Branches with no common history fall back to a diff between the two tips. The Files badge, CODEOWNERS reviewer
 auto-request and suggested reviewers use the same file list.
 
+**Merged PRs:** once head is merged into base, both the commit range and the diff between the branches are empty, so a
+merge records the base tip it saw and the head tip it merged (`pull_requests.merged_base_sha` and `merged_head_sha`,
+migration 120, set by `PullService.RecordMergedRange` after `SetState`). The Commits tab, Files tab and their badges
+read from those two SHAs instead of the branches (`pullDiffRefs`). A PR merged earlier is rebuilt at startup by
+`PullService.BackfillMergedRanges` (`CodeService.ReconstructMergedRange`): a merge commit whose second parent is the
+head tip gives the base tip as its first parent; a fast-forward counts the recorded number of commits down from the
+head. A squash merge, a deleted or moved head branch, or a missing commit count can't be rebuilt, so the PR keeps empty
+SHAs and its Commits and Files tabs say "unavailable after merge" instead of "No changes."
+
 ## Available Strategies
 
 | Strategy        | Button                 | When shown                           | What it does                                            |
@@ -123,7 +132,8 @@ messages. Enabling auto-merge patches at once and keeps the default message.
 
 **Merged header:** the merged event's `detail` holds the commits that merged, counted before the merge, since a
 fast-forward or merge commit leaves no range between base and head afterwards. The header names the event's actor, not
-the author. A PR merged before the count was recorded falls back to its author and the live commit range.
+the author. A PR merged before the count was recorded falls back to its author and the commit count of its recorded
+range; with neither, the header reads "merged into main" with no count.
 
 **Reviewing:** the "Review changes" dialog posts to `/reviews`. Write access is required, and the PR author may only
 comment. A `commented` review never replaces the reviewer's standing Approve or Request changes, so their comment is

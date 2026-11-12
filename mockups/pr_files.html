@@ -48,8 +48,16 @@ git checkout daisy/oauth-scopes</pre>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-3">
-        <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
-        <p class="text-[13px] text-muted-foreground">
+        <span data-av="open" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Open</span>
+        <span data-av="unavailable" hidden class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)]">Merged</span>
+        <p data-av="unavailable" hidden class="text-[13px] text-muted-foreground">
+          <a href="profile.html" class="font-medium text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">@malith</a>
+          merged into
+          <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">main</span>
+          from
+          <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">daisy/oauth-scopes</span>
+        </p>
+        <p data-av="open" class="text-[13px] text-muted-foreground">
           <a href="profile.html" class="font-medium text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">@daisy</a>
           wants to merge
           <strong class="text-foreground font-medium">3 commits</strong>
@@ -79,12 +87,15 @@ git checkout daisy/oauth-scopes</pre>
       <a href="pr_files.html" class="px-3 py-1.5 rounded-md bg-accent text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap" aria-current="page">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
         Files changed
-        <span class="font-mono text-[11px] text-muted-foreground">4</span>
-        <span class="font-mono text-[10px] font-medium text-success">+41</span>
-        <span class="font-mono text-[10px] font-medium text-destructive">−5</span>
+        <span data-av="open" class="font-mono text-[11px] text-muted-foreground">4</span>
+        <span data-av="open" class="font-mono text-[10px] font-medium text-success">+41</span>
+        <span data-av="open" class="font-mono text-[10px] font-medium text-destructive">−5</span>
       </a>
     </nav>
-    <section class="mb-4 flex items-center justify-between gap-3 flex-wrap" aria-label="Diff summary">
+    <div data-av="unavailable" hidden class="bg-background border border-border rounded-lg p-8 text-center">
+      <p class="text-muted-foreground">Diff unavailable after merge. This pull request merged before its changes were recorded, and its branches no longer show them.</p>
+    </div>
+    <section data-av="open" class="mb-4 flex items-center justify-between gap-3 flex-wrap" aria-label="Diff summary">
       <div class="flex items-center gap-2 text-[12.5px] text-muted-foreground">
         <span><strong class="text-foreground">4</strong> changed files</span>
         <span aria-hidden="true" class="opacity-50">·</span>
@@ -163,7 +174,7 @@ git checkout daisy/oauth-scopes</pre>
         <button type="submit" form="review-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Submit review</button>
       </div>
     </dialog>
-    <div id="diff-root" data-view="unified" class="grid lg:grid-cols-[260px_1fr] gap-4">
+    <div id="diff-root" data-av="open" data-view="unified" class="grid lg:grid-cols-[260px_1fr] gap-4">
       <aside class="border border-border rounded-md bg-card p-3 lg:sticky lg:top-4 self-start max-h-[80vh] overflow-auto" aria-label="Files in this pull request">
         <div class="flex items-center justify-between gap-2 mb-2 px-1">
           <p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Changed files</p>
@@ -985,6 +996,18 @@ Suggested change
         });
       });
     });
+  })();
+</script>
+<script>
+  (function () {
+    function applyAvailability() {
+      var gone = /(^|&)merged=unavailable(&|$)/.test(location.hash.slice(1));
+      document.querySelectorAll('[data-av]').forEach(function (el) {
+        el.hidden = el.getAttribute('data-av') === 'unavailable' ? !gone : gone;
+      });
+    }
+    applyAvailability();
+    window.addEventListener('hashchange', applyAvailability);
   })();
 </script>
 <script>

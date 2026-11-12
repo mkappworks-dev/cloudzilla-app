@@ -98,16 +98,19 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	var mergedAt, closedAt, draftAt sql.NullTime
 	var autoMergeStrategy, headSHA sql.NullString
 	var autoMergeBy sql.NullInt64
+	var mergedBaseSHA, mergedHeadSHA sql.NullString
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by
+		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by,
+		        merged_base_sha, merged_head_sha
 		 FROM pull_requests WHERE repo_id = $1 AND number = $2`,
 		repoID, number,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
-		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy)
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy,
+		&mergedBaseSHA, &mergedHeadSHA)
 	if err != nil {
 		return nil, fmt.Errorf("pr get: %w", err)
 	}
@@ -126,6 +129,8 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	if headSHA.Valid {
 		pr.HeadSHA = headSHA.String
 	}
+	pr.MergedBaseSHA = mergedBaseSHA.String
+	pr.MergedHeadSHA = mergedHeadSHA.String
 	if autoMergeBy.Valid {
 		pr.AutoMergeBy = &autoMergeBy.Int64
 	}
@@ -154,6 +159,40 @@ func (s *PullStore) UpdateState(ctx context.Context, id int64, state model.PRSta
 		)
 		return err
 	}
+}
+
+// SetMergedRange records the tips a merge saw. A recorded range is kept; only one backfill left empty is replaced.
+func (s *PullStore) SetMergedRange(ctx context.Context, id int64, baseSHA, headSHA string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests SET merged_base_sha = $2, merged_head_sha = $3
+		 WHERE id = $1 AND state = 'merged' AND COALESCE(merged_head_sha, '') = ''`,
+		id, baseSHA, headSHA,
+	)
+	return err
+}
+
+// MergedWithoutRange lists merged PRs whose range was never recorded or rebuilt, with their repos' owner and name.
+func (s *PullStore) MergedWithoutRange(ctx context.Context) ([]model.PullRequest, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT pr.id, r.owner_name, r.name, pr.number, pr.head_branch, pr.base_branch
+		 FROM pull_requests pr
+		 JOIN repositories r ON r.id = pr.repo_id AND r.deleted_at IS NULL
+		 WHERE pr.state = 'merged' AND pr.merged_head_sha IS NULL
+		 ORDER BY pr.id`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pr merged without range: %w", err)
+	}
+	defer rows.Close()
+	var out []model.PullRequest
+	for rows.Next() {
+		var pr model.PullRequest
+		if err := rows.Scan(&pr.ID, &pr.RepoOwner, &pr.RepoName, &pr.Number, &pr.HeadBranch, &pr.BaseBranch); err != nil {
+			return nil, fmt.Errorf("pr merged without range scan: %w", err)
+		}
+		out = append(out, pr)
+	}
+	return out, rows.Err()
 }
 
 func (s *PullStore) SetDraft(ctx context.Context, id int64, isDraft bool) error {
@@ -228,16 +267,19 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 	var mergedAt, closedAt, draftAt sql.NullTime
 	var autoMergeStrategy, headSHA sql.NullString
 	var autoMergeBy sql.NullInt64
+	var mergedBaseSHA, mergedHeadSHA sql.NullString
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by
+		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by,
+		        merged_base_sha, merged_head_sha
 		 FROM pull_requests WHERE id = $1`,
 		id,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
-		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy)
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy,
+		&mergedBaseSHA, &mergedHeadSHA)
 	if err != nil {
 		return nil, fmt.Errorf("pr get by id: %w", err)
 	}
@@ -256,6 +298,8 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 	if headSHA.Valid {
 		pr.HeadSHA = headSHA.String
 	}
+	pr.MergedBaseSHA = mergedBaseSHA.String
+	pr.MergedHeadSHA = mergedHeadSHA.String
 	if autoMergeBy.Valid {
 		pr.AutoMergeBy = &autoMergeBy.Int64
 	}

@@ -44,7 +44,8 @@ Mocks show the happy path. These real states are not drawn:
   Close.
 - **PR states.** `pr.html` opens in other states through hashes: `#pr=open|draft|merged`,
   `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly` (join with
-  `&`).
+  `&`). `pr_files.html#merged=unavailable` is a merged PR whose diff was never recorded ("Diff unavailable after
+  merge."); the Commits tab says the same for its commits and has no mock.
 - **Other states.** Closed pull requests; archived and mirror repo banners; binary file in `blob`; hidden-issue project
   card; form validation errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or
   slash-ended path, or open `#error`); one-time token and backup-code reveals.

@@ -152,3 +152,69 @@ func TestPullCommits_ReadsOnlyTheHistorySinceTheFork(t *testing.T) {
 		t.Errorf("PullCommits = %v, want %v", got, want)
 	}
 }
+
+func mergedRangeHistory(t *testing.T) (*CodeService, *pushHistory) {
+	t.Helper()
+	root := t.TempDir()
+	h := newPushHistory(t, filepath.Join(root, "alice", "merged.git"), "tester@example.com", time.Minute)
+	return NewCodeService(czconfig.GitConfig{ReposRoot: root}), h
+}
+
+func TestReconstructMergedRange_MergeCommit(t *testing.T) {
+	t.Parallel()
+	svc, h := mergedRangeHistory(t)
+	fork := h.line(2)
+	f1 := h.commit("F1", fork)
+	f2 := h.commit("F2", f1)
+	m1 := h.commit("Main change", fork)
+	setBranch(t, h.repo, "main", h.commit("Merge feature", m1, f2))
+	setBranch(t, h.repo, "feature", f2)
+
+	base, head, ok := svc.ReconstructMergedRange("alice", "merged", "main", "feature", 2)
+	if !ok || base != m1.String() || head != f2.String() {
+		t.Fatalf("ReconstructMergedRange = %s, %s, %v; want %s, %s, true", base, head, ok, m1, f2)
+	}
+	if live, _ := svc.PullCommits("alice", "merged", "main", "feature"); len(live) != 0 {
+		t.Fatalf("live branches list %d commits after the merge, want 0", len(live))
+	}
+	kept, err := svc.PullCommits("alice", "merged", base, head)
+	if err != nil || len(kept) != 2 {
+		t.Errorf("PullCommits(base, head) = %d commits, %v; want 2", len(kept), err)
+	}
+}
+
+func TestReconstructMergedRange_FastForward(t *testing.T) {
+	t.Parallel()
+	svc, h := mergedRangeHistory(t)
+	fork := h.line(2)
+	f2 := h.commit("F2", h.commit("F1", fork))
+	setBranch(t, h.repo, "main", f2)
+	setBranch(t, h.repo, "feature", f2)
+
+	base, head, ok := svc.ReconstructMergedRange("alice", "merged", "main", "feature", 2)
+	if !ok || base != fork.String() || head != f2.String() {
+		t.Fatalf("ReconstructMergedRange = %s, %s, %v; want %s, %s, true", base, head, ok, fork, f2)
+	}
+	if _, _, ok := svc.ReconstructMergedRange("alice", "merged", "main", "feature", 0); ok {
+		t.Error("a fast-forward with no recorded commit count can't be placed, but was rebuilt")
+	}
+}
+
+func TestReconstructMergedRange_Unrecoverable(t *testing.T) {
+	t.Parallel()
+	svc, h := mergedRangeHistory(t)
+	fork := h.line(2)
+	f1 := h.commit("F1", fork)
+	setBranch(t, h.repo, "feature", f1)
+
+	// A squash merge leaves the head's commits out of base.
+	setBranch(t, h.repo, "main", h.commit("Squashed feature", fork))
+	if _, _, ok := svc.ReconstructMergedRange("alice", "merged", "main", "feature", 1); ok {
+		t.Error("a squash merge was rebuilt")
+	}
+
+	// A deleted head branch has no tip to rebuild from.
+	if _, _, ok := svc.ReconstructMergedRange("alice", "merged", "main", "gone", 1); ok {
+		t.Error("a deleted head branch was rebuilt")
+	}
+}

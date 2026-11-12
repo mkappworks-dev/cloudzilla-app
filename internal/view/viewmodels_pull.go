@@ -116,6 +116,8 @@ type PullCommitsData struct {
 	Commits        []service.CommitSummary
 	CanWrite       bool
 	LoadError      bool
+	// Unavailable marks a merged PR whose commits were never recorded.
+	Unavailable bool
 }
 
 type PullChecksData struct {
@@ -143,6 +145,8 @@ type PullFilesData struct {
 	CanWrite       bool
 	LineComments   map[LineCommentKey][]RenderedLineComment
 	LoadError      bool
+	// Unavailable marks a merged PR whose diff was never recorded.
+	Unavailable bool
 }
 
 type PullNewData struct {

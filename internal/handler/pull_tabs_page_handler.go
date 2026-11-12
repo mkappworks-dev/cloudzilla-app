@@ -48,11 +48,15 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var loadErrCommits bool
-	commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch)
-	if err != nil {
-		slog.Warn("pull commits: git walk failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
-		commits = nil
-		loadErrCommits = true
+	var commits []service.CommitSummary
+	base, head, rangeKnown := pullDiffRefs(pull)
+	if rangeKnown {
+		commits, err = h.Services.Code.PullCommits(owner, repoName, base, head)
+		if err != nil {
+			slog.Warn("pull commits: git walk failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
+			commits = nil
+			loadErrCommits = true
+		}
 	}
 
 	var authorUsername string
@@ -83,6 +87,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		CanWrite:         canWrite,
 		PullChromeCounts: chromeCounts,
 		LoadError:        loadErrCommits,
+		Unavailable:      !rangeKnown,
 	}))
 }
 
@@ -210,13 +215,17 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var loadErrFiles bool
-	diff, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch)
-	if err != nil {
-		slog.Warn("pull files: get pull diff failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
-		diff = &service.PRDiffResult{}
-		loadErrFiles = true
-	} else {
-		h.Services.Code.HighlightDiffs(owner, repoName, diff.Files)
+	diff := &service.PRDiffResult{}
+	base, head, rangeKnown := pullDiffRefs(pull)
+	if rangeKnown {
+		diff, err = h.Services.Code.GetPullDiff(owner, repoName, base, head)
+		if err != nil {
+			slog.Warn("pull files: get pull diff failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
+			diff = &service.PRDiffResult{}
+			loadErrFiles = true
+		} else {
+			h.Services.Code.HighlightDiffs(owner, repoName, diff.Files)
+		}
 	}
 
 	// Anchor index must match the pr_files template's section id="diff-N" — both
@@ -270,7 +279,17 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		LineComments:     lineComments,
 		PullChromeCounts: chromeCounts,
 		LoadError:        loadErrFiles,
+		Unavailable:      !rangeKnown,
 	}))
+}
+
+// pullDiffRefs are the refs a PR's commits and diff are read from: its branches, or for a merged PR the tips the merge
+// saw, since afterwards the branches show nothing. known is false for a merged PR with no recorded range.
+func pullDiffRefs(pull *model.PullRequest) (base, head string, known bool) {
+	if pull.State != model.PRStateMerged {
+		return pull.BaseBranch, pull.HeadBranch, true
+	}
+	return pull.MergedBaseSHA, pull.MergedHeadSHA, pull.MergedHeadSHA != ""
 }
 
 type pullBadge uint8
@@ -304,8 +323,9 @@ func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, 
 			logFail("event list", err)
 		}
 	}
-	if own&commitsBadge == 0 {
-		if commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+	base, head, rangeKnown := pullDiffRefs(pull)
+	if own&commitsBadge == 0 && rangeKnown {
+		if commits, err := h.Services.Code.PullCommits(owner, repoName, base, head); err == nil {
 			c.CommitsCount = len(commits)
 		} else {
 			logFail("commit walk", err)
@@ -322,8 +342,8 @@ func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, 
 			logFail("ref resolution", err)
 		}
 	}
-	if own&filesBadge == 0 {
-		if stats, err := h.Services.Code.PullDiffStats(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+	if own&filesBadge == 0 && rangeKnown {
+		if stats, err := h.Services.Code.PullDiffStats(owner, repoName, base, head); err == nil {
 			c.FilesCount = stats.Files
 			c.Added = stats.Added
 			c.Deleted = stats.Deleted

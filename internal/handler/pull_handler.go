@@ -445,6 +445,11 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 		commitRefs = refs
 	}
 
+	var baseSHA string
+	if baseCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.BaseBranch); err == nil {
+		baseSHA = baseCommit.Hash.String()
+	}
+
 	// Counted before the merge: afterwards a fast-forward or merge commit leaves nothing between base and head.
 	mergedCommits := ""
 	if commits, err := h.Services.Code.PullCommits(owner, repoName, pr.BaseBranch, pr.HeadBranch); err == nil {
@@ -477,6 +482,12 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	merged, err := h.Services.Pull.SetState(ctx, owner, repoName, pr.Number, model.PRStateMerged)
 	if err != nil {
 		return nil, fmt.Errorf("set merged state: %w", err)
+	}
+	if baseSHA != "" && headSHA != "" {
+		if err := h.Services.Pull.RecordMergedRange(ctx, merged.ID, baseSHA, headSHA); err != nil {
+			slog.Warn("merge pull: recording the merged range failed; its commits and diff will be unavailable",
+				"owner", owner, "repo", repoName, "pull_number", merged.Number, "error", err)
+		}
 	}
 	h.recordPullEvent(ctx, owner, repoName, merged, actor.UserID, actor.Username, model.PullEventMerged, mergedCommits)
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("merged", *repo, *merged))
