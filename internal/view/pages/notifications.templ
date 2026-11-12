@@ -293,7 +293,7 @@ func notifRowIDs(g model.NotificationGroup) string {
 templ notifRow(g model.NotificationGroup, filter, reason string, page int) {
 	{{ read := g.Unread == 0 }}
 	<li class="group border-b border-border last:border-b-0" data-notif-row>
-		<div class={ "flex items-center gap-3 px-4 py-2 min-h-[46px] hover:bg-accent has-[a:focus-visible]:bg-accent transition-colors has-[:checked]:bg-primary/10", templ.KV("bg-primary/[0.03]", !read) }>
+		<div class={ "flex items-center gap-3 pl-[13px] pr-4 py-2 min-h-[46px] border-l-[3px] hover:bg-accent has-[a:focus-visible]:bg-accent transition-colors has-[:checked]:bg-primary/10 has-[:checked]:ring-1 has-[:checked]:ring-inset has-[:checked]:ring-primary/50", templ.KV("border-l-primary", !read), templ.KV("border-l-transparent", read) }>
 			if !read {
 				<span class="shrink-0 w-[7px] h-[7px] rounded-full bg-primary" aria-label="Unread"></span>
 			} else {
@@ -317,8 +317,8 @@ templ notifRow(g model.NotificationGroup, filter, reason string, page int) {
 				}
 			</a>
 			if g.Count > 1 {
-				<span class="shrink-0 h-5 min-w-5 px-1.5 grid place-items-center rounded-full border border-border bg-muted font-mono text-[12px] text-muted-foreground" title={ components.Count(g.Count, "notification", "notifications") + " on this thread" }>
-					<span aria-hidden="true">{ strconv.Itoa(g.Count) }</span>
+				<span class="shrink-0 h-5 px-2 grid place-items-center rounded-full border border-border bg-muted text-[12px] text-muted-foreground" title={ components.Count(g.Count, "notification", "notifications") + " on this thread" }>
+					<span aria-hidden="true">{ components.Count(g.Count, "update", "updates") }</span>
 					<span class="sr-only">{ components.Count(g.Count, "notification", "notifications") } on this thread</span>
 				</span>
 			}
@@ -326,17 +326,31 @@ templ notifRow(g model.NotificationGroup, filter, reason string, page int) {
 				@components.Avatar(g.ActorName, components.AvatarSizeXS, "")
 				<time class="w-16 text-right text-[12px] text-muted-foreground group-hover:invisible group-has-[:focus-visible]/right:invisible" datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(g.CreatedAt) }</time>
 				<div class="absolute right-0 top-0 h-7 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-					if !read {
+					if read {
 						<button
 							type="button"
 							class={ notifIconBtnClass }
-							aria-label="Done"
-							title="Done (e)"
+							aria-label="Mark as unread"
+							title="Mark as unread (u)"
+							hx-post={ "/api/notifications/unread" + notifAPIQuery(filter, reason, page) }
+							hx-vals={ notifRowIDs(g) }
+							hx-target="#notifications-view"
+							hx-swap="outerHTML"
+							data-notif-unread
+						>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
+						</button>
+					} else {
+						<button
+							type="button"
+							class={ notifIconBtnClass }
+							aria-label="Mark as read"
+							title="Mark as read (e)"
 							hx-post={ "/api/notifications/done" + notifAPIQuery(filter, reason, page) }
 							hx-vals={ notifRowIDs(g) }
 							hx-target="#notifications-view"
 							hx-swap="outerHTML"
-							data-notif-done
+							data-notif-read
 						>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
 						</button>
@@ -414,7 +428,13 @@ templ NotificationsInbox(data view.NotificationsData) {
 					</div>
 					<div x-show="n > 0" x-cloak class="flex items-center gap-3 px-4 min-h-[45px] border-b border-border bg-muted/40 text-[13px]">
 						<input type="checkbox" class="shrink-0 size-[15px] accent-primary cursor-pointer" aria-label="Select all notifications on this page" :checked="n === total" @change="all($el.checked)"/>
-						<span class="font-semibold"><span x-text="n"></span> selected</span>
+						<input type="hidden" name="all" value="1" :disabled="!everything"/>
+						<span class="font-semibold" x-show="!everything"><span x-text="n"></span> selected</span>
+						<span class="font-semibold" x-show="everything" x-cloak>All { strconv.Itoa(data.Total) } { components.Pluralize(data.Total, "thread", "threads") } selected</span>
+						if data.Total > len(data.Groups) {
+							<button type="button" class="text-[12px] font-medium text-primary underline underline-offset-2" x-show="n === total && !everything" @click="everything = true">Select all { strconv.Itoa(data.Total) } { components.Pluralize(data.Total, "thread", "threads") }</button>
+							<button type="button" class="text-[12px] font-medium text-primary underline underline-offset-2" x-show="everything" x-cloak @click="all(false)">Clear selection</button>
+						}
 						<span class="flex-1"></span>
 						<button
 							type="button"
@@ -425,7 +445,18 @@ templ NotificationsInbox(data view.NotificationsData) {
 							hx-swap="outerHTML"
 						>
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-							Done
+						Mark as read
+						</button>
+						<button
+							type="button"
+							class="h-7 px-2.5 text-[12px] border border-border rounded-md bg-card hover:bg-accent inline-flex items-center gap-1.5"
+							hx-post={ "/api/notifications/unread" + notifAPIQuery(data.Filter, data.Reason, data.Page) }
+							hx-include="#notifications-form"
+							hx-target="#notifications-view"
+							hx-swap="outerHTML"
+						>
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
+							Mark as unread
 						</button>
 						<button
 							type="button"
@@ -469,7 +500,8 @@ var notifShortcuts = []struct{ Keys, Action string }{
 	{"k", "Previous notification"},
 	{"Enter", "Open the thread"},
 	{"x", "Select or deselect"},
-	{"e", "Mark as done"},
+	{"e", "Mark as read"},
+	{"u", "Mark as unread"},
 	{"?", "Show these shortcuts"},
 }
 
@@ -501,18 +533,20 @@ templ notifShortcutsDialog() {
 templ Notifications(data view.NotificationsData) {
 	@layout.Base(data.BasePage, "Notifications") {
 		// czNotifInbox drives the inbox; it lives outside #notifications-view so swaps reuse it, and
-		// czNotifInbox.cursor carries the focused row across the swap an "e" triggers.
+		// czNotifInbox.cursor carries the focused row across the swap an "e" or "u" triggers.
 		<script>
 			window.czNotifInbox = function (total) {
 				return {
 					n: 0,
 					total: total,
+					// the server resolves the ids when the selection spans every page
+					everything: false,
 					init() {
 						var i = czNotifInbox.cursor;
 						czNotifInbox.cursor = null;
 						if (i != null) this.$nextTick(() => this.focusRow(i));
 					},
-					count() { this.n = this.$root.querySelectorAll('input[name=ids]:checked').length },
+					count() { this.everything = false; this.n = this.$root.querySelectorAll('input[name=ids]:checked').length },
 					all(on) { this.$root.querySelectorAll('input[name=ids]').forEach(c => c.checked = on); this.count() },
 					rows() { return Array.from(this.$root.querySelectorAll('[data-notif-row]')) },
 					current() { return this.rows().findIndex(r => r.contains(document.activeElement)) },
@@ -537,10 +571,11 @@ templ Notifications(data view.NotificationsData) {
 							this.count();
 							break;
 						case 'e':
-							var done = row && row.querySelector('[data-notif-done]');
-							if (!done) return;
+						case 'u':
+							var act = row && row.querySelector(e.key === 'e' ? '[data-notif-read]' : '[data-notif-unread]');
+							if (!act) return;
 							czNotifInbox.cursor = i;
-							done.click();
+							act.click();
 							break;
 						case '?': document.getElementById('notif-shortcuts').showModal(); break;
 						default: return;

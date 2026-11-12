@@ -480,3 +480,71 @@ func TestNotificationStore_MarkDone_ReadsTheThreadUpToTheSelectedRow(t *testing.
 		t.Errorf("empty ids: %v", err)
 	}
 }
+
+func TestNotificationStore_MarkUnread_FlipsOwnRowsOnly(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+	mine, theirs := makeNotif(userID, actorID, repoID, owner, repo), makeNotif(actorID, userID, repoID, owner, repo)
+	for _, n := range []*model.Notification{mine, theirs} {
+		if err := ns.Create(ctx, n); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+	}
+	if err := ns.MarkAllRead(ctx, userID); err != nil {
+		t.Fatal(err)
+	}
+	if err := ns.MarkAllRead(ctx, actorID); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ns.MarkUnread(ctx, userID, []int64{mine.ID, theirs.ID}); err != nil {
+		t.Fatalf("MarkUnread: %v", err)
+	}
+	if n, _ := ns.CountUnread(ctx, userID); n != 1 {
+		t.Errorf("own unread = %d, want 1", n)
+	}
+	if n, _ := ns.CountUnread(ctx, actorID); n != 0 {
+		t.Errorf("other user's unread = %d, want 0 (untouched)", n)
+	}
+	if err := ns.MarkUnread(ctx, userID, nil); err != nil {
+		t.Errorf("empty ids: %v", err)
+	}
+}
+
+func TestNotificationStore_ThreadHeadIDs_OnePerGroupNewestFirst(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+	mk := func(user int64, kind string, number int64) *model.Notification {
+		n := makeNotif(user, actorID, repoID, owner, repo)
+		n.SubjectKind, n.SubjectID = kind, number
+		if err := ns.Create(ctx, n); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		return n
+	}
+	mk(userID, model.ThreadKindIssue, 1)
+	headOne := mk(userID, model.ThreadKindIssue, 1)
+	headTwo := mk(userID, model.ThreadKindIssue, 2)
+	soloA, soloB := mk(userID, "", 1), mk(userID, "", 1)
+	mk(actorID, model.ThreadKindIssue, 1)
+
+	got, err := ns.ThreadHeadIDs(ctx, userID, store.NotifFilterInbox, "")
+	if err != nil {
+		t.Fatalf("ThreadHeadIDs: %v", err)
+	}
+	want := []int64{soloB.ID, soloA.ID, headTwo.ID, headOne.ID}
+	if !slices.Equal(got, want) {
+		t.Errorf("heads = %v, want %v: one per thread, each row-less notification alone, newest first", got, want)
+	}
+	total, _ := ns.CountThreads(ctx, userID, store.NotifFilterInbox, "")
+	if total != len(got) {
+		t.Errorf("CountThreads = %d, heads = %d; want them to agree", total, len(got))
+	}
+	if err := ns.MarkDone(ctx, userID, []int64{headOne.ID}); err != nil {
+		t.Fatal(err)
+	}
+	unreadHeads, _ := ns.ThreadHeadIDs(ctx, userID, store.NotifFilterUnread, "")
+	if len(unreadHeads) != 3 {
+		t.Errorf("unread heads = %v, want the read thread gone", unreadHeads)
+	}
+}

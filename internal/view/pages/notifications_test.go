@@ -70,14 +70,25 @@ func TestNotifications_RowActions(t *testing.T) {
 			t.Errorf("disabled Unsubscribe tooltip %q missing", want)
 		}
 	}
-	if got := strings.Count(out, "disabled"); got != 2 {
+	if got := strings.Count(out, " disabled>"); got != 2 {
 		t.Errorf("disabled Unsubscribe buttons = %d, want 2 (transfer and null-kind rows)", got)
 	}
 	if strings.Contains(out, "stop watching") || strings.Contains(out, "not watching") {
 		t.Error("Unsubscribe still talks about the repo watch")
 	}
-	if got := strings.Count(out, `data-notif-done>`); got != 3 {
-		t.Errorf("Done buttons = %d, want 3 (read rows have none)", got)
+	if got := strings.Count(out, `data-notif-read>`); got != 3 {
+		t.Errorf("Mark as read buttons = %d, want 3 (read rows have none)", got)
+	}
+	if got := strings.Count(out, `data-notif-unread>`); got != 1 {
+		t.Errorf("Mark as unread buttons = %d, want 1 (only the read row)", got)
+	}
+	if strings.Contains(out, "Done") || strings.Contains(out, "Mark as done") {
+		t.Error("the inbox still says Done; want Mark as read throughout")
+	}
+	for _, want := range []string{`hx-post="/api/notifications/unread"`, "Mark as unread (u)", "Mark as read (e)"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q", want)
+		}
 	}
 	for _, want := range []string{`hx-post="/api/notifications/done"`, `hx-post="/api/notifications/unsubscribe"`, `hx-include="#notifications-form"`, `title="Mute the selected threads"`} {
 		if !strings.Contains(out, want) {
@@ -152,11 +163,36 @@ func TestNotifications_ThreadCountAndShortcuts(t *testing.T) {
 		`aria-keyshortcuts="?"`,
 		"Next notification",
 		"Previous notification",
-		"Mark as done",
+		"Mark as read",
+		"Mark as unread",
 		"Select or deselect",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q", want)
 		}
+	}
+}
+
+func TestNotifications_SelectAllAcrossPages(t *testing.T) {
+	render := func(total int) string {
+		var sb strings.Builder
+		data := view.NotificationsData{
+			Groups: []model.NotificationGroup{{Notification: model.Notification{ID: 1, ActorName: "bob", Type: model.NotifIssueComment, SubjectKind: model.ThreadKindIssue, RepoID: 10, OwnerName: "alice", RepoName: "demo", SubjectID: 1, SubjectURL: "/alice/demo/issues/1", CreatedAt: time.Now()}, Count: 3, Unread: 1}},
+			Filter: "inbox", Page: 1, TotalPages: 2, PerPage: 25, Total: total, UnreadCount: 1,
+		}
+		if err := pages.Notifications(data).Render(context.Background(), &sb); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		return sb.String()
+	}
+
+	out := render(372)
+	for _, want := range []string{`name="all" value="1"`, "Select all 372 threads", "All 372 threads selected", "Clear selection", "3 updates"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q", want)
+		}
+	}
+	if out := render(1); strings.Contains(out, "Select all 1 thread") {
+		t.Error("offered select-all when everything is already on the page")
 	}
 }

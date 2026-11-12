@@ -43,11 +43,18 @@
         </div>
         <div id="bar-selected" hidden class="flex items-center gap-3 px-4 min-h-[45px] border-b border-border bg-muted/40 text-[13px]">
           <input type="checkbox" id="select-all-sel" class="shrink-0 size-[15px] accent-primary cursor-pointer" aria-label="Select all notifications on this page"/>
-          <span class="font-semibold"><span id="sel-count">0</span> selected</span>
+          <span class="font-semibold" id="sel-some"><span id="sel-count">0</span> selected</span>
+          <span class="font-semibold" id="sel-everything" hidden>All <span id="sel-total">0</span> threads selected</span>
+          <button type="button" id="select-pages" hidden class="text-[12px] font-medium text-primary underline underline-offset-2">Select all 0 threads</button>
+          <button type="button" id="clear-pages" hidden class="text-[12px] font-medium text-primary underline underline-offset-2">Clear selection</button>
           <span class="flex-1"></span>
           <button type="button" id="bulk-done" class="h-7 px-2.5 text-[12px] border border-border rounded-md bg-card hover:bg-accent inline-flex items-center gap-1.5">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-            Done
+            Mark as read
+          </button>
+          <button type="button" id="bulk-unread" class="h-7 px-2.5 text-[12px] border border-border rounded-md bg-card hover:bg-accent inline-flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
+            Mark as unread
           </button>
           <button type="button" id="bulk-mute" title="Mute the selected threads" class="h-7 px-2.5 text-[12px] border border-border rounded-md bg-card hover:bg-accent inline-flex items-center gap-1.5">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M13.7 21a2 2 0 01-3.4 0M18.6 13A17 17 0 0118 8M6.3 6.3A6 6 0 006 8c0 7-3 9-3 9h14M18 8a6 6 0 00-9.3-5M1 1l22 22"/></svg>
@@ -72,7 +79,7 @@
   </div>
 </main>
 
-<dialog id="notif-shortcuts" class="rounded-md border border-border bg-card text-foreground p-6"><h2 class="font-semibold">Keyboard shortcuts</h2><dl class="flex flex-col gap-2 mt-4"><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Next notification</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">j</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Previous notification</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">k</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Open the thread</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">Enter</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Select or deselect</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">x</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Mark as done</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">e</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Show these shortcuts</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">?</kbd></dd></div></dl><form method="dialog" class="mt-4"><button>Close</button></form></dialog>
+<dialog id="notif-shortcuts" class="rounded-md border border-border bg-card text-foreground p-6"><h2 class="font-semibold">Keyboard shortcuts</h2><dl class="flex flex-col gap-2 mt-4"><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Next notification</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">j</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Previous notification</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">k</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Open the thread</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">Enter</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Select or deselect</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">x</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Mark as read</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">e</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Mark as unread</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">u</kbd></dd></div><div class="flex items-center justify-between gap-4"><dt class="text-[13px]">Show these shortcuts</dt><dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">?</kbd></dd></div></dl><form method="dialog" class="mt-4"><button>Close</button></form></dialog>
 <div id="cz-footer"></div>
 
 <script>
@@ -100,7 +107,7 @@
     { id: 7, repo: 'openforge/runner', type: 'issue', title: 'Runner leaks tmp dirs', text: '@kiyo closed issue #41', by: 'kiyo', when: 'Nov 2', read: true, thread: true },
     { id: 8, repo: 'stitch-labs/loom', type: 'discussion', title: 'Roadmap for 0.4', text: '@yumi replied in a discussion', by: 'yumi', when: 'Nov 1', read: true, thread: true }
   ];
-  var filter = 'inbox', reason = '', selected = {};
+  var filter = 'inbox', reason = '', selected = {}, everything = false, OTHER_PAGES = 16;
   N[0].count = 3; N[1].count = 2; N[0].reasons = ['review_requested', 'subscribed']; N[1].reasons = ['mention', 'assigned']; N[3].reasons = ['assigned', 'subscribed'];
   var NAV = 'flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent';
 
@@ -113,15 +120,18 @@
       : '<span class="text-[13.5px] ' + (n.read ? 'text-muted-foreground' : 'font-semibold') + '">' + n.text + '</span>';
     var ic = ICON[n.type];
     var box = '<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border ' + (n.read ? 'opacity-65' : ic[0]) + '"><svg width="14" height="14" viewBox="0 0 ' + (ic[2] ? '16 16' : '24 24') + '" ' + (ic[2] ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.75"') + ' aria-hidden="true">' + ic[1] + '</svg></span>';
-    var done = n.read ? '' : '<button type="button" class="' + BTN + '" aria-label="Done" title="Done" data-done="' + n.id + '">' + CHECK + '</button>';
+    var UNREAD = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>';
+    var done = n.read
+      ? '<button type="button" class="' + BTN + '" aria-label="Mark as unread" title="Mark as unread (u)" data-unread="' + n.id + '">' + UNREAD + '</button>'
+      : '<button type="button" class="' + BTN + '" aria-label="Mark as read" title="Mark as read (e)" data-done="' + n.id + '">' + CHECK + '</button>';
     var mute = n.thread
       ? '<button type="button" class="' + BTN + '" aria-label="Unsubscribe: mute this thread" title="Unsubscribe: mute this thread. Repo watch unchanged." data-mute="' + n.id + '">' + MUTE + '</button>'
       : '<button type="button" class="' + BTN + ' opacity-40 cursor-not-allowed hover:bg-card hover:text-muted-foreground" aria-label="Unsubscribe: mute this thread" title="A repository transfer has no thread to unsubscribe from" disabled>' + MUTE + '</button>';
-    return '<li class="group border-b border-border last:border-b-0"><div class="flex items-center gap-3 px-4 py-2 min-h-[46px] hover:bg-accent transition-colors has-[:checked]:bg-primary/10 ' + (n.read ? '' : 'bg-primary/[0.03]') + '">' +
+    return '<li class="group border-b border-border last:border-b-0"><div class="flex items-center gap-3 pl-[13px] pr-4 py-2 min-h-[46px] border-l-[3px] hover:bg-accent transition-colors has-[:checked]:bg-primary/10 has-[:checked]:ring-1 has-[:checked]:ring-inset has-[:checked]:ring-primary/50 ' + (n.read ? 'border-l-transparent' : 'border-l-primary') + '">' +
       (n.read ? '<span class="shrink-0 w-[7px] h-[7px] rounded-full border border-border" aria-hidden="true"></span>' : '<span class="shrink-0 w-[7px] h-[7px] rounded-full bg-primary" aria-label="Unread"></span>') +
       '<input type="checkbox" name="ids" value="' + n.id + '" class="shrink-0 size-[15px] accent-primary cursor-pointer" aria-label="Select notification"' + (selected[n.id] ? ' checked' : '') + '/>' + box +
       '<a href="' + (n.type === 'review' || n.type === 'merged' ? 'pr.html' : 'issue_detail.html') + '" class="min-w-0 flex-1 truncate">' + title + '</a>' +
-      (n.count > 1 ? '<span class="shrink-0 h-5 min-w-5 px-1.5 grid place-items-center rounded-full border border-border bg-muted font-mono text-[12px] text-muted-foreground" title="' + n.count + ' notifications on this thread">' + n.count + '</span>' : '') + '<div class="group/right relative shrink-0 w-[150px] h-7 flex items-center justify-end gap-3"><span class="relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[12px] font-medium" aria-hidden="true">' + n.by[0].toUpperCase() + '</span>' +
+      (n.count > 1 ? '<span class="shrink-0 h-5 px-2 grid place-items-center rounded-full border border-border bg-muted text-[12px] text-muted-foreground" title="' + n.count + ' notifications on this thread">' + n.count + ' updates</span>' : '') + '<div class="group/right relative shrink-0 w-[150px] h-7 flex items-center justify-end gap-3"><span class="relative inline-grid place-items-center h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-accent border border-border text-[12px] font-medium" aria-hidden="true">' + n.by[0].toUpperCase() + '</span>' +
       '<time class="w-16 text-right text-[12px] text-muted-foreground group-hover:invisible group-has-[:focus-visible]/right:invisible">' + n.when + '</time>' +
       '<div class="absolute right-0 top-0 h-7 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100">' + done + mute + '</div></div></div></li>';
   }
@@ -140,7 +150,7 @@
     document.getElementById('empty-msg').textContent = filter === 'read' ? 'No read notifications.' : "You're all caught up.";
     document.getElementById('pager').hidden = !rows.length;
     document.getElementById('unread-count').textContent = count('unread');
-    document.getElementById('range').innerHTML = rows.length ? '<span class="font-mono">1–' + rows.length + '</span> of <span class="font-mono">' + rows.length + '</span>' : '';
+    document.getElementById('range').innerHTML = rows.length ? '<span class="font-mono">1–' + rows.length + '</span> of <span class="font-mono">' + (rows.length + OTHER_PAGES) + '</span> threads' : '';
     document.getElementById('filters').innerHTML = [['Inbox', 'inbox'], ['Unread', 'unread'], ['Read', 'read']].map(function (f) {
       var on = f[1] === filter;
       return '<a href="#" data-filter="' + f[1] + '" class="' + NAV + (on ? ' bg-accent font-semibold' : '') + '"' + (on ? ' aria-current="page"' : '') + '><span>' + f[0] + '</span><span class="font-mono text-[12px] text-muted-foreground">' + count(f[1]) + '</span></a>';
@@ -152,10 +162,19 @@
     document.getElementById('bar-idle').hidden = n > 0;
     document.getElementById('bar-selected').hidden = n === 0;
     document.getElementById('sel-count').textContent = n;
-    document.getElementById('select-all-sel').checked = n === total && total > 0;
+    var all = n === total && total > 0, grand = total + OTHER_PAGES;
+    if (!all) everything = false;
+    document.getElementById('select-all-sel').checked = all;
+    document.getElementById('sel-some').hidden = everything;
+    document.getElementById('sel-everything').hidden = !everything;
+    document.getElementById('sel-total').textContent = grand;
+    document.getElementById('select-pages').textContent = 'Select all ' + grand + ' threads';
+    document.getElementById('select-pages').hidden = !all || everything;
+    document.getElementById('clear-pages').hidden = !everything;
     document.getElementById('select-all-idle').checked = false;
   }
   function byId(id) { return N.filter(function (n) { return n.id === +id; })[0]; }
+  function visibleAll() { return everything ? visible().map(function (n) { return n.id; }) : selIds(); }
   function drop(ids) { N = N.filter(function (n) { return ids.indexOf(n.id) < 0; }); selected = {}; render(); }
   function selIds() { return Object.keys(selected).filter(function (k) { return selected[k]; }).map(Number); }
 
@@ -166,7 +185,8 @@
     if (e.target.name !== 'ids') return; selected[e.target.value] = e.target.checked; syncBar();
   });
   document.getElementById('groups').addEventListener('click', function (e) {
-    var d = e.target.closest('[data-done]'), m = e.target.closest('[data-mute]');
+    var d = e.target.closest('[data-done]'), m = e.target.closest('[data-mute]'), u = e.target.closest('[data-unread]');
+    if (u) { byId(u.dataset.unread).read = false; render(); }
     if (d) { var index = Array.from(document.querySelectorAll('#groups li')).indexOf(d.closest('li')); byId(d.dataset.done).read = true; render(); var rows = document.querySelectorAll('#groups li'); if (rows.length) rows[Math.min(index, rows.length - 1)].querySelector('a').focus(); }
     if (m) drop([+m.dataset.mute]);
   });
@@ -174,12 +194,15 @@
   document.getElementById('select-all-idle').addEventListener('change', function () { selectAll(this.checked); });
   document.getElementById('select-all-sel').addEventListener('change', function () { selectAll(this.checked); });
   document.getElementById('mark-all').addEventListener('click', function () { N.forEach(function (n) { n.read = true; }); render(); });
-  document.getElementById('bulk-done').addEventListener('click', function () { selIds().forEach(function (id) { byId(id).read = true; }); selected = {}; render(); });
-  document.getElementById('bulk-mute').addEventListener('click', function () { drop(selIds()); });
+  document.getElementById('bulk-done').addEventListener('click', function () { visibleAll().forEach(function (id) { byId(id).read = true; }); selected = {}; everything = false; render(); });
+  document.getElementById('bulk-unread').addEventListener('click', function () { visibleAll().forEach(function (id) { byId(id).read = false; }); selected = {}; everything = false; render(); });
+  document.getElementById('bulk-mute').addEventListener('click', function () { var ids = visibleAll(); everything = false; drop(ids); });
+  document.getElementById('select-pages').addEventListener('click', function () { everything = true; syncBar(); });
+  document.getElementById('clear-pages').addEventListener('click', function () { selectAll(false); });
   document.getElementById('reasons').addEventListener('click', function(e) { var a = e.target.closest('[data-reason]'); if (!a) return; e.preventDefault(); reason = a.dataset.reason; selected = {}; render(); });
   var dialog = document.getElementById('notif-shortcuts');
   document.getElementById('shortcuts-open').addEventListener('click', function() { dialog.showModal(); });
-  document.addEventListener('keydown', function(e) { if (dialog.open || e.metaKey || e.ctrlKey || e.altKey || e.target.matches('input:not([type=checkbox]), textarea, select')) return; var rows = Array.from(document.querySelectorAll('#groups li')), i = rows.findIndex(function(r) { return r.contains(document.activeElement); }); if (e.key === '?') dialog.showModal(); else if (e.key === 'j' || e.key === 'k') { var row = rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === 'j' ? 1 : -1)))]; if (row) row.querySelector('a').focus(); } else if (e.key === 'e' && i >= 0) { var done = rows[i].querySelector('[data-done]'); if (done) done.click(); } else if (e.key === 'x' && i >= 0) { var box = rows[i].querySelector('input'); box.click(); } else return; e.preventDefault(); });
+  document.addEventListener('keydown', function(e) { if (dialog.open || e.metaKey || e.ctrlKey || e.altKey || e.target.matches('input:not([type=checkbox]), textarea, select')) return; var rows = Array.from(document.querySelectorAll('#groups li')), i = rows.findIndex(function(r) { return r.contains(document.activeElement); }); if (e.key === '?') dialog.showModal(); else if (e.key === 'j' || e.key === 'k') { var row = rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === 'j' ? 1 : -1)))]; if (row) row.querySelector('a').focus(); } else if ((e.key === 'e' || e.key === 'u') && i >= 0) { var act = rows[i].querySelector(e.key === 'e' ? '[data-done]' : '[data-unread]'); if (act) act.click(); } else if (e.key === 'x' && i >= 0) { var box = rows[i].querySelector('input'); box.click(); } else return; e.preventDefault(); });
   render();
 })();
 </script>
