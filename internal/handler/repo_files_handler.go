@@ -60,6 +60,10 @@ func (h *Handler) UpdateRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid form")
 		return
 	}
+	if r.Form.Has("name") {
+		h.renameRepo(w, r, repo, claims)
+		return
+	}
 	err := h.Services.Repo.UpdateMeta(r.Context(), repo.ID, claims.UserID,
 		r.FormValue("description"), r.FormValue("website"), r.FormValue("license"))
 	if err != nil {
@@ -73,6 +77,42 @@ func (h *Handler) UpdateRepo(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("HX-Refresh", "true")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// renameRepo is UpdateRepo's name branch. It moves directories, so it takes
+// no other field with it.
+func (h *Handler) renameRepo(w http.ResponseWriter, r *http.Request, repo *model.Repository, claims middleware.Claims) {
+	if r.Form.Has("description") || r.Form.Has("website") || r.Form.Has("license") {
+		writeError(w, http.StatusUnprocessableEntity, "rename a repository on its own, without other fields")
+		return
+	}
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "you do not have permission to rename this repository")
+		return
+	}
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
+	oldName, newName := repo.Name, r.FormValue("name")
+	err := h.Services.Repo.RenameRepo(r.Context(), repo, claims.UserID, newName)
+	switch {
+	case err == nil:
+	case errors.Is(err, service.ErrForbidden):
+		writeError(w, http.StatusForbidden, "you do not have permission to rename this repository")
+		return
+	case errors.Is(err, service.ErrRepoNameTaken), errors.Is(err, service.ErrRepoSyncing), errors.Is(err, service.ErrRepoChanged):
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	case errors.Is(err, service.ErrInvalidRepoName), errors.Is(err, service.ErrRepoNameReserved), errors.Is(err, service.ErrRepoNameUnchanged):
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	default:
+		slog.Error("repo: rename failed", "owner", repo.OwnerName, "repo", oldName, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to rename repository")
+		return
+	}
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoRename, model.AuditTargetRepo, repo.ID, newName, map[string]any{"from": oldName, "to": newName})
+	writeJSON(w, http.StatusOK, map[string]any{"id": repo.ID, "owner": repo.OwnerName, "name": newName, "full_name": repo.OwnerName + "/" + newName})
 }
 
 // DownloadArchive handles GET /{owner}/{repo}/archive/{ref} — streams a zip of

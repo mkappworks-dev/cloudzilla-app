@@ -340,3 +340,19 @@ func (s *NotificationStore) CountThreads(ctx context.Context, userID int64, filt
 	}
 	return count, nil
 }
+
+// renameNotificationText relabels the notifications of repoID and moves the
+// /owner/oldName prefix of their subject_url to newName.
+func renameNotificationText(ctx context.Context, x dbExec, repoID int64, ownerName, oldName, newName string) error {
+	if _, err := x.ExecContext(ctx,
+		`UPDATE notifications SET owner_name = $2, repo_name = $3,
+		        subject_url = CASE WHEN left(subject_url, length($4::text) + 1) = $4::text || '/'
+		                           THEN '/' || $2::text || '/' || $3::text || substr(subject_url, length($4::text) + 1)
+		                           ELSE subject_url END
+		 WHERE repo_id = $1`,
+		repoID, ownerName, newName, "/"+ownerName+"/"+oldName,
+	); err != nil {
+		return fmt.Errorf("rename notification text: %w", err)
+	}
+	return nil
+}

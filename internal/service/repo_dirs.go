@@ -92,6 +92,20 @@ func pathTaken(path string) bool {
 	return !errors.Is(err, fs.ErrNotExist)
 }
 
+// pathTakenByOther is pathTaken, except that path being own (the same file, as
+// when only the case of a name changes on a case-insensitive filesystem) is free.
+func pathTakenByOther(path, own string) bool {
+	pi, err := os.Lstat(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return false
+	}
+	if err != nil {
+		return true
+	}
+	oi, err := os.Lstat(own)
+	return err != nil || !os.SameFile(pi, oi)
+}
+
 // claimRepo reserves owner/name for a new row. os.Mkdir fails on an existing
 // path, so the row never adopts data an earlier holder of the name left on
 // disk; the wiki path is checked too because wikis are created lazily.

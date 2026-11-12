@@ -71,6 +71,7 @@ type RepoService struct {
 	pulls            *store.PullStore
 	transfers        *store.RepoTransferStore
 	aliases          *store.RepoAliasStore
+	mirrors          *store.MirrorStore
 	quota            *QuotaService
 	attachments      *AttachmentService
 	releaseAssets    *ReleaseAssetService
@@ -106,6 +107,12 @@ func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
 
 func (s *RepoService) WithAliasStore(a *store.RepoAliasStore) *RepoService {
 	s.aliases = a
+	return s
+}
+
+// WithMirrorStore lets RenameRepo see a running sync.
+func (s *RepoService) WithMirrorStore(m *store.MirrorStore) *RepoService {
+	s.mirrors = m
 	return s
 }
 

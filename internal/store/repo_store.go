@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -347,6 +348,44 @@ func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName 
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM repo_transfers WHERE repo_id = $1`, repoID); err != nil {
 		return fmt.Errorf("end pending repo transfer: %w", err)
+	}
+	return tx.Commit()
+}
+
+// Rename points a live repo of ownerName at newName. The old path becomes an
+// alias, unless only its case changed, and a stale alias at the new path goes:
+// a rename always beats an alias. The names stored as text in events and
+// notifications follow in the same transaction.
+func (s *RepoStore) Rename(ctx context.Context, repoID int64, ownerName, oldName, newName string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("rename repo: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	res, err := tx.ExecContext(ctx,
+		`UPDATE repositories SET name = $1, updated_at = $2
+		 WHERE id = $3 AND owner_name = $4 AND name = $5 AND deleted_at IS NULL`,
+		newName, time.Now().UTC(), repoID, ownerName, oldName,
+	)
+	if err != nil {
+		return repoWriteErr("rename repo", err)
+	}
+	if err := requireRow(res, "rename repo"); err != nil {
+		return err
+	}
+	if err := DropRepoAlias(ctx, tx, ownerName, newName); err != nil {
+		return err
+	}
+	if !strings.EqualFold(oldName, newName) {
+		if err := AddRepoAlias(ctx, tx, repoID, ownerName, oldName); err != nil {
+			return err
+		}
+	}
+	if err := renameEventText(ctx, tx, repoID, ownerName, newName); err != nil {
+		return err
+	}
+	if err := renameNotificationText(ctx, tx, repoID, ownerName, oldName, newName); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
