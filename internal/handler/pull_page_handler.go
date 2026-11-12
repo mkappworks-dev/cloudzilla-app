@@ -51,7 +51,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("pulls: participants failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
-	q := listMilestoneTitle(listquery.FromValues(r.URL.Query()), allMilestones)
+	q := listMilestoneTitle(listquery.FromValues(r.URL.Query()), allMilestones).Without(listquery.KeyRepo, "")
 	stateFilter := q.State
 	if stateFilter == "" {
 		stateFilter = "open"

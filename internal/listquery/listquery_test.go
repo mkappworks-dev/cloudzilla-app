@@ -31,6 +31,9 @@ func TestParse(t *testing.T) {
 		{"sort", "sort:updated", Query{Sort: "updated"}},
 		{"default sort is dropped", "sort:newest", Query{}},
 		{"review", "review:Changes_Requested", Query{Review: "changes_requested"}},
+		{"reviewer", "reviewer:@me", Query{Reviewer: "@me"}},
+		{"mentions", "mentions:@me", Query{Mentions: "@me"}},
+		{"repo", "repo:acme/api", Query{Repo: "acme/api"}},
 		{"bad review stays text", "review:maybe", Query{Text: "review:maybe"}},
 		{"bad sort stays text", "sort:random", Query{Text: "sort:random"}},
 		{"unknown key stays text", "foo:bar", Query{Text: "foo:bar"}},
@@ -236,5 +239,26 @@ func TestUnrecognized(t *testing.T) {
 	}
 	if n := Parse("is:open label:bug fix").Unrecognized(); n != nil {
 		t.Errorf("valid query has notices: %q", n)
+	}
+}
+
+func TestAccountQualifiersRoundTrip(t *testing.T) {
+	q := Parse("repo:acme/api reviewer:@me mentions:@me is:closed crash")
+	want := "is:closed reviewer:@me mentions:@me repo:acme/api crash"
+	if got := q.String(); got != want {
+		t.Fatalf("String() = %q, want %q", got, want)
+	}
+	if !reflect.DeepEqual(Parse(q.String()), q) {
+		t.Errorf("String does not round-trip: %+v", q)
+	}
+	if !q.Has(KeyRepo, "ACME/api") || !q.Has(KeyReviewer, "@me") || !q.Has(KeyMentions, "@me") {
+		t.Errorf("Has misses a qualifier in %+v", q)
+	}
+	got := q.Without(KeyRepo, "").Without(KeyReviewer, "").Without(KeyMentions, "")
+	if got.Repo != "" || got.Reviewer != "" || got.Mentions != "" || !got.HasFilters() {
+		t.Errorf("Without left %+v", got)
+	}
+	if !(Query{Repo: "a/b"}).HasFilters() {
+		t.Error("repo must count as a filter")
 	}
 }

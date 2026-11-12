@@ -11,15 +11,7 @@ import (
 // ListFiltered returns one page of the repo's pull requests that f matches, plus the total across all pages.
 func (s *PullStore) ListFiltered(ctx context.Context, repoID int64, f ListFilter) ([]model.PullRequest, int, error) {
 	b := &listBuilder{args: []any{repoID}}
-	where := []string{"pr.repo_id = $1"}
-	switch f.State {
-	case "open":
-		where = append(where, "pr.state = 'open' AND NOT pr.is_draft")
-	case "draft":
-		where = append(where, "pr.state = 'open' AND pr.is_draft")
-	case "merged", "closed":
-		where = append(where, "pr.state = "+b.arg(f.State))
-	}
+	where := []string{"pr.repo_id = $1", pullStateCond(b, f.State)}
 	where = append(where, f.where(pullListTable, b)...)
 	cond := strings.Join(where, " AND ")
 
@@ -53,6 +45,19 @@ func (s *PullStore) ListFiltered(ctx context.Context, repoID int64, f ListFilter
 		return nil, 0, err
 	}
 	return prs, total, nil
+}
+
+// pullStateCond is the predicate for a list tab: "open" is non-draft, and no tab at all matches every state.
+func pullStateCond(b *listBuilder, state string) string {
+	switch state {
+	case "open":
+		return "pr.state = 'open' AND NOT pr.is_draft"
+	case "draft":
+		return "pr.state = 'open' AND pr.is_draft"
+	case "merged", "closed":
+		return "pr.state = " + b.arg(state)
+	}
+	return "TRUE"
 }
 
 // PullStateCounts are a repo's pull request totals per list tab.

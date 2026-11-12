@@ -17,6 +17,9 @@ const (
 	KeyMilestone = "milestone"
 	KeyNo        = "no"
 	KeyReview    = "review"
+	KeyReviewer  = "reviewer"
+	KeyMentions  = "mentions"
+	KeyRepo      = "repo"
 	KeySort      = "sort"
 	KeyText      = "text"
 )
@@ -44,7 +47,12 @@ type Query struct {
 	No        []string
 	// Review is a pull request list qualifier; the issue list ignores it.
 	Review string
-	Sort   string
+	// Reviewer is a pull request list qualifier: someone with a pending review request. The issue list ignores it.
+	Reviewer string
+	Mentions string
+	// Repo is "owner/name"; only the account lists, which span repositories, honour it.
+	Repo string
+	Sort string
 
 	// MilestoneID comes only from the legacy milestone= param, which names an ID, and String drops it: the caller must
 	// resolve it to a title before building links.
@@ -114,6 +122,15 @@ func (q Query) String() string {
 	for _, n := range q.No {
 		parts = append(parts, KeyNo+":"+n)
 	}
+	if q.Reviewer != "" {
+		parts = append(parts, KeyReviewer+":"+quote(q.Reviewer))
+	}
+	if q.Mentions != "" {
+		parts = append(parts, KeyMentions+":"+quote(q.Mentions))
+	}
+	if q.Repo != "" {
+		parts = append(parts, KeyRepo+":"+quote(q.Repo))
+	}
 	if q.Review != "" {
 		parts = append(parts, KeyReview+":"+q.Review)
 	}
@@ -134,7 +151,8 @@ func Token(key, value string) string {
 // HasFilters reports whether q narrows the list beyond its state tab and sort.
 func (q Query) HasFilters() bool {
 	return q.Text != "" || q.Author != "" || q.Assignee != "" || len(q.Labels) > 0 || q.Milestone != "" ||
-		q.MilestoneID != 0 || len(q.No) > 0 || q.Review != ""
+		q.MilestoneID != 0 || len(q.No) > 0 || q.Review != "" ||
+		q.Reviewer != "" || q.Mentions != "" || q.Repo != ""
 }
 
 // With returns q with the qualifier added; a single-valued one replaces its current value. An invalid key or value
@@ -165,6 +183,12 @@ func (q Query) Without(key, value string) Query {
 		q.No = without(q.No, value)
 	case KeyReview:
 		q.Review = ""
+	case KeyReviewer:
+		q.Reviewer = ""
+	case KeyMentions:
+		q.Mentions = ""
+	case KeyRepo:
+		q.Repo = ""
 	case KeySort:
 		q.Sort = ""
 	case KeyText:
@@ -190,6 +214,12 @@ func (q Query) Has(key, value string) bool {
 		return containsFold(q.No, value)
 	case KeyReview:
 		return q.Review != "" && q.Review == strings.ToLower(value)
+	case KeyReviewer:
+		return strings.EqualFold(q.Reviewer, value)
+	case KeyMentions:
+		return strings.EqualFold(q.Mentions, value)
+	case KeyRepo:
+		return strings.EqualFold(q.Repo, value)
 	case KeySort:
 		return q.Sort != "" && q.Sort == strings.ToLower(value)
 	case KeyText:
@@ -224,6 +254,12 @@ func (q *Query) set(key, val string) bool {
 		q.Assignee = val
 	case KeyMilestone:
 		q.Milestone = val
+	case KeyReviewer:
+		q.Reviewer = val
+	case KeyMentions:
+		q.Mentions = val
+	case KeyRepo:
+		q.Repo = val
 	case KeyLabel:
 		q.Labels = append(q.Labels, val)
 	case KeyNo:

@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/listquery"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -194,25 +196,28 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	filter := r.URL.Query().Get("filter")
-	switch filter {
-	case "assigned", "review_requested", "mentioned":
-	default:
-		filter = "created"
+	if redirectAccountList(w, r, "/pulls", accountPullScopes) {
+		return
 	}
-	state := r.URL.Query().Get("state")
-	if state != "closed" {
+	q, notices := accountListQuery(r.URL.Query(), false)
+	state := q.State
+	switch state {
+	case "":
 		state = "open"
+	case "open":
+		q = q.Without(listquery.KeyIs, "")
 	}
-	sortBy := r.URL.Query().Get("sort")
-	switch sortBy {
-	case "oldest", "updated", "comments":
-	default:
-		sortBy = "newest"
+
+	page := listPage(r)
+	filter := accountStoreFilter(&claims, q, state, page)
+	pulls, total, err := h.Services.Pull.ListInvolving(ctx, claims.UserID, filter)
+	if err == nil && len(pulls) == 0 && total > 0 && page > 1 {
+		page = listTotalPages(total)
+		filter = accountStoreFilter(&claims, q, state, page)
+		pulls, total, err = h.Services.Pull.ListInvolving(ctx, claims.UserID, filter)
 	}
-	pulls, err := h.Services.Pull.ListForUser(ctx, claims.UserID, filter, state)
 	if err != nil {
-		slog.Error("pulls: failed to load pull requests", "filter", filter, "state", state, "error", err)
+		slog.Error("pulls: failed to load pull requests", "query", q.String(), "error", err)
 		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
 		return
 	}
@@ -242,35 +247,23 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("pulls: failed to load reviewers", "error", err)
 		pullReviewers = nil
 	}
-	switch sortBy {
-	case "oldest":
-		sort.Slice(pulls, func(i, j int) bool { return pulls[i].CreatedAt.Before(pulls[j].CreatedAt) })
-	case "updated":
-		sort.Slice(pulls, func(i, j int) bool { return pulls[i].UpdatedAt.After(pulls[j].UpdatedAt) })
-	case "comments":
-		sort.Slice(pulls, func(i, j int) bool { return commentCounts[pulls[i].ID] > commentCounts[pulls[j].ID] })
-	default:
-		sort.Slice(pulls, func(i, j int) bool { return pulls[i].CreatedAt.After(pulls[j].CreatedAt) })
-	}
 
 	tabCounts, err := h.Services.Pull.CountsForUser(ctx, claims.UserID)
 	if err != nil {
 		slog.Warn("pulls: failed to load tab counts; showing 0", "error", err)
 		tabCounts = nil
 	}
-	data := view.AccountPullsData{
-		BasePage:      withAccountSubnav(basePage(r, h.Services), "pulls", h.accountCounts(ctx, claims.UserID)),
-		Pulls:         pulls,
-		Filter:        filter,
-		State:         state,
-		Sort:          sortBy,
-		Counts:        tabCounts,
-		PullComments:  commentCounts,
-		PullLabels:    pullLabels,
-		PullCI:        pullCI,
-		PullReviewers: pullReviewers,
-	}
-	h.render(w, r, pages.AccountPulls(data))
+	nav := accountListNav("/pulls", "pull request", accountPullScopes, true, q, state, tabCounts, total, page, h.accountRepoNames(ctx, claims.UserID))
+	nav.Filter.Notices = append(nav.Filter.Notices, notices...)
+	h.render(w, r, pages.AccountPulls(view.AccountPullsData{
+		BasePage:       withAccountSubnav(basePage(r, h.Services), "pulls", h.accountCounts(ctx, claims.UserID)),
+		AccountListNav: nav,
+		Pulls:          pulls,
+		PullComments:   commentCounts,
+		PullLabels:     pullLabels,
+		PullCI:         pullCI,
+		PullReviewers:  pullReviewers,
+	}))
 }
 
 func (h *Handler) PageAccountIssues(w http.ResponseWriter, r *http.Request) {
@@ -280,25 +273,27 @@ func (h *Handler) PageAccountIssues(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	filter := r.URL.Query().Get("filter")
-	switch filter {
-	case "created", "mentioned":
-	default:
-		filter = "assigned"
+	if redirectAccountList(w, r, "/issues", accountIssueScopes) {
+		return
 	}
-	state := r.URL.Query().Get("state")
-	if state != "closed" {
-		state = "open"
+	q, notices := accountListQuery(r.URL.Query(), true)
+	state := "open"
+	if q.State == "closed" {
+		state = "closed"
+	} else {
+		q = q.Without(listquery.KeyIs, "")
 	}
-	sortBy := r.URL.Query().Get("sort")
-	switch sortBy {
-	case "oldest", "updated", "comments":
-	default:
-		sortBy = "newest"
+
+	page := listPage(r)
+	filter := accountStoreFilter(&claims, q, state, page)
+	issues, total, err := h.Services.Issue.ListInvolving(ctx, claims.UserID, filter)
+	if err == nil && len(issues) == 0 && total > 0 && page > 1 {
+		page = listTotalPages(total)
+		filter = accountStoreFilter(&claims, q, state, page)
+		issues, total, err = h.Services.Issue.ListInvolving(ctx, claims.UserID, filter)
 	}
-	issues, err := h.Services.Issue.ListForUser(ctx, claims.UserID, filter, state)
 	if err != nil {
-		slog.Error("issues: failed to load issues", "filter", filter, "state", state, "error", err)
+		slog.Error("issues: failed to load issues", "query", q.String(), "error", err)
 		http.Error(w, "Failed to load issues", http.StatusInternalServerError)
 		return
 	}
@@ -323,28 +318,31 @@ func (h *Handler) PageAccountIssues(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("issues: failed to load tab counts; showing 0", "error", err)
 		tabCounts = nil
 	}
-	switch sortBy {
-	case "oldest":
-		sort.Slice(issues, func(i, j int) bool { return issues[i].CreatedAt.Before(issues[j].CreatedAt) })
-	case "updated":
-		sort.Slice(issues, func(i, j int) bool { return issues[i].UpdatedAt.After(issues[j].UpdatedAt) })
-	case "comments":
-		sort.Slice(issues, func(i, j int) bool { return commentCounts[issues[i].ID] > commentCounts[issues[j].ID] })
-	default:
-		sort.Slice(issues, func(i, j int) bool { return issues[i].CreatedAt.After(issues[j].CreatedAt) })
-	}
 
-	data := view.AccountIssuesData{
-		BasePage:      withAccountSubnav(basePage(r, h.Services), "issues", h.accountCounts(ctx, claims.UserID)),
-		Issues:        issues,
-		Filter:        filter,
-		State:         state,
-		Sort:          sortBy,
-		IssueComments: commentCounts,
-		IssueLabels:   issueLabels,
-		Counts:        tabCounts,
+	nav := accountListNav("/issues", "issue", accountIssueScopes, false, q, state, tabCounts, total, page, h.accountRepoNames(ctx, claims.UserID))
+	nav.Filter.Notices = append(nav.Filter.Notices, notices...)
+	h.render(w, r, pages.AccountIssues(view.AccountIssuesData{
+		BasePage:       withAccountSubnav(basePage(r, h.Services), "issues", h.accountCounts(ctx, claims.UserID)),
+		AccountListNav: nav,
+		Issues:         issues,
+		IssueComments:  commentCounts,
+		IssueLabels:    issueLabels,
+	}))
+}
+
+// accountRepoNames lists the "owner/name" of every repository the user can see, for the Repository menu.
+func (h *Handler) accountRepoNames(ctx context.Context, userID int64) []string {
+	repos, err := h.Services.Repo.ListForUser(ctx, userID, "all")
+	if err != nil {
+		slog.Warn("account lists: failed to load repositories for the menu", "error", err)
+		return nil
 	}
-	h.render(w, r, pages.AccountIssues(data))
+	names := make([]string, len(repos))
+	for i, repo := range repos {
+		names[i] = repo.OwnerName + "/" + repo.Name
+	}
+	sort.Strings(names)
+	return names
 }
 
 func (h *Handler) PageAccountStars(w http.ResponseWriter, r *http.Request) {

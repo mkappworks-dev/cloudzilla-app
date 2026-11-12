@@ -57,7 +57,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("issues: participants failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
-	q := listMilestoneTitle(listquery.FromValues(r.URL.Query()), allMilestones).Without(listquery.KeyReview, "")
+	q := listMilestoneTitle(listquery.FromValues(r.URL.Query()), allMilestones).Without(listquery.KeyReview, "").Without(listquery.KeyReviewer, "").Without(listquery.KeyRepo, "")
 	state := "open"
 	if q.State == "closed" {
 		state = "closed"

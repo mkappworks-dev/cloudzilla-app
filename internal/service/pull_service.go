@@ -488,6 +488,11 @@ func (s *PullService) ListForUser(ctx context.Context, userID int64, mode, state
 	}
 }
 
+// ListInvolving returns one page of the pull requests that involve userID and f matches, plus the total across all pages.
+func (s *PullService) ListInvolving(ctx context.Context, userID int64, f store.ListFilter) ([]store.PullListItem, int, error) {
+	return s.pulls.ListInvolving(ctx, userID, f)
+}
+
 // CountsForUser returns the PR count for every /pulls filter tab, keyed
 // "mode:state" (e.g. "created:open") across all four filters and both states.
 func (s *PullService) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {

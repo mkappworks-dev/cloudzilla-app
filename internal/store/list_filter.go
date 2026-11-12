@@ -20,6 +20,12 @@ type ListFilter struct {
 	State string
 	// Review is a pull request review state: "none", "required", "approved" or "changes_requested".
 	Review string
+	// Reviewer is a username with a pending review request; pull requests only.
+	Reviewer string
+	// Mentions is a username mentioned in a comment.
+	Mentions string
+	// Repo is "owner/name". Only the account list queries, which join repositories as "r", honour it.
+	Repo string
 	// ReviewRequired is the approvals each base branch needs, from its protection rule; absent means none.
 	ReviewRequired map[string]int
 	// NoMatch short-circuits to an empty result, for a qualifier that cannot match, such as @me when signed out.
@@ -76,6 +82,17 @@ func (f ListFilter) where(t listTable, b *listBuilder) []string {
 	if f.Review != "" && t == pullListTable {
 		// Review state means something only while a PR can still be reviewed.
 		w = append(w, "pr.state = 'open' AND NOT pr.is_draft AND "+reviewStateExpr(b, f.ReviewRequired)+" = "+b.arg(f.Review))
+	}
+	if f.Reviewer != "" && t == pullListTable {
+		w = append(w, `EXISTS (SELECT 1 FROM pull_reviews rr JOIN users ru ON ru.id = rr.author_id
+			WHERE rr.pull_id = pr.id AND rr.state = 'pending' AND LOWER(ru.username) = LOWER(`+b.arg(f.Reviewer)+`))`)
+	}
+	if f.Mentions != "" {
+		w = append(w, `EXISTS (SELECT 1 FROM mentions mn JOIN comments mc ON mc.id = mn.comment_id JOIN users mu ON mu.id = mn.user_id
+			WHERE mc.`+t.fk+` = `+a+`.id AND LOWER(mu.username) = LOWER(`+b.arg(f.Mentions)+`))`)
+	}
+	if f.Repo != "" {
+		w = append(w, `LOWER(r.owner_name || '/' || r.name) = LOWER(`+b.arg(f.Repo)+`)`)
 	}
 	for _, n := range f.No {
 		switch n {
