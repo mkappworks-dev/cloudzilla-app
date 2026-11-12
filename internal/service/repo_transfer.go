@@ -50,7 +50,7 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 		return s.offerTransfer(ctx, repo, requestingUserID, newOwnerID)
 	}
 	return nil, s.moveRepo(ctx, repo, newOwnerName, repo.Name, func() error {
-		return s.repos.UpdateOwner(ctx, repo.ID, repo.OwnerName, newOwnerID, newOrgID, newOwnerName)
+		return s.repos.UpdateOwner(ctx, repo.ID, repo.OwnerName, repo.Name, newOwnerID, newOrgID, newOwnerName)
 	})
 }
 
@@ -108,7 +108,7 @@ func (s *RepoService) AcceptTransfer(ctx context.Context, id, userID int64, offe
 		return nil, err
 	}
 	err = s.moveRepo(ctx, repo, recipient.Username, repo.Name, func() error {
-		return s.transfers.Accept(ctx, t.ID, userID, repo.OwnerName, recipient.Username)
+		return s.transfers.Accept(ctx, t.ID, userID, repo.OwnerName, repo.Name, recipient.Username)
 	})
 	if err != nil {
 		return nil, err

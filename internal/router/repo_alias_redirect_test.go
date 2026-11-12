@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -209,4 +210,37 @@ func TestRepoAlias_GitPathsAreAnsweredByTheGitHandlers(t *testing.T) {
 	if loc := rr.Header().Get("Location"); !strings.HasSuffix(loc, "/proj/info/refs?service=git-upload-pack") {
 		t.Errorf("Location = %q, want the repo's current git URL with the query kept", loc)
 	}
+}
+
+func TestRepoAlias_TransferredRepoRedirectsToTheNewOwner(t *testing.T) {
+	e := newAliasEnv(t)
+	ctx := context.Background()
+	org, err := e.svc.Org.Create(ctx, e.owner.id, "testorg_"+testutil.UniqueSuffix(t), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testutil.DeleteOrgOnCleanup(t, e.db, org.ID)
+	secret, err := e.svc.Repo.Get(ctx, e.owner.name, "secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, repo := range []*model.Repository{e.repo, secret} {
+		if _, err := e.svc.Repo.TransferRepo(ctx, repo, e.owner.id, org.Name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	o := e.owner.name
+
+	rr := e.get(http.MethodGet, "/"+o+"/proj/issues?state=closed", "")
+	wantStatus(t, rr, http.StatusMovedPermanently)
+	if got := rr.Header().Get("Location"); got != "/"+org.Name+"/proj/issues?state=closed" {
+		t.Errorf("Location = %q", got)
+	}
+	rr = e.get(http.MethodGet, "/"+o+"/oldproj", "")
+	wantStatus(t, rr, http.StatusMovedPermanently)
+	if got := rr.Header().Get("Location"); got != "/"+org.Name+"/proj" {
+		t.Errorf("chained alias Location = %q", got)
+	}
+	missing := e.get(http.MethodGet, "/"+o+"/never-existed", e.outsider.token)
+	sameReply(t, "private transferred repo for an outsider", e.get(http.MethodGet, "/"+o+"/secret", e.outsider.token), missing)
 }

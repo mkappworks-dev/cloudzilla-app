@@ -325,11 +325,11 @@ func (s *RepoStore) UpdateVisibility(ctx context.Context, repoID int64, private 
 	return nil
 }
 
-// UpdateOwner hands a live repo still under oldOwnerName to a user
-// (newOrgID zero) or an org (newOwnerID zero). It also ends any pending
+// UpdateOwner hands the live repo oldOwnerName/repoName to a user
+// (newOrgID zero) or an org (newOwnerID zero), leaving an alias at the old path. It also ends any pending
 // transfer of the repo: one offered from the old namespace must not move it
 // out of the new one.
-func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName string, newOwnerID, newOrgID int64, newOwnerName string) error {
+func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName, repoName string, newOwnerID, newOrgID int64, newOwnerName string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("update repo owner: %w", err)
@@ -337,8 +337,8 @@ func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName 
 	defer func() { _ = tx.Rollback() }()
 	res, err := tx.ExecContext(ctx,
 		`UPDATE repositories SET owner_id = $1, org_id = $2, owner_name = $3, updated_at = $4
-		 WHERE id = $5 AND owner_name = $6 AND deleted_at IS NULL`,
-		nullID(newOwnerID), nullID(newOrgID), newOwnerName, time.Now().UTC(), repoID, oldOwnerName,
+		 WHERE id = $5 AND owner_name = $6 AND name = $7 AND deleted_at IS NULL`,
+		nullID(newOwnerID), nullID(newOrgID), newOwnerName, time.Now().UTC(), repoID, oldOwnerName, repoName,
 	)
 	if err != nil {
 		return repoWriteErr("update repo owner", err)
@@ -348,6 +348,9 @@ func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName 
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM repo_transfers WHERE repo_id = $1`, repoID); err != nil {
 		return fmt.Errorf("end pending repo transfer: %w", err)
+	}
+	if err := repathRepo(ctx, tx, repoID, oldOwnerName, repoName, newOwnerName, repoName); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
@@ -373,21 +376,29 @@ func (s *RepoStore) Rename(ctx context.Context, repoID int64, ownerName, oldName
 	if err := requireRow(res, "rename repo"); err != nil {
 		return err
 	}
-	if err := DropRepoAlias(ctx, tx, ownerName, newName); err != nil {
-		return err
-	}
-	if !strings.EqualFold(oldName, newName) {
-		if err := AddRepoAlias(ctx, tx, repoID, ownerName, oldName); err != nil {
-			return err
-		}
-	}
-	if err := renameEventText(ctx, tx, repoID, ownerName, newName); err != nil {
-		return err
-	}
-	if err := renameNotificationText(ctx, tx, repoID, ownerName, oldName, newName); err != nil {
+	if err := repathRepo(ctx, tx, repoID, ownerName, oldName, ownerName, newName); err != nil {
 		return err
 	}
 	return tx.Commit()
+}
+
+// repathRepo is the bookkeeping of a path change, run in the transaction that
+// updates the repositories row: the old path becomes an alias (unless only its
+// case changed), a stale alias at the new path goes, and the names stored as
+// text in events and notifications follow.
+func repathRepo(ctx context.Context, x dbExec, repoID int64, oldOwner, oldName, newOwner, newName string) error {
+	if err := DropRepoAlias(ctx, x, newOwner, newName); err != nil {
+		return err
+	}
+	if !strings.EqualFold(oldOwner, newOwner) || !strings.EqualFold(oldName, newName) {
+		if err := AddRepoAlias(ctx, x, repoID, oldOwner, oldName); err != nil {
+			return err
+		}
+	}
+	if err := renameEventText(ctx, x, repoID, newOwner, newName); err != nil {
+		return err
+	}
+	return renameNotificationText(ctx, x, repoID, oldOwner, oldName, newOwner, newName)
 }
 
 func requireRow(res sql.Result, op string) error {

@@ -100,8 +100,9 @@ func (s *RepoTransferStore) Delete(ctx context.Context, id int64) error {
 
 // Accept ends transfer id and moves its repo row to the recipient in one
 // transaction, so a transfer cancelled, declined or expired meanwhile moves
-// nothing. The row must still be live under oldOwnerName.
-func (s *RepoTransferStore) Accept(ctx context.Context, id, recipientID int64, oldOwnerName, newOwnerName string) error {
+// nothing. The row must still be live as oldOwnerName/repoName, which becomes
+// an alias.
+func (s *RepoTransferStore) Accept(ctx context.Context, id, recipientID int64, oldOwnerName, repoName, newOwnerName string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("repo transfer accept: %w", err)
@@ -120,13 +121,16 @@ func (s *RepoTransferStore) Accept(ctx context.Context, id, recipientID int64, o
 	}
 	res, err := tx.ExecContext(ctx,
 		`UPDATE repositories SET owner_id = $1, org_id = NULL, owner_name = $2, updated_at = NOW()
-		 WHERE id = $3 AND owner_name = $4 AND deleted_at IS NULL`,
-		recipientID, newOwnerName, repoID, oldOwnerName,
+		 WHERE id = $3 AND owner_name = $4 AND name = $5 AND deleted_at IS NULL`,
+		recipientID, newOwnerName, repoID, oldOwnerName, repoName,
 	)
 	if err != nil {
 		return repoWriteErr("accept repo transfer", err)
 	}
 	if err := requireRow(res, "accept repo transfer"); err != nil {
+		return err
+	}
+	if err := repathRepo(ctx, tx, repoID, oldOwnerName, repoName, newOwnerName, repoName); err != nil {
 		return err
 	}
 	return tx.Commit()
