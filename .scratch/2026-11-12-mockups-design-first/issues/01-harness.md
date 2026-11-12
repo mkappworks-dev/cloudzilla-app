@@ -54,3 +54,7 @@ Throwaway server (standalone postgres, `cz-admin migrate` and `seed`, unique por
 `admin@example.test` / `cloudzilla-seed`, run `tests/mockgen-diff`, and screenshot each proof page in both themes.
 
 ## Comments
+
+2026-11-12 (maintainer): done, then reverted by `tech/mockups-design-first`. The harness merged in #284 and worked, but
+generating mocks from templ inverts the order mocks exist for (design, then reference, then implementation). Its
+acceptance criteria stay ticked as a record of what shipped; the code is gone. See [spec.md](../spec.md).

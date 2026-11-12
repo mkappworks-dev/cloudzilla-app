@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: wontfix
 Blocked by: 20
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -36,3 +36,5 @@ Diff generated HTML against the live server's render for the same fixtures.
 ## Comments
 
 2026-11-06 (triage): ready-for-human; design needs grilling before an agent can build it.
+
+2026-11-12 (maintainer): wontfix. Mocks stay design-first and hand-written; the generator (#284) was reverted. See [`../../2026-11-12-mockups-design-first/spec.md`](../../2026-11-12-mockups-design-first/spec.md). Hand-mock drift is ticket 08 there.

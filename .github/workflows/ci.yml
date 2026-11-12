@@ -51,31 +51,6 @@ jobs:
       - name: Check formatting of docs and config
         run: npm run fmt:check
 
-  mockups:
-    name: Mockups
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Regenerate the mocks
-        run: go run ./cmd/mockgen
-
-      - name: Fail if the generated mocks changed
-        run: |
-          git diff --exit-code -- mockups/generated mockups/index.html mockups/COVERAGE.md || {
-            echo "::error::Generated mocks are stale. Run 'make mockups-generate' and commit the result."
-            exit 1
-          }
-          test -z "$(git ls-files --others --exclude-standard mockups/generated)"
-
   vulncheck:
     name: Vulnerabilities
     runs-on: ubuntu-latest
