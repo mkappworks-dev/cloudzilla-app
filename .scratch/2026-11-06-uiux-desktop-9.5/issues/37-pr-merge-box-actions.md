@@ -2,8 +2,8 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: needs-triage
-Blocked by: —
+Status: ready-for-agent
+Blocked by: 32
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
 | --- | --- | --- | --- | --- | --- |
@@ -43,3 +43,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 ## Comments
 
 2026-11-12 (wave 2 re-score): opened by ticket 22. Run `/triage` before any code.
+
+2026-11-12 (triage): ready-for-agent. Scope: dismiss review (repo admins and owners, audited), "Update branch" by merging base into head, and command-line guidance for conflicts; no in-browser conflict editor. Waits for 32 (same pull pages).

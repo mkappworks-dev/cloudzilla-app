@@ -16,7 +16,6 @@ Smaller findings both reviewers raised:
 - Equivalent task pages use different heading hierarchies: file edit a 20px medium heading, issue creation the larger
   page heading (`edit_file.templ:18`, `gist_detail.templ:30`).
 - Release summaries flatten headings and bullet lists into one long sentence (`releases.templ:73`).
-- Project boards show a filled destructive button on every row (`projects.templ:168`).
 - Timestamps mix "3 minutes ago", "3m ago", "Nov 6, 2026" and a raw "03 Nov 26 17:55 +0100" on the repo header
   (Claude; find the formatter that emits the last one).
 - (Claude, unverified) Whether unknown routes render a styled 404 and server errors a styled 500; only `forbidden.templ`
@@ -51,3 +50,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-12 (triage): ready-for-agent. Run after the wave 2 re-score (22).
 
 2026-11-12 (wave 2 re-score): Wave 2 re-score: (Claude, Codex) release notes are flattened into one paragraph on the releases list (`repo-releases`, `releases-other`), the bullet above; (Claude) primary buttons mix green and black for equivalent actions (New issue, Draft release, New milestone, Comment against Save changes, Add file, discussion Comment), pick one token; three date formats on one page (`05 Oct 26 11:55 +0200`, `1mo`, `Oct 5, 2026`) and UTC on the commit page against raw offsets on tree and blob; Pre-release on the repo home but Latest on the releases list; (Codex) secondary metadata and section labels are very small and low in contrast on home, notifications and settings; (Claude) light-mode role text (Owner, Collaborator), 0% milestone tracks and the empty wiki ("This page does not exist yet." reads as an error; offer to create the Home page and hide Reorder with one page). Project delete (the destructive-row bullet) moves to ticket 36.
+
+2026-11-12: the project-row Delete moved to ticket 36.
