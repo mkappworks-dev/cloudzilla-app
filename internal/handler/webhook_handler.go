@@ -28,6 +28,71 @@ type createWebhookRequest struct {
 	EmailCode string `json:"email_code"`
 }
 
+// webhookInput is a create-webhook request, whether the JSON API's or the settings dialog's HTMX form.
+type webhookInput struct {
+	url, secret, events string
+	confirm             service.Confirmation
+	htmx                bool
+}
+
+func readWebhookInput(w http.ResponseWriter, r *http.Request) (webhookInput, bool) {
+	in := webhookInput{htmx: r.Header.Get("HX-Request") == "true"}
+	if in.htmx {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form data")
+			return in, false
+		}
+		in.url, in.secret, in.events = r.FormValue("url"), r.FormValue("secret"), r.FormValue("events")
+		in.confirm = confirmationFrom(r)
+		return in, true
+	}
+	var req createWebhookRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return in, false
+	}
+	in.url, in.secret, in.events = req.URL, req.Secret, req.Events
+	in.confirm = service.Confirmation{Password: req.Password, Code: req.Code, OneTimeCode: req.EmailCode}
+	return in, true
+}
+
+// readWebhookEvents reads the event filter of an update request, answering 400 itself when it is invalid.
+func readWebhookEvents(w http.ResponseWriter, r *http.Request) (string, bool) {
+	if r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form data")
+			return "", false
+		}
+		var parts []string
+		for _, ev := range []string{"push", "issues", "pull_request"} {
+			if r.FormValue(ev) == "1" {
+				parts = append(parts, ev)
+			}
+		}
+		if len(parts) == 0 {
+			writeError(w, http.StatusBadRequest, "at least one event must be selected")
+			return "", false
+		}
+		return strings.Join(parts, ","), true
+	}
+	var req struct {
+		Events string `json:"events"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return "", false
+	}
+	allowed := map[string]bool{"push": true, "issues": true, "pull_request": true}
+	for _, ev := range strings.Split(req.Events, ",") {
+		ev = strings.TrimSpace(ev)
+		if ev != "" && !allowed[ev] {
+			writeError(w, http.StatusBadRequest, "invalid event: "+ev)
+			return "", false
+		}
+	}
+	return req.Events, true
+}
+
 func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -67,29 +132,11 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var url, secret, events string
-	var confirm service.Confirmation
-	htmx := r.Header.Get("HX-Request") == "true"
-	if htmx {
-		if err := r.ParseForm(); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid form data")
-			return
-		}
-		url = r.FormValue("url")
-		secret = r.FormValue("secret")
-		events = r.FormValue("events")
-		confirm = confirmationFrom(r)
-	} else {
-		var req createWebhookRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		url = req.URL
-		secret = req.Secret
-		events = req.Events
-		confirm = service.Confirmation{Password: req.Password, Code: req.Code, OneTimeCode: req.EmailCode}
+	in, ok := readWebhookInput(w, r)
+	if !ok {
+		return
 	}
+	url, secret, events, confirm, htmx := in.url, in.secret, in.events, in.confirm, in.htmx
 
 	if url == "" {
 		if htmx {
@@ -250,40 +297,9 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var events string
-	if r.Header.Get("HX-Request") == "true" {
-		if err := r.ParseForm(); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid form data")
-			return
-		}
-		var parts []string
-		for _, ev := range []string{"push", "issues", "pull_request"} {
-			if r.FormValue(ev) == "1" {
-				parts = append(parts, ev)
-			}
-		}
-		if len(parts) == 0 {
-			writeError(w, http.StatusBadRequest, "at least one event must be selected")
-			return
-		}
-		events = strings.Join(parts, ",")
-	} else {
-		var req struct {
-			Events string `json:"events"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		allowed := map[string]bool{"push": true, "issues": true, "pull_request": true}
-		for _, ev := range strings.Split(req.Events, ",") {
-			ev = strings.TrimSpace(ev)
-			if ev != "" && !allowed[ev] {
-				writeError(w, http.StatusBadRequest, "invalid event: "+ev)
-				return
-			}
-		}
-		events = req.Events
+	events, ok := readWebhookEvents(w, r)
+	if !ok {
+		return
 	}
 
 	if err := h.Services.Webhook.UpdateEvents(r.Context(), hookID, repo.ID, events); err != nil {

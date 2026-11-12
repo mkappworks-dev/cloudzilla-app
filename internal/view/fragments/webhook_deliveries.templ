@@ -46,7 +46,7 @@ templ WebhookDeliveriesList(data view.WebhookDeliveriesFragData) {
 						</div>
 						if data.CanManage {
 							<button
-								hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(data.WebhookID, 10) + "/redeliver?delivery_id=" + strconv.FormatInt(d.ID, 10) }
+								hx-post={ data.HooksPath() + "/" + strconv.FormatInt(data.WebhookID, 10) + "/redeliver?delivery_id=" + strconv.FormatInt(d.ID, 10) }
 								hx-swap="none"
 								data-toast="Redelivery queued"
 								class="text-xs text-foreground hover:underline shrink-0"

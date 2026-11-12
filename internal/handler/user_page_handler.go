@@ -603,6 +603,14 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		auditEntries = nil
 	}
 
+	webhooks, err := h.Services.Webhook.ListByOrg(r.Context(), org.ID)
+	if err != nil {
+		slog.Warn("org settings: failed to load webhooks", "org", org.Name, "error", err)
+	}
+	if webhooks == nil {
+		webhooks = []model.Webhook{}
+	}
+
 	base := basePage(r, h.Services)
 	base.OwnerContext = org.Name
 	h.render(w, h.withAvatars(r, memberNames(members)...), pages.OrgSettings(view.OrgSettingsData{
@@ -613,6 +621,7 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		RepoCount:    len(repos),
 		QuotaSummary: h.quotaSummary(r.Context(), service.QuotaOwner{OrgID: org.ID}),
 		AuditEntries: auditEntries,
+		Webhooks:     webhooks,
 		Confirm:      h.confirmFactors(r, claims.UserID),
 	}))
 }

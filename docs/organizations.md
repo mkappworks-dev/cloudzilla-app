@@ -51,15 +51,15 @@ or a superadmin [adds an owner](./access-control.md#adding-an-organization-owner
 
 ## Pages
 
-| Route                     | Auth       | Description                                                                                                                     |
-| ------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `/organizations`          | Required   | The orgs you belong to, with your role and each org's member count                                                              |
-| `/organizations/new`      | Required   | Create-org form (`name`, `description`, `accept_tos`); the terms checkbox is enforced server-side                               |
-| `/{org}`                  | Optional   | Org profile: header, README, most-starred and recently updated repos, people, top languages                                     |
-| `/{org}?tab=repositories` | Optional   | Every org repo the viewer can see                                                                                               |
-| `/{org}?tab=people`       | Optional   | Every org member with their role; the profile sidebar shows the first 12                                                        |
-| `/orgs/{org}/settings`    | Owner only | General (profile), Members, Repository defaults, Audit log, Danger zone (transfer, delete); Teams and Webhooks are placeholders |
-| `/repos/new?owner={org}`  | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                               |
+| Route                     | Auth       | Description                                                                                                                  |
+| ------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `/organizations`          | Required   | The orgs you belong to, with your role and each org's member count                                                           |
+| `/organizations/new`      | Required   | Create-org form (`name`, `description`, `accept_tos`); the terms checkbox is enforced server-side                            |
+| `/{org}`                  | Optional   | Org profile: header, README, most-starred and recently updated repos, people, top languages                                  |
+| `/{org}?tab=repositories` | Optional   | Every org repo the viewer can see                                                                                            |
+| `/{org}?tab=people`       | Optional   | Every org member with their role; the profile sidebar shows the first 12                                                     |
+| `/orgs/{org}/settings`    | Owner only | General (profile), Members, Repository defaults, Webhooks, Audit log, Danger zone (transfer, delete); Teams is a placeholder |
+| `/repos/new?owner={org}`  | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                            |
 
 The `/{owner}` route first checks if `owner` is a user; if not, falls back to org lookup. Org profile and user profile
 share the same URL pattern, so a name belongs to a user or an org, never both: org creation refuses a user's name, every

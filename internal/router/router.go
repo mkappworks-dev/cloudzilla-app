@@ -341,6 +341,15 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(authMW).Post("/{org}/profile", h.UpdateOrgProfile)
 		r.With(authMW).Post("/{org}/repo-defaults", h.UpdateOrgRepoDefaults)
 		r.With(authMW).Post("/{org}/delete", h.DeleteOrg)
+		r.Route("/{org}/hooks", func(r chi.Router) {
+			r.Use(authMW)
+			r.Get("/", h.ListOrgWebhooks)
+			r.Post("/", h.CreateOrgWebhook)
+			r.Delete("/{id}", h.DeleteOrgWebhook)
+			r.Get("/{id}/deliveries", h.ListOrgWebhookDeliveries)
+			r.Patch("/{id}", h.UpdateOrgWebhook)
+			r.Post("/{id}/redeliver", h.RedeliverOrgWebhook)
+		})
 	})
 
 	// Not under /api/repos: GET /api/repos/import/{id} would shadow /api/repos/{owner}/{repo} for a user named "import".

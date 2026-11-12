@@ -559,6 +559,9 @@ templ RepoSettings(data view.RepoSettingsData) {
 							</div>
 						}
 						@components.CardContent() {
+							if data.OrgWebhooks {
+								<p class="mb-3 text-xs text-muted-foreground">An organization webhook also fires for this repository.</p>
+							}
 							@fragments.WebhooksList(view.WebhooksFragData{
 								Owner:     data.Owner,
 								RepoName:  data.RepoName,

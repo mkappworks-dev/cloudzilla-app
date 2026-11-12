@@ -89,7 +89,7 @@ Some controls and forms have no behaviour. In particular:
   webhook, Save changes, member Role selects, and Save profile): these do not persist changes; several forms suppress
   submission without feedback.
 - **File deletion** in `blob.html`: confirmation shows feedback but leaves the file displayed.
-- **Disabled in the real app too:** the Teams and org webhooks panels in `org_settings.html`.
+- **Disabled in the real app too:** the Teams panel in `org_settings.html`.
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
 - **Auth states:** the sign-in error banner, the email-first signup flow, expired and invalid reset or verify links, and
   the Sign-in page with Forgot password? absent (it is always shown now).
@@ -99,3 +99,5 @@ Some controls and forms have no behaviour. In particular:
 - **Project board cards.** Every card opens the card dialog, with the linked issue or PR shown as a link inside it. In
   the real app only note cards open the dialog; a linked issue or PR card navigates straight to that item.
 - **PR checks page.** The repo tab bar highlights Checks. The real app keeps Pull requests highlighted on every PR tab.
+- **Repository settings webhooks.** `settings.html` always shows "An organization webhook also fires for this
+  repository"; the real page renders it only when the owning organization has a webhook, and never for a personal repo.

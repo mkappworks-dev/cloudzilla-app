@@ -31,7 +31,7 @@ templ WebhooksList(data view.WebhooksFragData) {
 							</p>
 							<div id={ "events-form-" + strconv.FormatInt(wh.ID, 10) } class="hidden mt-2">
 								<form
-									hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) }
+									hx-patch={ data.HooksPath() + "/" + strconv.FormatInt(wh.ID, 10) }
 									hx-target="#webhooks-list"
 									hx-swap="outerHTML"
 									data-toast="Webhook updated"
@@ -75,7 +75,7 @@ templ WebhooksList(data view.WebhooksFragData) {
 						if data.CanManage {
 							<div class="flex gap-2 ml-4 shrink-0">
 								@components.Button(components.ButtonGhost, components.ButtonSizeSM, templ.Attributes{
-									"hx-get":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) + "/deliveries",
+									"hx-get":    data.HooksPath() + "/" + strconv.FormatInt(wh.ID, 10) + "/deliveries",
 									"hx-target": "#webhook-deliveries-" + strconv.FormatInt(wh.ID, 10),
 									"hx-swap":   "outerHTML",
 									"type":      "button",
@@ -83,10 +83,10 @@ templ WebhooksList(data view.WebhooksFragData) {
 									Deliveries
 								}
 								@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
-									"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10),
+									"hx-delete":           data.HooksPath() + "/" + strconv.FormatInt(wh.ID, 10),
 									"hx-target":           "#webhooks-list",
 									"hx-swap":             "outerHTML",
-									"hx-confirm":          data.RepoName + " will stop sending events to " + wh.URL + ".",
+									"hx-confirm":          data.Subject() + " will stop sending events to " + wh.URL + ".",
 									"data-confirm-title":  "Remove this webhook?",
 									"data-confirm-label":  "Remove",
 									"data-confirm-danger": "true",

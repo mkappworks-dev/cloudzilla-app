@@ -96,8 +96,8 @@ with neither confirms with `email_code`, a code emailed to it. It applies to:
 - approving a device login on `/login/device/confirm` (`POST /login/device/approve` with `action=approve`; denying needs
   nothing);
 - connecting or disconnecting Google, which also refuse accounts without a password (`ConfirmWithPassword`);
-- adding a repository collaborator, deploy key or webhook (form fields, or `password` and `code` in the webhook JSON
-  body);
+- adding a repository collaborator, deploy key or webhook, or an organization webhook (form fields, or `password` and
+  `code` in the webhook JSON body);
 - transferring a repository or an organization (requesting it; the user who accepts a repository needs nothing more,
   since they gain it rather than give it away);
 - making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting
@@ -1144,26 +1144,27 @@ Every row checks `readableRepoJSON` first.
 
 Every `/api/repos` row checks `readableRepoJSON` first.
 
-| Method            | Path                                                     | Auth   | AuthZ Check                                          | Handler                                   |
-| ----------------- | -------------------------------------------------------- | ------ | ---------------------------------------------------- | ----------------------------------------- |
-| PATCH             | `/api/repos/{owner}/{repo}`                              | authMW | CanManage (service)                                  | UpdateRepo                                |
-| PATCH             | `.../issues/{number}/pin`                                | authMW | CanManage (service)                                  | PinIssue                                  |
-| PATCH             | `.../issues/{number}/lock`                               | authMW | CanManage (service)                                  | LockIssue                                 |
-| POST/PATCH/DELETE | `.../branches/protections`                               | authMW | CanManage (handler)                                  | BranchProtection CRUD                     |
-| POST/PATCH/DELETE | `.../hooks` (+ `/deliveries`, `/redeliver`)              | authMW | CanManage (handler); POST needs password + TOTP code | Webhook CRUD                              |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/collaborators`                | authMW | CanManage (handler); POST needs password + TOTP code | Collaborator CRUD                         |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/keys`                         | authMW | CanManage (handler); POST needs password + TOTP code | DeployKey CRUD                            |
-| PUT               | `/api/repos/{owner}/{repo}/topics`                       | authMW | CanManage (handler)                                  | SetTopics                                 |
-| POST              | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler); password + TOTP code              | TransferRepo                              |
-| DELETE            | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler and service)                        | CancelRepoTransfer                        |
-| POST              | `/api/repos/{owner}/{repo}/archive`                      | authMW | IsOwner (service)                                    | ArchiveRepo                               |
-| POST              | `/api/repos/{owner}/{repo}/unarchive`                    | authMW | IsOwner (service)                                    | UnarchiveRepo                             |
-| POST              | `/api/repos/{owner}/{repo}/delete`                       | authMW | IsOwner (service)                                    | DeleteRepo                                |
-| POST              | `/api/repos/{owner}/{repo}/restore`                      | authMW | OwnerID + superadmin (service); 404 otherwise        | RestoreRepo                               |
-| PATCH             | `/api/repos/{owner}/{repo}/template`                     | authMW | IsOwner (service)                                    | SetRepoTemplate                           |
-| DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`                  | authMW | CanManage (handler)                                  | DeleteWikiPage                            |
-| GET               | `/{owner}/{repo}/settings`                               | authMW | readableRepo + CanManage                             | PageRepoSettings                          |
-| POST              | `/{owner}/{repo}/settings/{general,features,visibility}` | authMW | readableRepo + CanManage (service)                   | UpdateRepoGeneral / Features / Visibility |
+| Method                | Path                                                     | Auth   | AuthZ Check                                            | Handler                                   |
+| --------------------- | -------------------------------------------------------- | ------ | ------------------------------------------------------ | ----------------------------------------- |
+| PATCH                 | `/api/repos/{owner}/{repo}`                              | authMW | CanManage (service)                                    | UpdateRepo                                |
+| PATCH                 | `.../issues/{number}/pin`                                | authMW | CanManage (service)                                    | PinIssue                                  |
+| PATCH                 | `.../issues/{number}/lock`                               | authMW | CanManage (service)                                    | LockIssue                                 |
+| POST/PATCH/DELETE     | `.../branches/protections`                               | authMW | CanManage (handler)                                    | BranchProtection CRUD                     |
+| POST/PATCH/DELETE     | `.../hooks` (+ `/deliveries`, `/redeliver`)              | authMW | CanManage (handler); POST needs password + TOTP code   | Webhook CRUD                              |
+| GET/POST/PATCH/DELETE | `/api/orgs/{org}/hooks` (+ `/deliveries`, `/redeliver`)  | authMW | Org `owner` (handler); POST needs password + TOTP code | Org webhook CRUD                          |
+| POST/DELETE           | `/api/repos/{owner}/{repo}/collaborators`                | authMW | CanManage (handler); POST needs password + TOTP code   | Collaborator CRUD                         |
+| POST/DELETE           | `/api/repos/{owner}/{repo}/keys`                         | authMW | CanManage (handler); POST needs password + TOTP code   | DeployKey CRUD                            |
+| PUT                   | `/api/repos/{owner}/{repo}/topics`                       | authMW | CanManage (handler)                                    | SetTopics                                 |
+| POST                  | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler); password + TOTP code                | TransferRepo                              |
+| DELETE                | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler and service)                          | CancelRepoTransfer                        |
+| POST                  | `/api/repos/{owner}/{repo}/archive`                      | authMW | IsOwner (service)                                      | ArchiveRepo                               |
+| POST                  | `/api/repos/{owner}/{repo}/unarchive`                    | authMW | IsOwner (service)                                      | UnarchiveRepo                             |
+| POST                  | `/api/repos/{owner}/{repo}/delete`                       | authMW | IsOwner (service)                                      | DeleteRepo                                |
+| POST                  | `/api/repos/{owner}/{repo}/restore`                      | authMW | OwnerID + superadmin (service); 404 otherwise          | RestoreRepo                               |
+| PATCH                 | `/api/repos/{owner}/{repo}/template`                     | authMW | IsOwner (service)                                      | SetRepoTemplate                           |
+| DELETE                | `/api/repos/{owner}/{repo}/wiki/{slug}`                  | authMW | CanManage (handler)                                    | DeleteWikiPage                            |
+| GET                   | `/{owner}/{repo}/settings`                               | authMW | readableRepo + CanManage                               | PageRepoSettings                          |
+| POST                  | `/{owner}/{repo}/settings/{general,features,visibility}` | authMW | readableRepo + CanManage (service)                     | UpdateRepoGeneral / Features / Visibility |
 
 ### Repository Endpoints — Service-Layer Auth (Project Board)
 

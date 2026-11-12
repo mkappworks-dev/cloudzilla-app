@@ -180,9 +180,9 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var9 string
-					templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(data.WebhookID, 10) + "/redeliver?delivery_id=" + strconv.FormatInt(d.ID, 10)).Resolve(ctx)
+					templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.HooksPath() + "/" + strconv.FormatInt(data.WebhookID, 10) + "/redeliver?delivery_id=" + strconv.FormatInt(d.ID, 10)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 49, Col: 176}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 49, Col: 138}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 					if templ_7745c5c3_Err != nil {

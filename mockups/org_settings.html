@@ -236,13 +236,62 @@
         <div class="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 class="text-base font-semibold tracking-tight mb-1">Webhooks</h2>
-            <p class="text-[12.5px] text-muted-foreground">Receive HTTP POSTs for org-wide events. Signed with HMAC-SHA256.</p>
+            <p class="text-[12.5px] text-muted-foreground">Receive HTTP POSTs for events in every repository of acme-corp. Signed with HMAC-SHA256.</p>
           </div>
+          <button type="button" onclick="document.getElementById('webhook-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add webhook</button>
         </div>
-        <div class="bg-background border border-border rounded-lg p-8 text-center">
-  <p class="text-muted-foreground">No organization-wide webhooks.</p>
-  <p class="text-sm text-muted-foreground mt-2">Webhooks are set per repository, in each repository's settings.</p>
-</div>
+        <div id="webhooks-list" class="space-y-2">
+        <div>
+          <div class="rounded-md border border-border p-4 flex justify-between items-start">
+            <div class="min-w-0 flex-1">
+              <p class="font-medium text-sm font-mono break-all text-foreground">https://ci.example.com/hooks/cloudzilla</p>
+              <p class="text-xs text-muted-foreground mt-1">
+                Events:
+                <button type="button" onclick="document.getElementById('events-form-1').classList.toggle('hidden')" class="text-foreground hover:underline ml-1">push,pull_request (edit)</button>
+              </p>
+              <div id="events-form-1" class="hidden mt-2">
+                <form class="space-y-1" onsubmit="return false">
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="push" value="1" checked class="rounded-sm border-input accent-foreground" /> push</label>
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="issues" value="1" class="rounded-sm border-input accent-foreground" /> issues</label>
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="pull_request" value="1" checked class="rounded-sm border-input accent-foreground" /> pull_request</label>
+                  <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px] mt-2">Save</button>
+                </form>
+              </div>
+              <p class="text-xs mt-1 text-success">Active</p>
+            </div>
+            <div class="flex gap-2 ml-4 shrink-0">
+              <button type="button" onclick="document.getElementById('webhook-deliveries-1').innerHTML='<p class=&quot;text-muted-foreground text-sm mt-3&quot;>No deliveries yet.</p>'" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Deliveries</button>
+              <button type="button" data-remove-hook data-confirm-title="Remove this webhook?" data-confirm="acme-corp will stop sending events to https://ci.example.com/hooks/cloudzilla." data-confirm-label="Remove" data-confirm-danger data-toast="Webhook removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+            </div>
+          </div>
+          <div id="webhook-deliveries-1"></div>
+        </div>
+        <div>
+          <div class="rounded-md border border-border p-4 flex justify-between items-start">
+            <div class="min-w-0 flex-1">
+              <p class="font-medium text-sm font-mono break-all text-foreground">https://chat.example.com/integrations/git</p>
+              <p class="text-xs text-muted-foreground mt-1">
+                Events:
+                <button type="button" onclick="document.getElementById('events-form-2').classList.toggle('hidden')" class="text-foreground hover:underline ml-1">push,issues,pull_request (edit)</button>
+              </p>
+              <div id="events-form-2" class="hidden mt-2">
+                <form class="space-y-1" onsubmit="return false">
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="push" value="1" checked class="rounded-sm border-input accent-foreground" /> push</label>
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="issues" value="1" checked class="rounded-sm border-input accent-foreground" /> issues</label>
+              <label class="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" name="pull_request" value="1" checked class="rounded-sm border-input accent-foreground" /> pull_request</label>
+                  <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px] mt-2">Save</button>
+                </form>
+              </div>
+              <p class="text-xs mt-1 text-muted-foreground">Inactive</p>
+            </div>
+            <div class="flex gap-2 ml-4 shrink-0">
+              <button type="button" onclick="document.getElementById('webhook-deliveries-2').innerHTML='<p class=&quot;text-muted-foreground text-sm mt-3&quot;>No deliveries yet.</p>'" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Deliveries</button>
+              <button type="button" data-remove-hook data-confirm-title="Remove this webhook?" data-confirm="acme-corp will stop sending events to https://chat.example.com/integrations/git." data-confirm-label="Remove" data-confirm-danger data-toast="Webhook removed" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Remove</button>
+            </div>
+          </div>
+          <div id="webhook-deliveries-2"></div>
+        </div>
+        <p id="webhooks-empty" class="text-sm text-muted-foreground hidden">No webhooks configured.</p>
       </section>
 
       <section id="audit" class="rounded-md border border-border bg-card p-6">
@@ -370,6 +419,36 @@
 </dialog>
 </main>
 
+<dialog id="webhook-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="webhook-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="webhook-dialog-title" class="text-base font-semibold leading-tight">Add webhook</h2>
+  </div>
+  <div class="p-5 text-sm">
+    <form id="webhook-form" class="space-y-4" onsubmit="return false">
+      <div class="space-y-1.5">
+        <label for="webhook-url" class="block text-xs font-medium">Payload URL</label>
+        <input id="webhook-url" type="url" name="url" placeholder="https://example.com/webhook" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="webhook-secret" class="block text-xs font-medium">Secret</label>
+        <input id="webhook-secret" type="text" name="secret" placeholder="Optional HMAC secret" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="webhook-events" class="block text-xs font-medium">Events (comma-separated)</label>
+        <input id="webhook-events" type="text" name="events" value="push,issues,pull_request" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="min-w-0">
+            <label for="webhook-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+            <input id="webhook-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          </div>
+    </form>
+  </div>
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    <button type="submit" form="webhook-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add webhook</button>
+  </div>
+</dialog>
+
 <dialog id="cz-confirm-dialog" aria-labelledby="cz-confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
   <div class="p-5">
     <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
@@ -427,6 +506,16 @@
         var n = parseInt(document.getElementById('member-count').textContent, 10) - 1;
         document.getElementById('member-count').textContent = n;
         document.getElementById('member-count-nav').textContent = n;
+        czToast(b.dataset.toast);
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-remove-hook]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      czConfirm(b, function () {
+        b.closest('#webhooks-list > div').remove();
+        document.getElementById('webhooks-empty').classList.toggle('hidden', document.querySelector('#webhooks-list > div') !== null);
         czToast(b.dataset.toast);
       });
     });

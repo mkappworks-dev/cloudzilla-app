@@ -111,6 +111,8 @@ func TestScopeAllows(t *testing.T) {
 		{"delete repo with repo:admin", "POST", "/api/repos/alice/proj/delete", []string{admin}, true},
 		{"add org owner with repo:admin", "POST", "/api/orgs/acme/members", []string{admin}, true},
 		{"promote org member with repo:admin", "POST", "/api/orgs/acme/members/bob/role", []string{admin}, true},
+		{"list org webhooks with repo:admin", "GET", "/api/orgs/acme/hooks", []string{admin}, true},
+		{"add org webhook with repo:admin", "POST", "/api/orgs/acme/hooks", []string{admin}, true},
 		{"transfer org with repo:admin", "POST", "/api/orgs/acme/transfer", []string{admin}, true},
 		{"push content with repo:admin only", "POST", "/api/repos/alice/proj/issues", []string{admin}, false},
 		{"account SSH key with repo:admin", "POST", "/api/user/keys", []string{admin}, false},
@@ -121,6 +123,8 @@ func TestScopeAllows(t *testing.T) {
 		{"add deploy key", "POST", "/api/repos/alice/proj/keys", []string{read, write, issues, pulls}, false},
 		{"add webhook", "POST", "/api/repos/alice/proj/hooks", []string{read, write, issues, pulls}, false},
 		{"transfer repo", "POST", "/api/repos/alice/proj/transfer", []string{read, write, issues, pulls}, false},
+		{"list org webhooks", "GET", "/api/orgs/acme/hooks", []string{read, write, issues, pulls}, false},
+		{"add org webhook", "POST", "/api/orgs/acme/hooks", []string{read, write, issues, pulls}, false},
 		{"transfer org", "POST", "/api/orgs/acme/transfer", []string{read, write, issues, pulls}, false},
 	}
 	for _, tt := range tests {

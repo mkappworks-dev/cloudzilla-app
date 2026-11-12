@@ -4,7 +4,8 @@ import "time"
 
 type Webhook struct {
 	ID        int64     `db:"id"         json:"id"`
-	RepoID    int64     `db:"repo_id"    json:"repo_id"`
+	RepoID    int64     `db:"repo_id"    json:"repo_id,omitempty"` // zero for an organization webhook
+	OrgID     int64     `db:"org_id"     json:"org_id,omitempty"`  // zero for a repository webhook
 	URL       string    `db:"url"        json:"url"`
 	Secret    string    `db:"secret"     json:"-"`
 	Events    string    `db:"events"     json:"events"`

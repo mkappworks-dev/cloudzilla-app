@@ -287,10 +287,13 @@ templ OrgSettings(data view.OrgSettingsData) {
 						<div class="flex items-start justify-between gap-4 mb-4">
 							<div>
 								<h2 class="text-base font-semibold tracking-tight mb-1">Webhooks</h2>
-								<p class="text-[12.5px] text-muted-foreground">Receive HTTP POSTs for org-wide events. Signed with HMAC-SHA256.</p>
+								<p class="text-[12.5px] text-muted-foreground">Receive HTTP POSTs for events in every repository of { data.Org.Name }. Signed with HMAC-SHA256.</p>
 							</div>
+							@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('webhook-dialog').showModal()")}) {
+								Add webhook
+							}
 						</div>
-						@components.EmptyStateWithHint("No organization-wide webhooks.", "Webhooks are set per repository, in each repository's settings.")
+						@fragments.WebhooksList(view.WebhooksFragData{Owner: data.Org.Name, Webhooks: data.Webhooks, CanManage: true})
 					</section>
 
 					<section id="audit" class="rounded-md border border-border bg-card p-6">
@@ -450,9 +453,62 @@ templ OrgSettings(data view.OrgSettingsData) {
 		</div>
 
 		@orgInviteMemberDialog(data.Org.Name, data.Confirm)
+		@orgWebhookDialog(data.Org.Name, data.Confirm)
 		@orgTransferDialog(data.Org.Name, data.Confirm)
 		if data.RepoCount == 0 {
 			@orgDeleteDialog(data.Org.Name, data.MemberCount, data.Confirm)
+		}
+	}
+}
+
+templ orgWebhookDialog(orgName string, confirm components.ConfirmFactors) {
+	@components.Dialog("webhook-dialog") {
+		@components.DialogHeader() {
+			@components.DialogTitle("webhook-dialog") {
+				Add webhook
+			}
+		}
+		@components.DialogBody() {
+			<form id="webhook-form" hx-post={ "/api/orgs/" + orgName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" hx-on::after:request="if(event.target===this&&ctx.response.status<400&&!ctx.hx.retarget){this.closest('dialog').close();this.reset();this.querySelector('#webhook-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Webhook added'}}));}" class="space-y-4">
+				<div id="webhook-form-error"></div>
+				<div class="space-y-1.5">
+					<label for="webhook-url" class="block text-xs font-medium">Payload URL</label>
+					@components.Input(templ.Attributes{
+						"id":          "webhook-url",
+						"type":        "url",
+						"name":        "url",
+						"placeholder": "https://example.com/webhook",
+						"required":    "required",
+					})
+				</div>
+				<div class="space-y-1.5">
+					<label for="webhook-secret" class="block text-xs font-medium">Secret</label>
+					@components.Input(templ.Attributes{
+						"id":          "webhook-secret",
+						"type":        "text",
+						"name":        "secret",
+						"placeholder": "Optional HMAC secret",
+					})
+				</div>
+				<div class="space-y-1.5">
+					<label for="webhook-events" class="block text-xs font-medium">Events (comma-separated)</label>
+					@components.Input(templ.Attributes{
+						"id":    "webhook-events",
+						"type":  "text",
+						"name":  "events",
+						"value": "push,issues,pull_request",
+					})
+				</div>
+				@components.ConfirmFields("webhook", confirm, true)
+			</form>
+		}
+		@components.DialogFooter() {
+			@components.DialogClose() {
+				Cancel
+			}
+			@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "webhook-form"}) {
+				Add webhook
+			}
 		}
 	}
 }
