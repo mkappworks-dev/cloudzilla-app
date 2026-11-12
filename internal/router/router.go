@@ -271,6 +271,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW, middleware.MaxBodySize(handler.MaxNewFileBodyBytes)).Post("/{owner}/{repo}/new/{ref}/*", h.SubmitNewFile)
 	r.With(authMW).Get("/{owner}/{repo}/edit/{ref}/*", h.PageEditFile)
 	r.With(authMW, middleware.MaxBodySize(handler.MaxEditFileBodyBytes)).Post("/{owner}/{repo}/edit/{ref}/*", h.SubmitEditFile)
+	r.With(authMW, middleware.MaxBodySize(handler.MaxEditFileBodyBytes)).Post("/{owner}/{repo}/edit-preview/{ref}/*", h.EditPreview)
 	r.With(authMW).Post("/{owner}/{repo}/delete/{ref}/*", h.DeleteFile)
 	r.With(optAuthMW).Get("/{owner}/{repo}/archive/{ref}", h.DownloadArchive)
 	r.With(optAuthMW).Get("/{owner}/{repo}/archive/{ref}/*", h.DownloadArchive)

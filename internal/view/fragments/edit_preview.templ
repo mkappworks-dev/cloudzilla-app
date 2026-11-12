@@ -1,0 +1,26 @@
+package fragments
+
+import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
+
+// EditPreview is the Preview changes tab of the edit page: the pending edit as a diff.
+templ EditPreview(data view.EditPreviewData) {
+	if data.Unchanged {
+		<div class="px-4 py-8 text-center">
+			<p class="text-sm font-medium">No changes to commit.</p>
+			<p class="text-[13px] text-muted-foreground mt-1">{ data.UnchangedMessage }</p>
+		</div>
+	} else {
+		if len(data.Diff.Hunks) > 0 {
+			@FileDiff(data.Diff)
+		} else {
+			<p class="text-[13px]">
+				Rename
+				<code class="font-mono text-foreground">{ data.Diff.OldPath }</code>
+				<span aria-hidden="true">&rarr;</span>
+				<span class="sr-only">to</span>
+				<code class="font-mono text-foreground">{ data.Diff.NewPath }</code>
+				with no change to the contents.
+			</p>
+		}
+	}
+}

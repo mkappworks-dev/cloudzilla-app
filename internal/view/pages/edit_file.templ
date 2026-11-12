@@ -36,34 +36,82 @@ templ EditFile(data view.EditFileData) {
 			}
 
 			<form
+				id="editfile-form"
 				method="POST"
 				action={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "edit", data.Ref, data.Path)) }
 				enctype="multipart/form-data"
 				class="space-y-5"
 			>
 				<input type="hidden" name="blob_sha" value={ data.BlobSHA }/>
-				<div class="rounded-md border border-border bg-card p-5 space-y-4">
-					<div>
-						<label for="ef-path" class="block text-[12px] font-medium mb-1.5">File path</label>
-						<input
-							id="ef-path"
-							name="path"
-							type="text"
-							value={ data.NewPath }
-							required
-							class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring"
-						/>
-						<p class="text-[11px] text-muted-foreground mt-1">Change the path to rename or move the file.</p>
+				<div class="rounded-md border border-border bg-card" x-data="{ tab: 'edit', failed(e) { const r = e.detail.ctx.response; if (!r || r.status >= 400) this.$refs.result.textContent = 'Couldn\u2019t load the preview.' } }">
+					<div class="flex items-center border-b border-border px-3">
+						<div
+							role="tablist"
+							aria-label="Edit mode"
+							class="flex"
+							@keydown.arrow-right.prevent="$refs[tab === 'edit' ? 'preview' : 'edit'].focus(); $refs[tab === 'edit' ? 'preview' : 'edit'].click()"
+							@keydown.arrow-left.prevent="$refs[tab === 'edit' ? 'preview' : 'edit'].focus(); $refs[tab === 'edit' ? 'preview' : 'edit'].click()"
+							@keydown.home.prevent="$refs.edit.focus(); $refs.edit.click()"
+							@keydown.end.prevent="$refs.preview.focus(); $refs.preview.click()"
+						>
+							<button
+								type="button"
+								role="tab"
+								id="ef-tab-edit"
+								x-ref="edit"
+								aria-selected="true"
+								aria-controls="ef-pane-edit"
+								:aria-selected="tab === 'edit'"
+								:tabindex="tab === 'edit' ? 0 : -1"
+								@click="tab = 'edit'"
+								:class="tab === 'edit' ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'"
+								class="px-3 py-2 text-[13px] border-b-2 -mb-px"
+							>Edit</button>
+							<button
+								type="button"
+								role="tab"
+								id="ef-tab-preview"
+								x-ref="preview"
+								aria-selected="false"
+								aria-controls="ef-pane-preview"
+								:aria-selected="tab === 'preview'"
+								:tabindex="tab === 'preview' ? 0 : -1"
+								hx-post={ codeurl.Path(data.Owner, data.RepoName, "edit-preview", data.Ref, data.Path) }
+								hx-target="#ef-preview"
+								hx-swap="innerHTML"
+								@click="tab = 'preview'"
+								@htmx:after:request="failed($event)"
+								:class="tab === 'preview' ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'"
+								class="px-3 py-2 text-[13px] border-b-2 -mb-px"
+							>Preview changes</button>
+						</div>
 					</div>
-					<div>
-						<label for="ef-content" class="block text-[12px] font-medium mb-1.5">Contents</label>
-						<textarea
-							id="ef-content"
-							name="content"
-							rows="24"
-							spellcheck="false"
-							class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y"
-						>{ textareaValue(data.Content) }</textarea>
+					<div id="ef-pane-edit" role="tabpanel" aria-labelledby="ef-tab-edit" x-show="tab === 'edit'" class="p-5 space-y-4">
+						<div>
+							<label for="ef-path" class="block text-[12px] font-medium mb-1.5">File path</label>
+							<input
+								id="ef-path"
+								name="path"
+								type="text"
+								value={ data.NewPath }
+								required
+								class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring"
+							/>
+							<p class="text-[11px] text-muted-foreground mt-1">Change the path to rename or move the file.</p>
+						</div>
+						<div>
+							<label for="ef-content" class="block text-[12px] font-medium mb-1.5">Contents</label>
+							<textarea
+								id="ef-content"
+								name="content"
+								rows="24"
+								spellcheck="false"
+								class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y"
+							>{ textareaValue(data.Content) }</textarea>
+						</div>
+					</div>
+					<div id="ef-pane-preview" role="tabpanel" aria-labelledby="ef-tab-preview" x-show="tab === 'preview'" style="display: none" class="p-5">
+						<div id="ef-preview" x-ref="result" aria-live="polite" class="text-sm text-muted-foreground">Loading preview…</div>
 					</div>
 				</div>
 

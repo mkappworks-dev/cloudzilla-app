@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -69,6 +70,7 @@ type RepoService struct {
 	language         *LanguageService
 	pulls            *store.PullStore
 	transfers        *store.RepoTransferStore
+	aliases          *store.RepoAliasStore
 	quota            *QuotaService
 	attachments      *AttachmentService
 	releaseAssets    *ReleaseAssetService
@@ -99,6 +101,11 @@ func (s *RepoService) WithAttachments(a *AttachmentService) *RepoService {
 
 func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
 	s.language = lang
+	return s
+}
+
+func (s *RepoService) WithAliasStore(a *store.RepoAliasStore) *RepoService {
+	s.aliases = a
 	return s
 }
 
@@ -147,6 +154,21 @@ func (s *RepoService) FillPrimaryLanguage(ctx context.Context, repoID int64, lan
 
 func (s *RepoService) Get(ctx context.Context, owner, name string) (*model.Repository, error) {
 	repo, err := s.repos.GetByOwnerName(ctx, owner, name)
+	if err != nil {
+		return nil, err
+	}
+	s.enrichForkInfo(ctx, repo)
+	return repo, nil
+}
+
+// ResolveAlias is for callers that already missed on Get: it returns the live
+// repo whose former path is owner/name, or sql.ErrNoRows. Visibility is the
+// caller's to check, as with Get.
+func (s *RepoService) ResolveAlias(ctx context.Context, owner, name string) (*model.Repository, error) {
+	if s.aliases == nil {
+		return nil, sql.ErrNoRows
+	}
+	repo, err := s.aliases.Resolve(ctx, owner, name)
 	if err != nil {
 		return nil, err
 	}

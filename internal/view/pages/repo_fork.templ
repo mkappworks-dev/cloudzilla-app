@@ -8,6 +8,7 @@ import (
 
 templ RepoFork(data view.RepoForkData) {
 	{{ source := data.SourceOwner + "/" + data.SourceName }}
+	{{ defaultOwner, canFork := forkDefaultOwner(data.Owners) }}
 	@layout.Base(data.BasePage, "Fork "+source) {
 		<section class="mb-6">
 			<h1 class="text-2xl font-semibold tracking-tight">Create a new fork</h1>
@@ -26,7 +27,7 @@ templ RepoFork(data view.RepoForkData) {
 						</ul>
 					</div>
 				}
-				if len(data.Owners) == 0 {
+				if !canFork {
 					<div class="border border-border rounded-lg bg-card p-6 text-[13px] text-muted-foreground">
 						You can't fork your own repository into your own account. <a href="/organizations/new" class="text-primary hover:underline">Create an organization</a> to fork it there.
 					</div>
@@ -35,7 +36,7 @@ templ RepoFork(data view.RepoForkData) {
 						<div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
 							<div>
 								<label for="fork-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner *</label>
-								@repoNewCustomSelect("fork-owner", "owner", forkOwnerOpts(data.Owners), repoNewSelectOption{Value: data.Owners[0], Label: data.Owners[0]})
+								@repoNewCustomSelect("fork-owner", "owner", forkOwnerOpts(data.Owners), repoNewSelectOption{Value: defaultOwner, Label: defaultOwner})
 							</div>
 							<span class="text-muted-foreground/70 pb-2.5" aria-hidden="true">/</span>
 							<div>
@@ -93,7 +94,7 @@ templ RepoFork(data view.RepoForkData) {
 			</aside>
 		</div>
 
-		if len(data.Owners) > 0 {
+		if canFork {
 			<script>
 				(function() {
 					const form = document.getElementById('fork-form');
@@ -136,10 +137,19 @@ templ RepoFork(data view.RepoForkData) {
 	}
 }
 
-func forkOwnerOpts(owners []string) []repoNewSelectOption {
+func forkOwnerOpts(owners []view.ForkOwner) []repoNewSelectOption {
 	opts := make([]repoNewSelectOption, 0, len(owners))
 	for _, o := range owners {
-		opts = append(opts, repoNewSelectOption{Value: o, Label: o})
+		opts = append(opts, repoNewSelectOption{Value: o.Name, Label: o.Name, DisabledReason: o.DisabledReason})
 	}
 	return opts
+}
+
+func forkDefaultOwner(owners []view.ForkOwner) (string, bool) {
+	for _, o := range owners {
+		if o.DisabledReason == "" {
+			return o.Name, true
+		}
+	}
+	return "", false
 }

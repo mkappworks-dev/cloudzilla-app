@@ -78,6 +78,15 @@ type EditFileData struct {
 	ConflictURL string
 }
 
+// EditPreviewData holds template data for the edit page's Preview changes tab.
+type EditPreviewData struct {
+	Diff service.FileDiff
+	// Unchanged means neither the path nor the content differs, so there is
+	// nothing to commit.
+	Unchanged        bool
+	UnchangedMessage string
+}
+
 // RepoNewData holds template data for the new repository form page.
 type RepoNewData struct {
 	BasePage
@@ -96,14 +105,19 @@ type RepoNewData struct {
 	DefaultOwner string
 }
 
+type ForkOwner struct {
+	Name           string
+	DisabledReason string // "" when the fork may land here
+}
+
 type RepoForkData struct {
 	BasePage
 	SourceOwner   string
 	SourceName    string
 	Description   string
 	Private       bool
-	DefaultBranch string   // "" unless that branch exists: otherwise there is nothing to prune to
-	Owners        []string // namespaces the fork may land in; empty when none qualifies
+	DefaultBranch string      // "" unless that branch exists: otherwise there is nothing to prune to
+	Owners        []ForkOwner // the User first, then their Organizations; the User is disabled when they own the source
 	ExistingForks []RepoRef
 }
 

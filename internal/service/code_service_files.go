@@ -14,8 +14,11 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
+	gogitdiff "github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	gitdiff "github.com/go-git/go-git/v5/utils/diff"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 // ErrPathCollision means a commit's path runs into an existing entry of another
@@ -564,4 +567,43 @@ func (s *CodeService) CommitCount(owner, repoName, ref string) (int, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+// textChunk is a gogitdiff.Chunk over a run of lines.
+type textChunk struct {
+	content string
+	op      gogitdiff.Operation
+}
+
+func (c textChunk) Content() string           { return c.content }
+func (c textChunk) Type() gogitdiff.Operation { return c.op }
+
+// DiffContent diffs oldContent at oldPath against newContent at newPath in the
+// shape commit and pull request pages render. It reads no repository and
+// highlights nothing, so the lines carry no HTML.
+func (s *CodeService) DiffContent(oldPath, newPath string, oldContent, newContent []byte) FileDiff {
+	fd := FileDiff{OldPath: oldPath, NewPath: newPath}
+	var chunks []gogitdiff.Chunk
+	for _, d := range gitdiff.Do(string(oldContent), string(newContent)) {
+		op := gogitdiff.Equal
+		switch d.Type {
+		case diffmatchpatch.DiffDelete:
+			op = gogitdiff.Delete
+		case diffmatchpatch.DiffInsert:
+			op = gogitdiff.Add
+		}
+		chunks = append(chunks, textChunk{d.Text, op})
+	}
+	fd.Hunks = buildHunks(chunks)
+	for _, h := range fd.Hunks {
+		for _, l := range h.Lines {
+			switch l.Type {
+			case "add":
+				fd.Added++
+			case "del":
+				fd.Deleted++
+			}
+		}
+	}
+	return fd
 }

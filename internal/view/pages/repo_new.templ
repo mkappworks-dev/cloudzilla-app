@@ -12,6 +12,8 @@ type repoNewSelectOption struct {
 	Value      string
 	Label      string
 	Visibility string // owner options only: the owner's default repo visibility
+	// DisabledReason, when set, shows the option but makes it unselectable.
+	DisabledReason string
 }
 
 templ RepoNew(data view.RepoNewData) {
@@ -192,7 +194,7 @@ templ repoVisibilityFieldset(private bool) {
 templ repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial repoNewSelectOption) {
 	{{ menuOptions := make([]components.SelectMenuOption, 0, len(options)) }}
 	for _, opt := range options {
-		{{ menuOptions = append(menuOptions, components.SelectMenuOption{Value: opt.Value, Label: opt.Label}) }}
+		{{ menuOptions = append(menuOptions, components.SelectMenuOption{Value: opt.Value, Label: opt.Label, DisabledReason: opt.DisabledReason}) }}
 	}
 	@components.SelectMenu(id+"-btn", name, name, menuOptions, initial.Value, templ.Attributes{"id": id, "data-visibility": repoOwnerVisibility(options)})
 	if name == "owner" {
