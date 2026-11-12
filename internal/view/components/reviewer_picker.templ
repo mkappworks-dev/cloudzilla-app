@@ -37,9 +37,9 @@ templ reviewerOption(opt ReviewerOption) {
 	<li>
 		<label class="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded-sm text-sm cursor-pointer">
 			if opt.Selected {
-				<input type="checkbox" name="reviewers" value={ opt.Username } checked class="h-4 w-4 rounded-sm border-border"/>
+				<input type="checkbox" name="reviewers" value={ opt.Username } checked class="h-4 w-4 rounded-sm border-input"/>
 			} else {
-				<input type="checkbox" name="reviewers" value={ opt.Username } class="h-4 w-4 rounded-sm border-border"/>
+				<input type="checkbox" name="reviewers" value={ opt.Username } class="h-4 w-4 rounded-sm border-input"/>
 			}
 			<span class="flex-1">{ opt.Username }</span>
 			if opt.Reason != "" {

@@ -135,7 +135,7 @@
     document.getElementById('cz-confirm-title').textContent = o.title;
     document.getElementById('cz-confirm-msg').textContent = o.msg;
     okBtn.textContent = o.label;
-    okBtn.className = OK_BASE + (o.danger ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
+    okBtn.className = OK_BASE + (o.danger ? 'bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
     pending = done;
     dlg.returnValue = '';
     dlg.showModal();

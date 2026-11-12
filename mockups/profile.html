@@ -95,10 +95,10 @@
             </ul>
           </div>
           <form id="readme-form" hidden onsubmit="return false" class="p-5 space-y-3">
-            <textarea name="content" required class="w-full min-h-[320px] font-mono text-[13px] bg-card border border-border rounded-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-ring"># Hi, I'm Malith
+            <textarea name="content" required class="w-full min-h-[320px] font-mono text-[13px] bg-card border border-input rounded-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-ring"># Hi, I'm Malith
 
 I build developer tooling and self-hosted infrastructure.</textarea>
-            <input type="text" name="message" placeholder="Update profile README" class="w-full text-[13px] bg-card border border-border rounded-sm px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+            <input type="text" name="message" placeholder="Update profile README" class="w-full text-[13px] bg-card border border-input rounded-sm px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-ring"/>
             <div class="flex items-center justify-end gap-2">
               <button type="button" id="readme-cancel" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Cancel</button>
               <button type="submit" id="readme-save" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px]">Save</button>
@@ -257,13 +257,13 @@ I build developer tooling and self-hosted infrastructure.</textarea>
       <form onsubmit="return false" class="flex items-center gap-2 mb-4 flex-wrap">
         <div class="relative flex-1 min-w-[240px]">
           <label for="repo-search" class="sr-only">Filter repositories</label>
-          <input id="repo-search" type="search" name="q" placeholder="Filter by name…" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:border-border-strong"/>
+          <input id="repo-search" type="search" name="q" placeholder="Filter by name…" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:border-border-strong"/>
           <svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
         </div>
-        <select name="type" id="repo-type" class="h-9 bg-card border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-border-strong" aria-label="Filter by type" style="width:auto">
+        <select name="type" id="repo-type" class="h-9 bg-card border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-border-strong" aria-label="Filter by type" style="width:auto">
           <option value="">All types</option><option value="sources">Sources</option><option value="forks">Forks</option><option value="templates">Templates</option>
         </select>
-        <select name="status" id="repo-status" class="h-9 bg-card border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-border-strong" aria-label="Filter by visibility" style="width:auto">
+        <select name="status" id="repo-status" class="h-9 bg-card border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-border-strong" aria-label="Filter by visibility" style="width:auto">
           <option value="">All visibility</option><option value="public">Public</option><option value="private">Private</option>
         </select>
       </form>

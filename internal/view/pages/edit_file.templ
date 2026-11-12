@@ -51,7 +51,7 @@ templ EditFile(data view.EditFileData) {
 							type="text"
 							value={ data.NewPath }
 							required
-							class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring"
+							class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring"
 						/>
 						<p class="text-[11px] text-muted-foreground mt-1">Change the path to rename or move the file.</p>
 					</div>
@@ -62,7 +62,7 @@ templ EditFile(data view.EditFileData) {
 							name="content"
 							rows="24"
 							spellcheck="false"
-							class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y"
+							class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y"
 						>{ textareaValue(data.Content) }</textarea>
 					</div>
 				</div>
@@ -75,7 +75,7 @@ templ EditFile(data view.EditFileData) {
 						type="text"
 						value={ data.Message }
 						placeholder={ "Update " + data.Path }
-						class="w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+						class="w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
 					/>
 				</div>
 

@@ -182,7 +182,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 									type="search"
 									placeholder="Filter by name or @handle…"
 									data-org-member-filter-input
-									class="w-full bg-background border border-border rounded-md pl-8 pr-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"
+									class="w-full bg-background border border-input rounded-md pl-8 pr-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"
 								/>
 								<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
 							</div>
@@ -190,7 +190,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 							<select
 								id="org-member-filter-role"
 								data-org-member-filter-role
-								class="flex h-9 w-40 rounded-md border border-border bg-background px-3 text-[13px] shadow-xs"
+								class="flex h-9 w-40 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs"
 							>
 								<option value="">All roles</option>
 								<option value="owner">Owners</option>
@@ -370,7 +370,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 										type="button"
 										disabled
 										title="Remove all repositories first"
-										class="h-9 px-4 text-sm rounded-md font-medium bg-destructive text-destructive-foreground opacity-60 cursor-not-allowed shrink-0"
+										class="h-9 px-4 text-sm rounded-md font-medium bg-destructive-fill text-destructive-fill-foreground opacity-60 cursor-not-allowed shrink-0"
 									>
 										Delete organization
 									</button>
@@ -378,7 +378,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 									<button
 										type="button"
 										onclick="document.getElementById('delete-org-dialog').showModal()"
-										class="h-9 px-4 text-sm rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 shrink-0"
+										class="h-9 px-4 text-sm rounded-md font-medium bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90 shrink-0"
 									>
 										Delete organization
 									</button>
@@ -487,7 +487,7 @@ templ orgInviteMemberDialog(orgName string, confirm components.ConfirmFactors) {
 							required
 							autocomplete="off"
 							placeholder="@handle"
-							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
+							class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 						/>
 					</div>
 					<div>
@@ -546,7 +546,7 @@ templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 							required
 							autocomplete="off"
 							placeholder="@handle"
-							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
+							class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 						/>
 					</div>
 					<div>
@@ -560,7 +560,7 @@ templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 							required
 							pattern={ orgName }
 							autocomplete="off"
-							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
+							class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 						/>
 					</div>
 					@components.ConfirmFields("transfer-org", confirm, true)
@@ -568,7 +568,7 @@ templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 			}
 			@components.DialogFooter() {
 				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Transfer ownership</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Transfer ownership</button>
 			}
 		</form>
 	}
@@ -609,7 +609,7 @@ templ orgDeleteDialog(orgName string, memberCount int, confirm components.Confir
 							required
 							pattern={ orgName }
 							autocomplete="off"
-							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
+							class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 						/>
 					</div>
 					<label class="flex items-start gap-2 text-[12.5px] text-muted-foreground">
@@ -621,7 +621,7 @@ templ orgDeleteDialog(orgName string, memberCount int, confirm components.Confir
 			}
 			@components.DialogFooter() {
 				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete organization permanently</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Delete organization permanently</button>
 			}
 		</form>
 	}

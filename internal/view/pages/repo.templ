@@ -156,7 +156,7 @@ templ Repo(data view.RepoData) {
 									x-model="q"
 									type="search"
 									placeholder="Go to file"
-									class="w-48 h-8 pl-3 pr-9 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+									class="w-48 h-8 pl-3 pr-9 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
 								/>
 								<kbd class="font-mono absolute right-2 top-1.5 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground" aria-hidden="true">T</kbd>
 							</div>
@@ -226,7 +226,7 @@ templ Repo(data view.RepoData) {
 									</div>
 									<label for="clone-url" class="sr-only">Clone URL</label>
 									<div class="flex items-center gap-1.5">
-										<input id="clone-url" type="text" readonly :value="proto === 'https' ? urls.https : urls.ssh" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+										<input id="clone-url" type="text" readonly :value="proto === 'https' ? urls.https : urls.ssh" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-input rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 										<button
 											type="button"
 											x-on:click="navigator.clipboard.writeText(proto === 'https' ? urls.https : urls.ssh); copied = true; setTimeout(() => copied = false, 1500)"
@@ -544,15 +544,15 @@ templ Repo(data view.RepoData) {
 						<div class="space-y-4">
 							<div>
 								<label for="edit-desc" class="block text-[12px] font-medium mb-1.5">Description</label>
-								<textarea id="edit-desc" name="description" rows="3" class="w-full px-3 py-2 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-none">{ data.Repo.Description }</textarea>
+								<textarea id="edit-desc" name="description" rows="3" class="w-full px-3 py-2 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-none">{ data.Repo.Description }</textarea>
 							</div>
 							<div>
 								<label for="edit-site" class="block text-[12px] font-medium mb-1.5">Website</label>
-								<input id="edit-site" name="website" type="text" value={ data.Repo.Website } placeholder="https://example.com" class="w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+								<input id="edit-site" name="website" type="text" value={ data.Repo.Website } placeholder="https://example.com" class="w-full h-9 px-3 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 							</div>
 							<div>
 								<label for="edit-license" class="block text-[12px] font-medium mb-1.5">License</label>
-								<input id="edit-license" name="license" type="text" value={ data.Repo.License } placeholder="MIT, Apache-2.0, BSL 1.1…" class="w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+								<input id="edit-license" name="license" type="text" value={ data.Repo.License } placeholder="MIT, Apache-2.0, BSL 1.1…" class="w-full h-9 px-3 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 							</div>
 						</div>
 					}

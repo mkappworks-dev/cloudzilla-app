@@ -65,37 +65,37 @@
           <div id="profile-form-error" class="empty:hidden"></div>
           <div>
             <label for="acct-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
-            <input id="acct-name" name="name" type="text" value="Malith Kuruppu" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="acct-name" name="name" type="text" value="Malith Kuruppu" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
           </div>
           <div>
             <label for="acct-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
-            <input id="acct-username" type="text" value="mkappworks" readonly class="w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-hidden"/>
+            <input id="acct-username" type="text" value="mkappworks" readonly class="w-full bg-muted/50 border border-input rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-hidden"/>
             <p class="mt-1 text-[11.5px] text-muted-foreground">Usernames can't be changed.</p>
           </div>
           <div>
             <label for="acct-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Email</label>
-            <input id="acct-email" name="email" type="email" value="info.mkappworks@gmail.com" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="acct-email" name="email" type="email" value="info.mkappworks@gmail.com" required class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
             <p class="mt-1 text-[11.5px] text-muted-foreground">Used for sign-in and notifications. A new address has to be verified again.</p>
             <div id="email-confirm" hidden class="mt-3 flex flex-wrap items-end gap-3">
               <div class="min-w-0">
                 <label for="email-change-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-                <input id="email-change-password" name="password" type="password" autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+                <input id="email-change-password" name="password" type="password" autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
               </div>
               <p class="basis-full text-[11.5px] text-muted-foreground">Changing your email needs your password.</p>
             </div>
           </div>
           <div>
             <label for="acct-bio" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Bio</label>
-            <textarea id="acct-bio" name="bio" rows="3" placeholder="A short description of yourself" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring">Building Cloudzilla, a self-hosted Git forge. Go, HTMX and too much Tailwind.</textarea>
+            <textarea id="acct-bio" name="bio" rows="3" placeholder="A short description of yourself" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring">Building Cloudzilla, a self-hosted Git forge. Go, HTMX and too much Tailwind.</textarea>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="acct-company" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Company</label>
-              <input id="acct-company" name="company" type="text" value="Benchlabs" placeholder="Company or @organization" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+              <input id="acct-company" name="company" type="text" value="Benchlabs" placeholder="Company or @organization" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
             </div>
             <div>
               <label for="acct-location" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Location</label>
-              <input id="acct-location" name="location" type="text" value="Colombo, Sri Lanka" placeholder="City, Country" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+              <input id="acct-location" name="location" type="text" value="Colombo, Sri Lanka" placeholder="City, Country" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
             </div>
           </div>
           <div class="flex items-center justify-end gap-2">
@@ -175,11 +175,11 @@
               <form id="totp-enable" onsubmit="return false" class="flex flex-wrap items-end gap-3">
                 <div class="min-w-0">
                   <label for="totp-enable-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-                  <input id="totp-enable-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+                  <input id="totp-enable-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
                 </div>
                 <div>
                   <label for="totp-enable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Enter the 6-digit code from your app</label>
-                  <input id="totp-enable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-hidden focus:border-ring"/>
+                  <input id="totp-enable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-input rounded-md px-3 py-2 text-foreground focus:outline-hidden focus:border-ring"/>
                 </div>
                 <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Verify &amp; enable</button>
               </form>
@@ -187,11 +187,11 @@
             <form id="totp-disable" hidden onsubmit="return false" class="mt-4 flex flex-wrap items-end gap-3">
               <div class="min-w-0">
                 <label for="totp-disable-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-                <input id="totp-disable-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+                <input id="totp-disable-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
               </div>
               <div>
                 <label for="totp-disable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Verification code</label>
-                <input id="totp-disable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-hidden focus:border-ring"/>
+                <input id="totp-disable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-input rounded-md px-3 py-2 text-foreground focus:outline-hidden focus:border-ring"/>
               </div>
               <button type="submit" class="h-9 px-4 text-sm rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10">Disable 2FA</button>
             </form>
@@ -214,7 +214,7 @@
               <form onsubmit="return false" class="mt-3 flex flex-wrap items-end gap-3">
                 <div class="min-w-0">
                   <label for="google-connect-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-                  <input id="google-connect-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+                  <input id="google-connect-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
                 </div>
                 <button type="submit" class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Connect Google</button>
               </form>
@@ -407,11 +407,11 @@
             <form onsubmit="return false" class="hidden mt-3 pt-3 border-t border-border space-y-3">
               <div>
                 <label for="reply-title-1" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
-                <input id="reply-title-1" name="title" type="text" value="Thanks for the report" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+                <input id="reply-title-1" name="title" type="text" value="Thanks for the report" required class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
               </div>
               <div>
                 <label for="reply-body-1" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Content</label>
-                <textarea id="reply-body-1" name="body" rows="4" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring">Thanks for opening this. I can reproduce it on main and will follow up here once there's a fix.</textarea>
+                <textarea id="reply-body-1" name="body" rows="4" required class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring">Thanks for opening this. I can reproduce it on main and will follow up here once there's a fix.</textarea>
               </div>
               <div class="flex justify-end gap-2">
                 <button type="button" data-cancel-edit class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground">Cancel</button>
@@ -510,10 +510,10 @@
             <form method="POST" action="#" onsubmit="return confirm('Permanently delete @mkappworks? This cannot be undone.') && false" class="shrink-0 flex flex-wrap items-end gap-2">
               <div class="min-w-0">
                 <label for="delete-account-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-                <input id="delete-account-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+                <input id="delete-account-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
               </div>
-              <div class="space-y-1"><label for="delete-account-username" class="block text-[11.5px] text-muted-foreground">Type your username to confirm</label><input id="delete-account-username" type="text" name="confirm_username" placeholder="mkappworks" required autocomplete="off" class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring"/></div>
-              <button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete account</button>
+              <div class="space-y-1"><label for="delete-account-username" class="block text-[11.5px] text-muted-foreground">Type your username to confirm</label><input id="delete-account-username" type="text" name="confirm_username" placeholder="mkappworks" required autocomplete="off" class="h-8 w-44 bg-background border border-input rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring"/></div>
+              <button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Delete account</button>
             </form>
           </li>
         </ul>
@@ -532,16 +532,16 @@
         <div class="space-y-4">
           <div class="basis-full min-w-0">
             <label for="password-change-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-            <input id="password-change-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="password-change-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
           </div>
           <div>
             <label for="new-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New password</label>
-            <input id="new-password" name="new_password" type="password" required minlength="8" autocomplete="new-password" aria-describedby="new-password-help" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="new-password" name="new_password" type="password" required minlength="8" autocomplete="new-password" aria-describedby="new-password-help" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
             <p id="new-password-help" class="mt-1 text-[11.5px] text-muted-foreground">At least 8 characters.</p>
           </div>
           <div>
             <label for="new-password-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Confirm new password</label>
-            <input id="new-password-confirm" name="new_password_confirm" type="password" required minlength="8" autocomplete="new-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="new-password-confirm" name="new_password_confirm" type="password" required minlength="8" autocomplete="new-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
           </div>
         </div>
       </div>
@@ -562,16 +562,16 @@
         <div class="space-y-4">
           <div>
             <label for="key-title" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
-            <input id="key-title" name="title" type="text" required placeholder="e.g. laptop" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="key-title" name="title" type="text" required placeholder="e.g. laptop" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
           </div>
           <div>
             <label for="public-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Public key</label>
-            <textarea id="public-key" name="public_key" rows="5" required placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
+            <textarea id="public-key" name="public_key" rows="5" required placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
           </div>
           <div class="flex flex-wrap items-end gap-3">
             <div class="min-w-0">
               <label for="ssh-key-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-              <input id="ssh-key-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+              <input id="ssh-key-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
             </div>
           </div>
         </div>
@@ -593,7 +593,7 @@
         <div class="space-y-4">
           <div>
             <label for="token-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
-            <input id="token-name" name="name" type="text" required placeholder="e.g. CI deploy" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="token-name" name="name" type="text" required placeholder="e.g. CI deploy" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
           </div>
           <fieldset>
             <legend class="block text-[12px] font-medium text-muted-foreground mb-1.5">Scopes</legend>
@@ -608,23 +608,23 @@
           </fieldset>
           <div>
             <label for="token-targets" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repositories and organizations (required with repo:admin)</label>
-            <textarea id="token-targets" name="targets" rows="2" placeholder="acme/app" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
+            <textarea id="token-targets" name="targets" rows="2" placeholder="acme/app" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
             <p class="text-[11px] text-muted-foreground mt-1">One per line: a repository you manage as <span class="font-mono">owner/repo</span>, or an organization you own, which covers its settings and all its repositories. The token can't touch anything else.</p>
           </div>
           <div>
             <label for="token-signing-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Signing key (required with repo:admin)</label>
-            <textarea id="token-signing-key" name="signing_key" rows="2" placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
+            <textarea id="token-signing-key" name="signing_key" rows="2" placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
             <p class="text-[11px] text-muted-foreground mt-1">An SSH public key, which can live on a hardware key (sk-). Every request with this token must then be signed with its private key (<span class="font-mono">ssh-keygen -Y sign</span>), so the token alone is useless to anyone who copies it.</p>
           </div>
           <div>
             <label for="token-expires" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Expiration (optional)</label>
-            <input id="token-expires" name="expires_at" type="date" class="bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="token-expires" name="expires_at" type="date" class="bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
             <p class="text-[11px] text-muted-foreground mt-1">Leave blank for a non-expiring token.</p>
           </div>
           <div class="flex flex-wrap items-end gap-3">
             <div class="min-w-0">
               <label for="token-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-              <input id="token-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+              <input id="token-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
             </div>
           </div>
         </div>
@@ -646,20 +646,20 @@
         <div class="space-y-4">
           <div>
             <label for="oauth-app-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Application name</label>
-            <input id="oauth-app-name" name="name" type="text" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="oauth-app-name" name="name" type="text" required class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
           </div>
           <div>
             <label for="oauth-app-homepage" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Homepage URL</label>
-            <input id="oauth-app-homepage" name="homepage_url" type="url" placeholder="https://example.com" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="oauth-app-homepage" name="homepage_url" type="url" placeholder="https://example.com" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
           </div>
           <div>
             <label for="oauth-app-redirect" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Redirect URI</label>
-            <input id="oauth-app-redirect" name="redirect_uri" type="url" placeholder="https://example.com/callback" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="oauth-app-redirect" name="redirect_uri" type="url" placeholder="https://example.com/callback" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
             <p class="text-[11px] text-muted-foreground mt-1">Leave blank to accept any redirect URI.</p>
           </div>
           <div>
             <label for="oauth-app-desc" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Description (optional)</label>
-            <textarea id="oauth-app-desc" name="description" rows="3" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"></textarea>
+            <textarea id="oauth-app-desc" name="description" rows="3" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"></textarea>
           </div>
         </div>
       </div>
@@ -680,11 +680,11 @@
         <div class="space-y-4">
           <div>
             <label for="reply-title" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
-            <input id="reply-title" name="title" type="text" required placeholder="e.g. Thanks for the report" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            <input id="reply-title" name="title" type="text" required placeholder="e.g. Thanks for the report" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
           </div>
           <div>
             <label for="reply-body" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Content</label>
-            <textarea id="reply-body" name="body" rows="5" required placeholder="Your reusable comment text…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"></textarea>
+            <textarea id="reply-body" name="body" rows="5" required placeholder="Your reusable comment text…" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"></textarea>
           </div>
         </div>
       </div>
@@ -702,7 +702,7 @@
     <p id="cz-confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
     <div class="flex justify-end gap-2">
       <button type="button" id="cz-confirm-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-      <button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirm</button>
+      <button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Confirm</button>
     </div>
   </div>
 </dialog>

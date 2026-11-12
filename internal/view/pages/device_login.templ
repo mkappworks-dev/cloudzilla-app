@@ -23,7 +23,7 @@ templ DeviceEntry(data view.DeviceEntryData) {
 					<div role="alert" class="border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]">{ data.Error }</div>
 				}
 				<form method="POST" action="/login/device" class="space-y-4">
-					<input name="user_code" type="text" required autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="XXXX-XXXX" aria-label="Device code" class="h-11 w-full font-mono text-center text-xl tracking-widest uppercase bg-background border border-border rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring"/>
+					<input name="user_code" type="text" required autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="XXXX-XXXX" aria-label="Device code" class="h-11 w-full font-mono text-center text-xl tracking-widest uppercase bg-background border border-input rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring"/>
 					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 						Continue
 					}

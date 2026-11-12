@@ -363,7 +363,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if data.Release.IsDraft {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<button type=\"button\" onclick=\"document.getElementById('rel-publish-dialog').showModal()\" class=\"flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium bg-success text-success-foreground hover:bg-success/90\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"shrink-0\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z\"></path></svg> <span>Publish release</span></button> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<button type=\"button\" onclick=\"document.getElementById('rel-publish-dialog').showModal()\" class=\"flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium bg-success-fill text-success-fill-foreground hover:bg-success-fill/90\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"shrink-0\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z\"></path></svg> <span>Publish release</span></button> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -563,7 +563,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "\" hx-swap=\"none\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-success text-success-foreground hover:bg-success/90\">Publish release</button>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "\" hx-swap=\"none\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-success-fill text-success-fill-foreground hover:bg-success-fill/90\">Publish release</button>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -900,7 +900,7 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "\" hx-target=\"body\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90\">Delete release</button>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "\" hx-target=\"body\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90\">Delete release</button>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

@@ -10,24 +10,28 @@ translating an older mock or snippet.
 
 ## Token reference (CSS variables)
 
-| Mockup variable   | shadcn variable in `tailwind/input.css`   | Tailwind utility             |
-| ----------------- | ----------------------------------------- | ---------------------------- |
-| `--bg`            | `--background`                            | `bg-background`              |
-| `--surface`       | `--card`                                  | `bg-card`                    |
-| `--elevated`      | `--accent`                                | `bg-accent`                  |
-| `--border`        | `--border`                                | `border-border`              |
-| `--border-strong` | `--border-strong` (new — added in Task 3) | `border-border-strong`       |
-| `--fg`            | `--foreground`                            | `text-foreground`            |
-| `--fg-2`          | `--muted-foreground`                      | `text-muted-foreground`      |
-| `--fg-3`          | `--muted-foreground` at 70% opacity       | `text-muted-foreground/70`   |
-| `--focus`         | `--ring`                                  | `focus-visible:outline-ring` |
-| `--link`          | `--primary`                               | `text-primary`               |
-| `--success`       | `--success`                               | `text-success`, `bg-success` |
-| `--warn`          | `--warning`                               | `text-warning`               |
-| `--danger`        | `--destructive`                           | `text-destructive`           |
+| Mockup variable   | shadcn variable in `tailwind/input.css`   | Tailwind utility                                                                                       |
+| ----------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `--bg`            | `--background`                            | `bg-background`                                                                                        |
+| `--surface`       | `--card`                                  | `bg-card`                                                                                              |
+| `--elevated`      | `--accent`                                | `bg-accent`                                                                                            |
+| `--border`        | `--border`                                | `border-border`                                                                                        |
+| `--border-strong` | `--border-strong` (new — added in Task 3) | `border-border-strong`                                                                                 |
+| `--fg`            | `--foreground`                            | `text-foreground`                                                                                      |
+| `--fg-2`          | `--muted-foreground`                      | `text-muted-foreground`                                                                                |
+| `--fg-3`          | `--muted-foreground` at 70% opacity       | `text-muted-foreground/70`                                                                             |
+| `--focus`         | `--ring`                                  | `focus-visible:outline-ring`                                                                           |
+| `--link`          | `--primary`                               | `text-primary`                                                                                         |
+| `--success`       | `--success`                               | `text-success`, `bg-success`                                                                           |
+| `--warn`          | `--warning`                               | `text-warning`                                                                                         |
+| `--danger`        | `--destructive`                           | `text-destructive`                                                                                     |
+| (solid button)    | `--success-fill`, `--destructive-fill`    | `bg-success-fill text-success-fill-foreground`, `bg-destructive-fill text-destructive-fill-foreground` |
+| (field border)    | `--input`                                 | `border-input`                                                                                         |
 
 Utilities reach these variables through the `@theme inline` block in `tailwind/input.css`; a new token needs a
-`--color-*` entry there too.
+`--color-*` entry there too. Solid buttons use the `*-fill` pair, not `bg-success`/`bg-destructive`: those are tuned as
+text on dark surfaces and turn neon or salmon as a fill. Form fields use `border-input`, which is stronger than
+`border-border` in dark.
 
 ## Utility classes
 

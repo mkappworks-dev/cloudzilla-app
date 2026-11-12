@@ -157,14 +157,14 @@ func RepoFork(data view.RepoForkData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></div></div><div><label for=\"fork-description\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label> <textarea id=\"fork-description\" name=\"description\" rows=\"2\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" class=\"w-full bg-background border border-input rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></div></div><div><label for=\"fork-description\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label> <textarea id=\"fork-description\" name=\"description\" rows=\"2\" class=\"w-full bg-background border border-input rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.Description)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 51, Col: 262}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 51, Col: 261}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {

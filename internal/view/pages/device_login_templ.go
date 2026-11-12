@@ -71,7 +71,7 @@ func DeviceEntry(data view.DeviceEntryData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<form method=\"POST\" action=\"/login/device\" class=\"space-y-4\"><input name=\"user_code\" type=\"text\" required autocomplete=\"off\" autocapitalize=\"characters\" spellcheck=\"false\" maxlength=\"9\" placeholder=\"XXXX-XXXX\" aria-label=\"Device code\" class=\"h-11 w-full font-mono text-center text-xl tracking-widest uppercase bg-background border border-border rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<form method=\"POST\" action=\"/login/device\" class=\"space-y-4\"><input name=\"user_code\" type=\"text\" required autocomplete=\"off\" autocapitalize=\"characters\" spellcheck=\"false\" maxlength=\"9\" placeholder=\"XXXX-XXXX\" aria-label=\"Device code\" class=\"h-11 w-full font-mono text-center text-xl tracking-widest uppercase bg-background border border-input rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

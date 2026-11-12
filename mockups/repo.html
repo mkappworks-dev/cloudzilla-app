@@ -70,7 +70,7 @@
       <div hidden data-dropdown-panel role="menu" aria-label="Switch branches and tags" class="absolute left-0 top-full mt-1.5 z-50 w-[300px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1">
         <div class="px-1.5 pb-1.5">
           <label for="branch-filter" class="sr-only">Find a branch or tag</label>
-          <input id="branch-filter" type="search" data-ref-filter placeholder="Find a branch or tag…" class="w-full h-7 px-2.5 text-[12px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+          <input id="branch-filter" type="search" data-ref-filter placeholder="Find a branch or tag…" class="w-full h-7 px-2.5 text-[12px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
         </div>
         <p class="px-2.5 pt-1 pb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Branches</p>
         <a href="repo.html" role="menuitem" data-ref="main" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent bg-accent">
@@ -107,7 +107,7 @@
           <div class="ml-auto flex items-center gap-1.5">
             <div class="relative">
               <label for="file-finder" class="sr-only">Go to file</label>
-              <input id="file-finder" type="search" placeholder="Go to file" class="w-48 h-8 pl-3 pr-9 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+              <input id="file-finder" type="search" placeholder="Go to file" class="w-48 h-8 pl-3 pr-9 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
               <kbd class="font-mono absolute right-2 top-1.5 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground" aria-hidden="true">T</kbd>
             </div>
 
@@ -142,7 +142,7 @@
                 </div>
                 <label for="clone-url" class="sr-only">Clone URL</label>
                 <div class="flex items-center gap-1.5">
-                  <input id="clone-url" type="text" readonly value="http://localhost:8080/mkappworks/cloudzilla.git" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+                  <input id="clone-url" type="text" readonly value="http://localhost:8080/mkappworks/cloudzilla.git" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-input rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
                   <button type="button" data-copy-url class="h-8 w-8 grid place-items-center border border-border rounded-md hover:bg-accent shrink-0" aria-label="Copy clone URL">
                     <svg data-icon-copy width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
                     <svg data-icon-done hidden class="text-success" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
@@ -693,15 +693,15 @@ make dev</code></pre>
         <div class="space-y-4">
           <div>
             <label for="edit-desc" class="block text-[12px] font-medium mb-1.5">Description</label>
-            <textarea id="edit-desc" name="description" rows="3" class="w-full px-3 py-2 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-none">Self-hosted Git forge in Go: issues, pull requests, code review and CI, with pure-Go git transport.</textarea>
+            <textarea id="edit-desc" name="description" rows="3" class="w-full px-3 py-2 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-none">Self-hosted Git forge in Go: issues, pull requests, code review and CI, with pure-Go git transport.</textarea>
           </div>
           <div>
             <label for="edit-site" class="block text-[12px] font-medium mb-1.5">Website</label>
-            <input id="edit-site" name="website" type="text" value="https://cloudzilla.dev" placeholder="https://example.com" class="w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+            <input id="edit-site" name="website" type="text" value="https://cloudzilla.dev" placeholder="https://example.com" class="w-full h-9 px-3 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
           </div>
           <div>
             <label for="edit-license" class="block text-[12px] font-medium mb-1.5">License</label>
-            <input id="edit-license" name="license" type="text" value="BSL 1.1" placeholder="MIT, Apache-2.0, BSL 1.1…" class="w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+            <input id="edit-license" name="license" type="text" value="BSL 1.1" placeholder="MIT, Apache-2.0, BSL 1.1…" class="w-full h-9 px-3 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
           </div>
         </div>
       </div>

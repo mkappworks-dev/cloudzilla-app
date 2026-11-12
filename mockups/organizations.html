@@ -105,7 +105,7 @@
     document.getElementById('cz-confirm-msg').textContent = b.dataset.confirm || '';
     ok.textContent = b.dataset.confirmLabel || 'Confirm';
     ok.className = 'inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 ' + (b.hasAttribute('data-confirm-danger')
-      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
+      ? 'bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
     done = cb;
     dlg.returnValue = '';
     dlg.showModal();

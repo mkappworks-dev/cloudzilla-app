@@ -232,7 +232,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " autocomplete=\"current-password\" class=\"h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " autocomplete=\"current-password\" class=\"h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -289,7 +289,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, " autocomplete=\"one-time-code\" placeholder=\"000000\" class=\"h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring\"></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, " autocomplete=\"one-time-code\" placeholder=\"000000\" class=\"h-9 w-32 font-mono text-center text-base bg-background border border-input rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring\"></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -435,7 +435,7 @@ func confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) t
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" class=\"h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring\"> <button type=\"button\" hx-post=\"/settings/confirm-code\" hx-on::config:request=\"ctx.request.body = new FormData()\" hx-target=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" class=\"h-9 w-32 font-mono text-center text-base bg-background border border-input rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring\"> <button type=\"button\" hx-post=\"/settings/confirm-code\" hx-on::config:request=\"ctx.request.body = new FormData()\" hx-target=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -546,7 +546,7 @@ func ConfirmNameField(idPrefix, name string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "\" data-pattern-message=\"Type the name exactly as shown.\" autocomplete=\"off\" spellcheck=\"false\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring\"></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "\" data-pattern-message=\"Type the name exactly as shown.\" autocomplete=\"off\" spellcheck=\"false\" class=\"w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -161,7 +161,7 @@
         </div>
         <div class="min-w-0">
           <label for="collab-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-          <input id="collab-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+          <input id="collab-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
         </div>
         <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add</button>
       </form>
@@ -448,9 +448,9 @@
         <input id="transfer-new-owner" type="text" name="new_owner" placeholder="User or organization name" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
         <div class="min-w-0">
             <label for="transfer-repo-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-            <input id="transfer-repo-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+            <input id="transfer-repo-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
           </div>
-        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-4 text-sm">Transfer</button>
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90 h-9 px-4 text-sm">Transfer</button>
       </div>
     </form>
   </div>
@@ -491,7 +491,7 @@
       </label>
       <div class="min-w-0">
             <label for="deploy-key-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-            <input id="deploy-key-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+            <input id="deploy-key-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
           </div>
     </form>
   </div>
@@ -584,7 +584,7 @@
       </div>
       <div class="min-w-0">
             <label for="webhook-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-            <input id="webhook-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+            <input id="webhook-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
           </div>
     </form>
   </div>
@@ -607,7 +607,7 @@
             Type <span class="font-mono text-foreground">cloudzilla</span> to confirm
             <span class="text-destructive" aria-hidden="true">*</span>
           </label>
-          <input id="visibility-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+          <input id="visibility-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
         </div>
         <div class="flex flex-wrap items-end gap-3 hidden" id="visibility-pw">
           <div data-field class="min-w-0 basis-full">
@@ -616,7 +616,7 @@
               <span class="text-destructive" aria-hidden="true">*</span>
             </label>
             <div class="relative">
-              <input type="password" id="visibility-password" name="password" required autocomplete="current-password" class="h-9 w-full bg-background border border-border rounded-md pl-3 pr-10 text-[13px] text-foreground focus:outline-hidden focus:border-ring aria-invalid:border-destructive aria-invalid:focus:border-destructive [&::-ms-reveal]:hidden" />
+              <input type="password" id="visibility-password" name="password" required autocomplete="current-password" class="h-9 w-full bg-background border border-input rounded-md pl-3 pr-10 text-[13px] text-foreground focus:outline-hidden focus:border-ring aria-invalid:border-destructive aria-invalid:focus:border-destructive [&::-ms-reveal]:hidden" />
               <button type="button" data-password-reveal aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
@@ -628,7 +628,7 @@
     </div>
     <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
       <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-      <button type="submit" id="visibility-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Make private</button>
+      <button type="submit" id="visibility-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Make private</button>
     </div>
   </form>
 </dialog>
@@ -646,13 +646,13 @@
             Type <span class="font-mono text-foreground">cloudzilla</span> to confirm
             <span class="text-destructive" aria-hidden="true">*</span>
           </label>
-          <input id="archive-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+          <input id="archive-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
         </div>
       </div>
     </div>
     <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
       <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-      <button type="submit" id="archive-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Archive repository</button>
+      <button type="submit" id="archive-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Archive repository</button>
     </div>
   </form>
 </dialog>
@@ -670,7 +670,7 @@
             Type <span class="font-mono text-foreground">cloudzilla</span> to confirm
             <span class="text-destructive" aria-hidden="true">*</span>
           </label>
-          <input id="delete-repo-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+          <input id="delete-repo-confirm-name" name="confirm_name" type="text" required pattern="cloudzilla" autocomplete="off" spellcheck="false" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
         </div>
         <div class="flex flex-wrap items-end gap-3">
           <div data-field class="min-w-0 basis-full">
@@ -679,7 +679,7 @@
               <span class="text-destructive" aria-hidden="true">*</span>
             </label>
             <div class="relative">
-              <input type="password" id="delete-repo-password" name="password" required autocomplete="current-password" class="h-9 w-full bg-background border border-border rounded-md pl-3 pr-10 text-[13px] text-foreground focus:outline-hidden focus:border-ring aria-invalid:border-destructive aria-invalid:focus:border-destructive [&::-ms-reveal]:hidden" />
+              <input type="password" id="delete-repo-password" name="password" required autocomplete="current-password" class="h-9 w-full bg-background border border-input rounded-md pl-3 pr-10 text-[13px] text-foreground focus:outline-hidden focus:border-ring aria-invalid:border-destructive aria-invalid:focus:border-destructive [&::-ms-reveal]:hidden" />
               <button type="button" data-password-reveal aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
@@ -691,7 +691,7 @@
     </div>
     <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
       <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-      <button type="submit" id="delete-repo-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete repository</button>
+      <button type="submit" id="delete-repo-dialog-submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Delete repository</button>
     </div>
   </form>
 </dialog>
@@ -758,7 +758,7 @@
     document.getElementById('cz-confirm-msg').textContent = b.dataset.confirm || '';
     confirmOk.textContent = b.dataset.confirmLabel || 'Confirm';
     confirmOk.className = OK_BASE + (b.hasAttribute('data-confirm-danger')
-      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+      ? 'bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90'
       : 'bg-primary text-primary-foreground hover:bg-primary/90');
     confirmDone = done;
     confirmDlg.returnValue = '';
@@ -824,7 +824,7 @@
   var archived = false;
   var archiveBtn = document.getElementById('archive-btn');
   var ARCHIVE_DANGER = 'border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive';
-  var ARCHIVE_OK = 'bg-success text-success-foreground hover:bg-success/90';
+  var ARCHIVE_OK = 'bg-success-fill text-success-fill-foreground hover:bg-success-fill/90';
   function setArchived(next) {
     archived = next;
     var banner = document.getElementById('archived-banner');

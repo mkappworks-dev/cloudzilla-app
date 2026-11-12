@@ -169,7 +169,7 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 							hx-vals={ `{"is_draft":"false"}` }
 							hx-swap="none"
 							hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Marked ready for review'}));location.reload();}"
-							class="h-9 px-4 text-[13px] font-medium rounded-md bg-success text-success-foreground hover:bg-success/90"
+							class="h-9 px-4 text-[13px] font-medium rounded-md bg-success-fill text-success-fill-foreground hover:bg-success-fill/90"
 						>
 							Ready for review
 						</button>
@@ -322,7 +322,7 @@ templ mergeSplitButton(d MergeabilityBoxData, auto bool) {
 					:aria-expanded="open ? 'true' : 'false'"
 					aria-haspopup="menu"
 					aria-label="Choose merge strategy"
-					class="h-9 px-2.5 grid place-items-center bg-success text-success-foreground hover:opacity-90 border-l border-success-foreground/25"
+					class="h-9 px-2.5 grid place-items-center bg-success-fill text-success-fill-foreground hover:opacity-90 border-l border-success-fill-foreground/25"
 				>
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg>
 				</button>
@@ -366,7 +366,7 @@ templ mergePrimaryButton(d MergeabilityBoxData, auto bool, defKey, defLabel, rou
 		} else {
 			x-on:click="begin()"
 		}
-		class={ "h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5", rounded }
+		class={ "h-9 px-4 text-[13px] font-medium bg-success-fill text-success-fill-foreground hover:opacity-90 inline-flex items-center gap-1.5", rounded }
 	>
 		@mergeStrategyIcon(defKey)
 		if auto {
@@ -412,7 +412,7 @@ templ mergeConfirmDialog(d MergeabilityBoxData) {
 				:hx-vals="JSON.stringify({ state: 'merged', merge_strategy: strategy, merge_title: title, merge_message: message })"
 				hx-swap="none"
 				hx-on::after:request={ templ.JSUnsafeFuncCall(mergeAfter(false)) }
-				class="inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium h-9 px-4 bg-success text-success-foreground hover:bg-success/90"
+				class="inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium h-9 px-4 bg-success-fill text-success-fill-foreground hover:bg-success-fill/90"
 			>
 				Confirm merge
 			</button>
@@ -525,9 +525,9 @@ func mergeHeaderClass(st mergeState) string {
 func mergeIconClass(st mergeState) string {
 	switch st {
 	case mergeReady:
-		return "bg-success text-success-foreground"
+		return "bg-success-fill text-success-fill-foreground"
 	case mergeConflicts, mergeChangesRequested, mergeChecksFailing:
-		return "bg-destructive text-destructive-foreground"
+		return "bg-destructive-fill text-destructive-fill-foreground"
 	case mergeChecking, mergeNeedsReview, mergeChecksPending:
 		return "bg-warning text-warning-foreground"
 	default:

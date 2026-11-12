@@ -53,7 +53,7 @@ templ ListFilterBar(d ListFilterData) {
 					<circle cx="11" cy="11" r="7"></circle>
 					<path d="M21 21l-4.3-4.3"></path>
 				</svg>
-				<input id="list-filter-search" type="search" name="q" value={ d.Text } placeholder={ d.Placeholder } autocomplete="off" class="h-8 w-full pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+				<input id="list-filter-search" type="search" name="q" value={ d.Text } placeholder={ d.Placeholder } autocomplete="off" class="h-8 w-full pl-8 pr-3 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 			</form>
 			for _, m := range d.Menus {
 				@listFilterMenu(d.Action, m)
@@ -115,15 +115,15 @@ templ listFilterMenu(action string, m ListFilterMenu) {
 							<label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground">
 								if m.Multi {
 									if o.Checked {
-										<input type="checkbox" name="v" value={ o.Token } checked class="h-4 w-4 shrink-0 rounded-sm border-border"/>
+										<input type="checkbox" name="v" value={ o.Token } checked class="h-4 w-4 shrink-0 rounded-sm border-input"/>
 									} else {
-										<input type="checkbox" name="v" value={ o.Token } class="h-4 w-4 shrink-0 rounded-sm border-border"/>
+										<input type="checkbox" name="v" value={ o.Token } class="h-4 w-4 shrink-0 rounded-sm border-input"/>
 									}
 								} else {
 									if o.Checked {
-										<input type="radio" name="v" value={ o.Token } checked class="h-4 w-4 shrink-0 border-border"/>
+										<input type="radio" name="v" value={ o.Token } checked class="h-4 w-4 shrink-0 border-input"/>
 									} else {
-										<input type="radio" name="v" value={ o.Token } class="h-4 w-4 shrink-0 border-border"/>
+										<input type="radio" name="v" value={ o.Token } class="h-4 w-4 shrink-0 border-input"/>
 									}
 								}
 								if o.Color != "" {

@@ -179,7 +179,7 @@ func DiscussionDetail(data view.DiscussionDetailData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"flex-1 min-w-0 h-9 rounded-md border border-border bg-transparent px-3 text-sm\"> <button type=\"button\" hx-patch=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"flex-1 min-w-0 h-9 rounded-md border border-input bg-transparent px-3 text-sm\"> <button type=\"button\" hx-patch=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

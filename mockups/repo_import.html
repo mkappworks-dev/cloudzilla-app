@@ -26,7 +26,7 @@
     <form id="import-form" class="border border-border rounded-lg bg-card p-6 space-y-6">
       <div>
         <label for="import-url" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Source repository URL *</label>
-        <input id="import-url" name="clone_url" type="url" required autofocus placeholder="https://github.com/owner/repo.git" value="" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring font-mono" />
+        <input id="import-url" name="clone_url" type="url" required autofocus placeholder="https://github.com/owner/repo.git" value="" class="w-full bg-background border border-input rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring font-mono" />
         <p class="mt-1 text-[12px] text-muted-foreground/70">An HTTP or HTTPS clone URL. SSH URLs aren't supported.</p>
       </div>
 
@@ -43,7 +43,7 @@
         </label>
         <div id="mirror-interval-row" hidden class="flex items-center gap-2.5 pl-7">
           <label for="import-mirror-interval" class="text-[12px] font-medium text-muted-foreground">Sync every</label>
-          <select id="import-mirror-interval" name="mirror_interval" class="bg-background border border-border rounded-md px-2 py-1.5 text-[13px] text-foreground focus:outline-hidden focus:border-ring">
+          <select id="import-mirror-interval" name="mirror_interval" class="bg-background border border-input rounded-md px-2 py-1.5 text-[13px] text-foreground focus:outline-hidden focus:border-ring">
             <option value="15m">15 minutes</option>
             <option value="1h" selected>1 hour</option>
             <option value="6h">6 hours</option>
@@ -60,11 +60,11 @@
         <div id="import-credentials" hidden class="grid sm:grid-cols-2 gap-3">
           <div>
             <label for="import-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
-            <input id="import-username" name="auth_username" type="text" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+            <input id="import-username" name="auth_username" type="text" autocomplete="off" spellcheck="false" class="w-full bg-background border border-input rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
           </div>
           <div>
             <label for="import-token" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Access token</label>
-            <input id="import-token" name="auth_token" type="password" autocomplete="new-password" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+            <input id="import-token" name="auth_token" type="password" autocomplete="new-password" class="w-full bg-background border border-input rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
           </div>
           <p id="cred-once" class="sm:col-span-2 text-[12px] text-muted-foreground/70">Used once for this import and not stored. A token with read access to the repository is enough.</p>
           <p id="cred-stored" hidden class="sm:col-span-2 text-[12px] text-muted-foreground/70">Stored encrypted so the mirror can keep syncing, and never shown again. A token with read access to the repository is enough.</p>
@@ -90,7 +90,7 @@
         <span class="text-muted-foreground/70 pb-2.5" aria-hidden="true">/</span>
         <div>
           <label for="import-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
-          <input id="import-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" placeholder="my-repo" value="" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring font-mono" />
+          <input id="import-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" placeholder="my-repo" value="" class="w-full bg-background border border-input rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring font-mono" />
         </div>
       </div>
 
@@ -98,7 +98,7 @@
         <label for="import-description" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
           Description <span class="text-muted-foreground/70 font-normal">(optional)</span>
         </label>
-        <textarea id="import-description" name="description" rows="2" placeholder="A short description of your project" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"></textarea>
+        <textarea id="import-description" name="description" rows="2" placeholder="A short description of your project" class="w-full bg-background border border-input rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"></textarea>
       </div>
 
       <fieldset>

@@ -105,9 +105,9 @@ var (
 	labelBlack    = rgb{0, 0, 0}
 )
 
-// labelDarkSurface is the lightest surface a chip sits on in dark mode (--muted and --accent, 0 0% 10%, in
+// labelDarkSurface is the lightest surface a chip sits on in dark mode (--accent, 0 0% 15%, in
 // tailwind/input.css): the worst case for light text.
-var labelDarkSurface = rgb{0x1a, 0x1a, 0x1a}
+var labelDarkSurface = rgb{0x26, 0x26, 0x26}
 
 type rgb struct{ r, g, b uint8 }
 

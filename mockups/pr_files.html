@@ -125,7 +125,7 @@ git checkout daisy/oauth-scopes</pre>
           Commit suggestions
           <span class="font-mono text-[11px] text-muted-foreground">1</span>
         </button>
-        <button type="button" data-needs-write onclick="document.getElementById('review-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">
+        <button type="button" data-needs-write onclick="document.getElementById('review-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success-fill text-success-fill-foreground hover:bg-success-fill/90 h-8 px-3 text-[13px]">
           Review changes
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg>
         </button>
@@ -176,7 +176,7 @@ git checkout daisy/oauth-scopes</pre>
         <form method="dialog" class="contents">
           <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
         </form>
-        <button type="submit" form="review-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-9 px-4 text-sm">Submit review</button>
+        <button type="submit" form="review-form" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success-fill text-success-fill-foreground hover:bg-success-fill/90 h-9 px-4 text-sm">Submit review</button>
       </div>
     </dialog>
     <div id="diff-root" data-av="open" data-view="unified" class="grid lg:grid-cols-[260px_1fr] gap-4">
@@ -370,7 +370,7 @@ Suggested change
 </p>
 </div>
 <div data-when="pending" data-needs-write class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
-<button type="button" data-set="applied" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">Apply suggestion</button>
+<button type="button" data-set="applied" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success-fill text-success-fill-foreground hover:bg-success-fill/90 h-8 px-3 text-[13px]">Apply suggestion</button>
 <button type="button" data-set="batched" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add to batch</button>
 </div>
 <div data-when="batched" data-needs-write hidden class="px-3 py-2 border-t border-border flex flex-wrap items-center gap-2">
@@ -972,7 +972,7 @@ Suggested change
     });
 
     var FORM = '<td colspan="2" class="p-0"><form class="p-2 space-y-2">' +
-      '<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-border rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none"></textarea>' +
+      '<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-input rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none"></textarea>' +
       '<div class="flex gap-2"><button type="submit" class="px-3 py-1 bg-primary text-background rounded-sm text-xs font-medium hover:bg-primary">Comment</button>' +
       '<button type="button" data-cancel class="px-3 py-1 bg-background border border-border text-muted-foreground rounded-sm text-xs hover:bg-muted/40">Cancel</button></div></form></td>';
     var POSTED = '<td colspan="2" class="px-4 py-0"><div class="flex items-start gap-2 py-2"><span class="flex shrink-0 mt-0.5"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" aria-hidden="true">M</span></span>' +

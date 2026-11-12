@@ -39,7 +39,7 @@ templ RefPicker(p RefPickerProps) {
 		>
 			<div class="px-1.5 pb-1.5">
 				<label for="branch-filter" class="sr-only">Find a branch or tag</label>
-				<input id="branch-filter" type="search" x-model="bq" placeholder="Find a branch or tag…" class="w-full h-7 px-2.5 text-[12px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+				<input id="branch-filter" type="search" x-model="bq" placeholder="Find a branch or tag…" class="w-full h-7 px-2.5 text-[12px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 			</div>
 			if len(p.Branches) > 0 {
 				<p class="px-2.5 pt-1 pb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Branches</p>
