@@ -15,7 +15,7 @@ var (
 	favicon       = regexp.MustCompile(`href="/static/favicon\.svg"`)
 	// The view helpers count whole years off time.Now ("1y", "1y ago") for anything older than a year, which would
 	// change the committed output every year and fail the CI freshness check.
-	yearsAgo = regexp.MustCompile(`([\s>])\d+y( ago)?<`)
+	yearsAgo = regexp.MustCompile(`(<time\b[^>]*>(?:Updated )?)\d+y( ago)?</time>`)
 )
 
 // renderVariant renders the real component, then makes it a static mock: server.js builds the stylesheet, and the
@@ -36,7 +36,7 @@ func staticize(html []byte) ([]byte, error) {
 	html = scriptTag.ReplaceAll(html, nil)
 	html = mainCSS.ReplaceAll(html, []byte(`<link rel="stylesheet" href="/assets/tailwind.css"/>`))
 	html = codeThemesCSS.ReplaceAll(html, nil)
-	html = yearsAgo.ReplaceAll(html, []byte("${1}1y${2}<"))
+	html = yearsAgo.ReplaceAll(html, []byte("${1}1y${2}</time>"))
 	html = favicon.ReplaceAll(html, []byte(`href="/favicon.svg"`))
 	// The bootstrap sets the theme before paint; every other script is gone, so put it back at the end of <head>.
 	html = bytes.Replace(html, []byte("</head>"), append(append([]byte("\t"), boot...), []byte("\n\t</head>")...), 1)

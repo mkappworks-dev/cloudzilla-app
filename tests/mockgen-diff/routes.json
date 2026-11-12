@@ -117,7 +117,7 @@
         "why": "Website and License rows appear only when the repository sets them"
       },
       {
-        "match": "^button\\..*\\[aria-pressed,type\\]",
+        "match": "^button\\.(bg-warning/10 gap-1\\.5 h-8 hover:bg-warning/15|gap-1\\.5 h-8 hover:bg-accent) inline-flex items-center px-3 text-\\[13px\\]( text-warning)? \\[aria-pressed,type\\]",
         "why": "the seeded account has already starred this repository"
       }
     ]
