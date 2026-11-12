@@ -56,11 +56,11 @@
 (function () {
   var ITEMS = [
     { kind: 'reviews', label: 'Review', t: 'Rate-limit middleware', repo: 'acme-corp/api', n: 319, waiting: 'review requested 1d ago', age: 30, href: 'pr.html' },
-    { kind: 'mentions', label: 'Mention', t: 'Schema migration rollback plan', repo: 'acme-corp/db', n: 88, waiting: 'mentioned 8h ago', age: 8, href: 'issue_detail.html' },
-    { kind: 'assigned', label: 'Assigned', t: 'Replay window UI', repo: 'ingest-pipeline', n: 298, waiting: 'assigned 3d ago', age: 72, href: 'issue_detail.html' },
+    { kind: 'mentions', label: 'Mention', t: 'Schema migration rollback plan', repo: 'acme-corp/db', n: 88, waiting: 'mentioned 8h ago', age: 8, href: 'generated/issue_detail' },
+    { kind: 'assigned', label: 'Assigned', t: 'Replay window UI', repo: 'ingest-pipeline', n: 298, waiting: 'assigned 3d ago', age: 72, href: 'generated/issue_detail' },
     { kind: 'reviews', label: 'Review', t: 'Audit log filters', repo: 'acme-corp/api', n: 327, waiting: 'review requested 4d ago', age: 96, href: 'pr.html' },
-    { kind: 'assigned', label: 'Assigned', t: 'Flaky test on push', repo: 'cloudzilla', n: 312, waiting: 'assigned 2h ago', age: 2, href: 'issue_detail.html' },
-    { kind: 'mentions', label: 'Mention', t: 'Wiki search ignores titles', repo: 'cloudzilla', n: 305, waiting: 'mentioned 6d ago', age: 144, href: 'issue_detail.html' },
+    { kind: 'assigned', label: 'Assigned', t: 'Flaky test on push', repo: 'cloudzilla', n: 312, waiting: 'assigned 2h ago', age: 2, href: 'generated/issue_detail' },
+    { kind: 'mentions', label: 'Mention', t: 'Wiki search ignores titles', repo: 'cloudzilla', n: 305, waiting: 'mentioned 6d ago', age: 144, href: 'generated/issue_detail' },
     { kind: 'assigned', label: 'Assigned', t: 'Add OAuth scopes to access tokens', repo: 'cloudzilla', n: 341, waiting: 'assigned 5d ago', age: 120, href: 'pr.html' }
   ];
   var KIND = {

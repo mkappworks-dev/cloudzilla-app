@@ -343,7 +343,7 @@
     $('link-chip').hidden = !l;
     $('link-picker').hidden = !!l;
     if (l) {
-      $('link-anchor').href = l.kind === 'pull' ? 'pr.html' : 'issue_detail.html';
+      $('link-anchor').href = l.kind === 'pull' ? 'pr.html' : 'generated/issue_detail';
       $('link-anchor').innerHTML = '<span class="shrink-0 font-mono text-[11px] text-muted-foreground">' + (l.kind === 'pull' ? 'PR #' : '#') + l.num + '</span><span class="min-w-0 flex-1 truncate">' + esc(l.title) + '</span><span class="shrink-0 text-[11px] text-muted-foreground">' + l.state + '</span>';
     }
   }

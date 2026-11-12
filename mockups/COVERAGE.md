@@ -107,8 +107,7 @@ Mocks show the happy path. These real states are not drawn:
   a mock button draws the real busy state.
 - **Filters and navigation.** The command palette, organization people and repository tabs, and the profile README call
   to action.
-- **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, the issue template picker, and PR
-  diff error states.
+- **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, and PR diff error states.
 - **Admin mode.** `admin_mode.html` draws the page in both states (add `?admin_mode=1` for the running one), and any
   mock with `?admin_mode=1` or `data-admin-mode` on `#cz-header` shows the "Acting as instance admin" banner and drops
   "Enter admin mode" from the user menu. `forbidden.html` draws the 403 page, with the superadmin hint behind
