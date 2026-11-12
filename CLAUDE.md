@@ -39,7 +39,8 @@ outside `internal/view/` need their own `@source`.
 `<dialog>` go first or outside), and use `flex flex-col gap-*` when rows toggle with `x-show`.
 
 A new design mock is an HTML file beside the spec it serves, in `.scratch/<date>-<slug>/`. `mockups/` holds the standing
-mocks of the shipped pages (`make mockups`); change a page's mock in the same PR as the page.
+mocks of the shipped pages (`make mockups`): `mockups/generated/` is rendered from the templ components by
+`make mockups-generate` (commit the output), the rest is hand-written; change a page's mock in the same PR as the page.
 
 ## Static assets
 
