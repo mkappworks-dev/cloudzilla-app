@@ -13,7 +13,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// line-clamp-2 does the visible cut; this only bounds how much text each card sends.
+// The card clamps the visible lines; this only bounds how much text each card sends.
 const releaseExcerptRunes = 300
 
 func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +35,7 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 	rawReleases, err := h.Services.Release.ListByRepo(r.Context(), owner, repoName)
 	if err != nil {
 		slog.Error("releases: list failed", "owner", owner, "repo", repoName, "error", err)
-		http.Error(w, "failed to load releases", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	if rawReleases == nil {
@@ -49,8 +49,8 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 
 	releaseViews := make([]view.ReleaseView, len(rawReleases))
 	for i, rel := range rawReleases {
-		rv := view.ReleaseView{Release: rel, Excerpt: markdown.Excerpt(rel.Body, releaseExcerptRunes)}
-		if latest != nil && rel.ID == latest.ID {
+		rv := view.ReleaseView{Release: rel, Excerpt: markdown.ExcerptLines(rel.Body, releaseExcerptRunes)}
+		if latest != nil && rel.ID == latest.ID && !rel.IsPrerelease {
 			rv.IsLatest = true
 		}
 		releaseViews[i] = rv
@@ -139,7 +139,7 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 
 	isLatest := false
 	if latest, lErr := h.Services.Release.GetLatest(r.Context(), owner, repoName); lErr == nil && latest != nil {
-		isLatest = latest.ID == release.ID
+		isLatest = latest.ID == release.ID && !release.IsPrerelease
 	}
 
 	var commitSHA string

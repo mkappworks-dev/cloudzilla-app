@@ -20,13 +20,13 @@ func (h *Handler) PageSSOSettings(w http.ResponseWriter, r *http.Request) {
 	ldapCfg, err := h.Services.SSO.GetConfig(r.Context(), "ldap")
 	if err != nil {
 		slog.Error("failed to load ldap sso config", "error", err)
-		http.Error(w, "failed to load SSO configuration", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	samlCfg, err := h.Services.SSO.GetConfig(r.Context(), "saml")
 	if err != nil {
 		slog.Error("failed to load saml sso config", "error", err)
-		http.Error(w, "failed to load SSO configuration", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 

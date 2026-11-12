@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func issueLabelChips(labels []model.Label) []components.LabelChipData {
@@ -25,7 +26,7 @@ templ Issues(data view.IssuesData) {
 				<div class="min-w-0">
 					<h1 id="issues-title" class="text-2xl font-semibold tracking-tight">Issues</h1>
 				</div>
-				@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/issues/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+				@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/issues/new", components.ButtonDefault, components.ButtonSizeDefault, nil) {
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 						<path d="M12 5v14M5 12h14"></path>
 					</svg>
@@ -83,7 +84,7 @@ templ Issues(data view.IssuesData) {
 								Author:   issue.AuthorName,
 								State:    string(issue.State),
 								Private:  issue.Visibility == "private",
-								Time:     formatRelative(issue.CreatedAt),
+								Time:     timefmt.Relative(issue.CreatedAt),
 								Labels:   issueLabelChips(data.IssueLabels[issue.ID]),
 								Priority: issuePriority(issue.Priority),
 								Comments: data.CommentCounts[issue.ID],

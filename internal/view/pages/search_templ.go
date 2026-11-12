@@ -19,6 +19,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func Search(data view.SearchData) templ.Component {
@@ -85,7 +86,7 @@ func Search(data view.SearchData) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression("{ q: " + strconv.Quote(data.Query) + " }").Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 23, Col: 86}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 24, Col: 86}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 					if templ_7745c5c3_Err != nil {
@@ -135,7 +136,7 @@ func Search(data view.SearchData) templ.Component {
 						var templ_7745c5c3_Var6 string
 						templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Type).Resolve(ctx)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 55, Col: 57}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 56, Col: 57}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 						if templ_7745c5c3_Err != nil {
@@ -209,7 +210,7 @@ func Search(data view.SearchData) templ.Component {
 									Name:        repo.Name,
 									Description: repo.Description,
 									Private:     repo.Private,
-									Time:        "Updated " + compactRelative(repo.UpdatedAt),
+									Time:        "Updated " + timefmt.Relative(repo.UpdatedAt),
 									TimeISO:     repo.UpdatedAt.UTC().Format(time.RFC3339),
 									Query:       data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
@@ -280,7 +281,7 @@ func Search(data view.SearchData) templ.Component {
 									Author:  issue.AuthorName,
 									State:   string(issue.State),
 									Private: issue.Visibility == "private",
-									Time:    relativeTime(issue.CreatedAt),
+									Time:    timefmt.Relative(issue.CreatedAt),
 									Query:   data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
@@ -320,7 +321,7 @@ func Search(data view.SearchData) templ.Component {
 									Title:     pr.Title,
 									Author:    pr.AuthorName,
 									State:     pullRowState(string(pr.State), pr.IsDraft),
-									OpenedAt:  formatRelative(pr.CreatedAt),
+									OpenedAt:  timefmt.Relative(pr.CreatedAt),
 									Query:     data.Query,
 								}).Render(ctx, templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
@@ -430,7 +431,7 @@ func searchGroup(data view.SearchData, title string) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 145, Col: 109}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/search.templ`, Line: 146, Col: 109}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {

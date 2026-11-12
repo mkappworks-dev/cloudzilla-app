@@ -10,6 +10,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Home(data view.HomeData) {
@@ -61,7 +62,7 @@ templ Home(data view.HomeData) {
 					<dl class="grid grid-cols-2 md:grid-cols-4 border border-border rounded-md">
 						for i, it := range data.Stats {
 							<div class={ "p-5", templ.KV("border-l border-border", i > 0) }>
-								<dt class="text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-2">{ it.Label }</dt>
+								<dt class="text-[12px] font-mono text-muted-foreground uppercase tracking-wider mb-2">{ it.Label }</dt>
 								<dd class="text-2xl font-medium tracking-tight">
 									if it.Unavailable {
 										<span class="text-muted-foreground">—</span>
@@ -73,7 +74,7 @@ templ Home(data view.HomeData) {
 									}
 								</dd>
 								if it.Detail != "" {
-									<dd class="text-[11px] text-muted-foreground mt-1">{ it.Detail }</dd>
+									<dd class="text-[12px] text-muted-foreground mt-1">{ it.Detail }</dd>
 								}
 							</div>
 						}
@@ -138,7 +139,7 @@ templ Home(data view.HomeData) {
 											aria-label="Filter repositories"
 											class="absolute right-0 top-full mt-1.5 z-50 w-44 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
 										>
-											<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Type</div>
+											<div class="px-2 pt-1 pb-0.5 text-[12px] font-mono uppercase tracking-wider text-muted-foreground">Type</div>
 											for _, opt := range repoFilterOptions() {
 												<a
 													href={ templ.SafeURL(homeURL(data.RepoSort, opt.Value, data.HeatmapYear)) }
@@ -174,7 +175,7 @@ templ Home(data view.HomeData) {
 											aria-label="Sort repositories"
 											class="absolute right-0 top-full mt-1.5 z-50 w-48 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
 										>
-											<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>
+											<div class="px-2 pt-1 pb-0.5 text-[12px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>
 											for _, opt := range repoSortOptions() {
 												<a
 													href={ templ.SafeURL(homeURL(opt.Value, data.RepoFilter, data.HeatmapYear)) }
@@ -210,7 +211,7 @@ templ Home(data view.HomeData) {
 										<col style="width: 120px"/>
 									</colgroup>
 									<thead>
-										<tr class="border-b border-border text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+										<tr class="border-b border-border text-[12px] font-mono uppercase tracking-wider text-muted-foreground">
 											<th scope="col" class="border-l-2 border-l-transparent px-4 py-2.5 font-normal"><span class="sr-only">Visibility</span></th>
 											<th scope="col" class="px-4 py-2.5 font-normal">Name</th>
 											<th scope="col" class="px-4 py-2.5 font-normal">Language</th>
@@ -229,13 +230,13 @@ templ Home(data view.HomeData) {
 													<span class="text-muted-foreground mx-1" aria-hidden="true">/</span>
 													<span class="text-muted-foreground text-[12px]">{ repo.DefaultBranch }</span>
 													if repo.Private {
-														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span>
+														<span class="ml-1.5 inline-flex items-center text-[12px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span>
 													}
 													if repo.IsArchived {
-														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Archived</span>
+														<span class="ml-1.5 inline-flex items-center text-[12px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Archived</span>
 													}
 													if repo.Description != "" {
-														<p class="text-[11px] text-muted-foreground truncate mt-0.5 font-normal">{ repo.Description }</p>
+														<p class="text-[12px] text-muted-foreground truncate mt-0.5 font-normal">{ repo.Description }</p>
 													}
 												</th>
 												<td class="px-4 py-3">
@@ -251,7 +252,7 @@ templ Home(data view.HomeData) {
 													{ strconv.Itoa(data.RepoOpenPRs[repo.ID]) }
 												</td>
 												<td class="px-4 py-3 text-right text-[12px] text-muted-foreground font-mono whitespace-nowrap">
-													<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time>
+													<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(repo.UpdatedAt) }</time>
 												</td>
 											</tr>
 										}
@@ -314,12 +315,12 @@ templ Home(data view.HomeData) {
 														<span class="font-mono">{ ev.RepoName }</span>
 													}
 												</p>
-												<p class="text-muted-foreground mt-0.5 font-mono text-[11px]">
+												<p class="text-muted-foreground mt-0.5 font-mono text-[12px]">
 													if ev.OwnerName != "" && ev.RepoName != "" {
 														{ ev.OwnerName + "/" + ev.RepoName }
 														<span aria-hidden="true">{ " · " }</span>
 													}
-													<time datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(ev.CreatedAt) }</time>
+													<time datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(ev.CreatedAt) }</time>
 												</p>
 											</div>
 										</li>
@@ -341,7 +342,7 @@ templ Home(data view.HomeData) {
 												<div class="min-w-0">
 													<p class="text-[12px] truncate">{ tmpl.Name }</p>
 													if tmpl.Description != "" {
-														<p class="text-[11px] text-muted-foreground truncate mt-0.5">{ tmpl.Description }</p>
+														<p class="text-[12px] text-muted-foreground truncate mt-0.5">{ tmpl.Description }</p>
 													}
 												</div>
 												<svg class="text-muted-foreground group-hover:text-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
@@ -400,35 +401,6 @@ func eventVerb(eventType string) string {
 		return "closed an issue in"
 	default:
 		return "pushed to"
-	}
-}
-
-// Anything beyond a week falls back to an absolute date.
-func formatRelative(t time.Time) string {
-	d := time.Since(t)
-	switch {
-	case d < time.Minute:
-		return "just now"
-	case d < time.Hour:
-		m := int(d / time.Minute)
-		if m == 1 {
-			return "1 minute ago"
-		}
-		return strconv.Itoa(m) + " minutes ago"
-	case d < 24*time.Hour:
-		h := int(d / time.Hour)
-		if h == 1 {
-			return "1 hour ago"
-		}
-		return strconv.Itoa(h) + " hours ago"
-	case d < 7*24*time.Hour:
-		days := int(d / (24 * time.Hour))
-		if days == 1 {
-			return "1 day ago"
-		}
-		return strconv.Itoa(days) + " days ago"
-	default:
-		return t.Format("Jan 2, 2006")
 	}
 }
 

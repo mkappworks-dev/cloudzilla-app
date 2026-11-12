@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Commits(data view.CommitsData) {
@@ -35,14 +36,14 @@ templ Commits(data view.CommitsData) {
 				<div class="space-y-4" aria-label="Commit history grouped by date">
 					{{ lastDay := "" }}
 					for _, c := range data.Log.Commits {
-						{{ day := c.AuthorTime.Format("2006-01-02") }}
+						{{ day := c.AuthorTime.UTC().Format("2006-01-02") }}
 						if day != lastDay {
 							{{ lastDay = day }}
 							<div class="flex items-center gap-3">
 								<time
 									datetime={ c.AuthorTime.UTC().Format("2006-01-02") }
 									class="text-[12px] font-semibold text-muted-foreground whitespace-nowrap"
-								>Commits on { c.AuthorTime.Format("Jan 2, 2006") }</time>
+								>Commits on { timefmt.Date(c.AuthorTime) }</time>
 								<div class="flex-1 border-t border-border" aria-hidden="true"></div>
 							</div>
 						}

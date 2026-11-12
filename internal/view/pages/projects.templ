@@ -6,6 +6,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Projects(data view.ProjectsData) {
@@ -17,7 +18,7 @@ templ Projects(data view.ProjectsData) {
 					<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">Kanban boards for planning work across this repository.</p>
 				</div>
 				if data.CanWrite {
-					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
 						"onclick": templ.JSUnsafeFuncCall("document.getElementById('new-project-dialog').showModal()"),
 						"type":    "button",
 					}) {
@@ -150,7 +151,7 @@ templ Projects(data view.ProjectsData) {
 										if p.Description != "" {
 											<p class="mt-0.5 text-[12px] text-muted-foreground">{ p.Description }</p>
 										}
-										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">{ components.Count(p.CardCount, "item", "items") } · Updated { formatRelative(p.UpdatedAt) }</p>
+										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">{ components.Count(p.CardCount, "item", "items") } · Updated { timefmt.Relative(p.UpdatedAt) }</p>
 									</div>
 									if p.LinkedCount > 0 {
 										<div class="hidden sm:block w-40 shrink-0 pt-0.5" role="progressbar" aria-valuenow={ strconv.Itoa(p.Progress()) } aria-valuemin="0" aria-valuemax="100" aria-label={ "Progress: " + strconv.Itoa(p.Progress()) + "%" }>

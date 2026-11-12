@@ -3,6 +3,7 @@ package fragments
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Comment(data view.CommentFragData) {
@@ -17,7 +18,7 @@ templ Comment(data view.CommentFragData) {
 					<a href={ templ.SafeURL("/" + data.Comment.AuthorName) } class="text-[13px] font-medium hover:underline">{ data.Comment.AuthorName }</a>
 					<span class="text-[12px] text-muted-foreground">
 						commented
-						<time datetime={ data.Comment.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ data.Comment.CreatedAt.Format("Jan 2, 2006") }</time>
+						<time datetime={ data.Comment.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ timefmt.Date(data.Comment.CreatedAt) }</time>
 					</span>
 				</header>
 				<div class="px-4 py-3 prose prose-sm dark:prose-invert max-w-none">

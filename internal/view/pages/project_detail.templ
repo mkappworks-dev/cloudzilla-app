@@ -12,6 +12,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 type cardEditorLabel struct {
@@ -106,7 +107,7 @@ func cardDueLabel(due string) string {
 	if err != nil {
 		return due
 	}
-	return t.Format("Jan 2, 2006")
+	return timefmt.Date(t)
 }
 
 templ ProjectDetail(data view.ProjectDetailData) {

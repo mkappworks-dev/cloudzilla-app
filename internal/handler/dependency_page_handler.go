@@ -45,7 +45,7 @@ func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 	deps, err := h.Services.Dependency.ListByRepo(r.Context(), repo.ID)
 	if err != nil {
 		slog.Error("dependency: failed to list dependencies", "repo_id", repo.ID, "error", err)
-		http.Error(w, "failed to load dependencies", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	if len(deps) == 0 && shouldLazyParseDeps(repo.ID) {

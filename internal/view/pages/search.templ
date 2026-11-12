@@ -10,6 +10,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Search(data view.SearchData) {
@@ -71,7 +72,7 @@ templ Search(data view.SearchData) {
 									Name:        repo.Name,
 									Description: repo.Description,
 									Private:     repo.Private,
-									Time:        "Updated " + compactRelative(repo.UpdatedAt),
+									Time:        "Updated " + timefmt.Relative(repo.UpdatedAt),
 									TimeISO:     repo.UpdatedAt.UTC().Format(time.RFC3339),
 									Query:       data.Query,
 								})
@@ -96,7 +97,7 @@ templ Search(data view.SearchData) {
 									Author:  issue.AuthorName,
 									State:   string(issue.State),
 									Private: issue.Visibility == "private",
-									Time:    relativeTime(issue.CreatedAt),
+									Time:    timefmt.Relative(issue.CreatedAt),
 									Query:   data.Query,
 								})
 							}
@@ -113,7 +114,7 @@ templ Search(data view.SearchData) {
 									Title:     pr.Title,
 									Author:    pr.AuthorName,
 									State:     pullRowState(string(pr.State), pr.IsDraft),
-									OpenedAt:  formatRelative(pr.CreatedAt),
+									OpenedAt:  timefmt.Relative(pr.CreatedAt),
 									Query:     data.Query,
 								})
 							}

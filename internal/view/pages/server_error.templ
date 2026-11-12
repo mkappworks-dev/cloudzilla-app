@@ -1,0 +1,26 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ ServerError(base view.BasePage) {
+	@layout.Base(base, "Something went wrong") {
+		<div class="max-w-md mx-auto mt-20 rounded-md border border-border bg-card overflow-hidden relative">
+			<div class="absolute inset-0 pointer-events-none opacity-40" style="background-image: linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);" aria-hidden="true"></div>
+			<div class="relative p-10 text-center">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">500 · Server error</p>
+				<p class="mt-4 font-mono text-[7rem] font-semibold leading-none tracking-tight text-muted-foreground/70">500</p>
+				<h1 class="mt-2 text-xl font-semibold tracking-tight">Something went wrong</h1>
+				<p class="mt-2 text-[13px] text-muted-foreground max-w-xs mx-auto">The server hit an unexpected problem and the page couldn't load. Try again in a moment; if it keeps happening, ask an admin to check the server logs.</p>
+				<div class="mt-5 flex items-center justify-center gap-2">
+					@components.LinkButton("/", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+						Go home
+					}
+				</div>
+			</div>
+		</div>
+	}
+}

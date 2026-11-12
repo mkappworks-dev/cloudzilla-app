@@ -59,11 +59,11 @@ func TestReleases_ShowsExcerptNotBody(t *testing.T) {
 	html := renderPage(t, pages.Releases(view.ReleasesData{
 		Releases: []view.ReleaseView{{
 			Release: model.Release{TagName: "v1", Body: "## Raw **markdown**"},
-			Excerpt: "Raw markdown",
+			Excerpt: []string{"What's new", "Raw markdown"},
 		}},
 	}))
-	if !strings.Contains(html, `line-clamp-2">Raw markdown</p>`) || strings.Contains(html, "## Raw") {
-		t.Errorf("release card should show the clamped excerpt only")
+	if !strings.Contains(html, `truncate">What&#39;s new</p><p class="truncate">Raw markdown</p>`) || strings.Contains(html, "## Raw") {
+		t.Errorf("release card should show one line per excerpt block, not the body")
 	}
 }
 

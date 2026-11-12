@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Org(data view.OrgData) {
@@ -59,7 +60,7 @@ templ Org(data view.OrgData) {
 						}
 						<span class="inline-flex items-center gap-1.5">
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-							Founded <time datetime={ data.Org.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Org.CreatedAt.Format("Jan 2006") }</time>
+							Founded <time datetime={ data.Org.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.MonthYear(data.Org.CreatedAt) }</time>
 						</span>
 					</div>
 					<div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
@@ -208,7 +209,7 @@ templ Org(data view.OrgData) {
 
 					<section aria-labelledby="org-created-heading">
 						<h2 id="org-created-heading" class="font-mono uppercase tracking-wider text-[10px] text-muted-foreground mb-2">Created</h2>
-						<p class="text-[12.5px]"><time datetime={ data.Org.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Org.CreatedAt.Format("Jan 2006") }</time></p>
+						<p class="text-[12.5px]"><time datetime={ data.Org.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.MonthYear(data.Org.CreatedAt) }</time></p>
 					</section>
 
 					if data.ViewerRole != nil {
@@ -221,7 +222,7 @@ templ Org(data view.OrgData) {
 							</p>
 							if data.ViewerJoined != nil {
 								<p class="mt-1.5 text-[11.5px] text-muted-foreground">
-									Joined <time datetime={ data.ViewerJoined.UTC().Format(time.RFC3339) }>{ data.ViewerJoined.Format("Jan 2 2006") }</time>
+									Joined <time datetime={ data.ViewerJoined.UTC().Format(time.RFC3339) }>{ timefmt.Date(*data.ViewerJoined) }</time>
 								</p>
 							}
 						</section>

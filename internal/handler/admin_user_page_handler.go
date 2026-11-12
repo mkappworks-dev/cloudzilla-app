@@ -35,7 +35,7 @@ func (h *Handler) PageAdminUsers(w http.ResponseWriter, r *http.Request) {
 	users, total, err := h.Services.AdminUser.List(r.Context(), f, page, adminUsersPerPage)
 	if err != nil {
 		slog.Error("list users for admin", "error", err)
-		http.Error(w, "Failed to load users", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	h.render(w, r, pages.AdminUsers(view.AdminUsersData{
@@ -58,7 +58,7 @@ func (h *Handler) PageAdminUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("load user for admin", "error", err)
-		http.Error(w, "Failed to load user", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	// A reset link swapped into this page must not come back from the back-forward cache.

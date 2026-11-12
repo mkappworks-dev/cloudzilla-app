@@ -73,7 +73,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("issues: list failed", "owner", owner, "repo", repoName, "error", err)
-		http.Error(w, "failed to load issues", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	openCount, closedCount, countErr := h.Services.Issue.CountByState(r.Context(), owner, repoName, callerID)

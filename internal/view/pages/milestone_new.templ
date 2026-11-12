@@ -67,7 +67,7 @@ templ MilestoneNew(data view.MilestoneNewData) {
 							</div>
 
 							<div class="flex items-center gap-3 pt-2">
-								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 									Create milestone
 								}
 								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="text-sm text-muted-foreground hover:underline">Cancel</a>

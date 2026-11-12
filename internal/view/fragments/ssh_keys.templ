@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ SSHKeysList(data view.SSHKeysFragData) {
@@ -17,7 +18,7 @@ templ SSHKeysList(data view.SSHKeysFragData) {
 						<p class="text-[13.5px] font-medium">{ k.Title }</p>
 						<p class="text-[11.5px] text-muted-foreground font-mono break-all">{ k.Fingerprint }</p>
 						<p class="text-[11.5px] text-muted-foreground mt-0.5">
-							Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ k.CreatedAt.Format("Jan 2, 2006") }</time>
+							Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(k.CreatedAt) }</time>
 						</p>
 					</div>
 					<button

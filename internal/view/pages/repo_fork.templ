@@ -79,7 +79,7 @@ templ RepoFork(data view.RepoForkData) {
 							@components.LinkButton("/"+source, components.ButtonOutline, components.ButtonSizeDefault, nil) {
 								Cancel
 							}
-							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "id": "fork-submit"}) {
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "id": "fork-submit"}) {
 								Create fork
 							}
 						</div>

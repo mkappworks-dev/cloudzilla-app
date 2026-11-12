@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Blob(data view.BlobData) {
@@ -119,7 +120,7 @@ templ Blob(data view.BlobData) {
 								<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
 								<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline shrink-0">{ data.LatestCommit.SHA }</a>
 								<span class="text-muted-foreground shrink-0">
-									<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
+									<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ timefmt.Relative(data.LatestCommit.Timestamp) }</time>
 								</span>
 							</div>
 						}

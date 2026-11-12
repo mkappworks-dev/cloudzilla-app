@@ -46,7 +46,7 @@ func (h *Handler) PageExplore(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("explore: failed to load repositories", "tab", tab, "period", period, "error", err)
-		http.Error(w, "Failed to load explore page", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	if repos == nil {

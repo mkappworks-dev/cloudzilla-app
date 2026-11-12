@@ -6,6 +6,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ MilestoneTitleSection(owner, repoName string, number int, title string, canWrite, editing bool) {
@@ -73,7 +74,7 @@ templ MilestoneBreadcrumbTitle(title string, oob bool) {
 templ MilestoneHeaderDue(due *time.Time, oob bool) {
 	<p id="milestone-header-due" class="text-[13px] text-muted-foreground" if oob { hx-swap-oob="true" }>
 		if due != nil {
-			Due by <strong class="text-foreground"><time datetime={ due.UTC().Format(time.RFC3339) }>{ due.Format("Jan 2, 2006") }</time></strong>
+			Due by <strong class="text-foreground"><time datetime={ due.UTC().Format(time.RFC3339) }>{ timefmt.Date(*due) }</time></strong>
 		} else {
 			No due date
 		}
@@ -167,7 +168,7 @@ templ MilestoneDueSection(owner, repoName string, number int, due *time.Time, ca
 			</form>
 		} else {
 			if due != nil {
-				<p class="text-[13px]"><time datetime={ due.UTC().Format(time.RFC3339) }>{ due.Format("Jan 2, 2006") }</time></p>
+				<p class="text-[13px]"><time datetime={ due.UTC().Format(time.RFC3339) }>{ timefmt.Date(*due) }</time></p>
 			} else {
 				<p class="text-[13px] text-muted-foreground">No due date</p>
 			}

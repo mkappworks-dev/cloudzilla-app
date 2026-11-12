@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func discussionAnswerAuthor(replies []view.RenderedDiscussionReply) string {
@@ -62,7 +63,7 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 				<div class="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
 					@components.Avatar(data.Discussion.AuthorName, components.AvatarSizeXS, "")
 					<span><strong class="text-foreground">{ data.Discussion.AuthorName }</strong> started this discussion</span>
-					<time datetime={ data.Discussion.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Discussion.CreatedAt.Format("Jan 2, 2006") }</time>
+					<time datetime={ data.Discussion.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(data.Discussion.CreatedAt) }</time>
 					<span class="opacity-50 mx-1" aria-hidden="true">·</span>
 					@discussionReplyCount("discussion-reply-count-meta", len(data.Replies), false)
 					<span class="opacity-50 mx-1" aria-hidden="true">·</span>
@@ -88,7 +89,7 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 							@components.Avatar(data.Discussion.AuthorName, components.AvatarSizeSM, data.Discussion.AuthorName)
 							<strong class="text-foreground">{ data.Discussion.AuthorName }</strong>
 							<span class="text-muted-foreground">started the discussion</span>
-							<time class="text-muted-foreground" datetime={ data.Discussion.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Discussion.CreatedAt.Format("Jan 2, 2006") }</time>
+							<time class="text-muted-foreground" datetime={ data.Discussion.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(data.Discussion.CreatedAt) }</time>
 							if data.CanWrite {
 								<button type="button" id="edit-desc-btn" class="ml-auto inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border hover:bg-accent text-[12px] text-muted-foreground">
 									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>

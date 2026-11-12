@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Gists(data view.GistsData) {
@@ -95,7 +96,7 @@ templ Gists(data view.GistsData) {
 											@components.Avatar(g.OwnerName, components.AvatarSizeXS, "")
 											<span class="hover:text-foreground">{ g.OwnerName }</span>
 											<span class="opacity-50" aria-hidden="true">·</span>
-											<time datetime={ g.UpdatedAt.UTC().Format(time.RFC3339) }>{ g.UpdatedAt.Format("Jan 2, 2006") }</time>
+											<time datetime={ g.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(g.UpdatedAt) }</time>
 											if g.LanguageLabel != "" {
 												<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
 												<span class={ g.LanguageClass }>{ g.LanguageLabel }</span>

@@ -16,6 +16,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 // PagePulls renders the filtered, paginated pull request list for a repository.
@@ -68,7 +69,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("pulls: list failed", "owner", owner, "repo", repoName, "error", err)
-		http.Error(w, "failed to load pull requests", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	counts, countErr := h.Services.Pull.CountByState(r.Context(), owner, repoName)
@@ -216,6 +217,6 @@ func pullFormatRelative(t time.Time) string {
 		}
 		return strconv.Itoa(days) + " days ago"
 	default:
-		return t.Format("Jan 2, 2006")
+		return timefmt.Date(t)
 	}
 }

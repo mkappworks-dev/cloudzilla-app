@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Checks(data view.ChecksData) {
@@ -49,7 +50,7 @@ templ checksCommitCard(data view.ChecksData, c service.CommitChecks) {
 					·
 					<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commit", c.SHA, "")) } class="font-mono hover:text-foreground hover:underline">{ shortSHA(c.SHA) }</a>
 					·
-					<time datetime={ c.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ relativeTime(c.UpdatedAt) }</time>
+					<time datetime={ c.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ timefmt.Relative(c.UpdatedAt) }</time>
 				</p>
 			</div>
 		</div>

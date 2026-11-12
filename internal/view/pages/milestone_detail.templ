@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ MilestoneDetail(data view.MilestoneDetailData) {
@@ -162,7 +163,7 @@ templ milestoneIssueRow(owner, repoName string, iss model.Issue) {
 				<span aria-hidden="true">·</span>
 				<span>by { milestoneAuthor(iss.AuthorName) }</span>
 				<span aria-hidden="true">·</span>
-				<time datetime={ iss.CreatedAt.UTC().Format(time.RFC3339) }>{ iss.CreatedAt.Format("Jan 2, 2006") }</time>
+				<time datetime={ iss.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(iss.CreatedAt) }</time>
 			</div>
 		</div>
 		if open {
@@ -190,7 +191,7 @@ templ milestonePullRow(owner, repoName string, pr model.PullRequest) {
 				<span aria-hidden="true">·</span>
 				<span>by { milestoneAuthor(pr.AuthorName) }</span>
 				<span aria-hidden="true">·</span>
-				<time datetime={ pr.CreatedAt.UTC().Format(time.RFC3339) }>{ pr.CreatedAt.Format("Jan 2, 2006") }</time>
+				<time datetime={ pr.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(pr.CreatedAt) }</time>
 			</div>
 		</div>
 		if open {
@@ -261,16 +262,16 @@ templ milestoneDetailSidebar(data view.MilestoneDetailData, base string) {
 			<dl class="space-y-1.5 text-[12px]">
 				<div class="flex justify-between gap-2">
 					<dt class="text-muted-foreground">Created</dt>
-					<dd>{ data.Milestone.CreatedAt.Format("Jan 2, 2006") }</dd>
+					<dd>{ timefmt.Date(data.Milestone.CreatedAt) }</dd>
 				</div>
 				<div class="flex justify-between gap-2">
 					<dt class="text-muted-foreground">Updated</dt>
-					<dd>{ data.Milestone.UpdatedAt.Format("Jan 2, 2006") }</dd>
+					<dd>{ timefmt.Date(data.Milestone.UpdatedAt) }</dd>
 				</div>
 				if !open && data.Milestone.ClosedAt != nil {
 					<div class="flex justify-between gap-2">
 						<dt class="text-muted-foreground">Closed</dt>
-						<dd>{ data.Milestone.ClosedAt.Format("Jan 2, 2006") }</dd>
+						<dd>{ timefmt.Date(*data.Milestone.ClosedAt) }</dd>
 					</div>
 				}
 			</dl>

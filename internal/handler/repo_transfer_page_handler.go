@@ -22,7 +22,7 @@ func (h *Handler) PageRepoTransfers(w http.ResponseWriter, r *http.Request) {
 	transfers, err := h.Services.Repo.ListIncomingTransfers(r.Context(), claims.UserID)
 	if err != nil {
 		slog.Error("repo transfers: list failed", "user_id", claims.UserID, "error", err)
-		http.Error(w, "Failed to load repository transfers", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	offers := make([]view.IncomingRepoTransfer, 0, len(transfers))
@@ -30,7 +30,7 @@ func (h *Handler) PageRepoTransfers(w http.ResponseWriter, r *http.Request) {
 		collabs, err := h.Services.Repo.ListCollaborators(r.Context(), t.RepoID)
 		if err != nil {
 			slog.Error("repo transfers: list collaborators failed", "repo_id", t.RepoID, "error", err)
-			http.Error(w, "Failed to load repository transfers", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 		others := slices.DeleteFunc(collabs, func(p model.Permission) bool { return p.UserID == claims.UserID })

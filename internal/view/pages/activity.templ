@@ -10,6 +10,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func eventToActivityRow(e model.Event) components.ActivityRowData {
@@ -111,7 +112,7 @@ func eventToActivityRow(e model.Event) components.ActivityRowData {
 		Ref:         ref,
 		RefURL:      refURL,
 		Title:       title,
-		When:        relativeTime(e.CreatedAt),
+		When:        timefmt.Relative(e.CreatedAt),
 		Branch:      branch,
 		Commits:     commits,
 		CommitTotal: commitTotal,

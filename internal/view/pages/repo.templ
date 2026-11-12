@@ -12,6 +12,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Repo(data view.RepoData) {
@@ -259,7 +260,7 @@ templ Repo(data view.RepoData) {
 									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
 									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline shrink-0">{ data.LatestCommit.SHA }</a>
 									<span class="text-muted-foreground shrink-0">
-										<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
+										<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ timefmt.Relative(data.LatestCommit.Timestamp) }</time>
 									</span>
 									if data.CommitCount > 0 {
 										<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", data.Repo.DefaultBranch, "")) } class="font-mono text-[12px] text-muted-foreground hover:underline shrink-0">{ strconv.Itoa(data.CommitCount) } commits</a>
@@ -302,7 +303,7 @@ templ Repo(data view.RepoData) {
 											<td class="px-4 py-2 text-[12px] text-muted-foreground truncate">{ entry.LastCommit.Message }</td>
 											<td class="px-4 py-2 text-[12px] text-muted-foreground text-right font-mono">
 												if !entry.LastCommit.Timestamp.IsZero() {
-													<time datetime={ entry.LastCommit.Timestamp.Format(time.RFC3339) }>{ shortRelative(entry.LastCommit.Timestamp) }</time>
+													<time datetime={ entry.LastCommit.Timestamp.Format(time.RFC3339) }>{ timefmt.Relative(entry.LastCommit.Timestamp) }</time>
 												}
 											</td>
 										</tr>
@@ -396,7 +397,7 @@ templ Repo(data view.RepoData) {
 									<svg class="text-muted-foreground shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
 									<dd class="text-muted-foreground">
 										Last commit
-										<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ formatRelative(data.LatestCommit.Timestamp) }</time>
+										<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ timefmt.Relative(data.LatestCommit.Timestamp) }</time>
 									</dd>
 								</div>
 							}
@@ -589,7 +590,7 @@ templ releaseCard(data view.RepoData, rel model.Release) {
 		<p class="text-[12px] text-muted-foreground mt-0.5 font-mono">{ rel.TagName }</p>
 		<p class="text-[11px] text-muted-foreground/80 mt-1">
 			Released
-			<time datetime={ releaseDisplayTime(rel).UTC().Format(time.RFC3339) }>{ formatRelative(releaseDisplayTime(rel)) }</time>
+			<time datetime={ releaseDisplayTime(rel).UTC().Format(time.RFC3339) }>{ timefmt.Relative(releaseDisplayTime(rel)) }</time>
 		</p>
 	</a>
 }
@@ -644,29 +645,6 @@ func websiteLabel(site string) string {
 	site = strings.TrimPrefix(site, "https://")
 	site = strings.TrimPrefix(site, "http://")
 	return strings.TrimSuffix(site, "/")
-}
-
-// shortRelative renders a compact age like "2h", "4d", "3w", "2mo".
-func shortRelative(t time.Time) string {
-	d := time.Since(t)
-	switch {
-	case d < time.Hour:
-		m := int(d / time.Minute)
-		if m < 1 {
-			m = 1
-		}
-		return strconv.Itoa(m) + "m"
-	case d < 24*time.Hour:
-		return strconv.Itoa(int(d/time.Hour)) + "h"
-	case d < 7*24*time.Hour:
-		return strconv.Itoa(int(d/(24*time.Hour))) + "d"
-	case d < 30*24*time.Hour:
-		return strconv.Itoa(int(d/(7*24*time.Hour))) + "w"
-	case d < 365*24*time.Hour:
-		return strconv.Itoa(int(d/(30*24*time.Hour))) + "mo"
-	default:
-		return strconv.Itoa(int(d/(365*24*time.Hour))) + "y"
-	}
 }
 
 // heatmapTotal sums every day's commit count in the heatmap window.

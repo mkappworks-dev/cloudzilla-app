@@ -10,6 +10,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ User(data view.UserData) {
@@ -50,7 +51,7 @@ templ User(data view.UserData) {
 						<div class="inline-flex items-center gap-1.5">
 							<dt class="sr-only">Joined</dt>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-							<dd>Joined <time datetime={ data.User.CreatedAt.UTC().Format(time.RFC3339) }>{ data.User.CreatedAt.Format("Jan 2006") }</time></dd>
+							<dd>Joined <time datetime={ data.User.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.MonthYear(data.User.CreatedAt) }</time></dd>
 						</div>
 						if data.User.IsSuperadmin {
 							<div>
@@ -447,7 +448,7 @@ templ userStarRow(data view.UserData, repo model.Repository) {
 					</span>
 					<span class="opacity-50" aria-hidden="true">·</span>
 				}
-				<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time></span>
+				<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(repo.UpdatedAt) }</time></span>
 			</div>
 			if stars > 0 {
 				<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">
@@ -519,7 +520,7 @@ templ userGistRow(g view.GistTabItem) {
 			<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
 				<span class="font-mono">{ g.ID[:min(12, len(g.ID))] }</span>
 				<span class="opacity-50" aria-hidden="true">·</span>
-				<time datetime={ g.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(g.UpdatedAt) }</time>
+				<time datetime={ g.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(g.UpdatedAt) }</time>
 				if g.LanguageLabel != "" {
 					<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
 					<span class={ g.LanguageClass }>{ g.LanguageLabel }</span>
@@ -597,7 +598,7 @@ templ userRepoRow(data view.UserData, repo model.Repository) {
 					</span>
 					<span class="opacity-50" aria-hidden="true">·</span>
 				}
-				<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time></span>
+				<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(repo.UpdatedAt) }</time></span>
 			</div>
 			<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">
 				<span class="inline-flex items-center gap-1" title={ components.Count(stars, "star", "stars") }>

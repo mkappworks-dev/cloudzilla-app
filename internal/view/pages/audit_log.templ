@@ -6,6 +6,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ AuditLog(data view.AuditLogData) {
@@ -69,7 +70,7 @@ templ AuditLog(data view.AuditLogData) {
 							for _, e := range data.Entries {
 								<tr class="hover:bg-muted/40">
 									<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
-										<time datetime={ e.CreatedAt.UTC().Format(time.RFC3339) }>{ e.CreatedAt.Format("Jan 2, 2006 15:04:05") }</time>
+										<time datetime={ e.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.DateTime(e.CreatedAt) }</time>
 									</td>
 									<td class="px-4 py-3 font-medium text-foreground">{ e.ActorName }</td>
 									<td class="px-4 py-3">

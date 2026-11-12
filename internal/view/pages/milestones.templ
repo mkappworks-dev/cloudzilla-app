@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Milestones(data view.MilestonesData) {
@@ -19,7 +20,7 @@ templ Milestones(data view.MilestonesData) {
 					<p class="mt-1 text-[13px] text-muted-foreground">Group issues and pull requests toward a shared goal and track progress.</p>
 				</div>
 				if data.CanWrite {
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones/new") } class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 text-sm bg-success text-success-foreground hover:bg-success/90">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones/new") } class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90">
 						New milestone
 					</a>
 				}
@@ -75,9 +76,9 @@ templ milestoneCard(owner, repoName string, m model.Milestone) {
 				<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/milestones/" + strconv.Itoa(m.Number)) } class={ "font-semibold hover:underline after:absolute after:inset-0", templ.KV("line-through", closed) }>{ m.Title }</a>
 				<p class="text-xs text-muted-foreground mt-0.5">
 					if closed && m.ClosedAt != nil {
-						Closed <time datetime={ m.ClosedAt.UTC().Format(time.RFC3339) }>{ m.ClosedAt.Format("Jan 2, 2006") }</time>
+						Closed <time datetime={ m.ClosedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*m.ClosedAt) }</time>
 					} else if m.DueDate != nil {
-						Due by <time datetime={ m.DueDate.UTC().Format(time.RFC3339) }>{ m.DueDate.Format("Jan 2, 2006") }</time>
+						Due by <time datetime={ m.DueDate.UTC().Format(time.RFC3339) }>{ timefmt.Date(*m.DueDate) }</time>
 					} else {
 						No due date
 					}

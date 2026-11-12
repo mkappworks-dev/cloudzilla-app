@@ -6,6 +6,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ LineComments(data view.LineCommentsFragData) {
@@ -19,7 +20,7 @@ templ LineComments(data view.LineCommentsFragData) {
 					<div class="flex-1 min-w-0">
 						<div class="flex items-center gap-2">
 							<a href={ templ.SafeURL("/" + c.AuthorName) } class="text-xs font-semibold hover:underline">{ c.AuthorName }</a>
-							<span class="text-xs text-muted-foreground">{ c.CreatedAt.Format("Jan 2, 2006") }</span>
+							<span class="text-xs text-muted-foreground">{ timefmt.Date(c.CreatedAt) }</span>
 						</div>
 						if c.BodyHTML != "" {
 							<div class="text-xs text-foreground mt-0.5 prose prose-xs dark:prose-invert max-w-none">@templ.Raw(c.BodyHTML)</div>
@@ -96,7 +97,7 @@ templ suggestionBlock(data view.LineCommentsFragData, c view.RenderedLineComment
 				<p class="text-[12px] text-muted-foreground">
 					<span class="text-foreground">{ c.AppliedBy }</span> applied this in
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + c.AppliedSHA) } class="font-mono text-foreground hover:underline">{ shortSHA(c.AppliedSHA) }</a>
-					· { c.AppliedAt.Format("Jan 2, 2006") }
+					· { timefmt.Date(*c.AppliedAt) }
 				</p>
 			</div>
 		} else if canApplySuggestion(data, c) {

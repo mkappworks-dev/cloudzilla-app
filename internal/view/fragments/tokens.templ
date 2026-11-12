@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ TokensList(data view.TokensListFragData) {
@@ -36,7 +37,7 @@ templ TokensList(data view.TokensListFragData) {
 							}
 							if t.ExpiresAt != nil {
 								{ " · expires " }
-								<time datetime={ t.ExpiresAt.UTC().Format(time.RFC3339) }>{ t.ExpiresAt.Format("Jan 2, 2006") }</time>
+								<time datetime={ t.ExpiresAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*t.ExpiresAt) }</time>
 							} else {
 								{ " · no expiry" }
 							}

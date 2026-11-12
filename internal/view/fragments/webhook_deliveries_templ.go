@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component {
@@ -40,7 +41,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templruntime.NewAttributeExpression("webhook-deliveries-" + strconv.FormatInt(data.WebhookID, 10)).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 11, Col: 72}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 12, Col: 72}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -59,7 +60,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(d.Event)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 18, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 19, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -78,7 +79,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 						var templ_7745c5c3_Var4 string
 						templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(d.ResponseCode))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 22, Col: 46}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 23, Col: 46}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 						if templ_7745c5c3_Err != nil {
@@ -96,7 +97,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 						var templ_7745c5c3_Var5 string
 						templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(d.ResponseCode))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 26, Col: 46}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 27, Col: 46}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 						if templ_7745c5c3_Err != nil {
@@ -116,7 +117,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(d.AttemptCount))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 32, Col: 48}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 33, Col: 48}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -145,7 +146,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(d.Error)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 42, Col: 68}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 43, Col: 68}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -161,9 +162,9 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var8 string
-				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(d.DeliveredAt.Format("Jan 2, 2006 15:04:05 UTC"))
+				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.DateTime(d.DeliveredAt))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 44, Col: 103}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 45, Col: 86}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -181,7 +182,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(data.WebhookID, 10) + "/redeliver?delivery_id=" + strconv.FormatInt(d.ID, 10)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 48, Col: 176}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 49, Col: 176}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 					if templ_7745c5c3_Err != nil {
