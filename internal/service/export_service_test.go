@@ -94,7 +94,7 @@ func (e exportEnv) unzip(t *testing.T, userID, exportID int64) map[string]string
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	data, err := io.ReadAll(rc)
 	if err != nil {
 		t.Fatalf("read export: %v", err)
@@ -110,7 +110,7 @@ func (e exportEnv) unzip(t *testing.T, userID, exportID int64) map[string]string
 			t.Fatalf("open %s: %v", f.Name, err)
 		}
 		b, _ := io.ReadAll(r)
-		r.Close()
+		_ = r.Close()
 		files[f.Name] = string(b)
 	}
 	return files
