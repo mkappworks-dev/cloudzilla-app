@@ -265,7 +265,7 @@ templ adminUserActions(data view.AdminUserData) {
 								"placeholder": "Reason (optional, for the audit log)",
 								"class":       "w-64",
 							})
-							@adminActionButton(components.ButtonDestructive, "Suspend", "Suspend @"+u.Username+"?", adminSuspendMessage(u.Username, data.Detail.SoleOwnedOrgs), true)
+							@adminActionButton(components.ButtonDestructiveOutline, "Suspend", "Suspend @"+u.Username+"?", adminSuspendMessage(u.Username, data.Detail.SoleOwnedOrgs), true)
 						}
 					}
 				}
@@ -300,7 +300,7 @@ templ adminUserActions(data view.AdminUserData) {
 				}
 				@adminActionRow("Revoke tokens and keys", "Deletes the account's personal access tokens, SSH keys and app authorizations, and signs it out everywhere. Deploy keys stay. They are emailed.") {
 					@adminActionForm(u.Username, "revoke-credentials", "Tokens and keys revoked") {
-						@adminActionButton(components.ButtonDestructive, "Revoke", "Revoke @"+u.Username+"'s tokens and keys?", "Every personal access token, SSH key and app authorization of @"+u.Username+" is deleted. This cannot be undone.", true)
+						@adminActionButton(components.ButtonDestructiveOutline, "Revoke", "Revoke @"+u.Username+"'s tokens and keys?", "Every personal access token, SSH key and app authorization of @"+u.Username+" is deleted. This cannot be undone.", true)
 					}
 				}
 			</div>

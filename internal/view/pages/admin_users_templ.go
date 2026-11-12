@@ -1214,7 +1214,7 @@ func adminUserActions(data view.AdminUserData) templ.Component {
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = adminActionButton(components.ButtonDestructive, "Suspend", "Suspend @"+u.Username+"?", adminSuspendMessage(u.Username, data.Detail.SoleOwnedOrgs), true).Render(ctx, templ_7745c5c3_Buffer)
+							templ_7745c5c3_Err = adminActionButton(components.ButtonDestructiveOutline, "Suspend", "Suspend @"+u.Username+"?", adminSuspendMessage(u.Username, data.Detail.SoleOwnedOrgs), true).Render(ctx, templ_7745c5c3_Buffer)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -1433,7 +1433,7 @@ func adminUserActions(data view.AdminUserData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = adminActionButton(components.ButtonDestructive, "Revoke", "Revoke @"+u.Username+"'s tokens and keys?", "Every personal access token, SSH key and app authorization of @"+u.Username+" is deleted. This cannot be undone.", true).Render(ctx, templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = adminActionButton(components.ButtonDestructiveOutline, "Revoke", "Revoke @"+u.Username+"'s tokens and keys?", "Every personal access token, SSH key and app authorization of @"+u.Username+" is deleted. This cannot be undone.", true).Render(ctx, templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

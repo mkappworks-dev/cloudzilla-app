@@ -77,9 +77,9 @@ Seen while porting, not fixed:
 ## Controls that are mocked or not wired
 
 Server-side actions are faked in the browser: removing a collaborator, label, rule, webhook, deploy key or org member,
-revoking a key, webhook deliveries, archive and unarchive, leaving an org, deleting a comment, accepting or declining a
-transfer, create and delete branch or tag, and Watch and Star toggles. They use the real confirm dialogs, toasts and
-empty states.
+revoking a key, webhook deliveries, archive and unarchive, changing or deleting a repository (typed-name dialogs that
+accept any password), leaving an org, deleting a comment, accepting or declining a transfer, create and delete branch or
+tag, and Watch and Star toggles. They use the real confirm dialogs, toasts and empty states.
 
 Some controls and forms have no behaviour. In particular:
 

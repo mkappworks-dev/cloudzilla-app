@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -26,97 +27,99 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 	}...)
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
-		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: "Danger zone"})
+	}
+	dangerGroup := "Danger zone"
+	if d.CanManage {
+		items = append(items, components.SettingsSidebarItem{Label: "Visibility", Href: "#visibility", Key: "visibility", Danger: true, GroupLabel: dangerGroup})
+		dangerGroup = ""
+	}
+	if d.IsOwner {
+		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: dangerGroup})
 		items = append(items, components.SettingsSidebarItem{Label: "Transfer ownership", Href: "#transfer", Key: "transfer", Danger: true})
 		items = append(items, components.SettingsSidebarItem{Label: "Delete repository", Href: "#delete", Key: "delete", Danger: true})
 	}
 	return items
 }
 
-// visibilityToggle renders the public/private switch as a single pill toggle.
-// aria-pressed=true means Public (green); clicking submits the visibility form
-// with the opposite value, routed through the global ConfirmDialog for the
-// "Make public/private?" prompt.
-templ visibilityToggle(owner, repoName string, private bool, confirm components.ConfirmFactors) {
-	<div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
-		<div class="min-w-0">
-			<p class="text-sm font-medium text-foreground">Visibility</p>
-			<p class="text-xs text-muted-foreground mt-0.5">
+templ visibilitySection(owner, repoName string, private bool, confirm components.ConfirmFactors) {
+	<div id="visibility" class="scroll-mt-6"></div>
+	@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
+		@components.CardHeader() {
+			<h2 class="text-base font-semibold tracking-tight text-destructive">Change repository visibility</h2>
+			@components.CardDescription() {
 				if private {
-					This repository is private — only collaborators can see it.
+					This repository is private, so only collaborators can see it. Making it public gives its code and history to everyone.
 				} else {
-					This repository is public — anyone can view it.
+					This repository is public, so anyone can view and clone it. Making it private hides it from everyone but collaborators.
 				}
-			</p>
-		</div>
-		<div class="flex items-center gap-3 shrink-0">
-			if private {
-				@components.Badge(components.BadgeSecondary) {
-					Private
-				}
-				<button
-					type="button"
-					aria-pressed="false"
-					aria-label="Repository visibility"
-					onclick="document.getElementById('make-public-dialog').showModal()"
-					class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-muted transition-colors cursor-pointer"
-				>
-					<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"></span>
-				</button>
-				@makePublicDialog(owner, repoName, confirm)
-			} else {
-				@components.Badge(components.BadgeSuccess) {
-					Public
-				}
-				<form
-					hx-post={ "/" + owner + "/" + repoName + "/settings/visibility" }
-					hx-swap="none"
-					hx-confirm={ "Only collaborators with access will be able to view " + repoName + "." }
-					data-confirm-title="Make this repository private?"
-					data-confirm-label="Make private"
-					data-confirm-danger="true"
-					data-toast="Repository is now private"
-				>
-					<input type="hidden" name="private" value="true"/>
-					<button
-						type="submit"
-						aria-pressed="true"
-						aria-label="Repository visibility"
-						class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-success bg-success transition-colors cursor-pointer"
-					>
-						<span class="absolute left-[18px] h-3.5 w-3.5 rounded-full bg-background transition-transform"></span>
-					</button>
-				</form>
 			}
-		</div>
-	</div>
+		}
+		@components.CardContent() {
+			<div class="flex items-center justify-between gap-3">
+				if private {
+					@components.Badge(components.BadgeSecondary) {
+						Private
+					}
+				} else {
+					@components.Badge(components.BadgeSuccess) {
+						Public
+					}
+				}
+				@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('visibility-dialog').showModal()")}) {
+					if private {
+						Make public
+					} else {
+						Make private
+					}
+				}
+			</div>
+		}
+	}
+	@visibilityDialog(owner, repoName, private, confirm)
 }
 
 // Making a private repository public gives its code to everyone, for good, so
-// it's confirmed like giving someone access.
-templ makePublicDialog(owner, repoName string, confirm components.ConfirmFactors) {
-	@components.Dialog("make-public-dialog") {
-		<form hx-post={ "/" + owner + "/" + repoName + "/settings/visibility" } hx-swap="none">
-			<input type="hidden" name="private" value="false"/>
+// it also takes the account's own confirmation.
+templ visibilityDialog(owner, repoName string, private bool, confirm components.ConfirmFactors) {
+	@components.Dialog("visibility-dialog") {
+		<form hx-post={ "/" + owner + "/" + repoName + "/settings/visibility" } hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast("Visibility changed")}... }>
+			<input type="hidden" name="private" value={ strconv.FormatBool(!private) }/>
 			@components.DialogHeader() {
-				@components.DialogTitle("make-public-dialog") {
-					Make this repository public?
+				@components.DialogTitle("visibility-dialog") {
+					if private {
+						Make this repository public?
+					} else {
+						Make this repository private?
+					}
 				}
 				@components.DialogDescription() {
-					{ "Anyone on the internet will be able to view and clone " + repoName + ", including its history." }
+					if private {
+						{ "Anyone on the internet will be able to view and clone " + repoName + ", including its history." }
+					} else {
+						{ "Only collaborators with access will be able to view " + repoName + ". Stars and forks by others stay." }
+					}
 				}
 			}
 			@components.DialogBody() {
 				<div class="space-y-4">
-					<div id="make-public-form-error"></div>
-					<div class="flex flex-wrap items-end gap-3">
-						@components.ConfirmFields("make-public", confirm, true)
-					</div>
+					<div id="visibility-form-error"></div>
+					@components.ConfirmNameField("visibility", repoName)
+					if private {
+						<div class="flex flex-wrap items-end gap-3">
+							@components.ConfirmFields("visibility", confirm, true)
+						</div>
+					}
 				</div>
 			}
 			@components.DialogFooter() {
 				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Make public</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">
+					if private {
+						Make public
+					} else {
+						Make private
+					}
+				</button>
 			}
 		</form>
 	}
@@ -205,7 +208,6 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								@visibilityToggle(data.Owner, data.RepoName, data.Repo.Private, data.Confirm)
 								<form hx-post={ "/" + data.Owner + "/" + data.RepoName + "/settings/features" } hx-swap="none" data-toast="Feature settings saved">
 									@settingsToggle("allow_issues", "Issues", "Let people open and track issues.", data.Repo.AllowIssues)
 									@settingsToggle("allow_discussions", "Discussions", "Enable the Discussions tab for Q&A and announcements.", data.Repo.AllowDiscussions)
@@ -585,6 +587,11 @@ templ RepoSettings(data view.RepoSettingsData) {
 								</div>
 							}
 						}
+					}
+					if data.CanManage {
+						@visibilitySection(data.Owner, data.RepoName, data.Repo.Private, data.Confirm)
+					}
+					if data.IsOwner {
 						<div id="archive" class="scroll-mt-6"></div>
 						<!-- Archive / Unarchive section (owner-only) -->
 						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
@@ -616,21 +623,15 @@ templ RepoSettings(data view.RepoSettingsData) {
 											Unarchive
 										}
 									} else {
-										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-											"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
-											"hx-target":            "body",
-											"hx-confirm":           data.RepoName + " will become read-only and hidden from active views. You can unarchive it later.",
-											"data-confirm-title":   "Archive this repository?",
-											"data-confirm-label":   "Archive",
-											"data-confirm-danger":  "true",
-											"hx-on::after:request": stashToast("Repository archived"),
-											"type":                 "button",
-										}) {
+										@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('archive-dialog').showModal()")}) {
 											Archive
 										}
 									}
 								</div>
 							}
+						}
+						if !data.Repo.IsArchived {
+							@archiveDialog(data.Owner, data.RepoName)
 						}
 						<div id="transfer" class="scroll-mt-6"></div>
 						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
@@ -700,21 +701,14 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/delete" } hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast("Repository deleted")}... } class="flex flex-wrap items-end justify-end gap-3">
-									@components.ConfirmFields("delete-repo", data.Confirm, true)
-									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
-										"type":                "submit",
-										"data-confirm-action":  "true",
-										"data-confirm-title":   "Delete this repository?",
-										"data-confirm-msg":     "This permanently removes " + data.RepoName + " and all of its data — issues, pull requests, and history. This cannot be undone.",
-										"data-confirm-label":   "Delete repository",
-										"data-confirm-danger":  "true",
-									}) {
+								<div class="flex justify-end">
+									@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{"type": "button", "onclick": templ.JSUnsafeFuncCall("document.getElementById('delete-repo-dialog').showModal()")}) {
 										Delete repository
 									}
-								</form>
+								</div>
 							}
 						}
+						@deleteRepoDialog(data.Owner, data.RepoName, data.Confirm)
 					}
 				</div>
 			</div>
@@ -750,6 +744,59 @@ templ RepoSettings(data view.RepoSettingsData) {
 				window.addEventListener('resize', update, { passive: true });
 			})();
 		</script>
+	}
+}
+
+templ archiveDialog(owner, repoName string) {
+	@components.Dialog("archive-dialog") {
+		<form hx-post={ "/api/repos/" + owner + "/" + repoName + "/archive" } hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast("Repository archived")}... }>
+			@components.DialogHeader() {
+				@components.DialogTitle("archive-dialog") {
+					Archive this repository?
+				}
+				@components.DialogDescription() {
+					{ repoName + " will become read-only and hidden from active views. You can unarchive it later." }
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div id="archive-form-error"></div>
+					@components.ConfirmNameField("archive", repoName)
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Archive repository</button>
+			}
+		</form>
+	}
+}
+
+templ deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors) {
+	@components.Dialog("delete-repo-dialog") {
+		<form hx-post={ "/api/repos/" + owner + "/" + repoName + "/delete" } hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast("Repository deleted")}... }>
+			@components.DialogHeader() {
+				@components.DialogTitle("delete-repo-dialog") {
+					<span class="text-destructive">Delete this repository?</span>
+				}
+				@components.DialogDescription() {
+					{ "This permanently removes " + repoName + " and all of its data — issues, pull requests, and history. This cannot be undone." }
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div id="delete-repo-form-error"></div>
+					@components.ConfirmNameField("delete-repo", repoName)
+					<div class="flex flex-wrap items-end gap-3">
+						@components.ConfirmFields("delete-repo", confirm, true)
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete repository</button>
+			}
+		</form>
 	}
 }
 

@@ -392,13 +392,16 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	private := r.FormValue("private") == "true"
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+		settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
+		return
+	}
+	if !confirmRepoName(w, r, repo.Name, visibilityFormError) {
+		return
+	}
 	// Making a private repository public gives its code to everyone, for good.
 	if repo.Private && !private {
-		if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-			settingsError(w, r, http.StatusForbidden, "you do not have permission to change these settings")
-			return
-		}
-		if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), makePublicFormError) {
+		if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), visibilityFormError) {
 			return
 		}
 	}
@@ -420,7 +423,7 @@ func redirectToRepoSettings(w http.ResponseWriter, r *http.Request, owner, repoN
 	redirectAfterSave(w, r, "/"+owner+"/"+repoName+"/settings")
 }
 
-const makePublicFormError = "#make-public-form-error"
+const visibilityFormError = "#visibility-form-error"
 
 // PageRefs renders the branches and tags overview page.
 func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {

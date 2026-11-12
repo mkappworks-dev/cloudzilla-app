@@ -20,6 +20,71 @@ func (e r2Env) repoFlag(t *testing.T, column string) bool {
 	return v
 }
 
+func repoNamed(name string) url.Values { return url.Values{"confirm_name": {name}} }
+
+// A wrong or missing name stops delete and archive before the password is checked,
+// so a typo doesn't spend one of the five confirmation attempts.
+func TestRepoLifecycleRoutes_NeedTheRepoNameTyped(t *testing.T) {
+	e := newR2Env(t)
+	for _, name := range []string{"", "other", "PROJ", "proj "} {
+		rr := e.form(t, http.MethodPost, e.api("/archive"), e.owner.token, repoNamed(name), false)
+		wantStatus(t, rr, http.StatusUnprocessableEntity)
+		rr = e.form(t, http.MethodPost, e.api("/delete"), e.owner.token, url.Values{"confirm_name": {name}, "password": {r2Password}}, false)
+		wantStatus(t, rr, http.StatusUnprocessableEntity)
+	}
+	if e.repoFlag(t, "is_archived") {
+		t.Error("a wrong name archived the repo")
+	}
+	if _, err := e.svc.Repo.Get(context.Background(), e.owner.name, "proj"); err != nil {
+		t.Errorf("a wrong name deleted the repo: %v", err)
+	}
+
+	rr := e.form(t, http.MethodPost, e.api("/archive"), e.owner.token, repoNamed("other"), true)
+	if got := rr.Header().Get("HX-Retarget"); got != "#archive-form-error" {
+		t.Errorf("archive HX-Retarget = %q", got)
+	}
+	rr = e.form(t, http.MethodPost, e.api("/delete"), e.owner.token, repoNamed("other"), true)
+	if got := rr.Header().Get("HX-Retarget"); got != "#delete-repo-form-error" {
+		t.Errorf("delete HX-Retarget = %q", got)
+	}
+	rr = e.form(t, http.MethodPost, e.api("/delete"), e.owner.token, url.Values{"confirm_name": {"proj"}, "password": {"wrong"}}, true)
+	if got := rr.Header().Get("HX-Retarget"); got != "#delete-repo-form-error" {
+		t.Errorf("wrong password HX-Retarget = %q", got)
+	}
+}
+
+func TestRepoLifecycleRoutes_VisibilityNeedsTheRepoNameTyped(t *testing.T) {
+	e := newR2Env(t)
+	target := "/" + e.owner.name + "/proj/settings/visibility"
+	private := func() bool { return e.repoFlag(t, "private") }
+	was := private()
+
+	for _, name := range []string{"", "other"} {
+		rr := e.form(t, http.MethodPost, target, e.owner.token, url.Values{"private": {strconv.FormatBool(!was)}, "confirm_name": {name}, "password": {r2Password}}, true)
+		if got := rr.Header().Get("HX-Retarget"); got != "#visibility-form-error" {
+			t.Errorf("name %q: HX-Retarget = %q, body %s", name, got, rr.Body)
+		}
+	}
+	if private() != was {
+		t.Fatal("a wrong name changed the visibility")
+	}
+
+	wantStatus(t, e.form(t, http.MethodPost, target, e.outsider.token, url.Values{"private": {"true"}}, false), http.StatusForbidden)
+
+	rr := e.form(t, http.MethodPost, target, e.owner.token, url.Values{"private": {"true"}, "confirm_name": {"proj"}}, true)
+	wantStatus(t, rr, http.StatusNoContent)
+	if !private() {
+		t.Error("making it private with the name typed did not apply")
+	}
+	rr = e.form(t, http.MethodPost, target, e.owner.token, url.Values{"private": {"false"}, "confirm_name": {"proj"}}, true)
+	if got := rr.Header().Get("HX-Retarget"); got != "#visibility-form-error" {
+		t.Errorf("making it public without the password: HX-Retarget = %q", got)
+	}
+	if !private() {
+		t.Error("making it public without the password applied")
+	}
+}
+
 func TestRepoLifecycleRoutes_ArchiveAndUnarchiveAreOwnerOnly(t *testing.T) {
 	e := newR2Env(t)
 
@@ -33,7 +98,7 @@ func TestRepoLifecycleRoutes_ArchiveAndUnarchiveAreOwnerOnly(t *testing.T) {
 		t.Fatal("a refused request archived the repo")
 	}
 
-	rr := e.form(t, http.MethodPost, e.api("/archive"), e.owner.token, nil, true)
+	rr := e.form(t, http.MethodPost, e.api("/archive"), e.owner.token, repoNamed("proj"), true)
 	wantStatus(t, rr, http.StatusNoContent)
 	if got := rr.Header().Get("HX-Redirect"); got != "/"+e.owner.name+"/proj/settings" {
 		t.Errorf("HX-Redirect = %q", got)
@@ -133,7 +198,7 @@ func TestRepoLifecycleRoutes_CreateFromTemplate(t *testing.T) {
 		t.Errorf("a second copy under the same name = %d, want 422", got)
 	}
 
-	wantStatus(t, e.form(t, http.MethodPost, e.api("/archive"), e.owner.token, nil, true), http.StatusNoContent)
+	wantStatus(t, e.form(t, http.MethodPost, e.api("/archive"), e.owner.token, repoNamed("proj"), true), http.StatusNoContent)
 	if got := post(e.outsider.token, url.Values{"template_repo_id": {idStr}, "name": {"copy2"}}); got != http.StatusUnprocessableEntity {
 		t.Errorf("archived template = %d, want 422", got)
 	}
@@ -146,15 +211,15 @@ func TestRepoLifecycleRoutes_DeleteNeedsOwnerAndPassword(t *testing.T) {
 	wantStatus(t, e.form(t, http.MethodPost, target, e.admin.token, url.Values{"password": {r2Password}}, true), http.StatusForbidden)
 	wantStatus(t, e.form(t, http.MethodPost, "/api/repos/"+e.owner.name+"/nope/delete", e.owner.token, nil, true), http.StatusNotFound)
 
-	rr := e.form(t, http.MethodPost, target, e.owner.token, url.Values{"password": {"wrong"}}, true)
+	rr := e.form(t, http.MethodPost, target, e.owner.token, url.Values{"password": {"wrong"}, "confirm_name": {"proj"}}, false)
 	wantStatus(t, rr, http.StatusForbidden)
-	rr = e.form(t, http.MethodPost, target, e.owner.token, nil, true)
+	rr = e.form(t, http.MethodPost, target, e.owner.token, repoNamed("proj"), false)
 	wantStatus(t, rr, http.StatusForbidden)
 	if _, err := e.svc.Repo.Get(context.Background(), e.owner.name, "proj"); err != nil {
 		t.Fatalf("unconfirmed delete removed the repo: %v", err)
 	}
 
-	rr = e.form(t, http.MethodPost, target, e.owner.token, url.Values{"password": {r2Password}}, true)
+	rr = e.form(t, http.MethodPost, target, e.owner.token, url.Values{"password": {r2Password}, "confirm_name": {"proj"}}, true)
 	wantStatus(t, rr, http.StatusNoContent)
 	if got := rr.Header().Get("HX-Redirect"); got != "/"+e.owner.name {
 		t.Errorf("HX-Redirect = %q", got)
@@ -166,7 +231,7 @@ func TestRepoLifecycleRoutes_DeleteNeedsOwnerAndPassword(t *testing.T) {
 
 func TestRepoLifecycleRoutes_PlainDeleteRedirectsToOwner(t *testing.T) {
 	e := newR2Env(t)
-	rr := e.form(t, http.MethodPost, e.api("/delete"), e.owner.token, url.Values{"password": {r2Password}}, false)
+	rr := e.form(t, http.MethodPost, e.api("/delete"), e.owner.token, url.Values{"password": {r2Password}, "confirm_name": {"proj"}}, false)
 	wantStatus(t, rr, http.StatusSeeOther)
 	if loc := rr.Header().Get("Location"); loc != "/"+e.owner.name {
 		t.Errorf("Location = %q", loc)

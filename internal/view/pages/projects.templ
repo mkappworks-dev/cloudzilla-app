@@ -166,13 +166,18 @@ templ Projects(data view.ProjectsData) {
 									}
 									if data.CanWrite {
 										<div class="relative z-10">
-											@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+											@components.Button(components.ButtonDestructiveGhost, components.ButtonSizeIcon, templ.Attributes{
 												"hx-delete":            "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10),
 												"hx-confirm":           "Delete this project board and all its columns and cards?",
+												"data-confirm-title":   "Delete " + p.Name + "?",
+												"data-confirm-label":   "Delete project",
+												"data-confirm-danger":  "true",
+												"aria-label":           "Delete project " + p.Name,
+												"title":                "Delete project",
 												"hx-on::after:request": templ.JSUnsafeFuncCall("if(ctx.response.status<400)window.location.reload()"),
 												"type":                 "button",
 											}) {
-												Delete
+												@components.TrashIcon()
 											}
 										</div>
 									}

@@ -11,6 +11,26 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
+const (
+	archiveFormError    = "#archive-form-error"
+	deleteRepoFormError = "#delete-repo-form-error"
+)
+
+// confirmRepoName answers the request and returns false unless confirm_name is repoName.
+// An HTMX dialog names its error slot, where a toast would sit behind the backdrop.
+func confirmRepoName(w http.ResponseWriter, r *http.Request, repoName, slot string) bool {
+	if r.FormValue("confirm_name") == repoName {
+		return true
+	}
+	const msg = "type the repository name to confirm"
+	if slot != "" && r.Header.Get("HX-Request") == "true" {
+		renderFormError(w, slot, msg)
+	} else {
+		writeError(w, http.StatusUnprocessableEntity, msg)
+	}
+	return false
+}
+
 func (h *Handler) ArchiveRepo(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -21,6 +41,13 @@ func (h *Handler) ArchiveRepo(w http.ResponseWriter, r *http.Request) {
 	}
 	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
 	if !ok {
+		return
+	}
+	if !h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "only the repo owner can archive this repository")
+		return
+	}
+	if !confirmRepoName(w, r, repo.Name, archiveFormError) {
 		return
 	}
 	if err := h.Services.Repo.Archive(r.Context(), repo.ID, claims.UserID); err != nil {
@@ -75,7 +102,10 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "only the repo owner can delete this repository")
 		return
 	}
-	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), "") {
+	if !confirmRepoName(w, r, repo.Name, deleteRepoFormError) {
+		return
+	}
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), deleteRepoFormError) {
 		return
 	}
 	if err := h.Services.Repo.Delete(r.Context(), repo.ID, claims.UserID); err != nil {

@@ -111,6 +111,11 @@ with neither confirms with `email_code`, a code emailed to it. It applies to:
 
 Editing a webhook's events needs nothing: it can't point the webhook somewhere new.
 
+Archiving a repository, deleting it and changing its visibility in either direction also take `confirm_name`, which must
+equal the repository's name (`422` otherwise, or the dialog's error slot over HTMX). It is checked after the caller is
+known to be allowed to act and before the password, so a typo doesn't spend one of the five attempts. A `repo:admin`
+token skips the password but not the name.
+
 **Accounts without a password or 2FA** (created by Google, LDAP or SAML sign-up) confirm with what they sign in with:
 
 - An **LDAP** account types its directory password, checked by binding as the DN it signs in with.

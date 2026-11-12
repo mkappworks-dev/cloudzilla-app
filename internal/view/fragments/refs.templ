@@ -27,7 +27,7 @@ templ BranchesList(data view.BranchesFragData) {
 					<div class="flex items-center gap-3 ml-4 shrink-0">
 						<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", b.Name, "")) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
 						if data.CanWrite && !b.IsDefault {
-							@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
+							@components.Button(components.ButtonDestructiveGhost, components.ButtonSizeIcon, templ.Attributes{
 								"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches?name=" + url.QueryEscape(b.Name),
 								"hx-target":           "#branches-list",
 								"hx-swap":             "outerHTML",
@@ -38,8 +38,9 @@ templ BranchesList(data view.BranchesFragData) {
 								"data-toast":          "Branch deleted",
 								"type":                "button",
 								"aria-label":          "Delete branch " + b.Name,
+								"title":               "Delete branch",
 							}) {
-								Delete
+								@components.TrashIcon()
 							}
 						}
 					</div>
@@ -63,7 +64,7 @@ templ TagsList(data view.TagsFragData) {
 					<div class="flex items-center gap-3 ml-4 shrink-0">
 						<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commits", t.Name, "")) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
 						if data.CanWrite {
-							@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
+							@components.Button(components.ButtonDestructiveGhost, components.ButtonSizeIcon, templ.Attributes{
 								"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/tags?name=" + url.QueryEscape(t.Name),
 								"hx-target":           "#tags-list",
 								"hx-swap":             "outerHTML",
@@ -74,8 +75,9 @@ templ TagsList(data view.TagsFragData) {
 								"data-toast":          "Tag deleted",
 								"type":                "button",
 								"aria-label":          "Delete tag " + t.Name,
+								"title":               "Delete tag",
 							}) {
-								Delete
+								@components.TrashIcon()
 							}
 						}
 					</div>

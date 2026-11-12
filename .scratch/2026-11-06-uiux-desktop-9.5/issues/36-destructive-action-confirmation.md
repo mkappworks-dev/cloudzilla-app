@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 31
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -31,9 +31,9 @@ Found by the wave 2 re-score (Claude and Codex).
 
 ## Acceptance criteria
 
-- [ ] No filled destructive buttons on list rows
-- [ ] Delete, archive and visibility change need the repository name typed
-- [ ] Mocks updated, light and dark
+- [x] No filled destructive buttons on list rows
+- [x] Delete, archive and visibility change need the repository name typed
+- [x] Mocks updated, light and dark
 
 ## Verification
 

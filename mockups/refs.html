@@ -83,7 +83,8 @@
 <script>
 (function () {
   var DEFAULT_BADGE = '<span class="shrink-0"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">default</span></span>';
-  var DELETE_CLASS = 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]';
+  var DELETE_CLASS = 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8';
+  var TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6M10 11v6M14 11v6"></path></svg>';
   var DATA = {
     branch: [
       { name: 'main', hash: '420b44b', def: true },
@@ -104,7 +105,7 @@
       '<span class="text-xs text-muted-foreground font-mono shrink-0">' + r.hash + '</span></div>' +
       '<div class="flex items-center gap-3 ml-4 shrink-0">' +
       '<a href="commits.html" class="text-xs text-muted-foreground hover:text-foreground">commits</a>' +
-      (r.def ? '' : '<button type="button" data-delete="' + esc(r.name) + '" aria-label="Delete ' + kind + ' ' + esc(r.name) + '" class="' + DELETE_CLASS + '">Delete</button>') +
+      (r.def ? '' : '<button type="button" data-delete="' + esc(r.name) + '" aria-label="Delete ' + kind + ' ' + esc(r.name) + '" title="Delete ' + kind + '" class="' + DELETE_CLASS + '">' + TRASH + '</button>') +
       '</div></div>';
   }
   var PLURAL = { branch: 'branches', tag: 'tags' };

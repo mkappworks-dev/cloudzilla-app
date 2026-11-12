@@ -1,5 +1,7 @@
 package components
 
+import "regexp"
+
 // ConfirmFactors says which factors a user confirms sensitive actions with;
 // see service.Factors. Provider is "google" or "saml" for an account that
 // confirms by signing in there again; ProviderReady means it just did, in this
@@ -143,4 +145,25 @@ templ confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) 
 	if f.Unavailable {
 		<p role="note" class="basis-full text-[12px] text-warning">This account has no way to confirm it's you here, so this can't be done. Ask your administrator.</p>
 	}
+}
+
+// ConfirmNameField asks for name to be typed in, as confirm_name; the server checks it too.
+templ ConfirmNameField(idPrefix, name string) {
+	<div>
+		<label for={ idPrefix + "-confirm-name" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+			Type <span class="font-mono text-foreground">{ name }</span> to confirm
+			<span class="text-destructive" aria-hidden="true">*</span>
+		</label>
+		<input
+			id={ idPrefix + "-confirm-name" }
+			name="confirm_name"
+			type="text"
+			required
+			pattern={ regexp.QuoteMeta(name) }
+			data-pattern-message="Type the name exactly as shown."
+			autocomplete="off"
+			spellcheck="false"
+			class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
+		/>
+	</div>
 }
