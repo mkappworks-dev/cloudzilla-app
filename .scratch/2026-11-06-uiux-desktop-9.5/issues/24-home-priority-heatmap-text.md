@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -35,9 +35,10 @@ Found by the wave 1 re-score (Codex).
 
 ## Acceptance criteria
 
-- [ ] "Needs your attention" is visible in the first 900px at 1440 when there is anything to show
-- [ ] A screen reader can read the heatmap's non-zero days on home, repo and profile
-- [ ] Mocks updated, light and dark
+- [x] "Needs your attention" is visible in the first 900px at 1440 when there is anything to show
+- [x] A screen reader can read the heatmap's non-zero days on home, repo and profile
+- [x] Mocks updated, light and dark
+- [x] Wave 2: lightest heatmap level is 3:1 against the card in light mode, and home and profile have a legend
 
 ## Verification
 

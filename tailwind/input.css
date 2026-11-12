@@ -135,6 +135,11 @@
     --success: 142 71% 26%;
     --success-foreground: 0 0% 98%;
 
+    /* Level 1 must reach 3:1 against the card (WCAG 1.4.11), which leaves little room above it. */
+    --heat-1: 0.75;
+    --heat-2: 0.85;
+    --heat-3: 0.93;
+
     --warning: 38 92% 29%;
     --warning-foreground: 0 0% 98%;
 
@@ -176,6 +181,10 @@
 
     --success: 142 71% 56%;
     --success-foreground: 0 0% 0%;
+
+    --heat-1: 0.25;
+    --heat-2: 0.5;
+    --heat-3: 0.75;
 
     --warning: 48 96% 60%;
     --warning-foreground: 0 0% 0%;
@@ -351,9 +360,9 @@ input[type="search"]::-webkit-search-cancel-button { appearance: none; display: 
 }
 
 @utility heatmap-cell-0 { background-color: hsl(var(--muted)); }
-@utility heatmap-cell-1 { background-color: hsl(var(--success) / 0.25); }
-@utility heatmap-cell-2 { background-color: hsl(var(--success) / 0.50); }
-@utility heatmap-cell-3 { background-color: hsl(var(--success) / 0.75); }
+@utility heatmap-cell-1 { background-color: hsl(var(--success) / var(--heat-1)); }
+@utility heatmap-cell-2 { background-color: hsl(var(--success) / var(--heat-2)); }
+@utility heatmap-cell-3 { background-color: hsl(var(--success) / var(--heat-3)); }
 @utility heatmap-cell-4 { background-color: hsl(var(--success)); }
 
 @media (forced-colors: active) {

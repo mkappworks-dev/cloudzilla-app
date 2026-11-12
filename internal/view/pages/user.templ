@@ -199,6 +199,9 @@ templ User(data view.UserData) {
 							</h2>
 							<div class="rounded-md border border-border bg-card p-5 overflow-x-auto">
 								@components.HeatmapLarge(data.Heatmap, time.Now(), 52)
+								<div class="mt-3 flex justify-end">
+									@components.HeatmapLegend()
+								</div>
 							</div>
 						</section>
 
