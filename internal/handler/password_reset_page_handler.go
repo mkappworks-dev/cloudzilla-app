@@ -24,7 +24,7 @@ func (h *Handler) PageResetPassword(w http.ResponseWriter, r *http.Request) {
 	link, err := h.Services.PasswordReset.Check(r.Context(), token)
 	if err != nil {
 		slog.Error("check password reset link", "error", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	h.renderResetPassword(w, r, view.ResetPasswordData{Link: link}, http.StatusOK)

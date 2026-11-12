@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -23,6 +25,38 @@ func (h *Handler) NotFound(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNotFound)
 	h.render(w, r, pages.NotFound(basePage(r, h.Services)))
+}
+
+// ServerError renders the branded 500 page for HTML or a JSON error for API requests.
+func (h *Handler) ServerError(w http.ResponseWriter, r *http.Request) {
+	if isAPIRequest(r) {
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	w.WriteHeader(http.StatusInternalServerError)
+	h.render(w, r, pages.ServerError(basePage(r, h.Services)))
+}
+
+// Recoverer turns a handler panic into the branded 500. http.ErrAbortHandler passes through: net/http uses it to
+// abort a response on purpose.
+func (h *Handler) Recoverer(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			rec := recover()
+			if rec == nil {
+				return
+			}
+			if rec == http.ErrAbortHandler {
+				panic(rec)
+			}
+			slog.Error("handler panic", "error", rec, "method", r.Method, "path", r.URL.Path, "stack", string(debug.Stack()))
+			if r.Header.Get("Upgrade") == "websocket" {
+				return
+			}
+			h.ServerError(w, r)
+		}()
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Unauthorized redirects HTML requests to /login (preserving the original path)

@@ -16,6 +16,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func AccountIssues(data view.AccountIssuesData) templ.Component {
@@ -73,7 +74,7 @@ func AccountIssues(data view.AccountIssuesData) templ.Component {
 						Author:   is.AuthorName,
 						State:    is.State,
 						Private:  is.Visibility == "private",
-						Time:     relativeTime(is.UpdatedAt),
+						Time:     timefmt.Relative(is.UpdatedAt),
 						Labels:   issueLabelChips(data.IssueLabels[is.ID]),
 						Priority: issuePriority(is.Priority),
 						Comments: data.IssueComments[is.ID],
@@ -161,7 +162,7 @@ func accountListTabs(label string, nav view.AccountListNav) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(tab.Label)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 57, Col: 15}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 58, Col: 15}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -276,7 +277,7 @@ func accountListNoMatch(noun, state, clearURL string) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs("No " + state + " " + noun + " match these filters.")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 80, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 81, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -289,7 +290,7 @@ func accountListNoMatch(noun, state, clearURL string) templ.Component {
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(clearURL)).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 81, Col: 35}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 82, Col: 35}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 		if templ_7745c5c3_Err != nil {
@@ -329,7 +330,7 @@ func tabCountBadge(counts map[string]int, key string) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templruntime.NewAttributeExpression(components.Count(counts[key], "item", "items")).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 88, Col: 126}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 89, Col: 126}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
@@ -342,7 +343,7 @@ func tabCountBadge(counts map[string]int, key string) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(counts[key]))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 88, Col: 156}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/account_issues.templ`, Line: 89, Col: 156}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {

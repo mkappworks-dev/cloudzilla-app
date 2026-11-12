@@ -6,6 +6,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ DeployKeys(data view.DeployKeysFragData) {
@@ -39,7 +40,7 @@ templ DeployKeys(data view.DeployKeysFragData) {
 							</td>
 							<td class="py-3 text-muted-foreground text-xs">
 								if dk.LastUsedAt != nil {
-									<time datetime={ dk.LastUsedAt.UTC().Format(time.RFC3339) }>{ dk.LastUsedAt.Format("Jan 2, 2006") }</time>
+									<time datetime={ dk.LastUsedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*dk.LastUsedAt) }</time>
 								} else {
 									Never
 								}

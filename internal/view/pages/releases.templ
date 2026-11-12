@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Releases(data view.ReleasesData) {
@@ -19,7 +20,7 @@ templ Releases(data view.ReleasesData) {
 					<p class="mt-1 text-[13px] text-muted-foreground">Tag, package, and ship — releases are the cuttable points in your project's history.</p>
 				</div>
 				if data.CanWrite {
-					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/releases/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/releases/new", components.ButtonDefault, components.ButtonSizeDefault, nil) {
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 							<path d="M12 5v14M5 12h14"></path>
 						</svg>
@@ -38,7 +39,7 @@ templ Releases(data view.ReleasesData) {
 									if release.PublishedAt != nil {
 										<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Published</p>
 										<p class="mt-1 text-[13px] text-muted-foreground">
-											<time datetime={ release.PublishedAt.UTC().Format(time.RFC3339) }>{ release.PublishedAt.Format("Jan 2, 2006") }</time>
+											<time datetime={ release.PublishedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*release.PublishedAt) }</time>
 										</p>
 									} else {
 										<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Status</p>
@@ -69,8 +70,12 @@ templ Releases(data view.ReleasesData) {
 											}
 										}
 									</div>
-									if release.Excerpt != "" {
-										<p class="mt-2 text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{ release.Excerpt }</p>
+									if len(release.Excerpt) > 0 {
+										<div class="mt-2 space-y-1 text-[13px] text-muted-foreground leading-relaxed max-h-[6.5rem] overflow-hidden">
+											for _, line := range release.Excerpt {
+												<p class="truncate">{ line }</p>
+											}
+										</div>
 									}
 								</div>
 							</div>

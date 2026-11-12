@@ -37,7 +37,7 @@
 <li><a href="#branches" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Branch protection</a></li>
 <li><a href="#webhooks" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Webhooks</a></li>
 <li><a href="#template" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Template</a></li>
-<li role="presentation" aria-hidden="true"><p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-destructive">Danger zone</p></li>
+<li role="presentation" aria-hidden="true"><p class="font-mono text-[12px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-destructive">Danger zone</p></li>
 <li><a href="#archive" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Archive</a></li>
 <li><a href="#transfer" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Transfer ownership</a></li>
 <li><a href="#delete" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Delete repository</a></li>
@@ -91,7 +91,7 @@
         <p class="text-xs text-muted-foreground mt-0.5" id="vis-text">This repository is public — anyone can view it.</p>
       </div>
       <div class="flex items-center gap-3 shrink-0">
-        <span id="vis-badge"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Public</span></span>
+        <span id="vis-badge"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-success/15 text-success border-success/30">Public</span></span>
         <button type="button" id="vis-toggle" aria-pressed="true" aria-label="Repository visibility" class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-success bg-success transition-colors cursor-pointer">
           <span id="vis-knob" class="absolute left-[18px] h-3.5 w-3.5 rounded-full bg-background transition-transform"></span>
         </button>
@@ -240,14 +240,14 @@
             <tr>
               <td class="py-3 font-medium text-foreground">CI server</td>
               <td class="py-3 font-mono text-muted-foreground text-xs">SHA256:q3Zt0b8mKJk2r9yH1pXoP4Vw7uE5nL6cA0dGfS2tBxY</td>
-              <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-warning/15 text-warning border-warning/30">Read-only</span></td>
+              <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-warning/15 text-warning border-warning/30">Read-only</span></td>
               <td class="py-3 text-muted-foreground text-xs">Oct 30, 2026</td>
               <td class="py-3 text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke this deploy key?" data-confirm="The CI server key will immediately lose access. Any pipeline using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast="Deploy key revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
             </tr>
             <tr>
               <td class="py-3 font-medium text-foreground">Deploy bot</td>
               <td class="py-3 font-mono text-muted-foreground text-xs">SHA256:Hn4yWl2T8dQvR1sKc9mZxE6pUa3jFo5bN7gYiC0eVtM</td>
-              <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Read-write</span></td>
+              <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-success/15 text-success border-success/30">Read-write</span></td>
               <td class="py-3 text-muted-foreground text-xs">Never</td>
               <td class="py-3 text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke this deploy key?" data-confirm="The Deploy bot key will immediately lose access. Any pipeline using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast="Deploy key revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
             </tr>
@@ -321,7 +321,7 @@
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-mono text-sm font-medium text-foreground">main</span>
-              <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Pull request required</span><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Force push blocked</span>
+              <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-destructive/15 text-destructive border-destructive/30">Pull request required</span><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-destructive/15 text-destructive border-destructive/30">Force push blocked</span>
             </div>
             <p class="text-xs text-muted-foreground mt-1">1 required review <span aria-hidden="true"> · </span>Status checks: ci/build, ci/test</p>
           </div>
@@ -331,7 +331,7 @@
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-mono text-sm font-medium text-foreground">release/*</span>
-              <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Force push blocked</span>
+              <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-destructive/15 text-destructive border-destructive/30">Force push blocked</span>
             </div>
             <p class="text-xs text-muted-foreground mt-1">2 required reviews </p>
           </div>

@@ -78,7 +78,7 @@ func (h *Handler) DeviceLookup(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("device login: look up code", "error", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	h.setDeviceCookie(w, claims.UserID, g.UserCode, int(service.DeviceGrantTTL.Seconds()))
@@ -158,7 +158,7 @@ func (h *Handler) DeviceApprove(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			slog.Error("device login: deny", "error", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 		h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionDeviceDeny, model.AuditTargetUser, claims.UserID, claims.Username, details(nil))
@@ -181,7 +181,7 @@ func (h *Handler) DeviceApprove(w http.ResponseWriter, r *http.Request) {
 		status, code, refused := reauthRefusal(claims.UserID, err)
 		if !refused {
 			slog.Error("device login: confirm", "user_id", claims.UserID, "error", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 		h.renderDeviceConfirm(w, r, claims, g, scopes, status, pages.SettingsErrorMessage(code))
@@ -193,7 +193,7 @@ func (h *Handler) DeviceApprove(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		slog.Error("device login: approve", "error", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionDeviceApprove, model.AuditTargetUser, claims.UserID, claims.Username, details(scopes))

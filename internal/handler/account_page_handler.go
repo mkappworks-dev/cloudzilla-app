@@ -40,7 +40,7 @@ func (h *Handler) PageAccountRepos(w http.ResponseWriter, r *http.Request) {
 	all, err := h.Services.Repo.ListForUser(ctx, claims.UserID, "all")
 	if err != nil {
 		slog.Error("repos: failed to load repositories", "error", err)
-		http.Error(w, "Failed to load repositories", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 
@@ -218,7 +218,7 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("pulls: failed to load pull requests", "query", q.String(), "error", err)
-		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	pullIDs := make([]int64, len(pulls))
@@ -228,13 +228,13 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 	commentCounts, err := h.Services.Comment.CountByPullIDs(ctx, pullIDs)
 	if err != nil {
 		slog.Error("pulls: failed to load comment counts", "error", err)
-		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	pullLabels, err := h.Services.Label.BatchForPullIDs(ctx, pullIDs)
 	if err != nil {
 		slog.Error("pulls: failed to load labels", "error", err)
-		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	pullCI, err := h.Services.CommitStatus.CountsByPullIDs(ctx, pullIDs)
@@ -294,7 +294,7 @@ func (h *Handler) PageAccountIssues(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("issues: failed to load issues", "query", q.String(), "error", err)
-		http.Error(w, "Failed to load issues", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	issueIDs := make([]int64, len(issues))
@@ -304,13 +304,13 @@ func (h *Handler) PageAccountIssues(w http.ResponseWriter, r *http.Request) {
 	commentCounts, err := h.Services.Comment.CountByIssueIDs(ctx, issueIDs)
 	if err != nil {
 		slog.Error("issues: failed to load comment counts", "error", err)
-		http.Error(w, "Failed to load issues", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	issueLabels, err := h.Services.Label.BatchForIssueIDs(ctx, issueIDs)
 	if err != nil {
 		slog.Error("issues: failed to load labels", "error", err)
-		http.Error(w, "Failed to load issues", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	tabCounts, err := h.Services.Issue.CountsForUser(ctx, claims.UserID)
@@ -355,7 +355,7 @@ func (h *Handler) PageAccountStars(w http.ResponseWriter, r *http.Request) {
 	stars, err := h.Services.Star.ListByUser(ctx, claims.Username)
 	if err != nil {
 		slog.Error("stars: failed to load starred repositories", "username", claims.Username, "error", err)
-		http.Error(w, "Failed to load starred repositories", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	if stars == nil {
@@ -406,7 +406,7 @@ func (h *Handler) PageAttention(w http.ResponseWriter, r *http.Request) {
 	all, err := h.Services.Attention.ForUser(ctx, claims.UserID)
 	if err != nil {
 		slog.Error("attention: failed to load items", "user_id", claims.UserID, "error", err)
-		http.Error(w, "Failed to load attention items", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 

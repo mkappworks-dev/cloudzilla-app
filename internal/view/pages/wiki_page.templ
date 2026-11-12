@@ -32,7 +32,7 @@ templ WikiPage(data view.WikiPageData) {
 			</section>
 
 			<div class="grid lg:grid-cols-[220px_1fr] gap-8">
-				@wikiSidebar(data.Owner, data.RepoName, data.Slug, data.PageList, data.CanWrite, data.CanWrite)
+				@wikiSidebar(data.Owner, data.RepoName, data.Slug, data.PageList, data.CanWrite, data.CanWrite && len(data.PageList) > 1)
 
 				<article class="rounded-md border border-border bg-card p-6">
 					if data.Exists {
@@ -41,10 +41,11 @@ templ WikiPage(data view.WikiPageData) {
 						</div>
 					} else {
 						<div class="text-muted-foreground">
-							<p class="mb-4">This page does not exist yet.</p>
+							<p class="text-foreground font-medium">{ wikiMissingTitle(data.Slug) }</p>
+							<p class="mt-1 mb-4 text-[13px]">{ wikiMissingHint(data.Slug, data.CanWrite) }</p>
 							if data.CanWrite {
 								@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug+"/edit", components.ButtonDefault, components.ButtonSizeDefault, nil) {
-									Create this page
+									{ wikiCreateLabel(data.Slug) }
 								}
 							}
 						</div>
@@ -79,4 +80,29 @@ templ WikiPage(data view.WikiPageData) {
 			}
 		}
 	}
+}
+
+func wikiMissingTitle(slug string) string {
+	if slug == "Home" {
+		return "This wiki has no Home page yet"
+	}
+	return "No page called " + slug + " yet"
+}
+
+func wikiMissingHint(slug string, canWrite bool) string {
+	switch {
+	case !canWrite:
+		return "A collaborator with write access can add it."
+	case slug == "Home":
+		return "The Home page is the first thing visitors see. Start with what the project is and where to begin."
+	default:
+		return "Create it now, or pick another page from the list."
+	}
+}
+
+func wikiCreateLabel(slug string) string {
+	if slug == "Home" {
+		return "Create the Home page"
+	}
+	return "Create this page"
 }

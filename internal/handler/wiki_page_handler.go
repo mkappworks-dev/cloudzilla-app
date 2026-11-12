@@ -62,7 +62,7 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 
 	rawContent, exists, err := h.Services.Code.WikiPageGet(owner, repoName, slug)
 	if err != nil {
-		http.Error(w, "failed to load wiki page", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 	rawContent, _, err := h.Services.Code.WikiPageGet(owner, repoName, slug)
 	if err != nil {
 		slog.Error("failed to load wiki page for editing", "owner", owner, "repo", repoName, "slug", slug, "error", err)
-		http.Error(w, "failed to load page content", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 

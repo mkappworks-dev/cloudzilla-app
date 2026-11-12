@@ -66,7 +66,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(middleware.Metrics)
 	r.Use(chiMiddleware.RequestID)
 	r.Use(middleware.ClientIP(trustedProxies))
-	r.Use(chiMiddleware.Recoverer)
+	r.Use(h.Recoverer)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS(cfg.Server.BaseURL))
 	if rl := cfg.RateLimit; rl.Enabled {

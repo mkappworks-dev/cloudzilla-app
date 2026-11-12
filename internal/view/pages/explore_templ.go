@@ -15,6 +15,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func Explore(data view.ExploreData) templ.Component {
@@ -315,7 +316,7 @@ func Explore(data view.ExploreData) templ.Component {
 						Name:        repo.Name,
 						Description: repo.Description,
 						Private:     repo.Private,
-						Time:        "Created " + repo.CreatedAt.Format("Jan 2, 2006"),
+						Time:        "Created " + timefmt.Date(repo.CreatedAt),
 						TimeISO:     repo.CreatedAt.UTC().Format(time.RFC3339),
 						ShowStats:   true,
 						Stars:       repo.StarCount,

@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ ReleaseDetail(data view.ReleaseDetailData) {
@@ -34,7 +35,7 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 					}
 					<span>
 						if data.Release.PublishedAt != nil {
-							published <time datetime={ data.Release.PublishedAt.UTC().Format(time.RFC3339) }>{ data.Release.PublishedAt.Format("Jan 2, 2006") }</time>
+							published <time datetime={ data.Release.PublishedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*data.Release.PublishedAt) }</time>
 						} else {
 							not yet published
 						}

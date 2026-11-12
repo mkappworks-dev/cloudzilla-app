@@ -12,7 +12,7 @@ func (h *Handler) PageVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	link, err := h.Services.EmailVerifier.Check(r.Context(), token)
 	if err != nil {
 		slog.Error("check verification token", "error", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	h.renderVerifyEmail(w, r, link, token)

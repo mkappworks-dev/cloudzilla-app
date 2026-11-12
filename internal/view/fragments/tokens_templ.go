@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func TokensList(data view.TokensListFragData) templ.Component {
@@ -47,7 +48,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 				var templ_7745c5c3_Var2 string
 				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 18, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 19, Col: 51}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 				if templ_7745c5c3_Err != nil {
@@ -63,7 +64,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 							var templ_7745c5c3_Var3 string
 							templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(", ")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 24, Col: 16}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 25, Col: 16}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 							if templ_7745c5c3_Err != nil {
@@ -77,7 +78,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 						var templ_7745c5c3_Var4 string
 						templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(s)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 26, Col: 36}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 27, Col: 36}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 						if templ_7745c5c3_Err != nil {
@@ -98,7 +99,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(" · signed requests only")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 32, Col: 36}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 33, Col: 36}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {
@@ -113,7 +114,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(" · only " + strings.Join(t.Targets, ", "))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 35, Col: 53}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 36, Col: 53}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -128,7 +129,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(" · expires ")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 38, Col: 24}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 39, Col: 24}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -141,7 +142,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(t.ExpiresAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 39, Col: 63}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 40, Col: 63}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 					if templ_7745c5c3_Err != nil {
@@ -152,9 +153,9 @@ func TokensList(data view.TokensListFragData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var9 string
-					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(t.ExpiresAt.Format("Jan 2, 2006"))
+					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.Date(*t.ExpiresAt))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 39, Col: 101}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 40, Col: 94}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -168,7 +169,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(" · no expiry")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 41, Col: 25}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 42, Col: 25}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -182,7 +183,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(t.LastEight)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 45, Col: 79}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 46, Col: 79}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -195,7 +196,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/user/tokens/" + strconv.FormatInt(t.ID, 10)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 48, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 49, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 				if templ_7745c5c3_Err != nil {
@@ -208,7 +209,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templruntime.NewAttributeExpression("The " + t.Name + " token will immediately lose access. Any script or integration using it will stop working.").Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 51, Col: 129}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 52, Col: 129}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 				if templ_7745c5c3_Err != nil {

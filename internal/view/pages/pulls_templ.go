@@ -69,7 +69,7 @@ func Pulls(data view.PullsData) templ.Component {
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/pulls/new", components.ButtonSuccess, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var3), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/pulls/new", components.ButtonDefault, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var3), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

@@ -660,7 +660,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 		default:
 			slog.Error("PageCommits: GetCommits failed",
 				"owner", owner, "repo", repoName, "ref", ref, "page", page, "error", err)
-			http.Error(w, "failed to load commits", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 	}

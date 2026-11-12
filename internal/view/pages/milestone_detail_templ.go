@@ -18,6 +18,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func MilestoneDetail(data view.MilestoneDetailData) templ.Component {
@@ -57,7 +58,7 @@ func MilestoneDetail(data view.MilestoneDetailData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 19, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 20, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -70,7 +71,7 @@ func MilestoneDetail(data view.MilestoneDetailData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 19, Col: 109}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 20, Col: 109}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -83,7 +84,7 @@ func MilestoneDetail(data view.MilestoneDetailData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones")).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 21, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 22, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -203,7 +204,7 @@ func MilestoneDetail(data view.MilestoneDetailData) templ.Component {
 							var templ_7745c5c3_Var10 string
 							templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(data.Milestone.Title)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 49, Col: 67}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 50, Col: 67}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 							if templ_7745c5c3_Err != nil {
@@ -266,7 +267,7 @@ func MilestoneDetail(data view.MilestoneDetailData) templ.Component {
 						var templ_7745c5c3_Var13 string
 						templ_7745c5c3_Var13, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(base)).ResolveURL(ctx)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 56, Col: 53}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 57, Col: 53}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 						if templ_7745c5c3_Err != nil {
@@ -391,7 +392,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(base + "?tab=issues&state=" + data.State)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 96, Col: 66}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 97, Col: 66}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 			if templ_7745c5c3_Err != nil {
@@ -436,7 +437,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(issuesTotal))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 99, Col: 103}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 100, Col: 103}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -457,7 +458,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(base + "?tab=pulls&state=" + data.State)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 102, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 103, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
 			if templ_7745c5c3_Err != nil {
@@ -502,7 +503,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(pullsTotal))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 105, Col: 109}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 106, Col: 109}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -523,7 +524,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(stateBase + "open")).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 110, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 111, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
 			if templ_7745c5c3_Err != nil {
@@ -568,7 +569,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 		var templ_7745c5c3_Var27 string
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(milestoneStateCount(data, "open")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 113, Col: 106}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 114, Col: 106}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 		if templ_7745c5c3_Err != nil {
@@ -589,7 +590,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 			var templ_7745c5c3_Var28 string
 			templ_7745c5c3_Var28, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(stateBase + "closed")).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 116, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 117, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var28)
 			if templ_7745c5c3_Err != nil {
@@ -634,7 +635,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 		var templ_7745c5c3_Var31 string
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(milestoneStateCount(data, "closed")))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 119, Col: 110}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 120, Col: 110}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 		if templ_7745c5c3_Err != nil {
@@ -653,7 +654,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(data.State)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 126, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 127, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 				if templ_7745c5c3_Err != nil {
@@ -688,7 +689,7 @@ func milestoneItemsSection(data view.MilestoneDetailData, base string) templ.Com
 				var templ_7745c5c3_Var33 string
 				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(data.State)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 136, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 137, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 				if templ_7745c5c3_Err != nil {
@@ -794,7 +795,7 @@ func milestoneIssueRow(owner, repoName string, iss model.Issue) templ.Component 
 		var templ_7745c5c3_Var37 string
 		templ_7745c5c3_Var37, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + owner + "/" + repoName + "/issues/" + strconv.Itoa(iss.Number))).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 159, Col: 96}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 160, Col: 96}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var37)
 		if templ_7745c5c3_Err != nil {
@@ -807,7 +808,7 @@ func milestoneIssueRow(owner, repoName string, iss model.Issue) templ.Component 
 		var templ_7745c5c3_Var38 string
 		templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(iss.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 159, Col: 158}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 160, Col: 158}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 		if templ_7745c5c3_Err != nil {
@@ -820,7 +821,7 @@ func milestoneIssueRow(owner, repoName string, iss model.Issue) templ.Component 
 		var templ_7745c5c3_Var39 string
 		templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(iss.Number))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 161, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 162, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 		if templ_7745c5c3_Err != nil {
@@ -833,7 +834,7 @@ func milestoneIssueRow(owner, repoName string, iss model.Issue) templ.Component 
 		var templ_7745c5c3_Var40 string
 		templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(milestoneAuthor(iss.AuthorName))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 163, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 164, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 		if templ_7745c5c3_Err != nil {
@@ -846,7 +847,7 @@ func milestoneIssueRow(owner, repoName string, iss model.Issue) templ.Component 
 		var templ_7745c5c3_Var41 string
 		templ_7745c5c3_Var41, templ_7745c5c3_Err = templruntime.NewAttributeExpression(iss.CreatedAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 165, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 166, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var41)
 		if templ_7745c5c3_Err != nil {
@@ -857,9 +858,9 @@ func milestoneIssueRow(owner, repoName string, iss model.Issue) templ.Component 
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var42 string
-		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(iss.CreatedAt.Format("Jan 2, 2006"))
+		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.Date(iss.CreatedAt))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 165, Col: 101}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 166, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 		if templ_7745c5c3_Err != nil {
@@ -954,7 +955,7 @@ func milestonePullRow(owner, repoName string, pr model.PullRequest) templ.Compon
 		var templ_7745c5c3_Var46 string
 		templ_7745c5c3_Var46, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + owner + "/" + repoName + "/pulls/" + strconv.Itoa(pr.Number))).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 187, Col: 94}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 188, Col: 94}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var46)
 		if templ_7745c5c3_Err != nil {
@@ -967,7 +968,7 @@ func milestonePullRow(owner, repoName string, pr model.PullRequest) templ.Compon
 		var templ_7745c5c3_Var47 string
 		templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(pr.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 187, Col: 155}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 188, Col: 155}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 		if templ_7745c5c3_Err != nil {
@@ -980,7 +981,7 @@ func milestonePullRow(owner, repoName string, pr model.PullRequest) templ.Compon
 		var templ_7745c5c3_Var48 string
 		templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(pr.Number))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 189, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 190, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
 		if templ_7745c5c3_Err != nil {
@@ -993,7 +994,7 @@ func milestonePullRow(owner, repoName string, pr model.PullRequest) templ.Compon
 		var templ_7745c5c3_Var49 string
 		templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(milestoneAuthor(pr.AuthorName))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 191, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 192, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 		if templ_7745c5c3_Err != nil {
@@ -1006,7 +1007,7 @@ func milestonePullRow(owner, repoName string, pr model.PullRequest) templ.Compon
 		var templ_7745c5c3_Var50 string
 		templ_7745c5c3_Var50, templ_7745c5c3_Err = templruntime.NewAttributeExpression(pr.CreatedAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 193, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 194, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var50)
 		if templ_7745c5c3_Err != nil {
@@ -1017,9 +1018,9 @@ func milestonePullRow(owner, repoName string, pr model.PullRequest) templ.Compon
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var51 string
-		templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(pr.CreatedAt.Format("Jan 2, 2006"))
+		templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.Date(pr.CreatedAt))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 193, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 194, Col: 91}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 		if templ_7745c5c3_Err != nil {
@@ -1079,7 +1080,7 @@ func milestonePager(data view.MilestoneDetailData, base string) templ.Component 
 		var templ_7745c5c3_Var53 string
 		templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(from))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 211, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 212, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 		if templ_7745c5c3_Err != nil {
@@ -1092,7 +1093,7 @@ func milestonePager(data view.MilestoneDetailData, base string) templ.Component 
 		var templ_7745c5c3_Var54 string
 		templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(from + milestoneItemsLen(data) - 1))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 211, Col: 110}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 212, Col: 110}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 		if templ_7745c5c3_Err != nil {
@@ -1105,7 +1106,7 @@ func milestonePager(data view.MilestoneDetailData, base string) templ.Component 
 		var templ_7745c5c3_Var55 string
 		templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.TotalCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 211, Col: 178}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 212, Col: 178}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 		if templ_7745c5c3_Err != nil {
@@ -1128,7 +1129,7 @@ func milestonePager(data view.MilestoneDetailData, base string) templ.Component 
 				var templ_7745c5c3_Var56 string
 				templ_7745c5c3_Var56, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(pageBase + strconv.Itoa(data.Page-1))).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 216, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 217, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var56)
 				if templ_7745c5c3_Err != nil {
@@ -1153,7 +1154,7 @@ func milestonePager(data view.MilestoneDetailData, base string) templ.Component 
 					var templ_7745c5c3_Var57 string
 					templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(p))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 222, Col: 184}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 223, Col: 184}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 					if templ_7745c5c3_Err != nil {
@@ -1171,7 +1172,7 @@ func milestonePager(data view.MilestoneDetailData, base string) templ.Component 
 					var templ_7745c5c3_Var58 string
 					templ_7745c5c3_Var58, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(pageBase + strconv.Itoa(p))).ResolveURL(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 224, Col: 57}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 225, Col: 57}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var58)
 					if templ_7745c5c3_Err != nil {
@@ -1184,7 +1185,7 @@ func milestonePager(data view.MilestoneDetailData, base string) templ.Component 
 					var templ_7745c5c3_Var59 string
 					templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(p))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 224, Col: 228}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 225, Col: 228}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 					if templ_7745c5c3_Err != nil {
@@ -1204,7 +1205,7 @@ func milestonePager(data view.MilestoneDetailData, base string) templ.Component 
 				var templ_7745c5c3_Var60 string
 				templ_7745c5c3_Var60, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(pageBase + strconv.Itoa(data.Page+1))).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 228, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 229, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var60)
 				if templ_7745c5c3_Err != nil {
@@ -1268,7 +1269,7 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 			var templ_7745c5c3_Var62 string
 			templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.IssueClosedCount * 100 / issuesTotal))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 246, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 247, Col: 62}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 			if templ_7745c5c3_Err != nil {
@@ -1291,7 +1292,7 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 		var templ_7745c5c3_Var63 string
 		templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.IssueClosedCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 252, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 253, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 		if templ_7745c5c3_Err != nil {
@@ -1304,7 +1305,7 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 		var templ_7745c5c3_Var64 string
 		templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.IssueOpenCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 252, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 253, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 		if templ_7745c5c3_Err != nil {
@@ -1317,7 +1318,7 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 		var templ_7745c5c3_Var65 string
 		templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.PullClosedCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 253, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 254, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 		if templ_7745c5c3_Err != nil {
@@ -1330,7 +1331,7 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 		var templ_7745c5c3_Var66 string
 		templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.PullOpenCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 253, Col: 91}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 254, Col: 91}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 		if templ_7745c5c3_Err != nil {
@@ -1349,9 +1350,9 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var67 string
-		templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(data.Milestone.CreatedAt.Format("Jan 2, 2006"))
+		templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.Date(data.Milestone.CreatedAt))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 264, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 265, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 		if templ_7745c5c3_Err != nil {
@@ -1362,9 +1363,9 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var68 string
-		templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(data.Milestone.UpdatedAt.Format("Jan 2, 2006"))
+		templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.Date(data.Milestone.UpdatedAt))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 268, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 269, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 		if templ_7745c5c3_Err != nil {
@@ -1380,9 +1381,9 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var69 string
-			templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinStringErrs(data.Milestone.ClosedAt.Format("Jan 2, 2006"))
+			templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.Date(*data.Milestone.ClosedAt))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 273, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 274, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var69))
 			if templ_7745c5c3_Err != nil {
@@ -1410,7 +1411,7 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 				var templ_7745c5c3_Var70 string
 				templ_7745c5c3_Var70, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(base)).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 283, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 284, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var70)
 				if templ_7745c5c3_Err != nil {
@@ -1428,7 +1429,7 @@ func milestoneDetailSidebar(data view.MilestoneDetailData, base string) templ.Co
 				var templ_7745c5c3_Var71 string
 				templ_7745c5c3_Var71, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(base)).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 291, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestone_detail.templ`, Line: 292, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var71)
 				if templ_7745c5c3_Err != nil {

@@ -42,7 +42,7 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 
 	list, err := h.Services.Project.ListByRepoWithStats(r.Context(), owner, repoName, state, query)
 	if err != nil {
-		http.Error(w, "failed to load projects", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 
 	columns, err := h.Services.Project.ListColumnsWithCardsExpanded(r.Context(), project.ID, viewerID)
 	if err != nil {
-		http.Error(w, "failed to load board", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	if columns == nil {

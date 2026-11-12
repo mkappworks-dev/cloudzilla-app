@@ -10,6 +10,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ PullCommits(data view.PullCommitsData) {
@@ -52,7 +53,7 @@ templ pullCommitsBody(data view.PullCommitsData) {
 		<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Commits in this pull request">
 			for i, day := range commitDays(data.Commits) {
 				<p class={ "px-4 py-2 border-b border-border bg-muted/40 text-[11.5px] font-mono text-muted-foreground uppercase tracking-wider", templ.KV("border-t", i > 0) }>
-					Commits on { day.Date.Format("Jan 2, 2006") }
+					Commits on { timefmt.Date(day.Date) }
 				</p>
 				<ol class="divide-y divide-border">
 					for _, c := range day.Commits {
@@ -63,7 +64,7 @@ templ pullCommitsBody(data view.PullCommitsData) {
 								<p class="text-[12px] text-muted-foreground mt-0.5">
 									<span class="font-medium">{ c.Author }</span>
 									committed
-									<time datetime={ c.AuthorTime.UTC().Format(time.RFC3339) }>{ relativeTime(c.AuthorTime) }</time>
+									<time datetime={ c.AuthorTime.UTC().Format(time.RFC3339) }>{ timefmt.Relative(c.AuthorTime) }</time>
 								</p>
 							</div>
 							<a href={ templ.SafeURL(repoBase + "/commit/" + c.FullHash) } class="text-[11.5px] font-mono text-muted-foreground hover:underline shrink-0">{ c.Hash }</a>

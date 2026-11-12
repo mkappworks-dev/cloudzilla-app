@@ -70,7 +70,7 @@ func NewFile(data view.NewFileData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</a> <span aria-hidden=\"true\">·</span> New file</p><h1 id=\"newfile-title\" class=\"text-xl tracking-tight font-medium\">Add a file</h1><p class=\"text-[13px] text-muted-foreground mt-1\">Committing to <span class=\"font-mono text-foreground\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</a> <span aria-hidden=\"true\">·</span> New file</p><h1 id=\"newfile-title\" class=\"text-2xl font-semibold tracking-tight\">Add a file</h1><p class=\"text-[13px] text-muted-foreground mt-1\">Committing to <span class=\"font-mono text-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

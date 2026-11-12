@@ -97,7 +97,7 @@ func (h *Handler) PageContributors(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.Services.ContributorStats.ForRepo(r.Context(), repo.ID)
 	if err != nil {
 		slog.Error("contributors: load failed", "repo_id", repo.ID, "error", err)
-		http.Error(w, "failed to load contributors", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 

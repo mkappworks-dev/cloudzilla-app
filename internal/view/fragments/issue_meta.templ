@@ -6,6 +6,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 type priorityOption struct {
@@ -289,7 +290,7 @@ templ IssueBodyCard(data view.IssueBodyCardData) {
 			@components.Avatar(data.AuthorName, components.AvatarSizeSM, data.AuthorName)
 			<strong class="text-foreground">{ data.AuthorName }</strong>
 			<span class="text-muted-foreground">opened</span>
-			<time class="text-muted-foreground ml-auto text-xs" datetime={ data.CreatedAt.UTC().Format(time.RFC3339) }>{ data.CreatedAt.Format("Jan 2, 2006") }</time>
+			<time class="text-muted-foreground ml-auto text-xs" datetime={ data.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(data.CreatedAt) }</time>
 			if data.CanWrite && !data.Editing {
 				<button
 					type="button"

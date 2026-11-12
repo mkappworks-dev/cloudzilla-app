@@ -3,6 +3,7 @@ package components
 type ButtonVariant string
 
 const (
+	// The one primary-action style: every create, save and submit button.
 	ButtonDefault     ButtonVariant = "default"
 	ButtonOutline     ButtonVariant = "outline"
 	ButtonGhost       ButtonVariant = "ghost"
@@ -10,6 +11,7 @@ const (
 	ButtonDestructive ButtonVariant = "destructive"
 	// Keeps a destructive action visually secondary next to a primary button.
 	ButtonDestructiveOutline ButtonVariant = "destructive-outline"
+	// Approve, reopen and restore only; a create or save button is ButtonDefault.
 	ButtonSuccess            ButtonVariant = "success"
 	ButtonLink               ButtonVariant = "link"
 )

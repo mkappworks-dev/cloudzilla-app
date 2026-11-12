@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func discussionStateURL(owner, repo, state string, categoryID int64) string {
@@ -54,7 +55,7 @@ templ Discussions(data view.DiscussionsData) {
 					<h1 id="disc-title" class="text-2xl font-semibold tracking-tight">Discussions</h1>
 				</div>
 				if data.CanWrite {
-					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/discussions/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/discussions/new", components.ButtonDefault, components.ButtonSizeDefault, nil) {
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 							<path d="M12 5v14M5 12h14"></path>
 						</svg>
@@ -150,9 +151,9 @@ templ discussionRow(data view.DiscussionsData, d model.Discussion) {
 					<span>{ d.AuthorName }</span>
 					<span aria-hidden="true">·</span>
 					if d.IsAnswered {
-						<span>answered <time datetime={ d.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(d.CreatedAt) }</time></span>
+						<span>answered <time datetime={ d.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(d.CreatedAt) }</time></span>
 					} else {
-						<time datetime={ d.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(d.CreatedAt) }</time>
+						<time datetime={ d.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(d.CreatedAt) }</time>
 					}
 					if category != nil {
 						<span aria-hidden="true">·</span>

@@ -31,7 +31,7 @@ templ Settings(data view.SettingsData) {
 					@settingsNavLink("#saved-replies", "Saved replies", false)
 					@settingsNavLink("#sessions", "Sessions", false)
 					@settingsNavLink("#email", "Email", false)
-					<p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-muted-foreground">Danger zone</p>
+					<p class="font-mono text-[12px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-muted-foreground">Danger zone</p>
 					<a href="#delete" class="block px-3 py-1.5 rounded-sm text-[13px] text-destructive hover:bg-destructive/10">Delete account</a>
 				</nav>
 			</aside>
@@ -115,16 +115,16 @@ templ settingsProfileSection(data view.SettingsData) {
 			<div>
 				<label for="acct-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
 				<input id="acct-username" type="text" value={ data.User.Username } readonly class="w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-hidden"/>
-				<p class="mt-1 text-[11.5px] text-muted-foreground">Usernames can't be changed.</p>
+				<p class="mt-1 text-[12px] text-muted-foreground">Usernames can't be changed.</p>
 			</div>
 			<div>
 				<label for="acct-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Email</label>
 				<input id="acct-email" name="email" type="email" value={ data.User.Email } x-model="email" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
-				<p class="mt-1 text-[11.5px] text-muted-foreground">Used for sign-in and notifications. A new address has to be verified again.</p>
+				<p class="mt-1 text-[12px] text-muted-foreground">Used for sign-in and notifications. A new address has to be verified again.</p>
 				if data.Confirm.Any() {
 					<div x-show="email !== original" x-cloak class="mt-3 flex flex-wrap items-end gap-3">
 						@components.ConfirmFields("email-change", data.Confirm, false)
-						<p class="basis-full text-[11.5px] text-muted-foreground">Changing your email needs { data.Confirm.Needs() }.</p>
+						<p class="basis-full text-[12px] text-muted-foreground">Changing your email needs { data.Confirm.Needs() }.</p>
 					</div>
 				}
 			</div>
@@ -219,9 +219,9 @@ templ settingsSecuritySection(data view.SettingsData) {
 						<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
 							Two-factor authentication
 							if data.TOTPEnabled {
-								<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Enabled</span>
+								<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Enabled</span>
 							} else {
-								<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">Disabled</span>
+								<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">Disabled</span>
 							}
 						</p>
 						<p class="mt-0.5 text-[12.5px] text-muted-foreground">TOTP via authenticator app (Google Authenticator, 1Password, Authy).</p>
@@ -290,7 +290,7 @@ templ settingsChangePasswordDialog(withCode bool) {
 					<div>
 						<label for="new-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New password</label>
 						<input id="new-password" name="new_password" type="password" required minlength="8" autocomplete="new-password" aria-describedby="new-password-help" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
-						<p id="new-password-help" class="mt-1 text-[11.5px] text-muted-foreground">At least 8 characters.</p>
+						<p id="new-password-help" class="mt-1 text-[12px] text-muted-foreground">At least 8 characters.</p>
 					</div>
 					<div>
 						<label for="new-password-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Confirm new password</label>
@@ -324,9 +324,9 @@ templ settingsConnectedAccounts(data view.SettingsData) {
 				<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
 					Google
 					if data.GoogleConnected {
-						<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Connected</span>
+						<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Connected</span>
 					} else {
-						<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">Not connected</span>
+						<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">Not connected</span>
 					}
 				</p>
 				if data.GoogleConnected && data.HasPassword {
@@ -475,22 +475,22 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 							}
 							<label class="flex items-start gap-2"><input type="checkbox" name="scopes" value="repo:admin" class="mt-0.5"/> <span><strong class="font-mono">repo:admin</strong> — manage collaborators, deploy keys, webhooks, org owners, transfers and deletion without a password prompt. Needs a signing key and an expiry within 90 days, and each use is emailed to you.</span></label>
 						</div>
-						<p class="text-[11px] text-muted-foreground mt-1">Choose at least one. Tokens can't manage your account, SSH keys or other tokens, nor repository and organization settings without repo:admin.</p>
+						<p class="text-[12px] text-muted-foreground mt-1">Choose at least one. Tokens can't manage your account, SSH keys or other tokens, nor repository and organization settings without repo:admin.</p>
 					</fieldset>
 					<div>
 						<label for="token-targets" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repositories and organizations (required with repo:admin)</label>
 						<textarea id="token-targets" name="targets" rows="2" placeholder="acme/app" aria-describedby="token-targets-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
-						<p id="token-targets-help" class="text-[11px] text-muted-foreground mt-1">One per line: a repository you manage as <span class="font-mono">owner/repo</span>, or an organization you own, which covers its settings and all its repositories. The token can't touch anything else.</p>
+						<p id="token-targets-help" class="text-[12px] text-muted-foreground mt-1">One per line: a repository you manage as <span class="font-mono">owner/repo</span>, or an organization you own, which covers its settings and all its repositories. The token can't touch anything else.</p>
 					</div>
 					<div>
 						<label for="token-signing-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Signing key (required with repo:admin)</label>
 						<textarea id="token-signing-key" name="signing_key" rows="2" placeholder="ssh-ed25519 AAAA…" aria-describedby="token-signing-key-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
-						<p id="token-signing-key-help" class="text-[11px] text-muted-foreground mt-1">An SSH public key, which can live on a hardware key (sk-). Every request with this token must then be signed with its private key (<span class="font-mono">ssh-keygen -Y sign</span>), so the token alone is useless to anyone who copies it. Such a token can't be used for git.</p>
+						<p id="token-signing-key-help" class="text-[12px] text-muted-foreground mt-1">An SSH public key, which can live on a hardware key (sk-). Every request with this token must then be signed with its private key (<span class="font-mono">ssh-keygen -Y sign</span>), so the token alone is useless to anyone who copies it. Such a token can't be used for git.</p>
 					</div>
 					<div>
 						<label for="token-expires" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Expiration (optional)</label>
 						<input id="token-expires" name="expires_at" type="date" class="bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
-						<p class="text-[11px] text-muted-foreground mt-1">Leave blank for a non-expiring token.</p>
+						<p class="text-[12px] text-muted-foreground mt-1">Leave blank for a non-expiring token.</p>
 					</div>
 					<div class="flex flex-wrap items-end gap-3">
 						@components.ConfirmFields("token", data.Confirm, true)
@@ -561,7 +561,7 @@ templ settingsRegisterOAuthAppDialog() {
 					<div>
 						<label for="oauth-app-redirect" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Redirect URI</label>
 						<input id="oauth-app-redirect" name="redirect_uri" type="url" placeholder="https://example.com/callback" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
-						<p class="text-[11px] text-muted-foreground mt-1">Leave blank to accept any redirect URI.</p>
+						<p class="text-[12px] text-muted-foreground mt-1">Leave blank to accept any redirect URI.</p>
 					</div>
 					<div>
 						<label for="oauth-app-desc" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Description (optional)</label>
@@ -683,7 +683,7 @@ templ settingsSessionsSection(data view.SettingsData) {
 			<li class="py-3 flex items-center gap-3">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>
 				<div class="min-w-0 flex-1">
-					<p class="text-[13.5px] font-medium">This browser <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Current</span></p>
+					<p class="text-[13.5px] font-medium">This browser <span class="ml-2 text-[12px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Current</span></p>
 					<p class="text-[12px] text-muted-foreground">Sign out to end this session. Other sessions can't be listed, only signed out together.</p>
 				</div>
 			</li>
@@ -711,11 +711,11 @@ templ settingsEmailsSection(data view.SettingsData) {
 					<p class="text-[12px] text-muted-foreground">Used for sign-in and notifications.</p>
 				</div>
 				if data.User.EmailVerified() {
-					<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Verified</span>
+					<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Verified</span>
 				} else {
-					<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-warning/40 bg-warning/10 text-warning">Unverified</span>
+					<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-warning/40 bg-warning/10 text-warning">Unverified</span>
 				}
-				<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Primary</span>
+				<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Primary</span>
 			</li>
 		</ul>
 		if !data.User.EmailVerified() {
@@ -757,7 +757,7 @@ templ settingsEmailsSection(data view.SettingsData) {
 					<span class="block text-sm font-medium text-foreground">Keep my email address private</span>
 					<span id="keep-email-private-help" class="block text-xs text-muted-foreground mt-0.5">
 						File edits, wiki changes, merges, applied suggestions, and profile README edits are authored as
-						<code class="text-[11px] bg-muted border border-border rounded-sm px-1.5 py-0.5 font-mono break-words">{ data.NoreplyEmail }</code>
+						<code class="text-[12px] bg-muted border border-border rounded-sm px-1.5 py-0.5 font-mono break-words">{ data.NoreplyEmail }</code>
 						instead of your account email. Commit authors are visible to anyone who can read the repository.
 					</span>
 				</span>
@@ -775,7 +775,7 @@ templ settingsEmailsSection(data view.SettingsData) {
 		</form>
 		<p class="text-[12px] text-muted-foreground mt-3">
 			Commits you push keep the email your git client sets. To keep those private too, run
-			<code class="mt-1.5 block w-fit max-w-full text-[11px] bg-muted border border-border rounded-sm px-1.5 py-0.5 font-mono break-words">git config --global user.email { data.NoreplyEmail }</code>
+			<code class="mt-1.5 block w-fit max-w-full text-[12px] bg-muted border border-border rounded-sm px-1.5 py-0.5 font-mono break-words">git config --global user.email { data.NoreplyEmail }</code>
 		</p>
 	</section>
 }
@@ -827,7 +827,7 @@ templ settingsDangerSection(data view.SettingsData) {
 }
 
 templ comingSoonBadge() {
-	<span class="text-[10px] font-normal px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">Coming soon</span>
+	<span class="text-[12px] font-normal px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">Coming soon</span>
 }
 
 templ comingSoonButton(label string) {

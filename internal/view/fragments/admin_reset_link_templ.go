@@ -14,6 +14,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 // AdminResetLink replaces the "Password reset link" row of the admin user page.
@@ -41,7 +42,7 @@ func AdminResetLink(data view.AdminResetLinkFragData) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.ExpiresAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_reset_link.templ`, Line: 16, Col: 131}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_reset_link.templ`, Line: 17, Col: 131}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -52,9 +53,9 @@ func AdminResetLink(data view.AdminResetLinkFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.ExpiresAt.Format("Jan 2, 2006 15:04"))
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.DateTime(data.ExpiresAt))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_reset_link.templ`, Line: 16, Col: 178}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_reset_link.templ`, Line: 17, Col: 168}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -67,7 +68,7 @@ func AdminResetLink(data view.AdminResetLinkFragData) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Link)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_reset_link.templ`, Line: 19, Col: 178}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_reset_link.templ`, Line: 20, Col: 178}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -109,7 +110,7 @@ func AdminResetLink(data view.AdminResetLinkFragData) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs("@" + data.Username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_reset_link.templ`, Line: 28, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_reset_link.templ`, Line: 29, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {

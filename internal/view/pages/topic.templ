@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Topic(data view.TopicData) {
@@ -69,7 +70,7 @@ templ Topic(data view.TopicData) {
 										<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
 										{ strconv.Itoa(repo.StarCount) }
 									</span>
-									<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ repo.UpdatedAt.Format("Jan 2, 2006") }</time></span>
+									<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(repo.UpdatedAt) }</time></span>
 								</div>
 							</li>
 						}

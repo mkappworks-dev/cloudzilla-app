@@ -12,6 +12,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ PullDetail(data view.PullDetailData) {
@@ -63,7 +64,7 @@ templ pullDetailBody(data view.PullDetailData) {
 					<a href={ templ.SafeURL("/" + prAuthor(data)) } class="text-[13px] font-medium hover:underline">{ "@" + prAuthor(data) }</a>
 					<span class="text-[12px] text-muted-foreground">
 						opened this pull request
-						<time datetime={ data.Pull.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Pull.CreatedAt.Format("Jan 2, 2006") }</time>
+						<time datetime={ data.Pull.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(data.Pull.CreatedAt) }</time>
 					</span>
 					<span class="ml-auto text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Author</span>
 					if data.CanWrite {
@@ -166,7 +167,7 @@ templ pullDetailBody(data view.PullDetailData) {
 								Close pull request
 							}
 						}
-						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 							Comment
 						}
 					}
@@ -429,7 +430,7 @@ templ reviewTimelineEntry(rev model.PullReview) {
 			<p class="text-sm flex items-center gap-1.5 flex-wrap">
 				<a href={ templ.SafeURL("/" + rev.AuthorName) } class="font-medium text-foreground hover:text-primary">{ rev.AuthorName }</a>
 				@reviewStateBadge(string(rev.State))
-				<time class="text-muted-foreground text-xs" datetime={ reviewTime(rev).UTC().Format(time.RFC3339) }>{ reviewTime(rev).Format("Jan 2, 2006") }</time>
+				<time class="text-muted-foreground text-xs" datetime={ reviewTime(rev).UTC().Format(time.RFC3339) }>{ timefmt.Date(reviewTime(rev)) }</time>
 			</p>
 			if rev.Body != "" {
 				<div class="mt-1.5 rounded-md border border-border bg-card px-4 py-3 text-sm text-foreground/85">{ rev.Body }</div>
@@ -480,7 +481,7 @@ templ pullEventEntry(ev model.PullEvent) {
 							<a href={ templ.SafeURL("/" + ev.Detail) } class="text-foreground font-medium hover:underline">{ ev.Detail }</a>
 					}
 				}
-				<time class="ml-1" datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ ev.CreatedAt.Format("Jan 2, 2006") }</time>
+				<time class="ml-1" datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(ev.CreatedAt) }</time>
 			</p>
 		</div>
 	}

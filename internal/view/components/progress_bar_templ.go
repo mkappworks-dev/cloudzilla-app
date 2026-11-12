@@ -68,7 +68,7 @@ func ProgressBar(closedCount, totalCount int) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " closed</span></div><div class=\"w-full bg-muted rounded-full h-1.5\"><div class=\"bg-success h-1.5 rounded-full\" style=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, " closed</span></div><div class=\"w-full bg-border rounded-full h-1.5\"><div class=\"bg-success h-1.5 rounded-full\" style=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -108,7 +108,7 @@ func ProgressBarSmall(closedCount, totalCount int) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"mt-1\"><div class=\"w-full bg-muted rounded-full h-1\"><div class=\"bg-success h-1 rounded-full\" style=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"mt-1\"><div class=\"w-full bg-border rounded-full h-1\"><div class=\"bg-success h-1 rounded-full\" style=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 // Highlighting is capped per page because a gist can hold many files and renders uncached on every view.
@@ -27,7 +28,7 @@ templ GistDetail(data view.GistDetailData) {
 						<span aria-hidden="true">·</span>
 						{ data.Gist.ID }
 					</p>
-					<h1 id="gist-title" class="text-xl font-semibold tracking-tight">
+					<h1 id="gist-title" class="text-2xl font-semibold tracking-tight">
 						if data.Gist.Description != "" {
 							{ data.Gist.Description }
 						} else {
@@ -38,7 +39,7 @@ templ GistDetail(data view.GistDetailData) {
 						@components.Avatar(data.Gist.OwnerName, components.AvatarSizeSM, data.Gist.OwnerName)
 						<a href={ templ.SafeURL("/" + data.Gist.OwnerName) } class="hover:text-foreground font-medium">{ data.Gist.OwnerName }</a>
 						<span aria-hidden="true">·</span>
-						<time datetime={ data.Gist.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Gist.CreatedAt.Format("Jan 2, 2006") }</time>
+						<time datetime={ data.Gist.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(data.Gist.CreatedAt) }</time>
 						<span aria-hidden="true">·</span>
 						if data.Gist.Public {
 							@components.Badge(components.BadgeSuccess) {

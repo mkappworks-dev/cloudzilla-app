@@ -43,7 +43,7 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 		privateGists, err := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, sortBy, page, gistsPerPage)
 		if err != nil {
 			slog.Error("gists: failed to load private gists", "user_id", claims.UserID, "page", page, "error", err)
-			http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 		for _, g := range privateGists {
@@ -54,7 +54,7 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 		rows, err = h.Services.Gist.ListWithCounts(ctx, "", sortBy, page, gistsPerPage)
 		if err != nil {
 			slog.Error("gists: failed to load public gists", "page", page, "error", err)
-			http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 	}
@@ -70,7 +70,7 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	filenamesByGist, err := h.Services.Gist.LoadFilenames(ctx, ids)
 	if err != nil {
 		slog.Error("gists: failed to load gist filenames", "error", err)
-		http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 

@@ -62,7 +62,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.Services.User.GetByID(ctx, claims.UserID)
 	if err != nil {
-		http.Error(w, "user not found", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 
@@ -274,7 +274,7 @@ func (h *Handler) PageNotifications(w http.ResponseWriter, r *http.Request) {
 	data, r, err := h.notificationsData(r, claims.UserID)
 	if err != nil {
 		slog.Error("notifications page: list failed", "user_id", claims.UserID, "error", err)
-		http.Error(w, "failed to load notifications", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 	h.render(w, r, pages.Notifications(data))

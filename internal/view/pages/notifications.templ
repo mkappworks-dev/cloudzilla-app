@@ -10,6 +10,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func notifIcon(t model.NotificationType) string {
@@ -57,22 +58,6 @@ func notifTitle(n model.Notification) string {
 		return "@" + n.ActorName + " wants to transfer a repository to you"
 	default:
 		return "@" + n.ActorName + " in " + n.OwnerName + "/" + n.RepoName
-	}
-}
-
-func notifRelTime(t time.Time) string {
-	d := time.Since(t)
-	switch {
-	case d < time.Minute:
-		return "just now"
-	case d < time.Hour:
-		return strconv.Itoa(int(d.Minutes())) + "m ago"
-	case d < 24*time.Hour:
-		return strconv.Itoa(int(d.Hours())) + "h ago"
-	case d < 48*time.Hour:
-		return "yesterday"
-	default:
-		return t.Format("Jan 2")
 	}
 }
 
@@ -332,14 +317,14 @@ templ notifRow(g model.NotificationGroup, filter, reason string, page int) {
 				}
 			</a>
 			if g.Count > 1 {
-				<span class="shrink-0 h-5 min-w-5 px-1.5 grid place-items-center rounded-full border border-border bg-muted font-mono text-[11px] text-muted-foreground" title={ components.Count(g.Count, "notification", "notifications") + " on this thread" }>
+				<span class="shrink-0 h-5 min-w-5 px-1.5 grid place-items-center rounded-full border border-border bg-muted font-mono text-[12px] text-muted-foreground" title={ components.Count(g.Count, "notification", "notifications") + " on this thread" }>
 					<span aria-hidden="true">{ strconv.Itoa(g.Count) }</span>
 					<span class="sr-only">{ components.Count(g.Count, "notification", "notifications") } on this thread</span>
 				</span>
 			}
 			<div class="group/right relative shrink-0 w-[150px] h-7 flex items-center justify-end gap-3">
 				@components.Avatar(g.ActorName, components.AvatarSizeXS, "")
-				<time class="w-16 text-right text-[12px] text-muted-foreground group-hover:invisible group-has-[:focus-visible]/right:invisible" datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ notifRelTime(g.CreatedAt) }</time>
+				<time class="w-16 text-right text-[12px] text-muted-foreground group-hover:invisible group-has-[:focus-visible]/right:invisible" datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(g.CreatedAt) }</time>
 				<div class="absolute right-0 top-0 h-7 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
 					if !read {
 						<button
@@ -402,7 +387,7 @@ templ NotificationsInbox(data view.NotificationsData) {
 			<button type="button" class="mt-0.5 w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent" aria-keyshortcuts="?" onclick="document.getElementById('notif-shortcuts').showModal()">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
 				<span class="flex-1 text-left">Keyboard shortcuts</span>
-				<kbd class="font-mono text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground" aria-hidden="true">?</kbd>
+				<kbd class="font-mono text-[12px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground" aria-hidden="true">?</kbd>
 			</button>
 		</aside>
 		<div class="min-w-0">
@@ -500,7 +485,7 @@ templ notifShortcutsDialog() {
 				for _, s := range notifShortcuts {
 					<div class="flex items-center justify-between gap-4">
 						<dt class="text-[13px]">{ s.Action }</dt>
-						<dd><kbd class="font-mono text-[11px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">{ s.Keys }</kbd></dd>
+						<dd><kbd class="font-mono text-[12px] min-w-6 px-1.5 py-0.5 inline-grid place-items-center bg-muted border border-border rounded-sm">{ s.Keys }</kbd></dd>
 					</div>
 				}
 			</dl>

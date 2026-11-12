@@ -58,10 +58,9 @@ The current order, updated after each re-score. Rows in one step run as parallel
 
 | Step | Tickets                    | Runs as                                         | Status                                      |
 | ---- | -------------------------- | ----------------------------------------------- | ------------------------------------------- |
-| ✅    | 00–14, 20, 22 (waves 1–2), 23, 30 | —                                        | merged                                      |
+| ✅    | 00–14, 20, 22 (waves 1–2), 23, 24, 30, 32, 33, 38, 39 | —                   | merged (24, 32, 33, 38, 39: #291–#295)      |
 | 1    | 21 mock generator          | —                                               | wontfix: mocks stay hand-written            |
-| 2    | 24, 32, 33, 38, 39         | parallel (separate pages)                       | ready-for-agent                                |
-| 3    | 25, 31, 35, 37, 40         | parallel; 25 after 24, 37 after 32              | ready-for-agent                             |
+| 3    | 25, 31, 35, 37, 40         | parallel; 25 after 24, 37 after 32              | running                                     |
 | 4    | 36                         | after 31                                        | ready-for-agent                             |
 | 5    | 29 dark surfaces           | alone (restyles every page)                     | ready-for-agent                             |
 | 6    | 26, 28                     | parallel                                        | needs-info: Unlisted vs private gists (26); terms page or drop it (28 item 6) |

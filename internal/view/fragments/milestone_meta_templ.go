@@ -15,6 +15,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func MilestoneTitleSection(owner, repoName string, number int, title string, canWrite, editing bool) templ.Component {
@@ -47,7 +48,7 @@ func MilestoneTitleSection(owner, repoName string, number int, title string, can
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 16, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 17, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -60,7 +61,7 @@ func MilestoneTitleSection(owner, repoName string, number int, title string, can
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(title).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 24, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 25, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -73,7 +74,7 @@ func MilestoneTitleSection(owner, repoName string, number int, title string, can
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 33, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 34, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -91,7 +92,7 @@ func MilestoneTitleSection(owner, repoName string, number int, title string, can
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 40, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 41, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -109,7 +110,7 @@ func MilestoneTitleSection(owner, repoName string, number int, title string, can
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base + "?mode=edit").Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 44, Col: 33}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 45, Col: 33}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -155,7 +156,7 @@ func MilestoneTitleSaved(owner, repoName string, number int, title string) templ
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 57, Col: 21}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 58, Col: 21}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -168,7 +169,7 @@ func MilestoneTitleSaved(owner, repoName string, number int, title string) templ
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(owner)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 57, Col: 34}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 58, Col: 34}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
@@ -181,7 +182,7 @@ func MilestoneTitleSaved(owner, repoName string, number int, title string) templ
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(repoName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 57, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 58, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -268,7 +269,7 @@ func MilestoneBreadcrumbTitle(title string, oob bool) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 70, Col: 96}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 71, Col: 96}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -321,7 +322,7 @@ func MilestoneHeaderDue(due *time.Time, oob bool) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templruntime.NewAttributeExpression(due.UTC().Format(time.RFC3339)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 76, Col: 89}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 77, Col: 89}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 			if templ_7745c5c3_Err != nil {
@@ -332,9 +333,9 @@ func MilestoneHeaderDue(due *time.Time, oob bool) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var16 string
-			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(due.Format("Jan 2, 2006"))
+			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.Date(*due))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 76, Col: 119}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 77, Col: 112}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -388,7 +389,7 @@ func MilestoneBodyCard(data view.MilestoneBodyCardData) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base + "?mode=edit").Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 91, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 92, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 			if templ_7745c5c3_Err != nil {
@@ -419,7 +420,7 @@ func MilestoneBodyCard(data view.MilestoneBodyCardData) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 102, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 103, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var19)
 			if templ_7745c5c3_Err != nil {
@@ -440,7 +441,7 @@ func MilestoneBodyCard(data view.MilestoneBodyCardData) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 107, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 108, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
 			if templ_7745c5c3_Err != nil {
@@ -509,7 +510,7 @@ func MilestoneDueSection(owner, repoName string, number int, due *time.Time, can
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base + "?mode=edit").Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 137, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 138, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var22)
 			if templ_7745c5c3_Err != nil {
@@ -540,7 +541,7 @@ func MilestoneDueSection(owner, repoName string, number int, due *time.Time, can
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 148, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 149, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
 			if templ_7745c5c3_Err != nil {
@@ -553,7 +554,7 @@ func MilestoneDueSection(owner, repoName string, number int, due *time.Time, can
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templruntime.NewAttributeExpression(milestoneDueInput(due)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 152, Col: 35}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 153, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
 			if templ_7745c5c3_Err != nil {
@@ -566,7 +567,7 @@ func MilestoneDueSection(owner, repoName string, number int, due *time.Time, can
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templruntime.NewAttributeExpression(base).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 159, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 160, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
 			if templ_7745c5c3_Err != nil {
@@ -585,7 +586,7 @@ func MilestoneDueSection(owner, repoName string, number int, due *time.Time, can
 				var templ_7745c5c3_Var26 string
 				templ_7745c5c3_Var26, templ_7745c5c3_Err = templruntime.NewAttributeExpression(due.UTC().Format(time.RFC3339)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 170, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 171, Col: 74}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
 				if templ_7745c5c3_Err != nil {
@@ -596,9 +597,9 @@ func MilestoneDueSection(owner, repoName string, number int, due *time.Time, can
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var27 string
-				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(due.Format("Jan 2, 2006"))
+				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(timefmt.Date(*due))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 170, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_meta.templ`, Line: 171, Col: 97}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {

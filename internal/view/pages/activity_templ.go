@@ -19,6 +19,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 func eventToActivityRow(e model.Event) components.ActivityRowData {
@@ -120,7 +121,7 @@ func eventToActivityRow(e model.Event) components.ActivityRowData {
 		Ref:         ref,
 		RefURL:      refURL,
 		Title:       title,
-		When:        relativeTime(e.CreatedAt),
+		When:        timefmt.Relative(e.CreatedAt),
 		Branch:      branch,
 		Commits:     commits,
 		CommitTotal: commitTotal,
@@ -153,7 +154,7 @@ func activityScopeTab(label, value, current, href string, counts map[string]int,
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(href)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 124, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 125, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -166,7 +167,7 @@ func activityScopeTab(label, value, current, href string, counts map[string]int,
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 125, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 126, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -188,7 +189,7 @@ func activityScopeTab(label, value, current, href string, counts map[string]int,
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(href)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 129, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 130, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -201,7 +202,7 @@ func activityScopeTab(label, value, current, href string, counts map[string]int,
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 130, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 131, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {

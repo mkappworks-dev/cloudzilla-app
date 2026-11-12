@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ OrgSettings(data view.OrgSettingsData) {
@@ -301,7 +302,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 								for _, e := range data.AuditEntries {
 									<li class="py-2.5 px-4 flex items-center gap-3">
 										<time datetime={ e.CreatedAt.UTC().Format(time.RFC3339) } class="text-muted-foreground shrink-0 w-32">
-											{ e.CreatedAt.Format("2006-01-02 15:04") }
+											{ timefmt.DateTime(e.CreatedAt) }
 										</time>
 										<span class={ "shrink-0 px-2 py-0.5 rounded-full text-[10px] border " + auditActionClass(e.Action) }>{ e.Action }</span>
 										<span class="truncate text-muted-foreground">

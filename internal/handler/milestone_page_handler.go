@@ -301,7 +301,7 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 				return
 			}
 			slog.Error("milestone detail: close failed", "owner", owner, "repo", repoName, "number", number, "error", err)
-			http.Error(w, "failed to close milestone", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 		http.Redirect(w, r, detailURL, http.StatusSeeOther)
@@ -313,7 +313,7 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 				return
 			}
 			slog.Error("milestone detail: reopen failed", "owner", owner, "repo", repoName, "number", number, "error", err)
-			http.Error(w, "failed to reopen milestone", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 		http.Redirect(w, r, detailURL, http.StatusSeeOther)
@@ -321,7 +321,7 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 	case "delete":
 		if err := h.Services.Milestone.Delete(r.Context(), owner, repoName, number); err != nil {
 			slog.Error("milestone detail: delete failed", "owner", owner, "repo", repoName, "number", number, "error", err)
-			http.Error(w, "failed to delete milestone", http.StatusInternalServerError)
+			h.ServerError(w, r)
 			return
 		}
 		http.Redirect(w, r, fmt.Sprintf("/%s/%s/milestones", owner, repoName), http.StatusSeeOther)

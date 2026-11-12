@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ IssueDetail(data view.IssueDetailData) {
@@ -37,7 +38,7 @@ templ IssueDetail(data view.IssueDetailData) {
 					<p class="text-[13px] text-muted-foreground">
 						<a href={ templ.SafeURL("/" + data.Issue.AuthorName) } class="font-medium text-foreground hover:underline">{ data.Issue.AuthorName }</a>
 						{ " opened this issue " }
-						<time datetime={ data.Issue.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Issue.CreatedAt.Format("Jan 2, 2006") }</time>
+						<time datetime={ data.Issue.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(data.Issue.CreatedAt) }</time>
 						<span id="issue-comment-count" data-count={ strconv.Itoa(len(data.Comments)) }>
 							{ " · " + components.Count(len(data.Comments), "comment", "comments") }
 						</span>
@@ -282,7 +283,7 @@ templ issueCommentEntry(owner, repoName string, c view.RenderedComment) {
 			@components.Avatar(c.AuthorName, components.AvatarSizeSM, c.AuthorName)
 			<strong class="text-foreground">{ c.AuthorName }</strong>
 			<span class="text-muted-foreground">commented</span>
-			<time class="text-muted-foreground ml-auto text-xs" datetime={ c.CreatedAt.UTC().Format(time.RFC3339) }>{ c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</time>
+			<time class="text-muted-foreground ml-auto text-xs" datetime={ c.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.DateTime(c.CreatedAt) }</time>
 		</header>
 		<div class="px-4 py-3 prose prose-sm dark:prose-invert max-w-none">
 			@templ.Raw(c.BodyHTML)
@@ -308,7 +309,7 @@ templ issueEventEntry(owner, repoName string, ev model.IssueEvent) {
 				{ " in " }
 				<a href={ templ.SafeURL(srcHref) } class="font-medium text-foreground hover:underline">{ srcText }</a>
 			}
-			<time class="ml-1" datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ ev.CreatedAt.Format("Jan 2, 2006") }</time>
+			<time class="ml-1" datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(ev.CreatedAt) }</time>
 		</p>
 	</li>
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ Commit(data view.CommitData) {
@@ -35,7 +36,7 @@ templ Commit(data view.CommitData) {
 						<span title={ data.Commit.AuthorEmail } class="font-medium text-foreground">{ data.Commit.Author }</span>
 					}
 					<span aria-hidden="true">·</span>
-					<time datetime={ data.Commit.AuthorTime.UTC().Format(time.RFC3339) }>{ data.Commit.AuthorTime.Format("2006-01-02 15:04:05 UTC") }</time>
+					<time datetime={ data.Commit.AuthorTime.UTC().Format(time.RFC3339) }>{ timefmt.DateTime(data.Commit.AuthorTime) }</time>
 					<span aria-hidden="true">·</span>
 					<code class="font-mono px-2 py-0.5 rounded-sm text-[12px] bg-muted text-foreground border border-border">{ data.Commit.FullHash }</code>
 				</div>

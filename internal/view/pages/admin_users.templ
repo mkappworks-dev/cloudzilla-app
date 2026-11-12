@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ AdminUsers(data view.AdminUsersData) {
@@ -97,7 +98,7 @@ templ AdminUsers(data view.AdminUsersData) {
 									</td>
 									<td class="px-4 py-3 text-muted-foreground">{ adminUserSignIn(u) }</td>
 									<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
-										<time datetime={ u.User.CreatedAt.UTC().Format(time.RFC3339) }>{ u.User.CreatedAt.Format("Jan 2, 2006") }</time>
+										<time datetime={ u.User.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(u.User.CreatedAt) }</time>
 									</td>
 								</tr>
 							}
@@ -186,7 +187,7 @@ templ AdminUser(data view.AdminUserData) {
 						<dd><a href={ templ.SafeURL("/" + u.Username) } class="hover:underline">{ "@" + u.Username }</a></dd>
 						if u.SuspendedAt != nil {
 							<dt class="text-muted-foreground">Suspended</dt>
-							<dd><time datetime={ u.SuspendedAt.UTC().Format(time.RFC3339) }>{ u.SuspendedAt.Format("Jan 2, 2006 15:04") }</time></dd>
+							<dd><time datetime={ u.SuspendedAt.UTC().Format(time.RFC3339) }>{ timefmt.DateTime(*u.SuspendedAt) }</time></dd>
 						}
 						<dt class="text-muted-foreground">Two-factor</dt>
 						<dd>
@@ -199,11 +200,11 @@ templ AdminUser(data view.AdminUserData) {
 						<dt class="text-muted-foreground">Signs in with</dt>
 						<dd>{ adminUserSignIn(data.Detail.AdminUserRow) }</dd>
 						<dt class="text-muted-foreground">Created</dt>
-						<dd><time datetime={ u.CreatedAt.UTC().Format(time.RFC3339) }>{ u.CreatedAt.Format("Jan 2, 2006") }</time></dd>
+						<dd><time datetime={ u.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(u.CreatedAt) }</time></dd>
 						<dt class="text-muted-foreground">Last web sign-in</dt>
 						<dd>
 							if data.Detail.LastSignIn != nil {
-								<time datetime={ data.Detail.LastSignIn.UTC().Format(time.RFC3339) }>{ data.Detail.LastSignIn.Format("Jan 2, 2006 15:04") }</time>
+								<time datetime={ data.Detail.LastSignIn.UTC().Format(time.RFC3339) }>{ timefmt.DateTime(*data.Detail.LastSignIn) }</time>
 							} else {
 								<span class="text-muted-foreground">Never recorded</span>
 							}

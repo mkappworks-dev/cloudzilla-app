@@ -10,6 +10,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ AccountRepos(data view.AccountReposData) {
@@ -71,7 +72,7 @@ templ AccountRepos(data view.AccountReposData) {
 								RoleClass: repoRoleColorClass(repo.OwnerID, data.UserID),
 								Language:  repoLanguage(repo),
 								LangClass: languageColorClass(repoLanguage(repo)),
-								Time:      "Updated " + compactRelative(repo.UpdatedAt),
+								Time:      "Updated " + timefmt.Relative(repo.UpdatedAt),
 								TimeISO:   repo.UpdatedAt.UTC().Format(time.RFC3339),
 								Topics:    repoTopicNames(data.Topics[repo.ID]),
 								ShowStats: true,
@@ -185,9 +186,9 @@ func repoRoleLabel(ownerID, userID int64) string {
 // collaborator — and bolds it so it reads clearly against the meta line.
 func repoRoleColorClass(ownerID, userID int64) string {
 	if ownerID == userID {
-		return "text-[#93c5fd] font-medium"
+		return "text-blue-700 dark:text-[#93c5fd] font-medium"
 	}
-	return "text-[#c084fc] font-medium"
+	return "text-purple-700 dark:text-[#c084fc] font-medium"
 }
 
 func reposSubtitle(total int) string {
@@ -199,27 +200,6 @@ func reposEmptyMessage(filtered bool) string {
 		return "No repositories match these filters."
 	}
 	return "No repositories yet."
-}
-
-// compactRelative renders a short "2h ago" / "3w ago" style duration.
-func compactRelative(t time.Time) string {
-	d := time.Since(t)
-	switch {
-	case d < time.Minute:
-		return "just now"
-	case d < time.Hour:
-		return strconv.Itoa(int(d/time.Minute)) + "m ago"
-	case d < 24*time.Hour:
-		return strconv.Itoa(int(d/time.Hour)) + "h ago"
-	case d < 7*24*time.Hour:
-		return strconv.Itoa(int(d/(24*time.Hour))) + "d ago"
-	case d < 30*24*time.Hour:
-		return strconv.Itoa(int(d/(7*24*time.Hour))) + "w ago"
-	case d < 365*24*time.Hour:
-		return strconv.Itoa(int(d/(30*24*time.Hour))) + "mo ago"
-	default:
-		return strconv.Itoa(int(d/(365*24*time.Hour))) + "y ago"
-	}
 }
 
 // reposURL builds a /repos link, omitting params left at their defaults.

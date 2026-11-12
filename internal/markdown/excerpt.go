@@ -9,26 +9,41 @@ import (
 	"github.com/yuin/goldmark/v2/parser"
 )
 
-// Excerpt returns the visible text of Markdown source, whitespace-collapsed and cut to at most maxRunes runes plus
-// "…". Code blocks, raw HTML and image alt text are dropped: they read as noise in a one-line preview.
-func Excerpt(src string, maxRunes int) string {
+// ExcerptLines returns the visible text of Markdown source, one entry per heading, paragraph or list item, cut to at
+// most maxRunes runes in total plus "…". Code blocks, raw HTML and image alt text are dropped: they read as noise in a
+// preview. Keeping the blocks apart is what stops a heading and its bullets running together into one sentence.
+func ExcerptLines(src string, maxRunes int) []string {
 	source := []byte(src)
 	doc := parser.New(parser.WithExtensions(extension.GFMParser)).Parse(source)
-	var b strings.Builder
+	var lines []string
+	var cur strings.Builder
 	written := 0
+	flush := func() {
+		if text := strings.Join(strings.Fields(cur.String()), " "); text != "" {
+			lines = append(lines, text)
+		}
+		cur.Reset()
+	}
 	write := func(s string) {
-		b.WriteString(s)
+		cur.WriteString(s)
 		written += utf8.RuneCountInString(s)
 	}
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
+			switch n.(type) {
+			case *ast.Paragraph, *ast.Heading, *ast.ListItem:
+				flush()
+			}
 			return ast.WalkContinue, nil
 		}
 		// Bodies can be long; collapsing may shrink the text, so overshoot before stopping.
 		if written > 2*maxRunes+64 {
+			flush()
 			return ast.WalkStop, nil
 		}
 		switch n := n.(type) {
+		case *ast.ListItem:
+			flush()
 		case *ast.CodeBlock, *ast.HTMLBlock, *ast.RawHTML, *ast.Image:
 			return ast.WalkSkipChildren, nil
 		case *ast.Text:
@@ -40,14 +55,24 @@ func Excerpt(src string, maxRunes int) string {
 			write(n.Value.Value(source))
 		case *ast.AutoLink:
 			write(n.Label.Value(source))
-		case ast.BlockNode:
-			write(" ")
 		}
 		return ast.WalkContinue, nil
 	})
-	text := strings.Join(strings.Fields(b.String()), " ")
-	if utf8.RuneCountInString(text) <= maxRunes {
-		return text
+	return truncateLines(lines, maxRunes)
+}
+
+func truncateLines(lines []string, maxRunes int) []string {
+	left := maxRunes
+	for i, line := range lines {
+		n := utf8.RuneCountInString(line)
+		if n < left {
+			left -= n
+			continue
+		}
+		if n == left && i == len(lines)-1 {
+			return lines
+		}
+		return append(lines[:i:i], strings.TrimRight(string([]rune(line)[:left]), " ")+"…")
 	}
-	return strings.TrimRight(string([]rune(text)[:maxRunes]), " ") + "…"
+	return lines
 }

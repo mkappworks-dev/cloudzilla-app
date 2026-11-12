@@ -12,6 +12,7 @@ import templruntime "github.com/a-h/templ/runtime"
 type ButtonVariant string
 
 const (
+	// The one primary-action style: every create, save and submit button.
 	ButtonDefault     ButtonVariant = "default"
 	ButtonOutline     ButtonVariant = "outline"
 	ButtonGhost       ButtonVariant = "ghost"
@@ -19,8 +20,9 @@ const (
 	ButtonDestructive ButtonVariant = "destructive"
 	// Keeps a destructive action visually secondary next to a primary button.
 	ButtonDestructiveOutline ButtonVariant = "destructive-outline"
-	ButtonSuccess            ButtonVariant = "success"
-	ButtonLink               ButtonVariant = "link"
+	// Approve, reopen and restore only; a create or save button is ButtonDefault.
+	ButtonSuccess ButtonVariant = "success"
+	ButtonLink    ButtonVariant = "link"
 )
 
 type ButtonSize string
@@ -151,7 +153,7 @@ func LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(href)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/button.templ`, Line: 70, Col: 28}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/button.templ`, Line: 72, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {

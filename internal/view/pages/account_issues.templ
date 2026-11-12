@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ AccountIssues(data view.AccountIssuesData) {
@@ -31,7 +32,7 @@ templ AccountIssues(data view.AccountIssuesData) {
 								Author:   is.AuthorName,
 								State:    is.State,
 								Private:  is.Visibility == "private",
-								Time:     relativeTime(is.UpdatedAt),
+								Time:     timefmt.Relative(is.UpdatedAt),
 								Labels:   issueLabelChips(data.IssueLabels[is.ID]),
 								Priority: issuePriority(is.Priority),
 								Comments: data.IssueComments[is.ID],

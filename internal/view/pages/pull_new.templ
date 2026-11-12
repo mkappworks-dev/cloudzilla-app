@@ -82,7 +82,7 @@ templ PullNew(data view.PullNewData) {
 						</div>
 
 						<div class="flex items-center gap-3 pt-2">
-							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 								Create pull request
 							}
 							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "name": "draft", "value": "1"}) {

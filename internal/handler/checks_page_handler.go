@@ -31,7 +31,7 @@ func (h *Handler) PageChecks(w http.ResponseWriter, r *http.Request) {
 	commits, hasMore, err := h.Services.CommitStatus.ListRecentCommits(r.Context(), repo.ID, owner, repoName, page, checksPageSize)
 	if err != nil {
 		slog.Error("PageChecks: ListRecentCommits failed", "owner", owner, "repo", repoName, "page", page, "error", err)
-		http.Error(w, "failed to load checks", http.StatusInternalServerError)
+		h.ServerError(w, r)
 		return
 	}
 

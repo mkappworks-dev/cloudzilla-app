@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ WebhookDeliveriesList(data view.WebhookDeliveriesFragData) {
@@ -41,7 +42,7 @@ templ WebhookDeliveriesList(data view.WebhookDeliveriesFragData) {
 							if d.Error != "" {
 								<p class="text-destructive text-xs mt-1 font-mono">{ d.Error }</p>
 							}
-							<p class="text-muted-foreground text-xs mt-1">{ d.DeliveredAt.Format("Jan 2, 2006 15:04:05 UTC") }</p>
+							<p class="text-muted-foreground text-xs mt-1">{ timefmt.DateTime(d.DeliveredAt) }</p>
 						</div>
 						if data.CanManage {
 							<button

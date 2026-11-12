@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
 )
 
 templ AccountStars(data view.AccountStarsData) {
@@ -47,7 +48,7 @@ templ AccountStars(data view.AccountStarsData) {
 									if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
 										<span>{ *repo.PrimaryLanguage }</span>
 									}
-									<time class="font-mono text-xs text-muted-foreground/70" datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>Updated { relativeTime(repo.UpdatedAt) }</time>
+									<time class="font-mono text-xs text-muted-foreground/70" datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>Updated { timefmt.Relative(repo.UpdatedAt) }</time>
 								</div>
 							</a>
 						</li>
