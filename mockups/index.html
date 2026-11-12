@@ -28,7 +28,7 @@
   <section aria-labelledby="g-generated">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-generated" class="text-sm font-semibold tracking-tight">Generated from the templates</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">3</span>
+      <span class="font-mono text-[11px] text-muted-foreground">16</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li class="block h-full rounded-md border border-border bg-card p-4">
@@ -57,6 +57,118 @@
         <ul class="mt-2 space-y-1">
           <li><a href="generated/not_found.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">signed in</span></li>
           <li><a href="generated/not_found--anon.html" class="font-mono text-[11px] text-primary hover:underline">anon</a> <span class="text-[11px] text-muted-foreground">signed out</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/settings</p>
+        <h3 class="mt-1 text-sm font-medium">Repository settings</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/settings.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">repository owner</span></li>
+          <li><a href="generated/settings--manager.html" class="font-mono text-[11px] text-primary hover:underline">manager</a> <span class="text-[11px] text-muted-foreground">can manage but does not own: no transfer, delete or visibility controls</span></li>
+          <li><a href="generated/settings--archived.html" class="font-mono text-[11px] text-primary hover:underline">archived</a> <span class="text-[11px] text-muted-foreground">archived repository banner and Unarchive</span></li>
+          <li><a href="generated/settings--mirror.html" class="font-mono text-[11px] text-primary hover:underline">mirror</a> <span class="text-[11px] text-muted-foreground">pull mirror: remote, interval, token, last sync</span></li>
+          <li><a href="generated/settings--mirror-failing.html" class="font-mono text-[11px] text-primary hover:underline">mirror-failing</a> <span class="text-[11px] text-muted-foreground">pull mirror whose last sync failed</span></li>
+          <li><a href="generated/settings--transfer.html" class="font-mono text-[11px] text-primary hover:underline">transfer</a> <span class="text-[11px] text-muted-foreground">ownership transfer awaiting its recipient</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/{slug}</p>
+        <h3 class="mt-1 text-sm font-medium">Wiki</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/wiki.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">repository owner: Edit, Delete, New page and page reordering</span></li>
+          <li><a href="generated/wiki--writer.html" class="font-mono text-[11px] text-primary hover:underline">writer</a> <span class="text-[11px] text-muted-foreground">write access without manage: Edit and New page, no Delete or reordering</span></li>
+          <li><a href="generated/wiki--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">read-only</span></li>
+          <li><a href="generated/wiki--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">page does not exist yet</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/{slug}/edit</p>
+        <h3 class="mt-1 text-sm font-medium">Edit wiki page</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/wiki_edit.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">editing Home</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/new</p>
+        <h3 class="mt-1 text-sm font-medium">New wiki page</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/wiki_new.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">blank form</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/projects</p>
+        <h3 class="mt-1 text-sm font-medium">Projects</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/project.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">open boards, writer</span></li>
+          <li><a href="generated/project--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">signed in, read-only</span></li>
+          <li><a href="generated/project--anon.html" class="font-mono text-[11px] text-primary hover:underline">anon</a> <span class="text-[11px] text-muted-foreground">signed out</span></li>
+          <li><a href="generated/project--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no boards yet</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/projects/{id}</p>
+        <h3 class="mt-1 text-sm font-medium">Project board</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/project_board.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">writer: drag, edit and add</span></li>
+          <li><a href="generated/project_board--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">read-only</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/releases</p>
+        <h3 class="mt-1 text-sm font-medium">Releases</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/releases.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">writer: draft, latest, prerelease and plain releases</span></li>
+          <li><a href="generated/releases--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">read-only: drafts are hidden by the server, so none here</span></li>
+          <li><a href="generated/releases--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no releases yet</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/releases/tag/{tag}</p>
+        <h3 class="mt-1 text-sm font-medium">Release</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/release_detail.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">latest release, writer</span></li>
+          <li><a href="generated/release_detail--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">read-only</span></li>
+          <li><a href="generated/release_detail--prerelease.html" class="font-mono text-[11px] text-primary hover:underline">prerelease</a> <span class="text-[11px] text-muted-foreground">marked as a prerelease</span></li>
+          <li><a href="generated/release_detail--draft.html" class="font-mono text-[11px] text-primary hover:underline">draft</a> <span class="text-[11px] text-muted-foreground">unpublished draft with Publish</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/releases/new</p>
+        <h3 class="mt-1 text-sm font-medium">New release</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/release_new.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">blank form</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/gists</p>
+        <h3 class="mt-1 text-sm font-medium">Gists</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/gists.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">public gists, signed in</span></li>
+          <li><a href="generated/gists--private.html" class="font-mono text-[11px] text-primary hover:underline">private</a> <span class="text-[11px] text-muted-foreground">your private gists</span></li>
+          <li><a href="generated/gists--anon.html" class="font-mono text-[11px] text-primary hover:underline">anon</a> <span class="text-[11px] text-muted-foreground">signed out: no private tab</span></li>
+          <li><a href="generated/gists--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no public gists</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/gists/{id}</p>
+        <h3 class="mt-1 text-sm font-medium">Gist</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/gist_detail.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">owner: Edit and Delete</span></li>
+          <li><a href="generated/gist_detail--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">someone else&#39;s gist</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/gists/{id}/edit</p>
+        <h3 class="mt-1 text-sm font-medium">Edit gist</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/gist_edit.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">two files</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/gists/new</p>
+        <h3 class="mt-1 text-sm font-medium">New gist</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/gist_new.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">blank form</span></li>
         </ul>
       </li>
     </ul>
@@ -152,7 +264,7 @@
   <section aria-labelledby="g-repository">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-repository" class="text-sm font-semibold tracking-tight">Repository</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">17</span>
+      <span class="font-mono text-[11px] text-muted-foreground">16</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li>
@@ -223,13 +335,6 @@
           <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulse</p>
           <h3 class="mt-1 text-sm font-medium">Pulse</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">pulse.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="settings.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/settings</p>
-          <h3 class="mt-1 text-sm font-medium">Repository settings</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">settings.html</p>
         </a>
       </li>
       <li>
@@ -453,161 +558,6 @@
           <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/discussions/new</p>
           <h3 class="mt-1 text-sm font-medium">New discussion</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">discussion_new.html</p>
-        </a>
-      </li>
-    </ul>
-  </section>
-
-  <section aria-labelledby="g-projects">
-    <div class="flex items-baseline justify-between mb-3">
-      <h2 id="g-projects" class="text-sm font-semibold tracking-tight">Projects</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">2</span>
-    </div>
-    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <li>
-        <a href="project.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/projects</p>
-          <h3 class="mt-1 text-sm font-medium">Projects</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">project.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="project_board.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/projects/{id}</p>
-          <h3 class="mt-1 text-sm font-medium">Project board</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">project_board.html</p>
-        </a>
-      </li>
-    </ul>
-  </section>
-
-  <section aria-labelledby="g-wiki">
-    <div class="flex items-baseline justify-between mb-3">
-      <h2 id="g-wiki" class="text-sm font-semibold tracking-tight">Wiki</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">8</span>
-    </div>
-    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <li>
-        <a href="wiki.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki</p>
-          <h3 class="mt-1 text-sm font-medium">Wiki home</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">wiki.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="wiki_new.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/new</p>
-          <h3 class="mt-1 text-sm font-medium">New wiki page</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">wiki_new.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="wiki_edit.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/{slug}/edit</p>
-          <h3 class="mt-1 text-sm font-medium">Edit wiki page</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">wiki_edit.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="wiki_architecture.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/architecture</p>
-          <h3 class="mt-1 text-sm font-medium">Wiki: Architecture</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">wiki_architecture.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="wiki_code_of_conduct.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/code-of-conduct</p>
-          <h3 class="mt-1 text-sm font-medium">Wiki: Code of Conduct</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">wiki_code_of_conduct.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="wiki_contributing.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/contributing</p>
-          <h3 class="mt-1 text-sm font-medium">Wiki: Contributing</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">wiki_contributing.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="wiki_release_process.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/release-process</p>
-          <h3 class="mt-1 text-sm font-medium">Wiki: Release process</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">wiki_release_process.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="wiki_setup_on_mac.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/wiki/setup-on-mac</p>
-          <h3 class="mt-1 text-sm font-medium">Wiki: Setup on Mac</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">wiki_setup_on_mac.html</p>
-        </a>
-      </li>
-    </ul>
-  </section>
-
-  <section aria-labelledby="g-releases">
-    <div class="flex items-baseline justify-between mb-3">
-      <h2 id="g-releases" class="text-sm font-semibold tracking-tight">Releases</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">3</span>
-    </div>
-    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <li>
-        <a href="releases.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/releases</p>
-          <h3 class="mt-1 text-sm font-medium">Releases</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">releases.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="release_detail.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/releases/tag/{tag}</p>
-          <h3 class="mt-1 text-sm font-medium">Release detail</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">release_detail.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="release_new.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/releases/new</p>
-          <h3 class="mt-1 text-sm font-medium">New release</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">release_new.html</p>
-        </a>
-      </li>
-    </ul>
-  </section>
-
-  <section aria-labelledby="g-gists">
-    <div class="flex items-baseline justify-between mb-3">
-      <h2 id="g-gists" class="text-sm font-semibold tracking-tight">Gists</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">4</span>
-    </div>
-    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <li>
-        <a href="gists.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/gists</p>
-          <h3 class="mt-1 text-sm font-medium">Explore gists</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">gists.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="gist_detail.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/gists/{id}</p>
-          <h3 class="mt-1 text-sm font-medium">Gist detail</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">gist_detail.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="gist_edit.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/gists/{id}/edit</p>
-          <h3 class="mt-1 text-sm font-medium">Edit gist</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">gist_edit.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="gist_new.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/gists/new</p>
-          <h3 class="mt-1 text-sm font-medium">New gist</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">gist_new.html</p>
         </a>
       </li>
     </ul>

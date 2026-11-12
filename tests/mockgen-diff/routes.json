@@ -37,5 +37,267 @@
     "file": "not_found--anon",
     "route": "/this-page-does-not-exist",
     "auth": false
+  },
+  {
+    "file": "settings",
+    "route": "/amara-silva/lazy-kiln/settings",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "wiki",
+    "route": "/amara-silva/lazy-kiln/wiki/Home",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(p|strong|ul|li|h1)\\.",
+        "why": "wiki page content is user Markdown"
+      }
+    ]
+  },
+  {
+    "file": "wiki--writer",
+    "route": "/amara-silva/lazy-kiln/wiki/Home",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allow": [
+      {
+        "match": "^(p|strong|ul|li|h1)\\.",
+        "why": "wiki page content is user Markdown"
+      }
+    ]
+  },
+  {
+    "file": "wiki--viewer",
+    "route": "/amara-silva/lazy-kiln/wiki/Home",
+    "auth": true,
+    "email": "alan-kowalski@example.test",
+    "allow": [
+      {
+        "match": "^(p|strong|ul|li|h1)\\.",
+        "why": "wiki page content is user Markdown"
+      }
+    ]
+  },
+  {
+    "file": "wiki--empty",
+    "route": "/amara-silva/lazy-kiln/wiki/Deployment",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(p|strong|ul|li|h1)\\.",
+        "why": "wiki page content is user Markdown"
+      }
+    ]
+  },
+  {
+    "file": "wiki_edit",
+    "route": "/amara-silva/lazy-kiln/wiki/Home/edit",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "wiki_new",
+    "route": "/amara-silva/lazy-kiln/wiki/new",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "project",
+    "route": "/amara-silva/lazy-kiln/projects",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "project--viewer",
+    "route": "/amara-silva/lazy-kiln/projects",
+    "auth": true,
+    "email": "alan-kowalski@example.test"
+  },
+  {
+    "file": "project--anon",
+    "route": "/amara-silva/lazy-kiln/projects",
+    "auth": false
+  },
+  {
+    "file": "project_board",
+    "route": "/amara-silva/lazy-kiln/projects/1",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(p\\.italic|p\\.font-mono mt-1\\.5)",
+        "why": "hidden and linked cards follow the seeded cards"
+      }
+    ]
+  },
+  {
+    "file": "project_board--viewer",
+    "route": "/amara-silva/lazy-kiln/projects/1",
+    "auth": true,
+    "email": "alan-kowalski@example.test",
+    "allow": [
+      {
+        "match": "^(p\\.italic|p\\.font-mono mt-1\\.5)",
+        "why": "hidden and linked cards follow the seeded cards"
+      }
+    ]
+  },
+  {
+    "file": "releases",
+    "route": "/amara-silva/lazy-kiln/releases",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.[^ ]+( [^ ]+)* gap-1\\.5 h-\\[22px\\] inline-flex items-center px-2 rounded-full text-\\[11px\\]",
+        "why": "Latest, Draft and Pre-release badges follow the seeded releases"
+      }
+    ]
+  },
+  {
+    "file": "releases--viewer",
+    "route": "/amara-silva/lazy-kiln/releases",
+    "auth": true,
+    "email": "alan-kowalski@example.test",
+    "allow": [
+      {
+        "match": "^span\\.[^ ]+( [^ ]+)* gap-1\\.5 h-\\[22px\\] inline-flex items-center px-2 rounded-full text-\\[11px\\]",
+        "why": "Latest, Draft and Pre-release badges follow the seeded releases"
+      }
+    ]
+  },
+  {
+    "file": "release_detail",
+    "route": "/amara-silva/lazy-kiln/releases/tag/v1.0.0",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(code\\.|a\\.font-mono hover:text-foreground hover:underline text-\\[12px\\] text-muted-foreground)",
+        "why": "the commit link needs a resolvable tag; seeded releases point at no commit"
+      }
+    ]
+  },
+  {
+    "file": "release_detail--viewer",
+    "route": "/amara-silva/lazy-kiln/releases/tag/v1.0.0",
+    "auth": true,
+    "email": "alan-kowalski@example.test",
+    "allow": [
+      {
+        "match": "^(code\\.|a\\.font-mono hover:text-foreground hover:underline text-\\[12px\\] text-muted-foreground)",
+        "why": "the commit link needs a resolvable tag; seeded releases point at no commit"
+      }
+    ]
+  },
+  {
+    "file": "release_detail--prerelease",
+    "route": "/beatriz-fischer/brave-relay/releases/tag/v0.1.0",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allow": [
+      {
+        "match": "^(code\\.|a\\.font-mono hover:text-foreground hover:underline text-\\[12px\\] text-muted-foreground)",
+        "why": "the commit link needs a resolvable tag; seeded releases point at no commit"
+      }
+    ]
+  },
+  {
+    "file": "release_detail--draft",
+    "route": "/beatriz-fischer/brave-relay/releases/tag/v9.0.0",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allow": [
+      {
+        "match": "^(h2|ul|code)\\.",
+        "why": "release notes are user Markdown"
+      }
+    ]
+  },
+  {
+    "file": "release_new",
+    "route": "/amara-silva/lazy-kiln/releases/new",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^option\\.",
+        "why": "branch options follow the repository's branches"
+      }
+    ]
+  },
+  {
+    "file": "gists",
+    "route": "/gists",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^span\\.[^ ]+( [^ ]+)* inline-flex items-center leading-none px-1\\.5 py-0\\.5 rounded-full text-\\[10px\\]",
+        "why": "the language chip's colour follows the first file's extension"
+      }
+    ]
+  },
+  {
+    "file": "gists--private",
+    "route": "/gists?tab=private",
+    "auth": true,
+    "email": "beatriz-fischer@example.test",
+    "allow": [
+      {
+        "match": "^span\\.[^ ]+( [^ ]+)* inline-flex items-center leading-none px-1\\.5 py-0\\.5 rounded-full text-\\[10px\\]",
+        "why": "the language chip's colour follows the first file's extension"
+      },
+      {
+        "match": "^span\\.italic text-muted-foreground",
+        "why": "a gist without a description shows its id"
+      }
+    ]
+  },
+  {
+    "file": "gists--anon",
+    "route": "/gists",
+    "auth": false,
+    "allow": [
+      {
+        "match": "^span\\.[^ ]+( [^ ]+)* inline-flex items-center leading-none px-1\\.5 py-0\\.5 rounded-full text-\\[10px\\]",
+        "why": "the language chip's colour follows the first file's extension"
+      }
+    ]
+  },
+  {
+    "file": "gist_detail",
+    "route": "/gists/14c0f774d7f99d097365cf3ed7866233",
+    "auth": true,
+    "allow": [
+      {
+        "match": "^span\\.hl-",
+        "why": "syntax highlight classes follow the file's content"
+      }
+    ]
+  },
+  {
+    "file": "gist_detail--viewer",
+    "route": "/gists/14c0f774d7f99d097365cf3ed7866233",
+    "auth": true,
+    "email": "alan-kowalski@example.test",
+    "allow": [
+      {
+        "match": "^span\\.hl-",
+        "why": "syntax highlight classes follow the file's content"
+      }
+    ]
+  },
+  {
+    "file": "gist_edit",
+    "route": "/gists/14c0f774d7f99d097365cf3ed7866233/edit",
+    "auth": true
+  },
+  {
+    "file": "gist_new",
+    "route": "/gists/new",
+    "auth": true
   }
 ]

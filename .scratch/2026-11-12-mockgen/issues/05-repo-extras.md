@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 | Branch                     | Worktree                             | PR title                                                          | Effort |
@@ -27,11 +27,11 @@ fixtures of one wiki page with a page-missing `--empty` variant), `project`, `pr
 
 ## Acceptance criteria
 
-- [ ] Every listed page generated; its hand mock deleted
-- [ ] The project-board "deliberate difference" in `COVERAGE.md` is gone because the mock now is the real card behaviour,
+- [x] Every listed page generated; its hand mock deleted
+- [x] The project-board "deliberate difference" in `COVERAGE.md` is gone because the mock now is the real card behaviour,
       or is restated if the real templ still differs
-- [ ] `tests/mockgen-diff` passes for each page
-- [ ] Checked at 1440 in light and dark under `make mockups`
+- [x] `tests/mockgen-diff` passes for each page
+- [x] Checked at 1440 in light and dark under `make mockups`
 - [ ] CI `mockups` job green
 
 ## Verification
