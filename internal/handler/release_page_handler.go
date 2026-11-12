@@ -104,6 +104,9 @@ func (h *Handler) PageReleaseNew(w http.ResponseWriter, r *http.Request) {
 		Owner:    owner,
 		RepoName: repoName,
 		Branches: branches,
+
+		MaxAssetBytes: h.Cfg.Release.MaxAssetBytes,
+		MaxAssets:     h.Cfg.Release.MaxAssets,
 	}))
 }
 

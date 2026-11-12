@@ -10,6 +10,10 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"encoding/json"
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -51,7 +55,7 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 15, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 19, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -64,7 +68,7 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 15, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 19, Col: 110}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -77,26 +81,26 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases")).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 17, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 21, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"hover:underline\">Releases</a> <span aria-hidden=\"true\">·</span> New</p><h1 id=\"new-title\" class=\"text-2xl font-semibold tracking-tight\">Draft a new release</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Tag a point in history, write the notes, and publish — or save it as a draft for later.</p></section><div class=\"grid lg:grid-cols-[1fr_280px] gap-8\"><div class=\"min-w-0\"><section class=\"rounded-md border border-border bg-card overflow-hidden\" aria-labelledby=\"draft-heading\"><header class=\"px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2\"><h2 id=\"draft-heading\" class=\"text-[13px] font-medium\">New release</h2><span class=\"ml-auto font-mono text-[11px] text-muted-foreground\">draft</span></header><form hx-post=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"hover:underline\">Releases</a> <span aria-hidden=\"true\">·</span> New</p><h1 id=\"new-title\" class=\"text-2xl font-semibold tracking-tight\">Draft a new release</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Tag a point in history, write the notes, and publish — or save it as a draft for later.</p></section><div class=\"grid lg:grid-cols-[1fr_280px] gap-8\"><div class=\"min-w-0\"><section class=\"rounded-md border border-border bg-card overflow-hidden\" aria-labelledby=\"draft-heading\"><header class=\"px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2\"><h2 id=\"draft-heading\" class=\"text-[13px] font-medium\">New release</h2><span class=\"ml-auto font-mono text-[11px] text-muted-foreground\">draft</span></header><form x-data=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/releases").Resolve(ctx)
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(releaseNewConfig(data)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 33, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 37, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" hx-target=\"body\" class=\"p-5 space-y-4\"><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\"><div class=\"space-y-1.5\"><label for=\"r-tag\" class=\"block text-sm font-medium\">Tag <span class=\"text-destructive\" aria-hidden=\"true\">*</span></label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" @submit.prevent=\"submit($event)\" data-validate class=\"p-5 space-y-4\"><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\"><div class=\"space-y-1.5\" data-field><label for=\"r-tag\" class=\"block text-sm font-medium\">Tag <span class=\"text-destructive\" aria-hidden=\"true\">*</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -148,7 +152,7 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(b.Name).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 65, Col: 32}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 70, Col: 32}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 					if templ_7745c5c3_Err != nil {
@@ -171,7 +175,7 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(b.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 65, Col: 91}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 70, Col: 91}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -204,48 +208,33 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<span>Pre-release</span></label></div><div class=\"flex flex-wrap justify-end gap-2 pt-1\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<span>Pre-release</span></label></div><div class=\"space-y-1.5\"><span id=\"r-assets-label\" class=\"block text-sm font-medium\">Assets</span><div @dragover.prevent=\"dragging = !created\" @dragleave=\"dragging = false\" @drop.prevent=\"drop($event)\" :class=\"dragging ? 'border-ring bg-accent' : 'border-border bg-muted/30'\" class=\"rounded-md border border-dashed px-4 py-5 text-center\"><input type=\"file\" multiple x-ref=\"files\" @change=\"pick($event)\" class=\"sr-only\" tabindex=\"-1\" aria-hidden=\"true\"><p class=\"text-[13px] text-muted-foreground\">Drop files here, or</p><button type=\"button\" @click=\"$refs.files.click()\" :disabled=\"busy || created\" aria-describedby=\"r-assets-hint\" aria-labelledby=\"r-assets-label r-assets-choose\" class=\"mt-2 h-8 px-3 border border-border rounded-md hover:bg-accent text-[13px] inline-flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4\"></path><polyline points=\"17 8 12 3 7 8\"></polyline><line x1=\"12\" y1=\"3\" x2=\"12\" y2=\"15\"></line></svg> <span id=\"r-assets-choose\">Choose files</span></button><p id=\"r-assets-hint\" class=\"mt-2 text-[12px] text-muted-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 string
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases")).ResolveURL(ctx)
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(releaseNewLimitHint(data))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 81, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 107, Col: 105}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"h-9 px-3 border border-border rounded-md text-sm text-muted-foreground hover:bg-muted inline-flex items-center\">Cancel</a>")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var11 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-				if !templ_7745c5c3_IsBuffer {
-					defer func() {
-						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-						if templ_7745c5c3_Err == nil {
-							templ_7745c5c3_Err = templ_7745c5c3_BufErr
-						}
-					}()
-				}
-				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "Save draft")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				return nil
-			})
-			templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
-				"type":       "button",
-				"hx-post":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases",
-				"hx-include": "closest form",
-				"hx-vals":    `{"is_draft":"true"}`,
-				"hx-target":  "body",
-			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " They upload after the release is created.</p></div><ul x-show=\"notices.length\" x-cloak role=\"alert\" class=\"space-y-1 text-[12px] text-destructive\"><template x-for=\"n in notices\" :key=\"n\"><li x-text=\"n\"></li></template></ul><ul x-show=\"queue.length\" x-cloak aria-label=\"Files to upload\" class=\"rounded-md border border-border divide-y divide-border overflow-hidden\"><template x-for=\"(item, i) in queue\" :key=\"item.cleanName\"><li class=\"flex items-center gap-3 px-3 py-2\"><svg class=\"text-muted-foreground shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline></svg><div class=\"min-w-0 flex-1\"><p class=\"font-mono text-[13px] truncate\" x-text=\"item.name\"></p><p class=\"mt-0.5 text-[11px] text-muted-foreground flex flex-wrap items-center gap-x-2\"><span x-text=\"size(item.size)\"></span> <span x-show=\"item.state === 'done'\" class=\"text-success\">Uploaded</span> <span x-show=\"item.state === 'failed'\" class=\"text-destructive\" x-text=\"item.error\"></span></p><div x-show=\"item.state === 'uploading'\" role=\"progressbar\" aria-label=\"Upload progress\" aria-valuemin=\"0\" aria-valuemax=\"100\" :aria-valuenow=\"item.pct\" class=\"mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden\"><div class=\"h-full bg-primary transition-[width]\" :style=\"'width:' + item.pct + '%'\"></div></div></div><span x-show=\"item.state === 'uploading'\" class=\"font-mono text-[11px] text-muted-foreground shrink-0\" x-text=\"item.pct + '%'\"></span> <button type=\"button\" x-show=\"!busy && !created\" @click=\"remove(i)\" :aria-label=\"'Remove ' + item.name\" class=\"size-7 shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground inline-flex items-center justify-center\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg></button></li></template></ul></div><p x-show=\"formError\" x-cloak x-text=\"formError\" role=\"alert\" class=\"rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive\"></p><div x-show=\"created && hasFailures\" x-cloak role=\"alert\" class=\"rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px]\"><p class=\"font-medium text-destructive\">The release was created, but some files didn't upload.</p><p class=\"mt-1 text-muted-foreground\">Open the release and use <strong class=\"text-foreground\">Add asset</strong> to retry them. <a :href=\"detailUrl\" class=\"font-medium text-foreground underline underline-offset-2\">Open release</a></p></div><p class=\"sr-only\" role=\"status\" aria-live=\"polite\" x-text=\"status\"></p><div class=\"flex flex-wrap justify-end gap-2 pt-1\"><a href=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var11 string
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases")).ResolveURL(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 151, Col: 85}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"h-9 px-3 border border-border rounded-md text-sm text-muted-foreground hover:bg-muted inline-flex items-center\">Cancel</a>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -261,17 +250,72 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "Publish release")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "Save draft")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+				"type":       "submit",
+				"data-draft": "true",
+				":disabled":  "busy || created",
+			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div></form></section></div><aside class=\"space-y-6\" aria-label=\"About releases\"><section aria-labelledby=\"about-heading\"><h2 id=\"about-heading\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">About releases</h2><p class=\"text-[13px] text-muted-foreground leading-relaxed\">A release packages a Git tag with notes and downloadable assets — the cuttable points in your project's history.</p></section><section aria-labelledby=\"tips-heading\" class=\"border-t border-border pt-5\"><h2 id=\"tips-heading\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Good to know</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground leading-relaxed\"><li>The tag is created on the target branch's latest commit if it doesn't already exist.</li><li>Mark a pre-release when the build isn't production-ready.</li><li>Saving as a draft keeps the release private and notifies no one until you publish.</li></ul></section></aside></div></div>")
+			templ_7745c5c3_Var13 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "Publish release")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+				"type":      "submit",
+				":disabled": "busy || created",
+			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var13), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div></form></section></div><aside class=\"space-y-6\" aria-label=\"About releases\"><section aria-labelledby=\"about-heading\"><h2 id=\"about-heading\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">About releases</h2><p class=\"text-[13px] text-muted-foreground leading-relaxed\">A release packages a Git tag with notes and downloadable assets — the cuttable points in your project's history.</p></section><section aria-labelledby=\"tips-heading\" class=\"border-t border-border pt-5\"><h2 id=\"tips-heading\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Good to know</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground leading-relaxed\"><li>The tag is created on the target branch's latest commit if it doesn't already exist.</li><li>Mark a pre-release when the build isn't production-ready.</li><li>Saving as a draft keeps the release private and notifies no one until you publish.</li></ul></section></aside></div></div><script src=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var14 string
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/release-assets.js")).ResolveURL(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 186, Col: 55}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" defer></script> <script src=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var15 string
+			templ_7745c5c3_Var15, templ_7745c5c3_Err = templruntime.NewAttributeExpression(assets.URL("/static/release-new.js")).ResolveURL(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_new.templ`, Line: 187, Col: 52}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\" defer></script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -283,6 +327,24 @@ func ReleaseNew(data view.ReleaseNewData) templ.Component {
 		}
 		return nil
 	})
+}
+
+// releaseNewConfig is the x-data expression for the form; the limits mirror the release detail page's.
+func releaseNewConfig(data view.ReleaseNewData) string {
+	base := "/" + data.Owner + "/" + data.RepoName + "/releases"
+	cfg, _ := json.Marshal(map[string]any{
+		"createUrl":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases",
+		"listUrl":    base,
+		"detailBase": base + "/tag/",
+		"maxBytes":   data.MaxAssetBytes,
+		"maxLabel":   humanBytes(data.MaxAssetBytes),
+		"maxAssets":  data.MaxAssets,
+	})
+	return "releaseNewForm(" + string(cfg) + ")"
+}
+
+func releaseNewLimitHint(data view.ReleaseNewData) string {
+	return "Up to " + strconv.Itoa(data.MaxAssets) + " files, " + humanBytes(data.MaxAssetBytes) + " each."
 }
 
 var _ = templruntime.GeneratedTemplate

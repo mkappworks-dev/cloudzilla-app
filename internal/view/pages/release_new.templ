@@ -1,6 +1,10 @@
 package pages
 
 import (
+	"encoding/json"
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -30,12 +34,13 @@ templ ReleaseNew(data view.ReleaseNewData) {
 							<span class="ml-auto font-mono text-[11px] text-muted-foreground">draft</span>
 						</header>
 						<form
-							hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases" }
-							hx-target="body"
+							x-data={ releaseNewConfig(data) }
+							@submit.prevent="submit($event)"
+							data-validate
 							class="p-5 space-y-4"
 						>
 							<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								<div class="space-y-1.5">
+								<div class="space-y-1.5" data-field>
 									<label for="r-tag" class="block text-sm font-medium">
 										Tag <span class="text-destructive" aria-hidden="true">*</span>
 									</label>
@@ -77,18 +82,84 @@ templ ReleaseNew(data view.ReleaseNewData) {
 									<span>Pre-release</span>
 								</label>
 							</div>
+							<div class="space-y-1.5">
+								<span id="r-assets-label" class="block text-sm font-medium">Assets</span>
+								<div
+									@dragover.prevent="dragging = !created"
+									@dragleave="dragging = false"
+									@drop.prevent="drop($event)"
+									:class="dragging ? 'border-ring bg-accent' : 'border-border bg-muted/30'"
+									class="rounded-md border border-dashed px-4 py-5 text-center"
+								>
+									<input type="file" multiple x-ref="files" @change="pick($event)" class="sr-only" tabindex="-1" aria-hidden="true"/>
+									<p class="text-[13px] text-muted-foreground">Drop files here, or</p>
+									<button
+										type="button"
+										@click="$refs.files.click()"
+										:disabled="busy || created"
+										aria-describedby="r-assets-hint"
+										aria-labelledby="r-assets-label r-assets-choose"
+										class="mt-2 h-8 px-3 border border-border rounded-md hover:bg-accent text-[13px] inline-flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none"
+									>
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+										<span id="r-assets-choose">Choose files</span>
+									</button>
+									<p id="r-assets-hint" class="mt-2 text-[12px] text-muted-foreground">{ releaseNewLimitHint(data) } They upload after the release is created.</p>
+								</div>
+								<ul x-show="notices.length" x-cloak role="alert" class="space-y-1 text-[12px] text-destructive">
+									<template x-for="n in notices" :key="n"><li x-text="n"></li></template>
+								</ul>
+								<ul x-show="queue.length" x-cloak aria-label="Files to upload" class="rounded-md border border-border divide-y divide-border overflow-hidden">
+									<template x-for="(item, i) in queue" :key="item.cleanName">
+										<li class="flex items-center gap-3 px-3 py-2">
+											<svg class="text-muted-foreground shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+											<div class="min-w-0 flex-1">
+												<p class="font-mono text-[13px] truncate" x-text="item.name"></p>
+												<p class="mt-0.5 text-[11px] text-muted-foreground flex flex-wrap items-center gap-x-2">
+													<span x-text="size(item.size)"></span>
+													<span x-show="item.state === 'done'" class="text-success">Uploaded</span>
+													<span x-show="item.state === 'failed'" class="text-destructive" x-text="item.error"></span>
+												</p>
+												<div x-show="item.state === 'uploading'" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="item.pct" class="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
+													<div class="h-full bg-primary transition-[width]" :style="'width:' + item.pct + '%'"></div>
+												</div>
+											</div>
+											<span x-show="item.state === 'uploading'" class="font-mono text-[11px] text-muted-foreground shrink-0" x-text="item.pct + '%'"></span>
+											<button
+												type="button"
+												x-show="!busy && !created"
+												@click="remove(i)"
+												:aria-label="'Remove ' + item.name"
+												class="size-7 shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground inline-flex items-center justify-center"
+											>
+												<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+											</button>
+										</li>
+									</template>
+								</ul>
+							</div>
+							<p x-show="formError" x-cloak x-text="formError" role="alert" class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive"></p>
+							<div x-show="created && hasFailures" x-cloak role="alert" class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px]">
+								<p class="font-medium text-destructive">The release was created, but some files didn't upload.</p>
+								<p class="mt-1 text-muted-foreground">
+									Open the release and use <strong class="text-foreground">Add asset</strong> to retry them.
+									<a :href="detailUrl" class="font-medium text-foreground underline underline-offset-2">Open release</a>
+								</p>
+							</div>
+							<p class="sr-only" role="status" aria-live="polite" x-text="status"></p>
 							<div class="flex flex-wrap justify-end gap-2 pt-1">
 								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="h-9 px-3 border border-border rounded-md text-sm text-muted-foreground hover:bg-muted inline-flex items-center">Cancel</a>
 								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
-									"type":       "button",
-									"hx-post":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases",
-									"hx-include": "closest form",
-									"hx-vals":    `{"is_draft":"true"}`,
-									"hx-target":  "body",
+									"type":       "submit",
+									"data-draft": "true",
+									":disabled":  "busy || created",
 								}) {
 									Save draft
 								}
-								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+									"type":      "submit",
+									":disabled": "busy || created",
+								}) {
 									Publish release
 								}
 							</div>
@@ -112,5 +183,25 @@ templ ReleaseNew(data view.ReleaseNewData) {
 				</aside>
 			</div>
 		</div>
+		<script src={ assets.URL("/static/release-assets.js") } defer></script>
+		<script src={ assets.URL("/static/release-new.js") } defer></script>
 	}
+}
+
+// releaseNewConfig is the x-data expression for the form; the limits mirror the release detail page's.
+func releaseNewConfig(data view.ReleaseNewData) string {
+	base := "/" + data.Owner + "/" + data.RepoName + "/releases"
+	cfg, _ := json.Marshal(map[string]any{
+		"createUrl":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases",
+		"listUrl":    base,
+		"detailBase": base + "/tag/",
+		"maxBytes":   data.MaxAssetBytes,
+		"maxLabel":   humanBytes(data.MaxAssetBytes),
+		"maxAssets":  data.MaxAssets,
+	})
+	return "releaseNewForm(" + string(cfg) + ")"
+}
+
+func releaseNewLimitHint(data view.ReleaseNewData) string {
+	return "Up to " + strconv.Itoa(data.MaxAssets) + " files, " + humanBytes(data.MaxAssetBytes) + " each."
 }

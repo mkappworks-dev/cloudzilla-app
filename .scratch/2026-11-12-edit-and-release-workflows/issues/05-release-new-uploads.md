@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 04
 
 | Branch | Worktree | PR title | Effort | Score gain |
@@ -35,11 +35,11 @@ create request because the release has no id yet.
 
 ## Acceptance criteria
 
-- [ ] Files picked or dropped on the form upload after the release is created, with progress per file
-- [ ] A failed upload leaves a usable release and a clear route to retry
-- [ ] Draft and publish both upload
-- [ ] Keyboard-operable picker and queue, announced progress and errors
-- [ ] Mocks updated, light and dark
+- [x] Files picked or dropped on the form upload after the release is created, with progress per file
+- [x] A failed upload leaves a usable release and a clear route to retry
+- [x] Draft and publish both upload
+- [x] Keyboard-operable picker and queue, announced progress and errors
+- [x] Mocks updated, light and dark
 
 ## Mock updates
 
@@ -49,3 +49,12 @@ create request because the release has no id yet.
 
 Throwaway server per the harness: publish and draft with several files, one over the limit, a mid-upload failure
 (stop the server or block the request), then retry from the detail page. Light and dark at 1440.
+
+## Comments
+
+Claude, 2026-11-12: Built as scoped. The form now creates the release with `fetch` (JSON) instead of htmx, so it keeps the
+page, can read the new release's id, and shows tag errors under the Tag field (`CreateRelease` answers the JSON path's
+tag errors with `field: "tag_name"`). A form with no files still goes to the releases list; with files it goes to the
+detail page once every upload succeeds. After a partial failure the form locks (no second create) and links to the
+detail page. Limits come from the same config as the detail page. Mock states: `mockups/release_new.html?state=queued |
+uploading | partial`.

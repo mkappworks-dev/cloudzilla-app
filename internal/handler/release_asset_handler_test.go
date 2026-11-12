@@ -427,3 +427,76 @@ func TestReleaseAsset_PurgingTheRepoRemovesItsObjects(t *testing.T) {
 		t.Error("object survived its repo's purge")
 	}
 }
+
+func (e releaseAssetEnv) createRelease(t *testing.T, repo seededRepo, token string, payload map[string]any) *httptest.ResponseRecorder {
+	t.Helper()
+	b, _ := json.Marshal(payload)
+	req := httptest.NewRequest(http.MethodPost, "/api/repos/"+repo.owner.name+"/"+repo.name+"/releases", bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	rr := httptest.NewRecorder()
+	e.router.ServeHTTP(rr, req)
+	return rr
+}
+
+func TestReleaseCreate_TagErrorsNameTheTagField(t *testing.T) {
+	e := newReleaseAssetEnv(t)
+	repo := seedOwnedRepo(t, e.db, false)
+	seedRelease(t, e.db, repo, "v1", true)
+
+	for _, tc := range []struct{ name, tag, message string }{
+		{"tag in use", "v1", "A release for tag v1 already exists."},
+		{"invalid tag", "bad..tag", "Tag name must use"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := e.createRelease(t, repo, repo.owner.token, map[string]any{"tag_name": tc.tag, "target": "main"})
+			var body map[string]string
+			_ = json.Unmarshal(rr.Body.Bytes(), &body)
+			if rr.Code != http.StatusUnprocessableEntity || body["field"] != "tag_name" || !strings.Contains(body["error"], tc.message) {
+				t.Errorf("%d %s, want 422 on tag_name containing %q", rr.Code, rr.Body.String(), tc.message)
+			}
+		})
+	}
+}
+
+// The new-release form uploads to the release it just created, so a draft
+// created without files must accept the same limits and uploads as ticket 04's endpoint.
+func TestReleaseAsset_FormUploadsFollowTheSameLimitsOnADraftRelease(t *testing.T) {
+	e := newReleaseAssetEnv(t)
+	repo := seedOwnedRepo(t, e.db, false)
+	rel := seedRelease(t, e.db, repo, "v2", true)
+	path := e.assetsPath(repo, rel)
+
+	for _, name := range []string{"a.zip", "b.zip", "c.zip"} {
+		e.mustUpload(t, repo, rel, name, []byte(name))
+	}
+	for _, tc := range []struct {
+		filename string
+		status   int
+	}{
+		{"a.zip", http.StatusConflict},
+		{"d.zip", http.StatusUnprocessableEntity},
+	} {
+		if rr := e.upload(t, path, repo.owner.token, tc.filename, []byte("x")); rr.Code != tc.status {
+			t.Errorf("%s: %d %s, want %d", tc.filename, rr.Code, rr.Body.String(), tc.status)
+		}
+	}
+}
+
+func TestPageReleaseNew_ExposesTheUploadLimitsToTheForm(t *testing.T) {
+	e := newReleaseAssetEnv(t)
+	repo := seedOwnedRepo(t, e.db, false)
+
+	rr := e.do(t, http.MethodGet, repo.path+"/releases/new", repo.owner.token, nil)
+	body := rr.Body.String()
+	if rr.Code != http.StatusOK {
+		t.Fatalf("%d %s", rr.Code, body)
+	}
+	for _, want := range []string{"releaseNewForm(", "&#34;maxAssets&#34;:3", "&#34;maxLabel&#34;:&#34;4.0 MB&#34;", "release-new.js", "Up to 3 files, 4.0 MB each."} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page is missing %q", want)
+		}
+	}
+}
