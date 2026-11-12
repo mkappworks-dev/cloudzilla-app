@@ -41,6 +41,8 @@ templ PullFiles(data view.PullFilesData) {
 templ pullFilesBody(data view.PullFilesData) {
 	if data.LoadError {
 		@components.EmptyState("The diff couldn't be loaded. Reload the page to try again.")
+	} else if data.Unavailable {
+		@components.EmptyState("Diff unavailable after merge. This pull request merged before its changes were recorded, and its branches no longer show them.")
 	} else if data.Diff == nil || len(data.Diff.Files) == 0 {
 		@components.EmptyState("No changes.")
 	} else {

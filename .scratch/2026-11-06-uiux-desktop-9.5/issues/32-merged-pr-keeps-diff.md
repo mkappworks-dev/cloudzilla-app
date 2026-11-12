@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -30,9 +30,9 @@ Found by the wave 2 re-score (Claude and Codex).
 
 ## Acceptance criteria
 
-- [ ] A merged PR shows its original commit count and diff after the head branch is merged or deleted
-- [ ] Old merged PRs say why when the diff cannot be rebuilt
-- [ ] Mocks updated, light and dark
+- [x] A merged PR shows its original commit count and diff after the head branch is merged or deleted
+- [x] Old merged PRs say why when the diff cannot be rebuilt
+- [x] Mocks updated, light and dark
 
 ## Verification
 

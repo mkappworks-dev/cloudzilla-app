@@ -37,6 +37,8 @@ templ PullCommits(data view.PullCommitsData) {
 templ pullCommitsBody(data view.PullCommitsData) {
 	if data.LoadError {
 		@components.EmptyState("Commits couldn't be loaded.")
+	} else if data.Unavailable {
+		@components.EmptyState("Commits unavailable after merge. This pull request merged before its commits were recorded, and its branches no longer show them.")
 	} else if len(data.Commits) == 0 {
 		@components.EmptyState("No commits between base and head.")
 	} else {

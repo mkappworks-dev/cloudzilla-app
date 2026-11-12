@@ -4,6 +4,7 @@ package store_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -259,6 +260,84 @@ func TestPullStore_ListLinkedToIssue_ReturnsMatchingPRs(t *testing.T) {
 	for _, pr := range linked {
 		if pr.ID == unlinked.ID {
 			t.Error("unlinked PR must not appear in linked results")
+		}
+	}
+}
+
+func TestPullStore_SetMergedRange(t *testing.T) {
+	ps, repoID, ownerID := seedPullDeps(t)
+	ctx := context.Background()
+	pr := &model.PullRequest{RepoID: repoID, AuthorID: ownerID, Title: "Ranged", HeadBranch: "feature", BaseBranch: "main", State: model.PRStateOpen}
+	if err := ps.Create(ctx, pr); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	if err := ps.SetMergedRange(ctx, pr.ID, "base1", "head1"); err != nil {
+		t.Fatalf("SetMergedRange on an open PR: %v", err)
+	}
+	if got, _ := ps.GetByNumber(ctx, repoID, pr.Number); got.MergedHeadSHA != "" {
+		t.Fatalf("an open PR recorded a merged range: %q", got.MergedHeadSHA)
+	}
+
+	if err := ps.UpdateState(ctx, pr.ID, model.PRStateMerged); err != nil {
+		t.Fatalf("UpdateState: %v", err)
+	}
+	for _, in := range [][2]string{{"", ""}, {"base1", "head1"}, {"base2", "head2"}} {
+		if err := ps.SetMergedRange(ctx, pr.ID, in[0], in[1]); err != nil {
+			t.Fatalf("SetMergedRange(%v): %v", in, err)
+		}
+	}
+	got, err := ps.GetByNumber(ctx, repoID, pr.Number)
+	if err != nil {
+		t.Fatalf("GetByNumber: %v", err)
+	}
+	if got.MergedBaseSHA != "base1" || got.MergedHeadSHA != "head1" {
+		t.Errorf("range = %q, %q; want base1, head1 (an empty backfill result yields to a real one; a real one is kept)", got.MergedBaseSHA, got.MergedHeadSHA)
+	}
+	byID, err := ps.GetByID(ctx, pr.ID)
+	if err != nil || byID.MergedHeadSHA != "head1" {
+		t.Errorf("GetByID range = %q, %v; want head1", byID.MergedHeadSHA, err)
+	}
+}
+
+func TestPullStore_MergedWithoutRange(t *testing.T) {
+	ps, repoID, ownerID := seedPullDeps(t)
+	ctx := context.Background()
+	mk := func(title string) *model.PullRequest {
+		pr := &model.PullRequest{RepoID: repoID, AuthorID: ownerID, Title: title, HeadBranch: "feature", BaseBranch: "main", State: model.PRStateOpen}
+		if err := ps.Create(ctx, pr); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		return pr
+	}
+	open, old, recorded, tried := mk("open"), mk("old"), mk("recorded"), mk("tried")
+	for _, pr := range []*model.PullRequest{old, recorded, tried} {
+		if err := ps.UpdateState(ctx, pr.ID, model.PRStateMerged); err != nil {
+			t.Fatalf("UpdateState: %v", err)
+		}
+	}
+	_ = ps.SetMergedRange(ctx, recorded.ID, "b", "h")
+	_ = ps.SetMergedRange(ctx, tried.ID, "", "")
+
+	list, err := ps.MergedWithoutRange(ctx)
+	if err != nil {
+		t.Fatalf("MergedWithoutRange: %v", err)
+	}
+	var ids []int64
+	for _, pr := range list {
+		ids = append(ids, pr.ID)
+	}
+	if !slices.Contains(ids, old.ID) {
+		t.Error("a merged PR with no range is missing")
+	}
+	for _, other := range []*model.PullRequest{open, recorded, tried} {
+		if slices.Contains(ids, other.ID) {
+			t.Errorf("PR %q was listed but needs no backfill", other.Title)
+		}
+	}
+	for _, pr := range list {
+		if pr.ID == old.ID && (pr.RepoOwner == "" || pr.RepoName == "") {
+			t.Errorf("owner/name not loaded: %+v", pr)
 		}
 	}
 }

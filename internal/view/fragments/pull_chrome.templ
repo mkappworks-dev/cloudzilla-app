@@ -75,8 +75,12 @@ git checkout { data.Pull.HeadBranch }</pre>
 				<p class="text-[13px] text-muted-foreground">
 					<a href={ templ.SafeURL("/" + chromeActor(data)) } class="font-medium text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">{ "@" + chromeActor(data) }</a>
 					{ " " + chromeMergeVerb(data.Pull.State) + " " }
-					<strong class="text-foreground font-medium">{ components.Count(chromeCommits(data), "commit", "commits") }</strong>
-					{ " into " }
+					if chromeCommits(data) > 0 || data.Pull.State != model.PRStateMerged {
+						<strong class="text-foreground font-medium">{ components.Count(chromeCommits(data), "commit", "commits") }</strong>
+						{ " into " }
+					} else {
+						{ "into " }
+					}
 					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ data.Pull.BaseBranch }</span>
 					{ " from " }
 					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ data.Pull.HeadBranch }</span>

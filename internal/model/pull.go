@@ -33,6 +33,10 @@ type PullRequest struct {
 	HeadSHA           string     `db:"head_sha"             json:"head_sha,omitempty"`
 	// AutoMergeBy is the user who armed auto-merge, read by GetByID and GetByNumber only.
 	AutoMergeBy *int64 `db:"auto_merge_by" json:"-"`
+	// MergedBaseSHA and MergedHeadSHA are the base tip and head tip the merge saw, read by GetByID and GetByNumber
+	// only. Both are empty for a PR merged before they were recorded and not rebuilt since.
+	MergedBaseSHA string `db:"-" json:"-"`
+	MergedHeadSHA string `db:"-" json:"-"`
 
 	// Set only by queries that can return another repo's pull requests.
 	RepoOwner string `db:"-" json:"repo_owner,omitempty"`
