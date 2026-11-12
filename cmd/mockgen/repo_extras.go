@@ -211,7 +211,7 @@ func gistsAccount(b view.BasePage) view.BasePage {
 	return b
 }
 
-func extrasGists(b view.BasePage, tab string, rows []model.GistListRow, signedIn bool) templ.Component {
+func extrasGists(b view.BasePage, tab string, rows []model.GistListRow, signedIn bool, public int) templ.Component {
 	labels := []struct{ label, class string }{{"Go", chipPrimary}, {"Bash", chipSuccess}, {"Markdown", chipMuted}}
 	items := make([]view.GistListItem, 0, len(rows))
 	for i, r := range rows {
@@ -220,7 +220,7 @@ func extrasGists(b view.BasePage, tab string, rows []model.GistListRow, signedIn
 	}
 	return pages.Gists(view.GistsData{
 		BasePage: gistsAccount(b), Gists: items, Page: 1, Tab: tab, Sort: "updated", PrivateTabAvailable: signedIn,
-		PublicCount: 2, PrivateCount: 1,
+		PublicCount: public, PrivateCount: 1,
 	})
 }
 
@@ -386,16 +386,16 @@ func repoExtrasPages() []page {
 			Name: "gists", Route: "/gists", Templ: "gists.templ", Title: "Gists",
 			Variants: []variant{
 				{Note: "public gists, signed in", Viewer: Writer, Render: func(b view.BasePage) templ.Component {
-					return extrasGists(b, "public", extrasGistRows()[:2], true)
+					return extrasGists(b, "public", extrasGistRows()[:2], true, 2)
 				}},
 				{Name: "private", Note: "your private gists", Viewer: Writer, Render: func(b view.BasePage) templ.Component {
-					return extrasGists(b, "private", extrasGistRows()[2:], true)
+					return extrasGists(b, "private", extrasGistRows()[2:], true, 2)
 				}},
 				{Name: "anon", Note: "signed out: no private tab", Viewer: Anon, Render: func(b view.BasePage) templ.Component {
-					return extrasGists(b, "public", extrasGistRows()[:2], false)
+					return extrasGists(b, "public", extrasGistRows()[:2], false, 2)
 				}},
 				{Name: "empty", Note: "no public gists", Viewer: Writer, Render: func(b view.BasePage) templ.Component {
-					return extrasGists(b, "public", nil, true)
+					return extrasGists(b, "public", nil, true, 0)
 				}},
 			},
 		},
@@ -408,6 +408,7 @@ func repoExtrasPages() []page {
 				}},
 				{Name: "viewer", Note: "someone else's gist", Viewer: Reader, Render: func(b view.BasePage) templ.Component {
 					g, f := extrasGist()
+					g.OwnerID, g.OwnerName = 2, "ada-silva"
 					return pages.GistDetail(view.GistDetailData{BasePage: gistsAccount(b), Gist: g, Files: f})
 				}},
 			},
