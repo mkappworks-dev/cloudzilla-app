@@ -8,10 +8,13 @@ templ MarkdownEditor(id, name, content, placeholder string, rows int) {
 	<div class="md-editor" data-md-editor>
 		<div class="flex items-center gap-2 border-b border-border px-3">
 			<div role="tablist" aria-label="Editor mode" class="flex">
-				<button type="button" role="tab" data-md-tab="write" aria-selected="true" class="px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px">Write</button>
+				<button type="button" role="tab" id={ id + "-tab-write" } aria-controls={ id + "-pane-write" } tabindex="0" data-md-tab="write" aria-selected="true" class="px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px">Write</button>
 				<button
 					type="button"
 					role="tab"
+					id={ id + "-tab-preview" }
+					aria-controls={ id + "-preview" }
+					tabindex="-1"
 					data-md-tab="preview"
 					aria-selected="false"
 					hx-post="/api/markdown/preview"
@@ -40,11 +43,11 @@ templ MarkdownEditor(id, name, content, placeholder string, rows int) {
 				}
 			</div>
 		</div>
-		<div data-md-pane="write">
+		<div id={ id + "-pane-write" } role="tabpanel" aria-labelledby={ id + "-tab-write" } data-md-pane="write">
 			<label for={ id } class="sr-only">{ placeholder }</label>
 			<textarea id={ id } name={ name } rows={ strconv.Itoa(rows) } placeholder={ placeholder } style={ paneHeight } class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground">{ content }</textarea>
 		</div>
-		<div id={ id + "-preview" } data-md-pane="preview" style={ paneHeight } class="hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"></div>
+		<div id={ id + "-preview" } role="tabpanel" aria-labelledby={ id + "-tab-preview" } tabindex="0" data-md-pane="preview" style={ paneHeight } class="hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"></div>
 	</div>
 }
 

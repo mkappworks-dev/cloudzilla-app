@@ -30,9 +30,12 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   }
 
+  var editorSeq = 0;
+
   /* Returns the MarkdownEditor markup as a string.
      opts: { rows, placeholder, value, standalone } */
   function html(opts) {
+    var uid = 'md' + (++editorSeq);
     opts = opts || {};
     var rows = parseInt(opts.rows, 10) || 5;
     var paneHeight = (rows * 22 + 24) + 'px';
@@ -42,15 +45,15 @@
       <div class="${shell}" data-md-editor>
         <div class="flex items-center gap-2 border-b border-border px-3">
           <div role="tablist" aria-label="Editor mode" class="flex">
-            <button type="button" role="tab" data-md-tab="write" aria-selected="true" class="px-3 py-2 text-[13px] border-b-2 -mb-px border-foreground text-foreground font-medium">Write</button>
-            <button type="button" role="tab" data-md-tab="preview" aria-selected="false" class="px-3 py-2 text-[13px] border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground">Preview</button>
+            <button type="button" role="tab" id="${uid}-tab-write" aria-controls="${uid}-pane-write" tabindex="0" data-md-tab="write" aria-selected="true" class="px-3 py-2 text-[13px] border-b-2 -mb-px border-foreground text-foreground font-medium">Write</button>
+            <button type="button" role="tab" id="${uid}-tab-preview" aria-controls="${uid}-pane-preview" tabindex="-1" data-md-tab="preview" aria-selected="false" class="px-3 py-2 text-[13px] border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground">Preview</button>
           </div>
           <div class="ml-auto flex items-center gap-1 text-muted-foreground" aria-label="Formatting">${TOOLBAR}</div>
         </div>
-        <div data-md-pane="write">
+        <div id="${uid}-pane-write" role="tabpanel" aria-labelledby="${uid}-tab-write" data-md-pane="write">
           <textarea name="body" rows="${rows}" placeholder="${placeholder}" aria-label="Markdown editor" class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground" style="height:${paneHeight}">${esc(opts.value || '')}</textarea>
         </div>
-        <div data-md-pane="preview" class="hidden px-4 py-3 prose" style="height:${paneHeight};overflow-y:auto">
+        <div id="${uid}-pane-preview" role="tabpanel" aria-labelledby="${uid}-tab-preview" tabindex="0" data-md-pane="preview" class="hidden px-4 py-3 prose" style="height:${paneHeight};overflow-y:auto">
           <p class="text-muted-foreground text-[13px]">Nothing to preview.</p>
         </div>
       </div>`;
@@ -78,6 +81,7 @@
       t.classList.toggle('border-transparent', !on);
       t.classList.toggle('text-muted-foreground', !on);
       t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
     });
     ed.querySelector('[data-md-pane="write"]').classList.toggle('hidden', mode !== 'write');
     ed.querySelector('[data-md-pane="preview"]').classList.toggle('hidden', mode !== 'preview');
@@ -90,6 +94,18 @@
     ta.setRangeText(out, s, e, 'end');
     ta.focus();
   }
+  document.addEventListener('keydown', function (e) {
+    var tab = e.target.closest && e.target.closest('[data-md-tab]');
+    if (!tab || e.altKey || e.ctrlKey || e.metaKey) return;
+    var tabs = [].slice.call(tab.closest('[role=tablist]').querySelectorAll('[role=tab]'));
+    var i = tabs.indexOf(tab);
+    var next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    var to = tabs[(next + tabs.length) % tabs.length];
+    to.focus();
+    to.click();
+  });
   document.addEventListener('click', function (e) {
     var tab = e.target.closest('[data-md-tab]');
     if (tab) { setMode(tab.closest('[data-md-editor]'), tab.dataset.mdTab); return; }

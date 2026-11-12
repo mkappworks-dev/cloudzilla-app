@@ -156,7 +156,7 @@ func ReviewDialog(d ReviewDialogData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<label for=\"review-body\" class=\"sr-only\">Review summary</label><div class=\"rounded-md border border-border overflow-hidden\"><textarea id=\"review-body\" name=\"body\" rows=\"4\" :required=\"state !== 'approved'\" placeholder=\"Leave a summary — Markdown supported\" class=\"w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground\"></textarea></div><div role=\"radiogroup\" aria-label=\"Review type\" class=\"grid gap-3 mt-4\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<label for=\"review-body\" class=\"sr-only\">Review summary</label><div class=\"rounded-md border border-border overflow-hidden\"><textarea id=\"review-body\" name=\"body\" rows=\"4\" :required=\"state !== 'approved'\" aria-describedby=\"review-body-hint\" placeholder=\"Leave a summary — Markdown supported\" class=\"w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-hidden placeholder:text-muted-foreground\"></textarea></div><p id=\"review-body-hint\" class=\"mt-1.5 text-[12px] text-muted-foreground\"><span x-show=\"state === 'changes_requested'\" x-cloak>Request changes needs a summary of what to fix.</span> <span x-show=\"state === 'commented'\" x-cloak>A comment needs a summary.</span> <span x-show=\"state === 'approved'\" x-cloak>A summary is optional when you approve.</span></p><div role=\"radiogroup\" aria-label=\"Review type\" class=\"grid gap-3 mt-4\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -324,7 +324,7 @@ func reviewRadio(value, title, desc string, disabled bool) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templruntime.NewAttributeExpression(value).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/review_dialog.templ`, Line: 76, Col: 16}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/review_dialog.templ`, Line: 82, Col: 16}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 		if templ_7745c5c3_Err != nil {
@@ -353,7 +353,7 @@ func reviewRadio(value, title, desc string, disabled bool) templ.Component {
 		var templ_7745c5c3_Var16 string
 		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/review_dialog.templ`, Line: 83, Col: 42}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/review_dialog.templ`, Line: 89, Col: 42}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 		if templ_7745c5c3_Err != nil {
@@ -366,7 +366,7 @@ func reviewRadio(value, title, desc string, disabled bool) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(desc)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/review_dialog.templ`, Line: 84, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/review_dialog.templ`, Line: 90, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {

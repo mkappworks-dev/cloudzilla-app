@@ -35,7 +35,7 @@ templ LineComments(data view.LineCommentsFragData) {
 							hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10) }
 							hx-target={ "#" + view.LineCommentID(data.Key) }
 							hx-swap="outerHTML"
-							class="text-muted-foreground/60 hover:text-destructive text-xs shrink-0"
+							class="inline-grid h-6 w-6 shrink-0 place-items-center rounded-sm text-base leading-none text-muted-foreground hover:bg-accent hover:text-destructive"
 						>&times;</button>
 					}
 				</div>

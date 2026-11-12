@@ -195,7 +195,7 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 							<h2 id="dd-category-heading" class="text-[12px] font-medium text-muted-foreground">Category</h2>
 							if data.CanWrite {
 								<div class="relative" x-on:click.outside="open === 'category' && (open = null)">
-									<button type="button" x-on:click="open = (open === 'category' ? null : 'category')" :aria-expanded="open === 'category' ? 'true' : 'false'" aria-haspopup="menu" aria-label="Change category" class="text-muted-foreground hover:text-foreground">
+									<button type="button" x-on:click="open = (open === 'category' ? null : 'category')" :aria-expanded="open === 'category' ? 'true' : 'false'" aria-haspopup="menu" aria-label="Change category" class="inline-grid h-6 w-6 place-items-center rounded-sm hover:bg-accent text-muted-foreground hover:text-foreground">
 										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
 									</button>
 									<div x-show="open === 'category'" x-cloak x-transition.opacity.duration.100ms role="menu" aria-label="Move to category" class="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1">

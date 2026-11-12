@@ -73,3 +73,78 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 });
+
+// Keyboard behaviour for every role=menu popup, found by markup so each page's Alpine open-state stays as is.
+(() => {
+  const visible = el => el.getClientRects().length > 0;
+  const items = menu => [...menu.querySelectorAll('[role=menuitem]')].filter(visible);
+
+  // Nearest preceding aria-haspopup=menu button in an ancestor: the menu's trigger.
+  const triggerOf = menu => {
+    for (let a = menu.parentElement, hops = 0; a && hops < 5; a = a.parentElement, hops++) {
+      const found = [...a.querySelectorAll('[aria-haspopup=menu]')].filter(t =>
+        !menu.contains(t) && t.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING);
+      if (found.length) return found[found.length - 1];
+    }
+    return null;
+  };
+  const menuOf = trigger => {
+    for (let a = trigger.parentElement, hops = 0; a && hops < 5; a = a.parentElement, hops++) {
+      const m = [...a.querySelectorAll('[role=menu]')].find(m =>
+        !m.contains(trigger) && trigger.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_FOLLOWING);
+      if (m) return m;
+    }
+    return null;
+  };
+  const isExpanded = t => t.getAttribute('aria-expanded') === 'true';
+
+  const focusItem = (menu, pick) => {
+    const list = items(menu);
+    if (list.length) pick(list).focus();
+  };
+  // Alpine reveals the menu and updates aria-expanded a tick after the click that opened it.
+  const openThen = (trigger, pick) => {
+    if (!isExpanded(trigger)) trigger.click();
+    setTimeout(() => {
+      const menu = menuOf(trigger);
+      if (menu) focusItem(menu, pick);
+    }, 0);
+  };
+  // Menus differ in how they close on Escape (some already do it on window); toggling blindly would reopen them.
+  const close = (trigger, refocus) => setTimeout(() => {
+    if (isExpanded(trigger)) trigger.click();
+    if (refocus) trigger.focus();
+  }, 0);
+
+  document.addEventListener('click', e => {
+    const trigger = e.target.closest('[aria-haspopup=menu]');
+    // detail 0 is a keyboard activation; a mouse click keeps focus where it is.
+    if (trigger && e.detail === 0) setTimeout(() => {
+      if (isExpanded(trigger)) { const m = menuOf(trigger); if (m) focusItem(m, l => l[0]); }
+    }, 0);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const trigger = e.target.closest?.('[aria-haspopup=menu]');
+    if (trigger && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      openThen(trigger, e.key === 'ArrowDown' ? l => l[0] : l => l[l.length - 1]);
+      return;
+    }
+    const menu = e.target.closest?.('[role=menu]');
+    if (!menu) return;
+    const owner = triggerOf(menu);
+    const list = items(menu);
+    const at = list.indexOf(e.target);
+    const go = i => { e.preventDefault(); if (list.length) list[(i + list.length) % list.length].focus(); };
+    switch (e.key) {
+      case 'ArrowDown': go(at + 1); break;
+      case 'ArrowUp': go(at < 0 ? list.length - 1 : at - 1); break;
+      case 'Home': if (at >= 0) go(0); break;
+      case 'End': if (at >= 0) go(list.length - 1); break;
+      case 'Escape': if (owner) close(owner, true); break;
+      case 'Tab': if (owner && at >= 0) close(owner, false); break;
+    }
+  });
+})();

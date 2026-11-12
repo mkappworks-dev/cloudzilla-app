@@ -158,14 +158,18 @@
   <div class="p-5">
     <div id="repo-collaborators" class="space-y-2">
       <form class="flex flex-wrap items-end gap-3 mb-4" onsubmit="return false">
-        <label for="collab-username" class="sr-only">Username</label>
-        <input id="collab-username" type="text" name="username" placeholder="Username" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
-        <label for="collab-role" class="sr-only">Role</label>
-        <select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">
-          <option value="reader">Reader</option>
-          <option value="writer">Writer</option>
-          <option value="admin">Admin</option>
-        </select>
+        <div class="flex-1 space-y-1.5">
+          <label for="collab-username" class="block text-xs font-medium text-muted-foreground">Username</label>
+          <input id="collab-username" type="text" name="username" placeholder="e.g. ada-silva" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+        </div>
+        <div class="space-y-1.5">
+          <label for="collab-role" class="block text-xs font-medium text-muted-foreground">Role</label>
+          <select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">
+            <option value="reader">Reader</option>
+            <option value="writer">Writer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
         <div class="min-w-0">
           <label for="collab-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
           <input id="collab-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />

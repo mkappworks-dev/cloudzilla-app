@@ -154,7 +154,7 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" hx-swap=\"outerHTML\" class=\"text-muted-foreground/60 hover:text-destructive text-xs shrink-0\">&times;</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" hx-swap=\"outerHTML\" class=\"inline-grid h-6 w-6 shrink-0 place-items-center rounded-sm text-base leading-none text-muted-foreground hover:bg-accent hover:text-destructive\">&times;</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
