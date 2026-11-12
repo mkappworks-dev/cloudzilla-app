@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: needs-triage
+Status: needs-info
 Blocked by: 14
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -50,3 +50,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 ## Comments
 
 2026-11-06 (wave 1 re-score): opened by ticket 22. Run `/triage` before any code.
+
+2026-11-12 (triage): needs-info for item 6 only (write a terms page or drop the agreement); items 1-5 are agent work and 14 has merged.
