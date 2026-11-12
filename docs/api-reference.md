@@ -294,14 +294,14 @@ a repository row counts as used, so a new repository never takes over an earlier
 the same way it skips existing repositories. `POST /api/repos/from-template` checks the name with the same rules as
 create and returns 422 `invalid repository name: ...` for one it rejects.
 
-`PATCH /api/repos/:owner/:repo` with a `name` form field renames the repository (`CanManage`: owner, org owner or `admin`
-collaborator, behind the same confirmation as a transfer). `name` cannot be sent with `description`, `website` or
-`license`: that is 422. It answers 200 `{"id", "owner", "name", "full_name"}`. Statuses: 422 for an invalid name, a name
-ending in `.wiki`, or the name the repo already has; 409 when the name is taken (a `<name>.wiki` repo, or a directory
-left on disk, counts) or while a mirror sync is running; 403 for a reader or writer; the missing-repo 404 for a repo the
-caller cannot read. The `<name>.git` and `<name>.wiki.git` directories and the row move together, and nothing changes if
-the move fails. Afterwards the old path is an alias to the repo (renaming back drops it), the repo's events and
-notifications show the new name (`events.payload` keeps the text it was recorded with), and `repo.rename` is audited
+`PATCH /api/repos/:owner/:repo` with a `name` form field renames the repository (`CanManage`: owner, org owner or
+`admin` collaborator, behind the same confirmation as a transfer). `name` cannot be sent with `description`, `website`
+or `license`: that is 422. It answers 200 `{"id", "owner", "name", "full_name"}`. Statuses: 422 for an invalid name, a
+name ending in `.wiki`, or the name the repo already has; 409 when the name is taken (a `<name>.wiki` repo, or a
+directory left on disk, counts) or while a mirror sync is running; 403 for a reader or writer; the missing-repo 404 for
+a repo the caller cannot read. The `<name>.git` and `<name>.wiki.git` directories and the row move together, and nothing
+changes if the move fails. Afterwards the old path is an alias to the repo (renaming back drops it), the repo's events
+and notifications show the new name (`events.payload` keeps the text it was recorded with), and `repo.rename` is audited
 with `from` and `to`. The repo `id` is unchanged, so webhooks, forks, pull requests, a mirror and the wiki carry over;
 webhook payloads sent afterwards carry the new `repository.full_name`. A pending transfer stays, and accepting it after
 a rename is refused until the recipient reviews the transfer again. Redirects from the old path are described with the
