@@ -30,7 +30,7 @@ Found by the wave 2 re-score (Claude and Codex).
 
 ## Acceptance criteria
 
-- [ ] Spec and tickets exist for teams, org webhooks, export and extra emails
+- [x] Spec and tickets exist for teams, org webhooks, export and extra emails
 - [ ] No disabled "not available" radios or buttons left in settings
 - [ ] Fork owner defaults to the current user
 - [ ] Mocks updated, light and dark
@@ -44,3 +44,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-12 (wave 2 re-score): opened by ticket 22. Run `/triage` before any code.
 
 2026-11-12 (triage): ready-for-human: teams is a feature that needs `/grill-with-docs` and `/to-spec`. The smaller gaps (export, extra emails, renames, org-creation radios, fork owner default) can split into an agent ticket during that session; repository rename is ticket 15.
+
+2026-11-12 (spec session): spec and build tickets are in [`../../2026-11-12-unfinished-settings-surfaces/spec.md`](../../2026-11-12-unfinished-settings-surfaces/spec.md) (tickets 01–07 in its `issues/`). Decisions: the fork Owner default is not a bug (disabled own-account option instead), radios and plan fieldsets are removed, and email, export, org webhooks, teams and org rename are built. The other acceptance criteria close with those PRs; this ticket stays here as the tracker and its build tickets live in the new folder.
