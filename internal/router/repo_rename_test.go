@@ -53,7 +53,9 @@ func TestRepoRename_PatchNameThroughTheRouter(t *testing.T) {
 			t.Errorf("rename to %q: got %d, want %d", name, got, want)
 		}
 	}
-	e.svc.Repo.Create(context.Background(), owner.id, owner.name, "occupied", "", false, service.RepoInitOptions{})
+	if _, err := e.svc.Repo.Create(context.Background(), owner.id, owner.name, "occupied", "", false, service.RepoInitOptions{}); err != nil {
+		t.Fatal(err)
+	}
 	if got := patch(owner.session, confirmed("occupied")); got != http.StatusConflict {
 		t.Errorf("taken name: got %d, want 409", got)
 	}
