@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Effort | Score gain |
@@ -34,12 +34,14 @@ The edit form is a bare textarea; the user can't see what they are about to comm
 
 ## Acceptance criteria
 
-- [ ] Preview shows a unified diff of the pending edit, including a path rename
-- [ ] Switching tabs keeps the typed content, path and message
-- [ ] Unchanged content shows "No changes to commit."
-- [ ] The existing commit, commit page and PR diffs render as before through the shared fragment
-- [ ] Handler tests: preview refusals (403, 404, 422), diff content, large body
-- [ ] `docs/code-browser.md` describes the preview
+- [x] Preview shows a unified diff of the pending edit, including a path rename
+- [x] Switching tabs keeps the typed content, path and message
+- [x] Unchanged content shows "No changes to commit."
+- [x] The existing commit, commit page and PR diffs render as before through the shared fragment (the commit page uses
+      `fragments.FileDiff`; the PR files page keeps its own table for line comments and split view, sharing only
+      `DiffCode`)
+- [x] Handler tests: preview refusals (403, 404, 422), diff content, large body
+- [x] `docs/code-browser.md` describes the preview
 
 ## Mock updates
 

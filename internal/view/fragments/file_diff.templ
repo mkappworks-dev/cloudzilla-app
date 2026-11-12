@@ -1,0 +1,21 @@
+package fragments
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+// FileDiff renders one file's diff as a bordered card: path and stats header,
+// then its hunks, or a note for a binary or empty diff.
+templ FileDiff(f service.FileDiff) {
+	<article class="rounded-md border border-border bg-card overflow-hidden">
+		@components.DiffFileHeader(f)
+		if f.IsBinary {
+			<div class="px-4 py-3 text-sm text-muted-foreground italic">Binary files differ</div>
+		} else if len(f.Hunks) == 0 {
+			<div class="px-4 py-3 text-sm text-muted-foreground italic">No changes</div>
+		} else {
+			@components.DiffHunkTable(f.Hunks)
+		}
+	</article>
+}

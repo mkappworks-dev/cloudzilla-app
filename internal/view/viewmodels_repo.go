@@ -78,6 +78,15 @@ type EditFileData struct {
 	ConflictURL string
 }
 
+// EditPreviewData holds template data for the edit page's Preview changes tab.
+type EditPreviewData struct {
+	Diff service.FileDiff
+	// Unchanged means neither the path nor the content differs, so there is
+	// nothing to commit.
+	Unchanged        bool
+	UnchangedMessage string
+}
+
 // RepoNewData holds template data for the new repository form page.
 type RepoNewData struct {
 	BasePage

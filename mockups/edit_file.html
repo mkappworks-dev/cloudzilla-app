@@ -30,7 +30,14 @@
     </section>
 
     <form id="editfile-form" class="space-y-5">
-      <div class="rounded-md border border-border bg-card p-5 space-y-4">
+      <div class="rounded-md border border-border bg-card">
+        <div class="flex items-center border-b border-border px-3">
+          <div role="tablist" aria-label="Edit mode" class="flex">
+            <button type="button" role="tab" id="ef-tab-edit" aria-controls="ef-pane-edit" aria-selected="true" tabindex="0" data-ef-tab="edit" class="px-3 py-2 text-[13px] border-b-2 -mb-px border-foreground text-foreground font-medium">Edit</button>
+            <button type="button" role="tab" id="ef-tab-preview" aria-controls="ef-pane-preview" aria-selected="false" tabindex="-1" data-ef-tab="preview" class="px-3 py-2 text-[13px] border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground">Preview changes</button>
+          </div>
+        </div>
+        <div id="ef-pane-edit" role="tabpanel" aria-labelledby="ef-tab-edit" class="p-5 space-y-4">
         <div>
           <label for="ef-path" class="block text-[12px] font-medium mb-1.5">File path</label>
           <input id="ef-path" name="path" type="text" value="internal/router/router.go" required class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring" />
@@ -68,6 +75,47 @@ func New(h *handler.Handlers) http.Handler {
 }
 </textarea>
         </div>
+        </div>
+        <div id="ef-pane-preview" role="tabpanel" aria-labelledby="ef-tab-preview" class="hidden p-5">
+          <div id="ef-preview" aria-live="polite">
+            <div id="ef-preview-same" class="hidden px-4 py-8 text-center">
+              <p class="text-sm font-medium">No changes to commit.</p>
+              <p class="text-[13px] text-muted-foreground mt-1">Nothing to commit: the path and contents are unchanged.</p>
+            </div>
+            <div id="ef-preview-diff" class="space-y-3">
+              <p id="ef-preview-rename" class="hidden text-[13px]">
+                Rename
+                <code class="font-mono text-foreground">internal/router/router.go</code>
+                <span aria-hidden="true">&rarr;</span>
+                <span class="sr-only">to</span>
+                <code id="ef-preview-newpath" class="font-mono text-foreground"></code>
+                with no change to the contents.
+              </p>
+              <article id="ef-preview-card" class="rounded-md border border-border bg-card overflow-hidden">
+                <div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between">
+                  <code id="ef-preview-header" class="text-sm font-mono text-foreground">internal/router/router.go</code>
+                  <div class="text-xs text-muted-foreground ml-4 shrink-0">
+                    <span class="text-success">+2</span>
+                    <span class="text-destructive ml-1">-1</span>
+                  </div>
+                </div>
+                <div class="hl overflow-x-auto">
+                  <table class="w-full text-xs font-mono border-collapse">
+                    <tbody>
+                      <tr><td colspan="4" class="bg-primary/10 text-foreground px-4 py-1 select-none">@@ -12,7 +12,8 @@</td></tr>
+                      <tr><td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">12</td><td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">12</td><td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground">&nbsp;</td><td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	r := chi.NewRouter()</td></tr>
+                      <tr><td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">13</td><td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">13</td><td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground">&nbsp;</td><td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"> </td></tr>
+                      <tr class="bg-destructive/6 dark:bg-destructive/10"><td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">14</td><td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border"></td><td class="select-none px-2 py-0.5 w-4 align-top text-destructive">-</td><td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	r.Get("/", h.Home)</td></tr>
+                      <tr class="bg-success/6 dark:bg-success/10"><td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td><td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">14</td><td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td><td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	r.Get("/", h.PageHome)</td></tr>
+                      <tr class="bg-success/6 dark:bg-success/10"><td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border"></td><td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">15</td><td class="select-none px-2 py-0.5 w-4 align-top text-success">+</td><td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	r.Get("/healthz", h.Healthz)</td></tr>
+                      <tr><td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">15</td><td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">16</td><td class="select-none px-2 py-0.5 w-4 align-top text-muted-foreground">&nbsp;</td><td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">	r.Get("/explore", h.Explore)</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="rounded-md border border-border bg-card p-5">
@@ -87,6 +135,49 @@ func New(h *handler.Handlers) http.Handler {
 
 <script src="shell.js"></script>
 <script>
+(function () {
+  var form = document.getElementById('editfile-form');
+  var tabs = Array.prototype.slice.call(form.querySelectorAll('[data-ef-tab]'));
+  var content = document.getElementById('ef-content');
+  var original = content.value;
+  var originalPath = document.getElementById('ef-path').value;
+  function show(name) {
+    tabs.forEach(function (t) {
+      var on = t.dataset.efTab === name;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      t.classList.toggle('border-foreground', on);
+      t.classList.toggle('text-foreground', on);
+      t.classList.toggle('font-medium', on);
+      t.classList.toggle('border-transparent', !on);
+      t.classList.toggle('text-muted-foreground', !on);
+    });
+    document.getElementById('ef-pane-edit').classList.toggle('hidden', name !== 'edit');
+    document.getElementById('ef-pane-preview').classList.toggle('hidden', name !== 'preview');
+    if (name !== 'preview') return;
+    var path = document.getElementById('ef-path').value;
+    var same = path === originalPath && content.value === original;
+    document.getElementById('ef-preview-same').classList.toggle('hidden', !same);
+    document.getElementById('ef-preview-diff').classList.toggle('hidden', same);
+    var renamed = path !== originalPath;
+    var contentSame = content.value === original;
+    document.getElementById('ef-preview-rename').classList.toggle('hidden', !(renamed && contentSame));
+    document.getElementById('ef-preview-card').classList.toggle('hidden', renamed && contentSame);
+    document.getElementById('ef-preview-newpath').textContent = path;
+    document.getElementById('ef-preview-header').textContent = renamed ? originalPath + ' \u2192 ' + path : originalPath;
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { show(t.dataset.efTab); });
+    t.addEventListener('keydown', function (e) {
+      var next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+      if (next === undefined) return;
+      e.preventDefault();
+      var to = tabs[(next + tabs.length) % tabs.length];
+      to.focus();
+      to.click();
+    });
+  });
+})();
 document.getElementById('editfile-form').addEventListener('submit', function (e) {
   e.preventDefault();
   window.czToast('Changes committed to main.');

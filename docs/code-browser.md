@@ -2,19 +2,20 @@
 
 ## URL Patterns
 
-| View                    | Route                                       |
-| ----------------------- | ------------------------------------------- |
-| Root tree               | `/{owner}/{repo}/tree/{ref}`                |
-| Subtree                 | `/{owner}/{repo}/tree/{ref}/{path...}`      |
-| Blob                    | `/{owner}/{repo}/blob/{ref}/{path...}`      |
-| Blame                   | `/{owner}/{repo}/blame/{ref}/{path...}`     |
-| Raw file                | `/{owner}/{repo}/raw/{ref}/{path...}`       |
-| Commit log              | `/{owner}/{repo}/commits/{ref}`             |
-| Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}`   |
-| Single commit diff      | `/{owner}/{repo}/commit/{sha}`              |
-| Branches & Tags         | `/{owner}/{repo}/refs`                      |
-| Edit file (GET/POST)    | `/{owner}/{repo}/edit/{branch}/{path...}`   |
-| Delete file (POST)      | `/{owner}/{repo}/delete/{branch}/{path...}` |
+| View                    | Route                                             |
+| ----------------------- | ------------------------------------------------- |
+| Root tree               | `/{owner}/{repo}/tree/{ref}`                      |
+| Subtree                 | `/{owner}/{repo}/tree/{ref}/{path...}`            |
+| Blob                    | `/{owner}/{repo}/blob/{ref}/{path...}`            |
+| Blame                   | `/{owner}/{repo}/blame/{ref}/{path...}`           |
+| Raw file                | `/{owner}/{repo}/raw/{ref}/{path...}`             |
+| Commit log              | `/{owner}/{repo}/commits/{ref}`                   |
+| Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}`         |
+| Single commit diff      | `/{owner}/{repo}/commit/{sha}`                    |
+| Branches & Tags         | `/{owner}/{repo}/refs`                            |
+| Edit file (GET/POST)    | `/{owner}/{repo}/edit/{branch}/{path...}`         |
+| Edit preview (POST)     | `/{owner}/{repo}/edit-preview/{branch}/{path...}` |
+| Delete file (POST)      | `/{owner}/{repo}/delete/{branch}/{path...}`       |
 
 `{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
 
@@ -74,6 +75,8 @@ in `services.New()` and receives `config.GitConfig` (for `ReposRoot`).
 - `EditFile(owner, repoName, branch, oldPath, newPath, baseSHA, content, author, message)` → `error`;
   `DeleteFile(owner, repoName, branch, path, baseSHA, author, message)` → `(remainingDir, error)` — see
   [Editing and Deleting Files](#editing-and-deleting-files)
+- `DiffContent(oldPath, newPath, oldContent, newContent)` → `FileDiff` — a diff of two byte slices in the shape commit
+  and pull request pages render; it reads no repository and highlights nothing
 - `CreateBranch(owner, repoName, name, fromRef)` → `error`
 - `DeleteBranch(owner, repoName, name)` → `error`
 - `CreateTag(owner, repoName, name, fromRef)` → `error`
@@ -135,6 +138,16 @@ commits are (`UserService.CommitAuthor`, so the keep-email-private setting appli
   name like `a\b.txt` isn't renamed by an edit. A refusal re-renders the page at its status with the user's path,
   content and message kept. The textarea renders `"\n" + content` because the HTML parser drops a newline right after
   `<textarea>`.
+- **Edit preview** (`EditPreview`): the edit page has Edit and Preview changes tabs (`role="tablist"`, arrow keys,
+  Home/End). Both panes live in one form, so the textarea, path and message survive a tab switch. Preview posts the form
+  with htmx to `POST /{owner}/{repo}/edit-preview/{ref}/*` on every click and swaps in `fragments.EditPreview`:
+  `fragments.FileDiff` of the file on the branch against the submitted content, the same card the commit page renders
+  (`service.FileDiff` in, so other pages can reuse it), whose header reads `old → new` after a rename; a rename with no
+  content change shows a "Rename a → b" line instead. An identical path and content shows "No changes to commit." with
+  the message the submit would give. The route has the edit page's refusals and `MaxEditFileBodyBytes`, and answers them
+  as JSON `{"error"}` (a toast): 403, 404, 422 for a file the editor can't open or an invalid new path, 413 over 1 MiB.
+  It commits nothing, runs no branch protection check and ignores `blob_sha`: staleness is the submit's to report. The
+  diff is plain, not syntax-highlighted.
 - **Line endings:** a browser submits textarea line breaks as CRLF. `textareaText` turns them back into LF, or keeps
   CRLF when the original file used CRLF on every line. New file's textarea goes through it too; uploads are committed
   byte for byte. Content over 1 MiB after that is refused with 413, and `MaxEditFileBodyBytes` leaves room for CRLF
