@@ -87,6 +87,31 @@ templ Home(data view.HomeData) {
 				<!-- LEFT column -->
 				<div class="space-y-10">
 
+					<!-- Needs your attention -->
+					<section aria-labelledby="attention-heading">
+						<div class="flex items-center justify-between mb-4">
+							<h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
+							if data.AttentionTotal > 0 {
+								<a href="/attention" class="text-[12px] text-muted-foreground hover:text-foreground">
+									{ "View all " + strconv.Itoa(data.AttentionTotal) }<span aria-hidden="true"> →</span>
+								</a>
+							}
+						</div>
+						if len(data.Attention) > 0 {
+							<ul aria-labelledby="attention-heading" class="border border-border rounded-md bg-card overflow-hidden">
+								for _, item := range data.Attention {
+									<li class="border-b border-border last:border-b-0">
+										@components.AttentionRow(item)
+									</li>
+								}
+							</ul>
+						} else {
+							<div class="border border-border rounded-md bg-card px-4 py-8 text-center text-[13px] text-muted-foreground">
+								Nothing needs your attention right now.
+							</div>
+						}
+					</section>
+
 					<!-- Repositories -->
 					<section aria-labelledby="repos-heading">
 						<div class="flex items-center justify-between mb-4">
@@ -246,35 +271,10 @@ templ Home(data view.HomeData) {
 						}
 					</section>
 
-					<!-- Needs your attention -->
-					<section aria-labelledby="attention-heading">
-						<div class="flex items-center justify-between mb-4">
-							<h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
-							if data.AttentionTotal > 0 {
-								<a href="/attention" class="text-[12px] text-muted-foreground hover:text-foreground">
-									{ "View all " + strconv.Itoa(data.AttentionTotal) }<span aria-hidden="true"> →</span>
-								</a>
-							}
-						</div>
-						if len(data.Attention) > 0 {
-							<ul aria-labelledby="attention-heading" class="border border-border rounded-md bg-card overflow-hidden">
-								for _, item := range data.Attention {
-									<li class="border-b border-border last:border-b-0">
-										@components.AttentionRow(item)
-									</li>
-								}
-							</ul>
-						} else {
-							<div class="border border-border rounded-md bg-card px-4 py-8 text-center text-[13px] text-muted-foreground">
-								Nothing needs your attention right now.
-							</div>
-						}
-					</section>
-
 					<!-- Commit activity heatmap -->
 					if data.Heatmap != nil {
 						<section aria-labelledby="commits-heading" x-data="{ openMenu: null }">
-							<div class="flex items-start justify-between mb-4">
+							<div class="flex items-center justify-between mb-4">
 								<div class="min-w-0">
 									<h2 id="commits-heading" class="text-[13px] font-medium">Commit activity</h2>
 									<p class="mt-0.5 text-[12px] text-muted-foreground">{ heatmapCountLabel(data.HeatmapTotal, data.HeatmapYear) }</p>
@@ -283,6 +283,9 @@ templ Home(data view.HomeData) {
 							</div>
 							<div class="border border-border rounded-md bg-card p-5">
 								@components.Heatmap(data.Heatmap, data.HeatmapYear)
+								<div class="mt-3 flex justify-end">
+									@components.HeatmapLegend()
+								</div>
 							</div>
 						</section>
 					}

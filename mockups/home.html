@@ -65,6 +65,42 @@
 
       <div class="space-y-10">
 
+        <section aria-labelledby="attention-heading">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
+            <a href="attention.html" class="text-[12px] text-muted-foreground hover:text-foreground">View all 13<span aria-hidden="true"> →</span></a>
+          </div>
+          <ul aria-labelledby="attention-heading" class="border border-border rounded-md bg-card overflow-hidden">
+            <li class="border-b border-border last:border-b-0">
+              <a href="pr.html" class="group flex items-center gap-3 border-l-2 border-l-transparent px-4 py-3 transition-all hover:border-l-foreground hover:bg-accent hover:pl-[18px]">
+                <span class="shrink-0 h-4 w-4 rounded-full grid place-items-center text-success" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-[13px] truncate">Review: Rate-limit middleware</p>
+                  <p class="text-[11px] text-muted-foreground mt-0.5"><span class="font-mono">acme/api</span><span aria-hidden="true"> · </span><span class="font-mono">#319</span><span aria-hidden="true"> · </span><time datetime="2026-05-12T09:00:00Z">review requested 1d ago</time></p>
+                </div>
+              </a>
+            </li>
+            <li class="border-b border-border last:border-b-0">
+              <a href="issue_detail.html" class="group flex items-center gap-3 border-l-2 border-l-transparent px-4 py-3 transition-all hover:border-l-foreground hover:bg-accent hover:pl-[18px]">
+                <span class="shrink-0 h-4 w-4 rounded-full grid place-items-center text-warning" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg></span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-[13px] truncate">Mention: Schema migration rollback plan</p>
+                  <p class="text-[11px] text-muted-foreground mt-0.5"><span class="font-mono">acme/db</span><span aria-hidden="true"> · </span><span class="font-mono">#88</span><span aria-hidden="true"> · </span><time datetime="2026-05-13T06:00:00Z">mentioned 8h ago</time></p>
+                </div>
+              </a>
+            </li>
+            <li class="border-b border-border last:border-b-0">
+              <a href="issue_detail.html" class="group flex items-center gap-3 border-l-2 border-l-transparent px-4 py-3 transition-all hover:border-l-foreground hover:bg-accent hover:pl-[18px]">
+                <span class="shrink-0 h-4 w-4 rounded-full grid place-items-center text-ring" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-[13px] truncate">Assigned: Replay window UI</p>
+                  <p class="text-[11px] text-muted-foreground mt-0.5"><span class="font-mono">ingest-pipeline</span><span aria-hidden="true"> · </span><span class="font-mono">#298</span><span aria-hidden="true"> · </span><time datetime="2026-05-10T09:00:00Z">assigned 3d ago</time></p>
+                </div>
+              </a>
+            </li>
+          </ul>
+        </section>
+
         <section aria-labelledby="repos-heading">
           <div class="flex items-center justify-between mb-4">
             <h2 id="repos-heading" class="text-[13px] font-medium">Repositories</h2>
@@ -196,44 +232,8 @@
           </div>
         </section>
 
-        <section aria-labelledby="attention-heading">
-          <div class="flex items-center justify-between mb-4">
-            <h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
-            <a href="attention.html" class="text-[12px] text-muted-foreground hover:text-foreground">View all 13<span aria-hidden="true"> →</span></a>
-          </div>
-          <ul aria-labelledby="attention-heading" class="border border-border rounded-md bg-card overflow-hidden">
-            <li class="border-b border-border last:border-b-0">
-              <a href="pr.html" class="group flex items-center gap-3 border-l-2 border-l-transparent px-4 py-3 transition-all hover:border-l-foreground hover:bg-accent hover:pl-[18px]">
-                <span class="shrink-0 h-4 w-4 rounded-full grid place-items-center text-success" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></span>
-                <div class="min-w-0 flex-1">
-                  <p class="text-[13px] truncate">Review: Rate-limit middleware</p>
-                  <p class="text-[11px] text-muted-foreground mt-0.5"><span class="font-mono">acme/api</span><span aria-hidden="true"> · </span><span class="font-mono">#319</span><span aria-hidden="true"> · </span><time datetime="2026-05-12T09:00:00Z">review requested 1d ago</time></p>
-                </div>
-              </a>
-            </li>
-            <li class="border-b border-border last:border-b-0">
-              <a href="issue_detail.html" class="group flex items-center gap-3 border-l-2 border-l-transparent px-4 py-3 transition-all hover:border-l-foreground hover:bg-accent hover:pl-[18px]">
-                <span class="shrink-0 h-4 w-4 rounded-full grid place-items-center text-warning" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg></span>
-                <div class="min-w-0 flex-1">
-                  <p class="text-[13px] truncate">Mention: Schema migration rollback plan</p>
-                  <p class="text-[11px] text-muted-foreground mt-0.5"><span class="font-mono">acme/db</span><span aria-hidden="true"> · </span><span class="font-mono">#88</span><span aria-hidden="true"> · </span><time datetime="2026-05-13T06:00:00Z">mentioned 8h ago</time></p>
-                </div>
-              </a>
-            </li>
-            <li class="border-b border-border last:border-b-0">
-              <a href="issue_detail.html" class="group flex items-center gap-3 border-l-2 border-l-transparent px-4 py-3 transition-all hover:border-l-foreground hover:bg-accent hover:pl-[18px]">
-                <span class="shrink-0 h-4 w-4 rounded-full grid place-items-center text-ring" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
-                <div class="min-w-0 flex-1">
-                  <p class="text-[13px] truncate">Assigned: Replay window UI</p>
-                  <p class="text-[11px] text-muted-foreground mt-0.5"><span class="font-mono">ingest-pipeline</span><span aria-hidden="true"> · </span><span class="font-mono">#298</span><span aria-hidden="true"> · </span><time datetime="2026-05-10T09:00:00Z">assigned 3d ago</time></p>
-                </div>
-              </a>
-            </li>
-          </ul>
-        </section>
-
         <section aria-labelledby="commits-heading">
-          <div class="flex items-start justify-between mb-4">
+          <div class="flex items-center justify-between mb-4">
             <div class="min-w-0">
               <h2 id="commits-heading" class="text-[13px] font-medium">Commit activity</h2>
               <p class="mt-0.5 text-[12px] text-muted-foreground">2,307 commits in 2026</p>
@@ -252,9 +252,13 @@
             </div>
           </div>
           <div class="border border-border rounded-md bg-card p-5">
-            <div role="img" aria-label="Commit heatmap: 2307 commits in 2026" class="w-full">
+            <div class="w-full">
               <div id="heatmap-months" class="grid grid-flow-col gap-[2px] mb-1 text-[10px] leading-none text-muted-foreground" style="grid-auto-columns: minmax(0, 1fr);"></div>
-              <div id="heatmap-cells" class="grid grid-flow-col gap-[2px]" style="grid-template-rows: repeat(7, auto); grid-auto-columns: minmax(0, 1fr);"></div>
+              <div id="heatmap-cells" class="grid grid-flow-col gap-[2px]" style="grid-template-rows: repeat(7, auto); grid-auto-columns: minmax(0, 1fr);" aria-hidden="true"></div>
+              <table id="heatmap-table" class="sr-only"><caption>Commit heatmap: 2307 commits in 2026</caption><thead><tr><th scope="col">Day</th><th scope="col">Commits</th></tr></thead><tbody></tbody></table>
+            </div>
+            <div class="mt-3 flex justify-end">
+              <span class="flex items-center gap-1 text-[10px] text-muted-foreground/80" aria-hidden="true">Less <span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-0"></span><span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-1"></span><span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-2"></span><span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-3"></span><span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-4"></span> More</span>
             </div>
           </div>
         </section>
@@ -332,7 +336,7 @@
 (function () {
   var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  var weeks = 53, months = document.getElementById('heatmap-months'), cells = document.getElementById('heatmap-cells');
+  var weeks = 53, months = document.getElementById('heatmap-months'), cells = document.getElementById('heatmap-cells'), table = document.querySelector('#heatmap-table tbody');
   var labels = [];
   for (var w = 0; w < weeks; w++) labels.push('');
   for (var k = 0; k < 12; k++) labels[Math.floor((k * weeks + 6) / 12)] = MONTHS[k];
@@ -350,7 +354,9 @@
     var n = [0, 2, 4, 8, 12][level];
     var c = document.createElement('div');
     c.className = 'aspect-square rounded-[2px] heatmap-cell-' + level;
-    c.title = DAYS[day.getUTCDay()] + ', ' + MONTHS[day.getUTCMonth()] + ' ' + day.getUTCDate() + ' ' + day.getUTCFullYear() + ' — ' + n + (n === 1 ? ' commit' : ' commits');
+    var label = DAYS[day.getUTCDay()] + ', ' + MONTHS[day.getUTCMonth()] + ' ' + day.getUTCDate() + ' ' + day.getUTCFullYear();
+    c.title = label + ' — ' + n + (n === 1 ? ' commit' : ' commits');
+    if (n > 0) table.insertAdjacentHTML('beforeend', '<tr><th scope="row">' + label + '</th><td>' + n + '</td></tr>');
     cells.appendChild(c);
     day.setUTCDate(day.getUTCDate() + 1);
   }

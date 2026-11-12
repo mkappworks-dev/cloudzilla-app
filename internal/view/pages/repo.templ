@@ -500,15 +500,7 @@ templ Repo(data view.RepoData) {
 								@components.HeatmapLarge(data.Heatmap, time.Now(), 13)
 								<div class="flex items-center justify-between mt-3 text-[10px] text-muted-foreground/80">
 									<span><strong class="text-foreground font-medium">{ strconv.Itoa(heatmapTotal(data.Heatmap)) }</strong> commits</span>
-									<span class="flex items-center gap-1">
-										Less
-										<span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-0"></span>
-										<span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-1"></span>
-										<span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-2"></span>
-										<span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-3"></span>
-										<span class="inline-block w-2.5 h-2.5 rounded-[2px] heatmap-cell-4"></span>
-										More
-									</span>
+									@components.HeatmapLegend()
 								</div>
 							</div>
 						</section>
