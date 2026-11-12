@@ -52,7 +52,8 @@ async function signIn(email) {
     redirect: "manual",
   });
   jar.absorb(res);
-  if (res.status >= 400) throw new Error(`sign-in failed for ${email}: ${res.status}`);
+  const to = res.headers.get("location") ?? "";
+  if (res.status < 300 || res.status >= 400 || to.startsWith("/login")) throw new Error(`sign-in failed for ${email}: ${res.status} ${to}`);
   sessions.set(email, jar);
   return jar;
 }
@@ -60,7 +61,9 @@ async function signIn(email) {
 // Drops script bodies and the framework attributes the mocks deliberately omit, then keeps tag, sorted classes and
 // attribute names for every element in <body>.
 function signatures(html) {
-  const body = html.slice(html.indexOf("<body"));
+  const at = html.indexOf("<body");
+  if (at < 0) throw new Error("response has no <body>");
+  const body = html.slice(at);
   const stripped = body.replace(/<script\b[\s\S]*?<\/script>/g, "").replace(/<!--[\s\S]*?-->/g, "");
   const out = new Set();
   for (const m of stripped.matchAll(/<([a-zA-Z][\w-]*)((?:\s+[^\s=>/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/g)) {
@@ -69,7 +72,7 @@ function signatures(html) {
     let classes = "";
     for (const a of attrs.matchAll(/([^\s=>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g)) {
       const name = a[1];
-      if (/^(x-|hx-|@|:)/.test(name) || name === "csrf_token") continue;
+      if (/^(x-|hx-|@|:)/.test(name)) continue;
       if (name === "class") classes = (a[2] ?? a[3] ?? a[4] ?? "").split(/\s+/).filter(Boolean).sort().join(" ");
       else names.push(name);
     }

@@ -45,7 +45,7 @@ func baseFor(v variant) view.BasePage {
 func onAccountPage(b view.BasePage, active string) view.BasePage {
 	if b.CurrentUser != nil {
 		b.AccountSubnav = &view.AccountSubnavInfo{Active: active, Counts: map[string]int{
-			"repositories": 6, "pulls": 4, "issues": 7, "attention": 3,
+			"repositories": 4, "pulls": 3, "issues": 7, "attention": 3,
 		}}
 	}
 	return b

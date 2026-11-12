@@ -20,6 +20,17 @@ func main() {
 }
 
 func generate(ctx context.Context, dir string, pages []page) error {
+	// Render everything before touching disk, so a failing variant cannot leave the committed mocks emptied.
+	rendered := map[string][]byte{}
+	for _, p := range pages {
+		for _, v := range p.Variants {
+			html, err := renderVariant(ctx, v)
+			if err != nil {
+				return fmt.Errorf("%s: %w", fileStem(p, v), err)
+			}
+			rendered[fileStem(p, v)+".html"] = html
+		}
+	}
 	genDir := filepath.Join(dir, "generated")
 	// Clear first so a renamed or removed variant leaves no stale file for CI to miss.
 	if err := os.RemoveAll(genDir); err != nil {
@@ -28,15 +39,9 @@ func generate(ctx context.Context, dir string, pages []page) error {
 	if err := os.MkdirAll(genDir, 0o755); err != nil {
 		return err
 	}
-	for _, p := range pages {
-		for _, v := range p.Variants {
-			html, err := renderVariant(ctx, p, v)
-			if err != nil {
-				return fmt.Errorf("%s: %w", fileStem(p, v), err)
-			}
-			if err := os.WriteFile(filepath.Join(genDir, fileStem(p, v)+".html"), html, 0o644); err != nil {
-				return err
-			}
+	for name, html := range rendered {
+		if err := os.WriteFile(filepath.Join(genDir, name), html, 0o644); err != nil {
+			return err
 		}
 	}
 	if err := rewriteRegion(filepath.Join(dir, "index.html"), indexRegion(pages)); err != nil {

@@ -6,6 +6,7 @@ import (
 	"html"
 	"os"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -21,11 +22,15 @@ func rewriteRegion(path, body string) error {
 		return err
 	}
 	start := bytes.Index(src, []byte("<!-- "+regionStart+" -->"))
-	end := bytes.Index(src, []byte("<!-- "+regionEnd+" -->"))
-	if start < 0 || end < start {
+	if start < 0 {
 		return fmt.Errorf("%s: missing <!-- %s --> / <!-- %s --> markers", path, regionStart, regionEnd)
 	}
 	startEnd := start + len("<!-- "+regionStart+" -->")
+	end := bytes.Index(src[startEnd:], []byte("<!-- "+regionEnd+" -->"))
+	if end < 0 {
+		return fmt.Errorf("%s: missing <!-- %s --> / <!-- %s --> markers", path, regionStart, regionEnd)
+	}
+	end += startEnd
 	out := string(src[:startEnd]) + "\n" + body + string(src[end:])
 	return os.WriteFile(path, []byte(out), 0o644)
 }
@@ -75,12 +80,12 @@ func coverageRegion(pages []page) string {
 		}
 	}
 	head := row{"Page", "Variant", "Shows", "Template"}
-	widths := [4]int{len(head.page), len(head.variant), len(head.note), len(head.templ)}
+	widths := [4]int{utf8.RuneCountInString(head.page), utf8.RuneCountInString(head.variant), utf8.RuneCountInString(head.note), utf8.RuneCountInString(head.templ)}
 	for _, r := range rows {
-		widths[0] = max(widths[0], len(r.page))
-		widths[1] = max(widths[1], len(r.variant))
-		widths[2] = max(widths[2], len(r.note))
-		widths[3] = max(widths[3], len(r.templ))
+		widths[0] = max(widths[0], utf8.RuneCountInString(r.page))
+		widths[1] = max(widths[1], utf8.RuneCountInString(r.variant))
+		widths[2] = max(widths[2], utf8.RuneCountInString(r.note))
+		widths[3] = max(widths[3], utf8.RuneCountInString(r.templ))
 	}
 	line := func(r row) string {
 		return fmt.Sprintf("| %-*s | %-*s | %-*s | %-*s |\n", widths[0], r.page, widths[1], r.variant, widths[2], r.note, widths[3], r.templ)

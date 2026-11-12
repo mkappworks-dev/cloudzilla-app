@@ -64,8 +64,9 @@ function resolveFile(urlPath) {
   if (abs !== ROOT && !abs.startsWith(ROOT + path.sep)) return null;
   if (abs.startsWith(CACHE_DIR)) return null;
   // A page moved to generated/ keeps answering at its old address, so links in the hand mocks still work.
-  const generated = path.join(GENERATED_DIR, path.basename(abs));
-  for (const candidate of [abs, abs + ".html", path.join(abs, "index.html"), generated, generated + ".html"]) {
+  const candidates = [abs, abs + ".html", path.join(abs, "index.html")];
+  if (!rel.includes("/")) candidates.push(path.join(GENERATED_DIR, rel), path.join(GENERATED_DIR, rel + ".html"));
+  for (const candidate of candidates) {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
   }
   return null;
