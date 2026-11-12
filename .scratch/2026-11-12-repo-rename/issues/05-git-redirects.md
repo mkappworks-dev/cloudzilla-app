@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 | Branch                     | Worktree                              | PR title                                          | Effort |
@@ -34,12 +34,12 @@ See [spec.md](../spec.md). Clones, fetches and pushes against a renamed repo's o
 
 ## Acceptance criteria
 
-- [ ] Native `git clone`, `fetch` and `push` over HTTP from the old URL succeed (git follows the `301`)
-- [ ] Native `git clone`, `fetch` and `push` over SSH from the old URL succeed and print the hint on stderr
-- [ ] `TestGitHTTP_PrivateRepo_LooksLikeMissingRepo` is extended: a private repo's alias looks like a missing repo on all
+- [x] Native `git clone`, `fetch` and `push` over HTTP from the old URL succeed (git follows the `301`)
+- [x] Native `git clone`, `fetch` and `push` over SSH from the old URL succeed and print the hint on stderr
+- [x] `TestGitHTTP_PrivateRepo_LooksLikeMissingRepo` is extended: a private repo's alias looks like a missing repo on all
       three endpoints
-- [ ] A deploy key bound to the repo works through the alias; a deploy key for another repo still gets `repository not found`
-- [ ] A push through the old path to a protected branch is refused exactly as through the new path
+- [x] A deploy key bound to the repo works through the alias; a deploy key for another repo still gets `repository not found`
+- [x] A push through the old path to a protected branch is refused exactly as through the new path
 
 ## Verification
 

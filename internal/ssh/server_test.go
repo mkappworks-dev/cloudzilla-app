@@ -222,6 +222,81 @@ func TestSessionHandler_RepoErrorsGoToStderr(t *testing.T) {
 	}
 }
 
+func TestSessionHandler_Alias(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	reposRoot := t.TempDir()
+	cfg := &config.Config{Git: config.GitConfig{ReposRoot: reposRoot, SSHHostKey: filepath.Join(t.TempDir(), "host_key")}}
+	svcs := service.New(store.New(db), cfg)
+	addr := serve(t, New(cfg.Git, svcs))
+
+	sfx := testutil.UniqueSuffix(t)
+	me, other := "testuser_me_"+sfx, "testuser_other_"+sfx
+	meID := testutil.SeedUser(t, db, "me_"+sfx)
+	otherID := testutil.SeedUser(t, db, "other_"+sfx)
+	mine, archived := "testrepo_mine_"+sfx, "testrepo_archived_"+sfx
+	mineID := testutil.SeedRepo(t, db, meID, me, "mine_"+sfx)
+	theirsID := testutil.SeedRepo(t, db, otherID, other, "theirs_"+sfx)
+	archivedID := testutil.SeedRepo(t, db, meID, me, "archived_"+sfx)
+	testutil.Exec(t, db, `UPDATE repositories SET private = true WHERE id = $1`, theirsID)
+	testutil.Exec(t, db, `UPDATE repositories SET is_archived = true WHERE id = $1`, archivedID)
+	for _, name := range []string{mine, archived} {
+		if _, err := gogit.PlainInit(filepath.Join(reposRoot, me, name+".git"), true); err != nil {
+			t.Fatalf("init %s: %v", name, err)
+		}
+	}
+	alias := func(repoID int64, owner, tag string) string {
+		old := "old_" + tag + "_" + sfx
+		testutil.Exec(t, db, `INSERT INTO repo_aliases (repo_id, owner_name, name) VALUES ($1, $2, $3)`, repoID, owner, old)
+		return old
+	}
+	oldMine, oldTheirs, oldArchived := alias(mineID, me, "mine"), alias(theirsID, other, "theirs"), alias(archivedID, me, "archived")
+
+	userKey, strangerKey, deployKey, readOnlyKey := newKey(t), newKey(t), newKey(t), newKey(t)
+	strangerID := testutil.SeedUser(t, db, "stranger_"+sfx)
+	for key, id := range map[gossh.Signer]int64{userKey: meID, strangerKey: strangerID} {
+		if _, err := svcs.SSHKey.AddKey(ctx, id, "k", string(gossh.MarshalAuthorizedKey(key.PublicKey()))); err != nil {
+			t.Fatalf("add user key: %v", err)
+		}
+	}
+	if _, err := svcs.DeployKey.Add(ctx, mineID, "rw", string(gossh.MarshalAuthorizedKey(deployKey.PublicKey())), false); err != nil {
+		t.Fatalf("add deploy key: %v", err)
+	}
+	if _, err := svcs.DeployKey.Add(ctx, mineID, "ro", string(gossh.MarshalAuthorizedKey(readOnlyKey.PublicKey())), true); err != nil {
+		t.Fatalf("add read-only deploy key: %v", err)
+	}
+
+	hint := "warning: repository moved to " + me + "/" + mine + "; update your remote\n"
+	for _, tc := range []struct {
+		name       string
+		key        gossh.Signer
+		command    string
+		wantStderr string
+		wantStatus int
+	}{
+		{"fetch", userKey, "git-upload-pack '/" + me + "/" + oldMine + ".git'", hint, 0},
+		{"push", userKey, "git-receive-pack '/" + me + "/" + oldMine + ".git'", hint, 0},
+		{"deploy key bound to the repo", deployKey, "git-receive-pack '/" + me + "/" + oldMine + ".git'", hint, 0},
+		{"read-only deploy key push", readOnlyKey, "git-receive-pack '/" + me + "/" + oldMine + ".git'", "deploy key is read-only\n", 1},
+		{"reader of a private repo's alias, fetch", userKey, "git-upload-pack '/" + other + "/" + oldTheirs + ".git'", "repository not found\n", 1},
+		{"stranger, private repo's alias", strangerKey, "git-upload-pack '/" + other + "/" + oldTheirs + ".git'", "repository not found\n", 1},
+		{"stranger, missing repo", strangerKey, "git-upload-pack '/" + other + "/nothing_" + sfx + ".git'", "repository not found\n", 1},
+		{"deploy key for another repo, private alias", deployKey, "git-upload-pack '/" + other + "/" + oldTheirs + ".git'", "repository not found\n", 1},
+		{"deploy key for another repo, public alias", readOnlyKey, "git-upload-pack '/" + me + "/" + oldArchived + ".git'", "deploy key not authorized for this repository\n", 1},
+		{"push to archived repo's alias", userKey, "git-receive-pack '/" + me + "/" + oldArchived + ".git'", "Repository is archived and read-only.\n", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := runSSH(t, addr, tc.key, tc.command, "0000")
+			if got.stderr != tc.wantStderr || got.status != tc.wantStatus {
+				t.Errorf("got stderr %q, exit %d; want %q, exit %d", got.stderr, got.status, tc.wantStderr, tc.wantStatus)
+			}
+			if strings.Contains(got.stdout, "warning") {
+				t.Errorf("stdout carries the hint: %q", got.stdout)
+			}
+		})
+	}
+}
+
 func TestSuspendedOwner_KeysRefused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	ctx := context.Background()

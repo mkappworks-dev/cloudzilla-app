@@ -68,6 +68,7 @@ func TestGitHTTP_PrivateRepo_LooksLikeMissingRepo(t *testing.T) {
 	repo := seedOwnedRepo(t, db, true)
 	missingPath := "/nobody_" + testutil.UniqueSuffix(t) + "/norepo"
 	stranger := seedSignedInUser(t, db)
+	aliasPath := seedAlias(t, db, repo)
 
 	callers := []gitCaller{
 		{name: "anonymous"},
@@ -77,16 +78,87 @@ func TestGitHTTP_PrivateRepo_LooksLikeMissingRepo(t *testing.T) {
 	}
 	for _, c := range callers {
 		for _, rt := range gitTransportRequests {
-			t.Run(c.name+" "+rt.method+" "+rt.path, func(t *testing.T) {
-				private := requestGit(app, rt.method, repo.path+rt.path, c)
-				missing := requestGit(app, rt.method, missingPath+rt.path, c)
+			for _, path := range []string{repo.path, aliasPath} {
+				t.Run(c.name+" "+rt.method+" "+path+rt.path, func(t *testing.T) {
+					private := requestGit(app, rt.method, path+rt.path, c)
+					missing := requestGit(app, rt.method, missingPath+rt.path, c)
 
-				if gitResponse(private) != gitResponse(missing) {
-					t.Errorf("private repo answered %q, missing repo %q; the responses must match",
-						gitResponse(private), gitResponse(missing))
+					if gitResponse(private) != gitResponse(missing) {
+						t.Errorf("private repo answered %q, missing repo %q; the responses must match",
+							gitResponse(private), gitResponse(missing))
+					}
+				})
+			}
+		}
+	}
+}
+
+// seedAlias gives repo a former name and returns that name's path.
+func seedAlias(t *testing.T, db *sql.DB, repo seededRepo) string {
+	t.Helper()
+	old := "old_" + testutil.UniqueSuffix(t)
+	testutil.Exec(t, db, `INSERT INTO repo_aliases (repo_id, owner_name, name) VALUES ($1, $2, $3)`, repo.id, repo.owner.name, old)
+	return "/" + repo.owner.name + "/" + old
+}
+
+// Git follows the 301 on info/refs and rebases its remote, then replays the POSTs, which is why
+// those answer 308. Only a caller who can read the moved repo is told where it went.
+func TestGitHTTP_Alias_Redirects(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	app := newAPIRouter(t, db)
+	for _, private := range []bool{false, true} {
+		repo := seedOwnedRepo(t, db, private)
+		aliasPath := seedAlias(t, db, repo)
+		owner := gitCaller{name: "owner", bearer: repo.owner.token}
+		reader := gitCaller{name: "owner", basic: seedPAT(t, db, repo.owner.id, model.ScopeRepoRead)}
+		anonymous := gitCaller{name: "anonymous"}
+
+		type redirectCase struct {
+			caller gitCaller
+			method string
+			suffix string
+			want   int
+			loc    string
+		}
+		cases := []redirectCase{
+			{owner, http.MethodGet, "/info/refs?service=git-upload-pack", 301, repo.path + "/info/refs?service=git-upload-pack"},
+			{owner, http.MethodGet, "/info/refs?service=git-receive-pack", 301, repo.path + "/info/refs?service=git-receive-pack"},
+			{owner, http.MethodPost, "/git-upload-pack", 308, repo.path + "/git-upload-pack"},
+			{owner, http.MethodPost, "/git-receive-pack", 308, repo.path + "/git-receive-pack"},
+			{reader, http.MethodGet, "/info/refs?service=git-upload-pack", 301, repo.path + "/info/refs?service=git-upload-pack"},
+		}
+		if !private {
+			cases = append(cases, redirectCase{anonymous, http.MethodGet, "/info/refs?service=git-upload-pack", 301, repo.path + "/info/refs?service=git-upload-pack"})
+		}
+		for _, tc := range cases {
+			t.Run(strconv.FormatBool(private)+" "+tc.caller.name+" "+tc.method+" "+tc.suffix, func(t *testing.T) {
+				rr := requestGit(app, tc.method, aliasPath+tc.suffix, tc.caller)
+				if rr.Code != tc.want || rr.Header().Get("Location") != tc.loc {
+					t.Errorf("got %d Location %q, want %d %q", rr.Code, rr.Header().Get("Location"), tc.want, tc.loc)
 				}
 			})
 		}
+
+		t.Run(strconv.FormatBool(private)+" .git suffix is kept", func(t *testing.T) {
+			rr := requestGit(app, http.MethodGet, aliasPath+".git/info/refs?service=git-upload-pack", owner)
+			if want := repo.path + ".git/info/refs?service=git-upload-pack"; rr.Header().Get("Location") != want {
+				t.Errorf("Location %q, want %q", rr.Header().Get("Location"), want)
+			}
+		})
+	}
+}
+
+// An alias is not a live path: once a repo is soft-deleted its old names stop resolving.
+func TestGitHTTP_Alias_DeletedRepoLooksMissing(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	app := newAPIRouter(t, db)
+	repo := seedOwnedRepo(t, db, false)
+	aliasPath := seedAlias(t, db, repo)
+	testutil.Exec(t, db, `UPDATE repositories SET deleted_at = NOW() WHERE id = $1`, repo.id)
+
+	rr := requestGit(app, http.MethodGet, aliasPath+"/info/refs?service=git-upload-pack", gitCaller{bearer: repo.owner.token})
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("got %d, want 404", rr.Code)
 	}
 }
 
