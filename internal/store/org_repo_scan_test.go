@@ -115,7 +115,8 @@ func TestRepoLists_IncludeOrgReposWithoutOwner(t *testing.T) {
 	}
 	got, err = store.NewStarStore(db).ListByUser(ctx, userID)
 	want("StarStore.ListByUser", got, err, repoID)
-	got, err = withStats(store.NewExploreStore(db).NewestRepos(ctx, 1000))
+	newest, _, err := store.NewExploreStore(db).ListPublicRepos(ctx, store.ExploreByNewest, time.Time{}, store.ExploreFilter{Limit: 1000})
+	got, err = withStats(newest, err)
 	want("NewestRepos", got, err, repoID)
 	got, err = withStats(store.NewTopicStore(db).ListReposByTopicWithStats(ctx, topic, 1, 10, ""))
 	want("ListReposByTopicWithStats", got, err, repoID)

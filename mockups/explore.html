@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Explore — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header"></div>
+<script src="shell.js"></script>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+  <div class="space-y-6">
+    <div class="rounded-lg border border-border bg-card text-card-foreground">
+      <div class="p-5">
+        <h1 class="text-2xl font-bold">Explore repositories</h1>
+        <p class="text-sm text-muted-foreground mt-1">Discover public repositories on this instance.</p>
+      </div>
+    </div>
+    <form method="get" action="explore.html" class="flex flex-wrap items-end gap-3" role="search" aria-label="Filter repositories">
+      <input type="hidden" name="tab" value="trending" />
+      <input type="hidden" name="period" value="weekly" />
+      <div class="flex-1 min-w-[16rem] space-y-1.5">
+        <label for="explore-q" class="block text-xs font-medium text-muted-foreground">Search repositories</label>
+        <input id="explore-q" type="search" name="q" placeholder="Name, owner or description" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="explore-language" class="block text-xs font-medium text-muted-foreground">Language</label>
+        <select id="explore-language" name="language" class="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
+          <option value="">Any language</option>
+          <option value="Go">Go</option>
+          <option value="Rust">Rust</option>
+          <option value="TypeScript">TypeScript</option>
+        </select>
+      </div>
+      <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Search</button>
+    </form>
+    <nav aria-label="Explore views" class="flex items-center gap-1 border-b border-border text-sm">
+      <a href="explore.html" aria-current="page" class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5">Trending</a>
+      <a href="explore.html?tab=newest" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Newest</a>
+      <a href="explore.html?tab=forked" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">Most forked</a>
+    </nav>
+    <div class="flex gap-2">
+      <a href="explore.html?period=daily" class="px-3 py-1 rounded-full text-xs font-medium border bg-card text-muted-foreground border-border hover:border-foreground/40">Today</a>
+      <a href="explore.html" class="px-3 py-1 rounded-full text-xs font-medium border bg-primary text-primary-foreground border-primary">This week</a>
+      <a href="explore.html?period=monthly" class="px-3 py-1 rounded-full text-xs font-medium border bg-card text-muted-foreground border-border hover:border-foreground/40">This month</a>
+    </div>
+    <ul class="rounded-md border border-border bg-card divide-y divide-border">
+        <li class="group relative px-4 py-4 hover:bg-muted/50 transition-[padding-left] duration-[120ms] hover:pl-[18px]">
+          <span class="absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-xs" aria-hidden="true"></span>
+          <a href="repo.html" class="text-[14px] font-medium hover:underline">mkappworks/cloudzilla</a>
+          <p class="mt-1 text-[13px] text-muted-foreground">Self-hosted git forge written in Go with a server-rendered UI.</p>
+          <div class="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
+            <span class="inline-flex items-center gap-1" aria-label="1284 stars"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> 1284</span>
+            <span aria-label="96 forks">96 forks</span>
+            <span>Created <time datetime="2026-06-02T09:12:00Z">Jun 2, 2026</time></span>
+          </div>
+        </li>
+        <li class="group relative px-4 py-4 hover:bg-muted/50 transition-[padding-left] duration-[120ms] hover:pl-[18px]">
+          <span class="absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-xs" aria-hidden="true"></span>
+          <a href="repo.html" class="text-[14px] font-medium hover:underline">acme-corp/forge-cli</a>
+          <p class="mt-1 text-[13px] text-muted-foreground">Command-line client for the Acme build platform.</p>
+          <div class="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
+            <span class="inline-flex items-center gap-1" aria-label="412 stars"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> 412</span>
+            <span aria-label="31 forks">31 forks</span>
+            <span>Created <time datetime="2026-08-14T14:40:00Z">Aug 14, 2026</time></span>
+          </div>
+        </li>
+        <li class="group relative px-4 py-4 hover:bg-muted/50 transition-[padding-left] duration-[120ms] hover:pl-[18px]">
+          <span class="absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-xs" aria-hidden="true"></span>
+          <a href="repo.html" class="text-[14px] font-medium hover:underline">stitch-labs/go-service-starter</a>
+          <p class="mt-1 text-[13px] text-muted-foreground">Opinionated starter for small Go HTTP services.</p>
+          <div class="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
+            <span class="inline-flex items-center gap-1" aria-label="238 stars"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> 238</span>
+            <span aria-label="52 forks">52 forks</span>
+            <span>Created <time datetime="2026-09-09T08:05:00Z">Sep 9, 2026</time></span>
+          </div>
+        </li>
+        <li class="group relative px-4 py-4 hover:bg-muted/50 transition-[padding-left] duration-[120ms] hover:pl-[18px]">
+          <span class="absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-xs" aria-hidden="true"></span>
+          <a href="repo.html" class="text-[14px] font-medium hover:underline">daisy/tinyforge</a>
+          <p class="mt-1 text-[13px] text-muted-foreground">A weekend-sized git server, one binary.</p>
+          <div class="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
+            <span class="inline-flex items-center gap-1" aria-label="96 stars"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> 96</span>
+            <span aria-label="8 forks">8 forks</span>
+            <span>Created <time datetime="2026-10-01T19:22:00Z">Oct 1, 2026</time></span>
+          </div>
+        </li>
+    </ul>
+    <div class="flex justify-between items-center text-sm">
+      <span class="text-muted-foreground">Page 2 of 3</span>
+      <div class="flex gap-2">
+        <a href="explore.html" class="px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted transition-colors">&larr; Previous</a>
+        <a href="explore.html" class="px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted transition-colors">Next &rarr;</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="cz-footer"></div>
+</body>
+</html>

@@ -155,6 +155,10 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.Query != "" {
+				templ_7745c5c3_Err = components.TabBar(codeSearchTabs(data)).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 				if len(data.Results) > 0 {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p class=\"text-sm text-muted-foreground px-1\">")
 					if templ_7745c5c3_Err != nil {
@@ -163,7 +167,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(codeSearchSummary(data))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 48, Col: 76}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 49, Col: 76}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
@@ -181,7 +185,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						var templ_7745c5c3_Var9 string
 						templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(res.OwnerName, res.RepoName, "blob", "HEAD", res.FilePath))).ResolveURL(ctx)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 53, Col: 105}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 54, Col: 105}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 						if templ_7745c5c3_Err != nil {
@@ -194,7 +198,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						var templ_7745c5c3_Var10 string
 						templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(res.OwnerName)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 53, Col: 193}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 54, Col: 193}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 						if templ_7745c5c3_Err != nil {
@@ -207,7 +211,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						var templ_7745c5c3_Var11 string
 						templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(res.RepoName)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 53, Col: 210}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 54, Col: 210}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 						if templ_7745c5c3_Err != nil {
@@ -220,7 +224,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						var templ_7745c5c3_Var12 string
 						templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(res.FilePath)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 53, Col: 227}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 54, Col: 227}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 						if templ_7745c5c3_Err != nil {
@@ -239,7 +243,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 								var templ_7745c5c3_Var13 string
 								templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(part.Text)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 58, Col: 84}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 59, Col: 84}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 								if templ_7745c5c3_Err != nil {
@@ -253,7 +257,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 								var templ_7745c5c3_Var14 string
 								templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(part.Text)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 60, Col: 22}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 61, Col: 22}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 								if templ_7745c5c3_Err != nil {
@@ -315,6 +319,14 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 		}
 		return nil
 	})
+}
+
+func codeSearchTabs(data view.CodeSearchData) []components.Tab {
+	tabs := searchTabs(view.SearchData{Query: data.Query, Type: "code"})
+	if data.Total > 0 {
+		tabs[len(tabs)-1].Count = data.Total
+	}
+	return tabs
 }
 
 func codeSearchTitle(data view.CodeSearchData) string {

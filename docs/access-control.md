@@ -286,7 +286,7 @@ password gets a link (verified address or not), and an account without one gets 
 or single sign-on), never a link. Neither the response nor its timing shows whether an account exists. An account is
 mailed at most once per 5 minutes, enforced in the store's upsert so it holds across instances. The note counts too, and
 so does a failed delivery. While a link an admin issued is still usable, the form sends nothing, so it can't cancel that
-link. Without SMTP, `/login` has no link, and both forgot routes say to ask an administrator.
+link. Without SMTP, `/login` still shows **Forgot password?**, and both forgot routes name up to five active superadmins as links to their profiles (`PasswordResetService.AdminContacts`), or point at `cz-admin password-reset-link` when none can be read.
 
 **Links.** `<server.base_url>/auth/password/reset/<token>`, where the token is 32 `crypto/rand` bytes,
 base64url-encoded. `password_reset_tokens` (migration 105) keeps one row per account, so only the newest link works. The
@@ -801,7 +801,7 @@ OAuth-app tokens.
 
 Usernames and organization names are repository path segments, so a new one must match
 `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively:
-`activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists healthz invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all readyz register repos search settings setup stars static topic unread-count verify-email`
+`activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists healthz invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all readyz register repos search settings setup stars static terms topic unread-count verify-email`
 (`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from
 the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the
 username from the display name (falling back to the email's local part, then `user`) by dropping other characters;
@@ -1004,6 +1004,7 @@ owns keep serving the users who authorized them.
 | GET/POST | `/auth/2fa`                    | PageTOTPVerify / VerifyTOTP                                           |
 | GET/POST | `/verify-email`                | PageVerifyEmail / VerifyEmailSubmit (optAuthMW; the token authorizes) |
 | GET/POST | `/auth/password/forgot`        | PageForgotPassword / ForgotPasswordSubmit                             |
+| GET      | `/terms`                       | PageTerms (public)                                                    |
 | GET/POST | `/auth/password/reset/{token}` | PageResetPassword / ResetPasswordSubmit (the token authorizes)        |
 | POST     | `/api/auth/device/code`        | DeviceCode (no auth; 20 requests an hour and 5 live grants per IP)    |
 | POST     | `/api/auth/device/token`       | DeviceToken (no auth; the device code authorizes)                     |

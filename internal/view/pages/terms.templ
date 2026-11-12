@@ -1,0 +1,14 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ Terms(data view.TermsData) {
+	@layout.Base(data.BasePage, "Terms of Service") {
+		<article class="max-w-3xl mx-auto prose prose-sm dark:prose-invert">
+			@templ.Raw(data.HTML)
+		</article>
+	}
+}

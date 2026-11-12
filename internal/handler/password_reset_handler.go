@@ -25,6 +25,7 @@ const passwordResetNotice = "Your password was changed and every session was sig
 func (h *Handler) ForgotPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	data := view.ForgotPasswordData{BasePage: basePage(r, h.Services), Available: h.Services.PasswordReset.Available()}
 	if !data.Available {
+		data.Admins = h.Services.PasswordReset.AdminContacts(r.Context())
 		h.render(w, r, pages.ForgotPassword(data))
 		return
 	}

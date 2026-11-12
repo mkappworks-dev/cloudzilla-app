@@ -42,7 +42,7 @@
 <script src="shell.js"></script>
 <script>
 (function () {
-  var TYPES = [['all', 'All'], ['repos', 'Repositories'], ['orgs', 'Organizations'], ['issues', 'Issues'], ['pulls', 'Pull requests'], ['users', 'Users']];
+  var TYPES = [['all', 'All'], ['repos', 'Repositories'], ['orgs', 'Organizations'], ['issues', 'Issues'], ['pulls', 'Pull requests'], ['users', 'Users'], ['code', 'Code']];
   var GROUPS = { repos: 'Repositories', orgs: 'Organizations', issues: 'Issues', pulls: 'Pull requests', users: 'Users' };
 
   var DATA = {
@@ -193,9 +193,10 @@
   function tabs(res) {
     var cls = 'px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5 ';
     return '<nav aria-label="Section navigation" class="flex items-center gap-1 border-b border-border text-sm">' + TYPES.map(function (t) {
-      var n = t[0] === 'all' ? 0 : res[t[0]].length;
+      var n = t[0] === 'all' || t[0] === 'code' ? 0 : res[t[0]].length;
       var active = t[0] === type;
-      return '<a href="search.html?q=' + encodeURIComponent(query) + '&type=' + t[0] + '" data-type="' + t[0] + '"' + (active ? ' aria-current="page"' : '') +
+      var href = t[0] === 'code' ? 'code_search.html?q=' + encodeURIComponent(query) : 'search.html?q=' + encodeURIComponent(query) + '&type=' + t[0];
+      return '<a href="' + href + '" data-type="' + t[0] + '"' + (active ? ' aria-current="page"' : '') +
         ' class="' + cls + (active ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground') + '">' + t[1] +
         (n ? '<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="' + n + (n === 1 ? ' item' : ' items') + '">' + n + '</span>' : '') + '</a>';
     }).join('') + '</nav>';
@@ -243,7 +244,7 @@
   function fromLocation() {
     var p = new URLSearchParams(location.search);
     var t = p.get('type');
-    go((p.get('q') || '').trim(), TYPES.some(function (x) { return x[0] === t; }) ? t : 'all', false);
+    go((p.get('q') || '').trim(), TYPES.some(function (x) { return x[0] === t && t !== 'code'; }) ? t : 'all', false);
   }
 
   document.getElementById('search-form').addEventListener('submit', function (e) {

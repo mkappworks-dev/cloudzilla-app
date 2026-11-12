@@ -45,7 +45,7 @@ func takeAuditMetadata(t *testing.T, db *sql.DB, action string, targetID int64) 
 	}
 }
 
-func TestPasswordReset_LoginLinkNeedsSMTP(t *testing.T) {
+func TestPasswordReset_LoginLinksRecoveryWithOrWithoutSMTP(t *testing.T) {
 	smtp, _ := testutil.FakeSMTP(t)
 	withSMTP, _, _ := newVerificationRouter(t, smtp)
 	if rr := serve(withSMTP, browserRequest(http.MethodGet, "/login", "", nil)); !strings.Contains(rr.Body.String(), `href="/auth/password/forgot"`) {
@@ -53,8 +53,8 @@ func TestPasswordReset_LoginLinkNeedsSMTP(t *testing.T) {
 	}
 
 	without, _, db := newVerificationRouter(t, config.SMTPConfig{})
-	if rr := serve(without, browserRequest(http.MethodGet, "/login", "", nil)); strings.Contains(rr.Body.String(), `href="/auth/password/forgot"`) {
-		t.Error("without SMTP, /login links to forgot-password")
+	if rr := serve(without, browserRequest(http.MethodGet, "/login", "", nil)); !strings.Contains(rr.Body.String(), `href="/auth/password/forgot"`) {
+		t.Error("without SMTP, /login has no recovery path")
 	}
 	_, email := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), "password1")
 	for _, req := range []*http.Request{

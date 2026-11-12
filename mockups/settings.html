@@ -70,7 +70,11 @@
       </div>
       <div class="space-y-1.5">
         <label for="repo-default-branch" class="block text-sm font-medium">Default branch</label>
-        <input id="repo-default-branch" type="text" name="default_branch" value="main" class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring disabled:text-muted-foreground" />
+        <select id="repo-default-branch" name="default_branch" class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring disabled:text-muted-foreground">
+          <option value="feature/dark-mode">feature/dark-mode</option>
+          <option value="main" selected>main</option>
+          <option value="release/1.4">release/1.4</option>
+        </select>
       </div>
       <div class="flex justify-end">
         <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Save changes</button>

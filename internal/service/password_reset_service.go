@@ -20,6 +20,8 @@ const (
 	PasswordResetCooldown  = 5 * time.Minute
 )
 
+const adminContactLimit = 5
+
 var (
 	ErrPasswordResetUnavailable = errors.New("password reset emails need outgoing email, which the administrator has not configured")
 	ErrPasswordResetNoPassword  = errors.New("this account signs in without a password, so it has no password to reset")
@@ -44,6 +46,15 @@ func NewPasswordResetService(s *store.PasswordResetStore, users *store.UserStore
 // Available is false without SMTP, when only IssueLink can start a reset.
 func (s *PasswordResetService) Available() bool {
 	return s.email.Enabled()
+}
+
+// AdminContacts names the active superadmins a user without email recovery can ask for a link.
+func (s *PasswordResetService) AdminContacts(ctx context.Context) []string {
+	names, err := s.users.ListActiveSuperadminUsernames(ctx, adminContactLimit)
+	if err != nil {
+		return nil
+	}
+	return names
 }
 
 // Request mails the account with this address a reset link, or, if it has no

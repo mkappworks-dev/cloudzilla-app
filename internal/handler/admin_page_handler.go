@@ -30,6 +30,7 @@ func (h *Handler) PageAdminSettings(w http.ResponseWriter, r *http.Request) {
 		BasePage:    basePage(r, h.Services),
 		Settings:    settings,
 		Invitations: invitations,
+		Terms:       h.Services.SiteSetting.Terms(r.Context()),
 		Confirm:     h.confirmFactors(r, claims.UserID),
 	}))
 }

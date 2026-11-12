@@ -44,6 +44,7 @@ templ CodeSearch(data view.CodeSearchData) {
 				}
 			}
 			if data.Query != "" {
+				@components.TabBar(codeSearchTabs(data))
 				if len(data.Results) > 0 {
 					<p class="text-sm text-muted-foreground px-1">{ codeSearchSummary(data) }</p>
 					<div class="rounded-md border border-border bg-card divide-y divide-border">
@@ -84,6 +85,14 @@ templ CodeSearch(data view.CodeSearchData) {
 			}
 		</div>
 	}
+}
+
+func codeSearchTabs(data view.CodeSearchData) []components.Tab {
+	tabs := searchTabs(view.SearchData{Query: data.Query, Type: "code"})
+	if data.Total > 0 {
+		tabs[len(tabs)-1].Count = data.Total
+	}
+	return tabs
 }
 
 func codeSearchTitle(data view.CodeSearchData) string {

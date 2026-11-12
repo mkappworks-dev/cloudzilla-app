@@ -27,7 +27,6 @@ func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
 		LDAPEnabled:       ldapEnabled,
 		SAMLEnabled:       samlEnabled,
 		AllowRegistration: h.Services.SiteSetting.AllowRegistration(r.Context()),
-		ForgotPassword:    h.Services.PasswordReset.Available(),
 		Next:              next,
 	}
 	if r.URL.Query().Get("reset") == "done" {
@@ -49,7 +48,6 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		data.LDAPEnabled = ldapEnabled
 		data.SAMLEnabled = samlEnabled
 		data.AllowRegistration = allowReg
-		data.ForgotPassword = h.Services.PasswordReset.Available()
 		data.Email = email
 		data.Next = next
 		h.render(w, r, pages.Login(data))

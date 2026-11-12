@@ -48,7 +48,7 @@ func Topic(data view.TopicData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-[1400px] mx-auto px-6 pt-8 pb-20\"><section class=\"mb-8\" aria-labelledby=\"topic-title\"><h1 id=\"topic-title\" class=\"text-3xl font-semibold tracking-tight inline-flex items-center gap-3\"><span class=\"px-3 py-1 rounded-full text-base font-medium border border-primary/30 bg-primary/10 text-primary\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div><section class=\"mb-8\" aria-labelledby=\"topic-title\"><h1 id=\"topic-title\" class=\"text-3xl font-semibold tracking-tight inline-flex items-center gap-3\"><span class=\"px-3 py-1 rounded-full text-base font-medium border border-primary/30 bg-primary/10 text-primary\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

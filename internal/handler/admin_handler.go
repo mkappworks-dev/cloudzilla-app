@@ -45,6 +45,33 @@ func (h *Handler) UpdateSiteSetting(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
 }
 
+// UpdateTerms saves the Markdown behind /terms; an empty body restores the default text.
+func (h *Handler) UpdateTerms(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok || !claims.IsSuperadmin {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
+	err := h.Services.SiteSetting.SetTerms(r.Context(), r.FormValue("terms"))
+	if errors.Is(err, service.ErrTermsTooLong) {
+		writeError(w, http.StatusBadRequest, "The terms are too long.")
+		return
+	}
+	if err != nil {
+		slog.Error("admin update terms", "error", err)
+		writeError(w, http.StatusInternalServerError, "Couldn't save the terms.")
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
+}
+
 func (h *Handler) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok || !claims.IsSuperadmin {

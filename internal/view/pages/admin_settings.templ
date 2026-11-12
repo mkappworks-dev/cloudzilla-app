@@ -63,6 +63,33 @@ templ AdminSettings(data view.AdminSettingsData) {
 			@components.Card(nil) {
 				@components.CardHeader() {
 					@components.CardTitle(2) {
+						Terms of service
+					}
+					@components.CardDescription() {
+						Markdown shown at <a href="/terms" class="underline underline-offset-2">/terms</a> and linked from the footer and the new-organization form. Clear it to restore the default text.
+					}
+				}
+				@components.CardContent() {
+					<form
+						method="POST"
+						action="/api/admin/terms"
+						hx-post="/api/admin/terms"
+						hx-swap="none"
+						data-toast="Terms saved"
+						data-confirm-identity="Save terms"
+						class="space-y-3"
+					>
+						<label for="terms-content" class="block text-xs font-medium text-muted-foreground">Terms (Markdown)</label>
+						<textarea id="terms-content" name="terms" rows="16" maxlength="50000" class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-sm shadow-xs">{ data.Terms }</textarea>
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Save terms
+						}
+					</form>
+				}
+			}
+			@components.Card(nil) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
 						Email verification
 					}
 					@components.CardDescription() {

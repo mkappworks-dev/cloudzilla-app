@@ -90,6 +90,26 @@
 
 <div class="rounded-lg border border-border bg-card text-card-foreground">
   <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-[13px] font-semibold leading-none tracking-tight">Terms of service</h2>
+    <p class="text-[12px] text-muted-foreground">Markdown shown at <a href="terms.html" class="underline underline-offset-2">/terms</a> and linked from the footer and the new-organization form. Clear it to restore the default text.</p>
+  </div>
+  <div class="p-5">
+    <form class="space-y-3" onsubmit="return false">
+      <label for="terms-content" class="block text-xs font-medium text-muted-foreground">Terms (Markdown)</label>
+      <textarea id="terms-content" name="terms" rows="16" maxlength="50000" class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-sm shadow-xs"># Terms of Service
+
+These terms apply to everyone who uses this Cloudzilla instance. The instance administrator can change them at any time.
+
+## Your account
+
+You are responsible for activity under your account and for keeping your credentials secret.</textarea>
+      <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm bg-primary text-primary-foreground hover:bg-primary/90">Save terms</button>
+    </form>
+  </div>
+</div>
+
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
     <h2 class="text-[13px] font-semibold leading-none tracking-tight">Email verification</h2>
     <p class="text-[12px] text-muted-foreground">Mark a user's email address verified by hand, for instances that can't send the verification link. A verified address lets the Google account with that address sign in to the user's account, so only vouch for addresses you know are theirs.</p>
   </div>

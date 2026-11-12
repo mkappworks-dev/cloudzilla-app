@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: needs-info
+Status: done
 Blocked by: 14
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -37,11 +37,12 @@ write a terms page or drop the agreement.
 
 ## Acceptance criteria
 
-- [ ] Stargazers shows the repository header and subnav
-- [ ] Search offers repositories, code and the other kinds as peer tabs
-- [ ] Explore filters by text and language and paginates
-- [ ] Default branch is chosen from existing branches
-- [ ] A no-SMTP instance tells the user how to recover access
+- [x] Stargazers shows the repository header and subnav
+- [x] Search offers repositories, code and the other kinds as peer tabs
+- [x] Explore filters by text and language and paginates
+- [x] Default branch is chosen from existing branches
+- [x] A no-SMTP instance tells the user how to recover access
+- [x] Terms page exists and is linked
 
 ## Verification
 
@@ -54,3 +55,5 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 2026-11-12 (triage): needs-info for item 6 only (write a terms page or drop the agreement); items 1-5 are agent work and 14 has merged.
 
 2026-11-12 (wave 2 re-score): Wave 2 re-score: (Codex) the sign-in page shows no "Forgot password?" link in the capture, and the reset page gives no way to reach an administrator (item 5, confirmed on `login`, `login-wrong-password`, `forgot-password`); general search has no Code tab beside its categories (item 2); (Claude) topic and starred-repository pages also drop their shell and sit on a narrower, offset grid (left edge 68px against the 44px gutter), as stargazers does (item 1).
+
+2026-11-12 (maintainer): item 6 decided: add a terms page. `/terms` is public, its Markdown is edited by the instance admin in `/admin/settings` (stored in `site_settings` as `terms_content`, default text for a self-hosted instance), and it is linked from the footer and the new-organization agreement.

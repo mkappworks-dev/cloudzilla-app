@@ -46,14 +46,14 @@ func Stargazers(data view.StargazersData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto space-y-6\"><section aria-labelledby=\"sg-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-6\"><section aria-labelledby=\"sg-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 17, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 16, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -66,7 +66,7 @@ func Stargazers(data view.StargazersData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 17, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 16, Col: 110}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -79,7 +79,7 @@ func Stargazers(data view.StargazersData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.StarCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 24, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 23, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -97,7 +97,7 @@ func Stargazers(data view.StargazersData) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.Owner)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 31, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 30, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -110,7 +110,7 @@ func Stargazers(data view.StargazersData) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 31, Col: 86}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 30, Col: 86}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -136,7 +136,7 @@ func Stargazers(data view.StargazersData) templ.Component {
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + u.Username)).ResolveURL(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 36, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 35, Col: 49}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 					if templ_7745c5c3_Err != nil {
@@ -149,7 +149,7 @@ func Stargazers(data view.StargazersData) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(u.Username)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 36, Col: 112}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 35, Col: 112}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -167,7 +167,7 @@ func Stargazers(data view.StargazersData) templ.Component {
 						var templ_7745c5c3_Var10 string
 						templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(u.Bio)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 38, Col: 73}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/stargazers.templ`, Line: 37, Col: 73}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 						if templ_7745c5c3_Err != nil {
