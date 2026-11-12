@@ -49,7 +49,7 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 	if newOwnerID != 0 && newOwnerID != requestingUserID {
 		return s.offerTransfer(ctx, repo, requestingUserID, newOwnerID)
 	}
-	return nil, s.moveRepo(ctx, repo, newOwnerName, func() error {
+	return nil, s.moveRepo(ctx, repo, newOwnerName, repo.Name, func() error {
 		return s.repos.UpdateOwner(ctx, repo.ID, repo.OwnerName, newOwnerID, newOrgID, newOwnerName)
 	})
 }
@@ -107,7 +107,7 @@ func (s *RepoService) AcceptTransfer(ctx context.Context, id, userID int64, offe
 	if err := s.quota.CheckNewRepo(ctx, QuotaOwner{UserID: userID}); err != nil {
 		return nil, err
 	}
-	err = s.moveRepo(ctx, repo, recipient.Username, func() error {
+	err = s.moveRepo(ctx, repo, recipient.Username, repo.Name, func() error {
 		return s.transfers.Accept(ctx, t.ID, userID, repo.OwnerName, recipient.Username)
 	})
 	if err != nil {
@@ -179,9 +179,9 @@ func (s *RepoService) incomingTransfer(ctx context.Context, id, userID int64) (*
 	return t, repo, nil
 }
 
-// moveRepo moves repo's git and wiki dirs into newOwnerName's namespace, then
-// runs update to point the row there, moving the dirs back if it fails.
-func (s *RepoService) moveRepo(ctx context.Context, repo *model.Repository, newOwnerName string, update func() error) error {
+// moveRepo moves repo's git and wiki dirs to newOwnerName/newName, then runs
+// update to point the row there, moving the dirs back if it fails.
+func (s *RepoService) moveRepo(ctx context.Context, repo *model.Repository, newOwnerName, newName string, update func() error) error {
 	if err := ValidateName(newOwnerName); err != nil {
 		return fmt.Errorf("%w: owner %q", ErrInvalidRepoPath, newOwnerName)
 	}
@@ -191,13 +191,13 @@ func (s *RepoService) moveRepo(ctx context.Context, repo *model.Repository, newO
 	if err != nil {
 		return err
 	}
-	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerName, repo.Name)
+	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerName, newName)
 	// os.Rename refuses an existing dir, but a repo without a wiki skips the
 	// wiki move and would pick up whatever wiki waits at the new path.
-	if pathTaken(newGitDir) || pathTaken(newWikiDir) {
+	if pathTakenByOther(newGitDir, oldGitDir) || pathTakenByOther(newWikiDir, repoWikiDir(s.cfg.ReposRoot, repo)) {
 		return ErrRepoNameTaken
 	}
-	if held, err := s.repos.NameHeld(ctx, newOwnerName, wikiPartner(repo.Name)); err != nil {
+	if held, err := s.repos.NameHeld(ctx, newOwnerName, wikiPartner(newName)); err != nil {
 		return err
 	} else if held {
 		return ErrRepoNameTaken
@@ -223,7 +223,12 @@ func (s *RepoService) moveRepo(ctx context.Context, repo *model.Repository, newO
 
 	if err := update(); err != nil {
 		revertDirs(moved)
-		return repoNameErr("update repo owner", err)
+		return repoNameErr("update repo path", err)
 	}
 	return nil
+}
+
+func repoWikiDir(root string, repo *model.Repository) string {
+	_, wikiDir := repoDirs(root, repo.OwnerName, repo.Name)
+	return wikiDir
 }

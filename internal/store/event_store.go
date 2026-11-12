@@ -222,3 +222,15 @@ func scanEvents(rows *sql.Rows) ([]model.Event, error) {
 	}
 	return events, rows.Err()
 }
+
+// renameEventText relabels the events of repoID; events.payload is left as recorded.
+func renameEventText(ctx context.Context, x dbExec, repoID int64, ownerName, repoName string) error {
+	if _, err := x.ExecContext(ctx,
+		`UPDATE events SET owner_name = $2, repo_name = $3
+		 WHERE repo_id = $1 AND (owner_name <> $2 OR repo_name <> $3)`,
+		repoID, ownerName, repoName,
+	); err != nil {
+		return fmt.Errorf("rename event text: %w", err)
+	}
+	return nil
+}

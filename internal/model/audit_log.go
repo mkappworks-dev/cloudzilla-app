@@ -51,6 +51,7 @@ const (
 	AuditActionRepoMirrorUpdate    = "repo.mirror.update"
 	AuditActionRepoMirrorDelete    = "repo.mirror.delete"
 	AuditActionRepoDelete          = "repo.delete"
+	AuditActionRepoRename          = "repo.rename"
 	AuditActionRepoTransfer        = "repo.transfer"
 	AuditActionRepoTransferRequest = "repo.transfer.request"
 	AuditActionRepoTransferCancel  = "repo.transfer.cancel"

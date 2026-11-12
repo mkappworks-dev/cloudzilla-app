@@ -100,7 +100,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
 	quotaSvc := NewQuotaService(stores.Repo, stores.User, cfg.Quota, cfg.Git.ReposRoot)
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).
-		WithTransferStore(stores.RepoTransfer).WithAliasStore(stores.RepoAlias).WithNoreplyHostFrom(cfg.Server.BaseURL).WithQuota(quotaSvc)
+		WithTransferStore(stores.RepoTransfer).WithAliasStore(stores.RepoAlias).WithMirrorStore(stores.Mirror).WithNoreplyHostFrom(cfg.Server.BaseURL).WithQuota(quotaSvc)
 	mirrorSvc := NewMirrorService(stores.Mirror, stores.Repo, repoSvc, webhookSvc, index, depSvc, secrets, cfg.Git, cfg.Mirror)
 	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc).WithQuota(quotaSvc)
 	languageSvc := NewLanguageService(code, repoSvc)

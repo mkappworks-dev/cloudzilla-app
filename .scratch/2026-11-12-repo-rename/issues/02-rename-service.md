@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 | Branch                  | Worktree                           | PR title                                   | Effort |
@@ -34,17 +34,21 @@ See [spec.md](../spec.md). Nothing can change a repo's name yet.
 
 ## Acceptance criteria
 
-- [ ] Rename moves `<name>.git` and `<name>.wiki.git` and the row together; a failed transaction restores both dirs
-- [ ] The old path exists as an alias afterwards; renaming back drops it
-- [ ] Case-only rename works
-- [ ] Taken name, `.wiki` name, invalid name, unchanged name, mirror syncing and importing each return the stated status
-- [ ] Events and notifications of the repo show the new names; `events.payload` is untouched
-- [ ] An `admin` collaborator can rename, a `writer` can't; step-up is required
-- [ ] `repo.rename` audit entry written; webhook payloads after the rename carry the new `full_name` and the same `id`
-- [ ] Open PRs, forks, mirror row, webhooks and wiki survive (tests)
+- [x] Rename moves `<name>.git` and `<name>.wiki.git` and the row together; a failed transaction restores both dirs
+- [x] The old path exists as an alias afterwards; renaming back drops it
+- [x] Case-only rename works
+- [x] Taken name, `.wiki` name, invalid name, unchanged name, mirror syncing and importing each return the stated status
+- [x] Events and notifications of the repo show the new names; `events.payload` is untouched
+- [x] An `admin` collaborator can rename, a `writer` can't; step-up is required
+- [x] `repo.rename` audit entry written; webhook payloads after the rename carry the new `full_name` and the same `id`
+- [x] Open PRs, forks, mirror row, webhooks and wiki survive (tests)
 
 ## Verification
 
 Integration tests (`make test-integration`); `moveRepo` failure injection as in the transfer tests.
 
 ## Comments
+
+
+Claude, 2026-11-12: "Importing" has no 409 here. An import holds no repository row until it publishes, so there is no
+repo to rename while one runs; a pull-mirror import is covered by the mirror lease check once its row exists.

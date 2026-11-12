@@ -123,6 +123,18 @@ func (s *MirrorStore) DeleteUnleased(ctx context.Context, repoID int64) (bool, e
 	return n > 0, err
 }
 
+// Leased reports whether a sync holds repoID's lease; a repo without a mirror is not.
+func (s *MirrorStore) Leased(ctx context.Context, repoID int64) (bool, error) {
+	var leased bool
+	err := s.db.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM repo_mirrors WHERE repo_id = $1 AND lease_until >= NOW())`, repoID,
+	).Scan(&leased)
+	if err != nil {
+		return false, fmt.Errorf("mirror leased: %w", err)
+	}
+	return leased, nil
+}
+
 // ReleaseLease gives up a claim without recording a result, leaving the
 // mirror due, for a sync cut short by shutdown.
 func (s *MirrorStore) ReleaseLease(ctx context.Context, repoID int64) error {
