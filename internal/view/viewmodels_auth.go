@@ -9,9 +9,7 @@ type LoginData struct {
 	LDAPEnabled       bool
 	SAMLEnabled       bool
 	AllowRegistration bool
-	// ForgotPassword shows the reset link; it is off when no reset email could be sent.
-	ForgotPassword bool
-	Notice         string
+	Notice            string
 	// Email is the address typed on the failed attempt.
 	Email string
 	// PasswordError sits on the password field; Error is for a refusal that is not about a field.
@@ -84,9 +82,11 @@ type RegisterCompleteData struct {
 type ForgotPasswordData struct {
 	BasePage
 	Available bool
-	Sent      bool
-	Email     string
-	Error     string
+	// Admins names who can issue a link when Available is false.
+	Admins []string
+	Sent   bool
+	Email  string
+	Error  string
 }
 
 // ResetPasswordData holds template data for choosing a new password from a reset link.

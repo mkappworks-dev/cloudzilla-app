@@ -140,9 +140,15 @@ type CodeSearchData struct {
 
 type ExploreData struct {
 	BasePage
-	Tab    string
-	Period string
-	Repos  []model.RepositoryWithStats
+	Tab       string
+	Period    string
+	Query     string
+	Language  string
+	Languages []string
+	Page      int
+	Total     int
+	PageSize  int
+	Repos     []model.RepositoryWithStats
 }
 
 type DependenciesData struct {

@@ -219,7 +219,8 @@
     '<div class="border-t border-border py-6 flex items-center justify-between"><p class="font-mono">cloudzilla / dev</p>' +
     '<nav aria-label="Footer"><ul class="flex gap-4 list-none"><li><a href="' + DOCS_URL + '" target="_blank" rel="noopener" class="hover:text-foreground">Docs</a></li>' +
     '<li><a href="' + API_URL + '" target="_blank" rel="noopener" class="hover:text-foreground">API</a></li>' +
-    '<li><a href="' + CHANGELOG_URL + '" target="_blank" rel="noopener" class="hover:text-foreground">Changelog</a></li></ul></nav></div></footer>';
+    '<li><a href="' + CHANGELOG_URL + '" target="_blank" rel="noopener" class="hover:text-foreground">Changelog</a></li>' +
+    '<li><a href="terms.html" class="hover:text-foreground">Terms</a></li></ul></nav></div></footer>';
 
   function parse(html) {
     return new DOMParser().parseFromString(html, 'text/html').body.firstChild;

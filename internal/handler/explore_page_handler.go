@@ -3,8 +3,11 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -26,24 +29,24 @@ func (h *Handler) PageExplore(w http.ResponseWriter, r *http.Request) {
 		period = "weekly"
 	}
 
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
+		page = p
+	}
+
 	data := view.ExploreData{
 		BasePage: basePage(r, h.Services),
 		Tab:      tab,
 		Period:   period,
+		Query:    strings.TrimSpace(r.URL.Query().Get("q")),
+		Language: r.URL.Query().Get("language"),
+		Page:     page,
+		PageSize: service.ExplorePageSize,
 	}
 
-	var (
-		repos []model.RepositoryWithStats
-		err   error
-	)
-	switch tab {
-	case "newest":
-		repos, err = h.Services.Explore.Newest(r.Context())
-	case "forked":
-		repos, err = h.Services.Explore.MostForked(r.Context())
-	default:
-		repos, err = h.Services.Explore.Trending(r.Context(), period)
-	}
+	repos, total, err := h.Services.Explore.Repos(r.Context(), service.ExploreQuery{
+		Tab: tab, Period: period, Text: data.Query, Language: data.Language, Page: page,
+	})
 	if err != nil {
 		slog.Error("explore: failed to load repositories", "tab", tab, "period", period, "error", err)
 		h.ServerError(w, r)
@@ -52,7 +55,13 @@ func (h *Handler) PageExplore(w http.ResponseWriter, r *http.Request) {
 	if repos == nil {
 		repos = []model.RepositoryWithStats{}
 	}
-	data.Repos = repos
+	data.Repos, data.Total = repos, total
+
+	if langs, err := h.Services.Explore.Languages(r.Context()); err != nil {
+		slog.Warn("explore: language filter unavailable", "error", err)
+	} else {
+		data.Languages = langs
+	}
 
 	h.render(w, r, pages.Explore(data))
 }

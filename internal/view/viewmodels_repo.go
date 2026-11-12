@@ -166,10 +166,12 @@ type RepoSettingsData struct {
 	Labels            []model.Label
 	DeployKeys        []model.DeployKey
 	BranchProtections []*model.BranchProtection
-	CanManage         bool
-	IsOwner           bool
-	PendingTransfer   *model.RepoTransfer // nil unless IsOwner and a transfer awaits its recipient
-	Mirror            *MirrorSettings     // nil unless the repo is a pull mirror
+	// Branches are the names the default branch can be set to; empty in a repository with no commits.
+	Branches        []string
+	CanManage       bool
+	IsOwner         bool
+	PendingTransfer *model.RepoTransfer // nil unless IsOwner and a transfer awaits its recipient
+	Mirror          *MirrorSettings     // nil unless the repo is a pull mirror
 	// What the viewer confirms giving others access with.
 	Confirm components.ConfirmFactors
 }

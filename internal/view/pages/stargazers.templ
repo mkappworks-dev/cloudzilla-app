@@ -10,8 +10,7 @@ import (
 
 templ Stargazers(data view.StargazersData) {
 	@layout.Base(data.BasePage, "Stargazers · "+data.Owner+"/"+data.RepoName) {
-		<div class="max-w-4xl mx-auto space-y-6">
-
+		<div class="space-y-6">
 			<section aria-labelledby="sg-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>

@@ -131,6 +131,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Page routes
 	r.With(optAuthMW).Get("/", h.PageHome)
 	r.With(optAuthMW).Get("/explore", h.PageExplore)
+	r.With(optAuthMW).Get("/terms", h.PageTerms)
 	r.With(optAuthMW).Get("/login", h.PageLogin)
 	r.With(optAuthMW).Get("/register", h.PageRegister)
 	r.With(optAuthMW, middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register", h.PageRegisterSubmit)
@@ -590,6 +591,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Route("/api/admin", func(r chi.Router) {
 		r.Use(authMW, superadminMW, apiBodyLimit)
 		r.Post("/settings", h.UpdateSiteSetting)
+		r.Post("/terms", h.UpdateTerms)
 		r.Post("/invitations", h.CreateInvitation)
 		r.Delete("/invitations/{id}", h.DeleteInvitation)
 		r.Post("/users/verify-email", h.AdminVerifyEmail)

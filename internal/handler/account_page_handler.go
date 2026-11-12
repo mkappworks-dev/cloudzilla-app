@@ -387,7 +387,7 @@ func (h *Handler) PageAccountStars(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := view.AccountStarsData{
-		BasePage:  basePage(r, h.Services),
+		BasePage:  withAccountSubnav(basePage(r, h.Services), "stars", h.accountCounts(ctx, claims.UserID)),
 		Username:  claims.Username,
 		Stars:     stars,
 		Language:  langFilter,

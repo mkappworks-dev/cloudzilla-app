@@ -483,6 +483,7 @@ func searchTabs(data view.SearchData) []components.Tab {
 		{Label: "Issues", URL: href("issues"), IsActive: data.Type == "issues", Count: count(len(r.Issues))},
 		{Label: "Pull requests", URL: href("pulls"), IsActive: data.Type == "pulls", Count: count(len(r.Pulls))},
 		{Label: "Users", URL: href("users"), IsActive: data.Type == "users", Count: count(len(r.Users))},
+		{Label: "Code", URL: "/search/code?q=" + url.QueryEscape(data.Query), IsActive: data.Type == "code", Count: -1},
 	}
 }
 

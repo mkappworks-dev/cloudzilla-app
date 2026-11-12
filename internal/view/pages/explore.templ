@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -18,28 +20,65 @@ templ Explore(data view.ExploreData) {
 					<p class="text-sm text-muted-foreground mt-1">Discover public repositories on this instance.</p>
 				}
 			}
+			<form method="get" action="/explore" class="flex flex-wrap items-end gap-3" role="search" aria-label="Filter repositories">
+				<input type="hidden" name="tab" value={ data.Tab }/>
+				if data.Tab == "trending" {
+					<input type="hidden" name="period" value={ data.Period }/>
+				}
+				<div class="flex-1 min-w-[16rem] space-y-1.5">
+					<label for="explore-q" class="block text-xs font-medium text-muted-foreground">Search repositories</label>
+					@components.Input(templ.Attributes{
+						"id":          "explore-q",
+						"type":        "search",
+						"name":        "q",
+						"value":       data.Query,
+						"placeholder": "Name, owner or description",
+					})
+				</div>
+				if len(data.Languages) > 0 {
+					<div class="space-y-1.5">
+						<label for="explore-language" class="block text-xs font-medium text-muted-foreground">Language</label>
+						<select id="explore-language" name="language" class="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs">
+							<option value="">Any language</option>
+							for _, lang := range data.Languages {
+								if lang == data.Language {
+									<option value={ lang } selected>{ lang }</option>
+								} else {
+									<option value={ lang }>{ lang }</option>
+								}
+							}
+						</select>
+					</div>
+				}
+				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+					Search
+				}
+				if data.Query != "" || data.Language != "" {
+					<a href={ templ.SafeURL(exploreURL(view.ExploreData{}, data.Tab, data.Period, 1)) } class="text-sm text-muted-foreground hover:text-foreground hover:underline self-center">Clear filters</a>
+				}
+			</form>
 			<!-- Tab bar -->
 			@components.Tabs("Explore views") {
-				@components.TabLink("/explore?tab=trending&period="+data.Period, data.Tab == "trending") {
+				@components.TabLink(exploreURL(data, "trending", data.Period, 1), data.Tab == "trending") {
 					Trending
 				}
-				@components.TabLink("/explore?tab=newest", data.Tab == "newest") {
+				@components.TabLink(exploreURL(data, "newest", "", 1), data.Tab == "newest") {
 					Newest
 				}
-				@components.TabLink("/explore?tab=forked", data.Tab == "forked") {
+				@components.TabLink(exploreURL(data, "forked", "", 1), data.Tab == "forked") {
 					Most forked
 				}
 			}
 			if data.Tab == "trending" {
 				<!-- Period pills (only shown for Trending tab) -->
 				<div class="flex gap-2">
-					<a href="/explore?tab=trending&period=daily" class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-primary text-primary-foreground border-primary", data.Period == "daily"), templ.KV("bg-card text-muted-foreground border-border hover:border-foreground/40", data.Period != "daily") }>
+					<a href={ templ.SafeURL(exploreURL(data, "trending", "daily", 1)) } class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-primary text-primary-foreground border-primary", data.Period == "daily"), templ.KV("bg-card text-muted-foreground border-border hover:border-foreground/40", data.Period != "daily") }>
 						Today
 					</a>
-					<a href="/explore?tab=trending&period=weekly" class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-primary text-primary-foreground border-primary", data.Period == "weekly"), templ.KV("bg-card text-muted-foreground border-border hover:border-foreground/40", data.Period != "weekly") }>
+					<a href={ templ.SafeURL(exploreURL(data, "trending", "weekly", 1)) } class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-primary text-primary-foreground border-primary", data.Period == "weekly"), templ.KV("bg-card text-muted-foreground border-border hover:border-foreground/40", data.Period != "weekly") }>
 						This week
 					</a>
-					<a href="/explore?tab=trending&period=monthly" class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-primary text-primary-foreground border-primary", data.Period == "monthly"), templ.KV("bg-card text-muted-foreground border-border hover:border-foreground/40", data.Period != "monthly") }>
+					<a href={ templ.SafeURL(exploreURL(data, "trending", "monthly", 1)) } class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-primary text-primary-foreground border-primary", data.Period == "monthly"), templ.KV("bg-card text-muted-foreground border-border hover:border-foreground/40", data.Period != "monthly") }>
 						This month
 					</a>
 				</div>
@@ -60,9 +99,38 @@ templ Explore(data view.ExploreData) {
 						})
 					}
 				</ul>
+				{{ exPages := (data.Total + data.PageSize - 1) / data.PageSize }}
+				{{ exPrev := "" }}
+				if data.Page > 1 {
+					{{ exPrev = exploreURL(data, data.Tab, data.Period, data.Page-1) }}
+				}
+				{{ exNext := "" }}
+				if data.Page < exPages {
+					{{ exNext = exploreURL(data, data.Tab, data.Period, data.Page+1) }}
+				}
+				@components.PaginationWithCount(exPrev, exNext, data.Page, exPages)
+			} else if data.Query != "" || data.Language != "" {
+				@components.EmptyStateWithHint("No public repositories match your filters.", "Try a different search or clear the language filter.")
 			} else {
 				@components.EmptyState("No public repositories to show yet.")
 			}
 		</div>
 	}
+}
+
+func exploreURL(data view.ExploreData, tab, period string, page int) string {
+	v := url.Values{"tab": {tab}}
+	if tab == "trending" && period != "" {
+		v.Set("period", period)
+	}
+	if data.Query != "" {
+		v.Set("q", data.Query)
+	}
+	if data.Language != "" {
+		v.Set("language", data.Language)
+	}
+	if page > 1 {
+		v.Set("page", strconv.Itoa(page))
+	}
+	return "/explore?" + v.Encode()
 }

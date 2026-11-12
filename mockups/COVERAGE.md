@@ -7,7 +7,6 @@ in November 2026; update it when a mock is added.
 
 | Real page               | Route                                    | Notes           |
 | ----------------------- | ---------------------------------------- | --------------- |
-| `explore.templ`         | `/explore`                               |                 |
 | `setup.templ`           | `/setup`                                 | First-run setup |
 | `oauth_authorize.templ` | `/oauth/authorize`                       |                 |
 | `device_login.templ`    | `/login/device`, `/login/device/confirm` |                 |
@@ -58,6 +57,9 @@ Mocks show the happy path. These real states are not drawn:
   a mock button draws the real busy state.
 - **Filters and navigation.** `?category=` on discussions, the command palette, organization people and repository tabs,
   and the profile README call to action.
+- **Discovery.** `forgot_password.html?nosmtp=1` draws the reset page of an instance that can't send email, with the
+  administrators it names. Explore with no match ("No public repositories match your filters."), and the default branch
+  of a repository with no commits, which stays a text box because the first push creates the branch, have no mock.
 - **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, the issue template picker, and PR
   diff error states.
 - **Admin mode.** `admin_mode.html` draws the page in both states (add `?admin_mode=1` for the running one), and any
@@ -90,7 +92,7 @@ Some controls and forms have no behaviour. In particular:
 - **Disabled in the real app too:** the Teams and org webhooks panels in `org_settings.html`.
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
 - **Auth states:** the sign-in error banner, the email-first signup flow, expired and invalid reset or verify links, and
-  the "instance can't send email" state.
+  the Sign-in page with Forgot password? absent (it is always shown now).
 
 ## Deliberate differences from the real app
 

@@ -11,10 +11,14 @@ import (
 
 // PageForgotPassword handles GET /auth/password/forgot.
 func (h *Handler) PageForgotPassword(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, pages.ForgotPassword(view.ForgotPasswordData{
+	data := view.ForgotPasswordData{
 		BasePage:  basePage(r, h.Services),
 		Available: h.Services.PasswordReset.Available(),
-	}))
+	}
+	if !data.Available {
+		data.Admins = h.Services.PasswordReset.AdminContacts(r.Context())
+	}
+	h.render(w, r, pages.ForgotPassword(data))
 }
 
 // PageResetPassword handles GET /auth/password/reset/{token}. It only checks

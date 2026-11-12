@@ -277,3 +277,22 @@ func (s *UserStore) IsLastActiveSuperadmin(ctx context.Context, userID int64) (b
 	}
 	return last, nil
 }
+
+// ListActiveSuperadminUsernames returns up to limit active superadmins, oldest account first.
+func (s *UserStore) ListActiveSuperadminUsernames(ctx context.Context, limit int) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT username FROM users WHERE `+activeSuperadminCond+` ORDER BY id LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list superadmin usernames: %w", err)
+	}
+	defer rows.Close()
+	var names []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, fmt.Errorf("list superadmin usernames: %w", err)
+		}
+		names = append(names, n)
+	}
+	return names, rows.Err()
+}

@@ -75,7 +75,14 @@ type AdminSettingsData struct {
 	BasePage
 	Settings    []model.SiteSetting
 	Invitations []model.Invitation
+	Terms       string
 	Confirm     components.ConfirmFactors
+}
+
+// TermsData holds template data for the public terms page.
+type TermsData struct {
+	BasePage
+	HTML string
 }
 
 // AdminSettingsFragData holds template data for the admin settings HTMX fragment.

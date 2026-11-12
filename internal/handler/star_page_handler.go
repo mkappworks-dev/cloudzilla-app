@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -24,9 +25,13 @@ func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	starCount, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
+	canManage := false
+	if c, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, c.UserID)
+	}
 
 	h.render(w, withKnownAvatars(r, userAvatarKeys(stargazers)), pages.Stargazers(view.StargazersData{
-		BasePage:   basePage(r, h.Services),
+		BasePage:   h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:       *repo,
 		Owner:      owner,
 		RepoName:   repoName,

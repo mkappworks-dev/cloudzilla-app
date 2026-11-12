@@ -39,6 +39,7 @@
       </div>
     </div>
 
+    <nav id="code-tabs" aria-label="Section navigation" class="flex items-center gap-1 border-b border-border text-sm" hidden></nav>
     <div id="code-results" class="space-y-6"></div>
   </div>
 </main>
@@ -86,9 +87,24 @@
   var repoIn = document.getElementById('repo');
   var langIn = document.getElementById('lang');
 
+  var TABS = [['all', 'All'], ['repos', 'Repositories'], ['orgs', 'Organizations'], ['issues', 'Issues'], ['pulls', 'Pull requests'], ['users', 'Users'], ['code', 'Code']];
+  // The real page lists the same peers as /search; only Code is current here, and it alone carries a count.
+  function tabs(q, total) {
+    var nav = document.getElementById('code-tabs');
+    nav.hidden = !q;
+    nav.innerHTML = TABS.map(function (t) {
+      var code = t[0] === 'code';
+      var href = code ? 'code_search.html?q=' + encodeURIComponent(q) : 'search.html?q=' + encodeURIComponent(q) + '&type=' + t[0];
+      return '<a href="' + href + '"' + (code ? ' aria-current="page"' : '') + ' class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5 ' +
+        (code ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground') + '">' + t[1] +
+        (code && total ? '<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="' + total + (total === 1 ? ' item' : ' items') + '">' + total + '</span>' : '') + '</a>';
+    }).join('');
+  }
+
   function render(q, repo, lang) {
     var out = document.getElementById('code-results');
     document.title = (q ? 'Code search: ' + q : 'Code search') + ' — Cloudzilla';
+    tabs(q, 0);
     if (!q) {
       out.innerHTML = '<div class="rounded-md border border-border bg-card p-12 text-center"><p class="text-muted-foreground">Enter a search query above to search code across all repositories you can read.</p></div>';
       return;
@@ -105,6 +121,7 @@
         '<p class="text-sm text-muted-foreground mt-2">Files are indexed after each push. Empty or binary-only repos will return no results.</p></div>';
       return;
     }
+    tabs(q, hits.length);
     var summary = hits.length + ' ' + (hits.length === 1 ? 'result' : 'results') + ' matching "' + q + '"' +
       (repo ? ' in ' + repo : '') + (lang ? ' (' + lang + ')' : '');
     out.innerHTML = '<p class="text-sm text-muted-foreground px-1">' + esc(summary) + '</p>' +

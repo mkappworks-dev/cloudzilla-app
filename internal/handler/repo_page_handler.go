@@ -271,6 +271,15 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		branchProtections = []*model.BranchProtection{}
 	}
 
+	var branches []string
+	if refs, err := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch); err != nil {
+		slog.Warn("settings: branch list unavailable; default branch falls back to free text", "owner", owner, "repo", repoName, "error", err)
+	} else {
+		for _, b := range refs.Branches {
+			branches = append(branches, b.Name)
+		}
+	}
+
 	// Transfer/delete only for repo owner or org owner (not admin collaborators)
 	isOwner := h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID)
 	var pendingTransfer *model.RepoTransfer
@@ -288,6 +297,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		Labels:            labels,
 		DeployKeys:        deployKeys,
 		BranchProtections: branchProtections,
+		Branches:          branches,
 		CanManage:         canManage,
 		IsOwner:           isOwner,
 		PendingTransfer:   pendingTransfer,

@@ -26,7 +26,7 @@ var reservedOwnerNames = map[string]bool{
 	"invite": true, "issues": true, "latest": true, "login": true, "logout": true,
 	"new": true, "notifications": true, "oauth": true, "organizations": true, "orgs": true, "pulls": true,
 	"read-all": true, "readyz": true, "register": true, "repos": true, "search": true,
-	"settings": true, "setup": true, "stars": true, "static": true, "topic": true,
+	"settings": true, "setup": true, "stars": true, "static": true, "terms": true, "topic": true,
 	"unread-count": true, "verify-email": true,
 }
 

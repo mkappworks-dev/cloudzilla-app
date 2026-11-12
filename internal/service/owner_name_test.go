@@ -21,7 +21,7 @@ func TestValidateOwnerName(t *testing.T) {
 
 	invalid := []string{
 		"", ".", "..", "../x", "a/b", `a\b`, "a\x00", ".hidden", "-lead", "_lead", "a.b",
-		strings.Repeat("a", 40), "admin", "Admin", "API", "settings",
+		strings.Repeat("a", 40), "admin", "Admin", "API", "settings", "terms", "Terms",
 		"healthz", "HealthZ", "readyz", "READYZ",
 	}
 	for _, name := range invalid {
