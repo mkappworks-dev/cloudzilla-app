@@ -21,6 +21,8 @@ type repoNewSelectOption struct {
 	Value      string
 	Label      string
 	Visibility string // owner options only: the owner's default repo visibility
+	// DisabledReason, when set, shows the option but makes it unselectable.
+	DisabledReason string
 }
 
 func RepoNew(data view.RepoNewData) templ.Component {
@@ -70,7 +72,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(me).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 36, Col: 119}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 38, Col: 119}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -91,7 +93,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.DefaultName).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 45, Col: 210}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 47, Col: 210}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -261,7 +263,7 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 		ctx = templ.ClearChildren(ctx)
 		menuOptions := make([]components.SelectMenuOption, 0, len(options))
 		for _, opt := range options {
-			menuOptions = append(menuOptions, components.SelectMenuOption{Value: opt.Value, Label: opt.Label})
+			menuOptions = append(menuOptions, components.SelectMenuOption{Value: opt.Value, Label: opt.Label, DisabledReason: opt.DisabledReason})
 		}
 		templ_7745c5c3_Err = components.SelectMenu(id+"-btn", name, name, menuOptions, initial.Value, templ.Attributes{"id": id, "data-visibility": repoOwnerVisibility(options)}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {

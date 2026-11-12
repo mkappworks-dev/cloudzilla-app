@@ -95,6 +95,21 @@
 (function () {
   // ?existing shows the "already forked" notice; the real page renders it only when the user has a fork.
   if (/[?&]existing\b/.test(location.search)) document.getElementById('existing-forks').hidden = false;
+  // ?owns is the state where the signed-in user owns the source: their account stays listed, disabled, and the first organization is the default.
+  if (/[?&]owns\b/.test(location.search)) {
+    var me = document.querySelector('#fork-owner-btn + ul button[data-value=malith]');
+    me.disabled = true;
+    me.removeAttribute('data-value');
+    me.setAttribute('aria-disabled', 'true');
+    me.setAttribute('aria-selected', 'false');
+    me.className = 'w-full flex items-center gap-2 text-left px-2 py-1.5 text-[13px] rounded-sm cursor-not-allowed select-none text-muted-foreground';
+    me.innerHTML = '<span class="truncate">malith</span><span class="ml-auto pl-4 text-xs">Owns this repository</span>';
+    var first = document.querySelector('#fork-owner-btn + ul button[data-value=acme-corp]');
+    first.className += ' bg-accent text-foreground';
+    first.setAttribute('aria-selected', 'true');
+    document.getElementById('fork-owner').value = 'acme-corp';
+    document.querySelector('[data-cselect-label]').textContent = 'acme-corp';
+  }
   document.querySelectorAll('[data-cselect]').forEach(function (box) {
     var input = box.querySelector('input[type=hidden]');
     var btn = box.querySelector('button');

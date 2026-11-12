@@ -32,10 +32,6 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		var me string
-		if data.CurrentUser != nil {
-			me = data.CurrentUser.Username
-		}
 		templ_7745c5c3_Var2 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
@@ -60,7 +56,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_organization.templ`, Line: 29, Col: 138}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_organization.templ`, Line: 25, Col: 138}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -103,52 +99,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><fieldset class=\"space-y-3 border-t border-border pt-5\"><legend class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2\">This organization belongs to</legend> <label class=\"flex items-start gap-3 cursor-pointer\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = components.Radio(templ.Attributes{"value": "personal", "checked": "checked", "class": "mt-0.5"}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-sm\"><span class=\"font-medium block\">My personal account (")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(me)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_organization.templ`, Line: 68, Col: 66}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, ")</span> <span class=\"text-muted-foreground text-[12px]\">You will be the owner of this organization.</span></span></label> <label class=\"flex items-start gap-3\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = components.Radio(templ.Attributes{"value": "enterprise", "disabled": "disabled", "class": "mt-0.5"}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<span class=\"text-sm\"><span class=\"font-medium block text-muted-foreground\">An enterprise account</span> <span class=\"text-muted-foreground text-[12px]\">Not available.</span></span></label></fieldset><fieldset class=\"space-y-3 border-t border-border pt-5\"><legend class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2\">Plan</legend> <label class=\"flex items-start gap-3 cursor-pointer\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = components.Radio(templ.Attributes{"value": "free", "checked": "checked", "class": "mt-0.5"}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"text-sm\"><span class=\"font-medium block\">Free</span> <span class=\"text-muted-foreground text-[12px]\">Unlimited public and private repositories.</span></span></label> <label class=\"flex items-start gap-3\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = components.Radio(templ.Attributes{"value": "team", "disabled": "disabled", "class": "mt-0.5"}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<span class=\"text-sm\"><span class=\"font-medium block text-muted-foreground\">Team</span> <span class=\"text-muted-foreground text-[12px]\">Billing not yet supported.</span></span></label></fieldset><div class=\"border-t border-border pt-5\"><label class=\"flex items-start gap-3 cursor-pointer\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><p class=\"border-t border-border pt-5 text-sm text-muted-foreground\">You will be the owner of this organization.</p><div class=\"border-t border-border pt-5\"><label class=\"flex items-start gap-3 cursor-pointer\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -156,7 +107,29 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"text-sm\">I understand I'm responsible for this organization's content and conduct, and I agree to the <a href=\"/terms\" target=\"_blank\" rel=\"noopener\" class=\"underline underline-offset-2\">Terms of Service</a>.</span></label></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-sm\">I understand I'm responsible for this organization's content and conduct, and I agree to the <a href=\"/terms\" target=\"_blank\" rel=\"noopener\" class=\"underline underline-offset-2\">Terms of Service</a>.</span></label></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var4 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "Cancel")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.LinkButton("/organizations", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var4), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -172,29 +145,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "Cancel")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				return nil
-			})
-			templ_7745c5c3_Err = components.LinkButton("/organizations", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Var6 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-				if !templ_7745c5c3_IsBuffer {
-					defer func() {
-						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-						if templ_7745c5c3_Err == nil {
-							templ_7745c5c3_Err = templ_7745c5c3_BufErr
-						}
-					}()
-				}
-				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "Create organization")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "Create organization")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -204,11 +155,11 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 				"type":      "submit",
 				":disabled": "!name.trim() || !tos",
 				":class":    "(!name.trim() || !tos) ? 'opacity-50 cursor-not-allowed' : ''",
-			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var6), templ_7745c5c3_Buffer)
+			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About organizations\"><section aria-labelledby=\"no-about\"><h2 id=\"no-about\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">About organizations</h2><p class=\"text-[13px] text-muted-foreground leading-relaxed\">An organization is a shared account where multiple people own and manage repositories together. Access is granted at the organization level, so you set permissions in one place instead of per repository.</p></section><section aria-labelledby=\"no-tips\" class=\"border-t border-border pt-5\"><h2 id=\"no-tips\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Good to know</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground leading-relaxed\"><li>Organization names must be unique across Cloudzilla and form the URL of every repository under the organization.</li><li>You'll be the owner with full admin rights, and can promote others to owner later from organization settings.</li><li>Once the organization exists you can create repositories under it.</li><li>Visibility (public/private) is set per repository, not at the organization level.</li></ul></section></aside></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About organizations\"><section aria-labelledby=\"no-about\"><h2 id=\"no-about\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">About organizations</h2><p class=\"text-[13px] text-muted-foreground leading-relaxed\">An organization is a shared account where multiple people own and manage repositories together. Access is granted at the organization level, so you set permissions in one place instead of per repository.</p></section><section aria-labelledby=\"no-tips\" class=\"border-t border-border pt-5\"><h2 id=\"no-tips\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Good to know</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground leading-relaxed\"><li>Organization names must be unique across Cloudzilla and form the URL of every repository under the organization.</li><li>You'll be the owner with full admin rights, and can promote others to owner later from organization settings.</li><li>Once the organization exists you can create repositories under it.</li><li>Visibility (public/private) is set per repository, not at the organization level.</li></ul></section></aside></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

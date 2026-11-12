@@ -33,3 +33,22 @@ func TestSelectMenu(t *testing.T) {
 		t.Errorf("trigger should show only the selected option, got %s", trigger)
 	}
 }
+
+func TestSelectMenu_DisabledOptionShowsReasonAndTakesNoClick(t *testing.T) {
+	t.Parallel()
+	out := renderToString(t, SelectMenu("owner", "owner", "Owner", []SelectMenuOption{
+		{Value: "ada", Label: "ada", DisabledReason: "Owns this repository"},
+		{Value: "acme", Label: "acme"},
+	}, "acme", nil))
+
+	disabled := out[strings.Index(out, `id="owner-opt-0"`):strings.Index(out, `id="owner-opt-1"`)]
+	if !strings.Contains(disabled, `aria-disabled="true"`) || !strings.Contains(disabled, "Owns this repository") {
+		t.Errorf("disabled option lacks aria-disabled or its reason: %s", disabled)
+	}
+	if strings.Contains(disabled, "choose(") {
+		t.Errorf("disabled option must not be choosable: %s", disabled)
+	}
+	if !strings.Contains(out[strings.Index(out, `id="owner-opt-1"`):], "choose(1)") {
+		t.Error("enabled option lost its click handler")
+	}
+}
