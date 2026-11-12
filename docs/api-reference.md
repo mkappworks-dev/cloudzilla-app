@@ -622,19 +622,19 @@ pushing again is a force push in two steps. `git push --delete` is refused the s
 
 ## Releases
 
-| Method | Path                                                   | Auth     | Description                                                                                                                        |
-| ------ | ------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/releases`                     | --       | List releases                                                                                                                      |
-| POST   | `/api/repos/:owner/:repo/releases`                     | CanWrite | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`); 422 for a tag name git rejects or one already released |
-| GET    | `/api/repos/:owner/:repo/releases/latest`              | --       | Get the latest non-draft release                                                                                                   |
-| GET    | `/api/repos/:owner/:repo/releases/:id`                 | --       | Get release by ID                                                                                                                  |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id`                 | CanWrite | Update a release                                                                                                                   |
-| DELETE | `/api/repos/:owner/:repo/releases/:id`                 | CanWrite | Delete a release; HTMX requests return `HX-Redirect` to the releases list                                                          |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id/prerelease`      | CanWrite | Set `is_prerelease` (`true`; anything else clears it)                                                                              |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id/publish`         | CanWrite | Publish a draft; 422 when it is already published                                                                                  |
-| POST   | `/api/repos/:owner/:repo/releases/:id/assets`          | CanWrite | Upload one asset (multipart field `file`); 201 with the asset. See [Release assets](#release-assets)                               |
-| DELETE | `/api/repos/:owner/:repo/releases/:id/assets/:assetID` | CanWrite | Delete an asset; HTMX requests return `HX-Refresh`                                                                                 |
-| GET    | `/:owner/:repo/releases/download/:tag/:name`           | Optional | Download an asset (a web route, not under `/api`)                                                                                  |
+| Method | Path                                                   | Auth     | Description                                                                                                                                                  |
+| ------ | ------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/repos/:owner/:repo/releases`                     | --       | List releases                                                                                                                                                |
+| POST   | `/api/repos/:owner/:repo/releases`                     | CanWrite | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`); 422 for a tag name git rejects or one already released, with `field: "tag_name"` |
+| GET    | `/api/repos/:owner/:repo/releases/latest`              | --       | Get the latest non-draft release                                                                                                                             |
+| GET    | `/api/repos/:owner/:repo/releases/:id`                 | --       | Get release by ID                                                                                                                                            |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id`                 | CanWrite | Update a release                                                                                                                                             |
+| DELETE | `/api/repos/:owner/:repo/releases/:id`                 | CanWrite | Delete a release; HTMX requests return `HX-Redirect` to the releases list                                                                                    |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id/prerelease`      | CanWrite | Set `is_prerelease` (`true`; anything else clears it)                                                                                                        |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id/publish`         | CanWrite | Publish a draft; 422 when it is already published                                                                                                            |
+| POST   | `/api/repos/:owner/:repo/releases/:id/assets`          | CanWrite | Upload one asset (multipart field `file`); 201 with the asset. See [Release assets](#release-assets)                                                         |
+| DELETE | `/api/repos/:owner/:repo/releases/:id/assets/:assetID` | CanWrite | Delete an asset; HTMX requests return `HX-Refresh`                                                                                                           |
+| GET    | `/:owner/:repo/releases/download/:tag/:name`           | Optional | Download an asset (a web route, not under `/api`)                                                                                                            |
 
 ### Release assets
 

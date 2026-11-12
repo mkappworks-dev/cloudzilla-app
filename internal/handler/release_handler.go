@@ -388,6 +388,10 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 	release, err := h.Services.Release.Create(r.Context(), owner, repoName, tagName, target, name, body, isPrerelease, isDraft, claims.UserID)
 	if err != nil {
 		msg := releaseCreateErrorMessage(err, tagName)
+		if msg != "" && r.Header.Get("HX-Request") != "true" {
+			writeFieldError(w, http.StatusUnprocessableEntity, "tag_name", msg)
+			return
+		}
 		if msg == "" {
 			slog.Error("create release failed", "owner", owner, "repo", repoName, "tag", tagName, "error", err)
 			if r.Header.Get("HX-Request") == "true" {

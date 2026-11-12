@@ -147,10 +147,12 @@ type ReleasesData struct {
 
 type ReleaseNewData struct {
 	BasePage
-	Repo     model.Repository
-	Owner    string
-	RepoName string
-	Branches []service.BranchInfo
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	Branches      []service.BranchInfo
+	MaxAssetBytes int64
+	MaxAssets     int
 }
 
 type ReleaseBodyCardData struct {
