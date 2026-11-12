@@ -305,8 +305,8 @@ requester does not own, or names the current owner.
 A path that used to belong to a repository (see `repo_aliases`) redirects to the repository's current path, for the web
 site and `/api/repos/{owner}/{repo}/...` alike. The rest of the path and the query string are kept, and owner and
 repository names match case-insensitively. `GET` and `HEAD` get `301`; any other method gets `308`, so a client that
-follows it resends the method and body. An HTMX `GET` gets `204` with `HX-Redirect`. A live repository at the path always
-wins, and git transport paths are not handled here.
+follows it resends the method and body. An HTMX `GET` gets `204` with `HX-Redirect`. A live repository at the path
+always wins, and git transport paths are not handled here.
 
 A caller who cannot read the target, a path with no alias, and a target in the trash all get the missing-repository
 reply, byte for byte. The redirect is decided only after the normal handler has answered `404`, so a live path costs no
