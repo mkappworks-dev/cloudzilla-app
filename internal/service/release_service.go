@@ -35,10 +35,17 @@ type ReleaseService struct {
 	releases *store.ReleaseStore
 	repos    *store.RepoStore
 	code     *CodeService
+	assets   *ReleaseAssetService
 }
 
 func NewReleaseService(releases *store.ReleaseStore, repos *store.RepoStore, code *CodeService) *ReleaseService {
 	return &ReleaseService{releases: releases, repos: repos, code: code}
+}
+
+// WithAssets removes a deleted release's asset objects.
+func (s *ReleaseService) WithAssets(a *ReleaseAssetService) *ReleaseService {
+	s.assets = a
+	return s
 }
 
 // Create creates the tag on the tip of target (default branch when unset) when
@@ -273,5 +280,17 @@ func (s *ReleaseService) Delete(ctx context.Context, owner, repoName string, id 
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	return s.releases.Delete(ctx, id, repo.ID)
+	var assets []model.ReleaseAsset
+	if s.assets != nil {
+		if assets, err = s.assets.ListByRelease(ctx, id); err != nil {
+			return fmt.Errorf("list release assets: %w", err)
+		}
+	}
+	if err := s.releases.Delete(ctx, id, repo.ID); err != nil {
+		return err
+	}
+	if s.assets != nil {
+		s.assets.DeleteObjects(ctx, assets)
+	}
+	return nil
 }

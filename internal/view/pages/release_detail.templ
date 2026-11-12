@@ -1,9 +1,11 @@
 package pages
 
 import (
+	"encoding/json"
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -57,9 +59,28 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 						Editing:   false,
 					})
 
-					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="assets-heading">
+					<section
+						class="rounded-md border border-border bg-card overflow-hidden"
+						aria-labelledby="assets-heading"
+						if data.CanWrite {
+							x-data={ releaseAssetUploadConfig(data) }
+						}
+					>
 						<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
 							<h2 id="assets-heading" class="text-[13px] font-medium">Assets</h2>
+							<span class="text-[12px] text-muted-foreground">{ strconv.Itoa(len(data.Assets) + 1) }</span>
+							if data.CanWrite {
+								<input type="file" x-ref="file" @change="pick($event)" class="sr-only" tabindex="-1" aria-label="Choose a file to add as an asset"/>
+								<button
+									type="button"
+									@click="$refs.file.click()"
+									:disabled="busy"
+									class="ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] disabled:opacity-50 disabled:pointer-events-none"
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+									Add asset
+								</button>
+							}
 						</header>
 						<ul class="divide-y divide-border">
 							<li class="flex items-center gap-3 px-5 py-3">
@@ -73,7 +94,69 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 									Download
 								</a>
 							</li>
+							for _, a := range data.Assets {
+								<li class="flex items-center gap-3 px-5 py-3">
+									<svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+									<div class="min-w-0">
+										<p class="font-mono text-[13px] truncate">{ a.Name }</p>
+										<p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+											<span>{ humanBytes(a.Size) }</span>
+											<span aria-hidden="true">·</span>
+											<time datetime={ a.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(a.CreatedAt) }</time>
+											<span aria-hidden="true">·</span>
+											<span class="font-mono" title={ "SHA-256 " + a.SHA256 }>sha256:{ a.SHA256[:12] }</span>
+										</p>
+									</div>
+									<a
+										href={ templ.SafeURL(a.DownloadURL) }
+										class="ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0"
+										aria-label={ "Download " + a.Name }
+									>
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+										Download
+									</a>
+									if data.CanWrite {
+										<button
+											type="button"
+											hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/assets/" + strconv.FormatInt(a.ID, 10) }
+											hx-swap="none"
+											hx-confirm={ a.Name + " will be deleted from this release. The download link stops working." }
+											data-confirm-title="Delete this asset?"
+											data-confirm-label="Delete asset"
+											data-confirm-danger
+											data-toast="Asset deleted."
+											aria-label={ "Delete " + a.Name }
+											class="h-7 w-7 border border-border rounded-md hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 text-muted-foreground inline-flex items-center justify-center shrink-0"
+										>
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path></svg>
+										</button>
+									}
+								</li>
+							}
+							if len(data.Assets) == 0 {
+								<li class="px-5 py-3 text-[13px] text-muted-foreground">
+									if data.CanWrite {
+										No files attached yet. Add a binary, installer or checksum file.
+									} else {
+										No files attached.
+									}
+								</li>
+							}
 						</ul>
+						if data.CanWrite {
+							<div x-show="uploads.length" x-cloak class="border-t border-border px-5 py-3 flex flex-col gap-2">
+								<template x-for="u in uploads" :key="u.name">
+									<div class="flex items-center gap-3 text-[13px]">
+										<span class="font-mono min-w-0 truncate" x-text="u.name"></span>
+										<div class="ml-auto w-40 h-1.5 rounded-full bg-muted overflow-hidden shrink-0" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="u.pct" :aria-label="'Uploading ' + u.name">
+											<div class="h-full bg-primary transition-[width]" :style="'width:' + u.pct + '%'"></div>
+										</div>
+										<span class="w-9 text-right text-[12px] text-muted-foreground tabular-nums" x-text="u.pct + '%'"></span>
+									</div>
+								</template>
+							</div>
+							<p x-show="error" x-cloak role="alert" class="border-t border-border px-5 py-2.5 text-[12px] text-destructive" x-text="error"></p>
+						}
 					</section>
 
 				</div>
@@ -180,6 +263,7 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 
 		</div>
 		if data.CanWrite {
+			<script src={ assets.URL("/static/release-assets.js") } defer></script>
 			if data.Release.IsDraft {
 				@components.Dialog("rel-publish-dialog") {
 					@components.DialogHeader() {
@@ -256,6 +340,23 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 			}
 		}
 	}
+}
+
+// releaseAssetUploadConfig is the x-data expression for the Add asset control. The names let
+// the component refuse a duplicate before it sends the file.
+func releaseAssetUploadConfig(data view.ReleaseDetailData) string {
+	names := make([]string, len(data.Assets))
+	for i, a := range data.Assets {
+		names[i] = a.Name
+	}
+	cfg, _ := json.Marshal(map[string]any{
+		"url":       "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/assets",
+		"maxBytes":  data.MaxAssetBytes,
+		"maxLabel":  humanBytes(data.MaxAssetBytes),
+		"maxAssets": data.MaxAssets,
+		"names":     names,
+	})
+	return "releaseAssetUpload(" + string(cfg) + ")"
 }
 
 func releaseDetailTitle(data view.ReleaseDetailData) string {

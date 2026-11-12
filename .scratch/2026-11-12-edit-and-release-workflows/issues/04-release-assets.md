@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Effort | Score gain |
@@ -45,12 +45,12 @@ A release can't carry a file, though the pages describe releases as packaging do
 
 ## Acceptance criteria
 
-- [ ] A writer can upload, list, download and delete assets on a draft and a published release
-- [ ] Size, count and duplicate-name limits refuse with the right status and a visible message
-- [ ] Download enforces read access, hides draft assets from non-writers, and cannot run uploaded HTML on the origin
-- [ ] Deleting a release or repo removes its objects
-- [ ] Works on the local and S3 backends (storage tests)
-- [ ] Docs updated
+- [x] A writer can upload, list, download and delete assets on a draft and a published release
+- [x] Size, count and duplicate-name limits refuse with the right status and a visible message
+- [x] Download enforces read access, hides draft assets from non-writers, and cannot run uploaded HTML on the origin
+- [x] Deleting a release or repo removes its objects
+- [x] Works on the local and S3 backends (storage tests)
+- [x] Docs updated
 
 ## Mock updates
 
@@ -61,3 +61,12 @@ A release can't carry a file, though the pages describe releases as packaging do
 
 Throwaway server per the harness: upload a small and a large file, a duplicate, an over-limit file; download with
 `curl` signed in and out; check a draft as a non-writer. Light and dark at 1440.
+
+## Comments
+
+Claude, 2026-11-12: Built as scoped, with these differences. The upload is spooled to a temp file while hashing rather
+than streamed straight to the `Backend`, because S3 needs the content length before the first byte; the object is still
+written before the row. `middleware.IsStreamedUpload` exempts the upload route from the global form cap and from CSRF's
+form parse (a session must send `X-CSRF-Token`), and the handler lifts the server's read and write deadlines. A repo
+purge deletes its objects; deleting a user or an org drops the rows but leaves the objects as documented orphans
+(`docs/storage.md`). `releases.html` shows no asset count, so it is unchanged.

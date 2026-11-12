@@ -597,16 +597,47 @@ pushing again is a force push in two steps. `git push --delete` is refused the s
 
 ## Releases
 
-| Method | Path                                              | Auth     | Description                                                                                                                        |
-| ------ | ------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/releases`                | --       | List releases                                                                                                                      |
-| POST   | `/api/repos/:owner/:repo/releases`                | CanWrite | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`); 422 for a tag name git rejects or one already released |
-| GET    | `/api/repos/:owner/:repo/releases/latest`         | --       | Get the latest non-draft release                                                                                                   |
-| GET    | `/api/repos/:owner/:repo/releases/:id`            | --       | Get release by ID                                                                                                                  |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id`            | CanWrite | Update a release                                                                                                                   |
-| DELETE | `/api/repos/:owner/:repo/releases/:id`            | CanWrite | Delete a release; HTMX requests return `HX-Redirect` to the releases list                                                          |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id/prerelease` | CanWrite | Set `is_prerelease` (`true`; anything else clears it)                                                                              |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id/publish`    | CanWrite | Publish a draft; 422 when it is already published                                                                                  |
+| Method | Path                                                   | Auth     | Description                                                                                                                        |
+| ------ | ------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/releases`                     | --       | List releases                                                                                                                      |
+| POST   | `/api/repos/:owner/:repo/releases`                     | CanWrite | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`); 422 for a tag name git rejects or one already released |
+| GET    | `/api/repos/:owner/:repo/releases/latest`              | --       | Get the latest non-draft release                                                                                                   |
+| GET    | `/api/repos/:owner/:repo/releases/:id`                 | --       | Get release by ID                                                                                                                  |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id`                 | CanWrite | Update a release                                                                                                                   |
+| DELETE | `/api/repos/:owner/:repo/releases/:id`                 | CanWrite | Delete a release; HTMX requests return `HX-Redirect` to the releases list                                                          |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id/prerelease`      | CanWrite | Set `is_prerelease` (`true`; anything else clears it)                                                                              |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id/publish`         | CanWrite | Publish a draft; 422 when it is already published                                                                                  |
+| POST   | `/api/repos/:owner/:repo/releases/:id/assets`          | CanWrite | Upload one asset (multipart field `file`); 201 with the asset. See [Release assets](#release-assets)                               |
+| DELETE | `/api/repos/:owner/:repo/releases/:id/assets/:assetID` | CanWrite | Delete an asset; HTMX requests return `HX-Refresh`                                                                                 |
+| GET    | `/:owner/:repo/releases/download/:tag/:name`           | Optional | Download an asset (a web route, not under `/api`)                                                                                  |
+
+### Release assets
+
+`GET` on a release, on `/releases/latest` and on the list adds an `assets` array: `id`, `release_id`, `name`, `size`,
+`sha256`, `uploader_id`, `created_at` and `download_url`. A draft's `assets` is empty unless the caller has `CanWrite`.
+
+Uploads work on a draft or a published release and take one file per request. Send `X-CSRF-Token` with a session, or a
+Bearer token:
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" -F file=@app-1.0.tar.gz \
+  https://git.example.com/api/repos/ada/app/releases/7/assets
+```
+
+The name is cleaned to `[A-Za-z0-9._-]` (anything else becomes `-`) and cut to 100 characters, keeping its extension.
+Limits come from `release.max_asset_bytes` and `release.max_assets` ([configuration](./configuration.md)):
+
+| Status | Meaning                                            |
+| ------ | -------------------------------------------------- |
+| 409    | The release already has an asset with this name    |
+| 413    | The file is over `release.max_asset_bytes`         |
+| 422    | The release is at `release.max_assets`, or no file |
+
+`GET /:owner/:repo/releases/download/:tag/:name` checks read access on every request. A draft's assets are served to
+writers only, and an unreadable repo, a draft, an unknown tag and an unknown name are the same 404. The response is
+`application/octet-stream` with `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff` and
+`Content-Security-Policy: default-src 'none'; sandbox`, so an uploaded HTML file can't run on the instance's origin.
+Percent-encode a tag that contains `/`. The `ETag` is the file's SHA-256 and `Cache-Control` is `private, no-cache`.
 
 ## Commit Statuses
 

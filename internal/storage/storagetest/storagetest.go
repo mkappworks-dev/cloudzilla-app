@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
@@ -58,6 +59,35 @@ func Run(t *testing.T, b storage.Backend, prefix string) {
 	t.Run("DeleteMissingIsNil", func(t *testing.T) {
 		if err := b.Delete(ctx, key("never-written.png")); err != nil {
 			t.Errorf("Delete missing: %v", err)
+		}
+	})
+
+	t.Run("PutFileBodyAsReleaseAssets", func(t *testing.T) {
+		// Release assets are spooled to a temp file and put with their exact size.
+		data := bytes.Repeat([]byte("0123456789abcdef"), 1<<18)
+		f, err := os.CreateTemp(t.TempDir(), "asset-*")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = f.Close() }()
+		if _, err := f.Write(data); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			t.Fatal(err)
+		}
+		k := key("releases/repo/1/2/0123456789abcdef0123456789abcdef.bin")
+		if err := b.Put(ctx, k, f, int64(len(data))); err != nil {
+			t.Fatalf("Put: %v", err)
+		}
+		if got := get(t, b, k); got != string(data) {
+			t.Errorf("Get returned %d bytes, want %d", len(got), len(data))
+		}
+		if err := b.Delete(ctx, k); err != nil {
+			t.Fatalf("Delete: %v", err)
+		}
+		if ok, err := b.Exists(ctx, k); err != nil || ok {
+			t.Errorf("Exists after delete = %v, %v; want false", ok, err)
 		}
 	})
 

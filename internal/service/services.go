@@ -27,6 +27,7 @@ type Services struct {
 	Assignee           *AssigneeService
 	Star               *StarService
 	Release            *ReleaseService
+	ReleaseAsset       *ReleaseAssetService
 	CommitStatus       *CommitStatusService
 	Milestone          *MilestoneService
 	PullReview         *PullReviewService
@@ -75,11 +76,12 @@ type Services struct {
 	Secrets *secretbox.Box
 }
 
-// WithStorage gives the avatar and attachment services their object store.
+// WithStorage gives the avatar, attachment and release asset services their object store.
 // Until it is called, uploads fail with ErrStorageUnconfigured.
 func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Avatar.WithBackend(b)
 	s.Attachment.WithBackend(b)
+	s.ReleaseAsset.WithBackend(b)
 	return s
 }
 
@@ -119,6 +121,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	avatarSvc := NewAvatarService(stores.User, stores.Org, stores.Avatar, orgSvc)
 	attachmentSvc := NewAttachmentService(stores.Attachment)
 	repoSvc.WithAttachments(attachmentSvc)
+	releaseAssetSvc := NewReleaseAssetService(stores.ReleaseAsset, cfg.Release)
+	repoSvc.WithReleaseAssets(releaseAssetSvc)
 	userSvc.WithAvatars(avatarSvc)
 	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
@@ -147,7 +151,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Label:              NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull, stores.Discussion),
 		Assignee:           NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User).WithThreadSubscriptions(threadSubSvc),
 		Star:               NewStarService(stores.Star, stores.Repo, stores.User),
-		Release:            NewReleaseService(stores.Release, stores.Repo, code),
+		Release:            NewReleaseService(stores.Release, stores.Repo, code).WithAssets(releaseAssetSvc),
+		ReleaseAsset:       releaseAssetSvc,
 		CommitStatus:       commitStatusSvc,
 		Milestone:          NewMilestoneService(stores.Milestone, stores.Repo),
 		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection).WithThreadSubscriptions(threadSubSvc),

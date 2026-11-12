@@ -191,11 +191,11 @@ scrape_configs:
 ### Backup and restore
 
 `cz-admin backup` writes one uncompressed tar holding the database (`pg_dump --format=custom`), every repository under
-`git.repos_root`, the local storage root (avatars, when `storage.backend` is `local`) and the SSH host key.
-`cz-admin restore` rebuilds an empty instance from it. Both run `pg_dump` / `pg_restore` from `PATH`; the Docker image
-includes `postgresql18-client`. On a binary install, add your OS's client package. Its major version must be at least
-the server's: `backup` fails, naming the version needed, when the client is missing or older. `--pg-dump` and
-`--pg-restore` point at a specific binary.
+`git.repos_root`, the local storage root (avatars, attachments and release assets, when `storage.backend` is `local`)
+and the SSH host key. `cz-admin restore` rebuilds an empty instance from it. Both run `pg_dump` / `pg_restore` from
+`PATH`; the Docker image includes `postgresql18-client`. On a binary install, add your OS's client package. Its major
+version must be at least the server's: `backup` fails, naming the version needed, when the client is missing or older.
+`--pg-dump` and `--pg-restore` point at a specific binary.
 
 **The archive holds password hashes, webhook and TOTP secrets, every private repository and the SSH host key's private
 half.** Store it encrypted and mode 0600 (the file is created that way).

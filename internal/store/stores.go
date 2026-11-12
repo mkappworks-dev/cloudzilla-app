@@ -23,6 +23,7 @@ type Stores struct {
 	Assignee           *AssigneeStore
 	Star               *StarStore
 	Release            *ReleaseStore
+	ReleaseAsset       *ReleaseAssetStore
 	CommitStatus       *CommitStatusStore
 	Milestone          *MilestoneStore
 	PullReview         *PullReviewStore
@@ -83,6 +84,7 @@ func New(database *sql.DB) *Stores {
 		Assignee:           NewAssigneeStore(database),
 		Star:               NewStarStore(database),
 		Release:            NewReleaseStore(database),
+		ReleaseAsset:       NewReleaseAssetStore(database),
 		CommitStatus:       NewCommitStatusStore(database),
 		Milestone:          NewMilestoneStore(database),
 		PullReview:         NewPullReviewStore(database),

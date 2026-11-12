@@ -239,6 +239,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases", h.PageReleases)
 	r.With(authMW).Get("/{owner}/{repo}/releases/new", h.PageReleaseNew)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
+	r.With(optAuthMW).Get("/{owner}/{repo}/releases/download/{tag}/{name}", h.DownloadReleaseAsset)
+	r.With(optAuthMW).Head("/{owner}/{repo}/releases/download/{tag}/{name}", h.DownloadReleaseAsset)
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
 	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
 	r.With(authMW).Get("/{owner}/{repo}/milestones/new", h.PageNewMilestone)
@@ -341,6 +343,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Not under /api/repos: GET /api/repos/import/{id} would shadow /api/repos/{owner}/{repo} for a user named "import".
 	r.With(authMW, apiBodyLimit).Post("/api/imports", h.StartImport)
 	r.With(authMW).Get("/api/imports/{id}", h.GetImportJob)
+
+	// Outside /api/repos, whose group applies the 1 MB JSON cap.
+	r.With(authMW, middleware.MaxBodySize(cfg.Release.MaxAssetBytes+handler.ReleaseAssetBodyOverhead)).
+		Post("/api/repos/{owner}/{repo}/releases/{id}/assets", h.UploadReleaseAsset)
 
 	// Repo routes
 	r.Route("/api/repos", func(r chi.Router) {
@@ -479,6 +485,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 			r.With(authMW).Patch("/{id}/body", h.EditReleaseBody)
 			r.With(authMW).Patch("/{id}/prerelease", h.EditReleasePrerelease)
 			r.With(authMW).Patch("/{id}/publish", h.PublishRelease)
+			r.With(authMW).Delete("/{id}/assets/{assetID}", h.DeleteReleaseAsset)
 		})
 
 		// Commit statuses

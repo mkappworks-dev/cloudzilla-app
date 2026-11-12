@@ -213,3 +213,66 @@ func TestMaxFormBodySize_PassesAFormUnderTheCap(t *testing.T) {
 		})
 	}
 }
+
+func assetUploadRequest(contentType string, body []byte) (*http.Request, *countingReader) {
+	counted := &countingReader{r: bytes.NewReader(body)}
+	req := httptest.NewRequest(http.MethodPost, "/api/repos/owner/repo/releases/7/assets", counted)
+	req.Header.Set("Content-Type", contentType)
+	return req, counted
+}
+
+func TestStreamedUpload_SkipsTheFormCapAndCSRFParse(t *testing.T) {
+	contentType, form := multipartForm(t, "", overCap)
+
+	t.Run("a Bearer caller reaches the route with the body unread and uncapped", func(t *testing.T) {
+		req, body := assetUploadRequest(contentType, form)
+		req.Header.Set("Authorization", "Bearer x")
+		var read int64
+		formChain(func(_ http.ResponseWriter, r *http.Request) {
+			read, _ = io.Copy(io.Discard, r.Body)
+		}).ServeHTTP(httptest.NewRecorder(), req)
+		if read != int64(len(form)) || body.n != len(form) {
+			t.Errorf("route read %d of %d bytes", read, len(form))
+		}
+	})
+
+	t.Run("a caller without the header is refused before any byte is read", func(t *testing.T) {
+		req, body := assetUploadRequest(contentType, form)
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: testCSRFToken})
+		rec := httptest.NewRecorder()
+		routeRan := false
+		formChain(func(http.ResponseWriter, *http.Request) { routeRan = true }).ServeHTTP(rec, req)
+		if rec.Code != http.StatusForbidden || routeRan || body.n != 0 {
+			t.Errorf("got %d, route ran %v, read %d bytes; want 403, false, 0", rec.Code, routeRan, body.n)
+		}
+	})
+
+	t.Run("the CSRF header lets a session through", func(t *testing.T) {
+		req, _ := assetUploadRequest(contentType, form)
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: testCSRFToken})
+		req.Header.Set("X-CSRF-Token", testCSRFToken)
+		rec := httptest.NewRecorder()
+		formChain(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }).ServeHTTP(rec, req)
+		if rec.Code != http.StatusNoContent {
+			t.Errorf("got %d, want 204", rec.Code)
+		}
+	})
+}
+
+func TestIsStreamedUpload(t *testing.T) {
+	for _, tc := range []struct {
+		method, path string
+		want         bool
+	}{
+		{http.MethodPost, "/api/repos/o/r/releases/7/assets", true},
+		{http.MethodGet, "/api/repos/o/r/releases/7/assets", false},
+		{http.MethodPost, "/api/repos/o/r/releases/x/assets", false},
+		{http.MethodPost, "/api/repos/o/r/releases/7/assets/1", false},
+		{http.MethodPost, "/api/repos/o/r/issues/7/assets", false},
+		{http.MethodPost, "/o/r/new/main", false},
+	} {
+		if got := IsStreamedUpload(httptest.NewRequest(tc.method, tc.path, nil)); got != tc.want {
+			t.Errorf("%s %s = %v, want %v", tc.method, tc.path, got, tc.want)
+		}
+	}
+}

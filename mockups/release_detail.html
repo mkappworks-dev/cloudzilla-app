@@ -98,11 +98,18 @@ No migrations are required. The dependency graph is computed on first view and c
         </form>
       </section>
 
+      <!-- ?state=empty | uploading | error shows the other Assets card states -->
       <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="assets-heading">
         <header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
           <h2 id="assets-heading" class="text-[13px] font-medium">Assets</h2>
+          <span id="assets-count" class="text-[12px] text-muted-foreground">3</span>
+          <input type="file" id="asset-file" class="sr-only" tabindex="-1" aria-label="Choose a file to add as an asset" />
+          <button type="button" id="asset-add" class="ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] disabled:opacity-50 disabled:pointer-events-none">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+            Add asset
+          </button>
         </header>
-        <ul class="divide-y divide-border">
+        <ul id="asset-list" class="divide-y divide-border">
           <li class="flex items-center gap-3 px-5 py-3">
             <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             <span class="font-mono text-[13px] min-w-0 truncate">Source code (zip)</span>
@@ -111,7 +118,58 @@ No migrations are required. The dependency graph is computed on first view and c
               Download
             </a>
           </li>
+          <li class="flex items-center gap-3 px-5 py-3" data-asset>
+            <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <div class="min-w-0">
+              <p class="font-mono text-[13px] truncate">cloudzilla-0.2.0-linux-amd64.tar.gz</p>
+              <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+                <span>18.4 MB</span>
+                <span aria-hidden="true">·</span>
+                <time datetime="2026-11-10T09:30:00Z">Nov 10, 2026</time>
+                <span aria-hidden="true">·</span>
+                <span class="font-mono" title="SHA-256 9f2c41d7a0b35e8c6d1f7a4b2e9083c5d6f1a7b8c3e2d4f50691a8b7c6d5e4f3">sha256:9f2c41d7a0b3</span>
+              </p>
+            </div>
+            <a href="#" onclick="czToast('Downloading cloudzilla-0.2.0-linux-amd64.tar.gz (mock)'); return false" aria-label="Download cloudzilla-0.2.0-linux-amd64.tar.gz" class="ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Download
+            </a>
+            <button type="button" data-open="asset-delete-dialog" data-name="cloudzilla-0.2.0-linux-amd64.tar.gz" aria-label="Delete cloudzilla-0.2.0-linux-amd64.tar.gz" class="h-7 w-7 border border-border rounded-md hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 text-muted-foreground inline-flex items-center justify-center shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path></svg>
+            </button>
+          </li>
+          <li class="flex items-center gap-3 px-5 py-3" data-asset>
+            <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <div class="min-w-0">
+              <p class="font-mono text-[13px] truncate">SHA256SUMS</p>
+              <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+                <span>412 B</span>
+                <span aria-hidden="true">·</span>
+                <time datetime="2026-11-10T09:30:00Z">Nov 10, 2026</time>
+                <span aria-hidden="true">·</span>
+                <span class="font-mono" title="SHA-256 3b7e91c0d4a2f68e5c1b9d7a3f0e8264b5c7d9a1e3f2046c8b7a5d4e3f1c0b9a">sha256:3b7e91c0d4a2</span>
+              </p>
+            </div>
+            <a href="#" onclick="czToast('Downloading SHA256SUMS (mock)'); return false" aria-label="Download SHA256SUMS" class="ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Download
+            </a>
+            <button type="button" data-open="asset-delete-dialog" data-name="SHA256SUMS" aria-label="Delete SHA256SUMS" class="h-7 w-7 border border-border rounded-md hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 text-muted-foreground inline-flex items-center justify-center shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path></svg>
+            </button>
+          </li>
+          <li id="asset-empty" class="px-5 py-3 text-[13px] text-muted-foreground">No files attached yet. Add a binary, installer or checksum file.</li>
         </ul>
+        <div id="asset-uploading" class="hidden border-t border-border px-5 py-3 flex-col gap-2">
+          <div class="flex items-center gap-3 text-[13px]">
+            <span class="font-mono min-w-0 truncate">cloudzilla-0.2.0-darwin-arm64.tar.gz</span>
+            <div class="ml-auto w-40 h-1.5 rounded-full bg-muted overflow-hidden shrink-0" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62" aria-label="Uploading cloudzilla-0.2.0-darwin-arm64.tar.gz">
+              <div class="h-full bg-primary" style="width:62%"></div>
+            </div>
+            <span class="w-9 text-right text-[12px] text-muted-foreground tabular-nums">62%</span>
+          </div>
+        </div>
+        <p id="asset-error" role="alert" class="hidden border-t border-border px-5 py-2.5 text-[12px] text-destructive">This release already has an asset named SHA256SUMS.</p>
       </section>
 
     </div>
@@ -189,6 +247,17 @@ No migrations are required. The dependency graph is computed on first view and c
   </div>
 </dialog>
 
+<dialog id="asset-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="asset-delete-title">
+  <div class="p-5">
+    <h2 id="asset-delete-title" class="text-base font-semibold tracking-tight mb-1">Delete this asset?</h2>
+    <p class="text-[13px] text-muted-foreground leading-relaxed mb-5"><span id="asset-delete-name" class="font-mono"></span> will be deleted from this release. The download link stops working.</p>
+    <div class="flex justify-end gap-2">
+      <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" id="asset-delete-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Delete asset</button>
+    </div>
+  </div>
+</dialog>
+
 <script>
 (function () {
   document.querySelectorAll('[data-open]').forEach(function (b) {
@@ -226,6 +295,50 @@ No migrations are required. The dependency graph is computed on first view and c
   descBtn.addEventListener('click', function () { editDesc(true); });
   document.getElementById('desc-cancel').addEventListener('click', function () { editDesc(false); });
   descForm.addEventListener('submit', function (e) { e.preventDefault(); editDesc(false); });
+
+  var assetList = document.getElementById('asset-list');
+  var assetCount = document.getElementById('assets-count');
+  var assetEmpty = document.getElementById('asset-empty');
+  var assetUploading = document.getElementById('asset-uploading');
+  var assetError = document.getElementById('asset-error');
+  var assetAdd = document.getElementById('asset-add');
+  var pendingRow = null;
+  function syncAssets() {
+    var n = assetList.querySelectorAll('[data-asset]').length;
+    assetCount.textContent = n + 1;
+    // Detached rather than hidden: divide-y styles every child but the last.
+    if (n > 0) assetEmpty.remove();
+    else if (!assetEmpty.isConnected) assetList.appendChild(assetEmpty);
+  }
+  assetList.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-open="asset-delete-dialog"]');
+    if (!b) return;
+    pendingRow = b.closest('li');
+    document.getElementById('asset-delete-name').textContent = b.dataset.name;
+  });
+  document.getElementById('asset-delete-ok').addEventListener('click', function () {
+    if (pendingRow) pendingRow.remove();
+    pendingRow = null;
+    document.getElementById('asset-delete-dialog').close();
+    syncAssets();
+    czToast('Asset deleted.');
+  });
+  assetAdd.addEventListener('click', function () { document.getElementById('asset-file').click(); });
+  document.getElementById('asset-file').addEventListener('change', function (e) {
+    if (e.target.files[0]) czToast('Uploading ' + e.target.files[0].name + ' (mock)');
+    e.target.value = '';
+  });
+  var state = new URLSearchParams(location.search).get('state');
+  if (state === 'empty') {
+    assetList.querySelectorAll('[data-asset]').forEach(function (li) { li.remove(); });
+  } else if (state === 'uploading') {
+    assetUploading.classList.remove('hidden');
+    assetUploading.classList.add('flex');
+    assetAdd.disabled = true;
+  } else if (state === 'error') {
+    assetError.classList.remove('hidden');
+  }
+  syncAssets();
 })();
 </script>
 <script src="markdown-editor.js"></script>

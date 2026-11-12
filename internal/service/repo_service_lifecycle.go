@@ -99,6 +99,14 @@ func (s *RepoService) GetDeleted(ctx context.Context, ownerName, name string) (*
 
 func (s *RepoService) PurgeExpired(ctx context.Context) error {
 	cutoff := time.Now().Add(-30 * 24 * time.Hour)
+	// The purge cascades to the asset rows, so their keys are read first.
+	var assets []model.ReleaseAsset
+	if s.releaseAssets != nil {
+		var err error
+		if assets, err = s.releaseAssets.listByReposDeletedBefore(ctx, cutoff); err != nil {
+			slog.Warn("repo purge: list release assets failed; their objects stay as orphans", "error", err)
+		}
+	}
 	expired, err := s.repos.PurgeExpired(ctx, cutoff)
 	if err != nil {
 		return fmt.Errorf("purge expired repos: %w", err)
@@ -106,6 +114,9 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 	for _, r := range expired {
 		removeDeletedCopy(s.cfg.ReposRoot, r)
 		s.removeStrandedWiki(ctx, r.OwnerName, r.Name)
+		if s.releaseAssets != nil {
+			s.releaseAssets.DeleteObjects(ctx, assetsOfRepo(assets, r.ID))
+		}
 		if s.attachments != nil {
 			if err := s.attachments.DeleteForRepo(ctx, r.ID); err != nil {
 				slog.Warn("repo purge: delete attachments failed; the sweep will retry", "repo_id", r.ID, "error", err)
@@ -113,4 +124,14 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func assetsOfRepo(assets []model.ReleaseAsset, repoID int64) []model.ReleaseAsset {
+	var out []model.ReleaseAsset
+	for _, a := range assets {
+		if a.RepoID == repoID {
+			out = append(out, a)
+		}
+	}
+	return out
 }

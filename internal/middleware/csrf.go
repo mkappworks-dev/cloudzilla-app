@@ -66,7 +66,7 @@ func CSRF(secure bool) func(http.Handler) http.Handler {
 
 			// Validate CSRF token from header (HTMX/AJAX) or form field (plain HTML forms)
 			submitted := r.Header.Get("X-CSRF-Token")
-			if submitted == "" {
+			if submitted == "" && !IsStreamedUpload(r) {
 				if tooLarge := parseForm(r); tooLarge != nil {
 					http.Error(w, "request body is larger than "+sizeText(tooLarge.Limit), http.StatusRequestEntityTooLarge)
 					return
