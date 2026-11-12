@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none
 
 | Branch                  | Worktree                          | PR title                                            | Effort |
@@ -36,13 +36,13 @@ ends.
 
 ## Acceptance criteria
 
-- [ ] Migration applies on a populated DB and on a fresh one
-- [ ] `Resolve` is case-insensitive and ignores aliases of soft-deleted repos
-- [ ] Creating, forking, importing or restoring onto an alias name succeeds and removes the alias
-- [ ] Restoring a repo whose old name is now held succeeds without the conflicting alias
-- [ ] Purging a repo removes its aliases (cascade)
-- [ ] Two aliases cannot share a path, case-insensitively
-- [ ] No live-path lookup pays for the alias table (`RepoService.Get` unchanged)
+- [x] Migration applies on a populated DB and on a fresh one
+- [x] `Resolve` is case-insensitive and ignores aliases of soft-deleted repos
+- [x] Creating, forking, importing or restoring onto an alias name succeeds and removes the alias
+- [x] Restoring a repo whose old name is now held succeeds without the conflicting alias
+- [x] Purging a repo removes its aliases (cascade)
+- [x] Two aliases cannot share a path, case-insensitively
+- [x] No live-path lookup pays for the alias table (`RepoService.Get` unchanged)
 
 ## Verification
 

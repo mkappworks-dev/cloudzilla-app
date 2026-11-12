@@ -96,7 +96,10 @@ func (s *RepoStore) Create(ctx context.Context, r *model.Repository) error {
 func (s *RepoStore) CreateWithOwnerName(ctx context.Context, r *model.Repository) error {
 	now := time.Now().UTC()
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO repositories (owner_id, owner_name, org_id, created_by, name, description, private, default_branch, created_at, updated_at)
+		`WITH dropped AS (
+		   DELETE FROM repo_aliases WHERE lower(owner_name) = lower($2) AND lower(name) = lower($5)
+		 )
+		 INSERT INTO repositories (owner_id, owner_name, org_id, created_by, name, description, private, default_branch, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
 		nullID(r.OwnerID), r.OwnerName, nullID(r.OrgID), nullID(r.CreatedBy), r.Name, r.Description, r.Private, r.DefaultBranch, now, now,
 	).Scan(&r.ID)
@@ -441,7 +444,10 @@ func (s *RepoStore) ListPermissionsByUser(ctx context.Context, userID int64) ([]
 func (s *RepoStore) Fork(ctx context.Context, r *model.Repository) error {
 	now := time.Now().UTC()
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO repositories (owner_id, owner_name, org_id, created_by, name, description, private, default_branch, is_fork, fork_of_id, created_at, updated_at)
+		`WITH dropped AS (
+		   DELETE FROM repo_aliases WHERE lower(owner_name) = lower($2) AND lower(name) = lower($5)
+		 )
+		 INSERT INTO repositories (owner_id, owner_name, org_id, created_by, name, description, private, default_branch, is_fork, fork_of_id, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, $9, $10, $11) RETURNING id`,
 		nullID(r.OwnerID), r.OwnerName, nullID(r.OrgID), nullID(r.CreatedBy), r.Name, r.Description, r.Private, r.DefaultBranch, r.ForkOfID, now, now,
 	).Scan(&r.ID)
@@ -628,15 +634,42 @@ func (s *RepoStore) Delete(ctx context.Context, repoID int64, ownerName string, 
 	return requireRow(res, "soft delete repo")
 }
 
+// Restore also drops the aliases the restored path outranks: a live repo beats
+// an alias, including one that points at a trashed repo.
 func (s *RepoStore) Restore(ctx context.Context, repoID int64) error {
-	res, err := s.db.ExecContext(ctx,
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("restore repo begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx,
 		`UPDATE repositories SET deleted_at = NULL, deleted_by = NULL, updated_at = NOW() WHERE id = $1 AND deleted_at IS NOT NULL`,
 		repoID,
 	)
 	if err != nil {
 		return repoWriteErr("restore repo", err)
 	}
-	return requireRow(res, "restore repo")
+	if err := requireRow(res, "restore repo"); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM repo_aliases a
+		  USING repositories r
+		  WHERE r.id = $1
+		    AND ((lower(a.owner_name) = lower(r.owner_name) AND lower(a.name) = lower(r.name))
+		      OR (a.repo_id = r.id AND EXISTS (
+		            SELECT 1 FROM repositories l
+		             WHERE l.id <> r.id AND l.deleted_at IS NULL
+		               AND lower(l.owner_name) = lower(a.owner_name) AND lower(l.name) = lower(a.name))))`,
+		repoID,
+	); err != nil {
+		return fmt.Errorf("restore repo drop aliases: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("restore repo commit: %w", err)
+	}
+	return nil
 }
 
 func (s *RepoStore) GetDeletedByID(ctx context.Context, id int64) (*model.Repository, error) {
