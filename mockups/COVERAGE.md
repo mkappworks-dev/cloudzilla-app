@@ -91,6 +91,8 @@ Some controls and forms have no behaviour. In particular:
 - **File deletion** in `blob.html`: confirmation shows feedback but leaves the file displayed.
 - **Mock-only state:** `account_settings.html?smtp=off` shows the Email section with no outgoing email (no Add email
   button, the note instead).
+- **Mock-only state:** `settings.html?rename=error` shows the Rename form refused because the name is taken. The mock
+  checks names against a short built-in list and renames nothing on the server.
 - **Disabled in the real app too:** the Teams panel in `org_settings.html`.
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
 - **Auth states:** the sign-in error banner, the email-first signup flow, expired and invalid reset or verify links, and

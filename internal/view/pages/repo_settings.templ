@@ -164,47 +164,76 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form hx-post={ "/" + data.Owner + "/" + data.RepoName + "/settings/general" } hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#repo-general-form-error').textContent=''" data-toast="Repository settings saved" class="space-y-5">
-									<div id="repo-general-form-error" class="empty:hidden"></div>
-									<div class="space-y-1.5">
-										<label for="repo-name" class="block text-sm font-medium">Repository name</label>
-										<input id="repo-name" type="text" value={ data.RepoName } readonly class="h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-sm text-muted-foreground"/>
-										<p class="text-xs text-muted-foreground">Renaming from settings is not yet available.</p>
-									</div>
-									<div class="space-y-1.5">
-										<label for="repo-description" class="block text-sm font-medium">Description</label>
-										<textarea id="repo-description" name="description" rows="2" placeholder="Short description of this repository" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring">{ data.Repo.Description }</textarea>
-									</div>
-									<div class="space-y-1.5">
-										<label for="repo-website" class="block text-sm font-medium">Homepage URL</label>
-										<input id="repo-website" type="url" name="website" value={ data.Repo.Website } placeholder="https://example.com" class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
-									</div>
-									<div class="space-y-1.5">
-										<label for="repo-default-branch" class="block text-sm font-medium">Default branch</label>
-										if len(data.Branches) > 0 {
-											<select id="repo-default-branch" name="default_branch" disabled?={ data.Repo.ContentReadOnly() } class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring disabled:text-muted-foreground">
-												for _, b := range data.Branches {
-													if b == data.Repo.DefaultBranch {
-														<option value={ b } selected>{ b }</option>
-													} else {
-														<option value={ b }>{ b }</option>
-													}
+								<div class="space-y-5">
+									if data.CanManage {
+										<form
+											hx-post={ "/" + data.Owner + "/" + data.RepoName + "/settings/rename" }
+											hx-swap="none"
+											data-toast="Repository renamed"
+											x-data={ templ.JSONString(map[string]string{"owner": data.Owner, "current": data.RepoName, "name": data.RepoName}) }
+											class="space-y-1.5"
+										>
+											<label for="repo-name" class="block text-sm font-medium">Repository name</label>
+											<div id="repo-rename-form-error" class="empty:hidden"></div>
+											<div class="flex flex-wrap items-end gap-3">
+												<input id="repo-name" type="text" name="name" x-model="name" required autocomplete="off" spellcheck="false" class="h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+												@components.ConfirmFields("rename-repo", data.Confirm, true)
+												@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+													"type":                "submit",
+													"x-bind:disabled":     "name === current",
+													"data-confirm-action": "true",
+													"data-confirm-title":  "Rename this repository?",
+													":data-confirm-msg":   "'It will move to /' + owner + '/' + name + '. Old links and git remotes keep redirecting until another repository takes the old name.'",
+													"data-confirm-label":  "Rename",
+													"data-confirm-danger": "true",
+												}) {
+													Rename
 												}
-											</select>
-										} else {
-											<input id="repo-default-branch" type="text" name="default_branch" value={ data.Repo.DefaultBranch } disabled?={ data.Repo.ContentReadOnly() } class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring disabled:text-muted-foreground"/>
-											<p class="text-xs text-muted-foreground">This repository has no branches yet; the first push creates this one.</p>
-										}
-										if data.Repo.ContentReadOnly() {
-											<p class="text-xs text-muted-foreground">This repository is read-only, so its default branch can't change.</p>
-										}
-									</div>
-									<div class="flex justify-end">
-										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-											Save changes
-										}
-									</div>
-								</form>
+											</div>
+										</form>
+									} else {
+										<div class="space-y-1.5">
+											<label for="repo-name" class="block text-sm font-medium">Repository name</label>
+											<input id="repo-name" type="text" value={ data.RepoName } readonly class="h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-sm font-mono text-muted-foreground"/>
+										</div>
+									}
+									<form hx-post={ "/" + data.Owner + "/" + data.RepoName + "/settings/general" } hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#repo-general-form-error').textContent=''" data-toast="Repository settings saved" class="space-y-5">
+										<div id="repo-general-form-error" class="empty:hidden"></div>
+										<div class="space-y-1.5">
+											<label for="repo-description" class="block text-sm font-medium">Description</label>
+											<textarea id="repo-description" name="description" rows="2" placeholder="Short description of this repository" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring">{ data.Repo.Description }</textarea>
+										</div>
+										<div class="space-y-1.5">
+											<label for="repo-website" class="block text-sm font-medium">Homepage URL</label>
+											<input id="repo-website" type="url" name="website" value={ data.Repo.Website } placeholder="https://example.com" class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+										</div>
+										<div class="space-y-1.5">
+											<label for="repo-default-branch" class="block text-sm font-medium">Default branch</label>
+											if len(data.Branches) > 0 {
+												<select id="repo-default-branch" name="default_branch" disabled?={ data.Repo.ContentReadOnly() } class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring disabled:text-muted-foreground">
+													for _, b := range data.Branches {
+														if b == data.Repo.DefaultBranch {
+															<option value={ b } selected>{ b }</option>
+														} else {
+															<option value={ b }>{ b }</option>
+														}
+													}
+												</select>
+											} else {
+												<input id="repo-default-branch" type="text" name="default_branch" value={ data.Repo.DefaultBranch } disabled?={ data.Repo.ContentReadOnly() } class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring disabled:text-muted-foreground"/>
+												<p class="text-xs text-muted-foreground">This repository has no branches yet; the first push creates this one.</p>
+											}
+											if data.Repo.ContentReadOnly() {
+												<p class="text-xs text-muted-foreground">This repository is read-only, so its default branch can't change.</p>
+											}
+										</div>
+										<div class="flex justify-end">
+											@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+												Save changes
+											}
+										</div>
+									</form>
+								</div>
 							}
 						}
 					</section>

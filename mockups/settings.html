@@ -54,12 +54,20 @@
     <p class="text-[12px] text-muted-foreground">Basic information visible across the repository.</p>
   </div>
   <div class="p-5">
-    <form class="space-y-5" onsubmit="return false">
-      <div class="space-y-1.5">
-        <label for="repo-name" class="block text-sm font-medium">Repository name</label>
-        <input id="repo-name" type="text" value="cloudzilla" readonly class="h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-sm text-muted-foreground" />
-        <p class="text-xs text-muted-foreground">Renaming from settings is not yet available.</p>
+    <div class="space-y-5">
+    <form id="rename-form" class="space-y-1.5" onsubmit="return false">
+      <label for="repo-name" class="block text-sm font-medium">Repository name</label>
+      <div id="repo-rename-form-error" class="empty:hidden"></div>
+      <div class="flex flex-wrap items-end gap-3">
+        <input id="repo-name" type="text" name="name" value="cloudzilla" required autocomplete="off" spellcheck="false" class="h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring" />
+        <div class="min-w-0">
+          <label for="rename-repo-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+          <input id="rename-repo-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+        </div>
+        <button type="submit" id="rename-btn" disabled class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Rename</button>
       </div>
+    </form>
+    <form class="space-y-5" onsubmit="return false">
       <div class="space-y-1.5">
         <label for="repo-description" class="block text-sm font-medium">Description</label>
         <textarea id="repo-description" name="description" rows="2" placeholder="Short description of this repository" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring">Self-hosted git forge written in Go with a server-rendered UI.</textarea>
@@ -80,6 +88,7 @@
         <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Save changes</button>
       </div>
     </form>
+    </div>
   </div>
 </div>
       </section>
@@ -776,6 +785,53 @@
     var f = confirmDone; confirmDone = null;
     if (f && confirmDlg.returnValue === 'confirm') f();
   });
+
+  var renameForm = document.getElementById('rename-form');
+  var renameInput = document.getElementById('repo-name');
+  var renameBtn = document.getElementById('rename-btn');
+  var renameErr = document.getElementById('repo-rename-form-error');
+  var repoName = 'cloudzilla';
+  var TAKEN = ['cloudzilla-docs', 'cloudzilla-cli'];
+  function renameError(msg) {
+    renameErr.innerHTML = '';
+    if (!msg) return;
+    var d = document.createElement('div');
+    d.className = 'rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3';
+    d.setAttribute('role', 'alert');
+    d.textContent = msg;
+    renameErr.appendChild(d);
+  }
+  function renameRefusal(n) {
+    if (n === repoName) return 'That is already its name.';
+    if (/\.wiki$/i.test(n)) return 'That name is reserved.';
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(n)) return "Repository names can use letters, numbers, ., - and _, must start with a letter or number, be at most 100 characters, and can't end in .wiki.";
+    if (TAKEN.indexOf(n.toLowerCase()) !== -1) return 'a repository with that name already exists';
+    return '';
+  }
+  renameInput.addEventListener('input', function () { renameBtn.disabled = renameInput.value === repoName; });
+  renameBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    renameBtn.dataset.confirmTitle = 'Rename this repository?';
+    renameBtn.dataset.confirm = 'It will move to /mkappworks/' + renameInput.value + '. Old links and git remotes keep redirecting until another repository takes the old name.';
+    renameBtn.dataset.confirmLabel = 'Rename';
+    renameBtn.setAttribute('data-confirm-danger', 'true');
+    czConfirm(renameBtn, function () {
+      if (!renameForm.reportValidity()) return;
+      var msg = renameRefusal(renameInput.value);
+      renameError(msg);
+      if (msg) return;
+      repoName = renameInput.value;
+      renameBtn.disabled = true;
+      document.getElementById('rename-repo-password').value = '';
+      czToast('Repository renamed');
+    });
+  });
+  // Mock-only: ?rename=error shows a refused rename.
+  if (/[?&]rename=error\b/.test(location.search)) {
+    renameInput.value = 'cloudzilla-docs';
+    renameBtn.disabled = false;
+    renameError(renameRefusal(renameInput.value));
+  }
 
   var EMPTY = {
     'repo-labels': '<p class="text-sm text-muted-foreground">No labels defined yet.</p>',
