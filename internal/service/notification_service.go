@@ -128,16 +128,41 @@ type NotificationPage struct {
 
 var notifReasons = []string{store.NotifReasonMention, store.NotifReasonReviewRequested, store.NotifReasonAssigned, store.NotifReasonSubscribed}
 
-// ListPage returns the requested page of userID's inbox rows. An unknown filter means the inbox, an
-// unknown reason means any, and a page past the end clamps to the last page. The counts follow the
-// reason, and a thread with read and unread notifications counts under both Unread and Read.
-func (s *NotificationService) ListPage(ctx context.Context, userID int64, filter, reason string, page int) (NotificationPage, error) {
+func normalizeInbox(filter, reason string) (string, string) {
 	if filter != store.NotifFilterUnread && filter != store.NotifFilterRead {
 		filter = store.NotifFilterInbox
 	}
 	if !slices.Contains(notifReasons, reason) {
 		reason = ""
 	}
+	return filter, reason
+}
+
+// bulkChunk keeps one statement under Postgres's bind-parameter limit when a bulk action spans every page.
+const bulkChunk = 1000
+
+func inChunks(ids []int64, fn func([]int64) error) error {
+	for len(ids) > 0 {
+		n := min(len(ids), bulkChunk)
+		if err := fn(ids[:n]); err != nil {
+			return err
+		}
+		ids = ids[n:]
+	}
+	return nil
+}
+
+// MatchingIDs returns one notification id per inbox row matching filter and reason, across all pages.
+func (s *NotificationService) MatchingIDs(ctx context.Context, userID int64, filter, reason string) ([]int64, error) {
+	filter, reason = normalizeInbox(filter, reason)
+	return s.notifs.ThreadHeadIDs(ctx, userID, filter, reason)
+}
+
+// ListPage returns the requested page of userID's inbox rows. An unknown filter means the inbox, an
+// unknown reason means any, and a page past the end clamps to the last page. The counts follow the
+// reason, and a thread with read and unread notifications counts under both Unread and Read.
+func (s *NotificationService) ListPage(ctx context.Context, userID int64, filter, reason string, page int) (NotificationPage, error) {
+	filter, reason = normalizeInbox(filter, reason)
 	p := NotificationPage{Filter: filter, Reason: reason}
 	for f, n := range map[string]*int{store.NotifFilterInbox: &p.InboxCount, store.NotifFilterUnread: &p.UnreadCount, store.NotifFilterRead: &p.ReadCount} {
 		var err error
@@ -166,7 +191,12 @@ func (s *NotificationService) ListPage(ctx context.Context, userID int64, filter
 // MarkDone marks userID's notifications among ids read, each with the older notifications on its
 // thread: the inbox row it stands for. Ids that aren't userID's are ignored.
 func (s *NotificationService) MarkDone(ctx context.Context, userID int64, ids []int64) error {
-	return s.notifs.MarkDone(ctx, userID, ids)
+	return inChunks(ids, func(c []int64) error { return s.notifs.MarkDone(ctx, userID, c) })
+}
+
+// MarkUnread marks userID's notifications among ids unread. Ids that aren't userID's are ignored.
+func (s *NotificationService) MarkUnread(ctx context.Context, userID int64, ids []int64) error {
+	return inChunks(ids, func(c []int64) error { return s.notifs.MarkUnread(ctx, userID, c) })
 }
 
 // MuteThreads mutes each thread behind userID's notifications among ids and marks all of those
@@ -176,16 +206,18 @@ func (s *NotificationService) MuteThreads(ctx context.Context, userID int64, ids
 	if s.threads == nil {
 		return errors.New("mute threads: thread subscriptions not configured")
 	}
-	threads, err := s.notifs.ThreadsOf(ctx, userID, ids)
-	if err != nil {
-		return err
-	}
-	for _, t := range threads {
-		if err := s.threads.Set(ctx, userID, t.RepoID, t.Kind, t.Number, model.ThreadStateMuted); err != nil {
+	return inChunks(ids, func(c []int64) error {
+		threads, err := s.notifs.ThreadsOf(ctx, userID, c)
+		if err != nil {
 			return err
 		}
-	}
-	return s.notifs.MarkThreadsRead(ctx, userID, ids)
+		for _, t := range threads {
+			if err := s.threads.Set(ctx, userID, t.RepoID, t.Kind, t.Number, model.ThreadStateMuted); err != nil {
+				return err
+			}
+		}
+		return s.notifs.MarkThreadsRead(ctx, userID, c)
+	})
 }
 
 func (s *NotificationService) ListUnreadForDigest(ctx context.Context, u *model.User, mode string) ([]model.Notification, error) {

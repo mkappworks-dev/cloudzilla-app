@@ -26,6 +26,7 @@ func inboxRouter(h *handler.Handler) http.Handler {
 	r := chi.NewRouter()
 	r.Post("/api/notifications/read-all", h.MarkAllNotificationsRead)
 	r.Post("/api/notifications/done", h.MarkNotificationsDone)
+	r.Post("/api/notifications/unread", h.MarkNotificationsUnread)
 	r.Post("/api/notifications/unsubscribe", h.UnsubscribeNotifications)
 	r.Patch("/api/notifications/{id}", h.MarkNotificationRead)
 	r.Get("/api/notifications/unread-count", h.GetUnreadCount)
@@ -425,4 +426,88 @@ func TestNotificationsInbox_OneRowPerThreadWithItsCount(t *testing.T) {
 	}
 	assertContains(t, body, `>3 notifications on this thread<`)
 	assertContains(t, body, `>2</span> threads`)
+}
+
+func TestMarkNotificationsUnread_FlipsTheSelectedRowsBack(t *testing.T) {
+	w := newInboxWorld(t)
+	first, second := w.notify(1), w.notify(2)
+	if rr := w.do(http.MethodPost, "/api/notifications/read-all", nil, false); rr.Code != http.StatusNoContent {
+		t.Fatalf("read-all status = %d", rr.Code)
+	}
+
+	rr := w.do(http.MethodPost, "/api/notifications/unread", ids(first), false)
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("status = %d: %s; want 204", rr.Code, rr.Body)
+	}
+	if got := w.unread(); got != 1 {
+		t.Errorf("unread = %d; want only notification %d back (not %d)", got, first, second)
+	}
+}
+
+func TestMarkNotificationsUnread_IgnoresOtherUsersNotifications(t *testing.T) {
+	w := newInboxWorld(t)
+	other := newInboxWorld(t)
+	theirs := other.notify(1)
+	other.do(http.MethodPost, "/api/notifications/read-all", nil, false)
+
+	if rr := w.do(http.MethodPost, "/api/notifications/unread", ids(theirs), false); rr.Code != http.StatusNoContent {
+		t.Fatalf("status = %d: %s; want 204", rr.Code, rr.Body)
+	}
+	if got := other.unread(); got != 0 {
+		t.Errorf("the other user's unread = %d; want it left read", got)
+	}
+}
+
+func TestMarkNotificationsDone_AllActsOnEveryPageOfTheCallersFilter(t *testing.T) {
+	w := newInboxWorld(t)
+	const threads = 30 // more than the 25 a page shows
+	for i := int64(1); i <= threads; i++ {
+		w.notify(i)
+	}
+	other := newInboxWorld(t)
+	other.notify(1)
+
+	form := ids(w.notify(1)) // a selected id is ignored once all=1 widens the scope
+	form.Set("all", "1")
+	rr := w.do(http.MethodPost, "/api/notifications/done?filter=unread", form, true)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s; want 200", rr.Code, rr.Body)
+	}
+	if got := w.unread(); got != 0 {
+		t.Errorf("unread = %d; want every page marked read", got)
+	}
+	if got := other.unread(); got != 1 {
+		t.Errorf("the other user's unread = %d; want it untouched", got)
+	}
+}
+
+func TestMarkNotificationsDone_AllHonoursTheReasonFilter(t *testing.T) {
+	w := newInboxWorld(t)
+	subscribed, plain := w.notify(1), w.notify(2)
+	if err := store.NewThreadSubscriptionStore(w.db).Upsert(w.t.Context(), w.recipient.id, w.repo.id, model.ThreadKindIssue, 1, model.ThreadStateSubscribed, model.ThreadReasonComment); err != nil {
+		t.Fatal(err)
+	}
+
+	form := url.Values{"all": {"1"}}
+	if rr := w.do(http.MethodPost, "/api/notifications/done?reason=subscribed", form, false); rr.Code != http.StatusNoContent {
+		t.Fatalf("status = %d: %s; want 204", rr.Code, rr.Body)
+	}
+	if got := w.unread(); got != 1 {
+		t.Errorf("unread = %d; want only the unsubscribed thread (%d, not %d) left", got, plain, subscribed)
+	}
+}
+
+func TestUnsubscribeNotifications_AllMutesEveryThread(t *testing.T) {
+	w := newInboxWorld(t)
+	for i := int64(1); i <= 3; i++ {
+		w.notify(i)
+	}
+
+	form := url.Values{"all": {"1"}}
+	if rr := w.do(http.MethodPost, "/api/notifications/unsubscribe", form, false); rr.Code != http.StatusNoContent {
+		t.Fatalf("status = %d: %s; want 204", rr.Code, rr.Body)
+	}
+	if got := w.unread(); got != 0 {
+		t.Errorf("unread = %d; want every muted thread read", got)
+	}
 }

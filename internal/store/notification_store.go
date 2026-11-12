@@ -193,6 +193,49 @@ func (s *NotificationStore) MarkDone(ctx context.Context, userID int64, ids []in
 	return nil
 }
 
+// MarkUnread marks userID's notifications among ids unread. Ids that belong to another user are ignored.
+func (s *NotificationStore) MarkUnread(ctx context.Context, userID int64, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	ph, args := inPlaceholders(2, ids)
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE notifications SET read = FALSE WHERE user_id = $1 AND id IN (`+ph+`)`,
+		append([]any{userID}, args...)...,
+	)
+	if err != nil {
+		return fmt.Errorf("notification mark unread: %w", err)
+	}
+	return nil
+}
+
+// ThreadHeadIDs returns the id of the newest notification in each group ListThreadPage pages through,
+// newest group first: what "select all" stands for when the groups outnumber a page.
+func (s *NotificationStore) ThreadHeadIDs(ctx context.Context, userID int64, filter, reason string) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id FROM (
+		   SELECT DISTINCT ON (repo_id, subject_kind, subject_id, solo) id, created_at
+		   FROM (`+threadRows(filter, reason)+`) t
+		   ORDER BY repo_id, subject_kind, subject_id, solo, created_at DESC, id DESC
+		 ) g
+		 ORDER BY created_at DESC, id DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("notification thread heads: %w", err)
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("notification thread heads: scan: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 // NotificationThread identifies the issue, pull request or discussion a notification is about.
 type NotificationThread struct {
 	RepoID int64

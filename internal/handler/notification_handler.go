@@ -68,6 +68,11 @@ func (h *Handler) MarkNotificationsDone(w http.ResponseWriter, r *http.Request) 
 	h.bulkNotificationAction(w, r, "failed to mark done", h.Services.Notification.MarkDone)
 }
 
+// MarkNotificationsUnread marks the selected inbox rows unread.
+func (h *Handler) MarkNotificationsUnread(w http.ResponseWriter, r *http.Request) {
+	h.bulkNotificationAction(w, r, "failed to mark unread", h.Services.Notification.MarkUnread)
+}
+
 // UnsubscribeNotifications mutes the threads behind the selected notifications.
 func (h *Handler) UnsubscribeNotifications(w http.ResponseWriter, r *http.Request) {
 	h.bulkNotificationAction(w, r, "failed to unsubscribe", h.Services.Notification.MuteThreads)
@@ -79,7 +84,17 @@ func (h *Handler) bulkNotificationAction(w http.ResponseWriter, r *http.Request,
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	if err := act(r.Context(), claims.UserID, bulkNotificationIDs(r)); err != nil {
+	ids := bulkNotificationIDs(r)
+	if r.PostForm.Get("all") == "1" {
+		q := r.URL.Query()
+		var err error
+		if ids, err = h.Services.Notification.MatchingIDs(r.Context(), claims.UserID, q.Get("filter"), q.Get("reason")); err != nil {
+			slog.Error("notifications: resolve select-all failed", "user_id", claims.UserID, "error", err)
+			writeError(w, http.StatusInternalServerError, failMsg)
+			return
+		}
+	}
+	if err := act(r.Context(), claims.UserID, ids); err != nil {
 		slog.Error("notifications: bulk action failed", "user_id", claims.UserID, "error", err)
 		writeError(w, http.StatusInternalServerError, failMsg)
 		return

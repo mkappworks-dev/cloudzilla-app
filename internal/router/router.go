@@ -608,6 +608,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Use(authMW, apiBodyLimit)
 		r.Post("/read-all", h.MarkAllNotificationsRead)
 		r.Post("/done", h.MarkNotificationsDone)
+		r.Post("/unread", h.MarkNotificationsUnread)
 		r.Post("/unsubscribe", h.UnsubscribeNotifications)
 		r.Patch("/{id}", h.MarkNotificationRead)
 		r.Get("/unread-count", h.GetUnreadCount)

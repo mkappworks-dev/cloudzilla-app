@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -30,10 +30,10 @@ Found by the wave 2 re-score (Claude and Codex).
 
 ## Acceptance criteria
 
-- [ ] Select all across pages
-- [ ] One verb for done/read, documented in the shortcuts dialog
-- [ ] Mark unread
-- [ ] Mocks updated, light and dark
+- [x] Select all across pages
+- [x] One verb for done/read, documented in the shortcuts dialog
+- [x] Mark unread
+- [x] Mocks updated, light and dark
 
 ## Verification
 
