@@ -182,8 +182,8 @@
 
   var REPO_TABS = [
     ['code', 'Code', 'repo.html', 0], ['pull_requests', 'Pull requests', 'pulls.html', 12],
-    ['issues', 'Issues', 'issues.html', 23], ['milestones', 'Milestones', 'milestones.html', 0],
-    ['checks', 'Checks', 'actions.html', 0], ['discussions', 'Discussions', 'discussions.html', 5],
+    ['issues', 'Issues', 'issues.html', 23], ['milestones', 'Milestones', 'generated/milestones', 0],
+    ['checks', 'Checks', 'actions.html', 0], ['discussions', 'Discussions', 'generated/discussions', 5],
     ['projects', 'Projects', 'project.html', 0], ['wiki', 'Wiki', 'wiki.html', 0],
     ['releases', 'Releases', 'releases.html', 3], ['settings', 'Settings', 'settings.html', 0, 'ml-auto'],
   ];

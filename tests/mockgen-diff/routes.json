@@ -37,5 +37,513 @@
     "file": "not_found--anon",
     "route": "/this-page-does-not-exist",
     "auth": false
+  },
+  {
+    "file": "issues",
+    "route": "/amara-silva/lazy-kiln/issues",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.bg-accent border border-border inline-flex items-center px-1\\.5 py-0\\.5 rounded-full text-\\[10px\\]",
+        "why": "the priority badge shows only on an issue that has one"
+      }
+    ]
+  },
+  {
+    "file": "issues--closed",
+    "route": "/amara-silva/lazy-kiln/issues?q=is%3Aclosed",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "issues--filtered",
+    "route": "/amara-silva/lazy-kiln/issues?q=label%3Abug",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.bg-accent border border-border inline-flex items-center px-1\\.5 py-0\\.5 rounded-full text-\\[10px\\]",
+        "why": "the priority badge shows only on an issue that has one"
+      },
+      {
+        "match": "^details\\.relative \\[open\\]",
+        "why": "the variant draws the Label menu open; the live page renders it closed"
+      }
+    ]
+  },
+  {
+    "file": "issues--no-match",
+    "route": "/amara-silva/lazy-kiln/issues?q=label%3Abug+label%3Adocumentation+author%3Anobody",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "issues--notice",
+    "route": "/amara-silva/lazy-kiln/issues?q=sort%3Acomments-desc",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "issue_detail",
+    "route": "/amara-silva/lazy-kiln/issues/6",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^(div\\.(text-sm|mt-1|bg-muted h-1 rounded-full w-full|bg-success h-1 rounded-full)|p\\.mt-0\\.5 text-muted-foreground text-xs)",
+        "why": "the milestone progress bar follows whether the issue has a milestone"
+      },
+      {
+        "match": "^(ul|ul\\.space-y-1\\.5 text-\\[13px\\]|li\\.flex gap-2 items-center|div\\.flex gap-2 items-center text-\\[13px\\]|a\\.font-medium hover:underline truncate|a\\.hover:underline truncate|svg\\.shrink-0 text-success|span\\.font-mono text-muted-foreground)( \\[.*\\])?$",
+        "why": "linked pull requests follow the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "issue_detail--closed",
+    "route": "/amara-silva/lazy-kiln/issues/3",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^(div\\.(text-sm|mt-1|bg-muted h-1 rounded-full w-full|bg-success h-1 rounded-full)|p\\.mt-0\\.5 text-muted-foreground text-xs)",
+        "why": "the milestone progress bar follows whether the issue has a milestone"
+      },
+      {
+        "match": "^(ul|ul\\.space-y-1\\.5 text-\\[13px\\]|li\\.flex gap-2 items-center|div\\.flex gap-2 items-center text-\\[13px\\]|a\\.font-medium hover:underline truncate|a\\.hover:underline truncate|svg\\.shrink-0 text-success|span\\.font-mono text-muted-foreground)( \\[.*\\])?$",
+        "why": "linked pull requests follow the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "issue_detail--locked",
+    "route": "/amara-silva/lazy-kiln/issues/5",
+    "auth": true,
+    "email": "felix-eriksen@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^(div\\.(text-sm|mt-1|bg-muted h-1 rounded-full w-full|bg-success h-1 rounded-full)|p\\.mt-0\\.5 text-muted-foreground text-xs)",
+        "why": "the milestone progress bar follows whether the issue has a milestone"
+      },
+      {
+        "match": "^(ul|ul\\.space-y-1\\.5 text-\\[13px\\]|li\\.flex gap-2 items-center|div\\.flex gap-2 items-center text-\\[13px\\]|a\\.font-medium hover:underline truncate|a\\.hover:underline truncate|svg\\.shrink-0 text-success|span\\.font-mono text-muted-foreground)( \\[.*\\])?$",
+        "why": "linked pull requests follow the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "issue_detail--locked-maintainer",
+    "route": "/amara-silva/lazy-kiln/issues/5",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^(div\\.(text-sm|mt-1|bg-muted h-1 rounded-full w-full|bg-success h-1 rounded-full)|p\\.mt-0\\.5 text-muted-foreground text-xs)",
+        "why": "the milestone progress bar follows whether the issue has a milestone"
+      },
+      {
+        "match": "^(ul|ul\\.space-y-1\\.5 text-\\[13px\\]|li\\.flex gap-2 items-center|div\\.flex gap-2 items-center text-\\[13px\\]|a\\.font-medium hover:underline truncate|a\\.hover:underline truncate|svg\\.shrink-0 text-success|span\\.font-mono text-muted-foreground)( \\[.*\\])?$",
+        "why": "linked pull requests follow the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "issue_detail--viewer",
+    "route": "/amara-silva/lazy-kiln/issues/6",
+    "auth": true,
+    "email": "felix-eriksen@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^(div\\.(text-sm|mt-1|bg-muted h-1 rounded-full w-full|bg-success h-1 rounded-full)|p\\.mt-0\\.5 text-muted-foreground text-xs)",
+        "why": "the milestone progress bar follows whether the issue has a milestone"
+      },
+      {
+        "match": "^(ul|ul\\.space-y-1\\.5 text-\\[13px\\]|li\\.flex gap-2 items-center|div\\.flex gap-2 items-center text-\\[13px\\]|a\\.font-medium hover:underline truncate|a\\.hover:underline truncate|svg\\.shrink-0 text-success|span\\.font-mono text-muted-foreground)( \\[.*\\])?$",
+        "why": "linked pull requests follow the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "issue_detail--anon",
+    "route": "/amara-silva/lazy-kiln/issues/6",
+    "auth": false,
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^(div\\.(text-sm|mt-1|bg-muted h-1 rounded-full w-full|bg-success h-1 rounded-full)|p\\.mt-0\\.5 text-muted-foreground text-xs)",
+        "why": "the milestone progress bar follows whether the issue has a milestone"
+      },
+      {
+        "match": "^(ul|ul\\.space-y-1\\.5 text-\\[13px\\]|li\\.flex gap-2 items-center|div\\.flex gap-2 items-center text-\\[13px\\]|a\\.font-medium hover:underline truncate|a\\.hover:underline truncate|svg\\.shrink-0 text-success|span\\.font-mono text-muted-foreground)( \\[.*\\])?$",
+        "why": "linked pull requests follow the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "issue_new",
+    "route": "/amara-silva/lazy-kiln/issues/new?blank=1",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(div\\.flex flex-wrap gap-2 \\[aria-label,role\\]|a\\.bg-card border border-border (font-medium )?h-8)",
+        "why": "the template switcher shows only when the repository has issue templates"
+      }
+    ]
+  },
+  {
+    "file": "issue_new--viewer",
+    "route": "/amara-silva/lazy-kiln/issues/new?blank=1",
+    "auth": true,
+    "email": "felix-eriksen@example.test",
+    "allow": [
+      {
+        "match": "^(div\\.flex flex-wrap gap-2 \\[aria-label,role\\]|a\\.bg-card border border-border (font-medium )?h-8)",
+        "why": "the template switcher shows only when the repository has issue templates"
+      }
+    ]
+  },
+  {
+    "file": "milestones",
+    "route": "/amara-silva/lazy-kiln/milestones",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "milestones--viewer",
+    "route": "/amara-silva/lazy-kiln/milestones",
+    "auth": true,
+    "email": "felix-eriksen@example.test"
+  },
+  {
+    "file": "milestone_detail",
+    "route": "/amara-silva/lazy-kiln/milestones/1",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "milestone_detail--closed-issues",
+    "route": "/amara-silva/lazy-kiln/milestones/1?tab=issues&state=closed",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "milestone_detail--pulls",
+    "route": "/amara-silva/lazy-kiln/milestones/1?tab=pulls&state=open",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "milestone_detail--closed",
+    "route": "/amara-silva/lazy-kiln/milestones/2?tab=issues&state=closed",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^p\\.text-\\[13px\\]",
+        "why": "the description paragraph follows the data"
+      }
+    ]
+  },
+  {
+    "file": "milestone_detail--viewer",
+    "route": "/amara-silva/lazy-kiln/milestones/1",
+    "auth": true,
+    "email": "felix-eriksen@example.test"
+  },
+  {
+    "file": "milestone_new",
+    "route": "/amara-silva/lazy-kiln/milestones/new",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "discussions",
+    "route": "/amara-silva/lazy-kiln/discussions",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      }
+    ]
+  },
+  {
+    "file": "discussions--answered",
+    "route": "/amara-silva/lazy-kiln/discussions?state=answered",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "discussions--closed",
+    "route": "/amara-silva/lazy-kiln/discussions?state=closed",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "discussions--category",
+    "route": "/amara-silva/lazy-kiln/discussions?category=3",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      }
+    ]
+  },
+  {
+    "file": "discussions--viewer",
+    "route": "/amara-silva/lazy-kiln/discussions",
+    "auth": true,
+    "email": "felix-eriksen@example.test",
+    "allow": [
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      }
+    ]
+  },
+  {
+    "file": "discussion_detail",
+    "route": "/amara-silva/lazy-kiln/discussions/3",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^button\\.bg-primary/10 border border-primary/40",
+        "why": "a reaction pill shows only where someone reacted"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "discussion_detail--answered",
+    "route": "/amara-silva/lazy-kiln/discussions/2",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^button\\.bg-primary/10 border border-primary/40",
+        "why": "a reaction pill shows only where someone reacted"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "discussion_detail--locked",
+    "route": "/amara-silva/lazy-kiln/discussions/1",
+    "auth": true,
+    "email": "felix-eriksen@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^button\\.bg-primary/10 border border-primary/40",
+        "why": "a reaction pill shows only where someone reacted"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "discussion_detail--viewer",
+    "route": "/amara-silva/lazy-kiln/discussions/3",
+    "auth": true,
+    "email": "felix-eriksen@example.test",
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^button\\.bg-primary/10 border border-primary/40",
+        "why": "a reaction pill shows only where someone reacted"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "discussion_detail--anon",
+    "route": "/amara-silva/lazy-kiln/discussions/3",
+    "auth": false,
+    "allow": [
+      {
+        "match": "^(ol|ul|strong|br|em)\\. \\[\\]$|^(pre\\.hl|code\\.language-\\w+|span\\.hl-\\w+|a\\.hover:underline text-blue-600)",
+        "why": "Markdown in the body and comments follows the text"
+      },
+      {
+        "match": "^button\\.bg-primary/10 border border-primary/40",
+        "why": "a reaction pill shows only where someone reacted"
+      },
+      {
+        "match": "^span\\.align-middle bg-\\(color:--label-bg\\)",
+        "why": "label chips follow the labels applied in the data"
+      },
+      {
+        "match": "^(li\\.bg-card border border-border overflow-hidden rounded-md|header\\.bg-muted/40|header\\.bg-muted border-b|div\\.pb-2 px-4|div\\.dark:prose-invert max-w-none prose prose-sm px-4 py-3|button\\.bg-success disabled)",
+        "why": "the number of comments and replies follows the data"
+      },
+      {
+        "match": "^(span|p)\\.text-muted-foreground text-xs \\[\\]",
+        "why": "sidebar placeholders such as No labels and No milestone appear only where the data is empty"
+      }
+    ]
+  },
+  {
+    "file": "discussion_new",
+    "route": "/amara-silva/lazy-kiln/discussions/new?category=1",
+    "auth": true,
+    "email": "amara-silva@example.test"
   }
 ]

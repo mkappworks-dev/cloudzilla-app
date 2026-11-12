@@ -25,6 +25,8 @@ type variant struct {
 	// AdminMode draws the "Acting as instance admin" banner.
 	AdminMode bool
 	Render    func(base view.BasePage) templ.Component
+	// Transform edits the rendered HTML for a state the view-model cannot set, such as an open <details>.
+	Transform func([]byte) []byte
 }
 
 type page struct {
@@ -44,7 +46,7 @@ func fileStem(p page, v variant) string {
 }
 
 func registry() []page {
-	return []page{
+	pgs := []page{
 		{
 			Name: "home", Route: "/", Templ: "home.templ", Title: "Home",
 			Variants: []variant{
@@ -91,4 +93,6 @@ func registry() []page {
 			},
 		},
 	}
+	pgs = append(pgs, trackerPages()...)
+	return append(pgs, discussionPages()...)
 }

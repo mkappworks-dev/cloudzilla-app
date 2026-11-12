@@ -22,7 +22,11 @@ func renderVariant(ctx context.Context, v variant) ([]byte, error) {
 	if err := v.Render(baseFor(v)).Render(ctx, &buf); err != nil {
 		return nil, err
 	}
-	return staticize(buf.Bytes())
+	html := buf.Bytes()
+	if v.Transform != nil {
+		html = v.Transform(html)
+	}
+	return staticize(html)
 }
 
 func staticize(html []byte) ([]byte, error) {

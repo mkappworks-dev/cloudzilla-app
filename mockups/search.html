@@ -159,7 +159,7 @@
   }
 
   function issueRow(i, q) {
-    return '<li><a href="issue_detail.html" class="' + ROW_LINK + '">' +
+    return '<li><a href="generated/issue_detail" class="' + ROW_LINK + '">' +
       '<div class="flex items-start gap-3 mb-1.5">' + ISSUE_ICON[i.state] +
       '<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap"><span class="font-mono text-[12px] text-muted-foreground">' + esc(i.repo) + '</span>' + SEP +
       '<p class="text-[13.5px] font-medium leading-snug group-hover:underline">' + hl(i.title, q) + '</p>' + badge(i.state) + '</div></div>' +

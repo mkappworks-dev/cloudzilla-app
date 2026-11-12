@@ -10,18 +10,58 @@ cannot render from a plain view-model is listed under "Pages with no mock" with 
 
 <!-- mockgen:start -->
 
-| Page        | Variant      | Shows                                                                | Template          |
-| ----------- | ------------ | -------------------------------------------------------------------- | ----------------- |
-| `home`      | `default`    | signed in with repositories                                          | `home.templ`      |
-| `home`      | `anon`       | signed out                                                           | `home.templ`      |
-| `home`      | `empty`      | no repositories yet                                                  | `home.templ`      |
-| `home`      | `admin-mode` | instance admin acting with elevated rights                           | `home.templ`      |
-| `login`     | `default`    | email and password; the instance cannot send email, so no reset link | `login.templ`     |
-| `login`     | `reset-link` | the instance can send email                                          | `login.templ`     |
-| `login`     | `error`      | wrong password                                                       | `login.templ`     |
-| `login`     | `sso`        | LDAP and SAML enabled                                                | `login.templ`     |
-| `not_found` | `default`    | signed in                                                            | `not_found.templ` |
-| `not_found` | `anon`       | signed out                                                           | `not_found.templ` |
+| Page                | Variant             | Shows                                                                | Template                  |
+| ------------------- | ------------------- | -------------------------------------------------------------------- | ------------------------- |
+| `home`              | `default`           | signed in with repositories                                          | `home.templ`              |
+| `home`              | `anon`              | signed out                                                           | `home.templ`              |
+| `home`              | `empty`             | no repositories yet                                                  | `home.templ`              |
+| `home`              | `admin-mode`        | instance admin acting with elevated rights                           | `home.templ`              |
+| `login`             | `default`           | email and password; the instance cannot send email, so no reset link | `login.templ`             |
+| `login`             | `reset-link`        | the instance can send email                                          | `login.templ`             |
+| `login`             | `error`             | wrong password                                                       | `login.templ`             |
+| `login`             | `sso`               | LDAP and SAML enabled                                                | `login.templ`             |
+| `not_found`         | `default`           | signed in                                                            | `not_found.templ`         |
+| `not_found`         | `anon`              | signed out                                                           | `not_found.templ`         |
+| `issues`            | `default`           | open issues                                                          | `issues.templ`            |
+| `issues`            | `closed`            | the Closed tab                                                       | `issues.templ`            |
+| `issues`            | `filtered`          | filter chips, with the Label menu open                               | `issues.templ`            |
+| `issues`            | `no-match`          | filters that match nothing                                           | `issues.templ`            |
+| `issues`            | `notice`            | an unrecognized qualifier, searched as text, with no match           | `issues.templ`            |
+| `issues`            | `empty`             | no issues in any state                                               | `issues.templ`            |
+| `issue_detail`      | `default`           | open, for a maintainer                                               | `issue_detail.templ`      |
+| `issue_detail`      | `closed`            | closed by a pull request                                             | `issue_detail.templ`      |
+| `issue_detail`      | `locked`            | locked, viewed by someone who cannot comment                         | `issue_detail.templ`      |
+| `issue_detail`      | `locked-maintainer` | locked, viewed by a maintainer, who can still comment                | `issue_detail.templ`      |
+| `issue_detail`      | `viewer`            | signed in without write access: no edit controls                     | `issue_detail.templ`      |
+| `issue_detail`      | `anon`              | signed out: no comment box                                           | `issue_detail.templ`      |
+| `issue_new`         | `default`           | the form, with the metadata pickers                                  | `issue_new.templ`         |
+| `issue_new`         | `chooser`           | the repository has issue templates                                   | `issue_new.templ`         |
+| `issue_new`         | `error`             | the title was left blank                                             | `issue_new.templ`         |
+| `issue_new`         | `viewer`            | without write access: placeholder metadata                           | `issue_new.templ`         |
+| `milestones`        | `default`           | open and closed milestones; the Closed tab switches in the browser   | `milestones.templ`        |
+| `milestones`        | `viewer`            | without write access: no New milestone button                        | `milestones.templ`        |
+| `milestones`        | `empty`             | no milestones yet                                                    | `milestones.templ`        |
+| `milestone_detail`  | `default`           | open milestone, open issues                                          | `milestone_detail.templ`  |
+| `milestone_detail`  | `closed-issues`     | the Closed filter on the issues tab                                  | `milestone_detail.templ`  |
+| `milestone_detail`  | `pulls`             | the pull requests tab                                                | `milestone_detail.templ`  |
+| `milestone_detail`  | `closed`            | a closed milestone                                                   | `milestone_detail.templ`  |
+| `milestone_detail`  | `viewer`            | without write access: no edit or delete                              | `milestone_detail.templ`  |
+| `milestone_new`     | `default`           | empty form                                                           | `milestone_new.templ`     |
+| `milestone_new`     | `error`             | the title was left blank                                             | `milestone_new.templ`     |
+| `discussions`       | `default`           | open discussions, all categories                                     | `discussions.templ`       |
+| `discussions`       | `answered`          | the Answered tab                                                     | `discussions.templ`       |
+| `discussions`       | `closed`            | the Closed tab: locked, unanswered                                   | `discussions.templ`       |
+| `discussions`       | `category`          | ?category=, one category selected                                    | `discussions.templ`       |
+| `discussions`       | `viewer`            | without write access: no New discussion button                       | `discussions.templ`       |
+| `discussions`       | `empty`             | a category with no open discussions                                  | `discussions.templ`       |
+| `discussion_detail` | `default`           | open, for a maintainer                                               | `discussion_detail.templ` |
+| `discussion_detail` | `answered`          | a reply is marked as the answer                                      | `discussion_detail.templ` |
+| `discussion_detail` | `locked`            | locked: no reply box for a reader                                    | `discussion_detail.templ` |
+| `discussion_detail` | `viewer`            | signed in without write access                                       | `discussion_detail.templ` |
+| `discussion_detail` | `anon`              | signed out: sign in to reply                                         | `discussion_detail.templ` |
+| `discussion_new`    | `default`           | category picked, empty form                                          | `discussion_new.templ`    |
+| `discussion_new`    | `error`             | the title was left blank                                             | `discussion_new.templ`    |
+| `discussion_new`    | `no-categories`     | the repository has no categories                                     | `discussion_new.templ`    |
 
 <!-- mockgen:end -->
 
@@ -36,33 +76,26 @@ cannot render from a plain view-model is listed under "Pages with no mock" with 
 
 ## Pages covered by a differently named mock
 
-| Mock                                      | Real page                                         |
-| ----------------------------------------- | ------------------------------------------------- |
-| `actions.html`                            | `checks.templ`: the repo Checks page              |
-| `pr.html`                                 | `pull_detail.templ`                               |
-| `project.html`, `project_board.html`      | `projects.templ`, `project_detail.templ`          |
-| `profile.html`, `org_profile.html`        | `user.templ`, `org.templ`                         |
-| `settings.html`, `account_settings.html`  | `repo_settings.templ`, `settings.templ`           |
-| `new_repo.html`                           | `repo_new.templ`                                  |
-| `my_repositories.html`, `my_pulls.html`   | `account_repos.templ`, `account_pulls.templ`      |
-| `my_issues.html`, `attention.html`        | `account_issues.templ`, `account_attention.templ` |
-| `wiki*.html` (six pages)                  | `wiki_page.templ`, `wiki_shared.templ`            |
-| `discussion_detail_locked.html`           | The locked state of `discussion_detail.templ`     |
-| `issues_closed.html`, `*_closed/answered` | Tab states of the list pages                      |
-| `issues_filtered.html`                    | `issues.templ` with filter chips and a menu open  |
+| Mock                                     | Real page                                         |
+| ---------------------------------------- | ------------------------------------------------- |
+| `actions.html`                           | `checks.templ`: the repo Checks page              |
+| `pr.html`                                | `pull_detail.templ`                               |
+| `project.html`, `project_board.html`     | `projects.templ`, `project_detail.templ`          |
+| `profile.html`, `org_profile.html`       | `user.templ`, `org.templ`                         |
+| `settings.html`, `account_settings.html` | `repo_settings.templ`, `settings.templ`           |
+| `new_repo.html`                          | `repo_new.templ`                                  |
+| `my_repositories.html`, `my_pulls.html`  | `account_repos.templ`, `account_pulls.templ`      |
+| `my_issues.html`, `attention.html`       | `account_issues.templ`, `account_attention.templ` |
+| `wiki*.html` (six pages)                 | `wiki_page.templ`, `wiki_shared.templ`            |
 
 ## States with no mock
 
 Mocks show the happy path. These real states are not drawn:
 
-- **Empty states.** Issue and PR lists with no match ("No open issues match these filters."); repo with no commits
-  ("This repository is empty."), empty directory, no releases, no milestones, no projects, no wiki page ("This page does
-  not exist yet."), empty discussion and PR lists, no checks (the curl example).
-- **Unrecognized qualifier notice.** A list search holding a token such as `sort:comments-desc` shows a line under the
-  search field saying it was searched as text (`ListFilterBar`'s `Notices`).
-- **Read-only and signed-out views.** No Edit, Delete or Manage controls; "Sign in to reply."; a locked issue the viewer
-  cannot comment on; the `pr.html` merge box's lock line ("Only collaborators with write access…") in place of Merge and
-  Close.
+- **Empty states.** PR lists with no match; repo with no commits ("This repository is empty."), empty directory, no
+  releases, no projects, no wiki page ("This page does not exist yet."), empty PR lists, no checks (the curl example).
+- **Read-only and signed-out views.** On pull requests: the `pr.html` merge box's lock line ("Only collaborators with
+  write access…") in place of Merge and Close.
 - **PR states.** `pr.html` opens in other states through hashes: `#pr=open|draft|merged`,
   `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly` (join with
   `&`).
@@ -72,8 +105,8 @@ Mocks show the happy path. These real states are not drawn:
 - **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
   `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
   a mock button draws the real busy state.
-- **Filters and navigation.** `?category=` on discussions, the command palette, organization people and repository tabs,
-  and the profile README call to action.
+- **Filters and navigation.** The command palette, organization people and repository tabs, and the profile README call
+  to action.
 - **Other workflows.** Pull-mirror settings, a pending transfer, home load warnings, the issue template picker, and PR
   diff error states.
 - **Admin mode.** `admin_mode.html` draws the page in both states (add `?admin_mode=1` for the running one), and any
