@@ -101,6 +101,9 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 			slog.Error("check pending verification link", "user_id", claims.UserID, "error", err)
 		}
 	}
+	if data.AdditionalEmails, err = h.Services.EmailVerifier.Addresses(ctx, claims.UserID); err != nil {
+		slog.Error("list additional emails", "user_id", claims.UserID, "error", err)
+	}
 	if !enabled && secret.Valid && secret.String != "" {
 		data.TOTPPendingSecret = secret.String
 		if data.TOTPQRCode, err = h.Services.TOTP.EnrolmentQRCode(ctx, claims.Username, "Cloudzilla", secret.String); err != nil {

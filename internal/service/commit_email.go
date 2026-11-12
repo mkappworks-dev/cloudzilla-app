@@ -80,7 +80,11 @@ func userByAuthorEmail(ctx context.Context, users *store.UserStore, email string
 			return nil, err
 		}
 	}
-	return users.GetByEmail(ctx, email)
+	u, err := users.GetByEmail(ctx, email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return users.GetByVerifiedAdditionalEmail(ctx, email)
+	}
+	return u, err
 }
 
 // ResolveCommitAuthors maps each address in emails to the username of the account it belongs to. Addresses that

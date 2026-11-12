@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 Parallel: safe with 01 and 04. Shares `settings.templ` with 03, which waits for this.
 
@@ -39,10 +39,10 @@ re-auth required; no SMTP hides the form. Integration against `TEST_DATABASE_DSN
 
 ## Acceptance criteria
 
-- [ ] A verified additional address credits commits pushed with it; an unverified one does not
-- [ ] Duplicate addresses are refused across all Users
-- [ ] Add/remove re-authenticate; no-SMTP state reads correctly
-- [ ] Docs and mock updated, light and dark
+- [x] A verified additional address credits commits pushed with it; an unverified one does not
+- [x] Duplicate addresses are refused across all Users
+- [x] Add/remove re-authenticate; no-SMTP state reads correctly
+- [x] Docs and mock updated, light and dark
 
 ## Verification
 

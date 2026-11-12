@@ -35,6 +35,8 @@ type EmailVerificationService struct {
 	users   *store.UserStore
 	email   *EmailService
 	baseURL string
+	extra   *store.UserEmailStore
+	reauth  *ReauthService
 }
 
 func NewEmailVerificationService(s *store.EmailVerificationStore, users *store.UserStore, email *EmailService, baseURL string) *EmailVerificationService {
@@ -99,7 +101,11 @@ func (s *EmailVerificationService) Check(ctx context.Context, rawToken string) (
 	if !ok {
 		return model.EmailVerificationLink{State: model.EmailVerificationInvalid}, nil
 	}
-	return s.store.Lookup(ctx, hash)
+	link, err := s.store.Lookup(ctx, hash)
+	if err != nil || link.State != model.EmailVerificationInvalid || s.extra == nil {
+		return link, err
+	}
+	return s.extra.Lookup(ctx, hash)
 }
 
 // Verify spends rawToken. The user is returned only when it verified their address.

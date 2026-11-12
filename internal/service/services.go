@@ -115,6 +115,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	reauthSvc := NewReauthService(stores.User, totpSvc).WithEmailCodes(emailSvc).
 		WithProviderSignIn(stores.OAuthState, ssoSvc, cfg.OAuth.GoogleClientID != "")
 	userSvc.WithReauth(reauthSvc)
+	emailVerificationSvc.WithAdditionalEmails(stores.UserEmail, reauthSvc)
 	threadSubSvc := NewThreadSubscriptionService(stores.ThreadSubscription, stores.Watch)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc).WithThreadSubscriptions(threadSubSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
