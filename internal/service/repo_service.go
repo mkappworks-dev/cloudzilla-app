@@ -73,6 +73,7 @@ type RepoService struct {
 	aliases          *store.RepoAliasStore
 	quota            *QuotaService
 	attachments      *AttachmentService
+	releaseAssets    *ReleaseAssetService
 	cfg              config.GitConfig
 }
 
@@ -83,6 +84,12 @@ func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.
 
 func (s *RepoService) WithNoreplyHostFrom(baseURL string) *RepoService {
 	s.noreplyHost = noreplyHostFromBaseURL(baseURL)
+	return s
+}
+
+// WithReleaseAssets removes a purged repo's release asset objects.
+func (s *RepoService) WithReleaseAssets(a *ReleaseAssetService) *RepoService {
+	s.releaseAssets = a
 	return s
 }
 

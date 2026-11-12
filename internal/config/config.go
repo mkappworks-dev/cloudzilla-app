@@ -29,6 +29,7 @@ type Config struct {
 	Storage   StorageConfig   `mapstructure:"storage"`
 	Security  SecurityConfig  `mapstructure:"security"`
 	Mirror    MirrorConfig    `mapstructure:"mirror"`
+	Release   ReleaseConfig   `mapstructure:"release"`
 	Metrics   MetricsConfig   `mapstructure:"metrics"`
 }
 
@@ -205,6 +206,22 @@ func (m MirrorConfig) validate() error {
 	return nil
 }
 
+// ReleaseConfig holds release-asset limits.
+type ReleaseConfig struct {
+	MaxAssetBytes int64 `mapstructure:"max_asset_bytes"`
+	MaxAssets     int   `mapstructure:"max_assets"`
+}
+
+func (c ReleaseConfig) validate() error {
+	switch {
+	case c.MaxAssetBytes < 1:
+		return fmt.Errorf("release.max_asset_bytes must be at least 1, got %d", c.MaxAssetBytes)
+	case c.MaxAssets < 1:
+		return fmt.Errorf("release.max_assets must be at least 1, got %d", c.MaxAssets)
+	}
+	return nil
+}
+
 // SecurityConfig holds keys for secrets stored at rest.
 type SecurityConfig struct {
 	// Losing or changing it makes every stored mirror credential unreadable.
@@ -287,6 +304,8 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("mirror.default_interval", "8h")
 	v.SetDefault("mirror.max_concurrent", 3)
 	v.SetDefault("mirror.timeout", "30m")
+	v.SetDefault("release.max_asset_bytes", int64(512<<20))
+	v.SetDefault("release.max_assets", 20)
 	v.SetDefault("metrics.listen_addr", "")
 	v.SetDefault("quota.user.repos", 0)
 	v.SetDefault("quota.user.storage_bytes", int64(0))
@@ -336,6 +355,9 @@ func Load(cfgFile string) (*Config, error) {
 		return nil, err
 	}
 	if err := cfg.Mirror.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.Release.validate(); err != nil {
 		return nil, err
 	}
 	return &cfg, nil

@@ -149,6 +149,17 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("release: resolve tag failed", "owner", owner, "repo", repoName, "tag", release.TagName, "error", rErr)
 	}
 
+	var assets []model.ReleaseAsset
+	if !release.IsDraft || canWrite {
+		list, aErr := h.Services.ReleaseAsset.ListByRelease(r.Context(), release.ID)
+		if aErr != nil {
+			slog.Error("release: list assets failed", "release_id", release.ID, "error", aErr)
+			h.ServerError(w, r)
+			return
+		}
+		assets = releaseAssetsWithURLs(owner, repoName, release.TagName, list)
+	}
+
 	h.render(w, h.withAvatars(r, authorName), pages.ReleaseDetail(view.ReleaseDetailData{
 		BasePage:   h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "releases", canManage),
 		Repo:       *repo,
@@ -160,5 +171,9 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 		AuthorName: authorName,
 		IsLatest:   isLatest,
 		CommitSHA:  commitSHA,
+		Assets:     assets,
+
+		MaxAssetBytes: h.Cfg.Release.MaxAssetBytes,
+		MaxAssets:     h.Cfg.Release.MaxAssets,
 	}))
 }

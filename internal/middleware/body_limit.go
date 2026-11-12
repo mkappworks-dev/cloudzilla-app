@@ -3,6 +3,7 @@ package middleware
 import (
 	"mime"
 	"net/http"
+	"regexp"
 )
 
 // MaxBodySize limits the request body to the given number of bytes.
@@ -24,12 +25,22 @@ func MaxBodySize(maxBytes int64) func(http.Handler) http.Handler {
 func MaxFormBodySize(maxBytes int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if isFormBody(r) {
+			if isFormBody(r) && !IsStreamedUpload(r) {
 				r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 			}
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+var releaseAssetUploadPath = regexp.MustCompile(`^/api/repos/[^/]+/[^/]+/releases/[0-9]+/assets$`)
+
+// IsStreamedUpload is a request whose handler reads the multipart body as a
+// stream under its own cap. The global form cap and CSRF's form parse must
+// leave it alone: the first would refuse a large file and the second would
+// buffer it, for any caller, before authentication.
+func IsStreamedUpload(r *http.Request) bool {
+	return r.Method == http.MethodPost && releaseAssetUploadPath.MatchString(r.URL.Path)
 }
 
 // isFormBody ignores ParseMediaType's error as net/http does: it reads a form

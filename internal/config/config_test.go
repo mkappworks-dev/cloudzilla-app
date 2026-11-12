@@ -294,3 +294,38 @@ func TestLoad_MirrorInvalid(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad_ReleaseDefaultsAndEnv(t *testing.T) {
+	cfg, err := config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if want := (config.ReleaseConfig{MaxAssetBytes: 512 << 20, MaxAssets: 20}); cfg.Release != want {
+		t.Errorf("defaults = %+v, want %+v", cfg.Release, want)
+	}
+
+	t.Setenv("CZ_RELEASE_MAX_ASSET_BYTES", "1048576")
+	t.Setenv("CZ_RELEASE_MAX_ASSETS", "5")
+	cfg, err = config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if want := (config.ReleaseConfig{MaxAssetBytes: 1 << 20, MaxAssets: 5}); cfg.Release != want {
+		t.Errorf("env = %+v, want %+v", cfg.Release, want)
+	}
+}
+
+func TestLoad_ReleaseInvalid(t *testing.T) {
+	for _, tc := range []struct{ env, wantKey string }{
+		{"CZ_RELEASE_MAX_ASSET_BYTES", "release.max_asset_bytes"},
+		{"CZ_RELEASE_MAX_ASSETS", "release.max_assets"},
+	} {
+		t.Run(tc.env, func(t *testing.T) {
+			t.Setenv(tc.env, "0")
+			_, err := config.Load("")
+			if err == nil || !strings.Contains(err.Error(), tc.wantKey) {
+				t.Errorf("err = %v, want one naming %s", err, tc.wantKey)
+			}
+		})
+	}
+}

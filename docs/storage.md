@@ -1,7 +1,7 @@
 # Object storage
 
-Files that live outside git and PostgreSQL go through `internal/storage`. Today that means avatars and markdown image
-attachments. Git repos, wikis and gists still live under `git.repos_root`.
+Files that live outside git and PostgreSQL go through `internal/storage`. Today that means avatars, markdown image
+attachments and release assets. Git repos, wikis and gists still live under `git.repos_root`.
 
 ## Backends
 
@@ -86,6 +86,7 @@ TEST_S3_ACCESS_KEY_ID=cloudzilla-dev TEST_S3_SECRET_ACCESS_KEY=cloudzilla-dev-se
 avatars/user/<user id>/<sha256 of the stored bytes>.<png|jpg>
 avatars/org/<org id>/<sha256 of the stored bytes>.<png|jpg>
 attachments/repo/<repo id>/<token>.<png|jpg|gif|webp>
+releases/repo/<repo id>/<release id>/<token>.bin
 ```
 
 - `users.avatar_key` and `organizations.avatar_key` hold the full key, or `''` for none.
@@ -105,11 +106,11 @@ attachments/repo/<repo id>/<token>.<png|jpg|gif|webp>
 [Backup and restore](./deployment.md#backup-and-restore)). Back up the bucket and prefix with your provider's versioning
 or replication.
 
-| Restored      | Result                                                                                                                                                                                                                         |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Both          | Everything works.                                                                                                                                                                                                              |
-| Database only | Avatars and attachments whose objects are missing return 404. Each `<img data-avatar>` sits over its initials, and a capture-phase `error` listener in the layout hides a failed image, so pages show initials in their place. |
-| Objects only  | Objects no row points at are orphans: harmless, and safe to delete. For attachments, the `attachments` table holds the only link to the repo, so restore it with the database.                                                 |
+| Restored      | Result                                                                                                                                                                                                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Both          | Everything works.                                                                                                                                                                                                                              |
+| Database only | Avatars, attachments and release assets whose objects are missing return 404. Each `<img data-avatar>` sits over its initials, and a capture-phase `error` listener in the layout hides a failed image, so pages show initials in their place. |
+| Objects only  | Objects no row points at are orphans: harmless, and safe to delete. For attachments, the `attachments` table holds the only link to the repo, so restore it with the database.                                                                 |
 
 ## Avatars
 
@@ -162,6 +163,36 @@ unknown token, a wrong extension and an unreadable repo are the same 404, so a p
 missing ones. Responses carry `Cache-Control: private, no-cache` with an `ETag` (the 304 comes after the permission
 check), `Vary: Authorization, Cookie`, `nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`. Unlike
 avatars they can't be cached `public` or served by a CDN. `attachments` is a reserved owner name.
+
+## Release assets
+
+A writer uploads a file to a release with `POST /api/repos/{owner}/{repo}/releases/{id}/assets` (multipart field `file`,
+one per request; see [Release assets](./api-reference.md#release-assets)). The handler is in
+`internal/handler/release_asset_handler.go`, the service in `internal/service/release_asset_service.go`.
+
+- **Limits:** `release.max_asset_bytes` (512 MiB) per file and `release.max_assets` (20) per release. There is no type
+  restriction. The count is checked under a lock on the release row, so concurrent uploads can't pass it together.
+- **Names:** the user's filename is cleaned to `[A-Za-z0-9._-]` and at most 100 characters, and is unique within a
+  release. It never reaches the key, which ends in a 128-bit random token.
+- **Streaming:** the multipart body is read as a stream, never parsed into a form, and the router lifts the global form
+  cap and CSRF's form parse for this one route (`middleware.IsStreamedUpload`), so a session needs the `X-CSRF-Token`
+  header. The handler also clears the server's read and write deadlines, which suit pages, not 512 MiB.
+- **Spooling:** the file is copied to a temp file in the OS temp directory while its SHA-256 is computed, then put into
+  the backend with its exact size, because S3 needs the length before the first byte. Free space in the temp directory
+  must cover the largest upload in flight.
+- **Order:** the object is written before the row, and removed again if the row fails.
+- **Rows:** `release_assets` holds the name, size, SHA-256, key and uploader. `repo_id` repeats `releases.repo_id` so a
+  repo purge can find the objects after the cascade has deleted the rows.
+- **Download:** `GET /{owner}/{repo}/releases/download/{tag}/{name}` runs `RepoService.CanRead` on every request and
+  hides a draft's assets from anyone without `CanWrite`. Every refusal is the same 404. Responses are
+  `application/octet-stream` with `Content-Disposition: attachment`, `nosniff` and
+  `Content-Security-Policy: default-src 'none'; sandbox`, and they are never cached publicly: nothing here may be served
+  by a CDN.
+
+Deleting an asset or a release deletes the objects after the database change commits; so does
+`RepoService.PurgeExpired`. Deleting a user or an org drops its repos' rows but not their objects. If an object delete
+fails, the failure is logged and the object stays as an orphan: any object under `releases/` that no
+`release_assets.storage_key` names is safe to delete.
 
 ### Cleanup
 

@@ -164,9 +164,13 @@ type ReleaseDetailData struct {
 	Release    model.Release
 	BodyHTML   string
 	CanWrite   bool
-	AuthorName string // resolved from Release.AuthorID
-	IsLatest   bool   // true if this is the newest published non-draft non-prerelease release
-	CommitSHA  string // full hash of the commit the tag points at; "" if tag cannot be resolved
+	AuthorName string               // resolved from Release.AuthorID
+	IsLatest   bool                 // true if this is the newest published non-draft non-prerelease release
+	CommitSHA  string               // full hash of the commit the tag points at; "" if tag cannot be resolved
+	Assets     []model.ReleaseAsset // DownloadURL filled in; empty for a draft the viewer can't write to
+	// Upload limits, for the Add asset control's client-side checks; the server enforces them.
+	MaxAssetBytes int64
+	MaxAssets     int
 }
 
 // RepoSettingsData holds template data for the repository settings page.

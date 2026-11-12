@@ -242,7 +242,8 @@ func (h *Handler) ListReleases(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -251,16 +252,59 @@ func (h *Handler) ListReleases(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
-	if releases == nil {
-		releases = []model.Release{}
+	out, err := h.releasesWithAssets(r, repo, releases)
+	if err != nil {
+		slog.Error("list release assets failed", "owner", owner, "repo", repoName, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
 	}
-	writeJSON(w, http.StatusOK, releases)
+	writeJSON(w, http.StatusOK, out)
+}
+
+// releaseJSON is a release with its assets, as the read endpoints return it.
+type releaseJSON struct {
+	model.Release
+	Assets []model.ReleaseAsset `json:"assets"`
+}
+
+// releasesWithAssets attaches assets in one query. A draft's assets are for
+// writers only, so a reader sees an empty list.
+func (h *Handler) releasesWithAssets(r *http.Request, repo *model.Repository, releases []model.Release) ([]releaseJSON, error) {
+	ids := make([]int64, len(releases))
+	for i, rel := range releases {
+		ids[i] = rel.ID
+	}
+	byRelease, err := h.Services.ReleaseAsset.ListByReleases(r.Context(), ids)
+	if err != nil {
+		return nil, err
+	}
+	canWrite := h.viewerCanWrite(r, repo)
+	out := make([]releaseJSON, len(releases))
+	for i, rel := range releases {
+		assets := []model.ReleaseAsset{}
+		if !rel.IsDraft || canWrite {
+			assets = releaseAssetsWithURLs(repo.OwnerName, repo.Name, rel.TagName, byRelease[rel.ID])
+		}
+		out[i] = releaseJSON{Release: rel, Assets: assets}
+	}
+	return out, nil
+}
+
+func (h *Handler) writeReleaseJSON(w http.ResponseWriter, r *http.Request, repo *model.Repository, release *model.Release) {
+	out, err := h.releasesWithAssets(r, repo, []model.Release{*release})
+	if err != nil {
+		slog.Error("list release assets failed", "release_id", release.ID, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	writeJSON(w, http.StatusOK, out[0])
 }
 
 func (h *Handler) GetRelease(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
@@ -274,14 +318,15 @@ func (h *Handler) GetRelease(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "release not found")
 		return
 	}
-	writeJSON(w, http.StatusOK, release)
+	h.writeReleaseJSON(w, r, repo, release)
 }
 
 func (h *Handler) GetLatestRelease(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -290,7 +335,7 @@ func (h *Handler) GetLatestRelease(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "no release found")
 		return
 	}
-	writeJSON(w, http.StatusOK, release)
+	h.writeReleaseJSON(w, r, repo, release)
 }
 
 type createReleaseRequest struct {
