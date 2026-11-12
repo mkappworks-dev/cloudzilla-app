@@ -125,9 +125,9 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
-				templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10)).Resolve(ctx)
+				templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.HooksPath() + "/" + strconv.FormatInt(wh.ID, 10)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhooks.templ`, Line: 34, Col: 111}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhooks.templ`, Line: 34, Col: 73}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -247,7 +247,7 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 						return nil
 					})
 					templ_7745c5c3_Err = components.Button(components.ButtonGhost, components.ButtonSizeSM, templ.Attributes{
-						"hx-get":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) + "/deliveries",
+						"hx-get":    data.HooksPath() + "/" + strconv.FormatInt(wh.ID, 10) + "/deliveries",
 						"hx-target": "#webhook-deliveries-" + strconv.FormatInt(wh.ID, 10),
 						"hx-swap":   "outerHTML",
 						"type":      "button",
@@ -274,10 +274,10 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 						return nil
 					})
 					templ_7745c5c3_Err = components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
-						"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10),
+						"hx-delete":           data.HooksPath() + "/" + strconv.FormatInt(wh.ID, 10),
 						"hx-target":           "#webhooks-list",
 						"hx-swap":             "outerHTML",
-						"hx-confirm":          data.RepoName + " will stop sending events to " + wh.URL + ".",
+						"hx-confirm":          data.Subject() + " will stop sending events to " + wh.URL + ".",
 						"data-confirm-title":  "Remove this webhook?",
 						"data-confirm-label":  "Remove",
 						"data-confirm-danger": "true",

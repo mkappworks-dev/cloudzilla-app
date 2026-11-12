@@ -189,6 +189,7 @@ type RepoSettingsData struct {
 	Owner             string
 	RepoName          string
 	Webhooks          []model.Webhook
+	OrgWebhooks       bool // the owning organization has webhooks, which also fire here; never their URLs or secrets
 	Collabs           []model.Permission
 	Labels            []model.Label
 	DeployKeys        []model.DeployKey
@@ -237,20 +238,41 @@ type DeployKeysFragData struct {
 // WebhooksFragData holds template data for the webhooks list HTMX fragment.
 type WebhooksFragData struct {
 	Owner     string
-	RepoName  string
+	RepoName  string // empty for an organization's list, where Owner is the organization
 	RepoID    int64
 	Webhooks  []model.Webhook
 	CanManage bool
 }
 
+// HooksPath is the API collection the list's controls act on.
+func (d WebhooksFragData) HooksPath() string { return hooksPath(d.Owner, d.RepoName) }
+
+// Subject names what the webhooks send events for.
+func (d WebhooksFragData) Subject() string {
+	if d.RepoName == "" {
+		return d.Owner
+	}
+	return d.RepoName
+}
+
+func hooksPath(owner, repoName string) string {
+	if repoName == "" {
+		return "/api/orgs/" + owner + "/hooks"
+	}
+	return "/api/repos/" + owner + "/" + repoName + "/hooks"
+}
+
 // WebhookDeliveriesFragData holds template data for the webhook delivery history HTMX fragment.
 type WebhookDeliveriesFragData struct {
 	Owner      string
-	RepoName   string
+	RepoName   string // empty for an organization webhook
 	WebhookID  int64
 	Deliveries []model.WebhookDelivery
 	CanManage  bool
 }
+
+// HooksPath is the API collection the redeliver control acts on.
+func (d WebhookDeliveriesFragData) HooksPath() string { return hooksPath(d.Owner, d.RepoName) }
 
 // RefsData holds template data for the branches and tags page.
 type RefsData struct {

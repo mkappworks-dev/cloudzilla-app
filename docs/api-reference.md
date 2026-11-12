@@ -780,8 +780,20 @@ pages return 404 and the directory stays with `<repo>.wiki`.
 | GET    | `/api/repos/:owner/:repo/hooks/:id/deliveries` | CanManage | List delivery history                                                                                                                                                                                      |
 | POST   | `/api/repos/:owner/:repo/hooks/:id/redeliver`  | CanManage | Redeliver a webhook event                                                                                                                                                                                  |
 
-Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signed with `X-Hub-Signature-256` when a
-secret is configured (GitHub-compatible HMAC-SHA256).
+An organization's webhooks live under `/api/orgs/:org/hooks`, owner only. A scoped token needs `repo:admin` (list
+included, since the response carries payload URLs) and, like the repository routes, a target that covers the org:
+
+| Method | Path                                  | Auth  | Description                                                                              |
+| ------ | ------------------------------------- | ----- | ---------------------------------------------------------------------------------------- |
+| GET    | `/api/orgs/:org/hooks/`               | Owner | List the organization's webhooks                                                         |
+| POST   | `/api/orgs/:org/hooks/`               | Owner | Create one, with the same fields and confirmation as a repository webhook; 400 for a URL |
+| PATCH  | `/api/orgs/:org/hooks/:id`            | Owner | Update the event filter                                                                  |
+| DELETE | `/api/orgs/:org/hooks/:id`            | Owner | Delete webhook                                                                           |
+| GET    | `/api/orgs/:org/hooks/:id/deliveries` | Owner | List delivery history                                                                    |
+| POST   | `/api/orgs/:org/hooks/:id/redeliver`  | Owner | Redeliver a webhook event                                                                |
+
+A member or a repository `admin` gets 403. Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are
+signed with `X-Hub-Signature-256` when a secret is configured (GitHub-compatible HMAC-SHA256).
 
 ## Repository Collaborators
 

@@ -251,6 +251,12 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		webhooks = []model.Webhook{}
 	}
 
+	orgWebhooks := false
+	if repo.OrgID != 0 {
+		n, _ := h.Services.Webhook.CountByOrg(r.Context(), repo.OrgID)
+		orgWebhooks = n > 0
+	}
+
 	collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	if collabs == nil {
 		collabs = []model.Permission{}
@@ -293,6 +299,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		Owner:             owner,
 		RepoName:          repoName,
 		Webhooks:          webhooks,
+		OrgWebhooks:       orgWebhooks,
 		Collabs:           collabs,
 		Labels:            labels,
 		DeployKeys:        deployKeys,

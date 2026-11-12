@@ -111,6 +111,7 @@ type OrgSettingsData struct {
 	// QuotaSummary is "" when the instance sets no quota for orgs.
 	QuotaSummary string
 	AuditEntries []model.AuditEntry
+	Webhooks     []model.Webhook
 	// What the viewer confirms making someone an owner with.
 	Confirm components.ConfirmFactors
 }

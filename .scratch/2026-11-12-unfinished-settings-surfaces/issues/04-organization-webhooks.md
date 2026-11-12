@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 Parallel: safe with 01, 02, 03. Shares `org_settings.templ` with 05 and 07, which wait for this.
 
@@ -37,9 +37,9 @@ in `mockups/COVERAGE.md`. Light and dark at 1440.
 
 ## Acceptance criteria
 
-- [ ] An org hook receives events from every org repo, signed, with retries
-- [ ] Only owners manage it; repo settings shows the read-only note
-- [ ] Docs and mock updated, light and dark
+- [x] An org hook receives events from every org repo, signed, with retries
+- [x] Only owners manage it; repo settings shows the read-only note
+- [x] Docs and mock updated, light and dark
 
 ## Verification
 

@@ -90,19 +90,22 @@ func checkWebhookURL(ctx context.Context, rawURL string, allowLocal bool) error 
 }
 
 func (s *WebhookService) Create(ctx context.Context, repoID int64, url, secret, events string) (*model.Webhook, error) {
-	if err := checkWebhookURL(ctx, url, s.allowLocal); err != nil {
+	return s.create(ctx, &model.Webhook{RepoID: repoID, URL: url, Secret: secret, Events: events})
+}
+
+// CreateForOrg adds a webhook that fires for every repository the organization owns.
+func (s *WebhookService) CreateForOrg(ctx context.Context, orgID int64, url, secret, events string) (*model.Webhook, error) {
+	return s.create(ctx, &model.Webhook{OrgID: orgID, URL: url, Secret: secret, Events: events})
+}
+
+func (s *WebhookService) create(ctx context.Context, wh *model.Webhook) (*model.Webhook, error) {
+	if err := checkWebhookURL(ctx, wh.URL, s.allowLocal); err != nil {
 		return nil, err
 	}
-	if events == "" {
-		events = "push,issues,pull_request"
+	if wh.Events == "" {
+		wh.Events = "push,issues,pull_request"
 	}
-	wh := &model.Webhook{
-		RepoID: repoID,
-		URL:    url,
-		Secret: secret,
-		Events: events,
-		Active: true,
-	}
+	wh.Active = true
 	if err := s.webhooks.Create(ctx, wh); err != nil {
 		return nil, fmt.Errorf("webhook create: %w", err)
 	}
@@ -113,8 +116,20 @@ func (s *WebhookService) ListByRepo(ctx context.Context, repoID int64) ([]model.
 	return s.webhooks.ListByRepo(ctx, repoID)
 }
 
+func (s *WebhookService) ListByOrg(ctx context.Context, orgID int64) ([]model.Webhook, error) {
+	return s.webhooks.ListByOrg(ctx, orgID)
+}
+
+func (s *WebhookService) CountByOrg(ctx context.Context, orgID int64) (int, error) {
+	return s.webhooks.CountByOrg(ctx, orgID)
+}
+
 func (s *WebhookService) Delete(ctx context.Context, id, repoID int64) error {
 	return s.webhooks.Delete(ctx, id, repoID)
+}
+
+func (s *WebhookService) DeleteForOrg(ctx context.Context, id, orgID int64) error {
+	return s.webhooks.DeleteForOrg(ctx, id, orgID)
 }
 
 func (s *WebhookService) ListDeliveries(ctx context.Context, webhookID, repoID int64) ([]model.WebhookDelivery, error) {
@@ -128,10 +143,21 @@ func (s *WebhookService) ListDeliveries(ctx context.Context, webhookID, repoID i
 	return s.webhooks.ListDeliveriesWithRetry(ctx, webhookID)
 }
 
+func (s *WebhookService) ListDeliveriesForOrg(ctx context.Context, webhookID, orgID int64) ([]model.WebhookDelivery, error) {
+	wh, err := s.webhooks.GetByID(ctx, webhookID)
+	if err != nil {
+		return nil, fmt.Errorf("webhook not found: %w", err)
+	}
+	if wh.OrgID != orgID {
+		return nil, fmt.Errorf("forbidden")
+	}
+	return s.webhooks.ListDeliveriesWithRetry(ctx, webhookID)
+}
+
 // Dispatch is fire-and-forget; call as `go s.Dispatch(...)`.
 func (s *WebhookService) Dispatch(repoID int64, event string, payload any) {
 	ctx := context.Background()
-	hooks, err := s.webhooks.ListByRepo(ctx, repoID)
+	hooks, err := s.webhooks.ListForRepoEvents(ctx, repoID)
 	if err != nil {
 		return
 	}
@@ -296,6 +322,22 @@ func (s *WebhookService) RedeliverByID(ctx context.Context, deliveryID, repoID i
 	return nil
 }
 
+func (s *WebhookService) RedeliverForOrg(ctx context.Context, deliveryID, orgID int64) error {
+	d, err := s.webhooks.GetDeliveryByID(ctx, deliveryID)
+	if err != nil {
+		return fmt.Errorf("delivery not found: %w", err)
+	}
+	wh, err := s.webhooks.GetByID(ctx, d.WebhookID)
+	if err != nil {
+		return fmt.Errorf("webhook not found: %w", err)
+	}
+	if wh.OrgID != orgID {
+		return fmt.Errorf("forbidden")
+	}
+	go s.retry(context.Background(), *wh, *d)
+	return nil
+}
+
 // UpdateEvents updates the event filter list for a webhook.
 // events is a comma-separated string, e.g. "push,issues".
 func (s *WebhookService) UpdateEvents(ctx context.Context, webhookID, repoID int64, events string) error {
@@ -303,6 +345,13 @@ func (s *WebhookService) UpdateEvents(ctx context.Context, webhookID, repoID int
 		return fmt.Errorf("events must not be empty")
 	}
 	return s.webhooks.UpdateWebhookEvents(ctx, webhookID, repoID, events)
+}
+
+func (s *WebhookService) UpdateEventsForOrg(ctx context.Context, webhookID, orgID int64, events string) error {
+	if events == "" {
+		return fmt.Errorf("events must not be empty")
+	}
+	return s.webhooks.UpdateWebhookEventsForOrg(ctx, webhookID, orgID, events)
 }
 
 func (s *WebhookService) PushPayload(repo model.Repository, pusher, branch, headSHA string) map[string]any {

@@ -1,6 +1,7 @@
 # Webhooks
 
-Webhooks let repo owners receive HTTP POST callbacks when events occur in a repository.
+Webhooks let repo owners receive HTTP POST callbacks when events occur in a repository, and organization owners receive
+them for every repository the organization owns.
 
 ## Supported Events
 
@@ -35,6 +36,20 @@ for endpoints on your own network; it is separate from `import.allow_local_netwo
 that point at such an address (a Tailscale `100.x` address, say) now fail every delivery with that error until the
 setting is on.
 
+## Organization webhooks
+
+A webhook has either a `repo_id` or an `org_id` (`webhooks_one_owner` CHECK); deleting the repository or the
+organization cascades to it. An organization webhook receives the same events as a repository one from every repository
+the organization owns, including ones created later, with the repository payloads unchanged. `Dispatch` finds them
+through the repository's current `org_id` (`WebhookStore.ListForRepoEvents`), so a repository transferred out of the
+organization stops firing its hooks and one transferred in starts, with no rows to move. Signing, retries, redelivery
+and the private network guard are the repository path's.
+
+Only an organization `owner` creates, lists, edits and deletes them, on the Webhooks section of `/orgs/{org}/settings`
+or through `/api/orgs/{org}/hooks` (see below). A repository `admin` can't, and the repository settings page only says
+"An organization webhook also fires for this repository", never the URL or secret. The repository endpoints can't reach
+an organization hook: each checks `repo_id`.
+
 ## API Endpoints
 
 All webhook endpoints are under `/api/repos/{owner}/{repo}/hooks`:
@@ -45,6 +60,10 @@ All webhook endpoints are under `/api/repos/{owner}/{repo}/hooks`:
 | POST   | `/api/repos/{owner}/{repo}/hooks/`                | Write access | Create webhook (`url`, `secret`, `events`); 400 for a refused URL |
 | DELETE | `/api/repos/{owner}/{repo}/hooks/{id}`            | Write access | Delete webhook                                                    |
 | GET    | `/api/repos/{owner}/{repo}/hooks/{id}/deliveries` | Write access | List delivery history                                             |
+
+An organization's hooks are under `/api/orgs/{org}/hooks` with the same verbs (list, create, `PATCH` events, delete,
+`/{id}/deliveries`, `/{id}/redeliver`), owner only; a token needs `repo:admin`. Creating one needs the same confirmation
+as a repository webhook.
 
 HTMX requests for create/delete swap `fragment-webhooks-list` into `#webhooks-list`.
 
@@ -57,7 +76,11 @@ Default events when `events` is omitted: `push,issues,pull_request`.
 - `ListByRepo(ctx, repoID)` → `([]Webhook, error)`
 - `Delete(ctx, id, repoID)` → `error`
 - `ListDeliveries(ctx, webhookID)` → `([]WebhookDelivery, error)`
-- `Dispatch(repoID, event, payload)` — fire-and-forget; call as `go s.Webhook.Dispatch(...)`
+- `CreateForOrg(ctx, orgID, url, secret, events)`, `ListByOrg`, `CountByOrg`, `DeleteForOrg(ctx, id, orgID)`,
+  `ListDeliveriesForOrg`, `RedeliverForOrg`, `UpdateEventsForOrg` — the organization counterparts; the URL guard and
+  `*WebhookURLError` are the same
+- `Dispatch(repoID, event, payload)` — fire-and-forget; call as `go s.Webhook.Dispatch(...)`; also reaches the hooks of
+  the repository's organization
 - `PushPayload(repo, pusher, branch, headSHA)` → `map[string]any`
 - `IssuePayload(action, repo, issue)` → `map[string]any`
 - `PullPayload(action, repo, pr)` → `map[string]any`
