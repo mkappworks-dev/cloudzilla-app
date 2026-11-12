@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 | Branch                      | Worktree                               | PR title                                        | Effort |
@@ -30,12 +30,12 @@ See [spec.md](../spec.md). Once a path has an alias, web and JSON API requests t
 
 ## Acceptance criteria
 
-- [ ] `GET /acme/api/blob/main/README.md?plain=1` → `301` to `/acme/core/blob/main/README.md?plain=1`
-- [ ] `POST /api/repos/acme/api/issues` → `308`, and following it with the method creates the issue
-- [ ] Private repo: anonymous and unrelated users get the same status, headers and body as for a missing repo
-- [ ] A new live repo at the old name is served directly and the alias is gone (ticket 01)
-- [ ] Soft-deleted target does not redirect
-- [ ] No extra query on the live path (test with a query counter or by reading the code path)
+- [x] `GET /acme/api/blob/main/README.md?plain=1` → `301` to `/acme/core/blob/main/README.md?plain=1`
+- [x] `POST /api/repos/acme/api/issues` → `308`, and following it with the method creates the issue
+- [x] Private repo: anonymous and unrelated users get the same status, headers and body as for a missing repo
+- [x] A new live repo at the old name is served directly and the alias is gone (ticket 01)
+- [x] Soft-deleted target does not redirect
+- [x] No extra query on the live path (test with a query counter or by reading the code path)
 
 ## Verification
 
