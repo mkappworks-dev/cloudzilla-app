@@ -98,6 +98,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Git transport never honours admin mode: it is for the web UI only.
 	gitAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions)
 	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB
+	// optAuthMW runs again on a 404 only, to learn who is asking before an old repo path redirects.
+	r.Use(middleware.RepoAlias(services.Repo, optAuthMW))
 
 	superadminMW := middleware.RequireSuperadmin(h.Forbidden)
 
