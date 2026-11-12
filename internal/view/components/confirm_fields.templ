@@ -91,7 +91,7 @@ templ confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) 
 			if inDialog {
 				@PasswordInput(templ.Attributes{"id": idPrefix + "-password", "name": "password", "required": required, "autocomplete": "current-password"})
 			} else {
-				<input id={ idPrefix + "-password" } name="password" type="password" required?={ required } autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+				<input id={ idPrefix + "-password" } name="password" type="password" required?={ required } autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 			}
 		</div>
 	}
@@ -103,7 +103,7 @@ templ confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) 
 					<span class="text-destructive" aria-hidden="true">*</span>
 				}
 			</label>
-			<input id={ idPrefix + "-code" } name="code" type="text" inputmode="numeric" pattern="[0-9]*" data-pattern-message="Use the digits only." maxlength="6" required?={ required } autocomplete="one-time-code" placeholder="000000" class="h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring"/>
+			<input id={ idPrefix + "-code" } name="code" type="text" inputmode="numeric" pattern="[0-9]*" data-pattern-message="Use the digits only." maxlength="6" required?={ required } autocomplete="one-time-code" placeholder="000000" class="h-9 w-32 font-mono text-center text-base bg-background border border-input rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring"/>
 		</div>
 	}
 	if f.Provider != "" {
@@ -129,7 +129,7 @@ templ confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) 
 				}
 			</label>
 			<div class="flex items-center gap-2">
-				<input id={ idPrefix + "-email-code" } name="email_code" type="text" inputmode="numeric" pattern="[0-9]*" data-pattern-message="Use the digits only." maxlength="6" required?={ required && f.Provider == "" } autocomplete="one-time-code" placeholder="000000" aria-describedby={ idPrefix + "-email-code-status" } class="h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring"/>
+				<input id={ idPrefix + "-email-code" } name="email_code" type="text" inputmode="numeric" pattern="[0-9]*" data-pattern-message="Use the digits only." maxlength="6" required?={ required && f.Provider == "" } autocomplete="one-time-code" placeholder="000000" aria-describedby={ idPrefix + "-email-code-status" } class="h-9 w-32 font-mono text-center text-base bg-background border border-input rounded-md px-3 text-foreground focus:outline-hidden focus:border-ring"/>
 				<button
 					type="button"
 					hx-post="/settings/confirm-code"
@@ -163,7 +163,7 @@ templ ConfirmNameField(idPrefix, name string) {
 			data-pattern-message="Type the name exactly as shown."
 			autocomplete="off"
 			spellcheck="false"
-			class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
+			class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 		/>
 	</div>
 }

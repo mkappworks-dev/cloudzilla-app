@@ -131,7 +131,7 @@
           <div id="card-confirm" hidden class="flex w-full flex-wrap items-center justify-end gap-x-2 gap-y-3" role="group" aria-labelledby="card-confirm-text">
             <p id="card-confirm-text" class="basis-full text-[13px] font-medium"></p>
             <button type="button" id="confirm-cancel" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Cancel</button>
-            <button type="button" id="confirm-ok" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-4 text-sm"></button>
+            <button type="button" id="confirm-ok" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90 h-9 px-4 text-sm"></button>
           </div>
         </div>
       </form>
@@ -295,7 +295,7 @@
       '<div data-col-ask role="menu"><button type="button" role="menuitem" data-col-delete class="w-full rounded px-2 py-1.5 text-left text-[13px] text-destructive hover:bg-muted">Delete column</button></div>' +
       '<div hidden data-col-confirm role="group" class="flex flex-col gap-2 p-2"><p class="text-[13px] font-medium">' + delPrompt(col.cards.length) + '</p>' +
       '<div class="flex justify-end gap-2"><button type="button" data-col-cancel class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Cancel</button>' +
-      '<button type="button" data-col-remove class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 text-[13px]">Delete column</button></div></div>' +
+      '<button type="button" data-col-remove class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90 h-8 px-3 text-[13px]">Delete column</button></div></div>' +
       '</div></div></header>' +
       '<ul class="space-y-2 px-2 pb-2 min-h-2" data-cards>' + col.cards.map(cardHTML).join('') + '</ul>' +
       '<div class="px-2 pb-2"><button type="button" data-add-card class="w-full rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground">+ Add item</button></div></section>';
@@ -360,7 +360,7 @@
     $('card-actions').hidden = true; $('card-confirm').hidden = false;
     $('card-confirm-text').textContent = kind === 'convert' ? 'Create an issue from this card? The card will link to the new issue.' : 'Delete this card?';
     $('confirm-ok').textContent = kind === 'convert' ? 'Create issue' : 'Delete card';
-    $('confirm-ok').className = $('confirm-ok').className.replace(/bg-\S+ text-\S+ hover:bg-\S+/, kind === 'convert' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90');
+    $('confirm-ok').className = $('confirm-ok').className.replace(/bg-\S+ text-\S+ hover:bg-\S+/, kind === 'convert' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90');
     $('confirm-ok').setAttribute('data-kind', kind);
   }
   function openCard(col, card) {

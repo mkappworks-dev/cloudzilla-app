@@ -36,13 +36,13 @@ func buttonVariantClass(v ButtonVariant) string {
 	case ButtonSecondary:
 		return "bg-secondary text-secondary-foreground hover:bg-secondary/80"
 	case ButtonDestructive:
-		return "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+		return "bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90"
 	case ButtonDestructiveOutline:
 		return "border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive"
 	case ButtonDestructiveGhost:
 		return "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 	case ButtonSuccess:
-		return "bg-success text-success-foreground hover:bg-success/90"
+		return "bg-success-fill text-success-fill-foreground hover:bg-success-fill/90"
 	case ButtonLink:
 		return "text-foreground underline-offset-4 hover:underline"
 	default:

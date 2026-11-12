@@ -96,7 +96,7 @@
   }
   function menu(title, key, opts, cur) {
     var items = opts.map(function (o) {
-      return '<li><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="' + key + '" data-key="' + key + '" value="' + o[0] + '"' + (o[0] === cur ? ' checked' : '') + ' class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">' + o[1] + '</span></span></label></li>';
+      return '<li><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="' + key + '" data-key="' + key + '" value="' + o[0] + '"' + (o[0] === cur ? ' checked' : '') + ' class="h-4 w-4 shrink-0 border-input"><span class="min-w-0 flex-1"><span class="block truncate">' + o[1] + '</span></span></label></li>';
     }).join('');
     return '<details class="relative"><summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">' + title + ' ' + CARET + '</summary>' +
       '<form onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md"><fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by ' + title + '</legend><ul class="max-h-64 overflow-y-auto p-1">' + items + '</ul></fieldset></form></details>';
@@ -118,7 +118,7 @@
     document.getElementById('bar').innerHTML = '<div class="space-y-2"><div class="flex flex-wrap items-center gap-2">' +
       '<form id="search" role="search" onsubmit="return false" class="relative min-w-56 flex-1"><label for="list-filter-search" class="sr-only">Search or filter issues</label>' +
       '<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>' +
-      '<input id="list-filter-search" type="search" value="' + st.text + '" placeholder="Search or filter, e.g. repo:owner/name author:@me" autocomplete="off" class="h-8 w-full pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/></form>' + menus + '</div>' +
+      '<input id="list-filter-search" type="search" value="' + st.text + '" placeholder="Search or filter, e.g. repo:owner/name author:@me" autocomplete="off" class="h-8 w-full pl-8 pr-3 text-[13px] bg-card border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/></form>' + menus + '</div>' +
       (filtered ? '<div class="flex flex-wrap items-center gap-1.5 text-[12px]">' + chips.join('') + '<span class="text-muted-foreground">' + count + (count === 1 ? ' result' : ' results') + (count ? ' <span aria-hidden="true">·</span> <a href="#" data-clear class="text-primary hover:underline">Clear filters</a>' : '') + '</span></div>' : '') + '</div>';
   }
   function apply(text) {

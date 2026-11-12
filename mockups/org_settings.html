@@ -124,11 +124,11 @@
         <div class="flex items-center gap-2 mb-3">
           <div class="relative flex-1">
             <label for="org-member-filter-input" class="sr-only">Filter members</label>
-            <input id="org-member-filter-input" type="search" placeholder="Filter by name or @handle…" class="w-full bg-background border border-border rounded-md pl-8 pr-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+            <input id="org-member-filter-input" type="search" placeholder="Filter by name or @handle…" class="w-full bg-background border border-input rounded-md pl-8 pr-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
             <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
           </div>
           <label for="org-member-filter-role" class="sr-only">Filter by role</label>
-          <select id="org-member-filter-role" class="flex h-9 w-40 rounded-md border border-border bg-background px-3 text-[13px] shadow-xs">
+          <select id="org-member-filter-role" class="flex h-9 w-40 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs">
             <option value="">All roles</option>
             <option value="owner">Owners</option>
             <option value="member">Members</option>
@@ -295,7 +295,7 @@
               <p class="text-[13.5px] font-medium">Delete organization</p>
               <p class="mt-0.5 text-[12.5px] text-muted-foreground">acme-corp still has 14 repositories. Delete or transfer them first — deleting the org cascades through every repo, issue, PR, and comment.</p>
             </div>
-            <button type="button" disabled title="Remove all repositories first" class="h-9 px-4 text-sm rounded-md font-medium bg-destructive text-destructive-foreground opacity-60 cursor-not-allowed shrink-0">Delete organization</button>
+            <button type="button" disabled title="Remove all repositories first" class="h-9 px-4 text-sm rounded-md font-medium bg-destructive-fill text-destructive-fill-foreground opacity-60 cursor-not-allowed shrink-0">Delete organization</button>
           </li>
         </ul>
       </section>
@@ -314,7 +314,7 @@
       <div class="flex flex-col gap-4">
         <div>
           <label for="invite-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
-          <input id="invite-username" name="username" type="text" required autocomplete="off" placeholder="@handle" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+          <input id="invite-username" name="username" type="text" required autocomplete="off" placeholder="@handle" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
         </div>
         <div>
           <label for="invite-role" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Role</label>
@@ -328,7 +328,7 @@
           <p class="text-[12px] text-muted-foreground">Confirm it's you to add an owner.</p>
           <div>
             <label for="invite-owner-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-            <div class="relative"><input type="password" id="invite-owner-password" name="password" autocomplete="current-password" class="h-9 w-full border border-border rounded-md pl-3 pr-10 text-foreground [&::-ms-reveal]:hidden bg-background text-[13px] focus:outline-hidden focus:border-ring" /><button type="button" aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg></button></div>
+            <div class="relative"><input type="password" id="invite-owner-password" name="password" autocomplete="current-password" class="h-9 w-full border border-input rounded-md pl-3 pr-10 text-foreground [&::-ms-reveal]:hidden bg-background text-[13px] focus:outline-hidden focus:border-ring" /><button type="button" aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg></button></div>
           </div>
         </div>
       </div>
@@ -350,21 +350,21 @@
       <div class="space-y-4">
         <div>
           <label for="transfer-new-owner" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New owner username</label>
-          <input id="transfer-new-owner" name="new_owner" type="text" required autocomplete="off" placeholder="@handle" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+          <input id="transfer-new-owner" name="new_owner" type="text" required autocomplete="off" placeholder="@handle" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
         </div>
         <div>
           <label for="transfer-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Type <span class="font-mono text-foreground">acme-corp</span> to confirm</label>
-          <input id="transfer-confirm" name="confirm_name" type="text" required pattern="acme-corp" autocomplete="off" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
+          <input id="transfer-confirm" name="confirm_name" type="text" required pattern="acme-corp" autocomplete="off" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring" />
         </div>
         <div>
           <label for="transfer-org-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-          <div class="relative"><input type="password" id="transfer-org-password" name="password" required autocomplete="current-password" class="h-9 w-full border border-border rounded-md pl-3 pr-10 text-foreground [&::-ms-reveal]:hidden bg-background text-[13px] focus:outline-hidden focus:border-ring" /><button type="button" aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg></button></div>
+          <div class="relative"><input type="password" id="transfer-org-password" name="password" required autocomplete="current-password" class="h-9 w-full border border-input rounded-md pl-3 pr-10 text-foreground [&::-ms-reveal]:hidden bg-background text-[13px] focus:outline-hidden focus:border-ring" /><button type="button" aria-label="Show password" aria-pressed="false" onclick="var i=this.previousElementSibling,show=i.type==='password';i.type=show?'text':'password';this.setAttribute('aria-pressed',show);this.setAttribute('aria-label',show?'Hide password':'Show password');" class="group absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="group-aria-pressed:hidden"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="hidden group-aria-pressed:block"><path d="M17.94 17.94A10.07 10.07 0 0112 19c-6.4 0-10-7-10-7a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.4 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg></button></div>
         </div>
       </div>
     </div>
     <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
       <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-      <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Transfer ownership</button>
+      <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Transfer ownership</button>
     </div>
   </form>
 </dialog>
@@ -407,7 +407,7 @@
     document.getElementById('cz-confirm-msg').textContent = b.dataset.confirm || '';
     ok.textContent = b.dataset.confirmLabel || 'Confirm';
     ok.className = 'inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 ' + (b.hasAttribute('data-confirm-danger')
-      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
+      ? 'bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
     done = cb;
     dlg.returnValue = '';
     dlg.showModal();

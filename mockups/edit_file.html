@@ -33,12 +33,12 @@
       <div class="rounded-md border border-border bg-card p-5 space-y-4">
         <div>
           <label for="ef-path" class="block text-[12px] font-medium mb-1.5">File path</label>
-          <input id="ef-path" name="path" type="text" value="internal/router/router.go" required class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring" />
+          <input id="ef-path" name="path" type="text" value="internal/router/router.go" required class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring" />
           <p class="text-[11px] text-muted-foreground mt-1">Change the path to rename or move the file.</p>
         </div>
         <div>
           <label for="ef-content" class="block text-[12px] font-medium mb-1.5">Contents</label>
-          <textarea id="ef-content" name="content" rows="24" spellcheck="false" class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y">
+          <textarea id="ef-content" name="content" rows="24" spellcheck="false" class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y">
 package router
  
 import (
@@ -72,7 +72,7 @@ func New(h *handler.Handlers) http.Handler {
 
       <div class="rounded-md border border-border bg-card p-5">
         <label for="ef-message" class="block text-[12px] font-medium mb-1.5">Commit message</label>
-        <input id="ef-message" name="message" type="text" value="" placeholder="Update internal/router/router.go" class="w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring" />
+        <input id="ef-message" name="message" type="text" value="" placeholder="Update internal/router/router.go" class="w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring" />
       </div>
 
       <div class="flex items-center justify-end gap-2">

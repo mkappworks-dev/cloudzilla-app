@@ -54,7 +54,7 @@ templ DiscussionDetail(data view.DiscussionDetailData) {
 					</div>
 					if data.CanWrite {
 						<div x-show="editingTitle" x-cloak class="flex items-center gap-2">
-							<input id="dd-title-input" type="text" value={ data.Discussion.Title } class="flex-1 min-w-0 h-9 rounded-md border border-border bg-transparent px-3 text-sm"/>
+							<input id="dd-title-input" type="text" value={ data.Discussion.Title } class="flex-1 min-w-0 h-9 rounded-md border border-input bg-transparent px-3 text-sm"/>
 							<button type="button" hx-patch={ patchURL } hx-vals="js:{title: document.getElementById('dd-title-input').value}" hx-on::after:request="if(event.target===this&&ctx.response.status<400){location.reload();}" class="inline-flex items-center h-9 px-4 text-[13px] rounded-md font-medium bg-foreground text-background">Save</button>
 							<button type="button" x-on:click="editingTitle = false" class="inline-flex items-center h-9 px-3 text-[13px] rounded-md text-muted-foreground hover:underline">Cancel</button>
 						</div>

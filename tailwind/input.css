@@ -23,8 +23,12 @@
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-fill: hsl(var(--destructive-fill));
+  --color-destructive-fill-foreground: hsl(var(--destructive-fill-foreground));
   --color-success: hsl(var(--success));
   --color-success-foreground: hsl(var(--success-foreground));
+  --color-success-fill: hsl(var(--success-fill));
+  --color-success-fill-foreground: hsl(var(--success-fill-foreground));
   --color-warning: hsl(var(--warning));
   --color-warning-foreground: hsl(var(--warning-foreground));
   --color-muted: hsl(var(--muted));
@@ -132,8 +136,14 @@
     --destructive: 0 70% 41%;
     --destructive-foreground: 0 0% 98%;
 
+    /* Solid button fills. Light reuses the text tokens; dark needs its own because they are tuned as text on near-black. */
+    --destructive-fill: 0 70% 41%;
+    --destructive-fill-foreground: 0 0% 98%;
+
     --success: 142 71% 26%;
     --success-foreground: 0 0% 98%;
+    --success-fill: 142 71% 26%;
+    --success-fill-foreground: 0 0% 98%;
 
     /* Level 1 must reach 3:1 against the card (WCAG 1.4.11), which leaves little room above it. */
     --heat-1: 0.75;
@@ -158,29 +168,34 @@
     --background: 0 0% 0%;
     --foreground: 0 0% 93%;
 
-    --card: 0 0% 4%;
+    /* Each surface sits one step above the one it lies on (background, card, popover; muted and secondary nest inside a card). */
+    --card: 0 0% 7%;
     --card-foreground: 0 0% 93%;
 
-    --popover: 0 0% 6%;
+    --popover: 0 0% 10%;
     --popover-foreground: 0 0% 93%;
 
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 10%;
+    --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 93%;
 
-    --muted: 0 0% 10%;
+    --muted: 0 0% 12%;
     --muted-foreground: 0 0% 71%;
 
-    --accent: 0 0% 10%;
+    --accent: 0 0% 15%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 89% 73%;
     --destructive-foreground: 0 0% 0%;
+    --destructive-fill: 0 72% 46%;
+    --destructive-fill-foreground: 0 0% 98%;
 
     --success: 142 71% 56%;
     --success-foreground: 0 0% 0%;
+    --success-fill: 142 71% 26%;
+    --success-fill-foreground: 0 0% 98%;
 
     --heat-1: 0.25;
     --heat-2: 0.5;
@@ -192,7 +207,7 @@
     /* HSL with alpha — gives the hairline-on-dark feel from the mockups */
     --border: 0 0% 100% / 0.10;
     --border-strong: 0 0% 100% / 0.18;
-    --input: 0 0% 100% / 0.10;
+    --input: 0 0% 100% / 0.35; /* 3:1 against the card (WCAG 1.4.11) */
     --ring: 222 100% 71%;
   }
 

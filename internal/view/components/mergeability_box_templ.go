@@ -532,7 +532,7 @@ func MergeabilityBox(d MergeabilityBoxData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Marked ready for review'}));location.reload();}\" class=\"h-9 px-4 text-[13px] font-medium rounded-md bg-success text-success-foreground hover:bg-success/90\">Ready for review</button> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Marked ready for review'}));location.reload();}\" class=\"h-9 px-4 text-[13px] font-medium rounded-md bg-success-fill text-success-fill-foreground hover:bg-success-fill/90\">Ready for review</button> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1075,7 +1075,7 @@ func mergeSplitButton(d MergeabilityBoxData, auto bool) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<button type=\"button\" x-on:click=\"open = !open\" x-on:click.outside=\"open = false\" x-on:keydown.escape.window=\"open = false\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"menu\" aria-label=\"Choose merge strategy\" class=\"h-9 px-2.5 grid place-items-center bg-success text-success-foreground hover:opacity-90 border-l border-success-foreground/25\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M7 10l5 5 5-5\"></path></svg></button></div><div x-show=\"open\" x-cloak x-transition.opacity.duration.100ms role=\"menu\" aria-label=\"Merge strategy\" class=\"absolute left-0 top-full mt-1.5 z-50 min-w-[18rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm\"><div class=\"px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground\">Merge strategy</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<button type=\"button\" x-on:click=\"open = !open\" x-on:click.outside=\"open = false\" x-on:keydown.escape.window=\"open = false\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"menu\" aria-label=\"Choose merge strategy\" class=\"h-9 px-2.5 grid place-items-center bg-success-fill text-success-fill-foreground hover:opacity-90 border-l border-success-fill-foreground/25\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M7 10l5 5 5-5\"></path></svg></button></div><div x-show=\"open\" x-cloak x-transition.opacity.duration.100ms role=\"menu\" aria-label=\"Merge strategy\" class=\"absolute left-0 top-full mt-1.5 z-50 min-w-[18rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm\"><div class=\"px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground\">Merge strategy</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1206,7 +1206,7 @@ func mergePrimaryButton(d MergeabilityBoxData, auto bool, defKey, defLabel, roun
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var51 = []any{"h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5", rounded}
+			var templ_7745c5c3_Var51 = []any{"h-9 px-4 text-[13px] font-medium bg-success-fill text-success-fill-foreground hover:opacity-90 inline-flex items-center gap-1.5", rounded}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var51...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -1469,7 +1469,7 @@ func mergeConfirmDialog(d MergeabilityBoxData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "\" class=\"inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium h-9 px-4 bg-success text-success-foreground hover:bg-success/90\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "\" class=\"inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium h-9 px-4 bg-success-fill text-success-fill-foreground hover:bg-success-fill/90\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1771,9 +1771,9 @@ func mergeHeaderClass(st mergeState) string {
 func mergeIconClass(st mergeState) string {
 	switch st {
 	case mergeReady:
-		return "bg-success text-success-foreground"
+		return "bg-success-fill text-success-fill-foreground"
 	case mergeConflicts, mergeChangesRequested, mergeChecksFailing:
-		return "bg-destructive text-destructive-foreground"
+		return "bg-destructive-fill text-destructive-fill-foreground"
 	case mergeChecking, mergeNeedsReview, mergeChecksPending:
 		return "bg-warning text-warning-foreground"
 	default:

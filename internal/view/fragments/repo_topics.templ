@@ -34,7 +34,7 @@ templ RepoTopics(data view.RepoTopicsFragData) {
 						id={ "topic-input-" + strconv.FormatInt(data.RepoID, 10) }
 						placeholder="go, web, api (comma-separated)"
 						value={ topicNames(data.Topics) }
-						class="flex-1 border border-border rounded-sm px-2 py-1 text-sm"
+						class="flex-1 border border-input rounded-sm px-2 py-1 text-sm"
 					/>
 					<button
 						type="button"

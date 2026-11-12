@@ -57,7 +57,7 @@ templ LineCommentForm(data view.LineCommentFormFragData) {
 		<input type="hidden" name="path" value={ data.Path }/>
 		<input type="hidden" name="line" value={ strconv.Itoa(data.Line) }/>
 		<input type="hidden" name="diff_side" value={ key.Side }/>
-		<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-border rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none"></textarea>
+		<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-input rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none"></textarea>
 		<div class="flex gap-2">
 			<button type="submit" class="px-3 py-1 bg-primary text-background rounded-sm text-xs font-medium hover:bg-primary">
 				Comment
@@ -107,7 +107,7 @@ templ suggestionBlock(data view.LineCommentsFragData, c view.RenderedLineComment
 					hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10) + "/apply" }
 					hx-swap="none"
 					hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Suggestion applied'}));location.reload();}"
-					class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]"
+					class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-success-fill text-success-fill-foreground hover:bg-success-fill/90 h-8 px-3 text-[13px]"
 				>
 					Apply suggestion
 				</button>

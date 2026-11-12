@@ -174,7 +174,7 @@ func IssueDetail(data view.IssueDetailFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" hx-target=\"#issue-detail\" hx-swap=\"outerHTML\" class=\"px-4 py-2 bg-destructive text-background rounded-sm font-medium hover:bg-destructive transition-colors\">Close issue</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" hx-target=\"#issue-detail\" hx-swap=\"outerHTML\" class=\"px-4 py-2 bg-destructive-fill text-destructive-fill-foreground rounded-sm font-medium hover:bg-destructive-fill/90 transition-colors\">Close issue</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -205,7 +205,7 @@ func IssueDetail(data view.IssueDetailFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-target=\"#issue-detail\" hx-swap=\"outerHTML\" class=\"px-4 py-2 bg-success text-background rounded-sm font-medium hover:bg-success transition-colors\">Re-open Issue</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-target=\"#issue-detail\" hx-swap=\"outerHTML\" class=\"px-4 py-2 bg-success-fill text-success-fill-foreground rounded-sm font-medium hover:bg-success-fill/90 transition-colors\">Re-open Issue</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -13,8 +13,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/seed"
 )
 
-// Every surface a chip sits on in dark mode: --background, --card, --popover, --muted/--accent.
-var darkSurfaces = []rgb{{0x00, 0x00, 0x00}, {0x0a, 0x0a, 0x0a}, {0x0f, 0x0f, 0x0f}, labelDarkSurface}
+// Every surface a chip sits on in dark mode: --background, --card, --popover, --muted, --accent.
+var darkSurfaces = []rgb{{0x00, 0x00, 0x00}, {0x12, 0x12, 0x12}, {0x1a, 0x1a, 0x1a}, {0x1f, 0x1f, 0x1f}, labelDarkSurface}
 
 func TestContrastRatio(t *testing.T) {
 	for _, tc := range []struct {

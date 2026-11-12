@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -30,9 +30,9 @@ merge and Comment buttons read as neon next to an otherwise monochrome dark UI (
 
 ## Acceptance criteria
 
-- [ ] Card, nested and input surfaces are distinguishable without relying on a 1px border
-- [ ] Contrast of text on the new surfaces stays at AA
-- [ ] Before/after harness screenshots, light unchanged
+- [x] Card, nested and input surfaces are distinguishable without relying on a 1px border
+- [x] Contrast of text on the new surfaces stays at AA
+- [x] Before/after harness screenshots, light unchanged
 
 ## Verification
 

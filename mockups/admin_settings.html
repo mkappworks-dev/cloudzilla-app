@@ -72,7 +72,7 @@
             <span class="text-warning">Pending</span>
           </div>
         </div>
-        <button type="button" data-delete-invite data-email="hana@example.test" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 text-[13px] ml-4 shrink-0">Delete</button>
+        <button type="button" data-delete-invite data-email="hana@example.test" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90 h-8 px-3 text-[13px] ml-4 shrink-0">Delete</button>
       </div>
       <div class="rounded-md border border-border p-4 flex justify-between items-start">
         <div class="space-y-1">
@@ -130,7 +130,7 @@
     document.getElementById('cz-confirm-title').textContent = o.title;
     document.getElementById('cz-confirm-msg').textContent = o.msg;
     okBtn.textContent = o.label;
-    okBtn.className = OK_BASE + (o.danger ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
+    okBtn.className = OK_BASE + (o.danger ? 'bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90' : 'bg-primary text-primary-foreground hover:bg-primary/90');
     pending = done;
     dlg.returnValue = '';
     dlg.showModal();
@@ -197,7 +197,7 @@
     del.type = 'button';
     del.setAttribute('data-delete-invite', '');
     del.dataset.email = email;
-    del.className = 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 text-[13px] ml-4 shrink-0';
+    del.className = 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90 h-8 px-3 text-[13px] ml-4 shrink-0';
     del.textContent = 'Delete';
     row.append(info, del);
     list.prepend(row);

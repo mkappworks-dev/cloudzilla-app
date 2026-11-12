@@ -100,7 +100,7 @@ func Topic(data view.TopicData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p><form method=\"get\" class=\"inline-flex items-center gap-2\"><label for=\"topic-sort\" class=\"text-[12px] text-muted-foreground\">Sort</label> <select id=\"topic-sort\" name=\"sort\" aria-label=\"Sort repositories\" class=\"h-7 text-[12px] bg-card border border-border rounded-md px-2 text-muted-foreground\" onchange=\"this.form.submit()\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p><form method=\"get\" class=\"inline-flex items-center gap-2\"><label for=\"topic-sort\" class=\"text-[12px] text-muted-foreground\">Sort</label> <select id=\"topic-sort\" name=\"sort\" aria-label=\"Sort repositories\" class=\"h-7 text-[12px] bg-card border border-input rounded-md px-2 text-muted-foreground\" onchange=\"this.form.submit()\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

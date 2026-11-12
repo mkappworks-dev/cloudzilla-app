@@ -181,7 +181,7 @@ func EditFile(data view.EditFileData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" required class=\"w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Change the path to rename or move the file.</p></div><div><label for=\"ef-content\" class=\"block text-[12px] font-medium mb-1.5\">Contents</label> <textarea id=\"ef-content\" name=\"content\" rows=\"24\" spellcheck=\"false\" class=\"w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" required class=\"w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Change the path to rename or move the file.</p></div><div><label for=\"ef-content\" class=\"block text-[12px] font-medium mb-1.5\">Contents</label> <textarea id=\"ef-content\" name=\"content\" rows=\"24\" spellcheck=\"false\" class=\"w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -220,7 +220,7 @@ func EditFile(data view.EditFileData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"flex items-center justify-end gap-2\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" class=\"w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"flex items-center justify-end gap-2\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
