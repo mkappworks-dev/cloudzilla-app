@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: wontfix
 Blocked by: 02, 03, 04, 05, 06
 
 | Branch                 | Worktree                         | PR title                                              | Effort |
@@ -37,3 +37,4 @@ See [spec.md](../spec.md). Once every family is generated, the leftovers are dea
 Walk `index.html` under `make mockups` at 1440 in light and dark.
 
 ## Comments
+2026-11-12 (maintainer): wontfix. Mocks stay design-first and hand-written, so nothing is generated; see [spec.md](../spec.md). The unmerged branch and PR for this ticket are closed by the maintainer.

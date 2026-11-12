@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: wontfix
 Blocked by: 01
 
 | Branch                 | Worktree                         | PR title                                              | Effort |
@@ -41,3 +41,4 @@ pages `COVERAGE.md` lists with no mock if they render from a plain view-model: `
 As in ticket 01.
 
 ## Comments
+2026-11-12 (maintainer): wontfix. Mocks stay design-first and hand-written, so nothing is generated; see [spec.md](../spec.md). The unmerged branch and PR for this ticket are closed by the maintainer.

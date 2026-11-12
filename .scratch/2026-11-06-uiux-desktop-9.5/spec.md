@@ -45,7 +45,7 @@ Each column adds only the gains the tickets below claim, so the scoped work reac
 ticket 22: re-score with both reviewers after each wave and turn every finding under 9.5 into a ticket. Gains are the
 reviewers' estimates, not measurements.
 
-Mocks score 7.0; mock↔real fidelity 7.6 (Claude 7.0, Codex 8.2). The mocks track (tickets 20–21) targets 9.5 for both.
+Mocks score 7.0; mock↔real fidelity 7.6 (Claude 7.0, Codex 8.2). The mocks track (ticket 20; 21 was dropped) targets 9.5 for both.
 
 Measured so far (mean of both reviewers; details under Comments): 7.0 baseline, **7.63** after wave 1, **7.42** after
 wave 2. The wave 2 pass used full-page shots of every state and both reviewers saw all of them, so it is stricter than
@@ -59,8 +59,8 @@ The current order, updated after each re-score. Rows in one step run as parallel
 | Step | Tickets                    | Runs as                                         | Status                                      |
 | ---- | -------------------------- | ----------------------------------------------- | ------------------------------------------- |
 | ✅    | 00–14, 20, 22 (waves 1–2), 23, 30 | —                                        | merged                                      |
-| 1    | 21 mock generator          | alone: spec session with the maintainer, then build | running                                 |
-| 2    | 24, 32, 33, 38, 39         | parallel (separate pages)                       | ready-for-agent, after 21                   |
+| 1    | 21 mock generator          | —                                               | wontfix: mocks stay hand-written            |
+| 2    | 24, 32, 33, 38, 39         | parallel (separate pages)                       | ready-for-agent                                |
 | 3    | 25, 31, 35, 37, 40         | parallel; 25 after 24, 37 after 32              | ready-for-agent                             |
 | 4    | 36                         | after 31                                        | ready-for-agent                             |
 | 5    | 29 dark surfaces           | alone (restyles every page)                     | ready-for-agent                             |
@@ -68,7 +68,7 @@ The current order, updated after each re-score. Rows in one step run as parallel
 | 6    | 27, 34, 15–19              | spec sessions any time; builds here             | ready-for-human                             |
 | 7    | 22 (wave 3)                | after 19                                        | re-score and polish                         |
 
-21 goes first so the polish tickets' mock changes come from the generator instead of hand edits.
+Polish tickets update the hand mocks in `mockups/` in the same PR as the page (ticket 21, the generator, is `wontfix`).
 
 ## Plan
 
@@ -302,5 +302,8 @@ users page outside admin mode and the empty merge-strategy menu (harness), and t
 sort value, see above).
 
 2026-11-12 (triage): 32, 33, 35–40 `ready-for-agent`; 34 `ready-for-human` (teams needs a spec). 36 waits for 31
-(project-row Delete moved from 31), 37 for 32 (pull pages), 25 for 24 (`home.templ`). Order: 21 builds first, then the
-polish tickets, so their mock changes come from the generator.
+(project-row Delete moved from 31), 37 for 32 (pull pages), 25 for 24 (`home.templ`). Order: the polish tickets update the hand mocks in
+their own PRs.
+
+2026-11-12 (maintainer): ticket 21 is `wontfix`; mocks stay design-first and hand-written. See
+[`../2026-11-12-mockups-design-first/spec.md`](../2026-11-12-mockups-design-first/spec.md).

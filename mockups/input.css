@@ -2,4 +2,3 @@
 @import "../cmd/server/frontend/static/code-themes.css";
 @source "./*.html";
 @source "./*.js";
-@source "./generated/*.html";
