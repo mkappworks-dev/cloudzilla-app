@@ -160,13 +160,36 @@ type AccountReposData struct {
 	IncomingTransfers int
 }
 
+// AccountListTab is one scope tab of an account list: a link that sets a single @me qualifier.
+type AccountListTab struct {
+	Label    string
+	URL      string
+	Active   bool
+	CountKey string // key into Counts, "<scope>:<state>"
+}
+
+// AccountListNav is what the account issue and pull request lists share around their rows.
+type AccountListNav struct {
+	Filter      components.ListFilterData
+	ScopeTabs   []AccountListTab
+	StateFilter string
+	OpenURL     string
+	ClosedURL   string
+	// ActiveScope is the Counts scope of the one active tab, or empty when none is, in which case the state tabs show no
+	// count.
+	ActiveScope string
+	Counts      map[string]int // keyed "<scope>:<state>"
+	ClearURL    string
+	Page        int
+	TotalPages  int
+	PrevURL     string
+	NextURL     string
+}
+
 type AccountPullsData struct {
 	BasePage
+	AccountListNav
 	Pulls         []store.PullListItem
-	Filter        string         // "created" | "assigned" | "review_requested" | "mentioned"
-	State         string         // "open" | "closed"
-	Sort          string         // "newest" | "oldest" | "updated" | "comments"
-	Counts        map[string]int // PR count per tab, keyed "filter:state"
 	PullComments  map[int64]int
 	PullLabels    map[int64][]model.Label
 	PullCI        map[int64]service.CIChecks
@@ -175,13 +198,10 @@ type AccountPullsData struct {
 
 type AccountIssuesData struct {
 	BasePage
+	AccountListNav
 	Issues        []store.IssueListItem
-	Filter        string // "assigned" | "created" | "mentioned"
-	State         string // "open" | "closed"
-	Sort          string // "newest" | "oldest" | "updated" | "comments"
 	IssueComments map[int64]int
 	IssueLabels   map[int64][]model.Label
-	Counts        map[string]int // keyed "<filter>:<state>", e.g. "assigned:open"
 }
 
 type AccountStarsData struct {

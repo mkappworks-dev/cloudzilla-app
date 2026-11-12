@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -27,9 +27,9 @@ Found by the wave 2 re-score (Claude and Codex).
 
 ## Acceptance criteria
 
-- [ ] A query typed on an account list is applied and shown as chips
-- [ ] Old filter URLs keep working
-- [ ] Mocks updated, light and dark
+- [x] A query typed on an account list is applied and shown as chips
+- [x] Old filter URLs keep working
+- [x] Mocks updated, light and dark
 
 ## Verification
 

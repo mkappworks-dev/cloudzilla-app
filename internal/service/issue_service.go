@@ -356,6 +356,11 @@ func (s *IssueService) ListForUser(ctx context.Context, userID int64, mode, stat
 	}
 }
 
+// ListInvolving returns one page of the issues that involve userID and f matches, plus the total across all pages.
+func (s *IssueService) ListInvolving(ctx context.Context, userID int64, f store.ListFilter) ([]store.IssueListItem, int, error) {
+	return s.issues.ListInvolving(ctx, userID, f)
+}
+
 // CountsForUser returns issue counts keyed "<filter>:<state>" for every
 // filter/state combination shown in the account issues tab bar.
 func (s *IssueService) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {

@@ -39,6 +39,10 @@ func listURL(base string, q listquery.Query, page int) string {
 		v.Set("page", strconv.Itoa(page))
 	}
 	if len(v) == 0 {
+		// An account list with no q means its default scope, so a cleared query has to be explicit.
+		if base == "/issues" || base == "/pulls" {
+			return base + "?q="
+		}
 		return base
 	}
 	return base + "?" + v.Encode()
@@ -74,12 +78,14 @@ func listStoreFilter(viewer *middleware.Claims, q listquery.Query, state string,
 		MilestoneID: q.MilestoneID,
 		No:          q.No,
 		Review:      q.Review,
+		Reviewer:    q.Reviewer,
+		Mentions:    q.Mentions,
 		Sort:        q.Sort,
 		State:       state,
 		Limit:       listPageSize,
 		Offset:      (page - 1) * listPageSize,
 	}
-	for _, who := range []*string{&f.Author, &f.Assignee} {
+	for _, who := range []*string{&f.Author, &f.Assignee, &f.Reviewer, &f.Mentions} {
 		if !strings.EqualFold(*who, listquery.Me) {
 			continue
 		}
@@ -225,6 +231,15 @@ func listChips(link func(listquery.Query) string, q listquery.Query) []component
 	}
 	if q.Assignee != "" {
 		add(listquery.KeyAssignee, q.Assignee)
+	}
+	if q.Reviewer != "" {
+		add(listquery.KeyReviewer, q.Reviewer)
+	}
+	if q.Mentions != "" {
+		add(listquery.KeyMentions, q.Mentions)
+	}
+	if q.Repo != "" {
+		add(listquery.KeyRepo, q.Repo)
 	}
 	for _, l := range q.Labels {
 		add(listquery.KeyLabel, l)

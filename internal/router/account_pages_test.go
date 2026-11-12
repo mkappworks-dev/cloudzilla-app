@@ -89,19 +89,19 @@ func TestAccountIssuesPullsAttention_FilterVariants(t *testing.T) {
 		t.Fatalf("create issue: %v", err)
 	}
 
-	issues := serve(e.h, browserRequest(http.MethodGet, "/issues?filter=created&sort=oldest", me.session, nil))
+	issues := serve(e.h, browserRequest(http.MethodGet, "/issues?q=author:@me+sort:oldest", me.session, nil))
 	if issues.Code != http.StatusOK || !strings.Contains(issues.Body.String(), title) {
 		t.Errorf("created issues list = %d, want it to list %q", issues.Code, title)
 	}
-	if rr := serve(e.h, browserRequest(http.MethodGet, "/issues?filter=assigned", me.session, nil)); rr.Code != http.StatusOK || strings.Contains(rr.Body.String(), title) {
+	if rr := serve(e.h, browserRequest(http.MethodGet, "/issues?q=assignee:@me", me.session, nil)); rr.Code != http.StatusOK || strings.Contains(rr.Body.String(), title) {
 		t.Errorf("assigned issues = %d, want an issue I only created to be absent", rr.Code)
 	}
-	for _, q := range []string{"?state=closed", "?filter=mentioned&sort=updated", "?sort=comments", "?filter=bogus&state=bogus&sort=bogus"} {
+	for _, q := range []string{"?q=is:closed", "?q=mentions:@me+sort:updated", "?q=sort:comments", "?q=reviewer:@me+review:approved", "?q=repo:no/such"} {
 		if rr := serve(e.h, browserRequest(http.MethodGet, "/issues"+q, me.session, nil)); rr.Code != http.StatusOK {
 			t.Errorf("GET /issues%s = %d", q, rr.Code)
 		}
 	}
-	for _, q := range []string{"", "?filter=assigned", "?filter=review_requested&state=closed", "?filter=mentioned&sort=oldest", "?sort=updated", "?sort=comments", "?filter=bogus&sort=bogus"} {
+	for _, q := range []string{"?q=", "?q=assignee:@me", "?q=reviewer:@me+is:closed", "?q=mentions:@me+sort:oldest", "?q=is:merged", "?q=is:draft+review:required", "?q=review:none+repo:a/b"} {
 		if rr := serve(e.h, browserRequest(http.MethodGet, "/pulls"+q, me.session, nil)); rr.Code != http.StatusOK {
 			t.Errorf("GET /pulls%s = %d", q, rr.Code)
 		}
@@ -134,5 +134,78 @@ func TestAccountStars_ListsAndFiltersStarredRepos(t *testing.T) {
 	}
 	if rr := serve(e.h, browserRequest(http.MethodGet, "/stars?language=NoSuchLanguage", me.session, nil)); rr.Code != http.StatusOK || strings.Contains(rr.Body.String(), name) {
 		t.Errorf("language filter: %d, want the repo filtered out", rr.Code)
+	}
+}
+
+func TestAccountLists_LegacyURLsRedirectToTheQualifierBar(t *testing.T) {
+	e := newTransferEnv(t)
+	me := e.account(t)
+	for _, tc := range []struct{ from, to string }{
+		{"/issues", "/issues?q=assignee%3A%40me"},
+		{"/pulls", "/pulls?q=author%3A%40me"},
+		{"/issues?filter=created&state=closed&sort=oldest", "/issues?q=is%3Aclosed+author%3A%40me+sort%3Aoldest"},
+		{"/issues?filter=mentioned", "/issues?q=mentions%3A%40me"},
+		{"/issues?state=closed", "/issues?q=is%3Aclosed+assignee%3A%40me"},
+		{"/pulls?filter=review_requested&state=closed", "/pulls?q=is%3Aclosed+reviewer%3A%40me"},
+		{"/pulls?filter=assigned&sort=recently-updated", "/pulls?q=assignee%3A%40me+sort%3Aupdated"},
+		{"/pulls?filter=bogus&state=bogus&sort=bogus", "/pulls?q=author%3A%40me"},
+		{"/issues?q=label:bug&state=closed", "/issues?q=is%3Aclosed+label%3Abug"},
+		{"/issues?f=&v=author:@me&q=crash", "/issues?q=author%3A%40me+crash"},
+		{"/issues?f=author:@me&v=is:closed", "/issues?q=is%3Aclosed+author%3A%40me"},
+	} {
+		rr := serve(e.h, browserRequest(http.MethodGet, tc.from, me.session, nil))
+		if rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != tc.to {
+			t.Errorf("GET %s = %d to %q, want a redirect to %q", tc.from, rr.Code, rr.Header().Get("Location"), tc.to)
+		}
+	}
+}
+
+func TestAccountLists_QueryIsAppliedAndShownAsChips(t *testing.T) {
+	e := newTransferEnv(t)
+	me := e.account(t)
+	ctx := context.Background()
+	repo, err := e.svc.Repo.Create(ctx, me.id, me.name, "qbar_"+testutil.UniqueSuffix(t), "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	title := "qualifier-bar-" + testutil.UniqueSuffix(t)
+	if _, err := e.svc.Issue.Create(ctx, me.name, repo.Name, me.id, title, "body", ""); err != nil {
+		t.Fatal(err)
+	}
+	get := func(q string) string {
+		t.Helper()
+		rr := serve(e.h, browserRequest(http.MethodGet, "/issues?q="+q, me.session, nil))
+		if rr.Code != http.StatusOK {
+			t.Fatalf("GET /issues?q=%s = %d", q, rr.Code)
+		}
+		return rr.Body.String()
+	}
+	fullName := me.name + "/" + repo.Name
+	for _, tc := range []struct {
+		q    string
+		want bool
+	}{
+		{"author:@me", true},
+		{"", true},
+		{"repo:" + fullName, true},
+		{"repo:" + strings.ToUpper(fullName), true},
+		{"qualifier-bar", true},
+		{"author:@me+is:closed", false},
+		{"assignee:@me", false},
+		{"repo:" + me.name + "/other", false},
+		{"nothing-matches-this", false},
+	} {
+		if got := strings.Contains(get(tc.q), title); got != tc.want {
+			t.Errorf("q=%s lists the issue: %v, want %v", tc.q, got, tc.want)
+		}
+	}
+	body := get("author:@me+repo:" + fullName)
+	for _, chip := range []string{`aria-label="Remove filter author:@me"`, `aria-label="Remove filter repo:` + fullName + `"`} {
+		if !strings.Contains(body, chip) {
+			t.Errorf("no chip %s", chip)
+		}
+	}
+	if body := get("review:approved"); !strings.Contains(body, "apply to pull requests") {
+		t.Error("a pull request qualifier on the issue list should say it was ignored")
 	}
 }

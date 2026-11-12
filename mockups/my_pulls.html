@@ -24,30 +24,17 @@
     </section>
 
     <nav aria-label="PR filter" class="flex items-center gap-1 border-b border-border text-sm" id="tabs">
-      <a href="#created" data-filter="created" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Created by you <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="5 items">5</span></a>
-      <a href="#assigned" data-filter="assigned" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Assigned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="3 items">3</span></a>
-      <a href="#review_requested" data-filter="review_requested" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Review requests <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="4 items">4</span></a>
-      <a href="#mentioned" data-filter="mentioned" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Mentioned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="1 item">1</span></a>
+      <a href="#author" data-scope="author" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Created by you <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="5 items">5</span></a>
+      <a href="#assignee" data-scope="assignee" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Assigned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="3 items">3</span></a>
+      <a href="#reviewer" data-scope="reviewer" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Review requests <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="4 items">4</span></a>
+      <a href="#mentions" data-scope="mentions" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Mentioned <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="1 item">1</span></a>
       <span class="ml-auto inline-flex items-center">
         <a href="#open" data-state="open" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Open <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="12 items">12</span></a>
         <a href="#closed" data-state="closed" class="px-3 py-2.5 border-b -mb-px inline-flex items-center gap-1.5">Closed <span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label="38 items">38</span></a>
       </span>
     </nav>
 
-    <div class="flex items-center gap-2 flex-wrap">
-      <div class="relative flex-1 min-w-[240px]">
-        <label for="pr-filter" class="sr-only">Filter pull requests</label>
-        <input id="pr-filter" type="search" placeholder="Filter pull requests…" autocomplete="off" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
-        <svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
-      </div>
-      <div class="relative" data-dropdown>
-        <button type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Sort pull requests" class="h-9 px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center gap-1.5">
-          <span id="sort-label">Sort: newest</span>
-          <svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
-        </button>
-        <div role="menu" aria-label="Sort pull requests" id="sort-menu" class="hidden absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"></div>
-      </div>
-    </div>
+    <div id="bar"></div>
 
     <section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="mypr-list">
       <h2 id="mypr-list" class="sr-only">Your pull requests</h2>
@@ -86,10 +73,6 @@
     merged: ['bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)]', 'Merged'],
     closed: ['bg-destructive/15 text-destructive border-destructive/30', 'Closed']
   };
-  var SORTS = [['newest', 'Sort: newest'], ['oldest', 'Oldest'], ['updated', 'Recently updated'], ['comments', 'Most commented']];
-  var NO_MATCH = '<li class="border-b-0 px-4 py-6 text-center text-[13px] text-muted-foreground">No pull requests match this filter.</li>';
-  var filter = 'created', state = 'open', sort = 'newest';
-
   function row(p) {
     var ci = p.ci[1] ? (p.ci[0] === p.ci[1]
       ? '<span class="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full border text-success border-success/30 bg-success/10" title="CI checks"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>'
@@ -107,44 +90,106 @@
       '<div class="flex items-center justify-between gap-3 pl-[27px]"><div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap"><span class="font-mono">#' + p.n + '</span><span class="opacity-50" aria-hidden="true">·</span><time>' + p.when + '</time>' + labels +
       '</div><div class="flex items-center gap-2 shrink-0">' + ci + rev + comments + '</div></div></a></li>';
   }
-  function menuItem(s) {
-    var active = s[0] === sort;
-    return '<a href="#" role="menuitem" data-sort="' + s[0] + '" class="flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent hover:text-foreground ' + (active ? 'text-foreground font-medium' : 'text-muted-foreground') + '">' + s[1] +
-      (active ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '') + '</a>';
+  var SORTS = [['newest', 'Newest'], ['oldest', 'Oldest'], ['updated', 'Recently updated'], ['comments', 'Most commented']];
+  var SCOPES = { author: 'created', assignee: 'assigned', reviewer: 'review_requested', mentions: 'mentioned' };
+  var STATES = ['open', 'closed', 'draft', 'merged'];
+  var REPOS = ['acme-corp/api', 'mkappworks/cloudzilla', 'mkappworks/ingest-pipeline', 'openforge/runner'];
+  // The mock has no review data, so a review state is derived from the reviewers and CI it does draw.
+  function rvState(p) { return !p.rev.length ? 'none' : p.ci[0] === p.ci[1] ? 'approved' : 'changes_requested'; }
+  var st = { scope: 'author', repo: '', sort: 'newest', state: 'open', review: '', text: '' };
+  var X = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"></path></svg>';
+  var CARET = '<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>';
+
+  function chip(label, key) {
+    return '<a href="#" data-remove="' + key + '" class="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 font-mono text-foreground hover:bg-accent" aria-label="Remove filter ' + label + '">' + label + ' ' + X + '</a>';
+  }
+  function menu(title, key, opts, cur) {
+    var items = opts.map(function (o) {
+      return '<li><label class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground has-checked:text-foreground"><input type="radio" name="' + key + '" data-key="' + key + '" value="' + o[0] + '"' + (o[0] === cur ? ' checked' : '') + ' class="h-4 w-4 shrink-0 border-border"><span class="min-w-0 flex-1"><span class="block truncate">' + o[1] + '</span></span></label></li>';
+    }).join('');
+    return '<details class="relative"><summary class="inline-flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground hover:bg-accent [&::-webkit-details-marker]:hidden">' + title + ' ' + CARET + '</summary>' +
+      '<form onsubmit="return false" class="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md"><fieldset class="m-0 border-0 p-0"><legend class="sr-only">Filter by ' + title + '</legend><ul class="max-h-64 overflow-y-auto p-1">' + items + '</ul></fieldset></form></details>';
+  }
+  function isCurrent(key) { return st.scope === key ? key : ''; }
+  function renderBar(count) {
+    var chips = [];
+    if (st.scope) chips.push(chip(st.scope + ':@me', 'scope'));
+    if (STATES.indexOf(st.state) > 1) chips.push(chip('is:' + st.state, 'state'));
+    if (st.repo) chips.push(chip('repo:' + st.repo, 'repo'));
+    if (st.review) chips.push(chip('review:' + st.review, 'review'));
+    if (st.sort !== 'newest') chips.push(chip('sort:' + st.sort, 'sort'));
+    var filtered = chips.length || st.text;
+    var menus = menu('Author', 'scope', [['author', '@me']], isCurrent('author')) +
+      menu('Assignee', 'scope', [['assignee', '@me']], isCurrent('assignee')) +
+      menu('Repository', 'repo', REPOS.map(function (r) { return [r, r]; }), st.repo) +
+      menu('Review', 'review', [['approved', 'Approved'], ['changes_requested', 'Changes requested'], ['none', 'No reviews']], st.review) +
+      
+      menu('Sort', 'sort', SORTS, st.sort);
+    document.getElementById('bar').innerHTML = '<div class="space-y-2"><div class="flex flex-wrap items-center gap-2">' +
+      '<form id="search" role="search" onsubmit="return false" class="relative min-w-56 flex-1"><label for="list-filter-search" class="sr-only">Search or filter pull requests</label>' +
+      '<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>' +
+      '<input id="list-filter-search" type="search" value="' + st.text + '" placeholder="Search or filter, e.g. repo:owner/name author:@me" autocomplete="off" class="h-8 w-full pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/></form>' + menus + '</div>' +
+      (filtered ? '<div class="flex flex-wrap items-center gap-1.5 text-[12px]">' + chips.join('') + '<span class="text-muted-foreground">' + count + (count === 1 ? ' result' : ' results') + (count ? ' <span aria-hidden="true">·</span> <a href="#" data-clear class="text-primary hover:underline">Clear filters</a>' : '') + '</span></div>' : '') + '</div>';
+  }
+  function apply(text) {
+    var rest = [];
+    text.split(/\s+/).filter(Boolean).forEach(function (tok) {
+      var m = tok.match(/^(\w+):(\S+)$/), k = m && m[1].toLowerCase(), v = m && m[2].toLowerCase();
+      if (k === 'is' && STATES.indexOf(v) >= 0) st.state = v;
+      else if (SCOPES[k] && v === '@me') st.scope = k;
+      else if (k === 'repo') st.repo = m[2];
+      else if (k === 'sort' && SORTS.some(function (s) { return s[0] === v; })) st.sort = v;
+      else if (k === 'review' && ['approved', 'changes_requested', 'none'].indexOf(v) >= 0) st.review = v;
+      else rest.push(tok);
+    });
+    st.text = rest.join(' ');
   }
   var ON = 'px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5';
   var OFF = 'px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5';
   function render() {
-    var q = document.getElementById('pr-filter').value.toLowerCase();
-    var tab = PRS.filter(function (p) {
-      var isOpen = p.state === 'open' || p.state === 'draft';
-      return p.f.indexOf(filter) >= 0 && (state === 'open' ? isOpen : !isOpen);
+    var rows = PRS.filter(function (r) {
+      return (!st.scope || r.f.indexOf(SCOPES[st.scope]) >= 0) && (st.state === 'open' ? r.state === 'open' || r.state === 'draft' : r.state === st.state) &&
+        (!st.repo || r.repo.toLowerCase() === st.repo.toLowerCase()) && (!st.review || rvState(r) === st.review) &&
+        (r.repo + ' ' + r.t).toLowerCase().indexOf(st.text.toLowerCase()) >= 0;
     });
-    var rows = tab.filter(function (p) { return (p.repo + ' ' + p.t).toLowerCase().indexOf(q) >= 0; });
-    if (sort === 'comments') rows.sort(function (a, b) { return b.c - a.c; });
-    if (sort === 'oldest') rows.sort(function (a, b) { return b.k - a.k; });
-    document.getElementById('rows').innerHTML = (rows.length ? '' : NO_MATCH) + rows.map(row).join('');
-    document.getElementById('rows').parentNode.hidden = !tab.length;
+    if (st.sort === 'comments') rows.sort(function (a, b) { return b.c - a.c; });
+    if (st.sort === 'oldest') rows.sort(function (a, b) { return b.k - a.k; });
+    document.getElementById('rows').innerHTML = rows.map(row).join('');
+    document.getElementById('rows').parentNode.hidden = !rows.length;
     var empty = document.getElementById('empty');
-    empty.hidden = tab.length > 0;
-    empty.firstElementChild.textContent = 'No ' + state + ' pull requests.';
+    empty.hidden = rows.length > 0;
+    empty.innerHTML = st.scope || st.repo || st.review || st.text
+      ? '<p class="text-muted-foreground">No ' + st.state + ' pull requests match these filters.</p><a href="#" data-clear class="mt-2 inline-block text-sm text-primary hover:underline">Clear filters</a>'
+      : '<p class="text-muted-foreground">No ' + st.state + ' pull requests.</p>';
     document.querySelectorAll('#tabs a').forEach(function (a) {
-      var on = a.dataset.filter ? a.dataset.filter === filter : a.dataset.state === state;
+      var on = a.dataset.scope ? a.dataset.scope === st.scope : a.dataset.state === st.state;
       a.className = on ? ON : OFF;
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
-    document.getElementById('sort-label').textContent = SORTS.filter(function (s) { return s[0] === sort; })[0][1];
-    document.getElementById('sort-menu').innerHTML = '<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>' + SORTS.map(menuItem).join('');
+    renderBar(rows.length);
   }
   document.getElementById('tabs').addEventListener('click', function (e) {
     var a = e.target.closest('a'); if (!a) return; e.preventDefault();
-    if (a.dataset.filter) filter = a.dataset.filter; else state = a.dataset.state;
+    if (a.dataset.scope) st.scope = a.dataset.scope; else st.state = a.dataset.state;
     render();
   });
-  document.getElementById('sort-menu').addEventListener('click', function (e) {
-    var a = e.target.closest('a'); if (!a) return; e.preventDefault(); sort = a.dataset.sort; render();
+  document.getElementById('main-content').addEventListener('click', function (e) {
+    var a = e.target.closest('[data-remove], [data-clear]'); if (!a) return; e.preventDefault();
+    if (a.hasAttribute('data-clear')) { st.scope = st.repo = st.review = st.text = ''; st.sort = 'newest'; }
+    else if (a.dataset.remove === 'state') st.state = 'open';
+    else st[a.dataset.remove] = a.dataset.remove === 'sort' ? 'newest' : '';
+    render();
   });
-  document.getElementById('pr-filter').addEventListener('input', render);
+  document.getElementById('main-content').addEventListener('change', function (e) {
+    var k = e.target.dataset && e.target.dataset.key; if (!k) return;
+    st[k] = e.target.value; render();
+  });
+  document.getElementById('main-content').addEventListener('submit', function (e) {
+    var input = document.getElementById('list-filter-search'); st.text = ''; apply(input.value); render();
+  });
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('#bar details[open]').forEach(function (d) { if (!d.contains(e.target)) d.open = false; });
+  });
   render();
 })();
 </script>
