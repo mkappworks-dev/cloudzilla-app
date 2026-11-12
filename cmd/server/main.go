@@ -131,6 +131,7 @@ func main() {
 	concurrency.Go("quota.backfill", func() { services.Quota.Backfill(workerCtx) })
 	concurrency.Go("pull.backfill-merged-ranges", func() { services.Pull.BackfillMergedRanges(workerCtx, services.PullEvent) })
 	concurrency.Go("attachment.sweep", func() { services.Attachment.Run(workerCtx) })
+	concurrency.Go("account_export.run", func() { services.Export.Run(workerCtx) })
 
 	// Daily purge of soft-deleted repos older than 30 days
 	go func() {

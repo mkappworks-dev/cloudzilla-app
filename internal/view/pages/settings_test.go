@@ -9,6 +9,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -210,30 +211,40 @@ func TestSettings_TokenFormOffersEveryScopeAndRequiresOne(t *testing.T) {
 	}
 }
 
-func TestSettings_UnbuiltSectionsAreDisabled(t *testing.T) {
-	out := renderSettings(t, view.SettingsData{User: model.User{ID: 42, Username: "alice", Email: "alice@example.com"}})
-	for _, s := range []struct{ id, closeTag string }{
-		{"export", "</li>"},
+func TestSettings_ExportRowFollowsTheLatestExport(t *testing.T) {
+	ready := time.Date(2026, 11, 12, 9, 14, 0, 0, time.UTC)
+	expires := ready.Add(7 * 24 * time.Hour)
+	for _, tc := range []struct {
+		name   string
+		export *model.AccountExport
+		want   []string
+		absent []string
+	}{
+		{"none", nil, []string{"Request export", `action="/settings/export"`}, []string{"Download zip", ">Preparing<", ">Failed<"}},
+		{"requested", &model.AccountExport{ID: 7, Status: model.ExportRequested}, []string{">Preparing<", "We'll email you"}, []string{"Request export", "Download zip"}},
+		{"running", &model.AccountExport{ID: 7, Status: model.ExportRunning}, []string{">Preparing<"}, []string{"Request export", "Download zip"}},
+		{"ready", &model.AccountExport{ID: 7, Status: model.ExportReady, ReadyAt: &ready, ExpiresAt: &expires},
+			[]string{">Ready<", `action="/settings/export/7/download"`, "Download zip", "Nov 19, 2026"}, []string{"Request export", "Request again"}},
+		{"failed", &model.AccountExport{ID: 7, Status: model.ExportFailed, Error: "The export failed. Request a new one."},
+			[]string{">Failed<", "Request again", "The export failed. Request a new one."}, []string{"Download zip"}},
 	} {
-		html := sectionHTML(t, out, s.id, s.closeTag)
-		if !strings.Contains(html, "Coming soon") {
-			t.Errorf("%s: missing Coming soon label", s.id)
+		html := sectionHTML(t, renderSettings(t, view.SettingsData{
+			User: model.User{ID: 42, Username: "alice"}, Export: tc.export, ExportEmails: true,
+			Confirm: components.ConfirmFactors{Password: true},
+		}), "export", "</li>")
+		for _, w := range tc.want {
+			if !strings.Contains(html, w) {
+				t.Errorf("%s: missing %q in\n%s", tc.name, w, html)
+			}
 		}
-		if strings.Contains(html, "<form") {
-			t.Errorf("%s: renders a form", s.id)
-		}
-		buttons := strings.Count(html, "<button")
-		if buttons == 0 {
-			t.Errorf("%s: no control rendered", s.id)
-		}
-		if disabled := strings.Count(html, "<button type=\"button\" disabled"); disabled != buttons {
-			t.Errorf("%s: %d of %d buttons are disabled", s.id, disabled, buttons)
+		for _, a := range tc.absent {
+			if strings.Contains(html, a) {
+				t.Errorf("%s: unexpected %q", tc.name, a)
+			}
 		}
 	}
-	for _, leak := range []string{"/settings/export", "Export requested"} {
-		if strings.Contains(out, leak) {
-			t.Errorf("settings page still references %q", leak)
-		}
+	if out := renderSettings(t, view.SettingsData{User: model.User{ID: 42, Username: "alice"}}); strings.Contains(out, "Coming soon") {
+		t.Error("the settings page still has a Coming soon label")
 	}
 }
 

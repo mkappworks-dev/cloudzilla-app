@@ -69,6 +69,7 @@ type Services struct {
 	Health             *HealthService
 	Avatar             *AvatarService
 	Attachment         *AttachmentService
+	Export             *ExportService
 	Mirror             *MirrorService
 	Quota              *QuotaService
 	Push               *PushService
@@ -76,12 +77,13 @@ type Services struct {
 	Secrets *secretbox.Box
 }
 
-// WithStorage gives the avatar, attachment and release asset services their object store.
+// WithStorage gives the avatar, attachment, release asset and export services their object store.
 // Until it is called, uploads fail with ErrStorageUnconfigured.
 func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Avatar.WithBackend(b)
 	s.Attachment.WithBackend(b)
 	s.ReleaseAsset.WithBackend(b)
+	s.Export.WithBackend(b)
 	return s
 }
 
@@ -125,6 +127,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	releaseAssetSvc := NewReleaseAssetService(stores.ReleaseAsset, cfg.Release)
 	repoSvc.WithReleaseAssets(releaseAssetSvc)
 	userSvc.WithAvatars(avatarSvc)
+	exportSvc := NewExportService(stores.Export, stores.User, emailSvc, cfg.Server.BaseURL)
+	userSvc.WithExports(exportSvc)
 	orgSvc.WithAvatars(avatarSvc)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
@@ -195,6 +199,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Health:             NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:             avatarSvc,
 		Attachment:         attachmentSvc,
+		Export:             exportSvc,
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
 		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),

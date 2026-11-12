@@ -29,13 +29,17 @@ type SettingsData struct {
 	// VerificationLinkSent is whether a live link for the current address is out.
 	VerificationLinkSent bool
 	AdditionalEmails     []model.UserEmail
-	SessionsRevoked      bool
-	PasswordChanged      bool
-	PasswordError        string
-	Confirm              components.ConfirmFactors
-	GoogleConfigured     bool
-	GoogleConnected      bool
-	HasPassword          bool
+	// Export is the user's latest export request, nil when they never made one.
+	Export *model.AccountExport
+	// ExportEmails is whether the user is mailed when an export is ready.
+	ExportEmails     bool
+	SessionsRevoked  bool
+	PasswordChanged  bool
+	PasswordError    string
+	Confirm          components.ConfirmFactors
+	GoogleConfigured bool
+	GoogleConnected  bool
+	HasPassword      bool
 	// Codes from the Google connect flow, shown beside the control rather than atop the page.
 	ConnectedAccountsError  string
 	ConnectedAccountsNotice string

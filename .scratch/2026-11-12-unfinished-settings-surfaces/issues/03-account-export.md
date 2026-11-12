@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02 (both edit `settings.templ`)
 Parallel: safe with 04 and 01.
 
@@ -38,10 +38,10 @@ backend; S3 behind `TEST_S3_*`.
 
 ## Acceptance criteria
 
-- [ ] Request → ready → download works and the zip contents match the spec
-- [ ] No secrets in the zip; expiry and account deletion clean up
-- [ ] No "Coming soon" left in `settings.templ`
-- [ ] Docs and mock updated, light and dark
+- [x] Request → ready → download works and the zip contents match the spec
+- [x] No secrets in the zip; expiry and account deletion clean up
+- [x] No "Coming soon" left in `settings.templ`
+- [x] Docs and mock updated, light and dark
 
 ## Verification
 

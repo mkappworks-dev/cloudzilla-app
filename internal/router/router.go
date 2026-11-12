@@ -161,6 +161,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/settings/reauth/{provider}", h.StartProviderSignIn)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Post("/settings/appearance", h.UpdateAppearanceSettings)
+	r.With(authMW).Post("/settings/export", h.RequestExport)
+	r.With(authMW).Post("/settings/export/{id}/download", h.DownloadExport)
 	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
 	r.With(authMW).Post("/settings/connected-accounts/google", h.ConnectGoogle)
 	r.With(authMW).Post("/settings/connected-accounts/google/disconnect", h.DisconnectGoogle)
