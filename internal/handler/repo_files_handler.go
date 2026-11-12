@@ -696,11 +696,3 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to delete the file")
 	}
 }
-
-// parentDir is path's folder, "" at the root.
-func parentDir(path string) string {
-	if i := strings.LastIndex(path, "/"); i >= 0 {
-		return path[:i]
-	}
-	return ""
-}

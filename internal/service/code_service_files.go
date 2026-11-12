@@ -194,7 +194,7 @@ func (s *CodeService) GetBlobByHash(owner, repoName, sha string, maxContent int6
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 	head, err := io.ReadAll(io.LimitReader(r, 8000))
 	if err != nil {
 		return nil, err
