@@ -31,7 +31,7 @@ regeneration.
 - [x] Variants cover the states `COVERAGE.md` listed for these pages
 - [x] `tests/mockgen-diff` passes for each page
 - [x] Checked at 1440 in light and dark under `make mockups`
-- [ ] CI `mockups` job green (the same `go run ./cmd/mockgen` leaves no diff locally; waits on the PR run)
+- [x] CI `mockups` job green
 
 ## Verification
 
