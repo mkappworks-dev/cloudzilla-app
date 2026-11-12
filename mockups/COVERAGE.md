@@ -89,6 +89,8 @@ Some controls and forms have no behaviour. In particular:
   webhook, Save changes, member Role selects, and Save profile): these do not persist changes; several forms suppress
   submission without feedback.
 - **File deletion** in `blob.html`: confirmation shows feedback but leaves the file displayed.
+- **Mock-only state:** `account_settings.html?smtp=off` shows the Email section with no outgoing email (no Add email
+  button, the note instead).
 - **Disabled in the real app too:** the Teams panel in `org_settings.html`.
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
 - **Auth states:** the sign-in error banner, the email-first signup flow, expired and invalid reset or verify links, and

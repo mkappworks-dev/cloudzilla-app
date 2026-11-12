@@ -56,9 +56,28 @@ func (h *Handler) VerifyEmailSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+	if state == model.EmailVerificationInvalid {
+		h.verifyAdditionalEmail(w, r)
+		return
+	}
 	if u != nil {
 		h.Services.AuditLog.Record(r.Context(), r, u.ID, u.Username, model.AuditActionEmailVerify, model.AuditTargetUser, u.ID, u.Username,
 			map[string]any{"email": u.Email, "method": "link"})
+	}
+	h.renderVerifyEmail(w, r, model.EmailVerificationLink{State: state}, "")
+}
+
+// verifyAdditionalEmail is VerifyEmailSubmit for a token that is not the account address's: one for an additional address.
+func (h *Handler) verifyAdditionalEmail(w http.ResponseWriter, r *http.Request) {
+	state, e, username, err := h.Services.EmailVerifier.VerifyAddress(r.Context(), r.FormValue("token"))
+	if err != nil {
+		slog.Error("verify additional email", "error", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if e != nil {
+		h.Services.AuditLog.Record(r.Context(), r, e.UserID, username, model.AuditActionEmailVerify, model.AuditTargetUser, e.UserID, username,
+			map[string]any{"email": e.Email, "method": "link", "additional": true})
 	}
 	h.renderVerifyEmail(w, r, model.EmailVerificationLink{State: state}, "")
 }

@@ -75,6 +75,10 @@ func SettingsErrorMessage(code string) string {
 		return "Your email address is already verified."
 	case "verification_unavailable":
 		return "Verifying your email needs outgoing email, which the administrator hasn't configured."
+	case "email_limit":
+		return "You can have at most 10 additional email addresses. Remove one first."
+	case "email_missing":
+		return "That email address is already gone."
 	case "verification_failed":
 		return "Couldn't send the verification email. Please try again later."
 	case "google_not_configured":

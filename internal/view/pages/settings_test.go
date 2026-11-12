@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -253,10 +254,42 @@ func TestSettings_EmailSectionPrivacyToggle(t *testing.T) {
 		if checked != keep {
 			t.Errorf("keep=%v: toggle checked = %v", keep, checked)
 		}
-		if !strings.Contains(html, `<button type="button" disabled`) || !strings.Contains(html, "Coming soon") {
-			t.Errorf("keep=%v: Add email must stay a disabled coming-soon control", keep)
-		}
 	}
+}
+
+func TestSettings_EmailSectionAdditionalAddresses(t *testing.T) {
+	user := model.User{ID: 42, Username: "alice", Email: "alice@example.com"}
+	extras := []model.UserEmail{
+		{ID: 7, UserID: 42, Email: "work@example.com", VerifiedAt: &time.Time{}},
+		{ID: 8, UserID: 42, Email: "old@example.com"},
+	}
+	t.Run("with SMTP", func(t *testing.T) {
+		html := sectionHTML(t, renderSettings(t, view.SettingsData{User: user, EmailVerificationAvailable: true, AdditionalEmails: extras}), "email", "</section>")
+		for _, want := range []string{">Add email<", `hx-post="/settings/emails"`, "work@example.com", "old@example.com",
+			`hx-post="/settings/emails/7/remove"`, `hx-post="/settings/emails/8/remove"`} {
+			if !strings.Contains(html, want) {
+				t.Errorf("missing %q", want)
+			}
+		}
+		if got := strings.Count(html, ">Remove<"); got != 2 {
+			t.Errorf("%d Remove controls, want one per additional address and none on the primary", got)
+		}
+		if strings.Count(html, ">Verified<") != 1 || strings.Count(html, ">Unverified<") != 2 {
+			t.Errorf("chips: %d Verified, %d Unverified; want 1 and 2 (the primary is unverified)", strings.Count(html, ">Verified<"), strings.Count(html, ">Unverified<"))
+		}
+	})
+	t.Run("without SMTP", func(t *testing.T) {
+		html := sectionHTML(t, renderSettings(t, view.SettingsData{User: user, AdditionalEmails: extras}), "email", "</section>")
+		if strings.Contains(html, ">Add email<") || strings.Contains(html, `hx-post="/settings/emails"`) {
+			t.Error("Add email is offered without outgoing email")
+		}
+		if !strings.Contains(html, "Adding another address needs outgoing email") {
+			t.Error("the missing outgoing email is not explained")
+		}
+		if !strings.Contains(html, "work@example.com") || !strings.Contains(html, `hx-post="/settings/emails/7/remove"`) {
+			t.Error("existing addresses can no longer be removed")
+		}
+	})
 }
 
 func TestSettings_SoleOrgOwnerDeleteRefusalIsExplained(t *testing.T) {

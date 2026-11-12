@@ -153,6 +153,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)
 	r.With(authMW).Post("/settings/email", h.UpdateEmailSettings)
 	r.With(authMW).Post("/settings/email/resend-verification", h.ResendVerificationEmail)
+	r.With(authMW).Post("/settings/emails", h.AddUserEmail)
+	r.With(authMW).Post("/settings/emails/{id}/remove", h.RemoveUserEmail)
 	r.With(authMW).Post("/settings/sessions/revoke", h.RevokeSessions)
 	r.With(authMW).Post("/settings/password", h.ChangePassword)
 	r.With(authMW).Post("/settings/confirm-code", h.SendConfirmCode)

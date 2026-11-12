@@ -28,6 +28,7 @@ type SettingsData struct {
 	EmailVerificationAvailable bool
 	// VerificationLinkSent is whether a live link for the current address is out.
 	VerificationLinkSent bool
+	AdditionalEmails     []model.UserEmail
 	SessionsRevoked      bool
 	PasswordChanged      bool
 	PasswordError        string

@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"fmt"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -692,22 +694,23 @@ templ settingsSessionsSection(data view.SettingsData) {
 }
 
 templ settingsEmailsSection(data view.SettingsData) {
-	<section id="email" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+	<section id="email" class="border border-border rounded-lg bg-card p-6 scroll-mt-6" x-data="{ adding: false }">
 		<div class="flex items-start justify-between gap-4 mb-6">
 			<div class="min-w-0">
 				<h2 class="text-base font-semibold tracking-tight mb-1">Email</h2>
-				<p class="text-[12.5px] text-muted-foreground">Your address, and the author email on commits you make in the web UI.</p>
+				<p class="text-[12.5px] text-muted-foreground">Your address, extra addresses that credit your commits, and the author email on commits you make in the web UI.</p>
 			</div>
-			<span class="inline-flex items-center gap-2 shrink-0">
-				@comingSoonBadge()
-				@comingSoonButton("Add email")
-			</span>
+			if data.EmailVerificationAvailable {
+				@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "class": "shrink-0", "x-on:click": "adding = !adding", "x-bind:aria-expanded": "adding", "aria-controls": "add-email-form"}) {
+					Add email
+				}
+			}
 		</div>
 		<ul class="divide-y divide-border mb-4">
 			<li class="py-3 flex items-center gap-3">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M4 4h16v16H4z"></path><path d="M22 6l-10 7L2 6"></path></svg>
 				<div class="min-w-0 flex-1">
-					<p class="text-[13.5px] font-medium font-mono">{ data.User.Email }</p>
+					<p class="text-[13.5px] font-medium font-mono break-all">{ data.User.Email }</p>
 					<p class="text-[12px] text-muted-foreground">Used for sign-in and notifications.</p>
 				</div>
 				if data.User.EmailVerified() {
@@ -717,7 +720,46 @@ templ settingsEmailsSection(data view.SettingsData) {
 				}
 				<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Primary</span>
 			</li>
+			for _, extra := range data.AdditionalEmails {
+				@settingsAdditionalEmail(extra, data.Confirm)
+			}
 		</ul>
+		if data.EmailVerificationAvailable {
+			<form
+				id="add-email-form"
+				method="POST"
+				action="/settings/emails"
+				hx-post="/settings/emails"
+				hx-swap="none"
+				hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#additional-email-error').textContent=''"
+				data-toast="Verification email sent"
+				x-show="adding"
+				x-cloak
+				class="mb-4 border border-border rounded-md bg-muted/30 p-4"
+			>
+				<div id="additional-email-error" class="empty:hidden mb-3"></div>
+				<div class="flex flex-wrap items-end gap-3">
+					<div class="min-w-0 basis-full sm:basis-72">
+						<label for="additional-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Email address</label>
+						<input id="additional-email" name="email" type="email" required autocomplete="email" class="w-full h-9 bg-background border border-input rounded-md px-3 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
+					</div>
+					if data.Confirm.Any() {
+						@components.ConfirmFields("additional-email-add", data.Confirm, false)
+					}
+					@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
+						Send verification link
+					}
+				</div>
+				<p class="mt-3 text-[12px] text-muted-foreground">
+					We email a link to the new address. Once verified it credits commits pushed with it; sign-in and notifications keep using your primary address.
+					if data.Confirm.Any() {
+						Adding an address needs { data.Confirm.Needs() }.
+					}
+				</p>
+			</form>
+		} else {
+			<p class="text-[12px] text-muted-foreground mb-4">Adding another address needs outgoing email to verify it, which the administrator hasn't configured.</p>
+		}
 		if !data.User.EmailVerified() {
 			if data.EmailVerificationAvailable {
 				<form
@@ -778,6 +820,54 @@ templ settingsEmailsSection(data view.SettingsData) {
 			<code class="mt-1.5 block w-fit max-w-full text-[12px] bg-muted border border-border rounded-sm px-1.5 py-0.5 font-mono break-words">git config --global user.email { data.NoreplyEmail }</code>
 		</p>
 	</section>
+}
+
+templ settingsAdditionalEmail(e model.UserEmail, confirm components.ConfirmFactors) {
+	<li class="py-3" x-data="{ removing: false }">
+		<div class="flex items-center gap-3">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M4 4h16v16H4z"></path><path d="M22 6l-10 7L2 6"></path></svg>
+			<div class="min-w-0 flex-1">
+				<p class="text-[13.5px] font-medium font-mono break-all">{ e.Email }</p>
+				if e.Verified() {
+					<p class="text-[12px] text-muted-foreground">Credits commits pushed with this address.</p>
+				} else {
+					<p class="text-[12px] text-muted-foreground">Credits nothing until you open the link we emailed. It expires 24 hours after it was sent; remove the address and add it again for a new one.</p>
+				}
+			</div>
+			if e.Verified() {
+				<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Verified</span>
+			} else {
+				<span class="text-[12px] px-1.5 py-0.5 rounded-full border border-warning/40 bg-warning/10 text-warning">Unverified</span>
+			}
+			@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "class": "shrink-0", "x-on:click": "removing = !removing", "x-bind:aria-expanded": "removing"}) {
+				Remove
+			}
+		</div>
+		<form
+			method="POST"
+			action={ templ.SafeURL(fmt.Sprintf("/settings/emails/%d/remove", e.ID)) }
+			hx-post={ fmt.Sprintf("/settings/emails/%d/remove", e.ID) }
+			hx-swap="none"
+			data-toast="Email address removed"
+			x-show="removing"
+			x-cloak
+			class="mt-3 flex flex-wrap items-end gap-3"
+		>
+			<div id={ fmt.Sprintf("additional-email-error-%d", e.ID) } class="basis-full empty:hidden"></div>
+			if confirm.Any() {
+				@components.ConfirmFields(fmt.Sprintf("additional-email-remove-%d", e.ID), confirm, false)
+			}
+			@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
+				Remove address
+			}
+			<p class="basis-full text-[12px] text-muted-foreground">
+				Commits pushed with this address stop being credited to you.
+				if confirm.Any() {
+					Removing it needs { confirm.Needs() }.
+				}
+			</p>
+		</form>
+	</li>
 }
 
 templ settingsDangerSection(data view.SettingsData) {

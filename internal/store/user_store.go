@@ -97,6 +97,15 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, 
 	return u, nil
 }
 
+// GetByVerifiedAdditionalEmail finds the owner of a verified address in user_emails; an unverified one belongs to nobody yet.
+func (s *UserStore) GetByVerifiedAdditionalEmail(ctx context.Context, email string) (*model.User, error) {
+	u, err := s.queryUser(ctx, `WHERE id = (SELECT user_id FROM user_emails WHERE lower(email) = lower($1) AND verified_at IS NOT NULL) AND `+notGhost, email)
+	if err != nil {
+		return nil, fmt.Errorf("user get by additional email: %w", err)
+	}
+	return u, nil
+}
+
 // GetByEmailWithRole fetches a user by email including is_superadmin and is_invited columns.
 func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*model.User, error) {
 	u, err := s.queryUser(ctx, `WHERE lower(email) = lower($1) AND `+notGhost, email)

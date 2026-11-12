@@ -223,8 +223,9 @@ Commits made through the web UI (new files, wiki edits, merge and squash merges,
 - Setting off: the account email.
 
 Commits pushed over git keep whatever author the client set. Contributor stats resolve a noreply author back to its user
-when both the id and username match, under any host, so commits made before a `base_url` change stay credited. Legacy
-`username@localhost` authors are not resolved.
+when both the id and username match, under any host, so commits made before a `base_url` change stay credited. A
+non-noreply author resolves to the account whose primary or verified additional email it is
+([Additional emails](./access-control.md#email-verification)). Legacy `username@localhost` authors are not resolved.
 
 ## Email Verification
 

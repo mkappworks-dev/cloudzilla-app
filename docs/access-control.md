@@ -749,6 +749,25 @@ verification (`POST /api/admin/users/verify-email`). Both must match the account
 otherwise), so an address changed since the admin checked it is not vouched for. It writes `user.email.verify` (method
 `admin`, with the email) to the audit log, with the admin as actor.
 
+**Additional emails.** Settings → Email lists extra addresses besides the account's (`user_emails`, migration 124). They
+credit commits and nothing else: sign-in, notifications and password reset use `users.email`. `userByAuthorEmail`
+(`internal/service/commit_email.go`) resolves an author as noreply address, then primary address, then a _verified_
+additional address; an unverified one credits nobody, and removing one stops crediting at once. Adding
+(`POST /settings/emails`) and removing (`POST /settings/emails/{id}/remove`) confirm like an email change
+([Confirming sensitive actions](#confirming-sensitive-actions)) and write `user.email.add` / `user.email.remove` to the
+audit log. Adding needs SMTP (`EmailVerificationService.AddAddress` returns `ErrEmailVerificationUnavailable` without
+it, and the page hides "Add email"); the primary address has no remove control and an extra cannot be promoted.
+
+An address belongs to one account: `user_emails` has a unique index on `lower(email)`, and triggers on `users` and
+`user_emails` (an advisory lock per address, like the owner-name triggers) refuse a primary that equals an extra and an
+extra that equals a primary, so sign-up and `UpdateProfile` get `ErrEmailTaken` too. An unverified claim older than the
+link's 24 hours is dropped when anyone claims the address, so nobody holds an address they never proved. An account has
+at most 10 extras and may add one a minute (counted from the rows it still has).
+
+The link is a separate token (`user_email_tokens`, SHA-256 only, 24 hours, single use) but goes to the same
+`/verify-email` page: `Check` and `POST /verify-email` try the primary tokens first, then these. Verifying writes
+`user.email.verify` with `additional: true`.
+
 A connected Google account is a sign-in that outlives the current session, so connecting one from settings needs the
 password and TOTP code, not just a session. A link made by verified email (step 3) needs no confirmation at sign-in,
 because both Google and the account proved the address. Every way to put a different address on the account is

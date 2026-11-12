@@ -99,6 +99,8 @@ func TestScopeAllows(t *testing.T) {
 		{"admin API", "POST", "/api/admin/settings", []string{read, write}, false},
 		{"consent screen", "POST", "/oauth/authorize", []string{read, write}, false},
 		{"resend verification email", "POST", "/settings/email/resend-verification", []string{read, write, issues, pulls}, false},
+		{"add additional email", "POST", "/settings/emails", []string{read, write, issues, pulls}, false},
+		{"remove additional email", "POST", "/settings/emails/1/remove", []string{read, write, issues, pulls}, false},
 		{"verify email page", "GET", "/verify-email?token=x", []string{read, write, issues, pulls}, false},
 		{"verify email submit", "POST", "/verify-email", []string{read, write, issues, pulls}, false},
 		{"admin verify email", "POST", "/api/admin/users/verify-email", []string{read, write, issues, pulls}, false},

@@ -64,6 +64,8 @@ const (
 	AuditActionOrgAvatarRemove     = "org.avatar.remove"
 	AuditActionEmailVerify         = "user.email.verify"
 	AuditActionEmailChange         = "user.email.change"
+	AuditActionEmailAdd            = "user.email.add"
+	AuditActionEmailRemove         = "user.email.remove"
 	AuditActionSessionsRevoke      = "user.sessions.revoke"
 	AuditActionPasswordChange      = "user.password.change"
 	AuditActionPasswordReset       = "user.password.reset"
