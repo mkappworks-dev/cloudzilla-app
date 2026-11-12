@@ -12,13 +12,21 @@ templ AccountSubnav(data AccountSubnavData) {
 	<nav aria-label="Primary" class="max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 		@accountSubnavTab(data, "overview", "Overview", "/")
 		@accountSubnavTab(data, "repositories", "Repositories", "/repos")
-		@accountSubnavTab(data, "gists", "Gists", "/gists")
+		@accountSubnavTab(data, "gists", "Gists", gistsTabHref(data.Username))
+		@accountSubnavTab(data, "explore-gists", "Explore gists", "/gists")
 		@accountSubnavTab(data, "pulls", "Pull requests", "/pulls")
 		@accountSubnavTab(data, "issues", "Issues", "/issues")
 		@accountSubnavTab(data, "attention", "Attention", "/attention")
 		@accountSubnavTab(data, "activity", "Activity", "/activity")
 		@accountSubnavTab(data, "settings", "Settings", "/settings")
 	</nav>
+}
+
+func gistsTabHref(username string) string {
+	if username == "" {
+		return "/gists"
+	}
+	return "/" + username + "?tab=gists"
 }
 
 templ accountSubnavTab(data AccountSubnavData, key, label, href string) {

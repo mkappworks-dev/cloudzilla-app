@@ -138,7 +138,11 @@ func (h *Handler) repoSubnavCounts(ctx context.Context, repo *model.Repository, 
 }
 
 func withAccountSubnav(base BasePage, active string, counts map[string]int) BasePage {
-	base.AccountSubnav = &view.AccountSubnavInfo{Active: active, Counts: counts}
+	info := &view.AccountSubnavInfo{Active: active, Counts: counts}
+	if base.CurrentUser != nil {
+		info.Username = base.CurrentUser.Username
+	}
+	base.AccountSubnav = info
 	return base
 }
 
