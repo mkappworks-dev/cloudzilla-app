@@ -49,6 +49,7 @@ templ EditFile(data view.EditFileData) {
 				action={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "edit", data.Ref, data.Path)) }
 				enctype="multipart/form-data"
 				data-validate
+				x-data={ editTargetState(data) }
 				class="space-y-5"
 			>
 				<input type="hidden" name="blob_sha" value={ data.BlobSHA }/>
@@ -129,21 +130,69 @@ templ EditFile(data view.EditFileData) {
 					</div>
 				</div>
 
-				<div class="rounded-md border border-border bg-card p-5">
-					<label for="ef-message" class="block text-[12px] font-medium mb-1.5">Commit message</label>
-					<input
-						id="ef-message"
-						name="message"
-						type="text"
-						value={ data.Message }
-						placeholder={ "Update " + data.Path }
-						class="w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
-					/>
+				<div class="rounded-md border border-border bg-card p-5 flex flex-col gap-5">
+					<div>
+						<label for="ef-message" class="block text-[12px] font-medium mb-1.5">Commit message</label>
+						<input
+							id="ef-message"
+							name="message"
+							type="text"
+							value={ data.Message }
+							placeholder={ "Update " + data.Path }
+							class="w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+						/>
+					</div>
+					<fieldset class="flex flex-col gap-3">
+						<legend class="block text-[12px] font-medium mb-1.5">Commit to</legend>
+						<label class={ "flex items-start gap-2.5 text-[13px]", templ.KV("opacity-60", data.DirectRefusal != "") }>
+							<input
+								type="radio"
+								name="target"
+								value="direct"
+								x-model="target"
+								checked?={ !data.NewBranchSelected() }
+								disabled?={ data.DirectRefusal != "" }
+								class="mt-0.5"
+							/>
+							<span>
+								Commit directly to the <span class="font-mono">{ data.Ref }</span> branch
+								if data.DirectRefusal != "" {
+									<span class="block text-[12px] text-muted-foreground mt-0.5">{ data.DirectRefusal }</span>
+								}
+							</span>
+						</label>
+						<label class="flex items-start gap-2.5 text-[13px]">
+							<input
+								type="radio"
+								name="target"
+								value="branch"
+								x-model="target"
+								checked?={ data.NewBranchSelected() }
+								class="mt-0.5"
+							/>
+							<span>Create a <strong class="font-medium">new branch</strong>{ " for this commit and open a pull request" }</span>
+						</label>
+						<div data-field x-show="target === 'branch'" class="ml-6">
+							<label for="ef-branch" class="block text-[12px] font-medium mb-1.5">New branch name</label>
+							<input type="hidden" name="suggested_branch" value={ data.SuggestedBranch }/>
+							<input
+								id="ef-branch"
+								name="new_branch"
+								type="text"
+								value={ data.NewBranch }
+								spellcheck="false"
+								autocomplete="off"
+								class="w-full max-w-sm h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring aria-invalid:border-destructive"
+								{ components.Invalid(templ.Attributes{}, "ef-branch", data.BranchError)... }
+							/>
+							@components.FieldError("ef-branch", data.BranchError)
+						</div>
+					</fieldset>
 				</div>
 
 				<div class="flex items-center justify-end gap-2">
 					<a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "blob", data.Ref, data.Path)) } class="h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent">Cancel</a>
-					<button type="submit" class="h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Commit changes</button>
+					<button type="submit" class="h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium" x-text="target === 'branch' ? 'Propose changes' : 'Commit changes'">Commit changes</button>
 				</div>
 			</form>
 		</div>
@@ -154,4 +203,11 @@ templ EditFile(data view.EditFileData) {
 // after <textarea>, which would otherwise eat a file's leading blank line.
 func textareaValue(content string) string {
 	return "\n" + content
+}
+
+func editTargetState(data view.EditFileData) string {
+	if data.NewBranchSelected() {
+		return "{ target: 'branch' }"
+	}
+	return "{ target: 'direct' }"
 }

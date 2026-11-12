@@ -8,6 +8,7 @@ import (
 	"io"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -44,6 +45,10 @@ var ErrFileUnchanged = errors.New("file is unchanged")
 // ErrFileChanged means the path on the branch no longer holds the blob an edit
 // or delete was based on. Handlers answer 409.
 var ErrFileChanged = errors.New("file changed on the branch")
+
+// ErrBranchExists means a commit to a new branch named one that is taken.
+// Handlers answer 422 on the branch field.
+var ErrBranchExists = errors.New("branch already exists")
 
 // CleanFilePath returns p with surrounding slashes trimmed and backslashes
 // turned into slashes, or ErrInvalidFilePath when git couldn't check it out.
@@ -216,6 +221,53 @@ func (s *CodeService) GetBlobByHash(owner, repoName, sha string, maxContent int6
 // newPath renames the file, keeping its mode; one that holds any entry is
 // ErrPathCollision. Unlike CommitFile, it never creates the branch.
 func (s *CodeService) EditFile(owner, repoName, branch, oldPath, newPath, baseSHA string, content []byte, author GitAuthor, message string) (RefUpdate, error) {
+	return s.editFile(owner, repoName, branch, "", oldPath, newPath, baseSHA, content, author, message)
+}
+
+// EditFileOnNewBranch is EditFile that commits onto a new branch, newBranch,
+// started at the current tip of branch, so the commit sits on the latest
+// history. A taken or invalid name is ErrBranchExists or gitref.ErrInvalidName.
+func (s *CodeService) EditFileOnNewBranch(owner, repoName, branch, newBranch, oldPath, newPath, baseSHA string, content []byte, author GitAuthor, message string) (RefUpdate, error) {
+	if err := gitref.ValidateBranchName(newBranch); err != nil {
+		return RefUpdate{}, err
+	}
+	return s.editFile(owner, repoName, branch, newBranch, oldPath, newPath, baseSHA, content, author, message)
+}
+
+// FreeBranchName returns the first of prefix1, prefix2, ... that names no
+// branch, where prefix is e.g. "alice-patch-".
+func (s *CodeService) FreeBranchName(owner, repoName, prefix string) (string, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return "", err
+	}
+	for n := 1; ; n++ {
+		name := prefix + strconv.Itoa(n)
+		_, err := repo.Reference(plumbing.NewBranchReferenceName(name), true)
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			return name, nil
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+}
+
+// BranchExists reports whether branch names a branch.
+func (s *CodeService) BranchExists(owner, repoName, branch string) (bool, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return false, err
+	}
+	_, err = repo.Reference(plumbing.NewBranchReferenceName(branch), true)
+	if errors.Is(err, plumbing.ErrReferenceNotFound) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// editFile is EditFile, committing onto newBranch when it is set.
+func (s *CodeService) editFile(owner, repoName, branch, newBranch, oldPath, newPath, baseSHA string, content []byte, author GitAuthor, message string) (RefUpdate, error) {
 	// A pushed path CleanFilePath would rewrite, such as one with a backslash,
 	// must not be renamed by an edit that leaves the path field alone.
 	if newPath != oldPath {
@@ -254,7 +306,22 @@ func (s *CodeService) EditFile(owner, repoName, branch, oldPath, newPath, baseSH
 	if err != nil {
 		return RefUpdate{}, err
 	}
-	return commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message)
+	if newBranch == "" {
+		return commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message)
+	}
+	newRef := plumbing.NewBranchReferenceName(newBranch)
+	commitHash, err := writeCommit(repo, tip, rootHash, author, message)
+	if err != nil {
+		return RefUpdate{}, err
+	}
+	if err := gitref.Move(repo.Storer, newRef, plumbing.ZeroHash, commitHash); err != nil {
+		// Move reports a branch that already exists as ErrMoved.
+		if errors.Is(err, gitref.ErrMoved) {
+			return RefUpdate{}, fmt.Errorf("%w: %s", ErrBranchExists, newBranch)
+		}
+		return RefUpdate{}, fmt.Errorf("create branch: %w", err)
+	}
+	return RefUpdate{Branch: newBranch, New: commitHash}, nil
 }
 
 // DeleteFile removes the file or symlink at filePath on branch, which must
@@ -334,9 +401,24 @@ func baseEntry(repo *gogit.Repository, branch, filePath, baseSHA string, symlink
 // commit), moving the branch only if it still points at parent.
 func commitOnto(repo *gogit.Repository, branchRef plumbing.ReferenceName, parent *object.Commit, tree plumbing.Hash, author GitAuthor, message string) (RefUpdate, error) {
 	var oldTip plumbing.Hash
-	var parentHashes []plumbing.Hash
 	if parent != nil {
 		oldTip = parent.Hash
+	}
+	commitHash, err := writeCommit(repo, parent, tree, author, message)
+	if err != nil {
+		return RefUpdate{}, err
+	}
+	if err := gitref.Move(repo.Storer, branchRef, oldTip, commitHash); err != nil {
+		return RefUpdate{}, fmt.Errorf("advance branch: %w", err)
+	}
+	return RefUpdate{Branch: branchRef.Short(), Old: oldTip, New: commitHash}, nil
+}
+
+// writeCommit stores a commit of tree on top of parent (nil for a root commit)
+// without moving any ref.
+func writeCommit(repo *gogit.Repository, parent *object.Commit, tree plumbing.Hash, author GitAuthor, message string) (plumbing.Hash, error) {
+	var parentHashes []plumbing.Hash
+	if parent != nil {
 		parentHashes = []plumbing.Hash{parent.Hash}
 	}
 	sig := author.signature(time.Now())
@@ -349,16 +431,9 @@ func commitOnto(repo *gogit.Repository, branchRef plumbing.ReferenceName, parent
 	}
 	commitObj := repo.Storer.NewEncodedObject()
 	if err := commit.Encode(commitObj); err != nil {
-		return RefUpdate{}, err
+		return plumbing.ZeroHash, err
 	}
-	commitHash, err := repo.Storer.SetEncodedObject(commitObj)
-	if err != nil {
-		return RefUpdate{}, err
-	}
-	if err := gitref.Move(repo.Storer, branchRef, oldTip, commitHash); err != nil {
-		return RefUpdate{}, fmt.Errorf("advance branch: %w", err)
-	}
-	return RefUpdate{Branch: branchRef.Short(), Old: oldTip, New: commitHash}, nil
+	return repo.Storer.SetEncodedObject(commitObj)
 }
 
 func writeBlob(repo *gogit.Repository, content []byte) (plumbing.Hash, error) {

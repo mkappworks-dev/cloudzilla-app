@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -76,6 +77,10 @@ func (h *Handler) PageEditFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	suggested, err := h.Services.Code.FreeBranchName(owner, repoName, patchBranchPrefix(claims.Username))
+	if err != nil {
+		slog.Warn("edit file: suggest branch failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	h.render(w, r, pages.EditFile(view.EditFileData{
 		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Owner:    owner,
@@ -85,5 +90,10 @@ func (h *Handler) PageEditFile(w http.ResponseWriter, r *http.Request) {
 		BlobSHA:  file.SHA,
 		NewPath:  path,
 		Content:  string(file.Content),
+
+		Target:          "direct",
+		DirectRefusal:   h.directRefusal(r.Context(), repo.ID, ref),
+		NewBranch:       suggested,
+		SuggestedBranch: suggested,
 	}))
 }

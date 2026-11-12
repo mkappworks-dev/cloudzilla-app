@@ -36,6 +36,8 @@
       <button type="button" data-ef-state="conflict" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Conflict markers</button>
       <button type="button" data-ef-state="markers" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Markers refused</button>
       <button type="button" data-ef-state="deleted" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Deleted upstream</button>
+      <button type="button" data-ef-state="protected" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Protected branch</button>
+      <button type="button" data-ef-state="taken" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Branch name taken</button>
     </div>
 
     <div id="ef-alert" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"><p></p></div>
@@ -148,14 +150,35 @@ func New(h *handler.Handlers) http.Handler {
         </div>
       </div>
 
-      <div class="rounded-md border border-border bg-card p-5">
-        <label for="ef-message" class="block text-[12px] font-medium mb-1.5">Commit message</label>
-        <input id="ef-message" name="message" type="text" value="" placeholder="Update internal/router/router.go" class="w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring" />
+      <div class="rounded-md border border-border bg-card p-5 flex flex-col gap-5">
+        <div>
+          <label for="ef-message" class="block text-[12px] font-medium mb-1.5">Commit message</label>
+          <input id="ef-message" name="message" type="text" value="" placeholder="Update internal/router/router.go" class="w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring" />
+        </div>
+        <fieldset class="flex flex-col gap-3">
+          <legend class="block text-[12px] font-medium mb-1.5">Commit to</legend>
+          <label id="ef-direct-label" class="flex items-start gap-2.5 text-[13px]">
+            <input type="radio" name="target" value="direct" checked class="mt-0.5" />
+            <span>
+              Commit directly to the <span class="font-mono">main</span> branch
+              <span id="ef-direct-reason" class="hidden text-[12px] text-muted-foreground mt-0.5">pull request required: main only accepts changes through a pull request</span>
+            </span>
+          </label>
+          <label class="flex items-start gap-2.5 text-[13px]">
+            <input type="radio" name="target" value="branch" class="mt-0.5" />
+            <span>Create a <strong class="font-medium">new branch</strong> for this commit and open a pull request</span>
+          </label>
+          <div id="ef-branch-field" data-field class="hidden ml-6">
+            <label for="ef-branch" class="block text-[12px] font-medium mb-1.5">New branch name</label>
+            <input id="ef-branch" name="new_branch" type="text" value="alice-patch-1" spellcheck="false" autocomplete="off" class="w-full max-w-sm h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring aria-invalid:border-destructive" />
+            <p id="ef-branch-error" data-field-error class="hidden mt-1.5 text-xs text-destructive"></p>
+          </div>
+        </fieldset>
       </div>
 
       <div class="flex items-center justify-end gap-2">
         <a href="blob.html" class="h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent">Cancel</a>
-        <button type="submit" class="h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Commit changes</button>
+        <button type="submit" class="h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium"id="ef-submit">Commit changes</button>
       </div>
     </form>
   </div>
@@ -244,6 +267,8 @@ func New(h *handler.Handlers) http.Handler {
     clean: { text: merged, alert: CHANGED, upstream: true, notice: 'Changes made on main since you opened this file were merged into your text. Check the diff, then commit.' },
     conflict: { text: conflicted, alert: CHANGED, upstream: true, notice: '1 conflict needs resolving. Edit each block between the \u201c<<<<<<< your changes\u201d and \u201c>>>>>>> main (current)\u201d lines, delete the marker lines, then commit.' },
     markers: { text: conflicted, upstream: true, error: 'Remove the \u201c<<<<<<< your changes\u201d and \u201c>>>>>>> main (current)\u201d lines before committing.' },
+    protected: { text: base, locked: true },
+    taken: { text: base, branch: 'main', branchError: 'A branch named main already exists. Pick another name.' },
     deleted: { text: mine, alert: 'This file was deleted or moved on main after you opened it, so your changes weren\u2019t committed.', notice: 'internal/router/router.go no longer exists on main, so there is nothing to merge your changes into. Copy your text before you leave.' }
   };
   function setBox(id, msg) {
@@ -251,8 +276,44 @@ func New(h *handler.Handlers) http.Handler {
     box.classList.toggle('hidden', !msg);
     box.firstElementChild.textContent = msg || '';
   }
+  var form = document.getElementById('editfile-form');
+  var radios = form.querySelectorAll('input[name="target"]');
+  var branchInput = document.getElementById('ef-branch');
+  var branchError = document.getElementById('ef-branch-error');
+  function target() { return form.querySelector('input[name="target"]:checked').value; }
+  function syncTarget() {
+    document.getElementById('ef-branch-field').classList.toggle('hidden', target() !== 'branch');
+    document.getElementById('ef-submit').textContent = target() === 'branch' ? 'Propose changes' : 'Commit changes';
+  }
+  function clearBranchError() {
+    branchInput.removeAttribute('aria-invalid');
+    branchInput.removeAttribute('aria-describedby');
+    branchError.classList.add('hidden');
+  }
+  radios.forEach(function (r) { r.addEventListener('change', syncTarget); });
+  branchInput.addEventListener('input', clearBranchError);
+  function applyTarget(st) {
+    var direct = form.querySelector('input[value="direct"]');
+    direct.disabled = !!st.locked;
+    document.getElementById('ef-direct-label').classList.toggle('opacity-60', !!st.locked);
+    var reason = document.getElementById('ef-direct-reason');
+    reason.classList.toggle('hidden', !st.locked);
+    reason.classList.toggle('block', !!st.locked);
+    form.querySelector('input[value="' + (st.locked || st.branch ? 'branch' : 'direct') + '"]').checked = true;
+    branchInput.value = st.branch || 'alice-patch-1';
+    clearBranchError();
+    syncTarget();
+    if (st.branchError) {
+      branchError.textContent = st.branchError;
+      branchError.classList.remove('hidden');
+      branchInput.setAttribute('aria-invalid', 'true');
+      branchInput.setAttribute('aria-describedby', 'ef-branch-error');
+      branchInput.focus();
+    }
+  }
   function apply(name) {
     var st = states[name] || states.open;
+    applyTarget(st);
     content.value = st.text;
     setBox('ef-alert', st.alert);
     setBox('ef-notice', st.notice);
@@ -285,8 +346,9 @@ func New(h *handler.Handlers) http.Handler {
 })();
 document.getElementById('editfile-form').addEventListener('submit', function (e) {
   e.preventDefault();
-  window.czToast('Changes committed to main.');
-  setTimeout(function () { location.href = 'blob.html'; }, 700);
+  var toBranch = this.querySelector('input[name="target"]:checked').value === 'branch';
+  window.czToast(toBranch ? 'Branch created. Opening the pull request form\u2026' : 'Changes committed to main.');
+  setTimeout(function () { location.href = toBranch ? 'pull_new.html' : 'blob.html'; }, 700);
 });
 </script>
 </body>
