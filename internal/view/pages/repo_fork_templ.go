@@ -33,6 +33,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
 		source := data.SourceOwner + "/" + data.SourceName
+		defaultOwner, canFork := forkDefaultOwner(data.Owners)
 		templ_7745c5c3_Var2 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
@@ -52,7 +53,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + source)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 14, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 15, Col: 110}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -65,7 +66,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(source)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 14, Col: 168}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 15, Col: 168}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -88,7 +89,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(f.Path)).ResolveURL(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 24, Col: 43}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 25, Col: 43}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 					if templ_7745c5c3_Err != nil {
@@ -101,7 +102,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(f.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 24, Col: 101}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 25, Col: 101}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -117,7 +118,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			if len(data.Owners) == 0 {
+			if !canFork {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div class=\"border border-border rounded-lg bg-card p-6 text-[13px] text-muted-foreground\">You can't fork your own repository into your own account. <a href=\"/organizations/new\" class=\"text-primary hover:underline\">Create an organization</a> to fork it there.</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -130,7 +131,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression(source).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 34, Col: 108}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 35, Col: 108}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 				if templ_7745c5c3_Err != nil {
@@ -140,7 +141,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = repoNewCustomSelect("fork-owner", "owner", forkOwnerOpts(data.Owners), repoNewSelectOption{Value: data.Owners[0], Label: data.Owners[0]}).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = repoNewCustomSelect("fork-owner", "owner", forkOwnerOpts(data.Owners), repoNewSelectOption{Value: defaultOwner, Label: defaultOwner}).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -151,7 +152,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.SourceName).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 43, Col: 113}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 44, Col: 113}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 				if templ_7745c5c3_Err != nil {
@@ -164,7 +165,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.Description)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 51, Col: 261}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 52, Col: 261}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -197,7 +198,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(data.DefaultBranch)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 70, Col: 68}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_fork.templ`, Line: 71, Col: 68}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -265,7 +266,7 @@ func RepoFork(data view.RepoForkData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if len(data.Owners) > 0 {
+			if canFork {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst form = document.getElementById('fork-form');\n\t\t\t\t\tconst errBox = document.getElementById('fork-form-error');\n\t\t\t\t\tconst submit = document.getElementById('fork-submit');\n\t\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\t\tconst branchOnly = document.getElementById('fork-default-branch-only');\n\t\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\t\tsubmit.disabled = true;\n\t\t\t\t\t\ttry {\n\t\t\t\t\t\t\tconst res = await fetch('/api/repos/' + form.dataset.source + '/fork', {\n\t\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\t\t\towner: form.querySelector('[name=owner]').value,\n\t\t\t\t\t\t\t\t\tname: form.querySelector('[name=name]').value.trim(),\n\t\t\t\t\t\t\t\t\tdescription: form.querySelector('[name=description]').value,\n\t\t\t\t\t\t\t\t\tdefault_branch_only: branchOnly ? branchOnly.checked : false\n\t\t\t\t\t\t\t\t})\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t\tif (res.status === 201) {\n\t\t\t\t\t\t\t\twindow.location.href = (await res.json()).url;\n\t\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\t\terrBox.textContent = msg || ('Failed to create the fork (HTTP ' + res.status + ')');\n\t\t\t\t\t\t} catch (err) {\n\t\t\t\t\t\t\terrBox.textContent = 'Failed to create the fork: ' + err.message;\n\t\t\t\t\t\t}\n\t\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t\t\tsubmit.disabled = false;\n\t\t\t\t\t});\n\t\t\t\t})();\n\t\t\t</script>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -281,12 +282,21 @@ func RepoFork(data view.RepoForkData) templ.Component {
 	})
 }
 
-func forkOwnerOpts(owners []string) []repoNewSelectOption {
+func forkOwnerOpts(owners []view.ForkOwner) []repoNewSelectOption {
 	opts := make([]repoNewSelectOption, 0, len(owners))
 	for _, o := range owners {
-		opts = append(opts, repoNewSelectOption{Value: o, Label: o})
+		opts = append(opts, repoNewSelectOption{Value: o.Name, Label: o.Name, DisabledReason: o.DisabledReason})
 	}
 	return opts
+}
+
+func forkDefaultOwner(owners []view.ForkOwner) (string, bool) {
+	for _, o := range owners {
+		if o.DisabledReason == "" {
+			return o.Name, true
+		}
+	}
+	return "", false
 }
 
 var _ = templruntime.GeneratedTemplate

@@ -17,7 +17,8 @@ document.addEventListener('alpine:init', () => {
     },
     show() {
       this.open = true;
-      this.active = Math.max(0, this.options().findIndex(o => o.dataset.value === this.value));
+      const current = this.options().findIndex(o => o.dataset.value === this.value);
+      this.active = current >= 0 ? current : this.step(-1, 1);
       this.$nextTick(() => {
         this.$refs.list.focus();
         this.reveal();
@@ -27,9 +28,20 @@ document.addEventListener('alpine:init', () => {
       this.open = false;
       if (refocus) this.$refs.trigger.focus();
     },
-    move(delta) {
+    enabled(i) {
+      return this.options()[i]?.getAttribute('aria-disabled') !== 'true';
+    },
+    // Disabled options stay visible with their reason but take no focus or choice; a list of only disabled ones keeps `from`.
+    step(from, delta) {
       const n = this.options().length;
-      this.active = (this.active + delta + n) % n;
+      for (let i = 1; i <= n; i++) {
+        const next = (from + delta * i + n * i) % n;
+        if (this.enabled(next)) return next;
+      }
+      return from;
+    },
+    move(delta) {
+      this.active = this.step(this.active, delta);
       this.reveal();
     },
     reveal() {
@@ -37,7 +49,7 @@ document.addEventListener('alpine:init', () => {
     },
     choose(i) {
       const opt = this.options()[i];
-      if (!opt) return;
+      if (!opt || !this.enabled(i)) return;
       this.hide(true);
       if (opt.dataset.value === this.value) return;
       this.value = opt.dataset.value;
@@ -51,7 +63,7 @@ document.addEventListener('alpine:init', () => {
       const now = Date.now();
       this.typed = (now - this.typedAt > 500 ? '' : this.typed) + key.toLowerCase();
       this.typedAt = now;
-      const i = this.options().findIndex(o => o.textContent.trim().toLowerCase().startsWith(this.typed));
+      const i = this.options().findIndex((o, j) => this.enabled(j) && o.textContent.trim().toLowerCase().startsWith(this.typed));
       if (i >= 0) {
         this.active = i;
         this.reveal();
@@ -61,8 +73,8 @@ document.addEventListener('alpine:init', () => {
       switch (e.key) {
         case 'ArrowDown': e.preventDefault(); this.move(1); break;
         case 'ArrowUp': e.preventDefault(); this.move(-1); break;
-        case 'Home': e.preventDefault(); this.active = 0; this.reveal(); break;
-        case 'End': e.preventDefault(); this.active = this.options().length - 1; this.reveal(); break;
+        case 'Home': e.preventDefault(); this.active = this.step(-1, 1); this.reveal(); break;
+        case 'End': e.preventDefault(); this.active = this.step(0, -1); this.reveal(); break;
         case 'Enter':
         case ' ': e.preventDefault(); this.choose(this.active); break;
         case 'Escape': e.preventDefault(); this.hide(true); break;

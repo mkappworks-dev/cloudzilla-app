@@ -7,6 +7,8 @@ type SelectMenuOption struct {
 	Label string
 	// Swatch is a strip of CSS colours drawn before the label.
 	Swatch []string
+	// DisabledReason, when set, keeps the option visible but unselectable and shows why.
+	DisabledReason string
 }
 
 // SelectMenu is a form select drawn as a popover listbox; its behaviour lives in
@@ -55,17 +57,26 @@ templ SelectMenu(id, name, label string, options []SelectMenuOption, selected st
 					role="option"
 					data-value={ o.Value }
 					aria-selected={ strconv.FormatBool(o.Value == selected) }
-					x-on:mousemove={ "active = " + strconv.Itoa(i) }
-					x-on:click={ "choose(" + strconv.Itoa(i) + ")" }
-					:class={ "active === " + strconv.Itoa(i) + " && 'bg-accent text-accent-foreground'" }
-					class="flex items-center gap-2 rounded-sm px-2 py-1.5 cursor-default select-none"
+					if o.DisabledReason != "" {
+						aria-disabled="true"
+						class="flex items-center gap-2 rounded-sm px-2 py-1.5 cursor-not-allowed select-none text-muted-foreground"
+					} else {
+						x-on:mousemove={ "active = " + strconv.Itoa(i) }
+						x-on:click={ "choose(" + strconv.Itoa(i) + ")" }
+						:class={ "active === " + strconv.Itoa(i) + " && 'bg-accent text-accent-foreground'" }
+						class="flex items-center gap-2 rounded-sm px-2 py-1.5 cursor-default select-none"
+					}
 				>
 					<span data-option-body class="flex min-w-0 items-center gap-2">
 						@selectMenuOptionBody(o)
 					</span>
-					<svg class="ml-auto shrink-0" data-value={ o.Value } :class="value === $el.dataset.value ? '' : 'invisible'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-						<path d="M20 6L9 17l-5-5"></path>
-					</svg>
+					if o.DisabledReason != "" {
+						<span class="ml-auto pl-4 text-xs">{ o.DisabledReason }</span>
+					} else {
+						<svg class="ml-auto shrink-0" data-value={ o.Value } :class="value === $el.dataset.value ? '' : 'invisible'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+							<path d="M20 6L9 17l-5-5"></path>
+						</svg>
+					}
 				</li>
 			}
 		</ul>
