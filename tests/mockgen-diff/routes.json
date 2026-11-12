@@ -37,5 +37,437 @@
     "file": "not_found--anon",
     "route": "/this-page-does-not-exist",
     "auth": false
+  },
+  {
+    "file": "repo",
+    "route": "/amara-silva/lazy-kiln",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "heatmap-cell|^div\\.gap-\\[3px\\]",
+        "why": "the commit heatmap is left out of the fixture: it is positioned from time.Now"
+      },
+      {
+        "match": "^h2\\.font-medium mb-1 text-\\[13px\\] \\[id\\]",
+        "why": "heatmap section heading"
+      },
+      {
+        "match": "^p\\.mb-3 text-\\[12px\\] text-muted-foreground/80",
+        "why": "heatmap section caption"
+      },
+      {
+        "match": "^div\\.bg-card border border-border p-3\\.5 rounded-md",
+        "why": "heatmap card"
+      },
+      {
+        "match": "^div\\.flex (justify-between mb-1\\.5|items-center justify-between mt-3) text-\\[10px\\]",
+        "why": "heatmap axis and legend rows"
+      },
+      {
+        "match": "^span\\.flex gap-1 items-center \\[\\]",
+        "why": "heatmap legend"
+      },
+      {
+        "match": "^(h[12]|pre|ul)\\. \\[",
+        "why": "README markup is data: the seeded README has headings with ids and no code block or list"
+      },
+      {
+        "match": "^(dd\\. \\[\\]|a\\.hover:underline text-primary \\[href,rel\\])",
+        "why": "Website and License rows appear only when the repository sets them"
+      }
+    ]
+  },
+  {
+    "file": "repo--viewer",
+    "route": "/amara-silva/lazy-kiln",
+    "auth": true,
+    "email": "ines-novak@example.test",
+    "allow": [
+      {
+        "match": "heatmap-cell|^div\\.gap-\\[3px\\]",
+        "why": "the commit heatmap is left out of the fixture: it is positioned from time.Now"
+      },
+      {
+        "match": "^h2\\.font-medium mb-1 text-\\[13px\\] \\[id\\]",
+        "why": "heatmap section heading"
+      },
+      {
+        "match": "^p\\.mb-3 text-\\[12px\\] text-muted-foreground/80",
+        "why": "heatmap section caption"
+      },
+      {
+        "match": "^div\\.bg-card border border-border p-3\\.5 rounded-md",
+        "why": "heatmap card"
+      },
+      {
+        "match": "^div\\.flex (justify-between mb-1\\.5|items-center justify-between mt-3) text-\\[10px\\]",
+        "why": "heatmap axis and legend rows"
+      },
+      {
+        "match": "^span\\.flex gap-1 items-center \\[\\]",
+        "why": "heatmap legend"
+      },
+      {
+        "match": "^(h[12]|pre|ul)\\. \\[",
+        "why": "README markup is data: the seeded README has headings with ids and no code block or list"
+      },
+      {
+        "match": "^(dd\\. \\[\\]|a\\.hover:underline text-primary \\[href,rel\\])",
+        "why": "Website and License rows appear only when the repository sets them"
+      },
+      {
+        "match": "^button\\..*\\[aria-pressed,type\\]",
+        "why": "the seeded account has already starred this repository"
+      }
+    ]
+  },
+  {
+    "file": "repo--anon",
+    "route": "/amara-silva/lazy-kiln",
+    "auth": false,
+    "allow": [
+      {
+        "match": "heatmap-cell|^div\\.gap-\\[3px\\]",
+        "why": "the commit heatmap is left out of the fixture: it is positioned from time.Now"
+      },
+      {
+        "match": "^h2\\.font-medium mb-1 text-\\[13px\\] \\[id\\]",
+        "why": "heatmap section heading"
+      },
+      {
+        "match": "^p\\.mb-3 text-\\[12px\\] text-muted-foreground/80",
+        "why": "heatmap section caption"
+      },
+      {
+        "match": "^div\\.bg-card border border-border p-3\\.5 rounded-md",
+        "why": "heatmap card"
+      },
+      {
+        "match": "^div\\.flex (justify-between mb-1\\.5|items-center justify-between mt-3) text-\\[10px\\]",
+        "why": "heatmap axis and legend rows"
+      },
+      {
+        "match": "^span\\.flex gap-1 items-center \\[\\]",
+        "why": "heatmap legend"
+      },
+      {
+        "match": "^(h[12]|pre|ul)\\. \\[",
+        "why": "README markup is data: the seeded README has headings with ids and no code block or list"
+      },
+      {
+        "match": "^(dd\\. \\[\\]|a\\.hover:underline text-primary \\[href,rel\\])",
+        "why": "Website and License rows appear only when the repository sets them"
+      }
+    ]
+  },
+  {
+    "file": "tree",
+    "route": "/amara-silva/lazy-kiln/tree/main/src",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(svg\\.transition-transform|a\\.bg-accent flex gap-1 items-center py-\\[3px\\])",
+        "why": "the sidebar chevron and the active row follow the seeded tree"
+      }
+    ]
+  },
+  {
+    "file": "blob",
+    "route": "/amara-silva/lazy-kiln/blob/main/src/batch.ts",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.hl-",
+        "why": "syntax token classes follow the file language"
+      },
+      {
+        "match": "^(svg\\.transition-transform|a\\.bg-accent flex gap-1 items-center py-\\[3px\\])",
+        "why": "the sidebar chevron and the active row follow the seeded tree"
+      }
+    ]
+  },
+  {
+    "file": "blob--viewer",
+    "route": "/amara-silva/lazy-kiln/blob/main/src/batch.ts",
+    "auth": true,
+    "email": "ines-novak@example.test",
+    "allow": [
+      {
+        "match": "^span\\.hl-",
+        "why": "syntax token classes follow the file language"
+      },
+      {
+        "match": "^(svg\\.transition-transform|a\\.bg-accent flex gap-1 items-center py-\\[3px\\])",
+        "why": "the sidebar chevron and the active row follow the seeded tree"
+      }
+    ]
+  },
+  {
+    "file": "blame",
+    "route": "/amara-silva/lazy-kiln/blame/main/src/batch.ts",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.hl-",
+        "why": "syntax token classes follow the file language"
+      }
+    ]
+  },
+  {
+    "file": "edit_file",
+    "route": "/amara-silva/lazy-kiln/edit/main/src/batch.ts",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "new_file",
+    "route": "/amara-silva/lazy-kiln/new/main",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "commits",
+    "route": "/amara-silva/lazy-kiln/commits/main?page=2",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "commit",
+    "route": "/amara-silva/lazy-kiln",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "resolve": {
+      "from": "/amara-silva/lazy-kiln/commits/main",
+      "match": "href=\"(/amara-silva/lazy-kiln/commit/[0-9a-f]{40})\""
+    },
+    "allow": [
+      {
+        "match": "^span\\.hl-",
+        "why": "syntax token classes follow the file language"
+      },
+      {
+        "match": "^span\\.hl-mi",
+        "why": "syntax token classes follow the file language"
+      },
+      {
+        "match": "^pre\\.font-sans",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^section\\.bg-card border border-border rounded-md",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^header\\.border-b border-border px-4 py-3",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^h2\\.font-mono text-\\[11px\\]",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^div\\.p-4 space-y-2",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^div\\.flex gap-3 items-center text-sm",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^span\\.(text-success|text-destructive) \\[aria-hidden\\]",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^span\\.(sr-only|text-muted-foreground) \\[\\]",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^a\\.hover:underline ml-auto",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^td\\.align-top",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^tr\\.bg-destructive/6",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      },
+      {
+        "match": "^div\\.italic px-4 py-3",
+        "why": "the seeded commit has no body, no checks, no deleted lines and no binary file"
+      }
+    ]
+  },
+  {
+    "file": "refs",
+    "route": "/amara-silva/lazy-kiln/refs",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "refs--viewer",
+    "route": "/amara-silva/lazy-kiln/refs",
+    "auth": true,
+    "email": "ines-novak@example.test"
+  },
+  {
+    "file": "contributors",
+    "route": "/amara-silva/lazy-kiln/graphs/contributors",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "pulse",
+    "route": "/amara-silva/lazy-kiln/pulse",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "dependencies",
+    "route": "/amara-silva/lazy-kiln/network/dependencies",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^span\\.bg-muted border border-transparent",
+        "why": "the dev badge shows only for dev dependencies"
+      }
+    ]
+  },
+  {
+    "file": "stargazers",
+    "route": "/amara-silva/lazy-kiln/stargazers",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "activity",
+    "route": "/activity",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^svg\\.mt-1 shrink-0",
+        "why": "event kinds follow the seeded feed"
+      },
+      {
+        "match": "^span\\.font-mono",
+        "why": "event kinds follow the seeded feed"
+      },
+      {
+        "match": "^ul\\.mt-1 space-y-0\\.5",
+        "why": "event kinds follow the seeded feed"
+      },
+      {
+        "match": "^li\\.truncate",
+        "why": "event kinds follow the seeded feed"
+      },
+      {
+        "match": "^a\\.font-mono hover:underline text-primary",
+        "why": "event kinds follow the seeded feed"
+      },
+      {
+        "match": "^p\\.mt-0\\.5 text-\\[12\\.5px\\]",
+        "why": "event kinds follow the seeded feed"
+      },
+      {
+        "match": "^blockquote\\.",
+        "why": "event kinds follow the seeded feed"
+      },
+      {
+        "match": "^path\\. \\[d,fill-rule\\]",
+        "why": "event kinds follow the seeded feed"
+      }
+    ]
+  },
+  {
+    "file": "code_search",
+    "route": "/search/code?q=export&page=1",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "code_search--empty",
+    "route": "/search/code?q=zzqxvnotfound",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "code_search--no-query",
+    "route": "/search/code",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "search",
+    "route": "/search?q=e&type=all",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^(li\\.flex gap-4 items-center px-4 py-3\\.5|span\\.bg-muted border border-border font-medium h-10|div\\.flex-1 min-w-0|div\\.flex flex-wrap gap-2 items-center|a\\.font-medium hover:underline text-sm|p\\.mt-0\\.5 text-muted-foreground text-xs truncate)",
+        "why": "the people and organization rows depend on which usernames the query matches"
+      },
+      {
+        "match": "^(span\\.bg-warning/15|svg\\.mt-0\\.5 shrink-0 text-(destructive|\\[hsl\\(270_70%_70%\\)\\])|span\\.bg-\\[hsl\\(270_70%_50%)",
+        "why": "issue and pull request states follow the seeded results"
+      }
+    ]
+  },
+  {
+    "file": "search--repos",
+    "route": "/search?q=kiln&type=repos",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "search--empty",
+    "route": "/search?q=zzqxvnotfound&type=all",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "search--no-query",
+    "route": "/search",
+    "auth": true,
+    "email": "amara-silva@example.test"
+  },
+  {
+    "file": "search--anon",
+    "route": "/search?q=e&type=all",
+    "auth": false,
+    "allow": [
+      {
+        "match": "^(li\\.flex gap-4 items-center px-4 py-3\\.5|span\\.bg-muted border border-border font-medium h-10|div\\.flex-1 min-w-0|div\\.flex flex-wrap gap-2 items-center|a\\.font-medium hover:underline text-sm|p\\.mt-0\\.5 text-muted-foreground text-xs truncate)",
+        "why": "the people and organization rows depend on which usernames the query matches"
+      },
+      {
+        "match": "^(span\\.bg-warning/15|svg\\.mt-0\\.5 shrink-0 text-(destructive|\\[hsl\\(270_70%_70%\\)\\])|span\\.bg-\\[hsl\\(270_70%_50%)",
+        "why": "issue and pull request states follow the seeded results"
+      }
+    ]
+  },
+  {
+    "file": "topic",
+    "route": "/topic/rust",
+    "auth": true,
+    "email": "amara-silva@example.test",
+    "allow": [
+      {
+        "match": "^a\\.bg-transparent border border-input",
+        "why": "the seeded topic fits on one page, so it has no Previous link"
+      }
+    ]
+  },
+  {
+    "file": "repo_fork",
+    "route": "/beatriz-fischer/brave-relay/fork",
+    "auth": true,
+    "email": "amara-silva@example.test"
   }
 ]

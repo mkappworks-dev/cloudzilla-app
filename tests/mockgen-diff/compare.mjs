@@ -84,7 +84,14 @@ function signatures(html) {
 let failed = 0;
 for (const p of pages) {
   const jar = p.auth ? await signIn(p.email ?? email) : new Jar();
-  const res = await get(jar, p.route);
+  let route = p.route;
+  if (p.resolve) {
+    // A URL that holds seeded data, such as a commit SHA, is read off a page that links to it.
+    const m = (await (await get(jar, p.resolve.from)).text()).match(new RegExp(p.resolve.match));
+    if (!m) throw new Error(`${p.file}: ${p.resolve.match} not found on ${p.resolve.from}`);
+    route = m[1];
+  }
+  const res = await get(jar, route);
   const live = signatures(await res.text());
   const mock = signatures(readFileSync(join(generated, `${p.file}.html`), "utf8"));
   // "allow" holds regexes for signatures that vary with seeded data (a language dot colour, a heatmap level), each
@@ -94,7 +101,7 @@ for (const p of pages) {
   const onlyLive = [...live].filter((s) => !mock.has(s) && !varies(s));
   const onlyMock = [...mock].filter((s) => !live.has(s) && !varies(s));
   const ok = onlyLive.length === 0 && onlyMock.length === 0;
-  console.log(`${ok ? "ok  " : "DIFF"} ${p.file}  ${p.route} (${res.status})`);
+  console.log(`${ok ? "ok  " : "DIFF"} ${p.file}  ${route} (${res.status})`);
   for (const s of onlyLive) console.log(`   live only: ${s}`);
   for (const s of onlyMock) console.log(`   mock only: ${s}`);
   if (!ok) failed++;

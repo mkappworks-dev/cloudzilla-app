@@ -28,7 +28,7 @@
   <section aria-labelledby="g-generated">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-generated" class="text-sm font-semibold tracking-tight">Generated from the templates</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">3</span>
+      <span class="font-mono text-[11px] text-muted-foreground">21</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li class="block h-full rounded-md border border-border bg-card p-4">
@@ -59,6 +59,164 @@
           <li><a href="generated/not_found--anon.html" class="font-mono text-[11px] text-primary hover:underline">anon</a> <span class="text-[11px] text-muted-foreground">signed out</span></li>
         </ul>
       </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}</p>
+        <h3 class="mt-1 text-sm font-medium">Repository</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/repo.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">writer on a repository with a README</span></li>
+          <li><a href="generated/repo--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">signed in without write access: no Add file, no edit</span></li>
+          <li><a href="generated/repo--anon.html" class="font-mono text-[11px] text-primary hover:underline">anon</a> <span class="text-[11px] text-muted-foreground">signed out: Star and Fork lead to sign-in</span></li>
+          <li><a href="generated/repo--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no commits yet</span></li>
+          <li><a href="generated/repo--empty-viewer.html" class="font-mono text-[11px] text-primary hover:underline">empty-viewer</a> <span class="text-[11px] text-muted-foreground">no commits yet, without write access</span></li>
+          <li><a href="generated/repo--archived.html" class="font-mono text-[11px] text-primary hover:underline">archived</a> <span class="text-[11px] text-muted-foreground">archived banner, read-only</span></li>
+          <li><a href="generated/repo--mirror.html" class="font-mono text-[11px] text-primary hover:underline">mirror</a> <span class="text-[11px] text-muted-foreground">pull mirror with a sync banner</span></li>
+          <li><a href="generated/repo--mirror-failed.html" class="font-mono text-[11px] text-primary hover:underline">mirror-failed</a> <span class="text-[11px] text-muted-foreground">pull mirror whose last sync failed</span></li>
+          <li><a href="generated/repo--fork.html" class="font-mono text-[11px] text-primary hover:underline">fork</a> <span class="text-[11px] text-muted-foreground">a fork shows its source</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/tree/{ref}/{path}</p>
+        <h3 class="mt-1 text-sm font-medium">Directory</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/tree.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">a directory with the file tree open</span></li>
+          <li><a href="generated/tree--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">an empty directory</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/blob/{ref}/{path}</p>
+        <h3 class="mt-1 text-sm font-medium">File</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/blob.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">writer: Edit and Delete</span></li>
+          <li><a href="generated/blob--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">read-only: no Edit or Delete</span></li>
+          <li><a href="generated/blob--binary.html" class="font-mono text-[11px] text-primary hover:underline">binary</a> <span class="text-[11px] text-muted-foreground">a binary file offers only the raw download</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/blame/{ref}/{path}</p>
+        <h3 class="mt-1 text-sm font-medium">Blame</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/blame.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">per-line history with runs of one commit</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/edit/{ref}/{path}</p>
+        <h3 class="mt-1 text-sm font-medium">Edit file</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/edit_file.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">editing an existing file</span></li>
+          <li><a href="generated/edit_file--conflict.html" class="font-mono text-[11px] text-primary hover:underline">conflict</a> <span class="text-[11px] text-muted-foreground">the file changed after the page loaded</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/new/{ref}</p>
+        <h3 class="mt-1 text-sm font-medium">New file</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/new_file.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">creating a file in the repository root</span></li>
+          <li><a href="generated/new_file--error.html" class="font-mono text-[11px] text-primary hover:underline">error</a> <span class="text-[11px] text-muted-foreground">a refused path with the upload to choose again</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/commits/{ref}</p>
+        <h3 class="mt-1 text-sm font-medium">Commits</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/commits.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">a middle page, with newer and older links</span></li>
+          <li><a href="generated/commits--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no commits on this ref</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/commit/{sha}</p>
+        <h3 class="mt-1 text-sm font-medium">Commit</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/commit.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">a commit with checks, an edit, a new file and a binary</span></li>
+          <li><a href="generated/commit--no-checks.html" class="font-mono text-[11px] text-primary hover:underline">no-checks</a> <span class="text-[11px] text-muted-foreground">no commit statuses</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/refs</p>
+        <h3 class="mt-1 text-sm font-medium">Branches and tags</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/refs.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">writer: create and delete branches and tags</span></li>
+          <li><a href="generated/refs--viewer.html" class="font-mono text-[11px] text-primary hover:underline">viewer</a> <span class="text-[11px] text-muted-foreground">read-only lists</span></li>
+          <li><a href="generated/refs--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no branches or tags</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/graphs/contributors</p>
+        <h3 class="mt-1 text-sm font-medium">Contributors</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/contributors.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">commit counts with a weekly sparkline</span></li>
+          <li><a href="generated/contributors--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no commits yet</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulse</p>
+        <h3 class="mt-1 text-sm font-medium">Pulse</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/pulse.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">30 days of issues, pull requests and commits</span></li>
+          <li><a href="generated/pulse--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no activity</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/network/dependencies</p>
+        <h3 class="mt-1 text-sm font-medium">Dependencies</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/dependencies.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">Go and npm manifests</span></li>
+          <li><a href="generated/dependencies--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no manifest found</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/stargazers</p>
+        <h3 class="mt-1 text-sm font-medium">Stargazers</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/stargazers.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">people who starred</span></li>
+          <li><a href="generated/stargazers--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no stars yet</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/activity</p>
+        <h3 class="mt-1 text-sm font-medium">Activity feed</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/activity.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">every kind of event, more pages to come</span></li>
+          <li><a href="generated/activity--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no activity in this scope</span></li>
+          <li><a href="generated/activity--error.html" class="font-mono text-[11px] text-primary hover:underline">error</a> <span class="text-[11px] text-muted-foreground">the feed query failed</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/search/code</p>
+        <h3 class="mt-1 text-sm font-medium">Code search</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/code_search.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">results with the match highlighted</span></li>
+          <li><a href="generated/code_search--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no results</span></li>
+          <li><a href="generated/code_search--no-query.html" class="font-mono text-[11px] text-primary hover:underline">no-query</a> <span class="text-[11px] text-muted-foreground">before a search</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/search</p>
+        <h3 class="mt-1 text-sm font-medium">Search</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/search.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">results of every kind</span></li>
+          <li><a href="generated/search--repos.html" class="font-mono text-[11px] text-primary hover:underline">repos</a> <span class="text-[11px] text-muted-foreground">repositories tab only</span></li>
+          <li><a href="generated/search--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no results</span></li>
+          <li><a href="generated/search--no-query.html" class="font-mono text-[11px] text-primary hover:underline">no-query</a> <span class="text-[11px] text-muted-foreground">before a search</span></li>
+          <li><a href="generated/search--anon.html" class="font-mono text-[11px] text-primary hover:underline">anon</a> <span class="text-[11px] text-muted-foreground">signed out</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/topic/{name}</p>
+        <h3 class="mt-1 text-sm font-medium">Topic</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/topic.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">repositories under a topic, sorted by stars</span></li>
+          <li><a href="generated/topic--empty.html" class="font-mono text-[11px] text-primary hover:underline">empty</a> <span class="text-[11px] text-muted-foreground">no repositories</span></li>
+        </ul>
+      </li>
+      <li class="block h-full rounded-md border border-border bg-card p-4">
+        <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/fork</p>
+        <h3 class="mt-1 text-sm font-medium">Fork</h3>
+        <ul class="mt-2 space-y-1">
+          <li><a href="generated/repo_fork.html" class="font-mono text-[11px] text-primary hover:underline">default</a> <span class="text-[11px] text-muted-foreground">choose where to fork</span></li>
+          <li><a href="generated/repo_fork--existing.html" class="font-mono text-[11px] text-primary hover:underline">existing</a> <span class="text-[11px] text-muted-foreground">the viewer already has a fork</span></li>
+          <li><a href="generated/repo_fork--no-owner.html" class="font-mono text-[11px] text-primary hover:underline">no-owner</a> <span class="text-[11px] text-muted-foreground">no namespace to fork into</span></li>
+        </ul>
+      </li>
     </ul>
   </section>
   <!-- mockgen:end -->
@@ -66,16 +224,9 @@
   <section aria-labelledby="g-account">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-account" class="text-sm font-semibold tracking-tight">Account</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">11</span>
+      <span class="font-mono text-[11px] text-muted-foreground">10</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <li>
-        <a href="activity.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/activity</p>
-          <h3 class="mt-1 text-sm font-medium">Activity</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">activity.html</p>
-        </a>
-      </li>
       <li>
         <a href="attention.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
           <p class="font-mono text-[11px] text-muted-foreground truncate">/attention</p>
@@ -152,77 +303,14 @@
   <section aria-labelledby="g-repository">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-repository" class="text-sm font-semibold tracking-tight">Repository</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">17</span>
+      <span class="font-mono text-[11px] text-muted-foreground">3</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <li>
-        <a href="repo.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}</p>
-          <h3 class="mt-1 text-sm font-medium">Repository overview</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">repo.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="tree.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/tree/…</p>
-          <h3 class="mt-1 text-sm font-medium">File tree</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">tree.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="blob.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/blob/…</p>
-          <h3 class="mt-1 text-sm font-medium">File view</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">blob.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="blame.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/blame/…</p>
-          <h3 class="mt-1 text-sm font-medium">Blame</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">blame.html</p>
-        </a>
-      </li>
       <li>
         <a href="raw.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
           <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/raw/…</p>
           <h3 class="mt-1 text-sm font-medium">Raw file</h3>
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">raw.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="commits.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/commits/{ref}</p>
-          <h3 class="mt-1 text-sm font-medium">Commits</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">commits.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="commit.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/commit/{sha}</p>
-          <h3 class="mt-1 text-sm font-medium">Commit</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">commit.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="contributors.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/graphs/contributors</p>
-          <h3 class="mt-1 text-sm font-medium">Contributors</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">contributors.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="dependencies.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/network/dependencies</p>
-          <h3 class="mt-1 text-sm font-medium">Dependencies</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">dependencies.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="pulse.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/pulse</p>
-          <h3 class="mt-1 text-sm font-medium">Pulse</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">pulse.html</p>
         </a>
       </li>
       <li>
@@ -239,48 +327,13 @@
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">new_repo.html</p>
         </a>
       </li>
-      <li>
-        <a href="refs.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/refs</p>
-          <h3 class="mt-1 text-sm font-medium">Branches and tags</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">refs.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="new_file.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/new/{ref}</p>
-          <h3 class="mt-1 text-sm font-medium">New file</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">new_file.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="edit_file.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/edit/{ref}/{path}</p>
-          <h3 class="mt-1 text-sm font-medium">Edit file</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">edit_file.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="stargazers.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/stargazers</p>
-          <h3 class="mt-1 text-sm font-medium">Stargazers</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">stargazers.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="repo_fork.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/{owner}/{repo}/fork</p>
-          <h3 class="mt-1 text-sm font-medium">Fork repository</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">repo_fork.html</p>
-        </a>
-      </li>
     </ul>
   </section>
 
   <section aria-labelledby="g-issues">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-issues" class="text-sm font-semibold tracking-tight">Issues and milestones</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">8</span>
+      <span class="font-mono text-[11px] text-muted-foreground">9</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li>
@@ -616,7 +669,7 @@
   <section aria-labelledby="g-organizations">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-organizations" class="text-sm font-semibold tracking-tight">Organizations and topics</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">5</span>
+      <span class="font-mono text-[11px] text-muted-foreground">4</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li>
@@ -647,43 +700,13 @@
           <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">org_settings.html</p>
         </a>
       </li>
-      <li>
-        <a href="topic.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/topic/{name}</p>
-          <h3 class="mt-1 text-sm font-medium">Topic</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">topic.html</p>
-        </a>
-      </li>
-    </ul>
-  </section>
-
-  <section aria-labelledby="g-search">
-    <div class="flex items-baseline justify-between mb-3">
-      <h2 id="g-search" class="text-sm font-semibold tracking-tight">Search</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">2</span>
-    </div>
-    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <li>
-        <a href="search.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/search</p>
-          <h3 class="mt-1 text-sm font-medium">Search</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">search.html</p>
-        </a>
-      </li>
-      <li>
-        <a href="code_search.html" class="block h-full rounded-md border border-border bg-card p-4 hover:border-border-strong hover:bg-accent/50 transition-colors">
-          <p class="font-mono text-[11px] text-muted-foreground truncate">/search/code</p>
-          <h3 class="mt-1 text-sm font-medium">Code search</h3>
-          <p class="mt-1 font-mono text-[11px] text-muted-foreground/70">code_search.html</p>
-        </a>
-      </li>
     </ul>
   </section>
 
   <section aria-labelledby="g-admin">
     <div class="flex items-baseline justify-between mb-3">
       <h2 id="g-admin" class="text-sm font-semibold tracking-tight">Admin</h2>
-      <span class="font-mono text-[11px] text-muted-foreground">5</span>
+      <span class="font-mono text-[11px] text-muted-foreground">7</span>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <li>

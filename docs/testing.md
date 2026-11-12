@@ -54,7 +54,9 @@ CZ_BASE_URL=http://127.0.0.1:18641 node tests/mockgen-diff/compare.mjs
 
 It signs in as `admin@example.test` / `cloudzilla-seed` unless `CZ_EMAIL` and `CZ_PASSWORD` say otherwise. A route in
 `tests/mockgen-diff/routes.json` may name another seeded account (`email`) and list differences that are data, not drift
-(`allow`, each with a reason). A variant with no plain-GET URL, such as a failed login, is not covered.
+(`allow`, each with a reason), or take its URL from a seeded link (`resolve`: a page to fetch and a regex whose first
+group is the route, for a commit SHA). A variant with no plain-GET URL, such as a failed login, an archived or empty
+repository or a pull mirror, is not covered.
 
 ## Local desktop accessibility checks
 

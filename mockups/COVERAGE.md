@@ -10,18 +10,68 @@ cannot render from a plain view-model is listed under "Pages with no mock" with 
 
 <!-- mockgen:start -->
 
-| Page        | Variant      | Shows                                                                | Template          |
-| ----------- | ------------ | -------------------------------------------------------------------- | ----------------- |
-| `home`      | `default`    | signed in with repositories                                          | `home.templ`      |
-| `home`      | `anon`       | signed out                                                           | `home.templ`      |
-| `home`      | `empty`      | no repositories yet                                                  | `home.templ`      |
-| `home`      | `admin-mode` | instance admin acting with elevated rights                           | `home.templ`      |
-| `login`     | `default`    | email and password; the instance cannot send email, so no reset link | `login.templ`     |
-| `login`     | `reset-link` | the instance can send email                                          | `login.templ`     |
-| `login`     | `error`      | wrong password                                                       | `login.templ`     |
-| `login`     | `sso`        | LDAP and SAML enabled                                                | `login.templ`     |
-| `not_found` | `default`    | signed in                                                            | `not_found.templ` |
-| `not_found` | `anon`       | signed out                                                           | `not_found.templ` |
+| Page           | Variant         | Shows                                                                | Template             |
+| -------------- | --------------- | -------------------------------------------------------------------- | -------------------- |
+| `home`         | `default`       | signed in with repositories                                          | `home.templ`         |
+| `home`         | `anon`          | signed out                                                           | `home.templ`         |
+| `home`         | `empty`         | no repositories yet                                                  | `home.templ`         |
+| `home`         | `admin-mode`    | instance admin acting with elevated rights                           | `home.templ`         |
+| `login`        | `default`       | email and password; the instance cannot send email, so no reset link | `login.templ`        |
+| `login`        | `reset-link`    | the instance can send email                                          | `login.templ`        |
+| `login`        | `error`         | wrong password                                                       | `login.templ`        |
+| `login`        | `sso`           | LDAP and SAML enabled                                                | `login.templ`        |
+| `not_found`    | `default`       | signed in                                                            | `not_found.templ`    |
+| `not_found`    | `anon`          | signed out                                                           | `not_found.templ`    |
+| `repo`         | `default`       | writer on a repository with a README                                 | `repo.templ`         |
+| `repo`         | `viewer`        | signed in without write access: no Add file, no edit                 | `repo.templ`         |
+| `repo`         | `anon`          | signed out: Star and Fork lead to sign-in                            | `repo.templ`         |
+| `repo`         | `empty`         | no commits yet                                                       | `repo.templ`         |
+| `repo`         | `empty-viewer`  | no commits yet, without write access                                 | `repo.templ`         |
+| `repo`         | `archived`      | archived banner, read-only                                           | `repo.templ`         |
+| `repo`         | `mirror`        | pull mirror with a sync banner                                       | `repo.templ`         |
+| `repo`         | `mirror-failed` | pull mirror whose last sync failed                                   | `repo.templ`         |
+| `repo`         | `fork`          | a fork shows its source                                              | `repo.templ`         |
+| `tree`         | `default`       | a directory with the file tree open                                  | `tree.templ`         |
+| `tree`         | `empty`         | an empty directory                                                   | `tree.templ`         |
+| `blob`         | `default`       | writer: Edit and Delete                                              | `blob.templ`         |
+| `blob`         | `viewer`        | read-only: no Edit or Delete                                         | `blob.templ`         |
+| `blob`         | `binary`        | a binary file offers only the raw download                           | `blob.templ`         |
+| `blame`        | `default`       | per-line history with runs of one commit                             | `blame.templ`        |
+| `edit_file`    | `default`       | editing an existing file                                             | `edit_file.templ`    |
+| `edit_file`    | `conflict`      | the file changed after the page loaded                               | `edit_file.templ`    |
+| `new_file`     | `default`       | creating a file in the repository root                               | `new_file.templ`     |
+| `new_file`     | `error`         | a refused path with the upload to choose again                       | `new_file.templ`     |
+| `commits`      | `default`       | a middle page, with newer and older links                            | `commits.templ`      |
+| `commits`      | `empty`         | no commits on this ref                                               | `commits.templ`      |
+| `commit`       | `default`       | a commit with checks, an edit, a new file and a binary               | `commit.templ`       |
+| `commit`       | `no-checks`     | no commit statuses                                                   | `commit.templ`       |
+| `refs`         | `default`       | writer: create and delete branches and tags                          | `refs.templ`         |
+| `refs`         | `viewer`        | read-only lists                                                      | `refs.templ`         |
+| `refs`         | `empty`         | no branches or tags                                                  | `refs.templ`         |
+| `contributors` | `default`       | commit counts with a weekly sparkline                                | `contributors.templ` |
+| `contributors` | `empty`         | no commits yet                                                       | `contributors.templ` |
+| `pulse`        | `default`       | 30 days of issues, pull requests and commits                         | `pulse.templ`        |
+| `pulse`        | `empty`         | no activity                                                          | `pulse.templ`        |
+| `dependencies` | `default`       | Go and npm manifests                                                 | `dependencies.templ` |
+| `dependencies` | `empty`         | no manifest found                                                    | `dependencies.templ` |
+| `stargazers`   | `default`       | people who starred                                                   | `stargazers.templ`   |
+| `stargazers`   | `empty`         | no stars yet                                                         | `stargazers.templ`   |
+| `activity`     | `default`       | every kind of event, more pages to come                              | `activity.templ`     |
+| `activity`     | `empty`         | no activity in this scope                                            | `activity.templ`     |
+| `activity`     | `error`         | the feed query failed                                                | `activity.templ`     |
+| `code_search`  | `default`       | results with the match highlighted                                   | `code_search.templ`  |
+| `code_search`  | `empty`         | no results                                                           | `code_search.templ`  |
+| `code_search`  | `no-query`      | before a search                                                      | `code_search.templ`  |
+| `search`       | `default`       | results of every kind                                                | `search.templ`       |
+| `search`       | `repos`         | repositories tab only                                                | `search.templ`       |
+| `search`       | `empty`         | no results                                                           | `search.templ`       |
+| `search`       | `no-query`      | before a search                                                      | `search.templ`       |
+| `search`       | `anon`          | signed out                                                           | `search.templ`       |
+| `topic`        | `default`       | repositories under a topic, sorted by stars                          | `topic.templ`        |
+| `topic`        | `empty`         | no repositories                                                      | `topic.templ`        |
+| `repo_fork`    | `default`       | choose where to fork                                                 | `repo_fork.templ`    |
+| `repo_fork`    | `existing`      | the viewer already has a fork                                        | `repo_fork.templ`    |
+| `repo_fork`    | `no-owner`      | no namespace to fork into                                            | `repo_fork.templ`    |
 
 <!-- mockgen:end -->
 
@@ -55,20 +105,22 @@ cannot render from a plain view-model is listed under "Pages with no mock" with 
 
 Mocks show the happy path. These real states are not drawn:
 
-- **Empty states.** Issue and PR lists with no match ("No open issues match these filters."); repo with no commits
-  ("This repository is empty."), empty directory, no releases, no milestones, no projects, no wiki page ("This page does
-  not exist yet."), empty discussion and PR lists, no checks (the curl example).
+- **Empty states.** Issue and PR lists with no match ("No open issues match these filters."); no releases, no
+  milestones, no projects, no wiki page ("This page does not exist yet."), empty discussion and PR lists, no checks (the
+  curl example). The repository, directory, commit, search and stargazer empty states are generated `--empty` variants.
 - **Unrecognized qualifier notice.** A list search holding a token such as `sort:comments-desc` shows a line under the
   search field saying it was searched as text (`ListFilterBar`'s `Notices`).
-- **Read-only and signed-out views.** No Edit, Delete or Manage controls; "Sign in to reply."; a locked issue the viewer
-  cannot comment on; the `pr.html` merge box's lock line ("Only collaborators with write access…") in place of Merge and
-  Close.
+- **Read-only and signed-out views.** "Sign in to reply."; a locked issue the viewer cannot comment on; the `pr.html`
+  merge box's lock line ("Only collaborators with write access…") in place of Merge and Close.
 - **PR states.** `pr.html` opens in other states through hashes: `#pr=open|draft|merged`,
   `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly` (join with
   `&`).
-- **Other states.** Closed pull requests; archived and mirror repo banners; binary file in `blob`; hidden-issue project
-  card; form validation errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or
-  slash-ended path, or open `#error`); one-time token and backup-code reveals.
+- **Other states.** Closed pull requests; hidden-issue project card; form validation errors (`Alert` destructive) on
+  every create page but `new_file.html` (submit a blank, `.git` or slash-ended path, or open `#error`); one-time token
+  and backup-code reveals.
+- **Repository heatmap.** The overview's commit heatmap is positioned from `time.Now`, so a generated mock would change
+  daily; the fixture leaves it out and the section does not render.
+- **Raw file.** `raw.html` stays hand-written: `/raw/...` serves plain text, not a templ page.
 - **Requests in flight and failed.** Mocks send no requests, so no button shows the busy spinner (`aria-busy`, from
   `static/htmx-busy.js`) and no failed save shows its error toast. The styles are shared: setting `aria-busy="true"` on
   a mock button draws the real busy state.
@@ -101,7 +153,6 @@ Some controls and forms have no behaviour. In particular:
 - **Add forms and saves** in `settings.html`, `org_settings.html`, and `account_settings.html` (Add key, label, rule and
   webhook, Save changes, member Role selects, and Save profile): these do not persist changes; several forms suppress
   submission without feedback.
-- **File deletion** in `blob.html`: confirmation shows feedback but leaves the file displayed.
 - **Disabled in the real app too:** the Teams and org webhooks panels in `org_settings.html`.
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
 - **Auth states:** the sign-in error banner, the email-first signup flow, expired and invalid reset or verify links, and
