@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 | Branch | Worktree | PR title | Effort | Score gain |
@@ -36,13 +36,13 @@ A stale save tells the user to copy their text, reopen the file and start over; 
 
 ## Acceptance criteria
 
-- [ ] A non-overlapping upstream change merges into the textarea, with a notice and the upstream diff beside it
-- [ ] An overlapping change shows conflict blocks, a conflict count and the upstream diff; the user's text is kept
-- [ ] Committing with the merge's markers still present is refused inline; a file containing `=======` still commits
-- [ ] Resubmitting the resolved text commits on the current tip
-- [ ] Table tests for the merge (identical, adjacent edits, overlap, one-sided delete, CRLF, no trailing newline) and
+- [x] A non-overlapping upstream change merges into the textarea, with a notice and the upstream diff beside it
+- [x] An overlapping change shows conflict blocks, a conflict count and the upstream diff; the user's text is kept
+- [x] Committing with the merge's markers still present is refused inline; a file containing `=======` still commits
+- [x] Resubmitting the resolved text commits on the current tip
+- [x] Table tests for the merge (identical, adjacent edits, overlap, one-sided delete, CRLF, no trailing newline) and
       handler tests for the conflict re-render
-- [ ] Docs updated
+- [x] Docs updated
 
 ## Mock updates
 

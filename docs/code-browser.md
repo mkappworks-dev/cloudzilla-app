@@ -136,8 +136,8 @@ commits are (`UserService.CommitAuthor`, so the keep-email-private setting appli
   folders and pruning the ones it empties; a target that holds anything is `ErrPathCollision` (409). An edit that
   changes neither path nor content is `ErrFileUnchanged` (422). An untouched path field is never cleaned, so a pushed
   name like `a\b.txt` isn't renamed by an edit. A refusal re-renders the page at its status with the user's path,
-  content and message kept. The textarea renders `"\n" + content` because the HTML parser drops a newline right after
-  `<textarea>`.
+  content and message kept; a stale save is recovered as below. The textarea renders `"\n" + content` because the HTML
+  parser drops a newline right after `<textarea>`.
 - **Edit preview** (`EditPreview`): the edit page has Edit and Preview changes tabs (`role="tablist"`, arrow keys,
   Home/End). Both panes live in one form, so the textarea, path and message survive a tab switch. Preview posts the form
   with htmx to `POST /{owner}/{repo}/edit-preview/{ref}/*` on every click and swaps in `fragments.EditPreview`:
@@ -148,6 +148,19 @@ commits are (`UserService.CommitAuthor`, so the keep-email-private setting appli
   as JSON `{"error"}` (a toast): 403, 404, 422 for a file the editor can't open or an invalid new path, 413 over 1 MiB.
   It commits nothing, runs no branch protection check and ignores `blob_sha`: staleness is the submit's to report. The
   diff is plain, not syntax-highlighted.
+- **Edit conflict recovery** (`recoverEdit`, `internal/textmerge`): a stale save (`ErrFileChanged`, or the path gone
+  from the branch) re-renders at 409 with the user's text, path and message kept, `blob_sha` moved to the current blob
+  and `upstream_sha` set to the blob the user opened. When the opened and current blobs are both editable text,
+  `textmerge.Merge` runs a line-based three-way merge (base = opened blob, ours = the textarea, theirs = the current
+  file, all with LF breaks) and puts the result in the textarea; `fragments.FileDiff` shows opened blob → current blob
+  above the form. Changes that touch or overlap and differ become `<<<<<<< your changes` / `=======` /
+  `>>>>>>> <branch> (current)` blocks, as in Git, and the notice counts them. A file deleted or moved on the branch
+  shows its message and the user's text with no merge and no diff; a binary, non-UTF-8, oversized or unreadable side
+  skips the merge with a notice. The line-ending rule below still decides what is committed, so a merge never changes a
+  file's convention. `SubmitEditFile` refuses (422, same page, `FieldError` on the contents field, focus moved there by
+  `field-validation.js`) while the text holds either label line, checked before the stale check; the `=======` divider
+  is not a marker, so a file that contains it commits. On that 422 the form's `upstream_sha` brings the upstream diff
+  back. Resubmitting the resolved text with the new `blob_sha` commits on the current tip.
 - **Line endings:** a browser submits textarea line breaks as CRLF. `textareaText` turns them back into LF, or keeps
   CRLF when the original file used CRLF on every line. New file's textarea goes through it too; uploads are committed
   byte for byte. Content over 1 MiB after that is refused with 413, and `MaxEditFileBodyBytes` leaves room for CRLF

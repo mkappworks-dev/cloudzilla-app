@@ -17,6 +17,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/textmerge"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -479,15 +480,34 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	conflict := func() {
-		data.ConflictURL = codeurl.Path(owner, repoName, "blob", ref, path)
-		if file == nil {
-			data.ConflictURL = codeurl.Path(owner, repoName, "tree", ref, parentDir(path))
+		current, ok := h.branchFile(w, r, owner, repoName, ref, path)
+		if !ok {
+			return
 		}
-		refuse(http.StatusConflict, "This file changed on "+ref+" after you opened it, so your changes weren't committed.")
+		msg := "This file changed on " + ref + " after you opened it, so your changes weren't committed."
+		if current == nil {
+			msg = "This file was deleted or moved on " + ref + " after you opened it, so your changes weren't committed."
+		}
+		rec := h.recoverEdit(owner, repoName, ref, path, data.BlobSHA, data.Content, current)
+		data.Content, data.Notice, data.Upstream = rec.Content, rec.Notice, rec.Upstream
+		data.UpstreamSHA = data.BlobSHA
+		if current != nil {
+			data.BlobSHA = current.SHA
+		}
+		refuse(http.StatusConflict, msg)
 	}
 
 	if status, msg := h.webCommitRefusal(r.Context(), repo.ID, ref); status != 0 {
 		refuse(status, msg)
+		return
+	}
+	if file != nil && textmerge.HasMarkers(data.Content, ref) {
+		data.ContentError = markerError(ref)
+		data.UpstreamSHA = r.FormValue("upstream_sha")
+		if data.UpstreamSHA != "" {
+			data.Upstream = h.upstreamDiff(owner, repoName, path, data.UpstreamSHA, file)
+		}
+		refuse(http.StatusUnprocessableEntity, "")
 		return
 	}
 	if file == nil || file.SHA != data.BlobSHA {
@@ -675,12 +695,4 @@ func (h *Handler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		slog.Error("delete file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to delete the file")
 	}
-}
-
-// parentDir is path's folder, "" at the root.
-func parentDir(path string) string {
-	if i := strings.LastIndex(path, "/"); i >= 0 {
-		return path[:i]
-	}
-	return ""
 }

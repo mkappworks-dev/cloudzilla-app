@@ -12,6 +12,8 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -51,7 +53,7 @@ func EditFile(data view.EditFileData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + data.Owner + "/" + data.RepoName)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 14, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 16, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -64,7 +66,7 @@ func EditFile(data view.EditFileData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 14, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 16, Col: 110}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -77,7 +79,7 @@ func EditFile(data view.EditFileData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.Path)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 18, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 20, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -90,7 +92,7 @@ func EditFile(data view.EditFileData) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.Ref)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 21, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 23, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -108,145 +110,225 @@ func EditFile(data view.EditFileData) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 27, Col: 20}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 29, Col: 20}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</p>")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				if data.ConflictURL != "" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"mt-1\">Copy your changes below, then <a href=\"")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var8 string
-					templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(data.ConflictURL)).ResolveURL(ctx)
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 31, Col: 48}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" target=\"_blank\" rel=\"noopener\" class=\"underline font-medium\">open the current version</a> and edit that.</p>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<form id=\"editfile-form\" method=\"POST\" action=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
+			if data.Notice != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div role=\"status\" class=\"text-sm bg-muted/50 border border-border rounded-md px-3 py-2\"><p>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var8 string
+				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(data.Notice)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 34, Col: 21}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</p></div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 			}
-			var templ_7745c5c3_Var9 string
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "edit", data.Ref, data.Path))).ResolveURL(ctx)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 41, Col: 96}
+			if data.Upstream != nil {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<section aria-labelledby=\"editfile-upstream\" class=\"space-y-2\"><h2 id=\"editfile-upstream\" class=\"text-[13px] font-medium\">Changed on <span class=\"font-mono\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var9 string
+				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.Ref)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 40, Col: 51}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span> since you opened this file</h2>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = fragments.FileDiff(*data.Upstream).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</section>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" enctype=\"multipart/form-data\" class=\"space-y-5\"><input type=\"hidden\" name=\"blob_sha\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<form id=\"editfile-form\" method=\"POST\" action=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 string
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.BlobSHA).Resolve(ctx)
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "edit", data.Ref, data.Path))).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 45, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 49, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\"><div class=\"rounded-md border border-border bg-card\" x-data=\"{ tab: 'edit', failed(e) { const r = e.detail.ctx.response; if (!r || r.status >= 400) this.$refs.result.textContent = 'Couldn\\u2019t load the preview.' } }\"><div class=\"flex items-center border-b border-border px-3\"><div role=\"tablist\" aria-label=\"Edit mode\" class=\"flex\" @keydown.arrow-right.prevent=\"$refs[tab === 'edit' ? 'preview' : 'edit'].focus(); $refs[tab === 'edit' ? 'preview' : 'edit'].click()\" @keydown.arrow-left.prevent=\"$refs[tab === 'edit' ? 'preview' : 'edit'].focus(); $refs[tab === 'edit' ? 'preview' : 'edit'].click()\" @keydown.home.prevent=\"$refs.edit.focus(); $refs.edit.click()\" @keydown.end.prevent=\"$refs.preview.focus(); $refs.preview.click()\"><button type=\"button\" role=\"tab\" id=\"ef-tab-edit\" x-ref=\"edit\" aria-selected=\"true\" aria-controls=\"ef-pane-edit\" :aria-selected=\"tab === 'edit'\" :tabindex=\"tab === 'edit' ? 0 : -1\" @click=\"tab = 'edit'\" :class=\"tab === 'edit' ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'\" class=\"px-3 py-2 text-[13px] border-b-2 -mb-px\">Edit</button> <button type=\"button\" role=\"tab\" id=\"ef-tab-preview\" x-ref=\"preview\" aria-selected=\"false\" aria-controls=\"ef-pane-preview\" :aria-selected=\"tab === 'preview'\" :tabindex=\"tab === 'preview' ? 0 : -1\" hx-post=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" enctype=\"multipart/form-data\" data-validate class=\"space-y-5\"><input type=\"hidden\" name=\"blob_sha\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
-			templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(codeurl.Path(data.Owner, data.RepoName, "edit-preview", data.Ref, data.Path)).Resolve(ctx)
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.BlobSHA).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 79, Col: 94}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 54, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" hx-target=\"#ef-preview\" hx-swap=\"innerHTML\" @click=\"tab = 'preview'\" @htmx:after:request=\"failed($event)\" :class=\"tab === 'preview' ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'\" class=\"px-3 py-2 text-[13px] border-b-2 -mb-px\">Preview changes</button></div></div><div id=\"ef-pane-edit\" role=\"tabpanel\" aria-labelledby=\"ef-tab-edit\" x-show=\"tab === 'edit'\" class=\"p-5 space-y-4\"><div><label for=\"ef-path\" class=\"block text-[12px] font-medium mb-1.5\">File path</label> <input id=\"ef-path\" name=\"path\" type=\"text\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\"> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var12 string
-			templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.NewPath).Resolve(ctx)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 96, Col: 28}
+			if data.UpstreamSHA != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<input type=\"hidden\" name=\"upstream_sha\" value=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var12 string
+				templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.UpstreamSHA).Resolve(ctx)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 56, Col: 70}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" required class=\"w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Change the path to rename or move the file.</p></div><div><label for=\"ef-content\" class=\"block text-[12px] font-medium mb-1.5\">Contents</label> <textarea id=\"ef-content\" name=\"content\" rows=\"24\" spellcheck=\"false\" class=\"w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div class=\"rounded-md border border-border bg-card\" x-data=\"{ tab: 'edit', failed(e) { const r = e.detail.ctx.response; if (!r || r.status >= 400) this.$refs.result.textContent = 'Couldn\\u2019t load the preview.' } }\"><div class=\"flex items-center border-b border-border px-3\"><div role=\"tablist\" aria-label=\"Edit mode\" class=\"flex\" @keydown.arrow-right.prevent=\"$refs[tab === 'edit' ? 'preview' : 'edit'].focus(); $refs[tab === 'edit' ? 'preview' : 'edit'].click()\" @keydown.arrow-left.prevent=\"$refs[tab === 'edit' ? 'preview' : 'edit'].focus(); $refs[tab === 'edit' ? 'preview' : 'edit'].click()\" @keydown.home.prevent=\"$refs.edit.focus(); $refs.edit.click()\" @keydown.end.prevent=\"$refs.preview.focus(); $refs.preview.click()\"><button type=\"button\" role=\"tab\" id=\"ef-tab-edit\" x-ref=\"edit\" aria-selected=\"true\" aria-controls=\"ef-pane-edit\" :aria-selected=\"tab === 'edit'\" :tabindex=\"tab === 'edit' ? 0 : -1\" @click=\"tab = 'edit'\" :class=\"tab === 'edit' ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'\" class=\"px-3 py-2 text-[13px] border-b-2 -mb-px\">Edit</button> <button type=\"button\" role=\"tab\" id=\"ef-tab-preview\" x-ref=\"preview\" aria-selected=\"false\" aria-controls=\"ef-pane-preview\" :aria-selected=\"tab === 'preview'\" :tabindex=\"tab === 'preview' ? 0 : -1\" hx-post=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var13 string
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(textareaValue(data.Content))
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templruntime.NewAttributeExpression(codeurl.Path(data.Owner, data.RepoName, "edit-preview", data.Ref, data.Path)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 110, Col: 37}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 91, Col: 94}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</textarea></div></div><div id=\"ef-pane-preview\" role=\"tabpanel\" aria-labelledby=\"ef-tab-preview\" x-show=\"tab === 'preview'\" style=\"display: none\" class=\"p-5\"><div id=\"ef-preview\" x-ref=\"result\" aria-live=\"polite\" class=\"text-sm text-muted-foreground\">Loading preview…</div></div></div><div class=\"rounded-md border border-border bg-card p-5\"><label for=\"ef-message\" class=\"block text-[12px] font-medium mb-1.5\">Commit message</label> <input id=\"ef-message\" name=\"message\" type=\"text\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" hx-target=\"#ef-preview\" hx-swap=\"innerHTML\" @click=\"tab = 'preview'\" @htmx:after:request=\"failed($event)\" :class=\"tab === 'preview' ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'\" class=\"px-3 py-2 text-[13px] border-b-2 -mb-px\">Preview changes</button></div></div><div id=\"ef-pane-edit\" role=\"tabpanel\" aria-labelledby=\"ef-tab-edit\" x-show=\"tab === 'edit'\" class=\"p-5 space-y-4\"><div><label for=\"ef-path\" class=\"block text-[12px] font-medium mb-1.5\">File path</label> <input id=\"ef-path\" name=\"path\" type=\"text\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Message).Resolve(ctx)
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.NewPath).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 124, Col: 26}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 108, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" placeholder=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" required class=\"w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Change the path to rename or move the file.</p></div><div data-field><label for=\"ef-content\" class=\"block text-[12px] font-medium mb-1.5\">Contents</label> ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			{
+				templ_7745c5c3_ElementWriter := templ_7745c5c3_Buffer
+				templ_7745c5c3_Buffer := templ.GetBuffer()
+				var templ_7745c5c3_ElementScripts []templ.ComponentScript
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<textarea id=\"ef-content\" name=\"content\" rows=\"24\" spellcheck=\"false\" class=\"w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y aria-invalid:border-destructive\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.RenderAttributes(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_ElementWriter, "textarea", components.Invalid(templ.Attributes{}, "ef-content", data.ContentError))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templ.RenderScriptItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_ElementScripts...)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteTo(templ_7745c5c3_ElementWriter)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ.ReleaseBuffer(templ_7745c5c3_Buffer)
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, ">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var15 string
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templruntime.NewAttributeExpression("Update " + data.Path).Resolve(ctx)
+			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(textareaValue(data.Content))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 125, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 123, Col: 37}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"flex items-center justify-end gap-2\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</textarea>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.FieldError("ef-content", data.ContentError).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div></div><div id=\"ef-pane-preview\" role=\"tabpanel\" aria-labelledby=\"ef-tab-preview\" x-show=\"tab === 'preview'\" style=\"display: none\" class=\"p-5\"><div id=\"ef-preview\" x-ref=\"result\" aria-live=\"polite\" class=\"text-sm text-muted-foreground\">Loading preview…</div></div></div><div class=\"rounded-md border border-border bg-card p-5\"><label for=\"ef-message\" class=\"block text-[12px] font-medium mb-1.5\">Commit message</label> <input id=\"ef-message\" name=\"message\" type=\"text\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var16 string
-			templ_7745c5c3_Var16, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "blob", data.Ref, data.Path))).ResolveURL(ctx)
+			templ_7745c5c3_Var16, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.Message).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 131, Col: 98}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 138, Col: 26}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" class=\"h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent\">Cancel</a> <button type=\"submit\" class=\"h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium\">Commit changes</button></div></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" placeholder=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var17 string
+			templ_7745c5c3_Var17, templ_7745c5c3_Err = templruntime.NewAttributeExpression("Update " + data.Path).Resolve(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 139, Col: 41}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" class=\"w-full h-9 px-3 text-[13px] bg-background border border-input rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"flex items-center justify-end gap-2\"><a href=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var18 string
+			templ_7745c5c3_Var18, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "blob", data.Ref, data.Path))).ResolveURL(ctx)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/edit_file.templ`, Line: 145, Col: 98}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" class=\"h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent\">Cancel</a> <button type=\"submit\" class=\"h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium\">Commit changes</button></div></form></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

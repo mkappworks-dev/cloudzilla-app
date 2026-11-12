@@ -29,6 +29,35 @@
       </p>
     </section>
 
+    <div data-mock-only class="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+      <span>Mock state:</span>
+      <button type="button" data-ef-state="open" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Just opened</button>
+      <button type="button" data-ef-state="clean" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Clean merge</button>
+      <button type="button" data-ef-state="conflict" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Conflict markers</button>
+      <button type="button" data-ef-state="markers" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Markers refused</button>
+      <button type="button" data-ef-state="deleted" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Deleted upstream</button>
+    </div>
+
+    <div id="ef-alert" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"><p></p></div>
+    <div id="ef-notice" role="status" class="hidden text-sm bg-muted/50 border border-border rounded-md px-3 py-2"><p></p></div>
+    <section id="ef-upstream" aria-labelledby="editfile-upstream" class="hidden space-y-2">
+      <h2 id="editfile-upstream" class="text-[13px] font-medium">Changed on <span class="font-mono">main</span> since you opened this file</h2>
+      <article class="rounded-md border border-border bg-card overflow-hidden">
+        <div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between">
+          <code class="text-sm font-mono text-foreground">internal/router/router.go</code>
+          <div class="text-xs text-muted-foreground ml-4 shrink-0">
+            <span class="text-success">+2</span>
+            <span class="text-destructive ml-1">-1</span>
+          </div>
+        </div>
+        <div class="hl overflow-x-auto">
+          <table class="w-full text-xs font-mono border-collapse">
+            <tbody id="ef-upstream-rows"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
     <form id="editfile-form" class="space-y-5">
       <div class="rounded-md border border-border bg-card">
         <div class="flex items-center border-b border-border px-3">
@@ -43,9 +72,9 @@
           <input id="ef-path" name="path" type="text" value="internal/router/router.go" required class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring" />
           <p class="text-[11px] text-muted-foreground mt-1">Change the path to rename or move the file.</p>
         </div>
-        <div>
+        <div data-field>
           <label for="ef-content" class="block text-[12px] font-medium mb-1.5">Contents</label>
-          <textarea id="ef-content" name="content" rows="24" spellcheck="false" class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y">
+          <textarea id="ef-content" name="content" rows="24" spellcheck="false" class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring resize-y aria-invalid:border-destructive">
 package router
  
 import (
@@ -74,6 +103,7 @@ func New(h *handler.Handlers) http.Handler {
 	return r
 }
 </textarea>
+          <p id="ef-content-error" data-field-error class="hidden mt-1.5 text-xs text-destructive"></p>
         </div>
         </div>
         <div id="ef-pane-preview" role="tabpanel" aria-labelledby="ef-tab-preview" class="hidden p-5">
@@ -177,6 +207,81 @@ func New(h *handler.Handlers) http.Handler {
       to.click();
     });
   });
+})();
+(function () {
+  var content = document.getElementById('ef-content');
+  var base = content.value;
+  var HOME = 'r.Get("/", h.Home)', EXPLORE = '\tr.Get("/explore", h.Explore)';
+  var mine = base.replace(HOME, 'r.Get("/", h.PageHome)');
+  var merged = mine.replace(EXPLORE, '\tr.Get("/explore", h.ExploreRepos)\n\tr.Get("/healthz", h.Healthz)');
+  var conflicted = base.replace(HOME, 'r.Get("/", h.PageHome)').replace(EXPLORE,
+    '<<<<<<< your changes\n\tr.Get("/explore", h.PageExplore)\n=======\n\tr.Get("/explore", h.ExploreRepos)\n\tr.Get("/healthz", h.Healthz)\n>>>>>>> main (current)');
+  var rows = [
+    [12, 12, ' ', '\tr := chi.NewRouter()'], [13, 13, ' ', ''], [14, 14, ' ', '\tr.Get("/", h.Home)'],
+    [15, '', '-', '\tr.Get("/explore", h.Explore)'], ['', 15, '+', '\tr.Get("/explore", h.ExploreRepos)'],
+    ['', 16, '+', '\tr.Get("/healthz", h.Healthz)'], [16, 17, ' ', '']
+  ];
+  var numCls = 'select-none text-muted-foreground text-right py-0.5 w-10 align-top border-r border-border';
+  function diffRows() {
+    var body = document.getElementById('ef-upstream-rows');
+    body.innerHTML = '<tr><td colspan="4" class="bg-primary/10 text-foreground px-4 py-1 select-none">@@ -12,5 +12,6 @@</td></tr>';
+    rows.forEach(function (r) {
+      var tr = document.createElement('tr');
+      if (r[2] === '-') tr.className = 'bg-destructive/6 dark:bg-destructive/10';
+      if (r[2] === '+') tr.className = 'bg-success/6 dark:bg-success/10';
+      var tone = r[2] === '-' ? 'text-destructive' : r[2] === '+' ? 'text-success' : 'text-muted-foreground';
+      tr.innerHTML = '<td class="' + numCls + ' pr-2 pl-4">' + r[0] + '</td><td class="' + numCls + ' pr-2 pl-2">' + r[1] +
+        '</td><td class="select-none px-2 py-0.5 w-4 align-top ' + tone + '">' + (r[2] === ' ' ? '&nbsp;' : r[2]) +
+        '</td><td class="pl-2 pr-4 py-0.5 whitespace-pre align-top"></td>';
+      tr.lastChild.textContent = r[3] || ' ';
+      document.getElementById('ef-upstream-rows').appendChild(tr);
+    });
+  }
+  diffRows();
+  var CHANGED = 'This file changed on main after you opened it, so your changes weren\u2019t committed.';
+  var states = {
+    open: { text: base },
+    clean: { text: merged, alert: CHANGED, upstream: true, notice: 'Changes made on main since you opened this file were merged into your text. Check the diff, then commit.' },
+    conflict: { text: conflicted, alert: CHANGED, upstream: true, notice: '1 conflict needs resolving. Edit each block between the \u201c<<<<<<< your changes\u201d and \u201c>>>>>>> main (current)\u201d lines, delete the marker lines, then commit.' },
+    markers: { text: conflicted, upstream: true, error: 'Remove the \u201c<<<<<<< your changes\u201d and \u201c>>>>>>> main (current)\u201d lines before committing.' },
+    deleted: { text: mine, alert: 'This file was deleted or moved on main after you opened it, so your changes weren\u2019t committed.', notice: 'internal/router/router.go no longer exists on main, so there is nothing to merge your changes into. Copy your text before you leave.' }
+  };
+  function setBox(id, msg) {
+    var box = document.getElementById(id);
+    box.classList.toggle('hidden', !msg);
+    box.firstElementChild.textContent = msg || '';
+  }
+  function apply(name) {
+    var st = states[name] || states.open;
+    content.value = st.text;
+    setBox('ef-alert', st.alert);
+    setBox('ef-notice', st.notice);
+    document.getElementById('ef-upstream').classList.toggle('hidden', !st.upstream);
+    var err = document.getElementById('ef-content-error');
+    err.textContent = st.error || '';
+    err.classList.toggle('hidden', !st.error);
+    if (st.error) {
+      content.setAttribute('aria-invalid', 'true');
+      content.setAttribute('aria-describedby', 'ef-content-error');
+      content.focus();
+    } else {
+      content.removeAttribute('aria-invalid');
+      content.removeAttribute('aria-describedby');
+    }
+    document.querySelectorAll('[data-ef-state]').forEach(function (b) {
+      b.classList.toggle('bg-accent', b.dataset.efState === name);
+    });
+  }
+  document.querySelectorAll('[data-ef-state]').forEach(function (b) {
+    b.addEventListener('click', function () { location.hash = b.dataset.efState; apply(b.dataset.efState); });
+  });
+  content.addEventListener('input', function () {
+    if (content.getAttribute('aria-invalid') !== 'true') return;
+    content.removeAttribute('aria-invalid');
+    content.removeAttribute('aria-describedby');
+    document.getElementById('ef-content-error').classList.add('hidden');
+  });
+  apply(location.hash.slice(1));
 })();
 document.getElementById('editfile-form').addEventListener('submit', function (e) {
   e.preventDefault();
