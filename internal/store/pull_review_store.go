@@ -29,6 +29,7 @@ ON CONFLICT (pull_id, author_id) WHERE author_id <> ghost_user_id() DO UPDATE
                   THEN pull_reviews.body ELSE $6 END,
       submitted_at = CASE WHEN $5 = 'commented' AND pull_reviews.state IN ('approved', 'changes_requested')
                           THEN pull_reviews.submitted_at ELSE NOW() END,
+      dismissed_by_name = '', dismissed_reason = '', dismissed_at = NULL,
       updated_at = NOW()
 RETURNING id, state, body, submitted_at, created_at, updated_at`
 	return s.db.QueryRowContext(ctx, q,
@@ -36,9 +37,29 @@ RETURNING id, state, body, submitted_at, created_at, updated_at`
 	).Scan(&r.ID, &r.State, &r.Body, &r.SubmittedAt, &r.CreatedAt, &r.UpdatedAt)
 }
 
+func scanPullReview(row interface{ Scan(...any) error }) (model.PullReview, error) {
+	var r model.PullReview
+	var submittedAt, dismissedAt sql.NullTime
+	if err := row.Scan(
+		&r.ID, &r.PullID, &r.RepoID, &r.AuthorID, &r.AuthorName,
+		&r.State, &r.Body, &submittedAt,
+		&r.DismissedBy, &r.DismissedReason, &dismissedAt, &r.CreatedAt, &r.UpdatedAt,
+	); err != nil {
+		return r, err
+	}
+	if submittedAt.Valid {
+		r.SubmittedAt = &submittedAt.Time
+	}
+	if dismissedAt.Valid {
+		r.DismissedAt = &dismissedAt.Time
+	}
+	return r, nil
+}
+
 func (s *PullReviewStore) ListByPull(ctx context.Context, pullID int64) ([]model.PullReview, error) {
 	const q = `
-SELECT id, pull_id, repo_id, author_id, author_name, state, body, submitted_at, created_at, updated_at
+SELECT id, pull_id, repo_id, author_id, author_name, state, body, submitted_at,
+       dismissed_by_name, dismissed_reason, dismissed_at, created_at, updated_at
 FROM pull_reviews WHERE pull_id=$1 ORDER BY created_at ASC`
 	rows, err := s.db.QueryContext(ctx, q, pullID)
 	if err != nil {
@@ -47,17 +68,9 @@ FROM pull_reviews WHERE pull_id=$1 ORDER BY created_at ASC`
 	defer rows.Close()
 	var reviews []model.PullReview
 	for rows.Next() {
-		var r model.PullReview
-		var submittedAt sql.NullTime
-		if err := rows.Scan(
-			&r.ID, &r.PullID, &r.RepoID, &r.AuthorID, &r.AuthorName,
-			&r.State, &r.Body, &submittedAt, &r.CreatedAt, &r.UpdatedAt,
-		); err != nil {
+		r, err := scanPullReview(rows)
+		if err != nil {
 			return nil, err
-		}
-		if submittedAt.Valid {
-			t := submittedAt.Time
-			r.SubmittedAt = &t
 		}
 		reviews = append(reviews, r)
 	}
@@ -86,17 +99,9 @@ func (s *PullReviewStore) ListByPullIDs(ctx context.Context, pullIDs []int64) (m
 	defer rows.Close()
 	result := make(map[int64][]model.PullReview)
 	for rows.Next() {
-		var r model.PullReview
-		var submittedAt sql.NullTime
-		if err := rows.Scan(
-			&r.ID, &r.PullID, &r.RepoID, &r.AuthorID, &r.AuthorName,
-			&r.State, &r.Body, &submittedAt, &r.CreatedAt, &r.UpdatedAt,
-		); err != nil {
+		r, err := scanPullReview(rows)
+		if err != nil {
 			return nil, err
-		}
-		if submittedAt.Valid {
-			t := submittedAt.Time
-			r.SubmittedAt = &t
 		}
 		result[r.PullID] = append(result[r.PullID], r)
 	}
@@ -183,4 +188,30 @@ func (s *PullReviewStore) RemovePendingReview(ctx context.Context, pullID, revie
 		`DELETE FROM pull_reviews WHERE pull_id = $1 AND author_id = $2 AND state = 'pending'`,
 		pullID, reviewerID)
 	return err
+}
+
+// GetInPull returns sql.ErrNoRows when reviewID belongs to another pull.
+func (s *PullReviewStore) GetInPull(ctx context.Context, pullID, reviewID int64) (*model.PullReview, error) {
+	r, err := scanPullReview(s.db.QueryRowContext(ctx, `
+SELECT id, pull_id, repo_id, author_id, author_name, state, body, submitted_at,
+       dismissed_by_name, dismissed_reason, dismissed_at, created_at, updated_at
+FROM pull_reviews WHERE id = $1 AND pull_id = $2`, reviewID, pullID))
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+// Dismiss reports false when the review no longer holds a request for changes, so two admins dismissing at once
+// record one dismissal.
+func (s *PullReviewStore) Dismiss(ctx context.Context, pullID, reviewID int64, byName, reason string) (bool, error) {
+	res, err := s.db.ExecContext(ctx, `
+UPDATE pull_reviews
+SET state = 'dismissed', dismissed_by_name = $3, dismissed_reason = $4, dismissed_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND pull_id = $2 AND state = 'changes_requested'`, reviewID, pullID, byName, reason)
+	if err != nil {
+		return false, fmt.Errorf("dismiss pull review: %w", err)
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
 }

@@ -119,10 +119,34 @@ compares as its name plus `/`, so `docs.md` comes before `docs/`. go-git refuses
 | Review required   | approvals are below the branch protection rule's count | Enable auto-merge               |
 | Waiting on checks | a required check has not reported success yet          | Enable auto-merge               |
 | Ready             | otherwise                                              | Merge split button              |
+| Waiting           | Ready, for a viewer without write access               | none (lock line)                |
 
 Auto-merge is offered only in "Review required" and "Waiting on checks": failing required checks need a push or a re-run
 first. Once armed, any non-draft state shows who armed it and the strategy, with Disable. With no branch protection rule
 there are no required reviews or checks, so the box goes from Ready straight to Merge.
+
+**Viewers without write access** see "Ready, waiting for a maintainer" in a neutral header where a writer sees "Ready to
+merge", and a lock line in place of the buttons. Their other states read the same, since those say what blocks the
+merge.
+
+**Conflicts:** the box lists the commands for merging base into head locally (`git fetch`, `git switch`, `git merge`,
+`git push`) and a Check again button. There is no in-browser conflict editor.
+
+**Update branch:** a writer sees it beside Merge whenever head is behind base without conflicts
+(`MergeabilityBoxData.CanUpdateBranch`). `POST …/pulls/{n}/update-branch` calls `CodeService.UpdatePullBranch`, which
+merges base into head as a two-parent commit by the caller (`Merge branch 'main' into 'feature'`, parents head then
+base) through `gitref.Move`, so a push that lands meanwhile gets `409`. A conflict gets `422` and leaves head alone;
+head already containing base gets `409` (`ErrBranchUpToDate`). Like applied suggestions, the commit runs the push side
+effects (`PushService.AfterWebCommit`) and needs `repo:write` on a token.
+
+**Dismissing a review:** "Changes requested" lists each blocking reviewer, and a repo admin or owner (`CanManage`) gets
+Dismiss review beside each. A writer cannot, since writers can merge and would clear the check on themselves. The
+dialog's reason is required (at most 500 characters). `PullReviewService.Dismiss` turns a `changes_requested` review
+into `dismissed` (migration 121, with `dismissed_by_name`, `dismissed_reason` and `dismissed_at`), which neither
+`HasChangesRequested` nor `CountApprovals` counts, so the merge unblocks and auto-merge gets a turn. The timeline keeps
+the reviewer's words and adds "Dismissed by …: reason", and the action is audited as `pull.review.dismiss` (target the
+pull request, metadata `review_id`, `reviewer`, `reason`). Only a standing request for changes can be dismissed;
+approvals can't. When the reviewer submits again, the new verdict replaces the dismissal.
 
 **Confirm step:** the Merge button opens a dialog showing the strategy and, for `merge` and `squash`, an editable commit
 title and message. They default to `Merge branch 'head' into 'base'` and `Squash merge branch 'head' into 'base'`
@@ -229,8 +253,9 @@ When `is_draft = true`:
 - A yellow banner is shown: "This pull request is still a work in progress."
 - All merge strategy buttons are hidden
 - The review prompt and "Review changes" dialog are hidden
-- A muted "Draft" merge box and the banner both offer "Ready for review" (calls `PATCH` with `{"is_draft":"false"}`)
-- The "Close PR" button remains available
+- The muted "Draft" merge box offers "Ready for review" (calls `PATCH` with `{"is_draft":"false"}`); the banner only
+  explains
+- The "Close pull request" button stays in the merge box, the one place that closes a PR
 
 An open, non-draft PR gets "Convert to draft" at the bottom of the sidebar, for writers.
 

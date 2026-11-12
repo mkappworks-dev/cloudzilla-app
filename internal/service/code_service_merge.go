@@ -453,6 +453,76 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, h)
 }
 
+// ErrBranchUpToDate marks an update-branch request when base has nothing head lacks.
+var ErrBranchUpToDate = errors.New("this branch already has everything on the base branch")
+
+// DefaultUpdateBranchMessage is the commit message of a base-into-head merge.
+func DefaultUpdateBranchMessage(base, head string) string {
+	return "Merge branch '" + base + "' into '" + head + "'"
+}
+
+// UpdatePullBranch merges base into head, at headHash, as a new commit on head. A conflict leaves head untouched.
+func (s *CodeService) UpdatePullBranch(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor) (RefUpdate, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return RefUpdate{}, err
+	}
+	baseCommit, _, err := resolveRef(repo, base)
+	if err != nil {
+		return RefUpdate{}, err
+	}
+	headCommit, err := resolveHead(repo, head, headHash)
+	if err != nil {
+		return RefUpdate{}, err
+	}
+	if baseIsAncestor, err := isAncestor(repo, baseCommit, headCommit); err != nil {
+		return RefUpdate{}, err
+	} else if baseIsAncestor {
+		return RefUpdate{}, ErrBranchUpToDate
+	}
+
+	var treeHash plumbing.Hash
+	if headIsAncestor, err := isAncestor(repo, headCommit, baseCommit); err != nil {
+		return RefUpdate{}, err
+	} else if headIsAncestor {
+		treeHash = baseCommit.TreeHash
+	} else {
+		mb, err := findMergeBase(repo, baseCommit, headCommit)
+		if err != nil {
+			return RefUpdate{}, fmt.Errorf("cannot find merge base: %w", err)
+		}
+		merged, ok, err := mergeTreesNoConflict(repo, mb, headCommit, baseCommit)
+		if err != nil {
+			return RefUpdate{}, err
+		}
+		if !ok {
+			return RefUpdate{}, errors.New("cannot update: conflicting changes in both branches")
+		}
+		treeHash = merged
+	}
+
+	sig := author.signature(time.Now())
+	commit := &object.Commit{
+		Author:       sig,
+		Committer:    sig,
+		Message:      DefaultUpdateBranchMessage(base, head),
+		TreeHash:     treeHash,
+		ParentHashes: []plumbing.Hash{headCommit.Hash, baseCommit.Hash},
+	}
+	obj := repo.Storer.NewEncodedObject()
+	if err := commit.Encode(obj); err != nil {
+		return RefUpdate{}, err
+	}
+	newHash, err := repo.Storer.SetEncodedObject(obj)
+	if err != nil {
+		return RefUpdate{}, err
+	}
+	if err := gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(head), headCommit.Hash, newHash); err != nil {
+		return RefUpdate{}, err
+	}
+	return RefUpdate{Branch: head, Old: headCommit.Hash, New: newHash}, nil
+}
+
 // SquashMergePullRequest creates a single squash commit on base incorporating all
 // head changes, up to headHash.
 func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, headHash plumbing.Hash, author GitAuthor, message string) error {

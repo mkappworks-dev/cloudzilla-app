@@ -44,17 +44,6 @@ templ pullDetailBody(data view.PullDetailData) {
 			if data.Pull.State == model.PRStateOpen && data.Pull.IsDraft {
 				<div role="status" class="mb-6 px-4 py-3 rounded-md border border-warning/40 bg-warning/10 flex items-center justify-between gap-4">
 					<p class="text-sm text-warning">This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
-					if data.CanWrite {
-						@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
-							"hx-patch": apiBase,
-							"hx-vals":  `{"is_draft":"false"}`,
-							"hx-swap":  "none",
-							"type":     "button",
-							"hx-on::after:request": templ.JSUnsafeFuncCall("if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Marked ready for review'}));location.reload();}"),
-						}) {
-							Ready for review
-						}
-					}
 				</div>
 			}
 
@@ -159,14 +148,6 @@ templ pullDetailBody(data view.PullDetailData) {
 					@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
 					@components.MarkdownEditor("pr-comment-body", "body", "", "Leave a comment — Markdown supported", 5)
 					@components.CommentEditorActions() {
-						if data.CanWrite && data.Pull.State == model.PRStateOpen {
-							@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
-								"type":    "button",
-								"onclick": templ.JSUnsafeFuncCall("document.getElementById('close-pull-dialog').showModal()"),
-							}) {
-								Close pull request
-							}
-						}
 						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 							Comment
 						}
@@ -435,6 +416,12 @@ templ reviewTimelineEntry(rev model.PullReview) {
 			if rev.Body != "" {
 				<div class="mt-1.5 rounded-md border border-border bg-card px-4 py-3 text-sm text-foreground/85">{ rev.Body }</div>
 			}
+			if rev.State == model.PRReviewDismissed {
+				<p class="mt-1.5 text-[12px] text-muted-foreground">
+					Dismissed by <a href={ templ.SafeURL("/" + rev.DismissedBy) } class="font-medium text-foreground hover:underline">{ rev.DismissedBy }</a>:
+					<span class="text-foreground">{ rev.DismissedReason }</span>
+				</p>
+			}
 		</div>
 	}
 }
@@ -452,6 +439,10 @@ templ reviewStateBadge(state string) {
 	case "pending":
 		@components.Badge(components.BadgeSecondary) {
 			Awaiting review
+		}
+	case "dismissed":
+		@components.Badge(components.BadgeSecondary) {
+			Dismissed
 		}
 	default:
 		@components.Badge(components.BadgeSecondary) {

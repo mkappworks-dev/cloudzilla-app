@@ -36,6 +36,7 @@ var AuditSort = SortSpec{{Key: "time", DescFirst: true}, {Key: "actor"}, {Key: "
 const (
 	AuditTargetOrg  = "org"
 	AuditTargetRepo = "repo"
+	AuditTargetPull = "pull"
 	AuditTargetUser = "user"
 )
 
@@ -54,6 +55,7 @@ const (
 	AuditActionRepoTransferRequest = "repo.transfer.request"
 	AuditActionRepoTransferCancel  = "repo.transfer.cancel"
 	AuditActionRepoTransferDecline = "repo.transfer.decline"
+	AuditActionPullReviewDismiss   = "pull.review.dismiss"
 	AuditActionOrgProfileUpdate    = "org.profile.update"
 	AuditActionOrgDefaultsUpdate   = "org.defaults.update"
 	AuditActionOrgDelete           = "org.delete"

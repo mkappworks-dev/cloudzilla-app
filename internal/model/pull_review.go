@@ -10,6 +10,7 @@ const (
 	PRReviewChangesRequested PRReviewState = "changes_requested"
 	PRReviewCommented        PRReviewState = "commented"
 	PRReviewPending          PRReviewState = "pending"
+	PRReviewDismissed        PRReviewState = "dismissed"
 )
 
 // PullReview represents a reviewer's submitted review on a pull request.
@@ -22,6 +23,10 @@ type PullReview struct {
 	State       PRReviewState `db:"state"        json:"state"`
 	Body        string        `db:"body"         json:"body"`
 	SubmittedAt *time.Time    `db:"submitted_at" json:"submitted_at,omitempty"`
-	CreatedAt   time.Time     `db:"created_at"   json:"created_at"`
-	UpdatedAt   time.Time     `db:"updated_at"   json:"updated_at"`
+	// Set only when State is dismissed.
+	DismissedBy     string     `db:"dismissed_by_name" json:"dismissed_by,omitempty"`
+	DismissedReason string     `db:"dismissed_reason"  json:"dismissed_reason,omitempty"`
+	DismissedAt     *time.Time `db:"dismissed_at"      json:"dismissed_at,omitempty"`
+	CreatedAt       time.Time  `db:"created_at"   json:"created_at"`
+	UpdatedAt       time.Time  `db:"updated_at"   json:"updated_at"`
 }

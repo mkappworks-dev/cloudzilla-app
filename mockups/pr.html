@@ -99,7 +99,6 @@ git checkout daisy/oauth-scopes</pre>
       <div class="min-w-0">
         <div data-when="pr=draft" role="status" class="mb-6 px-4 py-3 rounded-md border border-warning/40 bg-warning/10 flex items-center justify-between gap-4">
           <p class="text-sm text-warning">This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
-          <button type="button" data-ready data-when="viewer=reviewer,author" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-success text-success-foreground hover:bg-success/90 h-8 px-3 text-[13px]">Ready for review</button>
         </div>
 
         <article id="pr-description" class="rounded-md border border-border bg-card overflow-hidden mb-6" aria-label="Pull request description">
@@ -278,7 +277,7 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
             Review changes
           </button>
         </div>
-        <section aria-label="Mergeability" data-when="pr=open merge=ready" class="border border-border rounded-md">
+        <section aria-label="Mergeability" data-when="pr=open merge=ready viewer=reviewer,author" class="border border-border rounded-md">
           <header class="px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3 bg-success/10">
             <span class="h-8 w-8 rounded-full grid place-items-center shrink-0 bg-success text-success-foreground">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -289,7 +288,7 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
             </div>
           </header>
           <ul class="divide-y divide-border text-[13px]">
-            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 0 behind the base branch</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 2 behind the base branch</span></li>
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 6 required checks passed</span></li>
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 1 required review approved</span></li>
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">This branch has no conflicts with <span class="font-mono">main</span></span></li>
@@ -333,9 +332,27 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
           </button>
               </div>
             </div>
+            <button type="button" class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Update branch</button>
             <button type="button" onclick="document.getElementById('close-pull-dialog').showModal()" class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
           </footer>
-          <footer data-when="viewer=readonly" class="px-5 py-4 border-t border-border">
+          </section>
+        <section aria-label="Mergeability" data-when="pr=open merge=ready viewer=readonly" class="border border-border rounded-md">
+          <header class="px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3 bg-muted/40">
+            <span class="h-8 w-8 rounded-full grid place-items-center shrink-0 bg-muted text-muted-foreground">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+            </span>
+            <div class="min-w-0">
+              <h3 class="text-[14px] font-semibold text-muted-foreground">Ready, waiting for a maintainer</h3>
+              <p class="text-[12px] text-muted-foreground mt-0.5">Nothing blocks this pull request. Someone with write access can merge it.</p>
+            </div>
+          </header>
+          <ul class="divide-y divide-border text-[13px]">
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 2 behind the base branch</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 6 required checks passed</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 1 required review approved</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">This branch has no conflicts with <span class="font-mono">main</span></span></li>
+          </ul>
+          <footer class="px-5 py-4 border-t border-border">
             <p class="text-[12px] text-muted-foreground inline-flex items-center gap-1.5">
               <svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
               Only collaborators with write access can merge or close this pull request.
@@ -514,7 +531,7 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">3 commits ahead, 0 behind the base branch</span></li>
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 6 required checks passed</span></li>
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-warning shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="flex-1">0 of 1 required review approved</span></li>
-            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-warning shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="flex-1">A reviewer requested changes</span></li>
+            <li class="px-5 py-3 flex items-center gap-3"><svg class="text-warning shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="flex-1">Changes requested by <a href="#" class="font-medium hover:underline">ada-silva</a></span><button type="button" data-when="manage=yes" onclick="document.getElementById('dismiss-review-dialog').showModal()" class="h-7 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent">Dismiss review</button></li>
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">This branch has no conflicts with <span class="font-mono">main</span></span></li>
           </ul>
           <footer data-when="viewer=reviewer,author" class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
@@ -543,6 +560,20 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="flex-1">All 1 required review approved</span></li>
             <li class="px-5 py-3 flex items-center gap-3"><svg class="text-warning shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="flex-1">This branch has conflicts with <span class="font-mono">main</span></span></li>
           </ul>
+          <div class="px-5 py-4 border-t border-border flex flex-col gap-2.5">
+            <h4 class="text-[13px] font-medium">Resolve the conflicts on your machine</h4>
+            <p class="text-[12px] text-muted-foreground">Merge <span class="font-mono text-foreground">main</span> into <span class="font-mono text-foreground">daisy/oauth-scopes</span> locally, fix the conflicted files and push. If this page doesn't update, check again.</p>
+            <pre class="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-[12px] font-mono leading-relaxed overflow-x-auto"><code>git fetch origin
+git switch daisy/oauth-scopes
+git merge origin/main
+# fix the conflicted files, then
+git add &lt;files&gt;
+git commit
+git push origin daisy/oauth-scopes</code></pre>
+            <div>
+              <button type="button" onclick="location.reload()" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Check again</button>
+            </div>
+          </div>
           <footer data-when="viewer=reviewer,author" class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
             <button type="button" onclick="document.getElementById('close-pull-dialog').showModal()" class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
           </footer>
@@ -635,7 +666,6 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
 </div>
           <div class="px-3 py-2 border-t border-border bg-muted/40 flex items-center gap-2">
             <p class="text-[11px] text-muted-foreground font-mono flex-1">Markdown supported · drop files to attach</p>
-            <button type="button" onclick="document.getElementById('close-pull-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-9 px-4 text-sm">Close pull request</button>
             <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Comment</button>
           </div>
         </form>
@@ -991,6 +1021,25 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
   </div>
 </dialog>
 
+<dialog id="dismiss-review-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="dismiss-review-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="dismiss-review-dialog-title" class="text-base font-semibold leading-tight">Dismiss review</h2>
+    <p class="text-[13px] text-muted-foreground leading-snug">Clears the request for changes from <strong class="text-foreground">ada-silva</strong> so it no longer blocks the merge. Your name and reason show on the review and in the audit log.</p>
+  </div>
+  <form id="dismiss-review-form">
+    <div class="p-5 text-sm">
+      <label for="dismiss-review-reason" class="text-[12px] font-medium">Reason</label>
+      <textarea id="dismiss-review-reason" name="reason" rows="3" required maxlength="500" placeholder="Why is this review no longer needed?" class="mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-[13px] resize-none focus:outline-hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring placeholder:text-muted-foreground"></textarea>
+    </div>
+  </form>
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+    <form method="dialog" class="contents">
+      <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    </form>
+    <button type="submit" form="dismiss-review-form" class="inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">Dismiss review</button>
+  </div>
+</dialog>
+
 <dialog id="merge-confirm-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs open:animate-in" aria-labelledby="merge-confirm-dialog-title">
   <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
     <h2 id="merge-confirm-dialog-title" class="text-base font-semibold leading-tight">Confirm merge</h2>
@@ -1171,12 +1220,17 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
     });
   });
 
+  document.getElementById('dismiss-review-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    document.getElementById('dismiss-review-dialog').close();
+  });
+
   document.getElementById('review-form').addEventListener('submit', function (e) {
     e.preventDefault();
     document.getElementById('review-dialog').close();
   });
 
-  var state = { pr: 'open', merge: 'ready', viewer: 'reviewer' };
+  var state = { pr: 'open', merge: 'ready', viewer: 'reviewer', manage: 'no' };
   function readHash() {
     location.hash.slice(1).split('&').forEach(function (pair) {
       var kv = pair.split('=');

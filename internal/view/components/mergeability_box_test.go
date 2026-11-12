@@ -143,8 +143,8 @@ func TestMergeabilityBox_ReaderSeesNoActions(t *testing.T) {
 			t.Errorf("expected no %q for a reader, got: %s", unwanted, out)
 		}
 	}
-	if !strings.Contains(out, "Ready to merge") {
-		t.Errorf("expected the mergeability status for a reader, got: %s", out)
+	if !strings.Contains(out, "Ready, waiting for a maintainer") || strings.Contains(out, "Ready to merge") {
+		t.Errorf("expected the neutral waiting status for a reader, got: %s", out)
 	}
 	if !strings.Contains(out, "Only collaborators with write access can merge or close this pull request.") {
 		t.Errorf("expected the read-only line, got: %s", out)

@@ -43,9 +43,12 @@ Mocks show the happy path. These real states are not drawn:
   cannot comment on; the `pr.html` merge box's lock line ("Only collaborators with write access…") in place of Merge and
   Close.
 - **PR states.** `pr.html` opens in other states through hashes: `#pr=open|draft|merged`,
-  `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly` (join with
-  `&`). `pr_files.html#merged=unavailable` is a merged PR whose diff was never recorded ("Diff unavailable after
-  merge."); the Commits tab says the same for its commits and has no mock.
+  `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly`, `#manage=yes`
+  (a repo admin or owner, who gets Dismiss review on a blocking request for changes; join with `&`). The `conflicts` box
+  carries the command-line steps, `ready` offers Update branch, and `viewer=readonly` on `ready` reads "Ready, waiting
+  for a maintainer". A dismissed review's timeline entry ("Dismissed by …: reason") has no mock.
+  `pr_files.html#merged=unavailable` is a merged PR whose diff was never recorded ("Diff unavailable after merge."); the
+  Commits tab says the same for its commits and has no mock.
 - **Other states.** Closed pull requests; archived and mirror repo banners; binary file in `blob`; hidden-issue project
   card; form validation errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or
   slash-ended path, or open `#error`); inline field errors on `login.html`, `register.html`, `new_repo.html` and

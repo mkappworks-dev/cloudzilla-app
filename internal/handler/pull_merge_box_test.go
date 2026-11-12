@@ -32,7 +32,11 @@ func TestPullDetail_MergeBoxActionsNeedWriteAccess(t *testing.T) {
 				t.Fatalf("want 200, got %d", rr.Code)
 			}
 			body := rr.Body.String()
-			assertContains(t, body, "Ready to merge")
+			if tc.wantBox {
+				assertContains(t, body, "Ready to merge")
+			} else {
+				assertContains(t, body, "Ready, waiting for a maintainer")
+			}
 			for _, action := range []string{"merge_strategy", closeDialog} {
 				if got := strings.Contains(body, action); got != tc.wantBox {
 					t.Errorf("%q on the page = %v, want %v", action, got, tc.wantBox)

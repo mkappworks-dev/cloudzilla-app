@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -105,6 +106,7 @@ func TestEventHandlerAttributes_SurviveSanitization(t *testing.T) {
 			"pull close dialog",
 			render(t, pages.PullDetail(view.PullDetailData{
 				BasePage: signedIn, Owner: "alice", RepoName: "r", CanWrite: true, Pull: model.PullRequest{State: model.PRStateOpen},
+				Mergeability: components.MergeabilityBoxData{CanWrite: true},
 			})),
 			"document.getElementById('close-pull-dialog').showModal()",
 		},
