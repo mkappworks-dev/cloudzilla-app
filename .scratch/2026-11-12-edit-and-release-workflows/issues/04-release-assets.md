@@ -17,7 +17,7 @@ A release can't carry a file, though the pages describe releases as packaging do
 
 ## Scope
 
-- Migration `122_create_release_assets.sql`: `release_assets` (id, release_id FK `ON DELETE CASCADE`, repo_id, name,
+- Migration `123_create_release_assets.sql`: `release_assets` (id, release_id FK `ON DELETE CASCADE`, repo_id, name,
   size, sha256, storage_key, uploader_id, created_at; unique `(release_id, name)`). Model, store, `ReleaseAssetService`,
   wired into `Stores` / `Services`.
 - `POST /api/repos/{owner}/{repo}/releases/{id}/assets` (multipart field `file`, one per request, streamed to the
@@ -38,7 +38,7 @@ A release can't carry a file, though the pages describe releases as packaging do
 
 ## Files
 
-- `internal/db/migrations/122_create_release_assets.sql`, `internal/model/`, `internal/store/`, `internal/service/`
+- `internal/db/migrations/123_create_release_assets.sql`, `internal/model/`, `internal/store/`, `internal/service/`
 - `internal/handler/release_handler.go`, `release_page_handler.go`, `internal/router/router.go`, `internal/middleware/setup.go`
 - `internal/view/pages/release_detail.templ`, `internal/view/viewmodels_*.go`
 - `docs/storage.md`, `docs/api-reference.md`, `docs/configuration.md`
