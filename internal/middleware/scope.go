@@ -147,6 +147,8 @@ func repoAPIScopes(rest []string, read bool) []string {
 		return issueScopes
 	case sub[0] == "pulls" && len(sub) == 5 && sub[2] == "line_comments" && sub[4] == "apply":
 		return writeScopes // applying a suggestion commits to the head branch
+	case sub[0] == "pulls" && len(sub) == 3 && sub[2] == "update-branch":
+		return writeScopes // merges base into the head branch
 	case sub[0] == "pulls":
 		return pullScopes
 	}

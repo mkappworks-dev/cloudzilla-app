@@ -111,11 +111,22 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		HeadBranch: pull.HeadBranch,
 		ChecksURL:  fmt.Sprintf("/%s/%s/pulls/%d/checks", owner, repoName, pull.Number),
 		CanWrite:   canWrite2,
+		CanManage:  canManage2,
 		Draft:      pull.IsDraft,
 
 		ChangesRequested:  !canMerge,
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
 		AutoMergeStrategy: pull.AutoMergeStrategy,
+	}
+	if !canMerge {
+		blockers, err := h.Services.PullReview.ChangesRequestedBy(r.Context(), pull.ID)
+		if err != nil {
+			slog.Warn("pull detail: listing requests for changes failed; the merge box won't name them",
+				"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+		}
+		for _, b := range blockers {
+			mergeabilityBox.Blockers = append(mergeabilityBox.Blockers, components.BlockingReview{ID: b.ID, Reviewer: b.AuthorName})
+		}
 	}
 	if pull.AutoMergeEnabled && pull.AutoMergeBy != nil {
 		if armer, err := h.Services.User.GetByID(r.Context(), *pull.AutoMergeBy); err == nil {
@@ -137,6 +148,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		mergeabilityBox.CanThreeWayMerge = !mg.HasConflicts && mg.Ahead > 0
 		mergeabilityBox.CanSquash = !mg.HasConflicts && mg.Ahead > 0
 	}
+	mergeabilityBox.CanUpdateBranch = canWrite2 && !repo.ContentReadOnly() && !pull.IsDraft && !mergeabilityBox.Unavailable &&
+		!mergeabilityBox.HasConflicts && mergeabilityBox.Ahead > 0 && mergeabilityBox.Behind > 0
 	if repo.ContentReadOnly() {
 		mergeabilityBox.CanFastForward, mergeabilityBox.CanThreeWayMerge, mergeabilityBox.CanSquash = false, false, false
 	}

@@ -402,7 +402,7 @@ Open routes:
 | `repo:read`    | `GET`/`HEAD`; git clone/fetch                                                                                                                                                                             |
 | `repo:write`   | Everything, including creating repos, merging, applying suggestions, and git push                                                                                                                         |
 | `issues:write` | Reads, plus writes under `.../issues/**`                                                                                                                                                                  |
-| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, and applying a suggestion                                                                                                  |
+| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, applying a suggestion, and updating the branch                                                                             |
 | `repo:admin`   | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else |
 
 The same allow-list holds personal access tokens created with scopes, on `authMW` and `optAuthMW`; git's Basic-auth
@@ -410,9 +410,9 @@ path, which neither sees, checks the scopes itself (`middleware.PATAllowsGit`): 
 `repo:write`.
 
 Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks
-`claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require
-the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the
-other's comments.
+`claims.HasScope(repo:write)` itself; applying a suggestion and updating a pull request's branch are refused by path.
+`UpdateComment`/`DeleteComment` require the comment to belong to the issue or pull request in the URL, so neither
+`issues:write` nor `pulls:write` reaches the other's comments.
 
 Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's
 email, shown on their own profile, away from apps); `/settings/*` form posts (including connecting or disconnecting

@@ -373,6 +373,64 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, pr)
 }
 
+// UpdatePullBranch merges the base branch into the head branch, so a PR that fell behind can pick up what landed on base.
+func (h *Handler) UpdatePullBranch(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull request number")
+		return
+	}
+	repo, ok := h.contentWritableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "pull request not found")
+		return
+	}
+	if pr.State != model.PRStateOpen {
+		writeError(w, http.StatusUnprocessableEntity, "only an open pull request can be updated")
+		return
+	}
+	headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
+	if err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "the head branch no longer exists")
+		return
+	}
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	upd, err := h.Services.Code.UpdatePullBranch(owner, repoName, pr.BaseBranch, pr.HeadBranch, headCommit.Hash, author)
+	switch {
+	case errors.Is(err, service.ErrRefMoved):
+		writeError(w, http.StatusConflict, branchMovedMsg)
+		return
+	case errors.Is(err, service.ErrBranchUpToDate):
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	case err != nil:
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	h.Services.Push.AfterWebCommit(repo, webCommitActor(claims), upd)
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"head_sha": upd.New.String()})
+}
+
 // recordPullEvent appends a timeline event best-effort: a failed write is logged
 // with request context but never fails the action that triggered it.
 func (h *Handler) recordPullEvent(ctx context.Context, owner, repoName string, pr *model.PullRequest, actorID int64, actorName, eventType, detail string) {

@@ -428,6 +428,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 			r.With(authMW).Patch("/{number}", h.UpdatePull)
 			r.Get("/{number}/reviews", h.ListReviews)
 			r.With(authMW).Post("/{number}/reviews", h.SubmitReview)
+			r.With(authMW).Post("/{number}/reviews/{reviewID}/dismiss", h.DismissReview)
+			r.With(authMW).Post("/{number}/update-branch", h.UpdatePullBranch)
 			r.With(authMW).Post("/{number}/reviewers", h.AddPullReviewer)
 			r.With(authMW).Delete("/{number}/reviewers", h.RemovePullReviewer)
 			r.With(authMW).Post("/{number}/comments", h.CreatePullComment)

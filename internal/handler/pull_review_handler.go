@@ -3,12 +3,14 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 func (h *Handler) ListReviews(w http.ResponseWriter, r *http.Request) {
@@ -98,4 +100,71 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, review)
+}
+
+// DismissReview clears a reviewer's request for changes. Repo admins and owners only: writers can merge, so they must
+// not be able to remove the check on themselves.
+func (h *Handler) DismissReview(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+	reviewID, err := strconv.ParseInt(chi.URLParam(r, "reviewID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid review id")
+		return
+	}
+	if _, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
+		return
+	}
+
+	var reason string
+	if isFormEncoded(r) || r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
+		reason = r.FormValue("reason")
+	} else {
+		var req struct {
+			Reason string `json:"reason"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		reason = req.Reason
+	}
+
+	review, err := h.Services.PullReview.Dismiss(r.Context(), owner, repoName, number, reviewID, claims.Username, reason)
+	switch {
+	case errors.Is(err, service.ErrReviewNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	case errors.Is(err, service.ErrReviewNotDismissible):
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	case err != nil:
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionPullReviewDismiss,
+		model.AuditTargetPull, review.PullID, owner+"/"+repoName+"#"+strconv.Itoa(number),
+		map[string]any{"review_id": review.ID, "reviewer": review.AuthorName, "reason": review.DismissedReason})
+	go h.tryAutoMerge(owner, repoName, review.PullID)
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	writeJSON(w, http.StatusOK, review)
 }

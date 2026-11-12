@@ -4,9 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
+
+// BlockingReview is a standing request for changes that holds the merge back.
+type BlockingReview struct {
+	ID       int64
+	Reviewer string
+}
 
 type MergeabilityBoxData struct {
 	PatchURL string
@@ -39,6 +46,12 @@ type MergeabilityBoxData struct {
 	ChangesRequested bool
 	ChecksURL        string
 
+	// Blockers names who requested changes; CanManage lets the viewer dismiss them (repo admins and owners).
+	Blockers  []BlockingReview
+	CanManage bool
+	// CanUpdateBranch offers merging base into head: the viewer can write and base has commits head lacks.
+	CanUpdateBranch bool
+
 	AutoMergeEnabled  bool
 	AutoMergeStrategy string
 	// AutoMergeByName is empty when the arming user is unknown or deleted.
@@ -58,6 +71,7 @@ const (
 	mergeNeedsReview
 	mergeChecksPending
 	mergeDraft
+	mergeWaitingMaintainer
 )
 
 func mergeStateOf(d MergeabilityBoxData) mergeState {
@@ -78,6 +92,8 @@ func mergeStateOf(d MergeabilityBoxData) mergeState {
 		return mergeNeedsReview
 	case d.RequiredChecks > d.PassingChecks:
 		return mergeChecksPending
+	case d.Mergeable && !d.CanWrite:
+		return mergeWaitingMaintainer
 	case d.Mergeable:
 		return mergeReady
 	default:
@@ -115,10 +131,19 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 						<span class="flex-1">{ reviewsDescription(d.ApprovedReviews, d.RequiredReviews) }</span>
 					</li>
 				}
-				if d.ChangesRequested {
+				if d.ChangesRequested && len(d.Blockers) == 0 {
 					<li class="px-5 py-3 flex items-center gap-3">
 						@mergeRowIcon(false)
 						<span class="flex-1">A reviewer requested changes</span>
+					</li>
+				}
+				for _, b := range d.Blockers {
+					<li class="px-5 py-3 flex items-center gap-3">
+						@mergeRowIcon(false)
+						<span class="flex-1">Changes requested by <a href={ templ.SafeURL("/" + b.Reviewer) } class="font-medium hover:underline">{ b.Reviewer }</a></span>
+						if d.CanManage {
+							<button type="button" onclick="document.getElementById(this.dataset.dialog).showModal()" data-dialog={ dismissDialogID(b) } class="h-7 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent">Dismiss review</button>
+						}
 					</li>
 				}
 				<li class="px-5 py-3 flex items-center gap-3">
@@ -130,6 +155,9 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 					}
 				</li>
 			</ul>
+		}
+		if st == mergeConflicts {
+			@conflictGuidance(d)
 		}
 		if d.CanWrite {
 			<footer class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
@@ -172,6 +200,17 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 							<a href={ templ.SafeURL(d.ChecksURL) } class="text-[13px] text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">View checks →</a>
 						}
 				}
+				if d.CanUpdateBranch {
+					<button
+						type="button"
+						hx-post={ d.PatchURL + "/update-branch" }
+						hx-swap="none"
+						hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Branch updated'}));location.reload();}"
+						class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-accent"
+					>
+						Update branch
+					</button>
+				}
 				<button type="button" onclick="document.getElementById('close-pull-dialog').showModal()" class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
 			</footer>
 		} else {
@@ -182,7 +221,83 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 				</p>
 			</footer>
 		}
+		for _, b := range d.Blockers {
+			if d.CanManage {
+				@dismissReviewDialog(d, b)
+			}
+		}
 	</section>
+}
+
+// The command line is the only way to resolve conflicts: there is no in-browser conflict editor.
+templ conflictGuidance(d MergeabilityBoxData) {
+	<div class="px-5 py-4 border-t border-border flex flex-col gap-2.5">
+		<h4 class="text-[13px] font-medium">Resolve the conflicts on your machine</h4>
+		<p class="text-[12px] text-muted-foreground">
+			Merge <span class="font-mono text-foreground">{ mergeBase(d) }</span> into <span class="font-mono text-foreground">{ d.HeadBranch }</span> locally, fix the conflicted files and push. If this page doesn't update, check again.
+		</p>
+		<pre class="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-[12px] font-mono leading-relaxed overflow-x-auto"><code>{ conflictCommands(d) }</code></pre>
+		<div>
+			<button type="button" onclick="location.reload()" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Check again</button>
+		</div>
+	</div>
+}
+
+func conflictCommands(d MergeabilityBoxData) string {
+	return strings.Join([]string{
+		"git fetch origin",
+		"git switch " + d.HeadBranch,
+		"git merge origin/" + d.BaseBranch,
+		"# fix the conflicted files, then",
+		"git add <files>",
+		"git commit",
+		"git push origin " + d.HeadBranch,
+	}, "\n")
+}
+
+func dismissDialogID(b BlockingReview) string {
+	return "dismiss-review-" + strconv.FormatInt(b.ID, 10)
+}
+
+templ dismissReviewDialog(d MergeabilityBoxData, b BlockingReview) {
+	{{ id := dismissDialogID(b) }}
+	@Dialog(id) {
+		@DialogHeader() {
+			@DialogTitle(id) {
+				Dismiss review
+			}
+			@DialogDescription() {
+				Clears the request for changes from <strong class="text-foreground">{ b.Reviewer }</strong> so it no longer blocks the merge. Your name and reason show on the review and in the audit log.
+			}
+		}
+		<form
+			id={ id + "-form" }
+			hx-post={ d.PatchURL + "/reviews/" + strconv.FormatInt(b.ID, 10) + "/dismiss" }
+			hx-swap="none"
+			hx-on::after:request="if(event.target===this&&ctx.response&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review dismissed'}));location.reload();}"
+		>
+			@DialogBody() {
+				<label for={ id + "-reason" } class="text-[12px] font-medium">Reason</label>
+				<textarea
+					id={ id + "-reason" }
+					name="reason"
+					rows="3"
+					required
+					maxlength="500"
+					placeholder="Why is this review no longer needed?"
+					class="mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-[13px] resize-none focus:outline-hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring placeholder:text-muted-foreground"
+				></textarea>
+			}
+		</form>
+		@DialogFooter() {
+			@DialogClose() {
+				Cancel
+			}
+			@Button(ButtonDefault, ButtonSizeDefault, templ.Attributes{"type": "submit", "form": id + "-form"}) {
+				Dismiss review
+			}
+		}
+	}
 }
 
 // The selected strategy lives in Alpine scope and is fed to the action via :hx-vals.
@@ -368,6 +483,8 @@ templ mergeStateIcon(st mergeState) {
 	switch st {
 	case mergeDraft:
 		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path></svg>
+	case mergeWaitingMaintainer:
+		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
 	case mergeReady:
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
 	case mergeConflicts:
@@ -441,6 +558,8 @@ func mergeTitle(st mergeState) string {
 		return "Nothing to merge"
 	case mergeDraft:
 		return "Draft"
+	case mergeWaitingMaintainer:
+		return "Ready, waiting for a maintainer"
 	case mergeChangesRequested:
 		return "Changes requested"
 	case mergeChecksFailing:
@@ -464,6 +583,8 @@ func mergeSubtitle(d MergeabilityBoxData, st mergeState) string {
 		return "Resolve the conflicts on the head branch before this can merge."
 	case mergeUpToDate:
 		return "This branch is already up to date with the base."
+	case mergeWaitingMaintainer:
+		return "Nothing blocks this pull request. Someone with write access can merge it."
 	case mergeDraft:
 		return "Mark this ready for review to notify reviewers and allow merging."
 	case mergeChangesRequested:

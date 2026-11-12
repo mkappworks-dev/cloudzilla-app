@@ -2,17 +2,28 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
+var ErrReviewNotFound = errors.New("review not found")
+
 var ErrReviewBodyRequired = errors.New("a summary is required to comment or request changes")
 
 var ErrOwnPullVerdict = errors.New("you can comment on your own pull request, but not approve it or request changes")
+
+var ErrDismissReasonRequired = errors.New("a reason is required to dismiss a review")
+
+var ErrReviewNotDismissible = errors.New("only a standing request for changes can be dismissed")
+
+// MaxDismissReason keeps a pasted essay out of the timeline and the audit log.
+const MaxDismissReason = 500
 
 // PullReviewService manages PR review submission and approval state.
 type PullReviewService struct {
@@ -68,6 +79,50 @@ func (s *PullReviewService) SubmitReview(ctx context.Context, owner, repoName st
 	}
 	autoSubscribe(ctx, s.threads, reviewerID, repo.ID, model.ThreadKindPull, pr.Number, model.ThreadReasonReview)
 	return r, nil
+}
+
+// Dismiss clears the request for changes that blocks pr's merge. The caller checks that byName may manage the repo.
+func (s *PullReviewService) Dismiss(ctx context.Context, owner, repoName string, pullNumber int, reviewID int64, byName, reason string) (*model.PullReview, error) {
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return nil, ErrDismissReasonRequired
+	}
+	if len([]rune(reason)) > MaxDismissReason {
+		return nil, fmt.Errorf("the reason can be at most %d characters", MaxDismissReason)
+	}
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	pr, err := s.pulls.GetByNumber(ctx, repo.ID, pullNumber)
+	if err != nil {
+		return nil, fmt.Errorf("pull request not found: %w", err)
+	}
+	if pr.State != model.PRStateOpen {
+		return nil, errors.New("only an open pull request has reviews to dismiss")
+	}
+	if _, err := s.reviews.GetInPull(ctx, pr.ID, reviewID); errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrReviewNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("load review: %w", err)
+	}
+	done, err := s.reviews.Dismiss(ctx, pr.ID, reviewID, byName, reason)
+	if err != nil {
+		return nil, err
+	}
+	if !done {
+		return nil, ErrReviewNotDismissible
+	}
+	return s.reviews.GetInPull(ctx, pr.ID, reviewID)
+}
+
+// ChangesRequestedBy lists the standing requests for changes on a pull request, oldest first.
+func (s *PullReviewService) ChangesRequestedBy(ctx context.Context, pullID int64) ([]model.PullReview, error) {
+	all, err := s.reviews.ListByPull(ctx, pullID)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(all, func(r model.PullReview) bool { return r.State != model.PRReviewChangesRequested }), nil
 }
 
 func (s *PullReviewService) ListReviewersByPullIDs(ctx context.Context, pullIDs []int64) (map[int64][]model.PullReview, error) {
