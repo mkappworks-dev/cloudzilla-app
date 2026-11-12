@@ -74,13 +74,13 @@ SELECT csi.repo_id,
        r.owner_name  AS owner_name,
        csi.file_path,
        ts_headline('simple', csi.content, plainto_tsquery('simple', $1),
-                   'MaxWords=15, MinWords=5, StartSel=**, StopSel=**') AS snippet,
+                   'MaxWords=15, MinWords=5, StartSel=%s, StopSel=%s') AS snippet,
        ts_rank(csi.tsv, plainto_tsquery('simple', $1))                 AS rank
 FROM code_search_index csi
 JOIN repositories r ON r.id = csi.repo_id
 WHERE %s
 ORDER BY rank DESC
-LIMIT $%d OFFSET $%d`, where, argIdx, argIdx+1)
+LIMIT $%d OFFSET $%d`, model.SnippetMarkStart, model.SnippetMarkEnd, where, argIdx, argIdx+1)
 
 	rows, err := s.db.QueryContext(ctx, selectQ, searchArgs...)
 	if err != nil {

@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: needs-triage
+Status: ready-for-human
 Blocked by: 11
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -46,3 +46,7 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 ## Comments
 
 2026-11-06 (wave 1 re-score): opened by ticket 22. Run `/triage` before any code.
+
+2026-11-12 (triage): ready-for-human: needs `/grill-with-docs` and `/to-spec` with the maintainer (diff preview, new-branch + PR, release assets).
+
+2026-11-12 (wave 2 re-score): Wave 2 re-score (Claude): the release form still describes packaging downloads with no asset upload (`repo-release-new`); its placeholder "Phase 16 — performance" leaked roadmap language and was reworded in the wave 2 polish PR.

@@ -36,6 +36,7 @@ type ListFilterData struct {
 	SearchBase string
 	Menus      []ListFilterMenu
 	Chips      []ListFilterChip
+	Notices    []string // qualifiers the parser kept as text
 	ClearHref  string
 	HasFilters bool
 	Total      int
@@ -58,6 +59,9 @@ templ ListFilterBar(d ListFilterData) {
 				@listFilterMenu(d.Action, m)
 			}
 		</div>
+		for _, n := range d.Notices {
+			<p role="status" class="text-[12px] text-warning">{ n }</p>
+		}
 		if len(d.Chips) > 0 || d.HasFilters {
 			<div class="flex flex-wrap items-center gap-1.5 text-[12px]">
 				for _, c := range d.Chips {
@@ -68,8 +72,10 @@ templ ListFilterBar(d ListFilterData) {
 				}
 				<span class="text-muted-foreground">
 					{ Count(d.Total, "result", "results") }
-					<span aria-hidden="true">·</span>
-					<a href={ templ.SafeURL(d.ClearHref) } class="text-primary hover:underline">Clear filters</a>
+					if d.Total > 0 {
+						<span aria-hidden="true">·</span>
+						<a href={ templ.SafeURL(d.ClearHref) } class="text-primary hover:underline">Clear filters</a>
+					}
 				</span>
 			</div>
 		}

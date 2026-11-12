@@ -242,15 +242,8 @@ templ OrgSettings(data view.OrgSettingsData) {
 								<h2 class="text-base font-semibold tracking-tight mb-1">Teams</h2>
 								<p class="text-[12.5px] text-muted-foreground">Group members and grant batch access to repositories.</p>
 							</div>
-							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-								"type":     "button",
-								"disabled": "disabled",
-								"title":    "Teams aren't available yet",
-							}) {
-								New team
-							}
 						</div>
-						@components.EmptyStateWithHint("Teams aren't wired up yet.", "Group your members into teams in a future release; the surface lives here.")
+						@components.EmptyStateWithHint("No teams in this version.", "Give members access one repository at a time, from each repository's collaborator settings.")
 					</section>
 
 					<section id="repo-defaults" class="rounded-md border border-border bg-card p-6">
@@ -295,15 +288,8 @@ templ OrgSettings(data view.OrgSettingsData) {
 								<h2 class="text-base font-semibold tracking-tight mb-1">Webhooks</h2>
 								<p class="text-[12.5px] text-muted-foreground">Receive HTTP POSTs for org-wide events. Signed with HMAC-SHA256.</p>
 							</div>
-							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-								"type":     "button",
-								"disabled": "disabled",
-								"title":    "Org-level webhooks aren't available yet",
-							}) {
-								Add webhook
-							}
 						</div>
-						@components.EmptyStateWithHint("Org-level webhooks aren't wired up yet.", "Per-repo webhooks already work — find them in each repository's settings.")
+						@components.EmptyStateWithHint("No organization-wide webhooks.", "Webhooks are set per repository, in each repository's settings.")
 					</section>
 
 					<section id="audit" class="rounded-md border border-border bg-card p-6">

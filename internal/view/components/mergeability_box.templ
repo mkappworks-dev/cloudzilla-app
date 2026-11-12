@@ -115,6 +115,12 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 						<span class="flex-1">{ reviewsDescription(d.ApprovedReviews, d.RequiredReviews) }</span>
 					</li>
 				}
+				if d.ChangesRequested {
+					<li class="px-5 py-3 flex items-center gap-3">
+						@mergeRowIcon(false)
+						<span class="flex-1">A reviewer requested changes</span>
+					</li>
+				}
 				<li class="px-5 py-3 flex items-center gap-3">
 					@mergeRowIcon(!d.HasConflicts)
 					if d.HasConflicts {

@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: bug
-Status: needs-triage
+Status: ready-for-agent
 Blocked by: —
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -46,3 +46,7 @@ Throwaway server at 1440×900 in light and dark, per the harness in [spec.md](..
 ## Comments
 
 2026-11-06 (wave 1 re-score): opened by ticket 22. Run `/triage` before any code.
+
+2026-11-12 (triage): ready-for-agent. Run after the wave 2 re-score (22).
+
+2026-11-12 (wave 2 re-score): Wave 2 re-score, same area: icon-only controls (the ~8px × on review comments, copy buttons, tree/list toggles, edit and add icons) have no visible name and small targets, accessible names unverified (Claude and Codex); inputs that rely on a placeholder as their label (collaborator Username, gist filename, "type your username", admin invitation fields); unnamed initials avatars in Participants and Reviewers (`pull-*`, `repo-settings`, `gist-new`); the review dialog textarea has a screen-reader label but no hint that a summary is required for Request changes. Check each for an accessible name, a 24px target and a visible label.

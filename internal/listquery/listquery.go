@@ -311,3 +311,31 @@ func tokenize(raw string) []string {
 	flush()
 	return tokens
 }
+
+// Unrecognized lists the free-text tokens that name a qualifier but carry a value it rejects, each with what the list
+// accepts. Parse keeps them as text, so without this a typo such as sort:comments-desc just empties the list. Other
+// word:value tokens (std::vector, 12:30) are ordinary search text and are not reported.
+func (q Query) Unrecognized() []string {
+	var out []string
+	for _, tok := range tokenize(q.Text) {
+		key, val, ok := strings.Cut(tok, ":")
+		if !ok || val == "" {
+			continue
+		}
+		var hint string
+		switch strings.ToLower(key) {
+		case KeyIs:
+			hint = "is: takes " + strings.Join(validStates, ", ") + "."
+		case KeyReview:
+			hint = "review: takes " + strings.Join(validReview, ", ") + "."
+		case KeySort:
+			hint = "sort: takes " + strings.Join(validSorts, ", ") + "."
+		case KeyNo:
+			hint = "no: takes " + strings.Join(validNo, ", ") + "."
+		default:
+			continue
+		}
+		out = append(out, "“"+tok+"” isn’t a valid filter, so it was searched as text. "+hint)
+	}
+	return out
+}
