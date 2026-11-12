@@ -2,6 +2,7 @@ package service
 
 import (
 	"archive/zip"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -173,6 +174,40 @@ func (s *CodeService) GetBranchFile(owner, repoName, branch, filePath string, ma
 		}
 		out.Content = []byte(contents)
 	}
+	return out, nil
+}
+
+// GetBlobByHash reads the blob sha as a BranchFile without Mode, so an edit
+// can recover the text its author opened after the branch moved on. A missing
+// blob is plumbing.ErrObjectNotFound.
+func (s *CodeService) GetBlobByHash(owner, repoName, sha string, maxContent int64) (*BranchFile, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+	blob, err := repo.BlobObject(plumbing.NewHash(sha))
+	if err != nil {
+		return nil, err
+	}
+	out := &BranchFile{SHA: sha, Size: blob.Size}
+	r, err := blob.Reader()
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	head, err := io.ReadAll(io.LimitReader(r, 8000))
+	if err != nil {
+		return nil, err
+	}
+	out.IsBinary = bytes.IndexByte(head, 0) >= 0
+	if out.IsBinary || blob.Size > maxContent {
+		return out, nil
+	}
+	rest, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	out.Content = append(head, rest...)
 	return out, nil
 }
 

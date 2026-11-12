@@ -73,9 +73,16 @@ type EditFileData struct {
 	Content  string
 	Message  string
 	Error    string
-	// ConflictURL links the current version when the file changed after the
-	// page loaded.
-	ConflictURL string
+	// ContentError is the inline error on the contents field.
+	ContentError string
+	// Notice and Upstream are set when the file changed after the page
+	// loaded: what the merge did, and the diff of what changed on the branch
+	// (nil when it can't be shown).
+	Notice   string
+	Upstream *service.FileDiff
+	// UpstreamSHA is the blob the user first opened, so a refusal after a
+	// conflict can show the same upstream diff again.
+	UpstreamSHA string
 }
 
 // EditPreviewData holds template data for the edit page's Preview changes tab.

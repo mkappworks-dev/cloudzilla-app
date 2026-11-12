@@ -276,7 +276,7 @@ func TestEditFile_RefusalsKeepTheForm(t *testing.T) {
 	}{
 		{"file changed", "a.txt", http.StatusConflict, "changed on main after you opened it", func(t *testing.T, r editRepo) url.Values {
 			sha := r.blobSHA(t, "a.txt")
-			r.commitMain(t, "a.txt", "theirs\n")
+			r.commitMain(t, "a.txt", "mine\n")
 			return url.Values{"path": {"a.txt"}, "content": {"mine\r\n"}, "message": {"My edit"}, "blob_sha": {sha}}
 		}},
 		{"rename onto a file", "a.txt", http.StatusConflict, "m.txt is a file", func(t *testing.T, r editRepo) url.Values {
