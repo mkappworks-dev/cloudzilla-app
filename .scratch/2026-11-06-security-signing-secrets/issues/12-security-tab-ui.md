@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 10
 Parallel with: 11, 13
 
@@ -33,15 +33,15 @@ The mock draws a Security tab, an alert list and an alert page with a Close-as m
 
 ## Acceptance criteria
 
-- [ ] A reader and an anonymous visitor get the same 404 as for a missing repo on both pages and all three POSTs; no tab, no count for them (handler tests)
-- [ ] Close, reopen and allow change state and write the events and audit entries; allow on a live-token alert is refused with 422
-- [ ] The snippet masks the secret, shows "commit no longer available" for a pruned commit, and no response body contains the full value (test greps for it)
-- [ ] Open/closed counts and the type filter agree with the list; the tab badge excludes blocked-only alerts
-- [ ] Seed alerts through `SecretAlertService.Record` in a test or a throwaway script; the dev database is not touched
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
-- [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
-- [ ] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+- [x] A reader and an anonymous visitor get the same 404 as for a missing repo on both pages and all three POSTs; no tab, no count for them (handler tests)
+- [x] Close, reopen and allow change state and write the events and audit entries; allow on a live-token alert is refused with 422
+- [x] The snippet masks the secret, shows "commit no longer available" for a pruned commit, and no response body contains the full value (test greps for it)
+- [x] Open/closed counts and the type filter agree with the list; the tab badge excludes blocked-only alerts
+- [x] Seed alerts through `SecretAlertService.Record` in a test or a throwaway script; the dev database is not touched
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
+- [x] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
+- [x] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
 

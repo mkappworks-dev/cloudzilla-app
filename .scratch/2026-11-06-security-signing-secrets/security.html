@@ -108,15 +108,15 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-destructive" aria-label="Open"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
-                <a href="alert.html?state=open" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">Cloudzilla access token</a>
-                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">czp_…e8f0</code>
-                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Auto-revoked</span>
+                <a href="alert.html?state=open" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">AWS access key ID</a>
+                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">AKIA…DFGH</code>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-warning/15 text-warning border-warning/30">Blocked push</span>
               </div>
               <p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                <span class="font-mono">#10</span><span aria-hidden="true">·</span>
-                <span class="font-mono break-all">scripts/smoke.sh:7</span><span aria-hidden="true">·</span>
-                <span>commit <a href="commit.html" class="relative z-10 font-mono hover:text-foreground hover:underline">e2c7714</a> by kiyo</span><span aria-hidden="true">·</span>
-                <span>detected <time datetime="2026-11-01T10:00:00Z">5 days ago</time></span>
+                <span class="font-mono">#13</span><span aria-hidden="true">·</span>
+                <span class="font-mono break-all">config/new.env:2</span><span aria-hidden="true">·</span>
+                <span>commit <a href="commit.html" class="relative z-10 font-mono hover:text-foreground hover:underline">deadbee</a> by daisy</span><span aria-hidden="true">·</span>
+                <span>detected <time datetime="2026-11-03T10:00:00Z">4 minutes ago</time></span>
               </p>
             </div>
           </li>
@@ -125,6 +125,23 @@
 
       <section data-when="closed" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Closed secret scanning alerts">
         <ul class="divide-y divide-border">
+          <li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-label="Closed"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <a href="alert.html?state=revoked" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">Cloudzilla access token</a>
+                <code class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">czp_…e8f0</code>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium border-border text-foreground">Auto-revoked</span>
+                <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-secondary text-secondary-foreground border-transparent">Revoked</span>
+              </div>
+              <p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span class="font-mono">#6</span><span aria-hidden="true">·</span>
+                <span class="font-mono break-all">scripts/smoke.sh:7</span><span aria-hidden="true">·</span>
+                <span>commit <a href="commit.html" class="relative z-10 font-mono hover:text-foreground hover:underline">e2c7714</a> by kiyo</span><span aria-hidden="true">·</span>
+                <span>closed automatically <time datetime="2026-11-01T12:00:00Z">Nov 1</time></span>
+              </p>
+            </div>
+          </li>
           <li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-label="Closed"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
             <div class="min-w-0 flex-1">
