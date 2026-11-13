@@ -1,0 +1,181 @@
+package components
+
+import "github.com/mkappworks-dev/cloudzilla-app/internal/service"
+
+// SignatureKind has no constant for the server's own key yet.
+const instanceSignature service.SignatureKind = "instance"
+
+// SignatureBadge is the verdict pill after a commit's SHA and the popover it opens; unsigned commits render nothing.
+// The popover ships in the page so opening it costs no request.
+templ SignatureBadge(r service.SignatureResult) {
+	if r.Status != "" && r.Status != service.SignatureUnsigned {
+		<div class="relative inline-block" x-data="{ open: false }" x-on:keydown.escape="if (open) { open = false; $refs.btn.focus() }" x-on:click.outside="open = false">
+			<button
+				type="button"
+				x-ref="btn"
+				x-on:click="open = !open"
+				:aria-expanded="open ? 'true' : 'false'"
+				aria-expanded="false"
+				aria-haspopup="dialog"
+				class={ "inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium", signatureBadgeClass(r.Status) }
+			>{ signatureLabel(r.Status) }</button>
+			<div
+				x-show="open"
+				x-cloak
+				role="dialog"
+				aria-label="Commit signature"
+				class="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left font-normal whitespace-normal"
+			>
+				<p class="flex items-start gap-2 text-[13px] font-medium">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class={ "shrink-0 mt-[3px]", signatureIconClass(r.Status) } aria-hidden="true" focusable="false">
+						if r.Status == service.SignatureUnverified {
+							<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+							<line x1="12" y1="9" x2="12" y2="13"></line>
+							<line x1="12" y1="17" x2="12.01" y2="17"></line>
+						} else {
+							<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+							if r.Status == service.SignatureVerified {
+								<path d="M9 12l2 2 4-4"></path>
+							}
+						}
+					</svg>
+					<span>{ signatureHeadline(r) }</span>
+				</p>
+				if r.Kind == instanceSignature {
+					<div class="mt-3 flex items-center gap-2">
+						@Initials("Cloudzilla", AvatarSizeXS, "Cloudzilla")
+						<span class="text-[13px] font-medium">Cloudzilla</span>
+					</div>
+				} else if r.SignerUsername != "" {
+					<div class="mt-3 flex items-center gap-2">
+						@Initials(r.SignerUsername, AvatarSizeXS, r.SignerUsername)
+						<a href={ templ.SafeURL("/" + r.SignerUsername) } class="text-[13px] font-medium hover:underline">{ r.SignerUsername }</a>
+						if r.CommitterEmail != "" {
+							<span class="text-[12px] text-muted-foreground truncate">
+								if r.Status == service.SignaturePartiallyVerified {
+									committed as { r.CommitterEmail }
+								} else {
+									{ r.CommitterEmail }
+								}
+							</span>
+						}
+					</div>
+				}
+				<dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+					if r.Kind != instanceSignature {
+						<dt class="text-muted-foreground">Key type</dt>
+						<dd>{ signatureKindLabel(r.Kind) }</dd>
+					}
+					if r.KeyLabel != "" && r.KeyLabel != r.KeyID {
+						<dt class="text-muted-foreground">Key</dt>
+						<dd>{ r.KeyLabel }</dd>
+					}
+					if r.KeyID != "" {
+						<dt class="text-muted-foreground">Key ID</dt>
+						<dd class="font-mono break-all">{ r.KeyID }</dd>
+					}
+					if r.Fingerprint != "" {
+						<dt class="text-muted-foreground">Fingerprint</dt>
+						<dd class="font-mono break-all">{ r.Fingerprint }</dd>
+					}
+					if r.SignerUsername == "" && r.CommitterEmail != "" && r.Kind != instanceSignature {
+						<dt class="text-muted-foreground">Committer</dt>
+						<dd>{ r.CommitterEmail }</dd>
+					}
+				</dl>
+				if hint := signatureHint(r); hint != "" {
+					<p class="mt-2 text-[12px] text-muted-foreground">{ hint }</p>
+				}
+				<div role="separator" class="my-2 h-px bg-border"></div>
+				<a href="/settings#signing-keys" class="text-[12px] text-muted-foreground hover:text-foreground">About signing keys →</a>
+			</div>
+		</div>
+	}
+}
+
+func signatureBadgeClass(s service.SignatureStatus) string {
+	switch s {
+	case service.SignatureVerified:
+		return "bg-success/15 text-success border-success/30 hover:bg-success/25"
+	case service.SignaturePartiallyVerified:
+		return "border-border text-foreground hover:bg-accent"
+	default:
+		return "bg-warning/15 text-warning border-warning/30 hover:bg-warning/25"
+	}
+}
+
+func signatureIconClass(s service.SignatureStatus) string {
+	switch s {
+	case service.SignatureVerified:
+		return "text-success"
+	case service.SignaturePartiallyVerified:
+		return "text-muted-foreground"
+	default:
+		return "text-warning"
+	}
+}
+
+func signatureLabel(s service.SignatureStatus) string {
+	switch s {
+	case service.SignatureVerified:
+		return "Verified"
+	case service.SignaturePartiallyVerified:
+		return "Partially verified"
+	default:
+		return "Unverified"
+	}
+}
+
+func signatureKindLabel(k service.SignatureKind) string {
+	switch k {
+	case service.SignatureKindGPG:
+		return "GPG"
+	case service.SignatureKindSSH:
+		return "SSH"
+	default:
+		return "Unknown"
+	}
+}
+
+func signatureHeadline(r service.SignatureResult) string {
+	switch {
+	case r.Kind == instanceSignature:
+		return "This commit was made on the web and signed by this server."
+	case r.Status == service.SignatureVerified:
+		return "Signed by the committer with a key on their account."
+	case r.Status == service.SignaturePartiallyVerified && r.Reason == service.ReasonEmailNotOnKey:
+		return "The signature is valid and the key is " + r.SignerUsername + "'s, but the committer email isn't on the key."
+	case r.Status == service.SignaturePartiallyVerified:
+		return "The signature is valid and the key is " + r.SignerUsername + "'s, but the committer email isn't one of " + r.SignerUsername + "'s verified emails."
+	}
+	switch r.Reason {
+	case service.ReasonBadSignature:
+		return "The signature doesn't match the commit."
+	case service.ReasonKeyExpired:
+		return "The key had expired when the commit was made."
+	case service.ReasonKeyRevoked:
+		return "The key has been revoked."
+	case service.ReasonMultipleSignatures:
+		return "The commit carries more than one signature."
+	case service.ReasonUnsupported:
+		return "The signature isn't in a format this server can check."
+	default:
+		return "The commit is signed, but no account on this server has the key."
+	}
+}
+
+func signatureHint(r service.SignatureResult) string {
+	switch {
+	case r.Kind == instanceSignature:
+		return ""
+	case r.Status == service.SignaturePartiallyVerified && r.Reason == service.ReasonEmailNotOnKey:
+		return "Adding " + r.CommitterEmail + " to the key's identities makes this Verified."
+	case r.Status == service.SignaturePartiallyVerified:
+		return "Verifying " + r.CommitterEmail + " on " + r.SignerUsername + "'s account makes this Verified."
+	case r.Status == service.SignatureUnverified && r.Reason == service.ReasonNoKey:
+		return "If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view."
+	case r.Status == service.SignatureUnverified && (r.Reason == service.ReasonKeyExpired || r.Reason == service.ReasonKeyRevoked):
+		return "Commits signed with a different, valid key verify as usual."
+	}
+	return ""
+}

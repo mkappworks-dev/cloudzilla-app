@@ -31,13 +31,13 @@ Commits show no trust signal. The mock draws a badge after the SHA that opens a 
 
 ## Acceptance criteria
 
-- [ ] All five mock states render from real data; `unsigned` shows no badge and no empty space
-- [ ] The popover opens with Enter/Space and a click, closes with Escape and outside click, and never clips at the right edge of the list at 1440
-- [ ] The instance state ("Verified by Cloudzilla") renders and is added to both mocks
-- [ ] A page of 30 commits makes no extra queries per row beyond ticket 02's batch (assert in a handler test)
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
-- [ ] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
+- [x] All five mock states render from real data; `unsigned` shows no badge and no empty space
+- [x] The popover opens with Enter/Space and a click, closes with Escape and outside click, and never clips at the right edge of the list at 1440
+- [x] The instance state ("Verified by Cloudzilla") renders and is added to both mocks
+- [x] A page of 30 commits makes no extra queries per row beyond ticket 02's batch (assert in a handler test)
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
+- [x] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
 - [ ] `make generate-templ` re-run and the `_templ.go` files committed; `make lint` and `go test ./...` pass
 
 ## Verification
@@ -45,4 +45,6 @@ Commits show no trust signal. The mock draws a badge after the SHA that opens a 
 Throwaway server: scratch Postgres on a free port (see `docs/testing.md`), a unique `CZ_AUTH_COOKIE_NAME`, sign in as `admin@example.test` / `cloudzilla-seed`. Push one commit per state (GPG, SSH, hardware-key partial, unknown key, unsigned) with native git; open the commits list, a commit and a PR's commits tab; screenshots with each popover open, light and dark at 1440.
 
 ## Comments
+
+Claude, 2026-11-13: Left unticked: `make lint` (golangci-lint is not installed here; `gofmt` is clean). `GetCommit` no longer verifies, because post-receive stats call it; pages use `GetVerifiedCommit`. The PR commits list lost `overflow-hidden`, which clipped the popover on the last rows. The "Verified by Cloudzilla" state is covered by a component test and the mocks only: nothing signs with the instance key until ticket 05.
 

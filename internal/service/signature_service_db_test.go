@@ -204,7 +204,7 @@ func TestCodeService_CommitReadsCarryASignatureResult(t *testing.T) {
 	if got := log.Commits[0].Signature; got.Status != SignatureVerified || got.SignerUsername != "rhea" {
 		t.Errorf("GetCommits signature = %+v, want verified by rhea", got)
 	}
-	detail, err := svc.GetCommit("rhea", "signed", head.String())
+	detail, err := svc.GetVerifiedCommit("rhea", "signed", head.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +238,7 @@ func TestCodeService_FailedLookupLeavesTheCommitUnverifiedNotTheReadFailed(t *te
 	if got := log.Commits[0].Signature; got.Status != SignatureUnverified || got.Reason != ReasonUnsupported {
 		t.Errorf("signature = %+v, want unverified/unsupported", got)
 	}
-	detail, err := svc.GetCommit("rhea", "signed", head.String())
+	detail, err := svc.GetVerifiedCommit("rhea", "signed", head.String())
 	if err != nil || detail.Signature.Status != SignatureUnverified {
 		t.Errorf("GetCommit: %+v (%v)", detail.Signature, err)
 	}

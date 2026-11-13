@@ -147,16 +147,32 @@ func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int
 	}, nil
 }
 
-// GetCommit returns a single commit with full diff.
+// GetCommit returns a single commit with full diff and no signature verdict: post-receive stats call it per pushed
+// commit and must not pay for key lookups. Pages use GetVerifiedCommit.
 func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, error) {
-	repo, err := s.openRepo(owner, repoName)
+	d, _, err := s.loadCommit(owner, repoName, sha)
+	return d, err
+}
+
+// GetVerifiedCommit is GetCommit plus the signature verdict.
+func (s *CodeService) GetVerifiedCommit(owner, repoName, sha string) (*CommitDetail, error) {
+	d, c, err := s.loadCommit(owner, repoName, sha)
 	if err != nil {
 		return nil, err
+	}
+	d.Signature = s.verifySignatures([]*object.Commit{c})[c.Hash]
+	return d, nil
+}
+
+func (s *CodeService) loadCommit(owner, repoName, sha string) (*CommitDetail, *object.Commit, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	commit, err := repo.CommitObject(plumbing.NewHash(sha))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	shortHash := sha
@@ -179,27 +195,27 @@ func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, err
 
 	commitTree, err := commit.Tree()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var patch *object.Patch
 	if commit.NumParents() == 0 {
 		changes, err := object.DiffTree(nil, commitTree)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		patch, err = changes.Patch()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		parent, err := commit.Parent(0)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		patch, err = parent.Patch(commit)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -267,8 +283,7 @@ func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, err
 		Files:        files,
 		TotalAdded:   totalAdded,
 		TotalDeleted: totalDeleted,
-		Signature:    s.verifySignatures([]*object.Commit{commit})[commit.Hash],
-	}, nil
+	}, commit, nil
 }
 
 func summarizeCommit(c *object.Commit) CommitSummary {

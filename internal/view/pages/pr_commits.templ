@@ -50,12 +50,13 @@ templ pullCommitsBody(data view.PullCommitsData) {
 				<a href={ templ.SafeURL(codeurl.Path(data.OwnerName, data.Repo.Name, "commits", data.Pull.BaseBranch, "")) } class="text-primary hover:underline font-mono">{ data.Pull.BaseBranch }</a>.
 			</p>
 		</section>
-		<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Commits in this pull request">
-			for i, day := range commitDays(data.Commits) {
-				<p class={ "px-4 py-2 border-b border-border bg-muted/40 text-[11.5px] font-mono text-muted-foreground uppercase tracking-wider", templ.KV("border-t", i > 0) }>
+		<section class="rounded-md border border-border bg-card" aria-label="Commits in this pull request">
+			{{ days := commitDays(data.Commits) }}
+			for i, day := range days {
+				<p class={ "px-4 py-2 border-b border-border bg-muted/40 text-[11.5px] font-mono text-muted-foreground uppercase tracking-wider", templ.KV("border-t", i > 0), templ.KV("rounded-t-md", i == 0) }>
 					Commits on { timefmt.Date(day.Date) }
 				</p>
-				<ol class="divide-y divide-border">
+				<ol class={ "divide-y divide-border", templ.KV("[&>li:last-child]:rounded-b-md", i == len(days)-1) }>
 					for _, c := range day.Commits {
 						<li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
 							@components.Initials(c.Author, components.AvatarSizeSM, c.Author)
@@ -68,6 +69,7 @@ templ pullCommitsBody(data view.PullCommitsData) {
 								</p>
 							</div>
 							<a href={ templ.SafeURL(repoBase + "/commit/" + c.FullHash) } class="text-[11.5px] font-mono text-muted-foreground hover:underline shrink-0">{ c.Hash }</a>
+							@components.SignatureBadge(c.Signature)
 							<button type="button" onclick={ copySha(c.FullHash) } class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Copy commit SHA">
 								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
 							</button>
