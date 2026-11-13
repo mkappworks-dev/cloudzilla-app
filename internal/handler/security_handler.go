@@ -11,16 +11,9 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
-const (
-	auditSecretClose  = "secret_scan.close"
-	auditSecretReopen = "secret_scan.reopen"
-	auditSecretAllow  = "secret_scan.allow"
-	auditTargetSecret = "secret_scan_alert"
-)
-
 // CloseSecretAlert closes an open alert with the resolution the form names.
 func (h *Handler) CloseSecretAlert(w http.ResponseWriter, r *http.Request) {
-	h.secretAlertAction(w, r, auditSecretClose, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
+	h.secretAlertAction(w, r, model.AuditActionSecretScanClose, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
 		resolution := r.FormValue("resolution")
 		return resolution, h.Services.SecretAlert.Close(r.Context(), alert.ID, actorID, resolution)
 	})
@@ -28,14 +21,14 @@ func (h *Handler) CloseSecretAlert(w http.ResponseWriter, r *http.Request) {
 
 // ReopenSecretAlert reopens a closed alert, so its value is blocked again.
 func (h *Handler) ReopenSecretAlert(w http.ResponseWriter, r *http.Request) {
-	h.secretAlertAction(w, r, auditSecretReopen, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
+	h.secretAlertAction(w, r, model.AuditActionSecretScanReopen, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
 		return "", h.Services.SecretAlert.Reopen(r.Context(), alert.ID, actorID)
 	})
 }
 
 // AllowSecretAlert closes an alert as a false positive or test value, which stops its value being blocked.
 func (h *Handler) AllowSecretAlert(w http.ResponseWriter, r *http.Request) {
-	h.secretAlertAction(w, r, auditSecretAllow, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
+	h.secretAlertAction(w, r, model.AuditActionSecretScanAllow, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
 		resolution := r.FormValue("resolution")
 		return resolution, h.Services.SecretAlert.Allow(r.Context(), alert.ID, actorID, resolution)
 	})
@@ -84,7 +77,7 @@ func (h *Handler) secretAlertAction(w http.ResponseWriter, r *http.Request, audi
 		meta["resolution"] = resolution
 	}
 	claims, _ := middleware.ClaimsFromContext(r.Context())
-	h.Services.AuditLog.Record(r.Context(), r, actorID, claims.Username, auditAction, auditTargetSecret, alert.ID,
+	h.Services.AuditLog.Record(r.Context(), r, actorID, claims.Username, auditAction, model.AuditTargetSecretAlert, alert.ID,
 		repo.OwnerName+"/"+repo.Name+"#"+strconv.Itoa(alert.Number), meta)
 
 	redirectAfterSave(w, r, "/"+repo.OwnerName+"/"+repo.Name+"/security/secrets/"+strconv.Itoa(alert.Number))
