@@ -133,6 +133,7 @@ func main() {
 
 	if cfg.CI.Enabled {
 		concurrency.Go("workflow_run.sweep", func() { services.WorkflowRun.Run(workerCtx) })
+		concurrency.Go("ci_runner.lost_sweep", func() { services.CIRunner.Run(workerCtx) })
 	}
 
 	concurrency.Go("secretscan.backfill", func() { services.SecretScan.RunBackfill(workerCtx) })

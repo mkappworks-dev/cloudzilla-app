@@ -739,6 +739,18 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Get("/auth/2fa", h.PageTOTPVerify)
 	r.Post("/auth/2fa/verify", h.VerifyTOTP)
 
+	// Runner protocol: polled by cz-runner over outbound HTTPS, authenticated by its own tokens.
+	if cfg.CI.Enabled {
+		r.Route("/api/runner", func(r chi.Router) {
+			r.Use(middleware.NoStore, apiBodyLimit)
+			r.Post("/register", h.RunnerRegister)
+			r.Post("/claim", h.RunnerClaim)
+			r.Post("/jobs/{id}/heartbeat", h.RunnerHeartbeat)
+			r.Post("/jobs/{id}/steps/{position}", h.RunnerStep)
+			r.Post("/jobs/{id}/finish", h.RunnerFinish)
+		})
+	}
+
 	// Git HTTP Smart Protocol routes
 	r.With(gitAuthMW).Get("/{owner}/{repo}/info/refs", h.GitInfoRefs)
 	r.With(gitAuthMW).Post("/{owner}/{repo}/git-upload-pack", h.GitUploadPack)

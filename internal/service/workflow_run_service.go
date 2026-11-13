@@ -21,6 +21,7 @@ var (
 	ErrWorkflowNotFound   = errors.New("workflow not found at this ref")
 	ErrWorkflowNoDispatch = errors.New("workflow does not have a workflow_dispatch trigger")
 	ErrWorkflowForbidden  = errors.New("forbidden: writing to this repository is required")
+	ErrStepNotFound       = errors.New("step not found")
 )
 
 // noRunnerTimeout is how long a Job may wait in the queue before it is cancelled as having no runner.
@@ -196,11 +197,22 @@ func (s *WorkflowRunService) Run(ctx context.Context) {
 // ClaimJob leases the oldest queued Job whose runs-on labels the runner holds, and starts its Run. It returns nil
 // when nothing is claimable.
 func (s *WorkflowRunService) ClaimJob(ctx context.Context, labels []string, runnerID *int64) (*model.WorkflowJob, error) {
+	return s.ClaimJobFor(ctx, labels, runnerID, nil, "")
+}
+
+// ClaimJobFor is ClaimJob limited to one repo's Jobs when repoID is not nil, and it stores tokenHash, the hash of the
+// per-job token, on the claimed Job in the same transaction.
+func (s *WorkflowRunService) ClaimJobFor(ctx context.Context, labels []string, runnerID, repoID *int64, tokenHash string) (*model.WorkflowJob, error) {
 	var claimed *model.WorkflowJob
 	err := s.runs.InTx(ctx, func(tx *store.WorkflowRunTx) error {
-		job, err := tx.ClaimQueuedJob(ctx, labels, runnerID, jobLease, s.cfg.MaxConcurrentRunsPerRepo)
+		job, err := tx.ClaimQueuedJob(ctx, labels, runnerID, repoID, jobLease, s.cfg.MaxConcurrentRunsPerRepo)
 		if err != nil || job == nil {
 			return err
+		}
+		if tokenHash != "" {
+			if err := tx.SetJobTokenHash(ctx, job.ID, tokenHash); err != nil {
+				return err
+			}
 		}
 		run, err := tx.GetRun(ctx, job.RunID)
 		if err != nil {
@@ -217,6 +229,57 @@ func (s *WorkflowRunService) ClaimJob(ctx context.Context, labels []string, runn
 		return s.advance(ctx, tx, run, repo)
 	})
 	return claimed, err
+}
+
+// GetJob returns one Job by id.
+func (s *WorkflowRunService) GetJob(ctx context.Context, id int64) (*model.WorkflowJob, error) {
+	return s.runs.GetJob(ctx, id)
+}
+
+// GetRunByID returns one Run by id.
+func (s *WorkflowRunService) GetRunByID(ctx context.Context, id int64) (*model.WorkflowRun, error) {
+	return s.runs.GetRun(ctx, id)
+}
+
+// RenewLease records a heartbeat from the runner holding the Job and reports whether it still holds a running one;
+// false tells the runner to stop, because the Job was cancelled, finished or taken away.
+func (s *WorkflowRunService) RenewLease(ctx context.Context, jobID, runnerID int64) (bool, error) {
+	return s.runs.RenewLease(ctx, jobID, runnerID, jobLease)
+}
+
+// SetStepStatus records a Step's progress while its Job is running.
+func (s *WorkflowRunService) SetStepStatus(ctx context.Context, jobID int64, position int, status model.CIStatus) error {
+	if status != model.CIStatusRunning && status != model.CIStatusSuccess && status != model.CIStatusFailure && status != model.CIStatusSkipped {
+		return fmt.Errorf("a step cannot move to %q", status)
+	}
+	ok, err := s.runs.SetStepStatus(ctx, jobID, position, status)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrStepNotFound
+	}
+	return nil
+}
+
+// SweepLostJobs fails every running Job whose runner stopped heartbeating, which fails its Run too, and returns how
+// many.
+func (s *WorkflowRunService) SweepLostJobs(ctx context.Context, now time.Time) (int, error) {
+	lost, err := s.runs.LostRunningJobs(ctx, now)
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, j := range lost {
+		switch err := s.FinishJob(ctx, j.ID, model.CIStatusFailure, "runner lost"); {
+		case err == nil:
+			n++
+		case errors.Is(err, ErrRunFinished):
+		default:
+			return n, err
+		}
+	}
+	return n, nil
 }
 
 // FinishJob records the result of a claimed Job: success, failure or cancelled.

@@ -32,6 +32,7 @@ type Services struct {
 	ReleaseAsset       *ReleaseAssetService
 	CommitStatus       *CommitStatusService
 	WorkflowRun        *WorkflowRunService
+	CIRunner           *CIRunnerService
 	Milestone          *MilestoneService
 	PullReview         *PullReviewService
 	PullLineComment    *PullLineCommentService
@@ -183,6 +184,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		ReleaseAsset:       releaseAssetSvc,
 		CommitStatus:       commitStatusSvc,
 		WorkflowRun:        workflowRunSvc,
+		CIRunner:           NewCIRunnerService(stores.CIRunner, workflowRunSvc, stores.Repo, cfg.Server.BaseURL),
 		Milestone:          NewMilestoneService(stores.Milestone, stores.Repo),
 		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection).WithThreadSubscriptions(threadSubSvc),
 		PullLineComment:    NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
