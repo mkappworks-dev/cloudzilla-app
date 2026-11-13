@@ -16,6 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/logmask"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/runnerapi"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/workflow"
 )
@@ -25,6 +26,8 @@ type API interface {
 	Heartbeat(ctx context.Context, jobID int64) (bool, error)
 	SetStep(ctx context.Context, jobID int64, position int, status string) error
 	Finish(ctx context.Context, jobID int64, result, message string) error
+	logSink
+	UploadArtifact(ctx context.Context, jobID int64, token, name string, size int64, r io.Reader) error
 }
 
 // Executor runs claimed Jobs.
@@ -34,8 +37,12 @@ type Executor struct {
 	API      API
 	Docker   string
 	Checkout Checkout
-	// Out receives each Step's output.
+	// Out also receives each Step's output; the server's copy is the log, so a nil Out is fine.
 	Out io.Writer
+	// Masker hides secret values before output leaves the runner. Nothing sets it until Jobs carry secrets.
+	Masker *logmask.Masker
+	// FlushEvery is how often streamed output is posted; a second unless a test shortens it.
+	FlushEvery time.Duration
 	// Minute is what a timeout-minutes of 1 lasts; tests shorten it.
 	Minute time.Duration
 	// HeartbeatEvery is runnerapi.HeartbeatEverySeconds unless a test shortens it.
@@ -148,6 +155,10 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 		return "failure", "checkout failed: " + err.Error()
 	}
 
+	// The log outlives ctx: output of a cancelled or timed-out Job is still worth posting while its token lives.
+	logs := newLogStream(context.WithoutCancel(ctx), e.API, spec.JobID, spec.Token, e.Masker, e.FlushEvery)
+	defer logs.Close()
+
 	failed := ""
 	for _, st := range spec.Steps {
 		if ctx.Err() != nil {
@@ -164,7 +175,7 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 			continue
 		}
 		e.setStep(ctx, spec, st.Position, "running")
-		if err := e.runStep(ctx, d, spec, st, name); err != nil {
+		if err := e.runStep(ctx, d, spec, st, name, e.stepOut(logs.Writer(st.Position))); err != nil {
 			e.setStep(ctx, spec, st.Position, "failure")
 			if failed == "" {
 				failed = fmt.Sprintf("step %d (%s): %v", st.Position+1, st.Name, err)
@@ -176,10 +187,22 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 	if ctx.Err() != nil {
 		return "cancelled", ctx.Err().Error()
 	}
+	// Artifacts are collected whether or not the Job passed: a failing test run's report is the one wanted most.
+	// They go up before Finish because the per-job token dies with the Job.
+	if err := e.uploadArtifacts(ctx, d, spec, name); err != nil && failed == "" {
+		failed = err.Error()
+	}
 	if failed != "" {
 		return "failure", failed
 	}
 	return "success", ""
+}
+
+func (e *Executor) stepOut(w io.Writer) io.Writer {
+	if e.Out == nil {
+		return w
+	}
+	return io.MultiWriter(w, e.Out)
 }
 
 func (e *Executor) setStep(ctx context.Context, spec *runnerapi.JobSpec, pos int, status string) {
@@ -318,7 +341,7 @@ func (e *Executor) stepArgs(spec *runnerapi.JobSpec, st runnerapi.StepSpec, cont
 	return append(args, shellArgs...), nil
 }
 
-func (e *Executor) runStep(ctx context.Context, d docker, spec *runnerapi.JobSpec, st runnerapi.StepSpec, container string) error {
+func (e *Executor) runStep(ctx context.Context, d docker, spec *runnerapi.JobSpec, st runnerapi.StepSpec, container string, out io.Writer) error {
 	args, err := e.stepArgs(spec, st, container)
 	if err != nil {
 		return err
@@ -331,10 +354,6 @@ func (e *Executor) runStep(ctx context.Context, d docker, spec *runnerapi.JobSpe
 	}
 	// Not CommandContext: killing the docker CLI would leave the Step's processes running in the container.
 	c := d.cmd(context.Background(), args...)
-	out := e.Out
-	if out == nil {
-		out = os.Stdout
-	}
 	c.Stdout, c.Stderr = out, out
 	if err := c.Start(); err != nil {
 		return err

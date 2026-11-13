@@ -2,9 +2,11 @@ package runner
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -13,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/logmask"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/runnerapi"
 )
 
@@ -23,13 +26,17 @@ const stubScript = `#!/bin/sh
 printf '%s\0' "$@" >> "$STUB_DIR/log"
 printf '\001' >> "$STUB_DIR/log"
 case "$1" in
-  cp) cat > /dev/null ;;
+  cp)
+    if [ "$2" = "-" ]; then cat > /dev/null
+    elif [ -e "$STUB_DIR/artifact.tar" ]; then cat "$STUB_DIR/artifact.tar"
+    else echo "Could not find the file $2" >&2; exit 1; fi ;;
   rm) for a in "$@"; do last=$a; done; : > "$STUB_DIR/removed-$last" ;;
   exec)
     name=""; prev=""
     for a in "$@"; do [ "$prev" = "--" ] && name=$a; prev=$a; done
     case "$*" in *"kill -9 -1"*) : > "$STUB_DIR/removed-$name"; exit 0 ;; esac
     case "$*" in *STUBFAIL*) echo "boom" >&2; exit 3 ;; esac
+    case "$*" in *STUBTAIL*) echo "first line"; while [ ! -e "$STUB_DIR/removed-$name" ]; do sleep 0.02; done; exit 137 ;; esac
     case "$*" in *STUBHANG*) while [ ! -e "$STUB_DIR/removed-$name" ]; do sleep 0.02; done; exit 137 ;; esac
     echo "ran in $name" ;;
 esac
@@ -62,8 +69,17 @@ func stubDocker(t *testing.T) (readCalls func() []call) {
 	}
 }
 
+type postedLog struct {
+	step, seq int
+	text      string
+}
+
 type fakeAPI struct {
 	mu        sync.Mutex
+	logs      []postedLog
+	artifacts map[string][]byte
+	artErr    error
+	truncate  bool
 	steps     []string
 	result    string
 	message   string
@@ -92,10 +108,52 @@ func (f *fakeAPI) Finish(_ context.Context, _ int64, result, message string) err
 	return nil
 }
 
+func (f *fakeAPI) PostLog(_ context.Context, _ int64, token string, step, seq int, data []byte) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if token != "czj_secret" {
+		return false, ErrUnauthorized
+	}
+	f.logs = append(f.logs, postedLog{step, seq, string(data)})
+	return f.truncate, nil
+}
+
+func (f *fakeAPI) UploadArtifact(_ context.Context, _ int64, token, name string, size int64, r io.Reader) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	if int64(len(b)) != size || token != "czj_secret" {
+		return errors.New("bad upload")
+	}
+	if f.artErr != nil {
+		return f.artErr
+	}
+	if f.artifacts == nil {
+		f.artifacts = map[string][]byte{}
+	}
+	f.artifacts[name] = b
+	return nil
+}
+
+func (f *fakeAPI) postedText(step int) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var b strings.Builder
+	for _, l := range f.logs {
+		if l.step == step {
+			b.WriteString(l.text)
+		}
+	}
+	return b.String()
+}
+
 func newExecutor(api *fakeAPI) *Executor {
 	return &Executor{
 		Config: &Config{Images: map[string]string{"linux": "ubuntu:24.04"}},
-		Limits: DefaultLimits(), API: api, Out: &bytes.Buffer{}, HeartbeatEvery: 10 * time.Millisecond,
+		Limits: DefaultLimits(), API: api, HeartbeatEvery: 10 * time.Millisecond, FlushEvery: 20 * time.Millisecond,
 		Checkout: func(_ context.Context, _ *runnerapi.JobSpec, dir string) error {
 			return os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main"), 0o644)
 		},
@@ -497,6 +555,148 @@ func TestExecute_TimeoutMinutesOfAStepAndOfTheJobAreHonoured(t *testing.T) {
 			}
 			if !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" && strings.Contains(strings.Join(c, " "), "kill -9 -1") }) {
 				t.Error("container was not removed")
+			}
+		})
+	}
+}
+
+func TestExecute_OutputIsPostedPerStepInOrderWithSecretsMasked(t *testing.T) {
+	stubDocker(t)
+	api := &fakeAPI{}
+	e := newExecutor(api)
+	e.Masker = logmask.New([]string{"cz-job-7"})
+	e.Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "one"}, runnerapi.StepSpec{Run: "two"}))
+
+	if got := api.postedText(0); got != "ran in ***\n" {
+		t.Errorf("step 0 log = %q", got)
+	}
+	if got := api.postedText(1); got != "ran in ***\n" {
+		t.Errorf("step 1 log = %q", got)
+	}
+	for i, l := range api.logs {
+		if l.seq != i {
+			t.Errorf("chunk %d has seq %d", i, l.seq)
+		}
+	}
+}
+
+func TestExecute_OutputIsPostedWhileTheStepIsStillRunning(t *testing.T) {
+	calls := stubDocker(t)
+	api := &fakeAPI{}
+	e := newExecutor(api)
+	e.HeartbeatEvery = time.Hour
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() { e.Execute(ctx, jobSpec(runnerapi.StepSpec{Run: "STUBTAIL"})); close(done) }()
+
+	deadline := time.Now().Add(10 * time.Second)
+	for api.postedText(0) != "first line\n" {
+		if time.Now().After(deadline) {
+			t.Fatalf("nothing posted while the step ran; calls = %v", calls())
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if api.finished {
+		t.Error("the Job had finished before the check")
+	}
+	cancel()
+	<-done
+}
+
+func TestExecute_LogCapReportedByTheServerStopsFurtherPosts(t *testing.T) {
+	stubDocker(t)
+	api := &fakeAPI{truncate: true}
+	newExecutor(api).Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "one"}, runnerapi.StepSpec{Run: "two"}))
+	if len(api.logs) != 1 {
+		t.Errorf("posts after truncation = %d, want only the first", len(api.logs))
+	}
+	if api.result != "success" {
+		t.Errorf("a capped log changed the result: %q %q", api.result, api.message)
+	}
+}
+
+func artifactTar(t *testing.T) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	for _, h := range []struct {
+		name, body string
+		typ        byte
+		link       string
+	}{
+		{"dist/", "", tar.TypeDir, ""},
+		{"dist/app.bin", "binary", tar.TypeReg, ""},
+		{"dist/link", "", tar.TypeSymlink, "/etc/passwd"},
+		{"../escape", "x", tar.TypeReg, ""},
+	} {
+		if err := tw.WriteHeader(&tar.Header{Name: h.name, Typeflag: h.typ, Mode: 0o755, Size: int64(len(h.body)), Linkname: h.link}); err != nil {
+			t.Fatal(err)
+		}
+		_, _ = tw.Write([]byte(h.body))
+	}
+	_ = tw.Close()
+	return buf.Bytes()
+}
+
+func TestExecute_ArtifactsAreZippedAndUploadedBeforeTheJobFinishes(t *testing.T) {
+	calls := stubDocker(t)
+	if err := os.WriteFile(filepath.Join(os.Getenv("STUB_DIR"), "artifact.tar"), artifactTar(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	api := &fakeAPI{}
+	spec := jobSpec(runnerapi.StepSpec{Run: "make"})
+	spec.Artifacts = []runnerapi.ArtifactSpec{{Name: "dist", Path: "./dist"}}
+	newExecutor(api).Execute(context.Background(), spec)
+
+	if api.result != "success" {
+		t.Fatalf("result = %q %q", api.result, api.message)
+	}
+	zr, err := zip.NewReader(bytes.NewReader(api.artifacts["dist"]), int64(len(api.artifacts["dist"])))
+	if err != nil {
+		t.Fatalf("uploaded archive: %v", err)
+	}
+	var names []string
+	for _, f := range zr.File {
+		names = append(names, f.Name)
+	}
+	if !slices.Equal(names, []string{"dist/", "dist/app.bin"}) {
+		t.Errorf("zip entries = %q, want the dir and file only: no symlink, nothing outside", names)
+	}
+	var cp call
+	for _, c := range calls() {
+		if c[0] == "cp" && c[1] != "-" {
+			cp = c
+		}
+	}
+	if !slices.Equal(cp, call{"cp", "cz-job-7:/workspace/src/dist", "-"}) {
+		t.Errorf("cp args = %q", cp)
+	}
+}
+
+func TestExecute_AFailedArtifactFailsTheJobAndNamesIt(t *testing.T) {
+	for name, tc := range map[string]struct {
+		path    string
+		artErr  error
+		wantMsg string
+	}{
+		"missing path":   {path: "nothing", wantMsg: `artifact "out": nothing does not exist in the workspace`},
+		"outside":        {path: "../etc", wantMsg: "inside the workspace"},
+		"server refusal": {path: "x", artErr: errors.New("422 a Run can have at most 10 artifacts (ci.max_artifacts_per_run)"), wantMsg: "ci.max_artifacts_per_run"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			stubDocker(t) // without artifact.tar docker cp reports the path missing
+			api := &fakeAPI{artErr: tc.artErr}
+			spec := jobSpec(runnerapi.StepSpec{Run: "make"})
+			spec.Artifacts = []runnerapi.ArtifactSpec{{Name: "out", Path: tc.path}}
+			if tc.artErr != nil {
+				if err := os.WriteFile(filepath.Join(os.Getenv("STUB_DIR"), "artifact.tar"), artifactTar(t), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			newExecutor(api).Execute(context.Background(), spec)
+			if api.result != "failure" || !strings.Contains(api.message, tc.wantMsg) {
+				t.Errorf("result = %q %q, want failure containing %q", api.result, api.message, tc.wantMsg)
 			}
 		})
 	}
