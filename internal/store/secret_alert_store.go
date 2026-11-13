@@ -209,6 +209,36 @@ func (s *SecretAlertStore) OpenCount(ctx context.Context, repoID int64) (int, er
 	return n, err
 }
 
+// BlockedOpen returns the open alerts among hashes that no ref reaches yet.
+func (s *SecretAlertStore) BlockedOpen(ctx context.Context, repoID int64, hashes []string) ([]model.SecretScanAlert, error) {
+	if len(hashes) == 0 {
+		return nil, nil
+	}
+	args := []any{repoID}
+	holders := make([]string, len(hashes))
+	for i, h := range hashes {
+		args = append(args, h)
+		holders[i] = fmt.Sprintf("$%d", i+2)
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+secretAlertColumns+` FROM secret_scan_alerts a WHERE a.repo_id = $1 AND a.state = 'open'
+		 AND a.secret_hash IN (`+strings.Join(holders, ",")+`)
+		 AND NOT EXISTS (SELECT 1 FROM secret_scan_locations l WHERE l.alert_id = a.id AND l.reached_ref)`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("secret alert blocked lookup: %w", err)
+	}
+	defer rows.Close()
+	var out []model.SecretScanAlert
+	for rows.Next() {
+		a, err := scanSecretAlert(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *a)
+	}
+	return out, rows.Err()
+}
+
 // MarkReached flags every location on one of commitSHAs as reachable from a ref.
 func (s *SecretAlertStore) MarkReached(ctx context.Context, repoID int64, commitSHAs []string) error {
 	if len(commitSHAs) == 0 {

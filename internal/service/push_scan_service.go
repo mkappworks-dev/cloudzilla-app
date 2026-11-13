@@ -632,6 +632,7 @@ func (p *PushScan) PostReceive(ctx context.Context, commands []*packp.Command) {
 	p.scanCommits(ctx, applied)
 
 	repoID := p.repo.ID
+	blocked := p.blockedBeforeRecording(ctx, applied)
 	for _, c := range applied {
 		if len(p.findings[c.Hash]) == 0 {
 			continue
@@ -654,6 +655,44 @@ func (p *PushScan) PostReceive(ctx context.Context, commands []*packp.Command) {
 			return
 		}
 		shas = shas[n:]
+	}
+	p.notifyReached(ctx, blocked)
+}
+
+// blockedBeforeRecording returns the blocked alerts whose value the applied commits carry: a ref is about to reach them.
+func (p *PushScan) blockedBeforeRecording(ctx context.Context, applied []*object.Commit) []model.SecretScanAlert {
+	if p.svc.notifier == nil {
+		return nil
+	}
+	seen := make(map[string]bool)
+	var hashes []string
+	for _, c := range applied {
+		for _, f := range p.findings[c.Hash] {
+			if h := secretscan.Hash(p.repo.ID, f.Value); !seen[h] {
+				seen[h] = true
+				hashes = append(hashes, h)
+			}
+		}
+	}
+	alerts, err := p.svc.alerts.BlockedOpen(ctx, p.repo.ID, hashes)
+	if err != nil {
+		slog.Error("secret-scan: look up blocked alerts", "repo_id", p.repo.ID, "error", err)
+	}
+	return alerts
+}
+
+// notifyReached tells repository admins about each alert that was blocked before this push and a ref now reaches; it
+// is the first time they hear of it, since a blocked push notifies no one.
+func (p *PushScan) notifyReached(ctx context.Context, was []model.SecretScanAlert) {
+	for i := range was {
+		now, err := p.svc.alerts.Get(ctx, p.repo.ID, was[i].Number)
+		if err != nil {
+			slog.Error("secret-scan: reload alert", "repo_id", p.repo.ID, "error", err)
+			continue
+		}
+		if !now.Blocked {
+			p.svc.notifier.NotifySecretAlert(ctx, p.repo, now)
+		}
 	}
 }
 

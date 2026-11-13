@@ -1,11 +1,49 @@
 package handler_test
 
 import (
+	"errors"
+	"sync/atomic"
 	"testing"
 
+	"github.com/go-git/go-git/v5/plumbing"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/secretscan"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
+
+func TestPushProtection_RefReachesBlockedAlert_NotifiesAdminsOnce(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	e := newPushEnv(t, db, nil)
+	c := testutil.NewPushClient(t, e.r.git)
+	bad := c.Commit(e.r.mainTip, keyFile(), "add key")
+	if got := e.push(t, c, create(topicRef, bad))[topicRef]; got != e.wantRefusal(1) {
+		t.Fatalf("first push status = %q", got)
+	}
+	if n := e.notes.count(); n != 0 {
+		t.Fatalf("a blocked push notified %d times", n)
+	}
+
+	var failed atomic.Bool
+	e.svcs.PushScan.WithScanner(func(path string, content []byte, max int) ([]secretscan.Finding, error) {
+		if failed.CompareAndSwap(false, true) {
+			return nil, errors.New("scanner crashed")
+		}
+		return secretscan.Scan(path, content, max), nil
+	})
+	other := plumbing.NewBranchReferenceName("other")
+	if got := e.push(t, c, create(other, bad))[other]; got != "ok" {
+		t.Fatalf("second push status = %q, want ok", got)
+	}
+	e.waitPostReceive(t, 2)
+
+	if n := e.notes.count(); n != 1 {
+		t.Errorf("admins notified %d times when a ref reached the blocked alert, want 1", n)
+	}
+	if a := e.alerts(t)[0]; a.Blocked {
+		t.Errorf("alert = %+v, want reached", a)
+	}
+}
 
 func TestPushProtection_IncompleteScan_OnlyUnscannedCommitsAreFlagged(t *testing.T) {
 	db := testutil.OpenTestDB(t)

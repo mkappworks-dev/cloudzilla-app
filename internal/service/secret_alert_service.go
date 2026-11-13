@@ -75,6 +75,11 @@ func (s *SecretAlertService) AutoRevoke(ctx context.Context, alertID int64) erro
 	return s.alerts.Close(ctx, alertID, 0, model.SecretResolutionRevoked, model.SecretEventAutoRevoked, true)
 }
 
+// BlockedOpen returns the open alerts among hashes (see secretscan.Hash) that no ref reaches yet.
+func (s *SecretAlertService) BlockedOpen(ctx context.Context, repoID int64, hashes []string) ([]model.SecretScanAlert, error) {
+	return s.alerts.BlockedOpen(ctx, repoID, hashes)
+}
+
 // MarkReached records that the commits are now reachable from a ref.
 func (s *SecretAlertService) MarkReached(ctx context.Context, repoID int64, commitSHAs []string) error {
 	return s.alerts.MarkReached(ctx, repoID, commitSHAs)
