@@ -25,8 +25,8 @@ Run `go build -tags dev ./...` and `go test -tags dev ./internal/assets/` locall
 
 ## Secret scanning tests
 
-The push-protection tests push real packs, built by `internal/testutil/pushclient.go`, through both transports and assert
-the exact ref-status text: `internal/handler/git_push_protection_test.go` (HTTP) and
+The push-protection tests push real packs, built by `internal/testutil/pushclient.go`, through both transports and
+assert the exact ref-status text: `internal/handler/git_push_protection_test.go` (HTTP) and
 `internal/ssh/push_protection_test.go` (SSH). They need Postgres for the alert tables, so they skip in the Test job. The
 scanner's tests (`internal/secretscan`) need nothing. Before changing the push path, also run native `git push` over
 HTTP with a token and over SSH against a throwaway server and read the refusal line: the go-git client in the tests

@@ -38,7 +38,7 @@ Repo admins hear nothing when a secret is found after the fact or when a writer 
 - [x] Notification and email bodies contain no secret hint (test)
 - [ ] ~~Checked at desktop 1440 in light and dark~~ (no UI in this ticket)
 - [ ] ~~The standing mocks in `mockups/` are updated~~ (no UI in this ticket)
-- [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
+- [x] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
 - [x] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
@@ -47,3 +47,4 @@ Integration tests; then on the throwaway server trigger each notification throug
 
 ## Comments
 
+Claude, 2026-11-13: ticked after ticket 17's end-to-end run, which fired the alert digest (backfill), the allowed notification (Allow action) and the token-revoked notification (live token push) on a throwaway server.

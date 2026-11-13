@@ -2457,10 +2457,10 @@ A static set of patterns (AWS access key ID, private key header, Cloudzilla toke
 with a confidence, scans every push to a branch or tag, every web-editor commit, and once the whole history of each
 repository. An alert is `open` or `closed` with a resolution (`revoked`, `false_positive`, `used_in_tests`); one alert
 per repository and secret value, with every sighting a location. Push protection refuses a push that adds a
-high-confidence secret with one status line over HTTP and SSH, naming the type, `file:line` and the alert's URL; a writer
-**allows** the value by closing its alert as a false positive or a test value, and it is then not blocked again in that
-repository. The scan fails open at a time or blob budget and alerts after the push. A live Cloudzilla token found
-anywhere is deleted and its owner notified. The Security tab (`GET /{owner}/{repo}/security/secrets`, write access
+high-confidence secret with one status line over HTTP and SSH, naming the type, `file:line` and the alert's URL; a
+writer **allows** the value by closing its alert as a false positive or a test value, and it is then not blocked again
+in that repository. The scan fails open at a time or blob budget and alerts after the push. A live Cloudzilla token
+found anywhere is deleted and its owner notified. The Security tab (`GET /{owner}/{repo}/security/secrets`, write access
 required) lists alerts and closes, reopens and allows them. No new webhook event. Details:
 [secret-scanning](./secret-scanning.md).
 

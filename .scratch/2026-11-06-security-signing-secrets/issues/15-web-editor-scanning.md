@@ -36,7 +36,7 @@ Daisy can paste a key into the web file editor, which does not go through receiv
 - [x] Merges, squashes and wiki saves are untouched
 - [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
 - [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
-- [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
+- [x] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
 - [x] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
@@ -45,3 +45,4 @@ Throwaway server: sign in, edit a file in the browser to add a key, see the erro
 
 ## Comments
 
+Claude, 2026-11-13: ticked after ticket 17's end-to-end run: a web editor edit adding a key was refused with 422 and the push-protection line, and a clean file was accepted.

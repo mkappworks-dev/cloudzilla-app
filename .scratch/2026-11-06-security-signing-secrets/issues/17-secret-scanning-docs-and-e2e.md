@@ -32,7 +32,7 @@ A shipped feature needs its subsystem doc, a correct ROADMAP entry (the 17.3 mig
 ## Acceptance criteria
 
 - [x] Docs describe behaviour that was seen in the end-to-end run, not planned behaviour; any difference from this spec is recorded in the spec's Comments
-- [ ] `npm run fmt` has been run on the changed `.md` files (not on `.scratch/`) and `npm run fmt:check` passes
+- [x] `npm run fmt` has been run on the changed `.md` files (not on `.scratch/`) and `npm run fmt:check` passes
 - [x] ROADMAP 17.3 and the phase table are consistent with the migrations that merged
 - [ ] ~~Checked at desktop 1440 in light and dark~~ (no UI in this ticket)
 - [ ] ~~The standing mocks in `mockups/` are updated~~ (no UI in this ticket)
@@ -66,3 +66,5 @@ Claude, 2026-11-13 (end-to-end): throwaway server (scratch Postgres on :55912, p
 Not as the spec says: the Security page intro keeps saying pushes are rejected when `push_protection` is off; the history
 walk ignores `secret_scanning.max_blob_bytes` (fixed 1 MiB); a web-editor alert has no commit. `npm run fmt` could not run
 (no `node_modules`), so the new `.md` files are wrapped by hand and Prettier's table alignment is unchecked.
+
+Claude, 2026-11-13: `npm ci` then `npm run fmt:check` failed on six docs this work edited (CLAUDE.md, docs/ROADMAP.md, git-transport.md, notifications.md, testing.md, mockups/COVERAGE.md); formatted those six with Prettier and the check now passes.
