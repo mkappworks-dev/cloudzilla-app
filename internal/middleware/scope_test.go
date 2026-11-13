@@ -290,6 +290,8 @@ func TestPAT_ScopeEnforcement(t *testing.T) {
 		{"POST /api/user/gpg_keys with every scope", false, "POST", "/api/user/gpg_keys", every, http.StatusForbidden, closed},
 		{"GET /api/user/ssh_signing_keys with every scope", false, "GET", "/api/user/ssh_signing_keys", every, http.StatusForbidden, closed},
 		{"POST /api/user/ssh_signing_keys with every scope", false, "POST", "/api/user/ssh_signing_keys", every, http.StatusForbidden, closed},
+		{"revoke a GPG key with every scope", false, "POST", "/api/user/gpg_keys/1/revoke", every, http.StatusForbidden, closed},
+		{"restore an SSH signing key with every scope", false, "POST", "/api/user/ssh_signing_keys/1/restore", every, http.StatusForbidden, closed},
 		{"admin API with every scope", false, "POST", "/api/admin/settings", every, http.StatusForbidden, closed},
 		{"add webhook with every scope", false, "POST", "/api/repos/bob/proj/hooks", every, http.StatusForbidden, closed + `, scope="repo:admin"`},
 		{"profile page with every scope", true, "GET", "/bob", every, http.StatusForbidden, closed},

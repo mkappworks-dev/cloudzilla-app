@@ -62,15 +62,25 @@ func TestSignatureService_KeyAddedAndDeletedFlipTheSameCommit(t *testing.T) {
 		}
 	}
 
-	if err := keys.DeleteGPGKey(ctx, gpgKey.ID, uid); err != nil {
+	// The fixtures' committer dates are in the past, so a key removed now has been removed since they were made.
+	if err := keys.RemoveGPGKey(ctx, gpgKey.ID, uid); err != nil {
 		t.Fatal(err)
 	}
-	if err := keys.DeleteSSHKey(ctx, sshKey.ID, uid); err != nil {
+	if err := keys.RemoveSSHKey(ctx, sshKey.ID, uid); err != nil {
 		t.Fatal(err)
 	}
 	for _, c := range []*object.Commit{gpgCommit, sshCommit} {
+		if got := status(c); got.Status != SignatureVerified {
+			t.Fatalf("after removing the key: %s/%q, want the earlier commit still verified", got.Status, got.Reason)
+		}
+	}
+
+	db := testutil.OpenTestDB(t)
+	testutil.Exec(t, db, `DELETE FROM gpg_keys WHERE id = $1`, gpgKey.ID)
+	testutil.Exec(t, db, `DELETE FROM ssh_signing_keys WHERE id = $1`, sshKey.ID)
+	for _, c := range []*object.Commit{gpgCommit, sshCommit} {
 		if got := status(c); got.Status != SignatureUnverified || got.Reason != ReasonNoKey {
-			t.Fatalf("after deleting the key: %s/%q, want unverified/no_key", got.Status, got.Reason)
+			t.Fatalf("after deleting the key row: %s/%q, want unverified/no_key", got.Status, got.Reason)
 		}
 	}
 }

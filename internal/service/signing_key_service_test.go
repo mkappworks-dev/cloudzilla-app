@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -28,7 +29,7 @@ func TestSigningKeyService_AddGPGKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	list, err := svc.ListGPGKeys(ctx, me)
+	list, err := svc.ListGPGKeys(ctx, me, false)
 	if err != nil || len(list) != 1 {
 		t.Fatalf("list = %v (%v), want the one key", list, err)
 	}
@@ -40,25 +41,25 @@ func TestSigningKeyService_AddGPGKey(t *testing.T) {
 	if _, err := svc.AddGPGKey(ctx, other, armored); !errors.Is(err, ErrSigningKeyTaken) {
 		t.Errorf("same key on another account: got %v, want ErrSigningKeyTaken", err)
 	}
-	if _, err := svc.AddGPGKey(ctx, me, armored); !errors.Is(err, ErrSigningKeyOwned) {
-		t.Errorf("same key twice: got %v, want ErrSigningKeyOwned", err)
+	if again, created, err := svc.UpsertGPGKey(ctx, me, armored); err != nil || created || again.ID != key.ID {
+		t.Errorf("same key twice: got id %d created=%v (%v), want the existing row updated in place", again.ID, created, err)
 	}
-	if theirs, _ := svc.ListGPGKeys(ctx, other); len(theirs) != 0 {
+	if theirs, _ := svc.ListGPGKeys(ctx, other, false); len(theirs) != 0 {
 		t.Errorf("the refused add left %d keys on the other account", len(theirs))
 	}
 
-	if err := svc.DeleteGPGKey(ctx, key.ID, other); !errors.Is(err, ErrSigningKeyNotFound) {
-		t.Errorf("delete another user's key: got %v, want ErrSigningKeyNotFound", err)
+	if err := svc.RemoveGPGKey(ctx, key.ID, other); !errors.Is(err, ErrSigningKeyNotFound) {
+		t.Errorf("remove another user's key: got %v, want ErrSigningKeyNotFound", err)
 	}
-	if err := svc.DeleteGPGKey(ctx, key.ID, me); err != nil {
+	if err := svc.RemoveGPGKey(ctx, key.ID, me); err != nil {
 		t.Fatal(err)
 	}
-	db := testutil.OpenTestDB(t)
-	for _, table := range []string{"gpg_subkeys", "gpg_key_emails"} {
-		var n int
-		if err := db.QueryRow(`SELECT COUNT(*) FROM `+table+` WHERE gpg_key_id = $1`, key.ID).Scan(&n); err != nil || n != 0 {
-			t.Errorf("%s rows after delete = %d (%v), want 0", table, n, err)
-		}
+	if visible, _ := svc.ListGPGKeys(ctx, me, false); len(visible) != 0 {
+		t.Errorf("a removed key is listed by default: %v", visible)
+	}
+	all, _ := svc.ListGPGKeys(ctx, me, true)
+	if len(all) != 1 || all[0].Status != model.SigningKeyRemoved || len(all[0].Subkeys) != 2 || len(all[0].Emails) != 1 {
+		t.Errorf("removed key with include = %+v, want the row kept with status removed, subkeys and emails", all)
 	}
 }
 
@@ -103,19 +104,19 @@ func TestSigningKeyService_AddSSHKey(t *testing.T) {
 	if keys, _ := auth.ListByUser(ctx, me); len(keys) != 1 {
 		t.Errorf("ssh_keys has %d rows, want the auth key untouched", len(keys))
 	}
+	if again, created, err := svc.UpsertSSHKey(ctx, me, "again", pub); err != nil || created || again.ID != key.ID {
+		t.Errorf("same key twice: got id %d created=%v (%v), want the existing row", again.ID, created, err)
+	}
 	if _, err := svc.AddSSHKey(ctx, other, "theirs", pub); !errors.Is(err, ErrSigningKeyTaken) {
 		t.Errorf("same key on another account: got %v, want ErrSigningKeyTaken", err)
-	}
-	if _, err := svc.AddSSHKey(ctx, me, "again", pub); !errors.Is(err, ErrSigningKeyOwned) {
-		t.Errorf("same key twice: got %v, want ErrSigningKeyOwned", err)
 	}
 	if _, err := svc.AddSSHKey(ctx, me, "bad", "ssh-ed25519 nope"); !errors.Is(err, ErrInvalidSigningKey) {
 		t.Errorf("garbage key: got %v, want ErrInvalidSigningKey", err)
 	}
-	if err := svc.DeleteSSHKey(ctx, key.ID, other); !errors.Is(err, ErrSigningKeyNotFound) {
-		t.Errorf("delete another user's key: got %v, want ErrSigningKeyNotFound", err)
+	if err := svc.RemoveSSHKey(ctx, key.ID, other); !errors.Is(err, ErrSigningKeyNotFound) {
+		t.Errorf("remove another user's key: got %v, want ErrSigningKeyNotFound", err)
 	}
-	if err := svc.DeleteSSHKey(ctx, key.ID, me); err != nil {
+	if err := svc.RemoveSSHKey(ctx, key.ID, me); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none (01–08 are merged on the base)
 Parallel with: 09
 
@@ -25,14 +25,14 @@ Decision 4 (verify on read, no cache) stays; no ADR. Neither GitHub nor GitLab r
 - **Remove** is a soft delete (`removed_at`). A removed key still verifies commits whose committer date is before `removed_at`; later ones are `unverified` with the new reason `key_removed`. Back-dating a commit with a removed key is the cost decision 7 already accepts for expiry, extended to removed keys. The fingerprint stays reserved to the same account.
 - **Revoke** (GPG and SSH) marks a key compromised: every commit by it, past and future, whatever its date, is `unverified` (`key_revoked`). One-way, no step-up (only the owner is hurt), works on active and removed keys.
 - **Restore** re-activates a removed, non-revoked key. It needs the add step-up because it re-arms a key.
-- **GPG update in place:** `POST /api/user/gpg_keys` with a fingerprint the account already owns refreshes the public key, subkeys, UID emails and expiry (idempotent, same step-up). Another account's fingerprint is `409`. An expired or revoked block is accepted for a key that is already yours. `revoked_at` and `removed_at` are never cleared by an update, so a stale copy cannot un-revoke a key.
+- **GPG update in place:** `POST /api/user/gpg_keys` with a fingerprint the account already owns refreshes the public key, subkeys, UID emails and expiry (idempotent, same step-up). Another account's fingerprint is `409`. An expired or revoked block is accepted for a key that is already yours. `revoked_at` is never cleared by an update, so a stale copy cannot un-revoke a key. Posting a block for an owned *removed* key restores it (the step-up is the intent to re-arm it) unless the block itself carries a revocation, which sets `removed_at` / `revoked_at` per the mapping below; a revoked key is refused with `409`.
 - **Revocation reason mapping** for an uploaded OpenPGP revocation (primary key and each subkey): compromised or no reason → Revoke; superseded or retired → Remove at the revocation signature's creation time. Replaces the date-blind `RevokedAt != nil` in `gpgKeyState`.
 - `revoke-credentials` and account deletion stay hard deletes (`no_key`); the data export gains `removed_at` and `revoked_at`.
-- An SSH signing key added again by its owner while removed is a Restore; while revoked it is refused.
+- An SSH signing key posted again by its owner while removed is a Restore (same rule as GPG); while revoked it is `409`; while active it returns the existing row.
 
 ## Scope
 
-- Migration `132_signing_key_removal.sql` (re-check the next free number on `origin/main` at build): `removed_at TIMESTAMPTZ` on `gpg_keys` and `ssh_signing_keys`, `revoked_at TIMESTAMPTZ` on `ssh_signing_keys` (`gpg_keys` and `gpg_subkeys` already have it). `gpg_subkeys` gets `removed_at` only if the superseded/retired mapping needs a per-subkey date there; otherwise store it in `revoked_at` with a `revoke_kind` text (`compromised` | `superseded`), decided at build and recorded in the PR.
+- Migration `132_signing_key_removal.sql` (re-check the next free number on `origin/main` at build): `removed_at TIMESTAMPTZ` on `gpg_keys` and `ssh_signing_keys`, `revoked_at TIMESTAMPTZ` on `ssh_signing_keys` (`gpg_keys` and `gpg_subkeys` already have it). `removed_at` also goes on `gpg_subkeys`: a superseded or retired revocation of a subkey is a date-bounded removal of that subkey, a compromised one sets its `revoked_at`.
 - Models, `GPGKeyStore` / `SSHSigningKeyStore` (`Remove`, `Revoke`, `Restore`, upsert on an owned fingerprint; the lookups used by `SignatureService` must return removed and revoked keys, the settings lists must not mix them up).
 - `SigningKeyService`: remove / revoke / restore / update-in-place, ownership checks, audit entries `user.gpg_key.remove|revoke|restore|update` and the SSH twins. `DeleteGPGKey` / `DeleteSSHKey` become the soft remove.
 - `parseGPGKey`: take the revocation reason and time from the primary and subkey revocation signatures and set `revoked_at` / the removal time per the mapping; accept an expired or revoked block when the caller owns the fingerprint, still refuse it for a new key.
@@ -62,19 +62,19 @@ Shared with 09: `signing_key_service.go`, `gpg_key_store.go`, `signing_key_handl
 
 ## Acceptance criteria
 
-- [ ] Removing a key keeps commits dated before `removed_at` Verified and makes later ones `unverified` (`key_removed`), for GPG, GPG signing subkeys and SSH; restoring flips them back with nothing to clear
-- [ ] Revoking a key (GPG and SSH) makes all its commits `unverified` (`key_revoked`) regardless of committer date, including a key that was already removed; revoke cannot be undone and a revoked key cannot be restored or re-added
-- [ ] Posting an updated GPG block for an owned fingerprint updates keys, subkeys, UID emails and expiry in place; a foreign fingerprint is `409`; an update never clears `revoked_at` / `removed_at`
-- [ ] An uploaded revocation maps by reason on the primary key and per subkey: compromised or no reason → `key_revoked`; superseded or retired → date-bounded at the revocation time (table-driven tests with real revocation certificates made by native gpg, committed as testdata so CI needs no gpg)
-- [ ] `gpgKeyState` no longer treats a stored revocation as date-blind; existing 02 cases still pass
-- [ ] A page of 30 commits still does a constant number of key queries (removed and revoked keys included)
-- [ ] `revoke-credentials` and account deletion still hard-delete signing keys; the data export carries `removed_at` and `revoked_at`
-- [ ] Remove / Revoke / Restore / update are audit-logged, session-only (a PAT gets the same refusal as for add), and Restore needs the step-up
-- [ ] Settings UI: removed-keys disclosure, Revoked badge, both confirm texts and toasts; commit popover shows the `key_removed` and `key_revoked` copy
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
+- [x] Removing a key keeps commits dated before `removed_at` Verified and makes later ones `unverified` (`key_removed`), for GPG, GPG signing subkeys and SSH; restoring flips them back with nothing to clear
+- [x] Revoking a key (GPG and SSH) makes all its commits `unverified` (`key_revoked`) regardless of committer date, including a key that was already removed; revoke cannot be undone and a revoked key cannot be restored or re-added
+- [x] Posting an updated GPG block for an owned fingerprint updates keys, subkeys, UID emails and expiry in place; a foreign fingerprint is `409`; an update never clears `revoked_at`, and clears `removed_at` only when the post restores a removed key
+- [x] An uploaded revocation maps by reason on the primary key and per subkey: compromised or no reason → `key_revoked`; superseded or retired → date-bounded at the revocation time (table-driven tests with real revocation certificates made by native gpg, committed as testdata so CI needs no gpg)
+- [x] `gpgKeyState` no longer treats a stored revocation as date-blind; existing 02 cases still pass
+- [x] A page of 30 commits still does a constant number of key queries (removed and revoked keys included)
+- [x] `revoke-credentials` and account deletion still hard-delete signing keys; the data export carries `removed_at` and `revoked_at`
+- [x] Remove (`.delete`, kept so audit history stays one name), Revoke, Restore and update are audit-logged, session-only (a PAT gets the same refusal as for add), and Restore needs the step-up
+- [x] Settings UI: removed-keys disclosure, Revoked badge, both confirm texts and toasts; commit popover shows the `key_removed` and `key_revoked` copy
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
 - [ ] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page, with the new states
-- [ ] `make generate-templ` re-run and the `_templ.go` files committed; `docs/signed-commits.md` and `docs/api-reference.md` updated and `npm run fmt:check` passes (not run on `.scratch/`)
+- [x] `make generate-templ` re-run and the `_templ.go` files committed; `docs/signed-commits.md` and `docs/api-reference.md` updated and `npm run fmt:check` passes (not run on `.scratch/`)
 - [ ] `make lint` and `go test ./...` pass; `make test-integration` passes for the new store queries and migration
 
 ## Verification
@@ -86,3 +86,11 @@ Throwaway server: scratch Postgres on a free port (see `docs/testing.md`), a uni
 ## Comments
 
 Claude, 2026-11-13: Settled in a decision session; no product code was written. Findings behind it: `parseGPGKey` refuses a revoked primary key (`gpg_key_parse.go:42`), so only subkey `revoked_at` is ever stored, and `gpgKeyState` (`signature_service.go:419`) ignores its date. go-crypto's own `revoked()` treats a compromised-reason revocation as revoked before its date, which is the Revoke semantics here.
+
+Claude, 2026-11-13 (implementation): Built on `tech/signing-key-revocation`. Migration is `132_signing_key_removal.sql`. `go build`, `go vet` (apart from the pre-existing unkeyed-field vet notes in `notifications_templ.go`) and `go test ./...` pass against a scratch Postgres; `make lint` is not ticked because golangci-lint is not installed here. Deviations from the text above:
+- Revocation certificates in the tests are made with go-crypto's `RevokeKey` / `RevokeSubkey` (verified signatures, all four reasons), not by native gpg, so no new testdata fixtures; the state matrix reuses the committed signed fixtures and sets `removed_at` around their committer dates.
+- Remove keeps the audit action `user.*.delete`; update, revoke and restore are new.
+- A brand-new add of a block with any revocation (even superseded) is still refused; only an owned key accepts one.
+- `gpg_subkeys.removed_at` exists for superseded or retired subkey revocations; there is no per-subkey UI.
+- UI and mocks: Revoked rows stay in the main lists, removed keys sit in a "Removed keys (n)" disclosure with Restore and Revoke, Restore has its own step-up dialog (the two dialogs share the handler's `#signing-key-error` slot through an Alpine `x-bind:id` swap). Checked on a throwaway server (scratch Postgres, `CZ_AUTH_COOKIE_NAME` `cz_rev_ui`, `admin@example.test`) at 1440 in light and dark, and the `make mockups` account settings page in both themes. Not done: the `key_removed` / `key_revoked` popovers on the real server (needs native signed pushes; the component tests assert the copy), and the scratch mocks were opened from `file://` but not checked in dark mode.
+

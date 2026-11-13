@@ -40,6 +40,8 @@
       <button type="button" data-mock-state="partial" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Partially verified</button>
       <button type="button" data-mock-state="other_user" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unverified (other account)</button>
       <button type="button" data-mock-state="unverified" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unverified</button>
+      <button type="button" data-mock-state="key-removed" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Key removed</button>
+      <button type="button" data-mock-state="key-revoked" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Key revoked</button>
       <button type="button" data-mock-state="unsigned" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unsigned</button>
       <span class="ml-auto"><a href="mock.html" class="underline hover:text-foreground">← commits</a></span>
     </div>
@@ -132,6 +134,14 @@
         body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + WARN + 'The commit is signed, but no account on this server has the key.</p>' +
           dl([['Key type', 'GPG'], ['Key ID', 'B5690EEEBB952194', 1], ['Committer', 'kiyo@example.com']]) +
           '<p class="mt-2 text-[12px] text-muted-foreground">If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view.</p>' + FOOT },
+      'key-removed': { badge: 'warning', label: 'Unverified', commit: ['chore: remove the retired laptop key from CI', 'b41c07e', 'b41c07e5a2d9f3a8c61e0b47d83f92a5c7e1d046', 'MK', 'Malith Kuruppu', 'malith@example.com'],
+        body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + WARN + 'The key was removed from the account before this commit was made.</p>' +
+          dl([['Key type', 'SSH'], ['Fingerprint', 'SHA256:Rt4nWc8yQe1LkZx6VbA0sGm3uHdJfP7oIiNx9TaYe2B', 1], ['Committer', 'malith@example.com']]) +
+          '<p class="mt-2 text-[12px] text-muted-foreground">Commits signed with a different, valid key verify as usual.</p>' + FOOT },
+      'key-revoked': { badge: 'warning', label: 'Unverified', commit: ['fix: rotate the leaked release signing key', '2d9f3a8', '2d9f3a8c61e0b47d83f92a5c7e1d046b41c07e5a', 'KI', 'Kiyo', 'kiyo@example.com'],
+        body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + WARN + 'The key was revoked by its owner as compromised.</p>' +
+          dl([['Key type', 'GPG'], ['Key ID', 'B5690EEEBB952194', 1], ['Committer', 'kiyo@example.com']]) +
+          '<p class="mt-2 text-[12px] text-muted-foreground">Commits signed with a different, valid key verify as usual.</p>' + FOOT },
       unsigned: { commit: ['chore: release v0.4.1', '420b44b', '420b44b9e3c17d05a8f2b6e4c91d07a3f5e8b2c6', 'MK', 'Malith Kuruppu', 'malith@example.com'] },
     };
     var wrap = document.querySelector('[data-sig]');

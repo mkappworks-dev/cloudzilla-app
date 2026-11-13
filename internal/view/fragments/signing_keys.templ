@@ -35,7 +35,51 @@ func gpgFingerprint(fp string) string {
 	return b.String()
 }
 
+func listedGPGKeys(keys []model.GPGKey) []model.GPGKey {
+	var out []model.GPGKey
+	for _, k := range keys {
+		if k.Status != model.SigningKeyRemoved {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+func removedGPGKeys(keys []model.GPGKey) []model.GPGKey {
+	var out []model.GPGKey
+	for _, k := range keys {
+		if k.Status == model.SigningKeyRemoved {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+func listedSSHKeys(keys []model.SSHSigningKey) []model.SSHSigningKey {
+	var out []model.SSHSigningKey
+	for _, k := range keys {
+		if k.Status != model.SigningKeyRemoved {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+func removedSSHKeys(keys []model.SSHSigningKey) []model.SSHSigningKey {
+	var out []model.SSHSigningKey
+	for _, k := range keys {
+		if k.Status == model.SigningKeyRemoved {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
 templ SigningKeysList(data view.SigningKeysFragData) {
+	{{ gpgListed := listedGPGKeys(data.GPGKeys) }}
+	{{ sshListed := listedSSHKeys(data.SSHKeys) }}
+	{{ gpgRemoved := removedGPGKeys(data.GPGKeys) }}
+	{{ sshRemoved := removedSSHKeys(data.SSHKeys) }}
 	<div id="signing-keys-list">
 		if len(data.GPGKeys) == 0 && len(data.SSHKeys) == 0 {
 			<div class="bg-background border border-border rounded-lg p-8 text-center">
@@ -44,27 +88,41 @@ templ SigningKeysList(data view.SigningKeysFragData) {
 			</div>
 		} else {
 			<div class="flex flex-col gap-6">
-				if len(data.GPGKeys) > 0 {
+				if len(gpgListed) > 0 {
 					<div>
 						<h3 class="text-[13.5px] font-medium mb-1">GPG keys</h3>
 						<p class="text-[12.5px] text-muted-foreground mb-3">Each email in the key is checked against your account's emails.</p>
 						<div class="flex flex-col gap-2">
-							for _, k := range data.GPGKeys {
+							for _, k := range gpgListed {
 								@gpgKeyRow(k, data)
 							}
 						</div>
 					</div>
 				}
-				if len(data.SSHKeys) > 0 {
+				if len(sshListed) > 0 {
 					<div>
 						<h3 class="text-[13.5px] font-medium mb-1">SSH signing keys</h3>
 						<p class="text-[12.5px] text-muted-foreground mb-3">For <span class="font-mono">git config gpg.format ssh</span>. A key can sign and authenticate; each use is added separately.</p>
 						<div class="flex flex-col gap-2">
-							for _, k := range data.SSHKeys {
+							for _, k := range sshListed {
 								@sshSigningKeyRow(k, data)
 							}
 						</div>
 					</div>
+				}
+				if n := len(gpgRemoved) + len(sshRemoved); n > 0 {
+					<details>
+						<summary class="cursor-pointer text-[13.5px] font-medium">Removed keys ({ strconv.Itoa(n) })</summary>
+						<p class="text-[12.5px] text-muted-foreground mt-1 mb-3">Commits they signed before removal stay Verified. Restore a key to trust it again, or revoke it if it was compromised.</p>
+						<div class="flex flex-col gap-2">
+							for _, k := range gpgRemoved {
+								@removedGPGKeyRow(k)
+							}
+							for _, k := range sshRemoved {
+								@removedSSHKeyRow(k)
+							}
+						</div>
+					</details>
 				}
 			</div>
 		}
@@ -81,13 +139,40 @@ templ signingKeyRemove(path, id, title string) {
 		hx-delete={ path + id }
 		hx-target="#signing-keys-list"
 		hx-swap="outerHTML"
-		hx-confirm="Commits signed with this key will show as Unverified once it is removed."
+		hx-confirm="Commits made before today stay Verified; later commits signed with this key won't. If the key is compromised, use Revoke instead."
 		data-confirm-title={ title }
 		data-confirm-label="Remove"
 		data-confirm-danger="true"
 		data-toast="Signing key removed"
-		class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
+		class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive"
 	>Remove</button>
+}
+
+templ signingKeyRevoke(path, id, title string) {
+	<button
+		type="button"
+		hx-post={ path + id + "/revoke" }
+		hx-target="#signing-keys-list"
+		hx-swap="outerHTML"
+		hx-confirm="All commits signed with this key, past and future, will show Unverified. This can't be undone."
+		data-confirm-title={ title }
+		data-confirm-label="Revoke"
+		data-confirm-danger="true"
+		data-toast="Signing key revoked"
+		class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive"
+	>Revoke</button>
+}
+
+templ signingKeyRestore(kind, path, id string) {
+	<button
+		type="button"
+		x-on:click={ "kind = '" + kind + "'; restoreURL = '" + path + id + "/restore'; document.getElementById('restore-signing-key-dialog').showModal()" }
+		class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted"
+	>Restore</button>
+}
+
+templ revokedBadge() {
+	<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Revoked</span>
 }
 
 templ gpgKeyRow(k model.GPGKey, data view.SigningKeysFragData) {
@@ -96,8 +181,8 @@ templ gpgKeyRow(k model.GPGKey, data view.SigningKeysFragData) {
 		<div class="min-w-0 flex-1">
 			<div class="flex flex-wrap items-center gap-2">
 				<p class="text-[13.5px] font-medium">Key ID <span class="font-mono">{ k.KeyID }</span></p>
-				if k.RevokedAt != nil {
-					<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Revoked</span>
+				if k.Status == model.SigningKeyRevoked {
+					@revokedBadge()
 				} else if gpgExpired(k) {
 					<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Expired</span>
 				}
@@ -131,7 +216,12 @@ templ gpgKeyRow(k model.GPGKey, data view.SigningKeysFragData) {
 				}
 			</p>
 		</div>
-		@signingKeyRemove("/api/user/gpg_keys/", strconv.FormatInt(k.ID, 10), "Remove this GPG key?")
+		if k.Status == model.SigningKeyActive {
+			<div class="flex items-center gap-2 shrink-0">
+				@signingKeyRemove("/api/user/gpg_keys/", strconv.FormatInt(k.ID, 10), "Remove this GPG key?")
+				@signingKeyRevoke("/api/user/gpg_keys/", strconv.FormatInt(k.ID, 10), "Revoke this GPG key?")
+			</div>
+		}
 	</div>
 }
 
@@ -139,7 +229,12 @@ templ sshSigningKeyRow(k model.SSHSigningKey, data view.SigningKeysFragData) {
 	<div class="flex items-center gap-3 border border-border rounded-md p-3" data-key-id={ strconv.FormatInt(k.ID, 10) }>
 		@keyIcon("")
 		<div class="min-w-0 flex-1">
-			<p class="text-[13.5px] font-medium">{ k.Title }</p>
+			<div class="flex flex-wrap items-center gap-2">
+				<p class="text-[13.5px] font-medium">{ k.Title }</p>
+				if k.Status == model.SigningKeyRevoked {
+					@revokedBadge()
+				}
+			</div>
 			<p class="text-[11.5px] text-muted-foreground font-mono break-all">{ k.Fingerprint }</p>
 			<p class="text-[11.5px] text-muted-foreground mt-0.5">
 				Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(k.CreatedAt) }</time>
@@ -148,6 +243,45 @@ templ sshSigningKeyRow(k model.SSHSigningKey, data view.SigningKeysFragData) {
 				}
 			</p>
 		</div>
-		@signingKeyRemove("/api/user/ssh_signing_keys/", strconv.FormatInt(k.ID, 10), "Remove this SSH signing key?")
+		if k.Status == model.SigningKeyActive {
+			<div class="flex items-center gap-2 shrink-0">
+				@signingKeyRemove("/api/user/ssh_signing_keys/", strconv.FormatInt(k.ID, 10), "Remove this SSH signing key?")
+				@signingKeyRevoke("/api/user/ssh_signing_keys/", strconv.FormatInt(k.ID, 10), "Revoke this SSH signing key?")
+			</div>
+		}
+	</div>
+}
+
+templ removedGPGKeyRow(k model.GPGKey) {
+	<div class="flex items-center gap-3 border border-border rounded-md p-3" data-key-id={ strconv.FormatInt(k.ID, 10) }>
+		@keyIcon("")
+		<div class="min-w-0 flex-1">
+			<p class="text-[13.5px] font-medium">Key ID <span class="font-mono">{ k.KeyID }</span></p>
+			<p class="text-[11.5px] text-muted-foreground font-mono break-all">{ gpgFingerprint(k.Fingerprint) }</p>
+			if k.RemovedAt != nil {
+				<p class="text-[11.5px] text-muted-foreground mt-0.5">Removed <time datetime={ k.RemovedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*k.RemovedAt) }</time></p>
+			}
+		</div>
+		<div class="flex items-center gap-2 shrink-0">
+			@signingKeyRestore("gpg", "/api/user/gpg_keys/", strconv.FormatInt(k.ID, 10))
+			@signingKeyRevoke("/api/user/gpg_keys/", strconv.FormatInt(k.ID, 10), "Revoke this GPG key?")
+		</div>
+	</div>
+}
+
+templ removedSSHKeyRow(k model.SSHSigningKey) {
+	<div class="flex items-center gap-3 border border-border rounded-md p-3" data-key-id={ strconv.FormatInt(k.ID, 10) }>
+		@keyIcon("")
+		<div class="min-w-0 flex-1">
+			<p class="text-[13.5px] font-medium">{ k.Title }</p>
+			<p class="text-[11.5px] text-muted-foreground font-mono break-all">{ k.Fingerprint }</p>
+			if k.RemovedAt != nil {
+				<p class="text-[11.5px] text-muted-foreground mt-0.5">Removed <time datetime={ k.RemovedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*k.RemovedAt) }</time></p>
+			}
+		</div>
+		<div class="flex items-center gap-2 shrink-0">
+			@signingKeyRestore("ssh", "/api/user/ssh_signing_keys/", strconv.FormatInt(k.ID, 10))
+			@signingKeyRevoke("/api/user/ssh_signing_keys/", strconv.FormatInt(k.ID, 10), "Revoke this SSH signing key?")
+		</div>
 	</div>
 }

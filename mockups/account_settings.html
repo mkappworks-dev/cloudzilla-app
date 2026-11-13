@@ -279,11 +279,12 @@
               <h3 class="text-[13.5px] font-medium mb-1">GPG keys</h3>
               <p class="text-[12.5px] text-muted-foreground mb-3">Each email in the key is checked against your account's emails.</p>
               <div class="flex flex-col gap-2">
-                <div class="flex items-start gap-3 border border-border rounded-md p-3">
+                <div data-sk="g1" data-sk-kind="gpg" data-sk-view="full" class="flex items-start gap-3 border border-border rounded-md p-3">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0 mt-1" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2">
                       <p class="text-[13.5px] font-medium">Key ID <span class="font-mono">3AA5C34371567BD2</span></p>
+                      <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30" data-sk-badge hidden>Revoked</span>
                     </div>
                     <p class="text-[11.5px] text-muted-foreground font-mono break-all">4AEE 18F8 3AFD EB23 B1C9 7D04 3AA5 C343 7156 7BD2</p>
                     <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -292,19 +293,44 @@
                     </div>
                     <p class="text-[11.5px] text-muted-foreground mt-1">Signing subkey <span class="font-mono">4F2A9E01C77B3D65</span> · Added <time datetime="2026-02-03T00:00:00Z">Feb 3, 2026</time> · expires <time datetime="2027-03-01T00:00:00Z">Mar 1, 2027</time></p>
                   </div>
-                  <button type="button" data-remove data-confirm-title="Remove this GPG key?" data-confirm-label="Remove" data-confirm-msg="Commits signed with this key will show as Unverified once it is removed." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+                  <div data-sk-actions class="flex items-center gap-2 shrink-0"><button type="button" data-sk-act="remove" data-confirm-title="Remove this GPG key?" data-confirm-label="Remove" data-confirm-msg="Commits made before today stay Verified; later commits signed with this key won't. If the key is compromised, use Revoke instead." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Remove</button><button type="button" data-sk-act="revoke" data-confirm-title="Revoke this GPG key?" data-confirm-label="Revoke" data-confirm-msg="All commits signed with this key, past and future, will show Unverified. This can't be undone." data-toast="Signing key revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Revoke</button></div>
                 </div>
-                <div class="flex items-start gap-3 border border-border rounded-md p-3">
+                <div data-sk="g2" data-sk-kind="gpg" data-sk-view="full" class="flex items-start gap-3 border border-border rounded-md p-3">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0 mt-1" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2">
                       <p class="text-[13.5px] font-medium">Key ID <span class="font-mono">9C21D0B7E4A68F13</span></p>
+                      <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30" data-sk-badge hidden>Revoked</span>
                       <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Expired</span>
                     </div>
                     <p class="text-[11.5px] text-muted-foreground font-mono break-all">71D3 0B5A 92CE 44F1 08A7 6E2D 9C21 D0B7 E4A6 8F13</p>
                     <p class="text-[11.5px] text-muted-foreground mt-1">Added <time datetime="2026-02-03T00:00:00Z">Feb 3, 2026</time> · expired <time datetime="2026-06-30T00:00:00Z">Jun 30, 2026</time>. Commits signed before then stay Verified.</p>
                   </div>
-                  <button type="button" data-remove data-confirm-title="Remove this GPG key?" data-confirm-label="Remove" data-confirm-msg="Commits signed with this key will show as Unverified once it is removed." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+                  <div data-sk-actions class="flex items-center gap-2 shrink-0"><button type="button" data-sk-act="remove" data-confirm-title="Remove this GPG key?" data-confirm-label="Remove" data-confirm-msg="Commits made before today stay Verified; later commits signed with this key won't. If the key is compromised, use Revoke instead." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Remove</button><button type="button" data-sk-act="revoke" data-confirm-title="Revoke this GPG key?" data-confirm-label="Revoke" data-confirm-msg="All commits signed with this key, past and future, will show Unverified. This can't be undone." data-toast="Signing key revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Revoke</button></div>
+                </div>
+                <div data-sk="g3" data-sk-kind="gpg" data-sk-view="full" class="flex items-start gap-3 border border-border rounded-md p-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0 mt-1" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-[13.5px] font-medium">Key ID <span class="font-mono">B5690EEEBB952194</span></p>
+                      <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30" data-sk-badge>Revoked</span>
+                    </div>
+                    <p class="text-[11.5px] text-muted-foreground font-mono break-all">C0DE 5B21 77AA 04E9 6F13 82D5 B569 0EEE BB95 2194</p>
+                    <p class="text-[11.5px] text-muted-foreground mt-1">Added <time datetime="2026-03-18T00:00:00Z">Mar 18, 2026</time></p>
+                  </div>
+                  <div data-sk-actions class="flex items-center gap-2 shrink-0"></div>
+                </div>
+                <div data-sk="g4" data-sk-kind="gpg" data-sk-view="full" hidden class="flex items-start gap-3 border border-border rounded-md p-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0 mt-1" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-[13.5px] font-medium">Key ID <span class="font-mono">E7A10C5D93B24F68</span></p>
+                      <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30" data-sk-badge hidden>Revoked</span>
+                    </div>
+                    <p class="text-[11.5px] text-muted-foreground font-mono break-all">A93B 5C07 E1D4 28F6 E7A1 0C5D 93B2 4F68</p>
+                    <p class="text-[11.5px] text-muted-foreground mt-1">Added <time datetime="2025-05-20T00:00:00Z">May 20, 2025</time></p>
+                  </div>
+                  <div data-sk-actions class="flex items-center gap-2 shrink-0"><button type="button" data-sk-act="remove" data-confirm-title="Remove this GPG key?" data-confirm-label="Remove" data-confirm-msg="Commits made before today stay Verified; later commits signed with this key won't. If the key is compromised, use Revoke instead." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Remove</button><button type="button" data-sk-act="revoke" data-confirm-title="Revoke this GPG key?" data-confirm-label="Revoke" data-confirm-msg="All commits signed with this key, past and future, will show Unverified. This can't be undone." data-toast="Signing key revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Revoke</button></div>
                 </div>
               </div>
             </div>
@@ -312,26 +338,68 @@
               <h3 class="text-[13.5px] font-medium mb-1">SSH signing keys</h3>
               <p class="text-[12.5px] text-muted-foreground mb-3">For <span class="font-mono">git config gpg.format ssh</span>. A key can sign and authenticate; each use is added separately.</p>
               <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-3 border border-border rounded-md p-3">
+                <div data-sk="s1" data-sk-kind="ssh" data-sk-view="full" class="flex items-center gap-3 border border-border rounded-md p-3">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
                   <div class="min-w-0 flex-1">
-                    <p class="text-[13.5px] font-medium">MacBook Pro</p>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-[13.5px] font-medium">MacBook Pro</p>
+                      <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30" data-sk-badge hidden>Revoked</span>
+                    </div>
                     <p class="text-[11.5px] text-muted-foreground font-mono break-all">SHA256:Zk1p7vQ3nXh0e9LwYb2sAq5cT8uRfJdM4oGiNxVa6Hw</p>
                     <p class="text-[11.5px] text-muted-foreground mt-0.5">Added <time datetime="2026-01-14T00:00:00Z">Jan 14, 2026</time> · also an auth key</p>
                   </div>
-                  <button type="button" data-remove data-confirm-title="Remove this SSH signing key?" data-confirm-label="Remove" data-confirm-msg="Commits signed with this key will show as Unverified once it is removed." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+                  <div data-sk-actions class="flex items-center gap-2 shrink-0"><button type="button" data-sk-act="remove" data-confirm-title="Remove this SSH signing key?" data-confirm-label="Remove" data-confirm-msg="Commits made before today stay Verified; later commits signed with this key won't. If the key is compromised, use Revoke instead." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Remove</button><button type="button" data-sk-act="revoke" data-confirm-title="Revoke this SSH signing key?" data-confirm-label="Revoke" data-confirm-msg="All commits signed with this key, past and future, will show Unverified. This can't be undone." data-toast="Signing key revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Revoke</button></div>
                 </div>
-                <div class="flex items-center gap-3 border border-border rounded-md p-3">
+                <div data-sk="s2" data-sk-kind="ssh" data-sk-view="full" class="flex items-center gap-3 border border-border rounded-md p-3">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
                   <div class="min-w-0 flex-1">
-                    <p class="text-[13.5px] font-medium">YubiKey 5C</p>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-[13.5px] font-medium">YubiKey 5C</p>
+                      <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30" data-sk-badge hidden>Revoked</span>
+                    </div>
                     <p class="text-[11.5px] text-muted-foreground font-mono break-all">SHA256:Hq8dLw2mTz9yPb4XvNe1sCk7uRgJfA5oIiVx3MaYt0E</p>
                     <p class="text-[11.5px] text-muted-foreground mt-0.5">Added <time datetime="2026-09-12T00:00:00Z">Sep 12, 2026</time></p>
                   </div>
-                  <button type="button" data-remove data-confirm-title="Remove this SSH signing key?" data-confirm-label="Remove" data-confirm-msg="Commits signed with this key will show as Unverified once it is removed." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+                  <div data-sk-actions class="flex items-center gap-2 shrink-0"><button type="button" data-sk-act="remove" data-confirm-title="Remove this SSH signing key?" data-confirm-label="Remove" data-confirm-msg="Commits made before today stay Verified; later commits signed with this key won't. If the key is compromised, use Revoke instead." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Remove</button><button type="button" data-sk-act="revoke" data-confirm-title="Revoke this SSH signing key?" data-confirm-label="Revoke" data-confirm-msg="All commits signed with this key, past and future, will show Unverified. This can't be undone." data-toast="Signing key revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Revoke</button></div>
+                </div>
+                <div data-sk="s3" data-sk-kind="ssh" data-sk-view="full" hidden class="flex items-center gap-3 border border-border rounded-md p-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-[13.5px] font-medium">Old ThinkPad</p>
+                      <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30" data-sk-badge hidden>Revoked</span>
+                    </div>
+                    <p class="text-[11.5px] text-muted-foreground font-mono break-all">SHA256:Rt4nWc8yQe1LkZx6VbA0sGm3uHdJfP7oIiNx9TaYe2B</p>
+                    <p class="text-[11.5px] text-muted-foreground mt-0.5">Added <time datetime="2025-04-02T00:00:00Z">Apr 2, 2025</time></p>
+                  </div>
+                  <div data-sk-actions class="flex items-center gap-2 shrink-0"><button type="button" data-sk-act="remove" data-confirm-title="Remove this SSH signing key?" data-confirm-label="Remove" data-confirm-msg="Commits made before today stay Verified; later commits signed with this key won't. If the key is compromised, use Revoke instead." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Remove</button><button type="button" data-sk-act="revoke" data-confirm-title="Revoke this SSH signing key?" data-confirm-label="Revoke" data-confirm-msg="All commits signed with this key, past and future, will show Unverified. This can't be undone." data-toast="Signing key revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Revoke</button></div>
                 </div>
               </div>
             </div>
+            <details data-sk-removed-box>
+              <summary class="cursor-pointer text-[13.5px] font-medium">Removed keys (<span data-sk-count>2</span>)</summary>
+              <p class="text-[12.5px] text-muted-foreground mt-1 mb-3">Commits they signed before removal stay Verified. Restore a key to trust it again, or revoke it if it was compromised.</p>
+              <div class="flex flex-col gap-2">
+                  <div data-sk="g4" data-sk-kind="gpg" data-sk-view="compact" class="flex items-center gap-3 border border-border rounded-md p-3">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-[13.5px] font-medium">Key ID <span class="font-mono">E7A10C5D93B24F68</span></p>
+                      <p class="text-[11.5px] text-muted-foreground font-mono break-all">A93B 5C07 E1D4 28F6 E7A1 0C5D 93B2 4F68</p>
+                      <p class="text-[11.5px] text-muted-foreground mt-0.5">Removed <time datetime="2026-10-21T00:00:00Z">Oct 21, 2026</time></p>
+                    </div>
+                    <div data-sk-actions class="flex items-center gap-2 shrink-0"><button type="button" data-sk-act="restore" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted">Restore</button><button type="button" data-sk-act="revoke" data-confirm-title="Revoke this GPG key?" data-confirm-label="Revoke" data-confirm-msg="All commits signed with this key, past and future, will show Unverified. This can't be undone." data-toast="Signing key revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Revoke</button></div>
+                  </div>
+                  <div data-sk="s3" data-sk-kind="ssh" data-sk-view="compact" class="flex items-center gap-3 border border-border rounded-md p-3">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-[13.5px] font-medium">Old ThinkPad</p>
+                      <p class="text-[11.5px] text-muted-foreground font-mono break-all">SHA256:Rt4nWc8yQe1LkZx6VbA0sGm3uHdJfP7oIiNx9TaYe2B</p>
+                      <p class="text-[11.5px] text-muted-foreground mt-0.5">Removed <time datetime="2026-11-02T00:00:00Z">Nov 2, 2026</time></p>
+                    </div>
+                    <div data-sk-actions class="flex items-center gap-2 shrink-0"><button type="button" data-sk-act="restore" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted">Restore</button><button type="button" data-sk-act="revoke" data-confirm-title="Revoke this SSH signing key?" data-confirm-label="Revoke" data-confirm-msg="All commits signed with this key, past and future, will show Unverified. This can't be undone." data-toast="Signing key revoked" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive">Revoke</button></div>
+                  </div>
+              </div>
+            </details>
           </div>
         </div>
       </section>
@@ -766,6 +834,30 @@
     </form>
   </dialog>
 
+  <dialog id="restore-signing-key-dialog" aria-labelledby="restore-signing-key-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+    <form id="restore-signing-key-form" onsubmit="return false">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+        <h2 id="restore-signing-key-dialog-title" class="text-base font-semibold leading-tight">Restore this key?</h2>
+        <p class="text-[13px] text-muted-foreground leading-snug">Commits signed with it verify again. You'll confirm with your password.</p>
+      </div>
+      <div class="p-5 text-sm">
+        <div class="space-y-4">
+          <div data-restore-error class="empty:hidden" aria-live="polite"></div>
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="min-w-0">
+              <label for="signing-key-restore-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+              <input id="signing-key-restore-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+        <button type="button" data-close class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Restore key</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="generate-token-dialog" aria-labelledby="generate-token-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
     <form id="generate-token-form" onsubmit="return false">
       <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
@@ -920,11 +1012,10 @@
     btn.addEventListener('click', function () { show('requested'); });
     show(state);
   })();
-  // Mock-only: the Add signing key dialog switches GPG/SSH; the empty state shows once the last key is removed.
+  // Mock-only: the Add signing key dialog switches GPG/SSH but stores nothing.
   (function () {
     var dlg = document.getElementById('add-signing-key-dialog');
     var key = document.getElementById('signing-public-key');
-    var list = document.getElementById('signing-keys-list');
     function kind(k) {
       dlg.querySelectorAll('[data-kind]').forEach(function (r) { r.checked = r.value === k; });
       dlg.querySelectorAll('[data-kind-show]').forEach(function (el) { el.hidden = el.dataset.kindShow !== k; });
@@ -932,18 +1023,68 @@
     }
     dlg.querySelectorAll('[data-kind]').forEach(function (r) { r.addEventListener('change', function () { kind(r.value); }); });
     document.querySelector('[data-open-add]').addEventListener('click', function () { kind('gpg'); dlg.showModal(); });
-    function sync() {
-      var groups = list.querySelectorAll('[data-signing-group]'), any = false;
-      groups.forEach(function (g) {
-        var has = g.querySelector('.border.rounded-md') !== null;
-        g.hidden = !has;
-        any = any || has;
-      });
-      list.querySelector('[data-signing-empty]').hidden = any;
-      list.querySelector('[data-signing-groups]').hidden = !any;
+  })();
+  // Mock-only: Remove, Revoke and Restore move a key between the main lists and "Removed keys"; nothing is stored.
+  (function () {
+    function ask(t, l, m, fn) { window.czAsk(t, l, m, fn); }
+    function toast(t) { window.czToast(t); }
+    var list = document.getElementById('signing-keys-list');
+    var restoreDlg = document.getElementById('restore-signing-key-dialog');
+    var box = list.querySelector('[data-sk-removed-box]');
+    var state = {}, restoring = null;
+    var DEST = 'h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted';
+    function btn(kind, act) {
+      var name = kind === 'gpg' ? 'GPG key' : 'SSH signing key';
+      if (act === 'restore') return '<button type="button" data-sk-act="restore" class="' + DEST + '">Restore</button>';
+      var word = act === 'remove' ? 'Remove' : 'Revoke';
+      var msg = act === 'remove' ? "Commits made before today stay Verified; later commits signed with this key won't. If the key is compromised, use Revoke instead." : "All commits signed with this key, past and future, will show Unverified. This can't be undone.";
+      return '<button type="button" data-sk-act="' + act + '" data-confirm-title="' + word + ' this ' + name + '?" data-confirm-label="' + word + '" data-confirm-msg="' + msg + '" data-toast="Signing key ' + (act === 'remove' ? 'removed' : 'revoked') + '" class="' + DEST + ' text-destructive">' + word + '</button>';
     }
-    new MutationObserver(sync).observe(list, { childList: true, subtree: true });
-    if (/[?&]signing=empty\b/.test(location.search)) list.querySelectorAll('.border.rounded-md').forEach(function (el) { el.remove(); });
+    function sync() {
+      var anyKey = false, removed = 0;
+      list.querySelectorAll('[data-sk-view=full]').forEach(function (row) {
+        var st = state[row.dataset.sk];
+        row.hidden = st !== 'active' && st !== 'revoked';
+        row.querySelector('[data-sk-badge]').hidden = st !== 'revoked';
+        row.querySelector('[data-sk-actions]').innerHTML = st === 'active' ? btn(row.dataset.skKind, 'remove') + btn(row.dataset.skKind, 'revoke') : '';
+        anyKey = anyKey || st !== 'gone';
+      });
+      list.querySelectorAll('[data-sk-view=compact]').forEach(function (row) {
+        var on = state[row.dataset.sk] === 'removed';
+        row.hidden = !on;
+        if (on) removed++;
+      });
+      list.querySelectorAll('[data-signing-group]').forEach(function (g) {
+        g.hidden = !g.querySelector('[data-sk-view=full]:not([hidden])');
+      });
+      box.hidden = removed === 0;
+      box.querySelector('[data-sk-count]').textContent = removed;
+      list.querySelector('[data-signing-empty]').hidden = anyKey;
+      list.querySelector('[data-signing-groups]').hidden = !anyKey;
+    }
+    list.querySelectorAll('[data-sk-view=full]').forEach(function (row) {
+      state[row.dataset.sk] = row.querySelector('[data-sk-badge]:not([hidden])') ? 'revoked' : row.hidden ? 'removed' : 'active';
+    });
+    function set(id, st) { state[id] = st; sync(); }
+    list.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-sk-act]');
+      if (!b) return;
+      var id = b.closest('[data-sk]').dataset.sk;
+      if (b.dataset.skAct === 'restore') { restoring = id; restoreDlg.showModal(); return; }
+      var st = b.dataset.skAct === 'remove' ? 'removed' : 'revoked';
+      ask(b.dataset.confirmTitle, b.dataset.confirmLabel, b.dataset.confirmMsg, function () { set(id, st); toast(b.dataset.toast); });
+    });
+    restoreDlg.querySelector('[data-close]').addEventListener('click', function () { restoreDlg.close(); });
+    restoreDlg.querySelector('form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      restoreDlg.close();
+      this.reset();
+      set(restoring, 'active');
+      toast('Signing key restored');
+    });
+    var q = location.search;
+    if (/[?&]signing=empty\b/.test(q)) Object.keys(state).forEach(function (id) { state[id] = 'gone'; });
+    if (/[?&]signing=removed\b/.test(q)) box.open = true;
     sync();
   })();
   document.querySelectorAll('[data-remove-toggle]').forEach(function (b) {
@@ -975,6 +1116,14 @@
     if (cancel) { cancel.form.reset(); cancel.form.classList.add('hidden'); }
   });
   var confirmDlg = document.getElementById('cz-confirm-dialog'), pending = null;
+  window.czAsk = function (title, label, msg, fn) {
+    document.getElementById('cz-confirm-title').textContent = title;
+    document.getElementById('cz-confirm-msg').textContent = msg;
+    document.getElementById('cz-confirm-ok').textContent = label;
+    pending = fn;
+    confirmDlg.returnValue = '';
+    confirmDlg.showModal();
+  };
   document.getElementById('cz-confirm-ok').addEventListener('click', function () { confirmDlg.close('confirm'); });
   document.getElementById('cz-confirm-cancel').addEventListener('click', function () { confirmDlg.close('cancel'); });
   confirmDlg.addEventListener('click', function (e) { if (e.target === confirmDlg) confirmDlg.close('cancel'); });

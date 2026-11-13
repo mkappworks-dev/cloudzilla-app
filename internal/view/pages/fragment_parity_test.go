@@ -31,10 +31,15 @@ func TestListFragments_MatchThePageMarkup(t *testing.T) {
 	past := created.AddDate(0, -1, 0)
 	signing := view.SigningKeysFragData{
 		GPGKeys: []model.GPGKey{
-			{ID: 1, KeyID: "3AA5C34371567BD2", Fingerprint: "4AEE18F83AFDEB23B1C97D043AA5C3437156 7BD2", Emails: []string{"Ada@Example.test", "ada@work.test"}, CreatedAt: created, Subkeys: []model.GPGSubkey{{KeyID: "4F2A9E01C77B3D65", CanSign: true}}},
-			{ID: 2, KeyID: "9C21D0B7E4A68F13", Fingerprint: "71D30B5A92CE44F108A76E2D9C21D0B7E4A68F13", CreatedAt: created, ExpiresAt: &past},
+			{ID: 1, KeyID: "3AA5C34371567BD2", Fingerprint: "4AEE18F83AFDEB23B1C97D043AA5C3437156 7BD2", Emails: []string{"Ada@Example.test", "ada@work.test"}, Status: model.SigningKeyActive, CreatedAt: created, Subkeys: []model.GPGSubkey{{KeyID: "4F2A9E01C77B3D65", CanSign: true}}},
+			{ID: 2, KeyID: "9C21D0B7E4A68F13", Fingerprint: "71D30B5A92CE44F108A76E2D9C21D0B7E4A68F13", Status: model.SigningKeyActive, CreatedAt: created, ExpiresAt: &past},
+			{ID: 3, KeyID: "AAAA1111BBBB2222", Fingerprint: "AAAA1111BBBB2222", Status: model.SigningKeyRevoked, CreatedAt: created, RevokedAt: &past},
+			{ID: 4, KeyID: "CCCC3333DDDD4444", Fingerprint: "CCCC3333DDDD4444", Status: model.SigningKeyRemoved, CreatedAt: created, RemovedAt: &past},
 		},
-		SSHKeys:          []model.SSHSigningKey{{ID: 5, Title: "laptop <work>", Fingerprint: "SHA256:abc", CreatedAt: created}},
+		SSHKeys: []model.SSHSigningKey{
+			{ID: 5, Title: "laptop <work>", Fingerprint: "SHA256:abc", Status: model.SigningKeyActive, CreatedAt: created},
+			{ID: 6, Title: "old", Fingerprint: "SHA256:old", Status: model.SigningKeyRemoved, CreatedAt: created, RemovedAt: &past},
+		},
 		VerifiedEmails:   map[string]bool{"ada@example.test": true},
 		AuthFingerprints: map[string]bool{"SHA256:abc": true},
 	}

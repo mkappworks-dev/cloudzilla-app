@@ -427,7 +427,7 @@ templ settingsAddSSHKeyDialog(data view.SettingsData) {
 }
 
 templ settingsSigningKeysSection(data view.SettingsData) {
-	<section id="signing-keys" class="border border-border rounded-lg bg-card p-6 scroll-mt-6" x-data="{ kind: 'gpg' }">
+	<section id="signing-keys" class="border border-border rounded-lg bg-card p-6 scroll-mt-6" x-data="{ kind: 'gpg', restoreURL: '' }">
 		<div class="flex items-start justify-between gap-4 mb-6">
 			<div class="min-w-0">
 				<h2 class="text-base font-semibold tracking-tight mb-1">Signing keys</h2>
@@ -435,7 +435,7 @@ templ settingsSigningKeysSection(data view.SettingsData) {
 			</div>
 			<button
 				type="button"
-				x-on:click="kind = 'gpg'; document.getElementById('add-signing-key-dialog').showModal()"
+				x-on:click="kind = 'gpg'; restoreURL = ''; document.getElementById('add-signing-key-dialog').showModal()"
 				class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0"
 			>
 				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
@@ -444,6 +444,7 @@ templ settingsSigningKeysSection(data view.SettingsData) {
 		</div>
 		@fragments.SigningKeysList(data.SigningKeys)
 		@settingsAddSigningKeyDialog(data)
+		@settingsRestoreSigningKeyDialog(data)
 	</section>
 }
 
@@ -468,7 +469,7 @@ templ settingsAddSigningKeyDialog(data view.SettingsData) {
 			}
 			@components.DialogBody() {
 				<div class="space-y-4">
-					<div id="signing-key-error" class="empty:hidden" aria-live="polite"></div>
+					<div id="signing-key-error" x-bind:id="restoreURL ? null : 'signing-key-error'" class="empty:hidden" aria-live="polite"></div>
 					<fieldset class="flex items-center gap-3">
 						<legend class="block text-[12px] font-medium text-muted-foreground mb-1.5">Key type</legend>
 						<label class="flex items-center gap-1.5 text-[13px]"><input type="radio" name="kind" value="gpg" checked x-model="kind"/> GPG</label>
@@ -492,6 +493,41 @@ templ settingsAddSigningKeyDialog(data view.SettingsData) {
 			@components.DialogFooter() {
 				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
 				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Add key</button>
+			}
+		</form>
+	}
+}
+
+// The handler targets #signing-key-error for step-up errors, so the id moves to whichever dialog is open.
+templ settingsRestoreSigningKeyDialog(data view.SettingsData) {
+	@components.Dialog("restore-signing-key-dialog") {
+		<form
+			id="restore-signing-key-form"
+			x-bind:hx-post="restoreURL"
+			hx-target="#signing-keys-list"
+			hx-swap="outerHTML"
+			data-toast="Signing key restored"
+			hx-on::after:request="if(event.target===this&&!ctx.hx.retarget){this.querySelector('[data-restore-error]').textContent=''; this.closest('dialog').close(); this.reset()}"
+		>
+			@components.DialogHeader() {
+				@components.DialogTitle("restore-signing-key-dialog") {
+					Restore this key?
+				}
+				@components.DialogDescription() {
+					Commits signed with it verify again. You'll confirm with your password.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div data-restore-error x-bind:id="restoreURL ? 'signing-key-error' : null" class="empty:hidden" aria-live="polite"></div>
+					<div class="flex flex-wrap items-end gap-3">
+						@components.ConfirmFields("signing-key-restore", data.Confirm, true)
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Restore key</button>
 			}
 		</form>
 	}

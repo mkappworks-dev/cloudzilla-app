@@ -681,12 +681,16 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Get("/", h.ListGPGKeys)
 		r.Post("/", h.AddGPGKey)
 		r.Delete("/{id}", h.DeleteGPGKey)
+		r.Post("/{id}/revoke", h.RevokeGPGKey)
+		r.Post("/{id}/restore", h.RestoreGPGKey)
 	})
 	r.Route("/api/user/ssh_signing_keys", func(r chi.Router) {
 		r.Use(authMW, apiBodyLimit)
 		r.Get("/", h.ListSSHSigningKeys)
 		r.Post("/", h.AddSSHSigningKey)
 		r.Delete("/{id}", h.DeleteSSHSigningKey)
+		r.Post("/{id}/revoke", h.RevokeSSHSigningKey)
+		r.Post("/{id}/restore", h.RestoreSSHSigningKey)
 	})
 
 	// Repository transfers offered to the signed-in user

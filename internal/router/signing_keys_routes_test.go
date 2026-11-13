@@ -138,10 +138,17 @@ func TestGPGKeys_Lifecycle(t *testing.T) {
 	if rr := serve(e.h, browserRequest(http.MethodDelete, path, me.session, nil)); rr.Code != http.StatusNoContent {
 		t.Errorf("delete: got %d, want 204", rr.Code)
 	}
-	for _, table := range []string{"gpg_keys WHERE id", "gpg_subkeys WHERE gpg_key_id", "gpg_key_emails WHERE gpg_key_id"} {
-		if n := countRows(t, e.db, `SELECT COUNT(*) FROM `+table+` = $1`, key.ID); n != 0 {
-			t.Errorf("delete left %d rows in %s", n, table)
-		}
+	if n := countRows(t, e.db, `SELECT COUNT(*) FROM gpg_keys WHERE id = $1 AND removed_at IS NOT NULL`, key.ID); n != 1 {
+		t.Errorf("delete left %d soft-removed rows, want the row kept with removed_at set", n)
+	}
+	if mine := serve(e.h, importJSONRequest(http.MethodGet, "/api/user/gpg_keys/", me.session, "")); strings.Contains(mine.Body.String(), key.Fingerprint) {
+		t.Errorf("default list still shows the removed key: %s", mine.Body)
+	}
+	if all := serve(e.h, importJSONRequest(http.MethodGet, "/api/user/gpg_keys/?include=removed", me.session, "")); !strings.Contains(all.Body.String(), `"status":"removed"`) {
+		t.Errorf("?include=removed lacks the removed key: %s", all.Body)
+	}
+	if code, _ := postKey(t, e, "/api/user/gpg_keys/", me.session, map[string]string{"public_key": armored, "password": "password1"}); code != http.StatusOK {
+		t.Errorf("posting the removed key again: got %d, want 200 (restored)", code)
 	}
 	for _, action := range []string{"user.gpg_key.add", "user.gpg_key.delete"} {
 		waitForAudit(t, e.db, me.id, action, 1)
@@ -205,8 +212,8 @@ func TestSSHSigningKeys_Lifecycle(t *testing.T) {
 	if rr := serve(e.h, browserRequest(http.MethodDelete, path, me.session, nil)); rr.Code != http.StatusNoContent {
 		t.Errorf("delete: got %d, want 204", rr.Code)
 	}
-	if countRows(t, e.db, `SELECT COUNT(*) FROM ssh_signing_keys WHERE id = $1`, key.ID) != 0 {
-		t.Error("delete left the key behind")
+	if countRows(t, e.db, `SELECT COUNT(*) FROM ssh_signing_keys WHERE id = $1 AND removed_at IS NOT NULL`, key.ID) != 1 {
+		t.Error("delete should soft-remove the key, keeping the row")
 	}
 	for _, action := range []string{"user.ssh_signing_key.add", "user.ssh_signing_key.delete"} {
 		waitForAudit(t, e.db, me.id, action, 1)
@@ -243,7 +250,6 @@ func TestSigningKeys_HTMX(t *testing.T) {
 		form url.Values
 		want string
 	}{
-		"duplicate":   {url.Values{"public_key": {armored}}, "already on your account"},
 		"not a key":   {url.Values{"public_key": {"hello"}}, "key"},
 		"no password": {url.Values{"public_key": {armored}, "password": {""}}, "password"},
 	} {
@@ -294,5 +300,72 @@ func TestSigningKeys_HTMX(t *testing.T) {
 	rr = serve(e.h, htmxKeyRequest(http.MethodDelete, "/api/user/gpg_keys/"+strconv.FormatInt(ids[0], 10), me.session, nil))
 	if rr.Code != http.StatusOK || strings.Contains(rr.Body.String(), "rhea@example.com") || !strings.Contains(rr.Body.String(), `id="signing-keys-list"`) {
 		t.Errorf("delete gpg: got %d %s, want the list without the key", rr.Code, rr.Body)
+	}
+}
+
+func TestSigningKeys_RevokeAndRestore(t *testing.T) {
+	e := newTransferEnv(t)
+	me, other := e.account(t), e.account(t)
+	armored := armoredGPGKey(t, "rhea@example.com", false)
+	pub := sshPublicKey(t)
+
+	var gpgID, sshID int64
+	for _, tc := range []struct {
+		path string
+		body map[string]string
+		id   *int64
+	}{
+		{"/api/user/gpg_keys/", map[string]string{"public_key": armored, "password": "password1"}, &gpgID},
+		{"/api/user/ssh_signing_keys/", map[string]string{"title": "laptop", "public_key": pub, "password": "password1"}, &sshID},
+	} {
+		code, body := postKey(t, e, tc.path, me.session, tc.body)
+		var k struct{ ID int64 }
+		if err := json.Unmarshal(body, &k); code != http.StatusCreated || err != nil {
+			t.Fatalf("add %s: %d %s", tc.path, code, body)
+		}
+		*tc.id = k.ID
+	}
+
+	for _, tc := range []struct {
+		base  string
+		id    int64
+		table string
+	}{
+		{"/api/user/gpg_keys/", gpgID, "gpg_keys"},
+		{"/api/user/ssh_signing_keys/", sshID, "ssh_signing_keys"},
+	} {
+		path := tc.base + strconv.FormatInt(tc.id, 10)
+		if rr := serve(e.h, browserRequest(http.MethodDelete, path, me.session, nil)); rr.Code != http.StatusNoContent {
+			t.Fatalf("%s remove: %d", tc.table, rr.Code)
+		}
+		if code, _ := postKey(t, e, path+"/restore", me.session, map[string]string{}); code != http.StatusForbidden {
+			t.Errorf("%s restore without the step-up: got %d, want 403", tc.table, code)
+		}
+		if code, _ := postKey(t, e, path+"/restore", other.session, map[string]string{"password": "password1"}); code != http.StatusNotFound {
+			t.Errorf("%s restore of another user's key: got %d, want 404", tc.table, code)
+		}
+		if code, body := postKey(t, e, path+"/restore", me.session, map[string]string{"password": "password1"}); code != http.StatusNoContent {
+			t.Fatalf("%s restore: %d %s", tc.table, code, body)
+		}
+		if n := countRows(t, e.db, `SELECT COUNT(*) FROM `+tc.table+` WHERE id = $1 AND removed_at IS NULL`, tc.id); n != 1 {
+			t.Errorf("%s still removed after a restore", tc.table)
+		}
+
+		if rr := serve(e.h, browserRequest(http.MethodPost, path+"/revoke", other.session, nil)); rr.Code != http.StatusNotFound {
+			t.Errorf("%s revoke of another user's key: got %d, want 404", tc.table, rr.Code)
+		}
+		if rr := serve(e.h, browserRequest(http.MethodPost, path+"/revoke", me.session, nil)); rr.Code != http.StatusNoContent {
+			t.Fatalf("%s revoke: %d", tc.table, rr.Code)
+		}
+		if code, _ := postKey(t, e, path+"/restore", me.session, map[string]string{"password": "password1"}); code != http.StatusConflict {
+			t.Errorf("%s restore of a revoked key: got %d, want 409", tc.table, code)
+		}
+		list := serve(e.h, importJSONRequest(http.MethodGet, tc.base, me.session, ""))
+		if !strings.Contains(list.Body.String(), `"status":"revoked"`) {
+			t.Errorf("%s default list lacks the revoked key: %s", tc.table, list.Body)
+		}
+	}
+	for _, action := range []string{"user.gpg_key.revoke", "user.gpg_key.restore", "user.ssh_signing_key.revoke", "user.ssh_signing_key.restore"} {
+		waitForAudit(t, e.db, me.id, action, 1)
 	}
 }

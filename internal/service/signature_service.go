@@ -35,6 +35,7 @@ const (
 	ReasonBadSignature       SignatureReason = "bad_signature"
 	ReasonKeyExpired         SignatureReason = "key_expired"
 	ReasonKeyRevoked         SignatureReason = "key_revoked"
+	ReasonKeyRemoved         SignatureReason = "key_removed"
 	ReasonEmailNotVerified   SignatureReason = "email_not_verified"
 	ReasonEmailNotOnKey      SignatureReason = "email_not_on_key"
 	ReasonOtherUser          SignatureReason = "other_user"
@@ -458,20 +459,40 @@ func verifyPGP(pub *packet.PublicKey, sig *packet.Signature, payload []byte) boo
 	return pub.VerifySignature(h, sig) == nil
 }
 
+// gpgKeyState judges the key, or the subkey that signed, at the commit's committer date. Revocation is final and
+// ignores the date; a removal and an expiry only bind commits dated at or after them.
 func gpgKeyState(key *model.GPGKey, sub int, at time.Time) (SignatureReason, bool) {
 	revoked := key.RevokedAt != nil
+	removed := []*time.Time{key.RemovedAt}
 	expiry := []*time.Time{key.ExpiresAt}
 	if sub >= 0 {
 		revoked = revoked || key.Subkeys[sub].RevokedAt != nil
+		removed = append(removed, key.Subkeys[sub].RemovedAt)
 		expiry = append(expiry, key.Subkeys[sub].ExpiresAt)
 	}
 	if revoked {
 		return ReasonKeyRevoked, true
 	}
+	for _, r := range removed {
+		if r != nil && !at.Before(*r) {
+			return ReasonKeyRemoved, true
+		}
+	}
 	for _, e := range expiry {
 		if e != nil && !at.Before(*e) {
 			return ReasonKeyExpired, true
 		}
+	}
+	return "", false
+}
+
+// sshKeyState is gpgKeyState for an SSH signing key, which has no expiry.
+func sshKeyState(key *model.SSHSigningKey, at time.Time) (SignatureReason, bool) {
+	switch {
+	case key.RevokedAt != nil:
+		return ReasonKeyRevoked, true
+	case key.RemovedAt != nil && !at.Before(*key.RemovedAt):
+		return ReasonKeyRemoved, true
 	}
 	return "", false
 }
@@ -501,6 +522,10 @@ func judgeSSH(p pendingSignature, keys []model.SSHSigningKey, identities map[int
 			return res
 		}
 		res.SignerUsername = id.Username
+		if reason, bad := sshKeyState(&key, committer.When); bad {
+			res.Status, res.Reason = SignatureUnverified, reason
+			return res
+		}
 		return emailVerdict(res, id, key.UserID, committer.Email, nil, false)
 	}
 	res.Status = SignatureUnverified
