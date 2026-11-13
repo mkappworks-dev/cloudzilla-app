@@ -34,7 +34,7 @@
         </h1>
         <div class="flex items-center gap-1.5 shrink-0">
           <button type="button" id="edit-pr-btn" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Edit</button>
-          <div class="relative inline-block" data-dropdown>
+          <div class="relative inline-block" data-dropdown data-when="head=same">
             <button type="button" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5" aria-haspopup="menu" aria-expanded="false">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
               Code
@@ -61,7 +61,7 @@ git checkout daisy/oauth-scopes</pre>
           into
           <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">main</span>
           from
-          <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">daisy/oauth-scopes</span>
+          <span data-head-label class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">daisy/oauth-scopes</span>
         </p>
         <p data-when="pr=merged" class="text-[13px] text-muted-foreground">
           <a href="profile.html" class="font-medium text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">@malith</a>
@@ -70,7 +70,7 @@ git checkout daisy/oauth-scopes</pre>
           into
           <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">main</span>
           from
-          <span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">daisy/oauth-scopes</span>
+          <span data-head-label class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">daisy/oauth-scopes</span>
         </p>
       </div>
     </section>
@@ -335,7 +335,8 @@ Reviewers: this is the first time we&#x27;re enforcing scopes, so the middleware
           </button>
               </div>
             </div>
-            <button type="button" class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Update branch</button>
+            <button type="button" data-when="head=same" class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Update branch</button>
+            <span data-when="head=fork,hidden" class="text-[12px] text-muted-foreground">The head branch is behind and lives in another repository: update it there.</span>
             <button type="button" onclick="document.getElementById('close-pull-dialog').showModal()" class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
           </footer>
           </section>
@@ -1234,7 +1235,8 @@ git push origin daisy/oauth-scopes</code></pre>
     document.getElementById('review-dialog').close();
   });
 
-  var state = { ci: 'success', pr: 'open', merge: 'ready', viewer: 'reviewer', manage: 'no' };
+  var state = { ci: 'success', pr: 'open', merge: 'ready', viewer: 'reviewer', manage: 'no', head: 'same' };
+  var headLabels = { same: 'daisy/oauth-scopes', fork: 'daisy/cloudzilla:oauth-scopes', hidden: 'a fork' };
   function readHash() {
     location.hash.slice(1).split('&').forEach(function (pair) {
       var kv = pair.split('=');
@@ -1242,6 +1244,7 @@ git push origin daisy/oauth-scopes</code></pre>
     });
   }
   function applyState() {
+    document.querySelectorAll('[data-head-label]').forEach(function (el) { el.textContent = headLabels[state.head]; });
     document.querySelectorAll('[data-when]').forEach(function (el) {
       el.hidden = !el.dataset.when.split(' ').every(function (cond) {
         var kv = cond.split('=');

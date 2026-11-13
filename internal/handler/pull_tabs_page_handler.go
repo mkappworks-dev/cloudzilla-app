@@ -46,6 +46,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	h.hidePullHead(r, pull)
 
 	var loadErrCommits bool
 	var commits []service.CommitSummary
@@ -120,6 +121,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	h.hidePullHead(r, pull)
 
 	var statuses []model.CommitStatus
 	var loadErrChecks bool
@@ -202,6 +204,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	h.hidePullHead(r, pull)
 
 	var loadErrFiles bool
 	diff := &service.PRDiffResult{}

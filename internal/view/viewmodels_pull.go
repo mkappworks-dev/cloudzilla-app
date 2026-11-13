@@ -180,6 +180,12 @@ type PullNewData struct {
 	AllLabels    []model.Label
 	Reviewer     components.ReviewerPickerData
 	Error        string
+
+	// HeadRepo is the "owner/name" the head branch is taken from, empty for the repository itself. HeadRepoChoices
+	// are the other repositories of the fork network the viewer can write to; HeadBranches are HeadRepo's branches.
+	HeadRepo        string
+	HeadRepoChoices []string
+	HeadBranches    []service.BranchInfo
 }
 
 // PullLabelSidebarData holds template data for the PR label sidebar HTMX fragment.
@@ -234,4 +240,17 @@ type LineCommentFormFragData struct {
 	PullNumber int
 	Path       string
 	Line       int
+}
+
+// PullHeadLabel is the head as a reader names it: the branch for a same-repository PR, owner/name:branch for a fork's,
+// and "a fork" when the viewer may not know which.
+func PullHeadLabel(p *model.PullRequest) string {
+	switch {
+	case p.HeadRepoHidden:
+		return "a fork"
+	case p.CrossRepo && p.HeadRepo != "":
+		return p.HeadRepo + ":" + p.HeadBranch
+	default:
+		return p.HeadBranch
+	}
 }

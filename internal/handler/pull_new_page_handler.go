@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -48,8 +51,11 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("new PR: label list failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
+	hc := h.pickHead(r.Context(), repo, claims.UserID, r.URL.Query().Get("head_repo"), canWrite)
+
 	var suggested []model.User
-	if head != "" {
+	// Reviewers are suggested from the files a head changes in the base repository, which a fork's branch isn't in.
+	if head != "" && hc.repo == "" {
 		if suggested, err = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, base, head, 5); err != nil {
 			slog.Warn("new PR: suggest reviewers failed", "owner", owner, "repo", repoName, "error", err)
 		}
@@ -71,6 +77,10 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		Head:         head,
 		CanWrite:     canWrite,
 		AllLabels:    allLabels,
+
+		HeadRepo:        hc.repo,
+		HeadRepoChoices: hc.choices,
+		HeadBranches:    hc.branches,
 		Reviewer: components.ReviewerPickerData{
 			Suggested: toReviewerOptions(suggested, nil),
 			All:       collaboratorsToReviewerOptions(collaborators, nil),
@@ -108,6 +118,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	headBranch := r.FormValue("head_branch")
 	baseBranch := r.FormValue("base_branch")
 	isDraft := r.FormValue("draft") == "1"
+	hc := h.pickHead(r.Context(), repo, claims.UserID, r.FormValue("head_repo"), true)
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	// Opening a PR needs only read access; labels and reviewers are write-only metadata.
@@ -122,7 +133,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("new PR: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
 	}
 	var errSuggested []model.User
-	if headBranch != "" {
+	if headBranch != "" && hc.repo == "" {
 		if errSuggested, err = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, baseBranch, headBranch, 5); err != nil {
 			slog.Warn("new PR: suggest reviewers failed", "owner", owner, "repo", repoName, "error", err)
 		}
@@ -146,6 +157,10 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 			CanWrite:     canWrite,
 			AllLabels:    allLabels,
 			Error:        msg,
+
+			HeadRepo:        hc.repo,
+			HeadRepoChoices: hc.choices,
+			HeadBranches:    hc.branches,
 			Reviewer: components.ReviewerPickerData{
 				Suggested: toReviewerOptions(errSuggested, selectedReviewers),
 				All:       collaboratorsToReviewerOptions(errCollaborators, selectedReviewers),
@@ -158,7 +173,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, isDraft, claims.Targets)
+	pr, err := h.Services.Pull.CreateFromHead(r.Context(), owner, repoName, hc.repo, claims.UserID, title, body, headBranch, baseBranch, isDraft, claims.Targets)
 	if err != nil {
 		renderErr(createFailedMessage(err, "pull request", "owner", owner, "repo", repoName))
 		return
@@ -213,4 +228,40 @@ func collaboratorsToReviewerOptions(perms []model.Permission, selected map[strin
 		opts = append(opts, components.ReviewerOption{Username: p.Username, Selected: selected[p.Username]})
 	}
 	return opts
+}
+
+// headChoice is the head repository a new pull request takes its branch from, with the repositories it may choose.
+type headChoice struct {
+	repo     string // "owner/name" of the selected head, empty for the base itself
+	choices  []string
+	branches []service.BranchInfo // the selected head's branches, nil for the base itself
+}
+
+// pickHead resolves the requested head repository (query or form value) against what viewerID may use. An unknown or
+// unwritable request falls back to the base; with none requested, a viewer who can't write the base starts on their
+// own fork, since a branch there is the only head they can offer.
+func (h *Handler) pickHead(ctx context.Context, base *model.Repository, viewerID int64, requested string, canWrite bool) headChoice {
+	var hc headChoice
+	repos, err := h.Services.Pull.HeadRepoChoices(ctx, base, viewerID)
+	if err != nil {
+		slog.Warn("new PR: head repository choices failed", "repo_id", base.ID, "error", err)
+		return hc
+	}
+	for _, r := range repos {
+		hc.choices = append(hc.choices, r.OwnerName+"/"+r.Name)
+	}
+	if requested == "" && !canWrite {
+		if own, err := h.Services.Repo.ForksOwnedBy(ctx, base.ID, viewerID); err == nil && len(own) > 0 {
+			requested = own[0].OwnerName + "/" + own[0].Name
+		}
+	}
+	if !slices.Contains(hc.choices, requested) {
+		return hc
+	}
+	hc.repo = requested
+	owner, name, _ := strings.Cut(requested, "/")
+	if refs, err := h.Services.Code.ListRefs(owner, name, base.DefaultBranch); err == nil && refs != nil {
+		hc.branches = refs.Branches
+	}
+	return hc
 }

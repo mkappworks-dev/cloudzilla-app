@@ -37,6 +37,8 @@ type MergeabilityBoxData struct {
 
 	// The merge dialog prefills the commit title with the default message for the chosen strategy.
 	HeadBranch string
+	// HeadLabel names the head in default merge messages: the branch, or owner/name:branch for a fork's.
+	HeadLabel string
 
 	// Draft swaps the merge actions for Ready for review.
 	Draft bool
@@ -667,8 +669,8 @@ func mergeScope(d MergeabilityBoxData, defKey, defLabel string) string {
 		"label":    defLabel,
 		"base":     mergeBase(d),
 		"defaults": map[string]string{
-			"merge":  service.DefaultMergeMessage(d.HeadBranch, d.BaseBranch),
-			"squash": service.DefaultSquashMessage(d.HeadBranch, d.BaseBranch),
+			"merge":  service.DefaultMergeMessage(d.HeadLabel, d.BaseBranch),
+			"squash": service.DefaultSquashMessage(d.HeadLabel, d.BaseBranch),
 		},
 	})
 	// json.Marshal output is a JS object literal; its closing brace takes the methods.

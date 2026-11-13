@@ -46,6 +46,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	h.hidePullHead(r, pull)
 
 	pullLabels2, _ := h.Services.Label.GetForPull(r.Context(), pull.ID)
 	if pullLabels2 == nil {
@@ -109,6 +110,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		PatchURL:   fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
 		BaseBranch: pull.BaseBranch,
 		HeadBranch: pull.HeadBranch,
+		HeadLabel:  view.PullHeadLabel(pull),
 		ChecksURL:  fmt.Sprintf("/%s/%s/pulls/%d/checks", owner, repoName, pull.Number),
 		CanWrite:   canWrite2,
 		CanManage:  canManage2,

@@ -697,3 +697,29 @@ func (s *PullService) HideUnreadableHead(ctx context.Context, pr *model.PullRequ
 	pr.HeadRepo = ""
 	pr.HeadRepoHidden = true
 }
+
+// maxHeadRepoChoices bounds the head picker: a network with more writable repositories than this is cut short.
+const maxHeadRepoChoices = 200
+
+// HeadRepoChoices lists the repositories other than base in its fork network that userID can write to, which are the
+// ones a pull request into base may take its head from.
+func (s *PullService) HeadRepoChoices(ctx context.Context, base *model.Repository, userID int64) ([]model.Repository, error) {
+	root, err := s.repos.ForkRootID(ctx, base.ID)
+	if err != nil {
+		return nil, err
+	}
+	tree, err := s.repos.ForkTree(ctx, root, maxHeadRepoChoices)
+	if err != nil {
+		return nil, err
+	}
+	var out []model.Repository
+	for i := range tree {
+		if tree[i].ID == base.ID {
+			continue
+		}
+		if s.repoSvc.CanWrite(ctx, &tree[i], userID) {
+			out = append(out, tree[i])
+		}
+	}
+	return out, nil
+}

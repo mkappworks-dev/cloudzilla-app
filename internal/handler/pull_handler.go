@@ -77,11 +77,7 @@ func (h *Handler) GetPull(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "pull request not found")
 		return
 	}
-	var viewerID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		viewerID = &claims.UserID
-	}
-	h.Services.Pull.HideUnreadableHead(r.Context(), pr, viewerID)
+	h.hidePullHead(r, pr)
 	writeJSON(w, http.StatusOK, pr)
 }
 
@@ -646,4 +642,13 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 			slog.Error("auto-merge failed", "owner", owner, "repo", repoName, "pull_number", pr.Number, "error", err)
 		}
 	}
+}
+
+// hidePullHead withholds a private head repository's name from a viewer who can't read it.
+func (h *Handler) hidePullHead(r *http.Request, pr *model.PullRequest) {
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	h.Services.Pull.HideUnreadableHead(r.Context(), pr, viewerID)
 }

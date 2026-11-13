@@ -66,11 +66,12 @@ Mocks show the happy path. These real states are not drawn:
 - **PR states.** `pr.html` opens in other states through hashes: `#pr=open|draft|merged`,
   `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly`,
   `#ci=success|failure|running|none` (the title's CI status icon), `#manage=yes` (a repo admin or owner, who gets
-  Dismiss review on a blocking request for changes; join with `&`). The `conflicts` box carries the command-line steps,
-  `ready` offers Update branch, and `viewer=readonly` on `ready` reads "Ready, waiting for a maintainer". A dismissed
-  review's timeline entry ("Dismissed by …: reason") has no mock. `pr_files.html#merged=unavailable` is a merged PR
-  whose diff was never recorded ("Diff unavailable after merge."); the Commits tab says the same for its commits and has
-  no mock.
+  Dismiss review on a blocking request for changes), `#head=fork|hidden` (a pull request from another repository's
+  branch, named `owner/name:branch` or, for a private fork the viewer can't read, "a fork"; it drops the check-out menu
+  and swaps Update branch for a note; join with `&`). The `conflicts` box carries the command-line steps, `ready` offers
+  Update branch, and `viewer=readonly` on `ready` reads "Ready, waiting for a maintainer". A dismissed review's timeline
+  entry ("Dismissed by …: reason") has no mock. `pr_files.html#merged=unavailable` is a merged PR whose diff was never
+  recorded ("Diff unavailable after merge."); the Commits tab says the same for its commits and has no mock.
 - **Other states.** Closed pull requests; archived and mirror repo banners; binary file in `blob`; hidden-issue project
   card; form validation errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or
   slash-ended path, or open `#error`); inline field errors on `login.html`, `register.html`, `new_repo.html` and
