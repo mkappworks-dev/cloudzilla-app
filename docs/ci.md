@@ -89,22 +89,25 @@ parallelism. Build it with `make build-runner` (`dist/cz-runner`, a static binar
 ### What runs, and how
 
 For each Job the runner creates a network and a volume named `cz-job-<id>`, clones the Job's commit with go-git into a
-host temp directory using the per-job token, copies it into the volume, then runs each Step as its own `docker run`
-sharing that volume, and removes the network and volume afterwards. A Step sees the checkout at `/workspace/src`
-(`GITHUB_WORKSPACE`, the default working directory) and `HOME=/workspace/home`. Installed packages do not carry from one
-Step to the next: use an image that has the toolchain.
+host temp directory using the per-job token, creates one container named `cz-job-<id>`, copies the checkout into its
+volume and starts it idling (`sleep`). Each Step then runs as a `docker exec` into that container, so tools a Step
+installs are still there in the next. The container, volume and network are removed when the Job ends, and when the
+runner stops on `SIGINT` or `SIGTERM`. A Step sees the checkout at `/workspace/src` (`GITHUB_WORKSPACE`, the default
+working directory) and `HOME=/workspace/home`.
 
-Every container, the checkout one included, gets exactly these flags and nothing a workflow says can change them:
+The Job's container gets exactly these flags and nothing a workflow says can change them:
 
 ```
 --privileged=false --cap-drop=ALL --security-opt=no-new-privileges --user=1000:1000
 --cpus=2 --memory=4g --memory-swap=4g --pids-limit=512 --network=cz-job-<id> --volume=cz-job-<id>:/workspace
 ```
 
-No host path is mounted and the Docker socket is never passed in. The image, `env` names, `working-directory` and
-`shell` are validated before anything starts (an image beginning with `-` or containing spaces, a working directory
-outside the workspace, or a shell other than `sh` or `bash` fails the Step). Step `if`, `env`, `run` and `${{ }}` are
-evaluated on the runner. `timeout-minutes` of a Step and of the Job are enforced by removing the container.
+`docker exec` inherits the user, limits, network and volume and is given only `--workdir` and `--env`. No host path is
+mounted and the Docker socket is never passed in. The image, `env` names, `working-directory` and `shell` are validated
+before anything starts (an image beginning with `-` or containing spaces, a working directory outside the workspace, or
+a shell other than `sh` or `bash` fails the Step). Step `if`, `env`, `run` and `${{ }}` are evaluated on the runner. A
+Step's `timeout-minutes` kills the processes it started (the Job continues, so `if: always()` Steps still run); the Job
+timeout removes the container.
 
 ### Runner protocol
 

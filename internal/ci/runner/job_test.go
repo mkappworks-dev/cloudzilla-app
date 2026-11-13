@@ -17,20 +17,21 @@ import (
 )
 
 // stubScript stands in for the docker CLI: it logs each invocation's arguments (NUL separated, records ended by
-// \001) and succeeds, except that a `run` whose arguments mention STUBFAIL exits 3 and one that mentions STUBHANG
-// blocks until `rm -f` removes its container, as the real CLI would exit when its container is removed.
+// \001) and succeeds, except that an `exec` whose arguments mention STUBFAIL exits 3 and one that mentions STUBHANG
+// blocks until `rm -f` or a `kill -9 -1` exec ends it, as the real CLI would exit when its process dies.
 const stubScript = `#!/bin/sh
 printf '%s\0' "$@" >> "$STUB_DIR/log"
 printf '\001' >> "$STUB_DIR/log"
 case "$1" in
   cp) cat > /dev/null ;;
   rm) for a in "$@"; do last=$a; done; : > "$STUB_DIR/removed-$last" ;;
-  run)
+  exec)
     name=""; prev=""
-    for a in "$@"; do [ "$prev" = "--name" ] && name=$a; prev=$a; done
+    for a in "$@"; do [ "$prev" = "--" ] && name=$a; prev=$a; done
+    case "$*" in *"kill -9 -1"*) : > "$STUB_DIR/removed-$name"; exit 0 ;; esac
     case "$*" in *STUBFAIL*) echo "boom" >&2; exit 3 ;; esac
     case "$*" in *STUBHANG*) while [ ! -e "$STUB_DIR/removed-$name" ]; do sleep 0.02; done; exit 137 ;; esac
-    echo "ran $name" ;;
+    echo "ran in $name" ;;
 esac
 exit 0
 `
@@ -118,6 +119,16 @@ var wantHardening = []string{
 	"--memory-swap=4g", "--pids-limit=512", "--network=cz-job-7", "--volume=cz-job-7:/workspace",
 }
 
+func execs(calls []call) []call {
+	var out []call
+	for _, c := range calls {
+		if c[0] == "exec" {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 func containerStarts(calls []call) []call {
 	var out []call
 	for _, c := range calls {
@@ -142,16 +153,17 @@ func TestExecute_EveryContainerCarriesTheHardeningFlags(t *testing.T) {
 	if !api.finished || api.result != "success" {
 		t.Fatalf("result = %q %q", api.result, api.message)
 	}
-	starts := containerStarts(calls())
-	if len(starts) != 3 {
-		t.Fatalf("container starts = %d, want the init container and two steps: %v", len(starts), starts)
+	cs := calls()
+	starts := containerStarts(cs)
+	if len(starts) != 1 || starts[0][0] != "create" {
+		t.Fatalf("container starts = %v, want exactly one create for the whole Job", starts)
 	}
-	for _, c := range starts {
-		for _, f := range wantHardening {
-			if !c.has(f) {
-				t.Errorf("%s %s lacks %s", c[0], c[2], f)
-			}
+	for _, f := range wantHardening {
+		if !starts[0].has(f) {
+			t.Errorf("create lacks %s", f)
 		}
+	}
+	for _, c := range cs {
 		for _, a := range c {
 			if a == "--privileged" || strings.HasPrefix(a, "--cap-add") || strings.HasPrefix(a, "--device") || strings.HasPrefix(a, "--pid=") || strings.HasPrefix(a, "--pid ") ||
 				strings.HasPrefix(a, "--ipc") || strings.HasPrefix(a, "--userns") || strings.Contains(a, "docker.sock") || a == "-v" ||
@@ -160,18 +172,34 @@ func TestExecute_EveryContainerCarriesTheHardeningFlags(t *testing.T) {
 			}
 		}
 	}
-	first := starts[1]
-	wantFirst := append(append([]string{"run", "--rm", "--name", "cz-job-7-step-0"}, wantHardening...),
-		"--workdir=/workspace/src", "--entrypoint=sh",
+	for _, c := range execs(cs) {
+		for _, a := range c {
+			if a == "--" {
+				break
+			}
+			if !strings.HasPrefix(a, "--workdir=") && !strings.HasPrefix(a, "--env=") && a != "exec" {
+				t.Errorf("exec carries an unexpected flag %q", a)
+			}
+		}
+	}
+	wantCreate := append(append([]string{"create", "--name", "cz-job-7"}, wantHardening...), "--entrypoint=sleep", "--", "golang:1.23", "2147483647")
+	if !slices.Equal(starts[0], wantCreate) {
+		t.Errorf("create args =\n%q\nwant\n%q", starts[0], wantCreate)
+	}
+	ex := execs(cs)
+	if len(ex) != 2 {
+		t.Fatalf("execs = %d, want one per step: %v", len(ex), ex)
+	}
+	wantFirst := []string{"exec", "--workdir=/workspace/src",
 		"--env=CI=true", "--env=CLOUDZILLA_ACTIONS=true", "--env=GITHUB_ACTOR=u", "--env=GITHUB_EVENT_NAME=push", "--env=GITHUB_REF=refs/heads/main",
 		"--env=GITHUB_REF_NAME=main", "--env=GITHUB_REPOSITORY=o/r", "--env=GITHUB_RUN_NUMBER=1", "--env=GITHUB_SHA=abc",
 		"--env=GITHUB_WORKSPACE=/workspace/src", "--env=GOFLAGS=-mod=mod", "--env=HOME=/workspace/home",
-		"--", "golang:1.23", "-e", "-c", "go build ./...")
-	if !slices.Equal(first, wantFirst) {
-		t.Errorf("step 0 args =\n%q\nwant\n%q", first, wantFirst)
+		"--", "cz-job-7", "sh", "-e", "-c", "go build ./..."}
+	if !slices.Equal(ex[0], wantFirst) {
+		t.Errorf("step 0 args =\n%q\nwant\n%q", ex[0], wantFirst)
 	}
-	second := starts[2]
-	if !second.has("--workdir=/workspace/src/sub/dir") || !second.has("--entrypoint=bash") || !second.has("--env=A=1") || !second.has("--env=B=2") ||
+	second := ex[1]
+	if !second.has("--workdir=/workspace/src/sub/dir") || !second.has("bash") || !second.has("--env=A=1") || !second.has("--env=B=2") ||
 		second[len(second)-1] != "echo abc" {
 		t.Errorf("step 1 args = %q", second)
 	}
@@ -207,9 +235,9 @@ func TestExecute_NothingInAWorkflowCanLoosenTheFlags(t *testing.T) {
 			if api.result != "failure" || !strings.Contains(api.message, tc.wantMsg) {
 				t.Errorf("result = %q %q, want failure containing %q", api.result, api.message, tc.wantMsg)
 			}
-			for _, c := range containerStarts(calls()) {
-				if c[0] == "run" {
-					t.Errorf("a container started: %q", c)
+			for _, c := range calls() {
+				if c[0] == "exec" {
+					t.Errorf("a step ran: %q", c)
 				}
 				for _, a := range c {
 					if a == "--privileged" {
@@ -249,7 +277,7 @@ func TestExecute_LabelPicksTheDefaultImage(t *testing.T) {
 	calls := stubDocker(t)
 	api := &fakeAPI{}
 	newExecutor(api).Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "x"}))
-	if starts := containerStarts(calls()); len(starts) != 2 || !starts[1].has("ubuntu:24.04") {
+	if starts := containerStarts(calls()); len(starts) != 1 || !starts[0].has("ubuntu:24.04") {
 		t.Errorf("starts = %q", starts)
 	}
 
@@ -292,7 +320,7 @@ func TestExecute_RemovesWhatItMadeEvenWhenAStepFails(t *testing.T) {
 			tail = append(tail, strings.Join(c, " "))
 		}
 	}
-	want := []string{"rm -f cz-job-7-init", "volume rm -f cz-job-7", "network rm cz-job-7"}
+	want := []string{"rm -f cz-job-7", "volume rm -f cz-job-7", "network rm cz-job-7"}
 	if !slices.Equal(tail, want) {
 		t.Errorf("cleanup = %q, want %q", tail, want)
 	}
@@ -302,7 +330,7 @@ func TestExecute_JobCancelledByTheServerStopsTheContainerAndReportsNothing(t *te
 	calls := stubDocker(t)
 	api := &fakeAPI{}
 	api.heartbeat = func() (bool, error) {
-		return !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "run" }), nil
+		return !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" }), nil
 	}
 
 	done := make(chan struct{})
@@ -320,7 +348,7 @@ func TestExecute_JobCancelledByTheServerStopsTheContainerAndReportsNothing(t *te
 	}
 	removedStep := false
 	for _, c := range calls() {
-		if c[0] == "rm" && c.has("cz-job-7-step-0") {
+		if c[0] == "exec" && strings.Contains(strings.Join(c, " "), "kill -9 -1") {
 			removedStep = true
 		}
 	}
@@ -354,7 +382,7 @@ func TestExecute_StoppingTheRunnerKillsTheContainerAndReportsCancelled(t *testin
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
-		for !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "run" }) {
+		for !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" }) {
 			time.Sleep(10 * time.Millisecond)
 		}
 		cancel()
@@ -365,10 +393,28 @@ func TestExecute_StoppingTheRunnerKillsTheContainerAndReportsCancelled(t *testin
 	}
 	killed := false
 	for _, c := range calls() {
-		killed = killed || (c[0] == "rm" && c.has("cz-job-7-step-0"))
+		killed = killed || (c[0] == "exec" && strings.Contains(strings.Join(c, " "), "kill -9 -1"))
 	}
 	if !killed {
 		t.Error("container was not removed on stop")
+	}
+}
+
+func TestExecute_StepsOfAJobShareOneContainer(t *testing.T) {
+	calls := stubDocker(t)
+	api := &fakeAPI{}
+	newExecutor(api).Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "apt-get install -y jq"}, runnerapi.StepSpec{Run: "jq --version"}))
+	ex := execs(calls())
+	if len(ex) != 2 {
+		t.Fatalf("execs = %d", len(ex))
+	}
+	for _, c := range ex {
+		if !c.has("cz-job-7") {
+			t.Errorf("step ran outside the job container: %q", c)
+		}
+	}
+	if n := len(containerStarts(calls())); n != 1 {
+		t.Errorf("container creations = %d, want 1", n)
 	}
 }
 
@@ -449,7 +495,7 @@ func TestExecute_TimeoutMinutesOfAStepAndOfTheJobAreHonoured(t *testing.T) {
 			if api.result != "failure" || api.message != tc.wantMsg {
 				t.Errorf("result = %q %q, want failure %q", api.result, api.message, tc.wantMsg)
 			}
-			if !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "rm" && c.has("cz-job-7-step-0") }) {
+			if !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" && strings.Contains(strings.Join(c, " "), "kill -9 -1") }) {
 				t.Error("container was not removed")
 			}
 		})

@@ -42,6 +42,9 @@ type Executor struct {
 	HeartbeatEvery time.Duration
 }
 
+// idleSeconds keeps the Job's container alive until the runner removes it; busybox's sleep has no "infinity".
+const idleSeconds = "2147483647"
+
 var envKeyRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 // Execute runs one Job to its end and reports the result. A Job the server cancelled mid-run is torn down without a
@@ -124,13 +127,13 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 	}
 	d := docker{bin: e.Docker}
 	name := fmt.Sprintf("cz-job-%d", spec.JobID)
-	network, volume, initName := name, name, name+"-init"
+	network, volume := name, name
 
 	defer func() {
 		// A cancelled or timed-out Job still has to be cleaned up, so this does not use ctx.
 		cctx, done := context.WithTimeout(context.Background(), time.Minute)
 		defer done()
-		_ = d.run(cctx, nil, "rm", "-f", initName)
+		_ = d.run(cctx, nil, "rm", "-f", name)
 		_ = d.run(cctx, nil, "volume", "rm", "-f", volume)
 		_ = d.run(cctx, nil, "network", "rm", network)
 	}()
@@ -141,7 +144,7 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 	if err := d.run(ctx, nil, "volume", "create", volume); err != nil {
 		return "failure", "could not create the workspace volume: " + err.Error()
 	}
-	if err := e.populate(ctx, d, spec, image, network, volume, initName); err != nil {
+	if err := e.populate(ctx, d, spec, image, network, volume, name); err != nil {
 		return "failure", "checkout failed: " + err.Error()
 	}
 
@@ -161,7 +164,7 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 			continue
 		}
 		e.setStep(ctx, spec, st.Position, "running")
-		if err := e.runStep(ctx, d, spec, st, image, network, volume); err != nil {
+		if err := e.runStep(ctx, d, spec, st, name); err != nil {
 			e.setStep(ctx, spec, st.Position, "failure")
 			if failed == "" {
 				failed = fmt.Sprintf("step %d (%s): %v", st.Position+1, st.Name, err)
@@ -185,9 +188,10 @@ func (e *Executor) setStep(ctx context.Context, spec *runnerapi.JobSpec, pos int
 	}
 }
 
-// populate clones the Job's commit on the host and copies it into the workspace volume through a container that is
-// created but never started.
-func (e *Executor) populate(ctx context.Context, d docker, spec *runnerapi.JobSpec, image, network, volume, initName string) error {
+// populate clones the Job's commit on the host, creates the Job's one container, copies the checkout into its
+// workspace volume and starts it. The container idles so each Step can `docker exec` into it and see what earlier
+// Steps left behind.
+func (e *Executor) populate(ctx context.Context, d docker, spec *runnerapi.JobSpec, image, network, volume, name string) error {
 	dir, err := os.MkdirTemp("", "cz-runner-checkout-")
 	if err != nil {
 		return err
@@ -196,14 +200,17 @@ func (e *Executor) populate(ctx context.Context, d docker, spec *runnerapi.JobSp
 	if err := e.Checkout(ctx, spec, dir); err != nil {
 		return err
 	}
-	create := append([]string{"create", "--name", initName}, e.Limits.hardening(network, volume)...)
-	if err := d.run(ctx, nil, append(create, "--", image, "true")...); err != nil {
+	create := append([]string{"create", "--name", name}, e.Limits.hardening(network, volume)...)
+	if err := d.run(ctx, nil, append(create, "--entrypoint=sleep", "--", image, idleSeconds)...); err != nil {
 		return err
 	}
 	pr, pw := io.Pipe()
 	go func() { pw.CloseWithError(tarWorkspace(dir, pw)) }()
 	defer func() { _ = pr.Close() }()
-	return d.run(ctx, pr, "cp", "-", initName+":"+workspaceDir)
+	if err := d.run(ctx, pr, "cp", "-", name+":"+workspaceDir); err != nil {
+		return err
+	}
+	return d.run(ctx, nil, "start", name)
 }
 
 // skipStep evaluates a Step's `if` (success() when it has none). A Step whose condition cannot be evaluated fails.
@@ -286,8 +293,9 @@ func workdir(rel string) (string, error) {
 	return path.Join(checkoutDir, clean), nil
 }
 
-// stepArgs is the full `docker run` argument list for one Step.
-func (e *Executor) stepArgs(spec *runnerapi.JobSpec, st runnerapi.StepSpec, image, network, volume, container string) ([]string, error) {
+// stepArgs is the full `docker exec` argument list for one Step. exec inherits the container's user, limits,
+// network and volume, so it takes no flag that could loosen them.
+func (e *Executor) stepArgs(spec *runnerapi.JobSpec, st runnerapi.StepSpec, container string) ([]string, error) {
 	script, err := workflow.Interpolate(st.Run, e.exprContext(spec, st, "success"))
 	if err != nil {
 		return nil, err
@@ -304,17 +312,14 @@ func (e *Executor) stepArgs(spec *runnerapi.JobSpec, st runnerapi.StepSpec, imag
 	if err != nil {
 		return nil, err
 	}
-	args := []string{"run", "--rm", "--name", container}
-	args = append(args, e.Limits.hardening(network, volume)...)
-	args = append(args, "--workdir="+wd, "--entrypoint="+entry)
+	args := []string{"exec", "--workdir=" + wd}
 	args = append(args, envArgs...)
-	args = append(args, "--", image)
+	args = append(args, "--", container, entry)
 	return append(args, shellArgs...), nil
 }
 
-func (e *Executor) runStep(ctx context.Context, d docker, spec *runnerapi.JobSpec, st runnerapi.StepSpec, image, network, volume string) error {
-	container := fmt.Sprintf("cz-job-%d-step-%d", spec.JobID, st.Position)
-	args, err := e.stepArgs(spec, st, image, network, volume, container)
+func (e *Executor) runStep(ctx context.Context, d docker, spec *runnerapi.JobSpec, st runnerapi.StepSpec, container string) error {
+	args, err := e.stepArgs(spec, st, container)
 	if err != nil {
 		return err
 	}
@@ -324,8 +329,7 @@ func (e *Executor) runStep(ctx context.Context, d docker, spec *runnerapi.JobSpe
 		stepCtx, cancel = context.WithTimeout(ctx, e.minutes(st.TimeoutMinutes))
 		defer cancel()
 	}
-	// Not CommandContext: killing the docker CLI would leave the container running, so the container is removed
-	// by name instead.
+	// Not CommandContext: killing the docker CLI would leave the Step's processes running in the container.
 	c := d.cmd(context.Background(), args...)
 	out := e.Out
 	if out == nil {
@@ -343,7 +347,9 @@ func (e *Executor) runStep(ctx context.Context, d docker, spec *runnerapi.JobSpe
 	case <-stepCtx.Done():
 		kill, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
-		_ = d.run(kill, nil, "rm", "-f", container)
+		// SIGKILL to every process but the container's PID 1, so the Job survives its Step timing out.
+		_ = d.run(kill, nil, "exec", "--", container, "sh", "-c", "kill -9 -1")
+		_ = c.Process.Kill()
 		<-done
 		if errors.Is(stepCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
 			return fmt.Errorf("timed out after %d minutes", st.TimeoutMinutes)
