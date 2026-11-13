@@ -90,6 +90,20 @@ protection refused the push. It is deleted after 7 days if no ref ever reaches i
 **History scan** — the one-time background scan of every ref of a Repository for secrets, queued at creation, after a
 mirror sync and after an import. It alerts and never blocks.
 
+## CI
+
+**Workflow** — a YAML file under `.cloudzilla/workflows/` in a Repository that says when to run and which Jobs to run.
+
+**Run** — one execution of a Workflow, numbered per Repository, for one commit.
+
+**Job** — a named group of Steps in a Run. It runs on one Runner, in its own container, and can wait on other Jobs.
+
+**Step** — one shell command in a Job.
+
+**Runner** — a `cz-runner` process that claims Jobs and runs them. Registered at the Instance or for one Repository.
+
+**Artifact** — a named file archive a Job uploads when it finishes.
+
 ## Tools
 
 **`cz`** — the remote command-line client for developers. It talks to the JSON API only.

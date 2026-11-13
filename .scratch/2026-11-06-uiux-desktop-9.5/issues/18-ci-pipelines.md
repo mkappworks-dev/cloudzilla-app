@@ -29,7 +29,7 @@ Roadmap phase 18.1–18.3 is planned and has no UI.
 
 ## Acceptance criteria
 
-- [ ] Spec and tickets exist
+- [x] Spec and tickets exist (`../2026-11-06-ci-pipelines/spec.md`, tickets 01–07)
 - [ ] All its tickets done
 - [ ] ROADMAP status updated
 
