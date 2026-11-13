@@ -70,6 +70,26 @@ that User's verified emails.
 **Server-made commit** — a commit the Instance writes on a User's behalf: a merge, squash, web edit or wiki save. Its
 author is the User and its committer is the Instance.
 
+## Secret scanning
+
+**Secret scan alert** — one finding of one secret value in one Repository. Further sightings of the same value add
+locations to it. It is `open` or `closed`.
+
+**Resolution** — why a secret scan alert is closed: `revoked`, `false_positive` or `used_in_tests`.
+
+**Push protection** — refusing a push that adds a secret, before any ref moves.
+
+**Allow** — a writer's closing a blocked alert as `false_positive` or `used_in_tests`, so the pusher can push again and
+the value stops being blocked in that Repository.
+
+**Auto-revoked** — a secret scan alert for a Cloudzilla personal access token that the Instance deleted on finding it.
+
+**Blocked alert** — an open secret scan alert whose every location is on a commit no ref reaches, because push
+protection refused the push. It is deleted after 7 days if no ref ever reaches it.
+
+**History scan** — the one-time background scan of every ref of a Repository for secrets, queued at creation, after a
+mirror sync and after an import. It alerts and never blocks.
+
 ## Tools
 
 **`cz`** — the remote command-line client for developers. It talks to the JSON API only.

@@ -81,7 +81,9 @@ type RepoSubnavInfo struct {
 	Active    string
 	Counts    map[string]int
 	CanManage bool
-	Private   bool
+	// CanWrite shows the Security tab, which readers and anonymous visitors must not see.
+	CanWrite bool
+	Private  bool
 	// Feature toggles — when false the corresponding tab is hidden.
 	AllowIssues      bool
 	AllowDiscussions bool

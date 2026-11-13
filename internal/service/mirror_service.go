@@ -56,6 +56,7 @@ type MirrorService struct {
 	git       config.GitConfig
 	cfg       config.MirrorConfig
 	wake      chan struct{}
+	scans     secretScanQueue
 
 	// Shutdown cancels stopCtx, under which syncs run, and waits on inflight.
 	stopCtx  context.Context
@@ -69,6 +70,17 @@ func NewMirrorService(mirrors *store.MirrorStore, repoStore *store.RepoStore, re
 	stopCtx, stop := context.WithCancel(context.Background())
 	return &MirrorService{mirrors: mirrors, repoStore: repoStore, repos: repos, webhooks: webhooks, index: index, deps: deps,
 		secrets: secrets, git: git, cfg: cfg, wake: make(chan struct{}, 1), stopCtx: stopCtx, stop: stop}
+}
+
+// secretScanQueue is the part of SecretScanService that mirror syncs and imports queue history scans through.
+type secretScanQueue interface {
+	MarkPending(ctx context.Context, repoID int64) error
+}
+
+// WithSecretScans queues a history scan after each sync that moved refs.
+func (s *MirrorService) WithSecretScans(q secretScanQueue) *MirrorService {
+	s.scans = q
+	return s
 }
 
 // Get wraps sql.ErrNoRows when the repo isn't a mirror.
@@ -220,6 +232,11 @@ func (s *MirrorService) afterSync(ctx context.Context, repo *model.Repository, l
 	}
 	if err := s.repos.OnPostReceive(ctx, repo, local, cmds); err != nil {
 		slog.Error("mirror sync: post-receive failed", "repo_id", repo.ID, "error", err)
+	}
+	if s.scans != nil {
+		if err := s.scans.MarkPending(ctx, repo.ID); err != nil {
+			slog.Error("mirror sync: queue secret scan failed", "repo_id", repo.ID, "error", err)
+		}
 	}
 	if err := s.index.IndexRepo(ctx, repo); err != nil {
 		slog.Error("mirror sync: re-index failed", "repo_id", repo.ID, "error", err)

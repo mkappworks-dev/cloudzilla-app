@@ -25,6 +25,8 @@ func notifIcon(t model.NotificationType) string {
 		return "discussion"
 	case model.NotifRepoTransfer:
 		return "transfer"
+	case model.NotifSecretAlert, model.NotifSecretAllowed, model.NotifTokenRevoked:
+		return "secret"
 	case model.NotifIssueClosed, model.NotifIssueReopened:
 		return "issue"
 	default:
@@ -56,6 +58,15 @@ func notifTitle(n model.Notification) string {
 		return "@" + n.ActorName + " replied in a discussion"
 	case model.NotifRepoTransfer:
 		return "@" + n.ActorName + " wants to transfer a repository to you"
+	case model.NotifSecretAlert:
+		if strings.HasSuffix(n.SubjectTitle, " secrets") {
+			return "Secret scanning found " + n.SubjectTitle
+		}
+		return "Secret scanning found a secret (" + n.SubjectTitle + ")"
+	case model.NotifSecretAllowed:
+		return "@" + n.ActorName + " allowed a secret to be pushed"
+	case model.NotifTokenRevoked:
+		return "Your token " + n.SubjectTitle + " was revoked"
 	default:
 		return "@" + n.ActorName + " in " + n.OwnerName + "/" + n.RepoName
 	}
@@ -75,6 +86,8 @@ templ notifTypeIcon(t model.NotificationType) {
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
 	case model.NotifRepoTransfer:
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>
+	case model.NotifSecretAlert, model.NotifSecretAllowed, model.NotifTokenRevoked:
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15L19 4M18 5l2 2M15 8l2 2"/></svg>
 	default:
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
 	}
@@ -103,7 +116,7 @@ templ notifIconClass(t model.NotificationType, read bool) {
 			<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary">
 				@notifTypeIcon(t)
 			</span>
-		case model.NotifIssueClosed:
+		case model.NotifIssueClosed, model.NotifSecretAlert, model.NotifTokenRevoked:
 			<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-destructive">
 				@notifTypeIcon(t)
 			</span>

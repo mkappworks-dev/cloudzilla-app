@@ -60,7 +60,7 @@ The current order, updated after each re-score. Rows in one step run as parallel
 | ---- | -------------------------- | ----------------------------------------------- | ------------------------------------------- |
 | ✅    | 00–14, 20, 22 (waves 1–2), 23–26, 28–33, 35–40 | —                  | merged (24, 32, 33, 38, 39: #291–#295; 25, 31, 35, 36, 37, 40: #296–#301; 26, 28: #303, #304; 29: #302) |
 | ✅    | 27, 34, 15                 | built from their specs in `.scratch/2026-11-12-edit-and-release-workflows/`, `.scratch/2026-11-12-unfinished-settings-surfaces/` and `.scratch/2026-11-12-repo-rename/` | merged (#308–#326) |
-| 7    | 16, 17, 18, 19             | spec sessions any time; builds here             | 16 built (`.scratch/2026-11-06-security-signing-secrets/`, all 8 tickets merged on `feat/phase-17.2-signed-commits`); 17, 18, 19 are ready-for-human (spec sessions needed) |
+| 7    | 16, 17, 18, 19             | spec sessions any time; builds here             | 16 done (#327, `.scratch/2026-11-06-security-signing-secrets/`); 17 built (`feat/phase-17.3-secret-scanning`; spec `spec-secret-scanning.md` there); 18, 19 are ready-for-human (spec sessions needed) |
 | 8    | 22 (wave 3)                | after 19                                        | re-score and polish                         |
 | —    | 21 mock generator          | —                                               | wontfix: mocks stay hand-written            |
 

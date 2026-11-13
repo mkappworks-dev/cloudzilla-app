@@ -253,13 +253,32 @@ Tags and other refs may point at any object.
 
 ---
 
+## Push protection
+
+Both transports build their `vet` hook with `PushVetService.Begin`, so branch protection and the secret check cannot
+drift. `PushVet.Check` runs branch protection, then `PushScan.Check`: on the first ref it walks the commits the push
+adds (`gittransport.AddedCommits`, not `forEachPushedCommit`), scans the blobs each changed against its parents once,
+and refuses a ref reaching a high-confidence secret with
+`secret detected: <type> in <path>:<line>[ and N more]; if it is not a live secret, a writer can allow it at <base_url>/<owner>/<repo>/security/secrets/<n>`.
+Other failures read `internal error checking for secrets`. A value with a closed alert is skipped. The
+`secret_scanning.push_timeout`, `max_blobs` and a scanner error let the push through and log
+`push-protection: scan incomplete`; with `secret_scanning.push_protection` off the walk still runs and nothing blocks.
+`PushScan.PostReceive`, started by `AfterPush`, scans what the push did not finish, records `found` events (`incomplete`
+when the budget ran out), notifies repo admins of new alerts and marks every applied commit as reached. A
+`cloudzilla_token` finding is a finding only when `CloudzillaTokenResolver` says it is live (`TokenRevoker` deletes it);
+without one it is dropped.
+
+Pattern set, alert model, allow semantics and the accepted costs are in [secret-scanning](./secret-scanning.md).
+
+---
+
 ## After a push
 
-Both transports hand the refs that applied to `PushService.AfterPush(repo, gitRepo, actor, commands)`, which starts each
-of these in the background: the `push` webhook per updated branch, a push activity event, closing keywords in commits
-that fast-forward the default branch, `OnPostReceive` (contributor stats, open PRs' head SHA, primary language), the
-code-search re-index and the dependency parse. An actor with no `Username` (a deploy key) records no activity and closes
-no issues.
+Both transports hand the refs that applied to `PushService.AfterPush(repo, gitRepo, actor, commands, scan)`, which
+starts each of these in the background: the `push` webhook per updated branch, a push activity event, closing keywords
+in commits that fast-forward the default branch, `OnPostReceive` (contributor stats, open PRs' head SHA, primary
+language), the code-search re-index and the dependency parse. An actor with no `Username` (a deploy key) records no
+activity and closes no issues.
 
 A commit made in the browser reaches the same method through `AfterWebCommit`, with one create or update command built
 from the `RefUpdate` the commit returned, so it fires everything a push of that commit would. Pull mirrors and the

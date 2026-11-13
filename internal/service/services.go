@@ -72,6 +72,10 @@ type Services struct {
 	Avatar             *AvatarService
 	Attachment         *AttachmentService
 	Export             *ExportService
+	SecretAlert        *SecretAlertService
+	SecretScan         *SecretScanService
+	PushScan           *PushScanService
+	PushVet            *PushVetService
 	Mirror             *MirrorService
 	Quota              *QuotaService
 	InstanceSigner     *InstanceSigner
@@ -125,7 +129,10 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	code.WithSignatures(NewSignatureService(stores.GPGKey, stores.SSHSigningKey, userSvc).WithInstanceKeys(stores.InstanceSigningKey))
 	emailVerificationSvc.WithAdditionalEmails(stores.UserEmail, reauthSvc)
 	threadSubSvc := NewThreadSubscriptionService(stores.ThreadSubscription, stores.Watch)
+	secretAlertSvc := NewSecretAlertService(stores.SecretAlert)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc).WithThreadSubscriptions(threadSubSvc)
+	secretScanSvc := NewSecretScanService(stores.SecretScan, stores.Repo, secretAlertSvc, notifSvc, cfg.Git, cfg.SecretScanning)
+	mirrorSvc.WithSecretScans(secretScanSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	avatarSvc := NewAvatarService(stores.User, stores.Org, stores.Avatar, orgSvc)
 	attachmentSvc := NewAttachmentService(stores.Attachment)
@@ -144,6 +151,11 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
 	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
 	issueSvc := NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent).WithThreadSubscriptions(threadSubSvc)
+	branchProtectionSvc := NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus)
+	tokenRevoker := NewTokenRevoker(stores.AccessToken, auditSvc, notifSvc)
+	secretScanSvc.WithTokenResolver(tokenRevoker)
+	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc}).
+		WithTokenResolver(tokenRevoker)
 	return &Services{
 		User:               userSvc,
 		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
@@ -175,7 +187,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		AccessToken:        NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
 		DeviceGrant:        NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken, stores.User).WithEmail(emailSvc),
 		DeployKey:          NewDeployKeyService(stores.DeployKey, stores.SSHKey),
-		BranchProtection:   NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
+		BranchProtection:   branchProtectionSvc,
 		Reaction:           NewReactionService(stores.Reaction),
 		TOTP:               totpSvc,
 		OAuthLink:          NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
@@ -202,15 +214,19 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		ContributorStats:   contributorStatsSvc,
 		Attention:          attentionSvc,
 		Language:           languageSvc,
-		Import:             NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
+		Import:             NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc).WithSecretScans(secretScanSvc),
 		IssueCloser:        issueCloser,
 		Health:             NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:             avatarSvc,
 		Attachment:         attachmentSvc,
 		Export:             exportSvc,
+		SecretAlert:        secretAlertSvc,
+		SecretScan:         secretScanSvc,
+		PushScan:           pushScanSvc,
+		PushVet:            NewPushVetService(branchProtectionSvc, pushScanSvc),
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
-		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
+		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc),
 		InstanceSigner:     instanceSigner,
 		Secrets:            secrets,
 	}

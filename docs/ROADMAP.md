@@ -2446,29 +2446,23 @@ the secret key those commits are committed but unsigned. Details: [signed-commit
 
 ---
 
-### Phase 17.3 — Secret Scanning
+### Phase 17.3 — Secret Scanning ✅
 
-**Migration** (`117_create_secret_scan_alerts.sql`):
+**Migrations** (`133_create_secret_scan_alerts.sql`, `134_secret_scan_notifications.sql`,
+`135_create_repo_secret_scans.sql`): `secret_scan_alerts`, `secret_scan_locations` and `secret_scan_events`; the
+`secret_alert`, `secret_allowed` and `token_revoked` notification types; `repo_secret_scans`, the backfill job state,
+with a trigger that queues every new repository.
 
-```sql
-CREATE TABLE secret_scan_alerts (
-    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    repo_id     BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
-    commit_sha  TEXT NOT NULL,
-    file_path   TEXT NOT NULL,
-    line_number INTEGER NOT NULL,
-    secret_type TEXT NOT NULL,   -- 'aws_key', 'github_token', 'private_key', etc.
-    secret_hint TEXT NOT NULL,   -- first/last 4 chars for display, never full value
-    state       TEXT NOT NULL DEFAULT 'open' CHECK(state IN ('open','resolved','false_positive')),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_secret_alerts_repo ON secret_scan_alerts(repo_id, state);
-```
-
-After each push, `SecretScanService.ScanCommit(ctx, repo, commit)` walks changed blobs and applies a set of regexp
-patterns for common secret types (AWS keys, private keys, JWT secrets, generic API key patterns). Findings are stored as
-alerts and surfaced in a `GET /{owner}/{repo}/security/secrets` page (write access required). Repo owners receive a
-notification for each new finding. Patterns are defined as a static slice in the service — no external database needed.
+A static set of patterns (AWS access key ID, private key header, Cloudzilla token, JWT secret, generic API key), each
+with a confidence, scans every push to a branch or tag, every web-editor commit, and once the whole history of each
+repository. An alert is `open` or `closed` with a resolution (`revoked`, `false_positive`, `used_in_tests`); one alert
+per repository and secret value, with every sighting a location. Push protection refuses a push that adds a
+high-confidence secret with one status line over HTTP and SSH, naming the type, `file:line` and the alert's URL; a
+writer **allows** the value by closing its alert as a false positive or a test value, and it is then not blocked again
+in that repository. The scan fails open at a time or blob budget and alerts after the push. A live Cloudzilla token
+found anywhere is deleted and its owner notified. The Security tab (`GET /{owner}/{repo}/security/secrets`, write access
+required) lists alerts and closes, reopens and allows them. No new webhook event. Details:
+[secret-scanning](./secret-scanning.md).
 
 ---
 
@@ -2735,7 +2729,7 @@ Authentication via the same JWT/PAT bearer token as the REST API. A GraphQL Play
 | 16.3  | Release Asset Enhancements                            | ⬜ Planned | —            |
 | 17.1  | Git LFS Support                                       | ⬜ Planned | 116          |
 | 17.2  | Signed Commit Verification (GPG/SSH)                  | ✅ Done    | 130, 131     |
-| 17.3  | Secret Scanning                                       | ⬜ Planned | 117          |
+| 17.3  | Secret Scanning                                       | ✅ Done    | 133-135      |
 | 18.1  | CI/CD Pipeline Runner (basic)                         | ⬜ Planned | 118          |
 | 18.2  | Pipeline YAML Config & UI                             | ⬜ Planned | 119          |
 | 18.3  | CI Status Dashboard                                   | ⬜ Planned | —            |

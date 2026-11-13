@@ -36,6 +36,9 @@ Mocks show the happy path. These real states are not drawn:
 - **Empty states.** Issue and PR lists with no match ("No open issues match these filters."); repo with no commits
   ("This repository is empty."), empty directory, no releases, no milestones, no projects, no wiki page ("This wiki has
   no Home page yet."), empty discussion and PR lists, no checks (the curl example).
+- **Security tab states.** `security_secrets.html` and `security_secret_alert.html` switch states with `?state=` but not
+  the type filter's narrowing, a filtered empty list ("No open alerts of type …"), a second page of alerts, or the alert
+  page of a Cloudzilla token (no Allow buttons).
 - **Unrecognized qualifier notice.** A list search holding a token such as `sort:comments-desc` shows a line under the
   search field saying it was searched as text (`ListFilterBar`'s `Notices`).
 - **Read-only and signed-out views.** No Edit, Delete or Manage controls; "Sign in to reply."; a locked issue the viewer

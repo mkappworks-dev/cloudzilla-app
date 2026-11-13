@@ -16,6 +16,9 @@ const (
 	NotifMention         NotificationType = "mention"
 	NotifDiscussionReply NotificationType = "discussion_reply"
 	NotifRepoTransfer    NotificationType = "repo_transfer"
+	NotifSecretAlert     NotificationType = "secret_alert"
+	NotifSecretAllowed   NotificationType = "secret_allowed"
+	NotifTokenRevoked    NotificationType = "token_revoked"
 )
 
 // AllNotificationTypes must list every NotificationType and stay in step with the notifications_type_check constraint.
@@ -31,6 +34,9 @@ var AllNotificationTypes = []NotificationType{
 	NotifMention,
 	NotifDiscussionReply,
 	NotifRepoTransfer,
+	NotifSecretAlert,
+	NotifSecretAllowed,
+	NotifTokenRevoked,
 }
 
 type Notification struct {

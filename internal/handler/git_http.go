@@ -371,10 +371,8 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vet := func(cmd *packp.Command) error {
-		return h.Services.BranchProtection.CheckPushCommand(r.Context(), repo.ID, gitRepo, cmd)
-	}
-	sess, err := gittransport.NewServer(gitRepo.Storer, vet).NewReceivePackSession(ep, nil)
+	vet := h.Services.PushVet.Begin(r.Context(), repo, gitRepo, gu.ID)
+	sess, err := gittransport.NewServer(gitRepo.Storer, vet.Check).NewReceivePackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -400,6 +398,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	vet.Expect(req.Commands)
 	quotaRefusal, err := h.Services.Quota.CapPush(r.Context(), repo, req.Commands, limiter)
 	if err != nil {
 		slog.Error("git-http: check storage quota", "owner", owner, "repo", repoName, "error", err)
@@ -449,5 +448,5 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	commands := gittransport.AppliedCommands(status, req.Commands)
 
 	h.Services.Push.AfterPush(repo, gitRepo,
-		service.CloseActor{UserID: gu.ID, Username: gu.Username, Targets: gu.Targets}, commands)
+		service.CloseActor{UserID: gu.ID, Username: gu.Username, Targets: gu.Targets}, commands, vet.Scan())
 }

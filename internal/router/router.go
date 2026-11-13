@@ -301,6 +301,12 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/{owner}/{repo}/discussions/new", h.PageNewDiscussionSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions/{number}", h.PageDiscussionDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/checks", h.PageChecks)
+	// optAuthMW, not authMW: a signed-out visitor must get the missing-repo 404, not a login redirect.
+	r.With(optAuthMW).Get("/{owner}/{repo}/security/secrets", h.PageSecurityAlerts)
+	r.With(optAuthMW).Get("/{owner}/{repo}/security/secrets/{number}", h.PageSecurityAlert)
+	r.With(optAuthMW).Post("/{owner}/{repo}/security/secrets/{number}/close", h.CloseSecretAlert)
+	r.With(optAuthMW).Post("/{owner}/{repo}/security/secrets/{number}/reopen", h.ReopenSecretAlert)
+	r.With(optAuthMW).Post("/{owner}/{repo}/security/secrets/{number}/allow", h.AllowSecretAlert)
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)

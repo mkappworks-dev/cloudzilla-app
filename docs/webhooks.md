@@ -11,6 +11,9 @@ them for every repository the organization owns.
   commit (see [pr-merge](./pr-merge.md#closing-issues)), which fire on the issue's repo
 - `pull_request` — fired on PR create, close, merge
 
+There is no event for secret scanning: alerts reach admins as [notifications](./notifications.md), not webhooks (see
+[secret-scanning](./secret-scanning.md#notifications-and-audit)).
+
 ## Delivery
 
 Webhooks are dispatched fire-and-forget (`go s.Dispatch(...)`). Each delivery is recorded in `webhook_deliveries` with

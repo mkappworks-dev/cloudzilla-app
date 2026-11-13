@@ -79,7 +79,9 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		viewerID = &base.CurrentUser.UserID
 	}
 	base.OwnerContext = repo.OwnerName
+	canWrite := viewerID != nil && h.Services.Repo.CanWrite(ctx, repo, *viewerID)
 	base.RepoSubnav = &view.RepoSubnavInfo{
+		CanWrite:         canWrite,
 		OwnerName:        repo.OwnerName,
 		RepoName:         repo.Name,
 		Active:           active,
@@ -90,6 +92,13 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		AllowProjects:    repo.AllowProjects,
 		AllowWiki:        repo.AllowWiki,
 		Counts:           h.repoSubnavCounts(ctx, repo, viewerID),
+	}
+	if canWrite {
+		if n, err := h.Services.SecretAlert.OpenCount(ctx, repo.ID); err == nil {
+			base.RepoSubnav.Counts["security"] = n
+		} else {
+			slog.Warn("repo subnav counts: security query failed; hiding count", "repo_id", repo.ID, "error", err)
+		}
 	}
 	if siblings, err := h.Services.Repo.ListByOwnerVisibleTo(ctx, repo.OwnerName, viewerID); err == nil {
 		refs := make([]view.RepoRef, 0, len(siblings))

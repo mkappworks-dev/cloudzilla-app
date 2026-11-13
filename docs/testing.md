@@ -23,6 +23,15 @@ disk-served assets, `/_dev/` routes and layout hook included. A change that brea
 Run `go build -tags dev ./...` and `go test -tags dev ./internal/assets/` locally when you touch any of it; see
 [dev-loop](./dev-loop.md).
 
+## Secret scanning tests
+
+The push-protection tests push real packs, built by `internal/testutil/pushclient.go`, through both transports and
+assert the exact ref-status text: `internal/handler/git_push_protection_test.go` (HTTP) and
+`internal/ssh/push_protection_test.go` (SSH). They need Postgres for the alert tables, so they skip in the Test job. The
+scanner's tests (`internal/secretscan`) need nothing. Before changing the push path, also run native `git push` over
+HTTP with a token and over SSH against a throwaway server and read the refusal line: the go-git client in the tests
+cannot show what real git prints. See [secret-scanning](./secret-scanning.md#what-an-end-to-end-run-showed).
+
 ## Running everything locally
 
 ```bash

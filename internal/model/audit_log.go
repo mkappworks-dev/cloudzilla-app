@@ -40,6 +40,8 @@ const (
 	AuditTargetUser = "user"
 	// AuditTargetInstanceSigningKey names the key by fingerprint.
 	AuditTargetInstanceSigningKey = "instance_signing_key"
+	// AuditTargetSecretAlert names the alert by "<owner>/<repo>#<number>".
+	AuditTargetSecretAlert = "secret_scan_alert"
 )
 
 // Common action constants.
@@ -104,6 +106,14 @@ const (
 	AuditActionAdminOrgOwnerAdd           = "admin.org.owner_add"
 	AuditActionAdminUserDelete            = "admin.user.delete"
 	AuditActionAdminSigningKeyRotate      = "admin.signing_key.rotate"
+)
+
+// Secret scanning. Metadata carries the repo and secret type, never the secret or its hint.
+const (
+	AuditActionSecretScanClose  = "secret_scan.close"
+	AuditActionSecretScanReopen = "secret_scan.reopen"
+	AuditActionSecretScanAllow  = "secret_scan.allow"
+	AuditActionTokenAutoRevoke  = "token.auto_revoke"
 )
 
 // Admin mode: entering and leaving, and each mutating request that only passed through it.

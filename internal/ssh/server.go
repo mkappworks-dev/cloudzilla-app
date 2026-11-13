@@ -260,9 +260,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		_, _ = fmt.Fprintf(session.Stderr(), "warning: repository moved to %s/%s; update your remote\n", owner, repoName)
 	}
 
-	vet := func(cmd *packp.Command) error {
-		return s.services.BranchProtection.CheckPushCommand(ctx, repo.ID, gitRepo, cmd)
-	}
+	vet := s.services.PushVet.Begin(ctx, repo, gitRepo, pusherID)
 	commands, err := s.execGitService(session, gitCmd, repo, gitRepo, vet, owner, repoName, pusherName)
 	if err != nil {
 		exitWithError(session, "error: %v\n", err)
@@ -271,7 +269,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 	// Dispatch push webhooks for each updated branch.
 	if gitCmd == "git-receive-pack" {
-		s.services.Push.AfterPush(repo, gitRepo, service.CloseActor{UserID: pusherID, Username: pusherName}, commands)
+		s.services.Push.AfterPush(repo, gitRepo, service.CloseActor{UserID: pusherID, Username: pusherName}, commands, vet.Scan())
 	}
 
 	_ = session.Exit(0)
@@ -306,7 +304,7 @@ func isFlushOnly(r *bufio.Reader) bool {
 
 // execGitService runs the git pack protocol over the SSH session and returns
 // the commands go-git applied (non-nil only for git-receive-pack).
-func (s *Server) execGitService(session ssh.Session, svc string, repo *model.Repository, gitRepo *gogit.Repository, vet func(*packp.Command) error, ownerName, repoName, pusherName string) (applied []*packp.Command, err error) {
+func (s *Server) execGitService(session ssh.Session, svc string, repo *model.Repository, gitRepo *gogit.Repository, vet *service.PushVet, ownerName, repoName, pusherName string) (applied []*packp.Command, err error) {
 	var transferred func() int64
 	defer func() {
 		var n int64
@@ -321,7 +319,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, repo *model.Rep
 		return nil, fmt.Errorf("create endpoint: %w", err)
 	}
 
-	srv := gittransport.NewServer(gitRepo.Storer, vet)
+	srv := gittransport.NewServer(gitRepo.Storer, vet.Check)
 
 	if svc == "git-upload-pack" {
 		sess, err := srv.NewUploadPackSession(ep, nil)
@@ -401,6 +399,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, repo *model.Rep
 			return nil, fmt.Errorf("decode receive-pack request: %w", err)
 		}
 
+		vet.Expect(req.Commands)
 		quotaRefusal, err := s.services.Quota.CapPush(session.Context(), repo, req.Commands, limiter)
 		if err != nil {
 			return nil, fmt.Errorf("check storage quota: %w", err)

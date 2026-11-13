@@ -67,6 +67,11 @@ func (s *RepoService) CanManage(ctx context.Context, repo *model.Repository, use
 	return adminmode.Override(ctx, userID)
 }
 
+// ListManagers returns the ids of the users CanManage admits on repo, except a superadmin passing only through admin mode.
+func (s *RepoService) ListManagers(ctx context.Context, repo *model.Repository) ([]int64, error) {
+	return s.repos.ListManagerIDs(ctx, repo)
+}
+
 // IsOwner returns true only for the owner of a personal repo or an owner of
 // an org repo's org; having created an org repo counts for nothing.
 // Used for destructive operations: transfer, delete, archive, unarchive, template toggle,

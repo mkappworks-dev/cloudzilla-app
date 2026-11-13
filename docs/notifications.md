@@ -17,7 +17,18 @@ watch, with optional email delivery (see [Email](#email)).
 | `mention`          | Someone @-mentions you in a comment                                                                   |
 | `discussion_reply` | Someone replies to a discussion you started                                                           |
 | `repo_transfer`    | Someone wants to transfer a repository to you; links to `/repos/transfers`                            |
+| `secret_alert`     | A secret scan recorded findings in a repo you manage; a backfill is one digest per repo               |
+| `secret_allowed`   | Another manager allowed a flagged secret to be pushed                                                 |
+| `token_revoked`    | The instance auto-revoked your access token after it appeared in a repo                               |
 | `pr_opened`        | (type reserved; not currently auto-fired)                                                             |
+
+The three secret types go through `NotifySecretAlert`, `NotifySecretAllowed` and `NotifyTokenRevoked`
+(`notification_service_secret.go`). Managers come from `RepoService.ListManagers`: the owner (an org's owners for an org
+repo), `admin` collaborators and members of a team granted `admin`, the `CanManage` set minus a superadmin in admin
+mode. `secret_allowed` skips the allowing user. With no acting user, `secret_alert` and `token_revoked` set each
+recipient as their own actor (`notifications.actor_id` is NOT NULL). Text and email carry the secret type and alert
+number, never the masked hint. Audit actions `secret_scan.close`, `secret_scan.reopen`, `secret_scan.allow` and
+`token.auto_revoke` are recorded by the callers, with `service.SecretScanAudit` building the target name and metadata.
 
 Notifications are never created when `actorID == authorID` (self-actions are silent), which covers the comment-only
 review a PR's author may leave on their own PR; the author cannot approve or request changes (`ErrOwnPullVerdict`).
