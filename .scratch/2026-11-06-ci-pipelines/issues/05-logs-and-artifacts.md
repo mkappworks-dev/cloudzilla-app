@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 04
 Parallel with: 01
 
@@ -46,22 +46,50 @@ append. Artifacts have no home, and without retention both fill the disk.
 
 ## Acceptance criteria
 
-- [ ] A 30 MiB log is cut at 20 MiB with one truncation line; offsets read back contiguous lines; the full download
+- [x] A 30 MiB log is cut at 20 MiB with one truncation line; offsets read back contiguous lines; the full download
       equals the concatenated chunks
-- [ ] A failed object write leaves no row; a failed row after a write deletes the object
-- [ ] An artifact uploads, downloads with the right headers, and a private repo's artifact returns the same 404 to a
+- [x] A failed object write leaves no row; a failed row after a write deletes the object
+- [x] An artifact uploads, downloads with the right headers, and a private repo's artifact returns the same 404 to a
       non-reader as a missing one
-- [ ] Oversize and over-count artifacts are refused with the limit named
-- [ ] The retention worker deletes expired chunks and artifacts and keeps Run rows and statuses; a repo purge and a
+- [x] Oversize and over-count artifacts are refused with the limit named
+- [x] The retention worker deletes expired chunks and artifacts and keeps Run rows and statuses; a repo purge and a
       user delete remove the objects
 - [ ] ~~Light and dark checks at 1440~~ (no UI; the UI is ticket 06)
 - [ ] ~~Standing mocks in `mockups/` updated~~ (no UI)
-- [ ] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` /
+- [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` /
       `cloudzilla-seed`) with a real runner: a Job printing 50 MB and uploading an artifact; `curl` reads the log by
       offset and downloads the artifact, evidence in the PR
-- [ ] `make lint` and `go test ./...` pass
+- [x] `make lint` and `go test ./...` pass
 
 ## Verification
 
 Throwaway server and runner as in ticket 04; `curl -b` with a session for the log and artifact endpoints, signed out for
 the 404s.
+
+## Comments
+
+- Claude, 2026-11-13: done, migration 138. Evidence (real runner, real Docker, 50 MB of output, `curl` by offset and the
+  artifact download, the signed-out 404s) is in `/private/tmp/claude-501/ci-ticket-05-evidence.md`; copy it into the PR.
+  - A fix for ticket 04 went in first (`4909a3de`): the runner now starts one container per Job and runs each Step with
+    `docker exec`, so a file made in one Step is there in the next. A Step's `timeout-minutes` kills that Step's processes
+    (`kill -9 -1` inside the container, which spares PID 1) and the Job carries on; the Job timeout removes the container.
+  - For ticket 06 (UI): `WorkflowLogService.ReadLog(ctx, jobID, offset, limit)` returns lines from a line offset and
+    `next_offset`; the JSON form is `GET /api/repos/{owner}/{repo}/actions/runs/{number}/jobs/{jobID}/logs?offset=&limit=`
+    (`complete` is true once the Job has finished, so poll until a page is empty and `complete`). A Step's line range is
+    `workflow_steps.log_first_line` (inclusive) to `log_last_line` (exclusive). Full log:
+    `GET /{owner}/{repo}/actions/runs/{number}/jobs/{jobID}/log`. Artifacts: `WorkflowLogService.ListArtifacts(ctx, runID)`
+    and `GET /api/repos/{owner}/{repo}/actions/runs/{number}/artifacts` (with `download_url`), download at
+    `GET /{owner}/{repo}/actions/runs/{number}/artifacts/{id}`. The page routes for `/actions/runs/{number}` itself are
+    still free.
+  - For ticket 06 (secrets): implement `service.SecretSource` (`SecretValues(ctx, repoID)`) and pass it to
+    `WorkflowLog.WithSecrets`; set `runner.Executor.Masker` from the Job's secrets so the runner masks too. A secret that
+    contains a newline is not masked across the break, because the runner only posts whole lines.
+  - Decisions: artifacts are zips (directories and regular files; symlinks dropped), uploaded after the Steps whether or
+    not the Job passed and before it finishes (the per-job token dies with the Job); a missing path or a refused upload
+    fails an otherwise green Job. The count limit applies per Run attempt. Retention uses the chunk's `created_at` and the
+    artifact's `expires_at`, so a changed `ci.log_retention` applies to existing logs but a changed
+    `ci.artifact_retention` only to new artifacts. The retention worker runs even with `ci.enabled` off.
+  - Reading logs and artifacts is not blocked for an archived repo (archived stays readable); a private or soft-deleted
+    repo stops serving at once. The spec line "archived ... stops serving logs" read as run creation, so say if it should
+    block reads too.
+  - Not run live: SIGTERM of the runner mid-Job (the sandbox refused the `kill`); the stub-docker tests cover the cleanup.
