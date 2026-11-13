@@ -47,6 +47,9 @@ type Executor struct {
 	Minute time.Duration
 	// HeartbeatEvery is runnerapi.HeartbeatEverySeconds unless a test shortens it.
 	HeartbeatEvery time.Duration
+
+	// held is the id of the Job being executed, 0 when idle; Sweep leaves its resources alone.
+	held atomic.Int64
 }
 
 // idleSeconds keeps the Job's container alive until the runner removes it; busybox's sleep has no "infinity".
@@ -64,6 +67,8 @@ func (e *Executor) minutes(n int) time.Duration {
 // Execute runs one Job to its end and reports the result. A Job the server cancelled mid-run is torn down without a
 // result, since the server already ended it.
 func (e *Executor) Execute(ctx context.Context, spec *runnerapi.JobSpec) {
+	e.held.Store(spec.JobID)
+	defer e.held.Store(0)
 	jobCtx, cancel := context.WithTimeout(ctx, e.minutes(spec.TimeoutMinutes))
 	defer cancel()
 
@@ -145,10 +150,10 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 		_ = d.run(cctx, nil, "network", "rm", network)
 	}()
 
-	if err := d.run(ctx, nil, "network", "create", network); err != nil {
+	if err := d.run(ctx, nil, append([]string{"network", "create"}, e.labels(spec.JobID, network)...)...); err != nil {
 		return "failure", "could not create the job network: " + err.Error()
 	}
-	if err := d.run(ctx, nil, "volume", "create", volume); err != nil {
+	if err := d.run(ctx, nil, append([]string{"volume", "create"}, e.labels(spec.JobID, volume)...)...); err != nil {
 		return "failure", "could not create the workspace volume: " + err.Error()
 	}
 	if err := e.populate(ctx, d, spec, image, network, volume, name); err != nil {
@@ -229,7 +234,7 @@ func (e *Executor) populate(ctx context.Context, d docker, spec *runnerapi.JobSp
 	if err := e.Checkout(ctx, spec, dir); err != nil {
 		return err
 	}
-	create := append([]string{"create", "--name", name}, e.Limits.hardening(network, volume)...)
+	create := append(append([]string{"create", "--name", name}, e.labels(spec.JobID)...), e.Limits.hardening(network, volume)...)
 	if err := d.run(ctx, nil, append(create, "--entrypoint=sleep", "--", image, idleSeconds)...); err != nil {
 		return err
 	}

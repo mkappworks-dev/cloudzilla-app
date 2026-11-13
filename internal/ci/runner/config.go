@@ -3,10 +3,13 @@
 package runner
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
@@ -14,15 +17,27 @@ import (
 
 // Config is what `cz-runner register` writes and `cz-runner run` reads. It holds the runner token, so the file is 0600.
 type Config struct {
-	Server string   `yaml:"server"`
-	Token  string   `yaml:"token"`
-	Name   string   `yaml:"name"`
-	Labels []string `yaml:"labels"`
+	Server string `yaml:"server"`
+	Token  string `yaml:"token"`
+	Name   string `yaml:"name"`
+	// RunnerID is the server's id for this runner; it labels the Docker resources the runner makes.
+	RunnerID int64    `yaml:"runner_id,omitempty"`
+	Labels   []string `yaml:"labels"`
 	// Images maps a runs-on label to the image a Job with that label runs in when it names none.
 	Images map[string]string `yaml:"images"`
 	// AllowedImages limits the `container:` a workflow may ask for; a trailing * matches a prefix. Empty allows any
 	// image. Images in Images are always allowed.
 	AllowedImages []string `yaml:"allowed_images"`
+}
+
+// Owner is the value of the cz.runner label. A config written before runner_id existed falls back to a digest of the
+// token, which also identifies one runner and is not the token.
+func (c *Config) Owner() string {
+	if c.RunnerID > 0 {
+		return strconv.FormatInt(c.RunnerID, 10)
+	}
+	sum := sha256.Sum256([]byte(c.Token))
+	return "t" + hex.EncodeToString(sum[:6])
 }
 
 // DefaultConfigPath is where the config lives when --config is not given.

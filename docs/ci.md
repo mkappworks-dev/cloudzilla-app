@@ -321,8 +321,12 @@ Docker networks to what a Job must not reach:
 
 Run the runner as an unprivileged user in the `docker` group on a dedicated host: access to the Docker socket is root on
 that host, so do not share it with anything else. Keep the runner's config file private (it holds the runner token).
-After a crash or `kill -9`, containers named `cz-job-*` may remain; remove them with `docker rm -f` and the matching
-volumes and networks with `docker volume rm` and `docker network rm`.
+Every container, network and volume the runner creates carries the labels `cz.runner=<runner id>` and `cz.job=<job id>`.
+After a crash or `kill -9`, the next `cz-runner run` removes the labelled leftovers it does not hold a Job for when it
+starts, and again every 10 minutes. Give each runner its own config file, and so its own id: two runners sharing one
+config on a host would remove each other's Jobs. A config written before `runner_id` existed labels with a digest of its
+token instead; resources created by an older runner carry no label and are removed by hand with `docker rm -f`,
+`docker volume rm` and `docker network rm`.
 
 `docker compose --profile runner up` starts a DEV ONLY runner against the host Docker socket (`Dockerfile.cz-runner`);
 set `CZ_RUNNER_TOKEN` to a registration token from `/admin/runners` and `CZ_SERVER_BASE_URL=http://cloudzilla:8080` on
@@ -359,8 +363,6 @@ the [API reference](./api-reference.md#workflow-runs), and the `repo` and `repo:
   covered by tests only and has never run on a real fork. When they land, `WorkflowRunService.OnPullRequest` must be
   called with the fork as the head repository, and a fork Run's per-job token must be bound to the fork so the runner
   can clone its commit.
-- **A `kill -9` of a runner leaves `cz-job-*` containers, volumes and networks behind.** `SIGINT` and `SIGTERM` clean
-  up; remove the rest by hand (see [Operator hardening](#operator-hardening)).
 - **`strategy.fail-fast` is parsed but not acted on.** Matrix siblings keep running after one fails.
 - **`/admin/runners` is reachable, and its tab shown, when `ci.enabled` is off.** The page says CI is off; the runner
   API is absent.

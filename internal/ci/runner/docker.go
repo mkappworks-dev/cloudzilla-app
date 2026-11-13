@@ -80,6 +80,15 @@ func (d docker) run(ctx context.Context, stdin io.Reader, args ...string) error 
 	return nil
 }
 
+// output runs one docker command and returns its stdout.
+func (d docker) output(ctx context.Context, args ...string) (string, error) {
+	out, err := d.cmd(ctx, args...).Output()
+	if err != nil {
+		return "", fmt.Errorf("docker %s: %w", args[0], err)
+	}
+	return string(out), nil
+}
+
 func trimOut(b []byte) string {
 	const max = 512
 	if len(b) > max {

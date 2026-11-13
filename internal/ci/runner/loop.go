@@ -19,7 +19,11 @@ type Poller struct {
 	Once bool
 	// Wait is the claim long-poll length.
 	Wait time.Duration
+	// SweepEvery is how often leftover Docker resources are removed while polling; defaultSweepEvery when zero.
+	SweepEvery time.Duration
 }
+
+const defaultSweepEvery = 10 * time.Minute
 
 // Loop polls until ctx ends, the token is revoked, or (with Once) a Job has run.
 func (p *Poller) Loop(ctx context.Context) error {
@@ -27,6 +31,15 @@ func (p *Poller) Loop(ctx context.Context) error {
 	if wait == 0 {
 		wait = runnerapi.MaxClaimWaitSeconds * time.Second * 5 / 6
 	}
+	// A kill -9 skips the Job's own cleanup, so the start of the next run is the first chance to remove it.
+	p.Exec.Sweep(ctx)
+	every := p.SweepEvery
+	if every == 0 {
+		every = defaultSweepEvery
+	}
+	sweepCtx, stopSweep := context.WithCancel(ctx)
+	defer stopSweep()
+	go p.Exec.SweepEvery(sweepCtx, every)
 	backoff := time.Second
 	for ctx.Err() == nil {
 		spec, err := p.Client.Claim(ctx, p.Labels, wait)

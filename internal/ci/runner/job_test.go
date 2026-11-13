@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
@@ -30,6 +32,8 @@ case "$1" in
     if [ "$2" = "-" ]; then cat > /dev/null
     elif [ -e "$STUB_DIR/artifact.tar" ]; then cat "$STUB_DIR/artifact.tar"
     else echo "Could not find the file $2" >&2; exit 1; fi ;;
+  ps) cat "$STUB_DIR/list-ps" 2>/dev/null ;;
+  network|volume) [ "$2" = ls ] && cat "$STUB_DIR/list-$1" 2>/dev/null ;;
   rm) for a in "$@"; do last=$a; done; : > "$STUB_DIR/removed-$last" ;;
   exec)
     name=""; prev=""
@@ -181,6 +185,12 @@ var wantHardening = []string{
 	"--memory-swap=4g", "--pids-limit=512", "--network=cz-job-7", "--volume=cz-job-7:/workspace",
 }
 
+// wantLabels tag everything the runner creates so a sweep can find what a dead runner left; newExecutor's config has
+// no runner id and so derives its owner from the token.
+var wantLabels = []string{"--label=cz.runner=" + testOwner, "--label=cz.job=7"}
+
+var testOwner = (&Config{Token: ""}).Owner()
+
 func stubFile(t *testing.T, name string) string {
 	t.Helper()
 	b, err := os.ReadFile(filepath.Join(os.Getenv("STUB_DIR"), "files", name))
@@ -253,7 +263,7 @@ func TestExecute_EveryContainerCarriesTheHardeningFlags(t *testing.T) {
 			}
 		}
 	}
-	wantCreate := append(append([]string{"create", "--name", "cz-job-7"}, wantHardening...), "--entrypoint=sleep", "--", "golang:1.23", "2147483647")
+	wantCreate := append(append([]string{"create", "--name", "cz-job-7"}, append(slices.Clone(wantLabels), wantHardening...)...), "--entrypoint=sleep", "--", "golang:1.23", "2147483647")
 	if !slices.Equal(starts[0], wantCreate) {
 		t.Errorf("create args =\n%q\nwant\n%q", starts[0], wantCreate)
 	}
@@ -818,5 +828,88 @@ func TestLogStream_AMultiLineSecretSplitAcrossChunksIsMasked(t *testing.T) {
 	}
 	if len(api.logs) != 2 || strings.Contains(all, "line-secret") {
 		t.Errorf("posts = %+v", api.logs)
+	}
+}
+
+func TestExecute_NetworkAndVolumeAreLabelledWithTheRunnerAndJob(t *testing.T) {
+	calls := stubDocker(t)
+	e := newExecutor(&fakeAPI{})
+	e.Config.RunnerID = 42
+	e.Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "true"}))
+	var got []call
+	for _, c := range calls() {
+		if c[0] == "network" && c[1] == "create" || c[0] == "volume" && c[1] == "create" || c[0] == "create" {
+			got = append(got, c[:min(len(c), 5)])
+		}
+	}
+	want := []call{
+		{"network", "create", "--label=cz.runner=42", "--label=cz.job=7", "cz-job-7"},
+		{"volume", "create", "--label=cz.runner=42", "--label=cz.job=7", "cz-job-7"},
+		{"create", "--name", "cz-job-7", "--label=cz.runner=42", "--label=cz.job=7"},
+	}
+	if !slices.EqualFunc(got, want, func(a, b call) bool { return slices.Equal(a, b) }) {
+		t.Errorf("got\n%q\nwant\n%q", got, want)
+	}
+}
+
+func TestSweep_RemovesLabelledLeftoversButNotTheHeldJob(t *testing.T) {
+	calls := stubDocker(t)
+	dir := os.Getenv("STUB_DIR")
+	for kind, names := range map[string]string{"ps": "cz-job-3\ncz-job-7\n", "volume": "cz-job-3\ncz-job-7\n", "network": "cz-job-3\n"} {
+		if err := os.WriteFile(filepath.Join(dir, "list-"+kind), []byte(names), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e := newExecutor(&fakeAPI{})
+	e.Config.RunnerID = 42
+	e.held.Store(7)
+	e.Sweep(context.Background())
+	want := []call{
+		{"ps", "-a", "--filter=label=cz.runner=42", "--format={{.Names}}"},
+		{"rm", "-f", "cz-job-3"},
+		{"volume", "ls", "--filter=label=cz.runner=42", "--format={{.Name}}"},
+		{"volume", "rm", "-f", "cz-job-3"},
+		{"network", "ls", "--filter=label=cz.runner=42", "--format={{.Name}}"},
+		{"network", "rm", "cz-job-3"},
+	}
+	if got := calls(); !slices.EqualFunc(got, want, func(a, b call) bool { return slices.Equal(a, b) }) {
+		t.Errorf("got\n%q\nwant\n%q", got, want)
+	}
+}
+
+func TestSweep_IgnoresNamesThatAreNotJobResources(t *testing.T) {
+	calls := stubDocker(t)
+	if err := os.WriteFile(filepath.Join(os.Getenv("STUB_DIR"), "list-ps"), []byte("postgres\n--all\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	newExecutor(&fakeAPI{}).Sweep(context.Background())
+	for _, c := range calls() {
+		if c[0] == "rm" {
+			t.Errorf("removed %q", c)
+		}
+	}
+}
+
+func TestLoop_SweepsAtStartAndOnTheInterval(t *testing.T) {
+	calls := stubDocker(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(20 * time.Millisecond)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	p := &Poller{Client: &Client{Server: srv.URL, Token: "t"}, Labels: []string{"linux"}, Exec: newExecutor(&fakeAPI{}), SweepEvery: 50 * time.Millisecond}
+	if err := p.Loop(ctx); err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, c := range calls() {
+		if c[0] == "ps" {
+			n++
+		}
+	}
+	if n < 3 {
+		t.Errorf("container listings = %d, want the start-up sweep and at least two ticks", n)
 	}
 }
