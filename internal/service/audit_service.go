@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -123,4 +124,14 @@ func extractIP(r *http.Request) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+// SecretScanAudit returns the target name and metadata for a secret_scan.* or token.auto_revoke entry. It carries the
+// secret's type and alert number only: the hint stays out of the audit log.
+func SecretScanAudit(repo model.Repository, alert *model.SecretScanAlert, resolution string) (targetName string, metadata map[string]any) {
+	metadata = map[string]any{"repo": repo.OwnerName + "/" + repo.Name, "number": alert.Number, "secret_type": alert.SecretType}
+	if resolution != "" {
+		metadata["resolution"] = resolution
+	}
+	return fmt.Sprintf("%s/%s#%d", repo.OwnerName, repo.Name, alert.Number), metadata
 }

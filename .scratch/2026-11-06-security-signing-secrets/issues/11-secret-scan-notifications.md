@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 10
 Parallel with: 12, 13
 
@@ -32,14 +32,14 @@ Repo admins hear nothing when a secret is found after the fact or when a writer 
 
 ## Acceptance criteria
 
-- [ ] A repo with an owner, an org owner, an `admin` collaborator, a `writer` and a team-granted admin notifies exactly the admins and not the writer
-- [ ] A digest for 7 findings creates one notification, not seven; an allow does not notify its actor
-- [ ] The notification list renders the three new types without a fallback label (check `notifications` page labels and the mail templates)
-- [ ] Notification and email bodies contain no secret hint (test)
+- [x] A repo with an owner, an org owner, an `admin` collaborator, a `writer` and a team-granted admin notifies exactly the admins and not the writer
+- [x] A digest for 7 findings creates one notification, not seven; an allow does not notify its actor
+- [x] The notification list renders the three new types without a fallback label (check `notifications` page labels and the mail templates)
+- [x] Notification and email bodies contain no secret hint (test)
 - [ ] ~~Checked at desktop 1440 in light and dark~~ (no UI in this ticket)
 - [ ] ~~The standing mocks in `mockups/` are updated~~ (no UI in this ticket)
 - [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
-- [ ] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+- [x] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
 

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/smtp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -114,6 +115,14 @@ func wantsEmail(u *model.User, t model.NotificationType, digestMode string) bool
 	return true
 }
 
+// secretAlertSummary is "N secrets" for a digest and "a secret (type)" for one alert.
+func secretAlertSummary(n *model.Notification) string {
+	if strings.HasSuffix(n.SubjectTitle, " secrets") {
+		return n.SubjectTitle
+	}
+	return "a secret (" + n.SubjectTitle + ")"
+}
+
 func formatNotifEmail(n *model.Notification) (subject, body string) {
 	actor := html.EscapeString(n.ActorName)
 	owner := html.EscapeString(n.OwnerName)
@@ -151,6 +160,18 @@ func formatNotifEmail(n *model.Notification) (subject, body string) {
 		subject = fmt.Sprintf("[%s/%s] %s wants to transfer this repository to you", n.OwnerName, n.RepoName, n.ActorName)
 		body = fmt.Sprintf("<p><strong>%s</strong> wants to transfer %s/%s to you. Nothing moves until you <a href=\"%s\">accept it</a>, and the offer expires in %d days.</p>",
 			actor, owner, repo, n.SubjectURL, int(RepoTransferTTL.Hours()/24))
+	case model.NotifSecretAlert:
+		subject = fmt.Sprintf("[%s/%s] Secret scanning alert", n.OwnerName, n.RepoName)
+		body = fmt.Sprintf("<p>Secret scanning found %s in %s/%s. <a href=\"%s\">Review it</a>.</p>",
+			html.EscapeString(secretAlertSummary(n)), owner, repo, n.SubjectURL)
+	case model.NotifSecretAllowed:
+		subject = fmt.Sprintf("[%s/%s] A secret was allowed", n.OwnerName, n.RepoName)
+		body = fmt.Sprintf("<p><strong>%s</strong> allowed a flagged secret to be pushed to %s/%s. <a href=\"%s\">See the alert</a>.</p>",
+			actor, owner, repo, n.SubjectURL)
+	case model.NotifTokenRevoked:
+		subject = fmt.Sprintf("[%s/%s] Your access token was revoked", n.OwnerName, n.RepoName)
+		body = fmt.Sprintf("<p>Your access token <strong>%s</strong> appeared in %s/%s and was revoked. <a href=\"%s\">Create a new one</a> if you still need it.</p>",
+			html.EscapeString(n.SubjectTitle), owner, repo, n.SubjectURL)
 	default:
 		subject = fmt.Sprintf("[%s/%s] New notification", n.OwnerName, n.RepoName)
 		body = fmt.Sprintf("<p>You have a new notification from <strong>%s</strong> in %s/%s: <a href=\"%s\">view</a>.</p>",
