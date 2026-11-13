@@ -2,7 +2,9 @@ package service_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -11,6 +13,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -26,6 +29,8 @@ type forkPullEnv struct {
 	forkerID          int64
 	forkOwner         string
 	forkRepo          string
+	db                *sql.DB
+	fork              *model.Repository
 	pulls             *service.PullService
 	code              *service.CodeService
 	repos             *service.RepoService
@@ -55,6 +60,8 @@ func newForkPullEnv(t *testing.T) *forkPullEnv {
 		t.Fatalf("fork: %v", err)
 	}
 	e.forkRepo = fork.Name
+	e.fork = fork
+	e.db = db
 
 	forkGit, err := gogit.PlainOpen(filepath.Join(e.root, e.forkOwner, e.forkRepo+".git"))
 	if err != nil {
@@ -220,3 +227,124 @@ func TestForkPull_BehindWhenBaseMovesOn(t *testing.T) {
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }
+
+// pushToFork moves the fork's fix-x to a new commit on top of its tip, as a push would, and runs the post-receive hook.
+func (e *forkPullEnv) pushToFork(t *testing.T, branch string, force bool) plumbing.Hash {
+	t.Helper()
+	forkGit, err := gogit.PlainOpen(filepath.Join(e.root, e.forkOwner, e.forkRepo+".git"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := plumbing.NewBranchReferenceName(branch)
+	old, err := forkGit.Reference(ref, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent := old.Hash()
+	if force {
+		parent = e.mainHash
+	}
+	next := testutil.WriteCommit(t, forkGit.Storer, "second change "+time.Now().String(), parent)
+	if err := forkGit.Storer.SetReference(plumbing.NewHashReference(ref, next)); err != nil {
+		t.Fatal(err)
+	}
+	repos := service.NewRepoService(store.NewRepoStore(e.db), store.NewUserStore(e.db), store.NewOrgStore(e.db),
+		nil, e.code, czconfig.GitConfig{ReposRoot: e.root}).WithPullStore(store.NewPullStore(e.db))
+	cmd := &packp.Command{Name: ref, Old: old.Hash(), New: next}
+	if err := repos.OnPostReceive(context.Background(), e.fork, forkGit, []*packp.Command{cmd}); err != nil {
+		t.Fatalf("post-receive: %v", err)
+	}
+	return next
+}
+
+func TestForkPush_UpdatesTheOpenPull(t *testing.T) {
+	for _, force := range []bool{false, true} {
+		name := map[bool]string{false: "push", true: "force-push"}[force]
+		t.Run(name, func(t *testing.T) {
+			e := newForkPullEnv(t)
+			ctx := context.Background()
+			pr, err := e.pulls.CreateFromHead(ctx, e.upOwner, e.upRepo, e.forkOwner+"/"+e.forkRepo,
+				e.forkerID, "Fix x", "", "fix-x", "main", false, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			next := e.pushToFork(t, "fix-x", force)
+
+			got, err := e.pulls.Get(ctx, e.upOwner, e.upRepo, pr.Number)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.HeadSHA != next.String() {
+				t.Errorf("head sha = %q, want %s", got.HeadSHA, next)
+			}
+			base, err := gogit.PlainOpen(filepath.Join(e.root, e.upOwner, e.upRepo+".git"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			ref, err := base.Reference(service.PullHeadRef(pr.Number), true)
+			if err != nil || ref.Hash() != next {
+				t.Errorf("base %s = %v (err %v), want %s", service.PullHeadRef(pr.Number), ref, err, next)
+			}
+			if _, err := base.CommitObject(next); err != nil {
+				t.Errorf("the new commit is not in the base's object store: %v", err)
+			}
+		})
+	}
+}
+
+// The store matches a pushed branch to pull requests by head repository, so a branch of the base that shares a fork
+// pull request's head branch name leaves it alone.
+func TestUpdateHeadSHAByBranch_SkipsAForkPullWithTheSameBranchName(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr, err := e.pulls.CreateFromHead(ctx, e.upOwner, e.upRepo, e.forkOwner+"/"+e.forkRepo,
+		e.forkerID, "Fix x", "", "fix-x", "main", false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	up, err := e.repos.Get(ctx, e.upOwner, e.upRepo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := store.NewPullStore(e.db).UpdateHeadSHAByBranch(ctx, up.ID, "fix-x", "deadbeef"); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := e.pulls.Get(ctx, e.upOwner, e.upRepo, pr.Number)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.HeadSHA != e.forkSHA.String() {
+		t.Errorf("head sha = %q, want it unchanged at %s", got.HeadSHA, e.forkSHA)
+	}
+}
+
+func TestForkPush_CopyFailureKeepsTheOldHead(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr, err := e.pulls.CreateFromHead(ctx, e.upOwner, e.upRepo, e.forkOwner+"/"+e.forkRepo,
+		e.forkerID, "Fix x", "", "fix-x", "main", false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(filepath.Join(e.root, e.forkOwner, e.forkRepo+".git")); err != nil {
+		t.Fatal(err)
+	}
+	repos := service.NewRepoService(store.NewRepoStore(e.db), store.NewUserStore(e.db), store.NewOrgStore(e.db),
+		nil, e.code, czconfig.GitConfig{ReposRoot: e.root}).WithPullStore(store.NewPullStore(e.db))
+
+	err = repos.OnPostReceive(ctx, e.fork, nil, []*packp.Command{{Name: plumbing.NewBranchReferenceName("fix-x"), New: e.mainHash}})
+
+	if err != nil {
+		t.Fatalf("a failed copy must not fail the push: %v", err)
+	}
+	got, err := e.pulls.Get(ctx, e.upOwner, e.upRepo, pr.Number)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.HeadSHA != e.forkSHA.String() {
+		t.Errorf("head sha = %q, want it kept at %s", got.HeadSHA, e.forkSHA)
+	}
+}

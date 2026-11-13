@@ -16,3 +16,4 @@ See [spec.md](../spec.md). A fork PR creates a `waiting` Run that a writer appro
 - [ ] Statuses a fork Run posts attach to the PR head SHA in the base.
 - [ ] The fork limit is removed from `docs/ci.md` "Known limitations".
 - [ ] End-to-end test with a real fork.
+- [ ] `WorkflowRunService.onBranchMoved` lists the pushed repository's open PRs and matches them by `HeadBranch` alone, so a push to a base branch named like a fork PR's head branch would create a bogus `synchronize` Run for it: skip PRs whose head is another repository.

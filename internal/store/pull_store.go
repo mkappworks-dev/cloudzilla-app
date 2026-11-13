@@ -649,7 +649,7 @@ func (s *PullStore) UpdateHeadSHA(ctx context.Context, pullID int64, sha string)
 
 func (s *PullStore) UpdateHeadSHAByBranch(ctx context.Context, repoID int64, headBranch, sha string) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE pull_requests SET head_sha = $3 WHERE repo_id = $1 AND head_branch = $2 AND state = 'open'`,
+		`UPDATE pull_requests SET head_sha = $3 WHERE repo_id = $1 AND head_repo_id = repo_id AND head_branch = $2 AND state = 'open'`,
 		repoID, headBranch, sha,
 	)
 	return err
@@ -681,4 +681,27 @@ func (s *PullStore) GetManyByIDs(ctx context.Context, ids []int64) ([]model.Pull
 	}
 	defer rows.Close()
 	return scanPullRows(rows)
+}
+
+// ListOpenFromHead returns the open pull requests of other repositories whose head is branch of headRepoID.
+func (s *PullStore) ListOpenFromHead(ctx context.Context, headRepoID int64, branch string) ([]model.PullRequest, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT p.id, p.number, r.owner_name, r.name
+		 FROM pull_requests p JOIN repositories r ON r.id = p.repo_id
+		 WHERE p.head_repo_id = $1 AND p.repo_id <> $1 AND p.head_branch = $2 AND p.state = 'open'`,
+		headRepoID, branch,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list open pulls from head: %w", err)
+	}
+	defer rows.Close()
+	var prs []model.PullRequest
+	for rows.Next() {
+		pr := model.PullRequest{HeadBranch: branch, HeadRepoID: &headRepoID, CrossRepo: true}
+		if err := rows.Scan(&pr.ID, &pr.Number, &pr.RepoOwner, &pr.RepoName); err != nil {
+			return nil, fmt.Errorf("scan pull from head: %w", err)
+		}
+		prs = append(prs, pr)
+	}
+	return prs, rows.Err()
 }
