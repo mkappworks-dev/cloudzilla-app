@@ -92,8 +92,7 @@ func (s *SecretAlertStore) Record(ctx context.Context, repoID int64, secretType,
 	return alert, created, nil
 }
 
-// AppendLocation adds a location to the alert for hash, with no event, for a push that is still to be applied. It does
-// nothing when the repository has no such alert.
+// AppendLocation adds a location with no event, for a push not yet applied; a no-op without an alert for hash.
 func (s *SecretAlertStore) AppendLocation(ctx context.Context, repoID int64, hash string, sg model.SecretSighting) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO secret_scan_locations (alert_id, commit_sha, file_path, line_number, reached_ref)
@@ -103,14 +102,13 @@ func (s *SecretAlertStore) AppendLocation(ctx context.Context, repoID int64, has
 	return err
 }
 
-// Close closes an open alert. eventKind is 'closed', 'allowed' or 'auto_revoked'; actorID 0 records no user.
+// Close takes eventKind 'closed', 'allowed' or 'auto_revoked'; actorID 0 records no user.
 func (s *SecretAlertStore) Close(ctx context.Context, alertID, actorID int64, resolution, eventKind string, autoRevoked bool) error {
 	return s.transition(ctx, alertID, model.SecretAlertOpen, eventKind, actorID, resolution,
 		`UPDATE secret_scan_alerts SET state = 'closed', resolution = $2, resolved_by = $3, resolved_at = NOW(), auto_revoked = $4
 		 WHERE id = $1 AND state = 'open'`, resolution, nullActor(actorID), autoRevoked)
 }
 
-// Reopen clears the resolution of a closed alert.
 func (s *SecretAlertStore) Reopen(ctx context.Context, alertID, actorID int64) error {
 	return s.transition(ctx, alertID, model.SecretAlertClosed, model.SecretEventReopened, actorID, "",
 		`UPDATE secret_scan_alerts SET state = 'open', resolution = NULL, resolved_by = NULL, resolved_at = NULL, auto_revoked = FALSE
@@ -165,7 +163,6 @@ func (s *SecretAlertStore) one(ctx context.Context, where string, args ...any) (
 	return a, nil
 }
 
-// IsClosed reports whether the repository has a closed alert for hash.
 func (s *SecretAlertStore) IsClosed(ctx context.Context, repoID int64, hash string) (bool, error) {
 	var closed bool
 	err := s.db.QueryRowContext(ctx,
@@ -174,8 +171,7 @@ func (s *SecretAlertStore) IsClosed(ctx context.Context, repoID int64, hash stri
 	return closed, err
 }
 
-// List returns one page of a repository's alerts, newest first, and the total across pages. An empty state or
-// secretType matches all.
+// List is newest first; an empty state or secretType matches all.
 func (s *SecretAlertStore) List(ctx context.Context, repoID int64, state, secretType string, page, perPage int) ([]model.SecretScanAlert, int, error) {
 	where := `a.repo_id = $1 AND ($2 = '' OR a.state = $2) AND ($3 = '' OR a.secret_type = $3)`
 	var total int
@@ -209,7 +205,6 @@ func (s *SecretAlertStore) OpenCount(ctx context.Context, repoID int64) (int, er
 	return n, err
 }
 
-// BlockedOpen returns the open alerts among hashes that no ref reaches yet.
 func (s *SecretAlertStore) BlockedOpen(ctx context.Context, repoID int64, hashes []string) ([]model.SecretScanAlert, error) {
 	if len(hashes) == 0 {
 		return nil, nil
@@ -239,7 +234,6 @@ func (s *SecretAlertStore) BlockedOpen(ctx context.Context, repoID int64, hashes
 	return out, rows.Err()
 }
 
-// MarkReached flags every location on one of commitSHAs as reachable from a ref.
 func (s *SecretAlertStore) MarkReached(ctx context.Context, repoID int64, commitSHAs []string) error {
 	if len(commitSHAs) == 0 {
 		return nil
@@ -257,8 +251,7 @@ func (s *SecretAlertStore) MarkReached(ctx context.Context, repoID int64, commit
 	return err
 }
 
-// SweepBlocked deletes open alerts created before olderThan whose locations no ref ever reached. Closed ones stay:
-// they are what stops the same value being blocked again.
+// SweepBlocked leaves closed alerts: they are what stops the same value being blocked again.
 func (s *SecretAlertStore) SweepBlocked(ctx context.Context, olderThan time.Time) (int, error) {
 	res, err := s.db.ExecContext(ctx,
 		`DELETE FROM secret_scan_alerts a WHERE a.state = 'open' AND a.created_at < $1

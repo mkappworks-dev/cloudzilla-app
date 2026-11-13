@@ -37,13 +37,12 @@ func (s *SecretAlertService) Record(ctx context.Context, repoID int64, f secrets
 	return s.alerts.Record(ctx, repoID, f.Type, secretscan.Hash(repoID, f.Value), secretscan.Mask(f.Value), kind, loc)
 }
 
-// AppendLocation adds the sighting of f to its existing alert as a location only, with no event.
+// AppendLocation adds a location to f's alert with no event; see PushScan.noteClosed.
 func (s *SecretAlertService) AppendLocation(ctx context.Context, repoID int64, f secretscan.Finding, loc model.SecretSighting) error {
 	loc.Line = f.Line
 	return s.alerts.AppendLocation(ctx, repoID, secretscan.Hash(repoID, f.Value), loc)
 }
 
-// Close closes an open alert with a resolution: revoked, false_positive or used_in_tests.
 func (s *SecretAlertService) Close(ctx context.Context, alertID, actorID int64, resolution string) error {
 	if !validResolution(resolution) {
 		return ErrSecretResolution
@@ -70,28 +69,25 @@ func (s *SecretAlertService) Allow(ctx context.Context, alertID, actorID int64, 
 	return s.alerts.Close(ctx, alertID, actorID, resolution, model.SecretEventAllowed, false)
 }
 
-// AutoRevoke closes the alert of a Cloudzilla token the instance has just deleted, with no acting user.
+// AutoRevoke closes the alert of a token the instance just deleted; there is no acting user.
 func (s *SecretAlertService) AutoRevoke(ctx context.Context, alertID int64) error {
 	return s.alerts.Close(ctx, alertID, 0, model.SecretResolutionRevoked, model.SecretEventAutoRevoked, true)
 }
 
-// BlockedOpen returns the open alerts among hashes (see secretscan.Hash) that no ref reaches yet.
 func (s *SecretAlertService) BlockedOpen(ctx context.Context, repoID int64, hashes []string) ([]model.SecretScanAlert, error) {
 	return s.alerts.BlockedOpen(ctx, repoID, hashes)
 }
 
-// MarkReached records that the commits are now reachable from a ref.
 func (s *SecretAlertService) MarkReached(ctx context.Context, repoID int64, commitSHAs []string) error {
 	return s.alerts.MarkReached(ctx, repoID, commitSHAs)
 }
 
-// IsClosed reports whether the value's hash has a closed alert in the repository, which keeps it from being blocked
-// or alerted again.
+// IsClosed is what keeps a value from being blocked or alerted again: its alert is closed under any resolution.
 func (s *SecretAlertService) IsClosed(ctx context.Context, repoID int64, hash string) (bool, error) {
 	return s.alerts.IsClosed(ctx, repoID, hash)
 }
 
-// List returns a page (1-based) of alerts and the total across pages. An empty state or secretType matches all.
+// List pages are 1-based; an empty state or secretType matches all.
 func (s *SecretAlertService) List(ctx context.Context, repoID int64, state, secretType string, page int) ([]model.SecretScanAlert, int, error) {
 	return s.alerts.List(ctx, repoID, state, secretType, page, secretAlertsPerPage)
 }
@@ -108,12 +104,10 @@ func (s *SecretAlertService) Events(ctx context.Context, alertID int64) ([]model
 	return s.alerts.Events(ctx, alertID)
 }
 
-// OpenCount counts the open alerts a ref reaches, for the Security tab badge.
 func (s *SecretAlertService) OpenCount(ctx context.Context, repoID int64) (int, error) {
 	return s.alerts.OpenCount(ctx, repoID)
 }
 
-// SweepBlocked deletes open alerts older than olderThan that no ref ever reached, and returns how many.
 func (s *SecretAlertService) SweepBlocked(ctx context.Context, olderThan time.Time) (int, error) {
 	return s.alerts.SweepBlocked(ctx, olderThan)
 }

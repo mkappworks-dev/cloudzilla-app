@@ -30,13 +30,13 @@ var ErrSecretCheckFailed = errors.New("internal error checking for secrets")
 
 const postReceiveMarkBatch = 1000
 
-// SecretAlertNotifier tells repository admins about an alert a scan after the push opened. Ticket 11 implements it.
+// SecretAlertNotifier tells repository admins about an alert a scan after the push opened.
 type SecretAlertNotifier interface {
 	NotifySecretAlert(ctx context.Context, repo *model.Repository, alert *model.SecretScanAlert)
 }
 
-// CloudzillaTokenResolver decides whether a czp_ value is a live token. Ticket 14 implements it, revoking the token it
-// finds; without one every token is treated as not live and dropped.
+// CloudzillaTokenResolver decides whether a czp_ value is a live token, revoking the one it finds; without one every
+// token is treated as not live and dropped.
 type CloudzillaTokenResolver interface {
 	ResolveLiveToken(ctx context.Context, repo *model.Repository, value string) (live bool, err error)
 }
@@ -44,7 +44,6 @@ type CloudzillaTokenResolver interface {
 // SecretScanFunc is secretscan.Scan with a failure mode, so a broken scanner can be told apart from a clean blob.
 type SecretScanFunc func(path string, content []byte, maxBytes int) ([]secretscan.Finding, error)
 
-// PushScanService scans what a push adds for secrets, before the refs move (push protection) and after.
 type PushScanService struct {
 	alerts   *SecretAlertService
 	cfg      config.SecretScanningConfig
@@ -202,7 +201,6 @@ func (s *PushScanService) ForCommit(repo *model.Repository, gitRepo *gogit.Repos
 	return p
 }
 
-// Expect names the commands of the push, so the walk covers every ref's new value at once.
 func (p *PushScan) Expect(cmds []*packp.Command) {
 	p.tips = p.tips[:0]
 	for _, cmd := range cmds {
@@ -314,8 +312,8 @@ func (p *PushScan) sightingOf(cmd *packp.Command, commit plumbing.Hash, f pathFi
 	return model.SecretSighting{CommitSHA: commit.String(), FilePath: f.Path, Ref: cmd.Name.String(), ActorID: p.pusherID}
 }
 
-// noteClosed records a sighting of a value whose alert is closed. At check time the push may still be refused, so only
-// the location is added; the scan after the push adds the event.
+// noteClosed records a sighting of a closed alert's value. At check time the push may still be refused, so only the
+// location is added; the scan after the push adds the event.
 func (p *PushScan) noteClosed(ctx context.Context, f pathFinding, sg model.SecretSighting, kind string) error {
 	if kind == model.SecretEventBlocked {
 		if sg.CommitSHA == plumbing.ZeroHash.String() {
@@ -402,7 +400,6 @@ func (p *PushScan) settleToken(ctx context.Context, r TokenOutcomeResolver, f pa
 	return TokenExpired, nil
 }
 
-// worthBlocking drops a czp_ value that is not a live token.
 func (p *PushScan) worthBlocking(ctx context.Context, f pathFinding) (bool, error) {
 	if f.Type != model.SecretTypeCloudzillaToken {
 		return true, nil
@@ -413,7 +410,6 @@ func (p *PushScan) worthBlocking(ctx context.Context, f pathFinding) (bool, erro
 	return p.svc.tokens.ResolveLiveToken(ctx, p.repo, f.Value)
 }
 
-// walk finds the commits the push adds, once per push.
 func (p *PushScan) walk() {
 	if p.walked {
 		return
@@ -511,7 +507,6 @@ func (p *PushScan) scanTree(ctx context.Context, commit plumbing.Hash, tree *obj
 	return true
 }
 
-// scanBlob reports false when the budget or the scanner stops the scan.
 func (p *PushScan) scanBlob(ctx context.Context, commit plumbing.Hash, path string, h plumbing.Hash) bool {
 	fs, ok := p.blobs[h]
 	if !ok {
@@ -578,7 +573,6 @@ func (p *PushScan) stop(reason string, err error) {
 	slog.Warn("push-protection: scan incomplete", attrs...)
 }
 
-// reachable returns the added commits the tips reach, parents first.
 func (p *PushScan) reachable(tips []plumbing.Hash) []*object.Commit {
 	in := make(map[plumbing.Hash]bool)
 	stack := append([]plumbing.Hash(nil), tips...)
@@ -696,7 +690,6 @@ func (p *PushScan) notifyReached(ctx context.Context, was []model.SecretScanAler
 	}
 }
 
-// refFor is the ref of an applied command that reaches c.
 func (p *PushScan) refFor(c *object.Commit, refOf map[plumbing.Hash]string) string {
 	refs := make([]string, 0, len(refOf))
 	for tip, ref := range refOf {
@@ -714,7 +707,7 @@ func (p *PushScan) refFor(c *object.Commit, refOf map[plumbing.Hash]string) stri
 	return refs[0]
 }
 
-// recordAfterPush records one finding of an applied commit; it reports false when the database fails.
+// recordAfterPush reports false when the database fails.
 func (p *PushScan) recordAfterPush(ctx context.Context, c *object.Commit, f pathFinding, ref string) bool {
 	if f.Type == model.SecretTypeCloudzillaToken {
 		if r, ok := p.svc.tokens.(TokenOutcomeResolver); ok {
@@ -742,7 +735,7 @@ func (p *PushScan) recordAfterPush(ctx context.Context, c *object.Commit, f path
 	return true
 }
 
-// revokeAfterPush settles one czp_ finding of an applied commit; it reports false when the database fails.
+// revokeAfterPush reports false when the database fails.
 func (p *PushScan) revokeAfterPush(ctx context.Context, r TokenOutcomeResolver, c *object.Commit, f pathFinding, ref string) bool {
 	sg := model.SecretSighting{CommitSHA: c.Hash.String(), FilePath: f.Path, Ref: ref, ActorID: p.pusherID, Incomplete: p.unfinished[c.Hash]}
 	out, err := p.settleToken(ctx, r, f, sg, model.SecretEventFound)
@@ -767,7 +760,6 @@ func (p *PushScan) revokeAfterPush(ctx context.Context, r TokenOutcomeResolver, 
 	return true
 }
 
-// peelToCommit follows tags from h to the commit they name.
 func peelToCommit(s storer.EncodedObjectStorer, h plumbing.Hash) (plumbing.Hash, bool) {
 	for range 16 {
 		if _, err := object.GetCommit(s, h); err == nil {
@@ -782,7 +774,6 @@ func peelToCommit(s storer.EncodedObjectStorer, h plumbing.Hash) (plumbing.Hash,
 	return plumbing.ZeroHash, false
 }
 
-// parentsFirstCommits orders cs so that each commit follows its parents among them.
 func parentsFirstCommits(cs []*object.Commit) []*object.Commit {
 	in := make(map[plumbing.Hash]*object.Commit, len(cs))
 	for _, c := range cs {

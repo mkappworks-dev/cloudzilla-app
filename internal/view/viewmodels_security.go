@@ -88,12 +88,12 @@ type SecretAlertsData struct {
 	HistoryIncomplete bool
 	// PushProtection is secret_scanning.push_protection: whether a push that adds a secret is refused.
 	PushProtection bool
-	TypeOptions       []SecretTypeOption
-	Rows              []SecretAlertRow
-	OpenTabURL        string
-	ClosedTabURL      string
-	NewerURL          string
-	OlderURL          string
+	TypeOptions    []SecretTypeOption
+	Rows           []SecretAlertRow
+	OpenTabURL     string
+	ClosedTabURL   string
+	NewerURL       string
+	OlderURL       string
 }
 
 type SecretSnippetView struct {
