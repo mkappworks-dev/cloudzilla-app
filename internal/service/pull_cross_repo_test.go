@@ -348,3 +348,95 @@ func TestForkPush_CopyFailureKeepsTheOldHead(t *testing.T) {
 		t.Errorf("head sha = %q, want it kept at %s", got.HeadSHA, e.forkSHA)
 	}
 }
+
+func openForkPullService(t *testing.T, e *forkPullEnv) *model.PullRequest {
+	t.Helper()
+	pr, err := e.pulls.CreateFromHead(context.Background(), e.upOwner, e.upRepo, e.forkOwner+"/"+e.forkRepo,
+		e.forkerID, "Fix x", "", "fix-x", "main", false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pr
+}
+
+func (e *forkPullEnv) pullEvents(t *testing.T, pullID int64) []model.PullEvent {
+	t.Helper()
+	evs, err := store.NewPullEventStore(e.db).ListByPull(context.Background(), pullID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return evs
+}
+
+func TestForkDeleted_ClosesItsOpenPulls(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr := openForkPullService(t, e)
+	e.repos.WithPullStore(store.NewPullStore(e.db))
+
+	if err := e.repos.Delete(ctx, e.fork.ID, e.forkerID); err != nil {
+		t.Fatalf("delete fork: %v", err)
+	}
+
+	got, err := e.pulls.Get(ctx, e.upOwner, e.upRepo, pr.Number)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.State != model.PRStateClosed {
+		t.Errorf("state = %q, want closed", got.State)
+	}
+	if got.HeadRepo != e.forkOwner+"/"+e.forkRepo {
+		t.Errorf("head repo = %q, want the label kept after the head is gone", got.HeadRepo)
+	}
+	if got.HeadRef() != "refs/pull/1/head" {
+		t.Errorf("head ref = %q, want the pull ref still readable", got.HeadRef())
+	}
+	evs := e.pullEvents(t, pr.ID)
+	if len(evs) != 1 || evs[0].Type != model.PullEventClosed || evs[0].Detail != "head repository was deleted" {
+		t.Errorf("events = %+v, want one closed event saying the head repository was deleted", evs)
+	}
+}
+
+func TestForkBranchDeleted_ClosesItsOpenPull(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr := openForkPullService(t, e)
+	repos := service.NewRepoService(store.NewRepoStore(e.db), store.NewUserStore(e.db), store.NewOrgStore(e.db),
+		nil, e.code, czconfig.GitConfig{ReposRoot: e.root}).WithPullStore(store.NewPullStore(e.db))
+	cmd := &packp.Command{Name: plumbing.NewBranchReferenceName("fix-x"), Old: e.forkSHA, New: plumbing.ZeroHash}
+
+	if err := repos.OnPostReceive(ctx, e.fork, nil, []*packp.Command{cmd}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := e.pulls.Get(ctx, e.upOwner, e.upRepo, pr.Number)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.State != model.PRStateClosed {
+		t.Errorf("state = %q, want closed", got.State)
+	}
+	evs := e.pullEvents(t, pr.ID)
+	if len(evs) != 1 || evs[0].Detail != "head branch was deleted" {
+		t.Errorf("events = %+v, want one closed event saying the head branch was deleted", evs)
+	}
+}
+
+func TestForkRenamed_PullShowsTheCurrentName(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr := openForkPullService(t, e)
+	testutil.Exec(t, e.db, `UPDATE repositories SET name = $2 WHERE id = $1`, e.fork.ID, e.forkRepo+"-renamed")
+
+	got, err := e.pulls.Get(ctx, e.upOwner, e.upRepo, pr.Number)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want := e.forkOwner + "/" + e.forkRepo + "-renamed"; got.HeadRepo != want {
+		t.Errorf("head repo = %q, want %q", got.HeadRepo, want)
+	}
+	if got.State != model.PRStateOpen {
+		t.Errorf("state = %q, a rename must leave the PR open", got.State)
+	}
+}

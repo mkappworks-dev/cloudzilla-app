@@ -3,6 +3,7 @@ package handler_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +28,8 @@ type forkPullFixture struct {
 	upOwner, upRepo  string
 	upID             int64
 	forkerID         int64
+	db               *sql.DB
+	forkID           int64
 	forker, forkRepo string
 	forkSHA          plumbing.Hash
 }
@@ -69,6 +72,7 @@ func openForkPull(t *testing.T) forkPullFixture {
 	r := chi.NewRouter()
 	r.Post("/api/repos/{owner}/{repo}/pulls", h.CreatePull)
 	r.Post("/api/repos/{owner}/{repo}/pulls/{number}/update-branch", h.UpdatePullBranch)
+	r.Get("/api/repos/{owner}/{repo}/pulls/{number}", h.GetPull)
 	f.router = middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(r)
 
 	f.forkerID = testutil.SeedUser(t, db, suffix+"_f")
@@ -78,6 +82,8 @@ func openForkPull(t *testing.T) forkPullFixture {
 		t.Fatalf("fork: %v", err)
 	}
 	f.forkRepo = fork.Name
+	f.db = db
+	f.forkID = fork.ID
 	forkGit, err := gogit.PlainOpen(filepath.Join(root, f.forker, fork.Name+".git"))
 	if err != nil {
 		t.Fatal(err)
@@ -162,5 +168,38 @@ func TestCreatePull_HeadOutsideForkTree_422(t *testing.T) {
 
 	if rr.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("want 422, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestGetPull_PrivateForkHead_HiddenFromAReaderOfTheBase(t *testing.T) {
+	f := openForkPull(t)
+	if rr := f.open(t); rr.Code != http.StatusCreated {
+		t.Fatalf("open: %d %s", rr.Code, rr.Body.String())
+	}
+	testutil.Exec(t, f.db, `UPDATE repositories SET private = true WHERE id = $1`, f.forkID)
+	get := func(userID int64, username string) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/repos/"+f.upOwner+"/"+f.upRepo+"/pulls/1", nil)
+		req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, userID, username))
+		rr := httptest.NewRecorder()
+		f.router.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("get: %d %s", rr.Code, rr.Body.String())
+		}
+		var got map[string]any
+		if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+
+	reader := get(f.upID, f.upOwner)
+	author := get(f.forkerID, f.forker)
+
+	if reader["head_repo"] != nil || reader["head_repo_hidden"] != true {
+		t.Errorf("a reader of the base only: head_repo = %v, head_repo_hidden = %v; want the name withheld", reader["head_repo"], reader["head_repo_hidden"])
+	}
+	if author["head_repo"] != f.forker+"/"+f.forkRepo {
+		t.Errorf("the fork's owner: head_repo = %v, want %s/%s", author["head_repo"], f.forker, f.forkRepo)
 	}
 }

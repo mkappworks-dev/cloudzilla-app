@@ -40,11 +40,13 @@ func headRepoID(pr *model.PullRequest) int64 {
 	return pr.RepoID
 }
 
+// setHeadRepo fills the head repository fields of a pull request read from the database. A head that is gone has no
+// id but still has its label, and the PR is still a cross-repository one.
 func setHeadRepo(pr *model.PullRequest, id sql.NullInt64, label string) {
 	if id.Valid {
 		pr.HeadRepoID = &id.Int64
 	}
-	if id.Valid && id.Int64 != pr.RepoID {
+	if (id.Valid && id.Int64 != pr.RepoID) || (!id.Valid && label != "") {
 		pr.HeadRepo = label
 		pr.CrossRepo = true
 	}
@@ -124,7 +126,8 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
 		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by,
-		        merged_base_sha, merged_head_sha, head_repo_id, head_repo_label
+		        merged_base_sha, merged_head_sha, head_repo_id,
+		        COALESCE((SELECT owner_name || '/' || name FROM repositories WHERE id = pull_requests.head_repo_id), head_repo_label)
 		 FROM pull_requests WHERE repo_id = $1 AND number = $2`,
 		repoID, number,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
@@ -296,7 +299,8 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
 		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by,
-		        merged_base_sha, merged_head_sha, head_repo_id, head_repo_label
+		        merged_base_sha, merged_head_sha, head_repo_id,
+		        COALESCE((SELECT owner_name || '/' || name FROM repositories WHERE id = pull_requests.head_repo_id), head_repo_label)
 		 FROM pull_requests WHERE id = $1`,
 		id,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
@@ -649,7 +653,7 @@ func (s *PullStore) UpdateHeadSHA(ctx context.Context, pullID int64, sha string)
 
 func (s *PullStore) UpdateHeadSHAByBranch(ctx context.Context, repoID int64, headBranch, sha string) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE pull_requests SET head_sha = $3 WHERE repo_id = $1 AND head_repo_id = repo_id AND head_branch = $2 AND state = 'open'`,
+		`UPDATE pull_requests SET head_sha = $3 WHERE repo_id = $1 AND (head_repo_id = repo_id OR (head_repo_id IS NULL AND head_repo_label = '')) AND head_branch = $2 AND state = 'open'`,
 		repoID, headBranch, sha,
 	)
 	return err
@@ -704,4 +708,24 @@ func (s *PullStore) ListOpenFromHead(ctx context.Context, headRepoID int64, bran
 		prs = append(prs, pr)
 	}
 	return prs, rows.Err()
+}
+
+// CloseFromHead closes the open pull requests of other repositories whose head is headRepoID (only branch, when it
+// isn't empty) and records why on each timeline, as the ghost user: nobody on the base acted.
+func (s *PullStore) CloseFromHead(ctx context.Context, headRepoID int64, branch, reason string) (int, error) {
+	res, err := s.db.ExecContext(ctx,
+		`WITH closed AS (
+		     UPDATE pull_requests SET state = 'closed', closed_at = NOW(), updated_at = NOW()
+		     WHERE head_repo_id = $1 AND repo_id <> $1 AND state = 'open' AND ($2 = '' OR head_branch = $2)
+		     RETURNING id
+		 )
+		 INSERT INTO pull_events (pull_id, actor_id, actor_name, event_type, detail)
+		 SELECT id, ghost_user_id(), 'Cloudzilla', 'closed', $3 FROM closed`,
+		headRepoID, branch, reason,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("close pulls from head: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	return int(n), nil
 }

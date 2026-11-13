@@ -683,3 +683,17 @@ func (s *PullService) SuggestReviewers(ctx context.Context, owner, repoName, bas
 	}
 	return s.userStore.GetManyByIDs(ctx, ids)
 }
+
+// HideUnreadableHead withholds the head repository's name from a viewer who can't read it, so a private fork isn't
+// named to the base's readers. A head that no longer exists keeps its label.
+func (s *PullService) HideUnreadableHead(ctx context.Context, pr *model.PullRequest, viewerID *int64) {
+	if !pr.CrossRepo || pr.HeadRepoID == nil {
+		return
+	}
+	head, err := s.repos.GetByID(ctx, *pr.HeadRepoID)
+	if err == nil && s.repoSvc.CanRead(ctx, head, viewerID) {
+		return
+	}
+	pr.HeadRepo = ""
+	pr.HeadRepoHidden = true
+}

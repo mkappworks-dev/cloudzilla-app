@@ -77,6 +77,11 @@ func (h *Handler) GetPull(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "pull request not found")
 		return
 	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	h.Services.Pull.HideUnreadableHead(r.Context(), pr, viewerID)
 	writeJSON(w, http.StatusOK, pr)
 }
 

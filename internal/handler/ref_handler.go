@@ -116,6 +116,7 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.Services.Repo.CloseForkPullsOfBranch(r.Context(), repo, name)
 
 	result, err := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
 	if err != nil {

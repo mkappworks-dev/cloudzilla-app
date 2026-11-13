@@ -40,6 +40,8 @@ type PullRequest struct {
 	CrossRepo bool `db:"-" json:"-"`
 	// HeadRepo is the head's "owner/name" when it differs from the base, set by GetByID, GetByNumber and Create only.
 	HeadRepo string `db:"-" json:"head_repo,omitempty"`
+	// HeadRepoHidden marks a head repository the viewer can't read, whose name is withheld.
+	HeadRepoHidden bool `db:"-" json:"head_repo_hidden,omitempty"`
 	// AutoMergeBy is the user who armed auto-merge, read by GetByID and GetByNumber only.
 	AutoMergeBy *int64 `db:"auto_merge_by" json:"-"`
 	// MergedBaseSHA and MergedHeadSHA are the base tip and head tip the merge saw, read by GetByID and GetByNumber

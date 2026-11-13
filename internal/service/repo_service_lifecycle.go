@@ -48,6 +48,11 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 		revertDirs(moved)
 		return err
 	}
+	if s.pulls != nil {
+		if _, err := s.pulls.CloseFromHead(ctx, repoID, "", "head repository was deleted"); err != nil {
+			slog.Warn("repo delete: closing pull requests from this head failed", "repo_id", repoID, "error", err)
+		}
+	}
 	return nil
 }
 
