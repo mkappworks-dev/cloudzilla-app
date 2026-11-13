@@ -71,6 +71,9 @@ Resolve each by deleting whichever key the owner no longer wants; nothing remove
 - **Tokens** (PATs, and OAuth-app tokens via `Authorization: Bearer`): need any repo scope to clone/fetch and
   `repo:write` to push. A PAT sent as the Basic password and lacking the scope gets a plain-text `403`, not `401`, so
   git keeps the stored credential; see [access-control](./access-control.md#token-scopes)
+- **Per-job tokens** (`czj_…`, sent as the Basic password by a runner): fetch only, from the one repo the Job runs in.
+  `git-receive-pack` answers `403`, another repo answers `404`, and the token stops working (`401`) when its Job leaves
+  `running`. It bypasses user permissions on purpose and is accepted nowhere else; see [ci](./ci.md#runners)
 - Permissions enforced: read access for clone/fetch, write access for push
 
 ### Responses

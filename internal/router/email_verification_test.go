@@ -34,6 +34,7 @@ func newVerificationRouter(t *testing.T, smtp config.SMTPConfig) (http.Handler, 
 		Auth:   config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: "cz_token"},
 		Git:    config.GitConfig{ReposRoot: t.TempDir()},
 		SMTP:   smtp,
+		CI:     config.DefaultCI(),
 	}
 	svc := service.New(store.New(db), cfg)
 	h, err := router.New(svc, cfg, fstest.MapFS{})

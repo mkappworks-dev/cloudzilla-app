@@ -1,0 +1,183 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
+)
+
+func runnerStatusVariant(status string) components.BadgeVariant {
+	switch status {
+	case "online":
+		return components.BadgeSuccess
+	case "revoked":
+		return components.BadgeDestructive
+	}
+	return components.BadgeDraft
+}
+
+func runnerStatusLabel(status string) string {
+	switch status {
+	case "online":
+		return "Online"
+	case "revoked":
+		return "Revoked"
+	}
+	return "Offline"
+}
+
+templ RunnersCard(data view.RunnersFragData) {
+	<div id="runners-card">
+		@components.Card(nil) {
+			@components.CardHeader() {
+				<div class="flex items-start justify-between gap-4">
+					<div class="min-w-0">
+						@components.CardTitle(2) {
+							if data.Fleet {
+								Instance runners
+							} else {
+								Runners
+							}
+						}
+						@components.CardDescription() {
+							{ data.Description }
+						}
+					</div>
+					@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "data-runner-open": "", "class": "shrink-0"}) {
+						New runner
+					}
+				</div>
+			}
+			@components.CardContent() {
+				if len(data.Rows) == 0 {
+					<div class="py-10 text-center">
+						<p class="text-sm font-medium">No runners registered.</p>
+						<p class="text-[13px] text-muted-foreground mt-1">Jobs stay queued until one is.</p>
+					</div>
+				} else {
+					<div class="overflow-x-auto">
+						@components.Table(nil) {
+							@components.TableHeader() {
+								@components.TableRow(false) {
+									@components.TableHead(templ.Attributes{"scope": "col"}) {
+										Name
+									}
+									@components.TableHead(templ.Attributes{"scope": "col"}) {
+										Labels
+									}
+									if data.Fleet {
+										@components.TableHead(templ.Attributes{"scope": "col"}) {
+											Version
+										}
+									}
+									@components.TableHead(templ.Attributes{"scope": "col"}) {
+										Status
+									}
+									@components.TableHead(templ.Attributes{"scope": "col"}) {
+										Last contact
+									}
+									if data.Fleet {
+										@components.TableHead(templ.Attributes{"scope": "col"}) {
+											Current job
+										}
+									}
+									@components.TableHead(templ.Attributes{"scope": "col"}) {
+										<span class="sr-only">Actions</span>
+									}
+								}
+							}
+							@components.TableBody() {
+								for _, row := range data.Rows {
+									@components.TableRow(false) {
+										@components.TableRowHead(templ.Attributes{"class": "font-mono font-medium text-foreground"}) {
+											{ row.Name }
+										}
+										@components.TableCell(nil) {
+											<span class="inline-flex gap-1">
+												for _, l := range row.Labels {
+													<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ l }</span>
+												}
+											</span>
+										}
+										if data.Fleet {
+											@components.TableCell(templ.Attributes{"class": "font-mono text-xs text-muted-foreground"}) {
+												{ row.Version }
+											}
+										}
+										@components.TableCell(nil) {
+											@components.Badge(runnerStatusVariant(row.Status)) {
+												{ runnerStatusLabel(row.Status) }
+											}
+										}
+										@components.TableCell(templ.Attributes{"class": "text-muted-foreground text-xs"}) {
+											if row.LastContact != nil {
+												{ timefmt.Relative(*row.LastContact) }
+											} else {
+												Never
+											}
+										}
+										if data.Fleet {
+											@components.TableCell(templ.Attributes{"class": "text-xs"}) {
+												if row.CurrentJob != "" {
+													<a href={ templ.SafeURL(row.CurrentJobURL) } class="font-mono hover:underline">{ row.CurrentJob }</a>
+												} else {
+													<span class="text-muted-foreground">Idle</span>
+												}
+											}
+										}
+										@components.TableCell(templ.Attributes{"class": "text-right"}) {
+											if row.Status != "revoked" {
+												@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
+													"hx-post":             data.Base + "/" + strconv.FormatInt(row.ID, 10) + "/revoke",
+													"hx-target":           "#runners-card",
+													"hx-swap":             "outerHTML",
+													"hx-confirm":          "Its token stops working on the next request. A Job it is running fails with runner lost.",
+													"data-confirm-title":  "Revoke " + row.Name + "?",
+													"data-confirm-label":  "Revoke",
+													"data-confirm-danger": "true",
+													"data-toast":          "Runner revoked",
+													"type":                "button",
+												}) {
+													Revoke
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					</div>
+				}
+			}
+		}
+	</div>
+}
+
+// RunnerToken is the dialog's result: the token is shown once and never stored.
+templ RunnerToken(data view.RunnerTokenFragData) {
+	<div class="space-y-3">
+		<div role="status" class="rounded-md border border-warning/40 bg-warning/10 p-3 text-[13px]">
+			<p class="font-semibold text-warning">Copy this token now</p>
+			<p class="text-muted-foreground mt-0.5">
+				if data.Instance {
+					It is shown once and registers one runner that serves every repository.
+				} else {
+					It is shown once and registers one runner.
+				}
+			</p>
+		</div>
+		<div class="space-y-1.5">
+			<label for="runner-token" class="block text-xs font-medium">Registration token</label>
+			@components.Input(templ.Attributes{"id": "runner-token", "readonly": "readonly", "value": data.Token, "class": "text-xs font-mono bg-muted/50"})
+		</div>
+		<div class="space-y-1.5">
+			<div class="flex items-center justify-between">
+				<label for="runner-command" class="block text-xs font-medium">Run this on the runner host</label>
+				<button type="button" onclick="navigator.clipboard.writeText(document.getElementById('runner-command').value);document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Command copied'}}))" class="h-7 px-2.5 text-[12px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5">Copy command</button>
+			</div>
+			<textarea id="runner-command" readonly rows="4" class="flex w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-xs font-mono leading-relaxed">{ data.Command }</textarea>
+		</div>
+	</div>
+}

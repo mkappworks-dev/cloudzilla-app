@@ -150,7 +150,8 @@ func classifyRequest(r *http.Request) (string, bool) {
 	if path == "" {
 		path = r.URL.Path
 	}
-	if exemptPaths[path] || strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/avatars/") {
+	// Runners poll and heartbeat on a fixed schedule from one address, and every call carries a 256-bit token.
+	if exemptPaths[path] || strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/avatars/") || strings.HasPrefix(path, "/api/runner/") {
 		return "", false
 	}
 	if path == "/search" || path == "/search/code" || path == "/search/suggest" {

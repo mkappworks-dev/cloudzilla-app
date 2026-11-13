@@ -1,4 +1,4 @@
-.PHONY: mockups dev dev-buildbuild build-backend build-cli build-cz migrate seed lint test test-db test-integration clean setup-tailwind setup-templ setup-air build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
+.PHONY: mockups dev dev-buildbuild build-backend build-cli build-cz build-runner migrate seed lint test test-db test-integration clean setup-tailwind setup-templ setup-air build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 DEV_BINARY := tmp/cloudzilla
@@ -84,7 +84,7 @@ dev: download-mermaid download-htmx build-css generate-templ  ## Rebuild, restar
 		$(TAILWIND) -i tailwind/input.css -o $(TAILWIND_OUT) --watch=always & \
 		wait)
 
-build: download-mermaid download-htmx build-css generate-templ build-backend build-cli build-cz  ## Full build (server, cz-admin, cz)
+build: download-mermaid download-htmx build-css generate-templ build-backend build-cli build-cz build-runner  ## Full build (server, cz-admin, cz, cz-runner)
 
 build-backend:
 	@mkdir -p dist
@@ -97,6 +97,10 @@ build-cli:
 build-cz:                          ## Build the remote client (needs no CSS or templ step)
 	@mkdir -p dist
 	CGO_ENABLED=0 $(GO) build -ldflags "$(GO_LDFLAGS)" -o dist/cz ./cmd/cz/.
+
+build-runner:                      ## Build the CI runner (needs no CSS or templ step)
+	@mkdir -p dist
+	CGO_ENABLED=0 $(GO) build -ldflags "$(GO_LDFLAGS)" -o dist/cz-runner ./cmd/cz-runner/.
 
 migrate:
 	$(GO) run ./cmd/cz-admin/. migrate

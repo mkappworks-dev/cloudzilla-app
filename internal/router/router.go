@@ -119,6 +119,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW, superadminMW).Get("/admin/users", h.PageAdminUsers)
 	r.With(authMW, superadminMW).Get("/admin/users/{username}", h.PageAdminUser)
 	r.With(authMW, superadminMW).Get("/admin/audit-log", h.PageAuditLog)
+	r.With(authMW, superadminMW).Get("/admin/runners", h.PageAdminRunners)
+	r.With(authMW, superadminMW).Post("/admin/runners/tokens", h.CreateAdminRunnerToken)
+	r.With(authMW, superadminMW).Post("/admin/runners/{id}/revoke", h.RevokeAdminRunner)
 	r.With(authMW, superadminMW).Get("/admin/sso", h.PageSSOSettings)
 	r.With(authMW, superadminMW).Post("/admin/sso", h.SaveSSOConfig)
 	r.With(authMW, superadminMW).Get("/admin/mode", h.PageAdminMode)
@@ -240,6 +243,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(authMW).Get("/{owner}/{repo}/fork", h.PageForkRepo)
+	r.With(authMW).Post("/{owner}/{repo}/settings/runners/tokens", h.CreateRepoRunnerToken)
+	r.With(authMW).Post("/{owner}/{repo}/settings/runners/{id}/revoke", h.RevokeRepoRunner)
 	r.With(authMW).Post("/{owner}/{repo}/settings/general", h.UpdateRepoGeneral)
 	r.With(authMW).Post("/{owner}/{repo}/settings/rename", h.RenameRepoSettings)
 	r.With(authMW).Post("/{owner}/{repo}/settings/features", h.UpdateRepoFeatures)
@@ -738,6 +743,18 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// TOTP verification (no auth — reads cz_totp_pending cookie)
 	r.Get("/auth/2fa", h.PageTOTPVerify)
 	r.Post("/auth/2fa/verify", h.VerifyTOTP)
+
+	// Runner protocol: polled by cz-runner over outbound HTTPS, authenticated by its own tokens.
+	if cfg.CI.Enabled {
+		r.Route("/api/runner", func(r chi.Router) {
+			r.Use(middleware.NoStore, apiBodyLimit)
+			r.Post("/register", h.RunnerRegister)
+			r.Post("/claim", h.RunnerClaim)
+			r.Post("/jobs/{id}/heartbeat", h.RunnerHeartbeat)
+			r.Post("/jobs/{id}/steps/{position}", h.RunnerStep)
+			r.Post("/jobs/{id}/finish", h.RunnerFinish)
+		})
+	}
 
 	// Git HTTP Smart Protocol routes
 	r.With(gitAuthMW).Get("/{owner}/{repo}/info/refs", h.GitInfoRefs)

@@ -395,9 +395,10 @@ func (q workflowQ) FinishOpenSteps(ctx context.Context, jobID int64, status mode
 	return nil
 }
 
-// ClaimQueuedJob leases the oldest queued Job whose runs-on labels the runner has all of. A Job of a Run that is not
-// running yet is skipped while the repo already has maxRunning Runs running.
-func (q workflowQ) ClaimQueuedJob(ctx context.Context, labels []string, runnerID *int64, lease time.Duration, maxRunning int) (*model.WorkflowJob, error) {
+// ClaimQueuedJob leases the oldest queued Job whose runs-on labels the runner has all of, limited to repoID's Jobs
+// when it is not nil. A Job of a Run that is not running yet is skipped while the repo already has maxRunning Runs
+// running.
+func (q workflowQ) ClaimQueuedJob(ctx context.Context, labels []string, runnerID, repoID *int64, lease time.Duration, maxRunning int) (*model.WorkflowJob, error) {
 	have, err := json.Marshal(nonNilSlice(labels))
 	if err != nil {
 		return nil, fmt.Errorf("encode runner labels: %w", err)
@@ -407,11 +408,11 @@ func (q workflowQ) ClaimQueuedJob(ctx context.Context, labels []string, runnerID
 		     lease_until = NOW() + make_interval(secs => $3)
 		 WHERE id = (
 		     SELECT j.id FROM workflow_jobs j JOIN workflow_runs r ON r.id = j.run_id
-		     WHERE j.status = 'queued' AND j.runs_on <@ $1::jsonb
+		     WHERE j.status = 'queued' AND j.runs_on <@ $1::jsonb AND ($5::bigint IS NULL OR r.repo_id = $5)
 		       AND (r.status = 'running'
 		            OR (SELECT COUNT(*) FROM workflow_runs x WHERE x.repo_id = r.repo_id AND x.status = 'running') < $4)
 		     ORDER BY j.queued_at, j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
-		 RETURNING `+jobColumns, have, runnerID, lease.Seconds(), maxRunning)
+		 RETURNING `+jobColumns, have, runnerID, lease.Seconds(), maxRunning, repoID)
 	j, err := scanJob(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -425,4 +426,52 @@ func (q workflowQ) ClaimQueuedJob(ctx context.Context, labels []string, runnerID
 // StaleQueuedJobs returns Jobs that have been queued since before cutoff.
 func (q workflowQ) StaleQueuedJobs(ctx context.Context, cutoff time.Time) ([]model.WorkflowJob, error) {
 	return q.queryJobs(ctx, `WHERE status = 'queued' AND queued_at < $1 ORDER BY id`, cutoff)
+}
+
+// LostRunningJobs returns running Jobs whose lease ended before now.
+func (q workflowQ) LostRunningJobs(ctx context.Context, now time.Time) ([]model.WorkflowJob, error) {
+	return q.queryJobs(ctx, `WHERE status = 'running' AND lease_until < $1 ORDER BY id`, now)
+}
+
+// RenewLease records a heartbeat for a running Job held by runnerID and reports whether it still was.
+func (q workflowQ) RenewLease(ctx context.Context, jobID, runnerID int64, lease time.Duration) (bool, error) {
+	res, err := q.q.ExecContext(ctx,
+		`UPDATE workflow_jobs SET heartbeat_at = NOW(), lease_until = NOW() + make_interval(secs => $3)
+		 WHERE id = $1 AND runner_id = $2 AND status = 'running'`, jobID, runnerID, lease.Seconds())
+	if err != nil {
+		return false, fmt.Errorf("renew workflow job lease: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	return n == 1, nil
+}
+
+// SetJobTokenHash stores the hash of the per-job token minted at claim.
+func (q workflowQ) SetJobTokenHash(ctx context.Context, jobID int64, hash string) error {
+	if _, err := q.q.ExecContext(ctx, `UPDATE workflow_jobs SET token_hash = $2 WHERE id = $1`, jobID, hash); err != nil {
+		return fmt.Errorf("set workflow job token: %w", err)
+	}
+	return nil
+}
+
+// RunningJobByTokenHash returns the running Job a per-job token hash belongs to, or nil.
+func (q workflowQ) RunningJobByTokenHash(ctx context.Context, hash string) (*model.WorkflowJob, error) {
+	jobs, err := q.queryJobs(ctx, `WHERE token_hash = $1 AND token_hash <> '' AND status = 'running'`, hash)
+	if err != nil || len(jobs) == 0 {
+		return nil, err
+	}
+	return &jobs[0], nil
+}
+
+// SetStepStatus moves one Step of a Job and stamps the matching times.
+func (q workflowQ) SetStepStatus(ctx context.Context, jobID int64, position int, status model.CIStatus) (bool, error) {
+	res, err := q.q.ExecContext(ctx,
+		`UPDATE workflow_steps SET status = $3,
+		     started_at = CASE WHEN $3 = 'running' THEN NOW() ELSE started_at END,
+		     finished_at = CASE WHEN $3 IN ('success', 'failure', 'cancelled', 'skipped') THEN NOW() ELSE finished_at END
+		 WHERE job_id = $1 AND position = $2`, jobID, position, status)
+	if err != nil {
+		return false, fmt.Errorf("set workflow step status: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	return n == 1, nil
 }

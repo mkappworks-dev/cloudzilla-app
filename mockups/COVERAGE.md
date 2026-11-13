@@ -140,5 +140,8 @@ Some controls and forms have no behaviour. In particular:
 - **CI mocks.** `actions.html`, `actions_run.html`, `pr_checks.html` and `repo_settings_ci.html` carry a dashed "Mock
   state" bar (or `?state=` and `?role=reader|writer|admin`) that switches states and the viewer's role in the page. The
   real pages derive both from the data and the session, and have no such bar.
+- **Repository runners.** `settings.html` carries the Runners section the real settings page has today.
+  `repo_settings_ci.html` draws the same table inside the full CI/CD page, which is a later ticket: the real page has no
+  enable toggle or secrets yet.
 - **Repository settings webhooks.** `settings.html` always shows "An organization webhook also fires for this
   repository"; the real page renders it only when the owning organization has a webhook, and never for a personal repo.

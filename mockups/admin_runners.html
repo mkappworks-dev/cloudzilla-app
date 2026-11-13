@@ -40,7 +40,7 @@
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">
         <h2 class="text-[13px] font-semibold leading-none tracking-tight">Instance runners</h2>
-        <p class="text-[12px] text-muted-foreground mt-1.5">Claim Jobs from every repository that has CI on. A repository's own runners are managed in its <a href="repo_settings_ci.html#runners" class="underline underline-offset-2 hover:text-foreground">Settings → CI/CD</a>.</p>
+        <p class="text-[12px] text-muted-foreground mt-1.5">Claim Jobs from every repository that has CI on. A repository's own runners are managed in its Settings.</p>
       </div>
       <button type="button" data-runner-open class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px] shrink-0">New runner</button>
     </div>
@@ -106,10 +106,10 @@
   <div class="p-5">
     <dl class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-[13px]">
       <div class="space-y-1"><dt class="text-xs font-medium text-muted-foreground font-mono">ci.max_jobs_per_run</dt><dd>50</dd></div>
+      <div class="space-y-1"><dt class="text-xs font-medium text-muted-foreground font-mono">ci.max_steps_per_run</dt><dd>200</dd></div>
       <div class="space-y-1"><dt class="text-xs font-medium text-muted-foreground font-mono">ci.max_queued_runs_per_repo</dt><dd>20</dd></div>
+      <div class="space-y-1"><dt class="text-xs font-medium text-muted-foreground font-mono">ci.max_concurrent_runs_per_repo</dt><dd>5</dd></div>
       <div class="space-y-1"><dt class="text-xs font-medium text-muted-foreground font-mono">ci.max_job_minutes</dt><dd>360</dd></div>
-      <div class="space-y-1"><dt class="text-xs font-medium text-muted-foreground font-mono">ci.log_retention</dt><dd>30 days</dd></div>
-      <div class="space-y-1"><dt class="text-xs font-medium text-muted-foreground font-mono">ci.artifact_retention</dt><dd>30 days</dd></div>
     </dl>
   </div>
 </div>
@@ -134,14 +134,14 @@
       </div>
       <div class="space-y-1.5">
         <label for="runner-token" class="block text-xs font-medium">Registration token</label>
-        <input id="runner-token" readonly value="czr_Qm4vT1xk9pR0dLr7sTn4YhE8uWcJb1aZ" class="flex h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-xs font-mono" />
+        <input id="runner-token" readonly value="czreg_Qm4vT1xk9pR0dLr7sTn4YhE8uWcJb1aZ" class="flex h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-xs font-mono" />
       </div>
       <div class="space-y-1.5">
         <div class="flex items-center justify-between">
           <label for="runner-command" class="block text-xs font-medium">Run this on the runner host</label>
           <button type="button" data-copy="runner-command" class="h-7 px-2.5 text-[12px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5">Copy command</button>
         </div>
-        <textarea id="runner-command" readonly rows="3" class="flex w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-xs font-mono leading-relaxed"></textarea>
+        <textarea id="runner-command" readonly rows="4" class="flex w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-xs font-mono leading-relaxed"></textarea>
       </div>
     </div>
   </div>

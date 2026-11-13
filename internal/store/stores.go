@@ -31,6 +31,7 @@ type Stores struct {
 	ReleaseAsset       *ReleaseAssetStore
 	CommitStatus       *CommitStatusStore
 	WorkflowRun        *WorkflowRunStore
+	CIRunner           *CIRunnerStore
 	Milestone          *MilestoneStore
 	PullReview         *PullReviewStore
 	PullLineComment    *PullLineCommentStore
@@ -102,6 +103,7 @@ func New(database *sql.DB) *Stores {
 		ReleaseAsset:       NewReleaseAssetStore(database),
 		CommitStatus:       NewCommitStatusStore(database),
 		WorkflowRun:        NewWorkflowRunStore(database),
+		CIRunner:           NewCIRunnerStore(database),
 		Milestone:          NewMilestoneStore(database),
 		PullReview:         NewPullReviewStore(database),
 		PullLineComment:    NewPullLineCommentStore(database),

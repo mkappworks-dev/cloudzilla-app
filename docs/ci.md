@@ -48,3 +48,100 @@ Each of these fails the parse with the file, line and key, as does any key not l
 `outputs`, `environment`, `defaults`, `workflow_call`, `workflow_dispatch` inputs.
 
 `actions/upload-artifact` is a `uses:` step, so Cloudzilla has the job-level `artifacts:` list instead.
+
+## Runners
+
+Workflow code runs only in a container started by a `cz-runner` process
+([ADR 0003](./adr/0003-workflow-code-runs-only-on-runners-in-containers.md)). The server has no Docker access and never
+connects to a Runner: the runner polls over outbound HTTPS, so a runner behind NAT needs no inbound port.
+
+### Registering a runner
+
+A superadmin creates an instance runner at `/admin/runners`; a repository admin creates one for a single repository
+under Settings, Runners. **New runner** shows a one-time registration token (`czreg_…`, valid 7 days, stored hashed) and
+the command to run on the runner host:
+
+```sh
+cz-runner register --server https://git.example.com --token czreg_… --labels linux,docker \
+  --image linux=ubuntu:24.04 --allowed-image 'golang:*'
+cz-runner run
+```
+
+`register` trades the token for a long-lived runner token (`czrun_…`, stored hashed on the server) and writes
+`<user config dir>/cz-runner/config.yaml` with mode 0600 (`--config` picks another path). Revoking a runner takes effect
+on its next request. A Job it is running then fails as "runner lost".
+
+| Config key       | Meaning                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `server`         | Cloudzilla base URL                                                                                                |
+| `labels`         | Matched against a Job's `runs-on`: a runner takes a Job only if it holds every label the Job lists                 |
+| `images`         | Label to the image a Job with that label runs in when its workflow names no `container`                            |
+| `allowed_images` | Images a workflow's `container:` may name; a trailing `*` matches a prefix. Empty allows any. `images` always pass |
+
+A refused image fails the Job with `image "…" is not in this runner's allowed_images`. A repository runner only claims
+that repository's Jobs; an instance runner claims any. A Job whose labels match no runner stays `queued` (and is
+cancelled as "no runner" after 24 hours).
+
+`cz-runner run` flags: `--cpus` (default 2), `--memory` (4g, also the swap limit), `--pids-limit` (512), `--user`
+(1000:1000, never root), `--docker` (the CLI to run), `--once`. A runner takes one Job at a time; run several for
+parallelism. Build it with `make build-runner` (`dist/cz-runner`, a static binary).
+
+### What runs, and how
+
+For each Job the runner creates a network and a volume named `cz-job-<id>`, clones the Job's commit with go-git into a
+host temp directory using the per-job token, copies it into the volume, then runs each Step as its own `docker run`
+sharing that volume, and removes the network and volume afterwards. A Step sees the checkout at `/workspace/src`
+(`GITHUB_WORKSPACE`, the default working directory) and `HOME=/workspace/home`. Installed packages do not carry from one
+Step to the next: use an image that has the toolchain.
+
+Every container, the checkout one included, gets exactly these flags and nothing a workflow says can change them:
+
+```
+--privileged=false --cap-drop=ALL --security-opt=no-new-privileges --user=1000:1000
+--cpus=2 --memory=4g --memory-swap=4g --pids-limit=512 --network=cz-job-<id> --volume=cz-job-<id>:/workspace
+```
+
+No host path is mounted and the Docker socket is never passed in. The image, `env` names, `working-directory` and
+`shell` are validated before anything starts (an image beginning with `-` or containing spaces, a working directory
+outside the workspace, or a shell other than `sh` or `bash` fails the Step). Step `if`, `env`, `run` and `${{ }}` are
+evaluated on the runner. `timeout-minutes` of a Step and of the Job are enforced by removing the container.
+
+### Runner protocol
+
+All calls are `POST`, JSON, with `Authorization: Bearer <token>`. Types are in `internal/ci/runnerapi`.
+
+| Endpoint                                 | Token        | Effect                                                                         |
+| ---------------------------------------- | ------------ | ------------------------------------------------------------------------------ |
+| `/api/runner/register`                   | registration | One-time: returns the runner token                                             |
+| `/api/runner/claim?wait=<s>`             | runner       | Long poll (at most 30 s). `200` with a `JobSpec` and a per-job token, or `204` |
+| `/api/runner/jobs/{id}/heartbeat`        | runner       | Renews the 60 s lease; `continue: false` means stop (cancelled)                |
+| `/api/runner/jobs/{id}/steps/{position}` | runner       | `running`, `success`, `failure` or `skipped`                                   |
+| `/api/runner/jobs/{id}/finish`           | runner       | `success`, `failure` or `cancelled`; `409` once the Job has ended              |
+
+A runner may touch only a Job it holds (`403` otherwise). A Job with no heartbeat for 60 s fails as "runner lost" and
+its Run fails; the sweep runs every 15 s. The runner sends a heartbeat every 10 s.
+
+The per-job token (`czj_…`) is minted at claim and stored hashed on the Job. It is read-only, bound to that Job's
+repository, valid for `git-upload-pack` over HTTP Basic and nothing else (a push is `403`, another repository `404`, any
+user API `401`), and stops working the moment the Job leaves `running`. The runner never passes it into a Step.
+
+Log and artifact endpoints (ticket 05) will accept this token for its own Job.
+
+### Operator hardening
+
+The runner limits what a container can do on the host, not where it can connect. Block egress from the runner host's
+Docker networks to what a Job must not reach:
+
+- the cloud metadata address `169.254.169.254` and the rest of `169.254.0.0/16`;
+- private ranges you do not want Jobs to touch (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), except what builds
+  need;
+- the Cloudzilla server itself on any port but the HTTPS one the runner uses, and its database.
+
+Run the runner as an unprivileged user in the `docker` group on a dedicated host: access to the Docker socket is root on
+that host, so do not share it with anything else. Keep the runner's config file private (it holds the runner token).
+After a crash or `kill -9`, containers named `cz-job-*` may remain; remove them with `docker rm -f` and the matching
+volumes and networks with `docker volume rm` and `docker network rm`.
+
+`docker compose --profile runner up` starts a DEV ONLY runner against the host Docker socket (`Dockerfile.cz-runner`);
+set `CZ_RUNNER_TOKEN` to a registration token from `/admin/runners` and `CZ_SERVER_BASE_URL=http://cloudzilla:8080` on
+the server so its clone URL resolves from the runner's container.

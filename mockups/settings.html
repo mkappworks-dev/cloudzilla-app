@@ -36,6 +36,7 @@
 <li><a href="#labels" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Labels</a></li>
 <li><a href="#branches" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Branch protection</a></li>
 <li><a href="#webhooks" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Webhooks</a></li>
+<li><a href="#runners" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Runners</a></li>
 <li><a href="#template" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Template</a></li>
 <li role="presentation" aria-hidden="true"><p class="font-mono text-[12px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-destructive">Danger zone</p></li>
 <li><a href="#visibility" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Visibility</a></li>
@@ -423,6 +424,37 @@
     </div>
   </div>
 </div>
+<div id="runners" class="scroll-mt-6"></div>
+<div id="runners-card">
+<div class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <div class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <h2 class="text-[13px] font-semibold leading-none tracking-tight">Runners</h2>
+        <p class="text-[12px] text-muted-foreground mt-1.5">Machines that run this repository's Jobs. Instance runners registered by an administrator also pick up its Jobs.</p>
+      </div>
+      <button type="button" onclick="document.getElementById('runner-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px] shrink-0">New runner</button>
+    </div>
+  </div>
+  <div class="p-5">
+    <div class="overflow-x-auto">
+      <table class="w-full caption-bottom text-sm">
+        <thead class="[&_tr]:border-b [&_tr]:border-border"><tr class="border-b border-border">
+          <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Name</th>
+          <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Labels</th>
+          <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Status</th>
+          <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Last contact</th>
+          <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider"><span class="sr-only">Actions</span></th>
+        </tr></thead>
+        <tbody class="[&_tr:last-child]:border-0">
+          <tr class="border-b border-border"><th scope="row" class="p-4 align-middle text-left font-mono font-medium text-foreground">build-box-01</th><td class="p-4 align-middle"><span class="inline-flex gap-1"><span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">docker</span><span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">linux</span></span></td><td class="p-4 align-middle"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Online</span></td><td class="p-4 align-middle text-muted-foreground text-xs">1 minute ago</td><td class="p-4 align-middle text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke build-box-01?" data-confirm="Its token stops working on the next request. A Job it is running fails with runner lost." data-confirm-label="Revoke" data-confirm-danger data-toast="Runner revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td></tr>
+          <tr class="border-b border-border"><th scope="row" class="p-4 align-middle text-left font-mono font-medium text-foreground">old-box</th><td class="p-4 align-middle"><span class="inline-flex gap-1"><span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">linux</span></span></td><td class="p-4 align-middle"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Revoked</span></td><td class="p-4 align-middle text-muted-foreground text-xs">2 minutes ago</td><td class="p-4 align-middle text-right"></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
 <div id="template" class="scroll-mt-6"></div>
 <div class="rounded-lg border border-border bg-card text-card-foreground">
   <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
@@ -725,6 +757,49 @@
 </dialog>
 </main>
 
+<dialog id="runner-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="runner-dialog-title">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="runner-dialog-title" class="text-base font-semibold leading-tight">New runner</h2>
+  </div>
+  <div class="p-5 text-sm">
+    <div class="space-y-4">
+      <form id="runner-form" class="space-y-1.5" onsubmit="return false">
+        <label for="runner-labels" class="block text-xs font-medium">Labels</label>
+        <input id="runner-labels" type="text" name="labels" value="linux" autocomplete="off" spellcheck="false" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors font-mono" />
+        <p class="text-[12px] text-muted-foreground">Comma-separated. A Job's <span class="font-mono">runs-on</span> must match one of them.</p>
+      </form>
+      <div id="runner-result" hidden class="space-y-3">
+        <div role="status" class="rounded-md border border-warning/40 bg-warning/10 p-3 text-[13px]">
+          <p class="font-semibold text-warning">Copy this token now</p>
+          <p class="text-muted-foreground mt-0.5">It is shown once and registers one runner.</p>
+        </div>
+        <div class="space-y-1.5">
+          <label for="runner-token" class="block text-xs font-medium">Registration token</label>
+          <input id="runner-token" readonly value="czreg_9fT2kLq7VbXw3NhYd0RzPs6mUe1AaCj89fT2kLq7VbXw3NhYd0RzPs6mUe1AaCj8" class="flex h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-xs font-mono" />
+        </div>
+        <div class="space-y-1.5">
+          <label for="runner-command" class="block text-xs font-medium">Run this on the runner host</label>
+          <textarea id="runner-command" readonly rows="4" class="flex w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-xs font-mono leading-relaxed"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Close</button>
+    <button type="button" id="runner-generate" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Generate token</button>
+  </div>
+</dialog>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  $('runner-generate').addEventListener('click', function () {
+    $('runner-result').hidden = false;
+    this.hidden = true;
+    $('runner-labels').readOnly = true;
+    $('runner-command').value = 'cz-runner register --server https://git.example.test --token ' + $('runner-token').value + ' --labels ' + ($('runner-labels').value.trim() || 'linux');
+  });
+})();
+</script>
 <dialog id="cz-confirm-dialog" aria-labelledby="cz-confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
   <div class="p-5">
     <h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
