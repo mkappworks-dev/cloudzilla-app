@@ -165,6 +165,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		AuthorUsername:   authorUsername,
 		Runs:             runs,
 		Rows:             rows,
+		States:           statusStates(statuses),
 		HeadSHA:          headSHA,
 		CanWrite:         canWrite,
 		PullChromeCounts: chromeCounts,
@@ -359,6 +360,14 @@ func (h *Handler) pullChromeCounts(ctx context.Context, repo *model.Repository, 
 		}
 	}
 	return c
+}
+
+func statusStates(statuses []model.CommitStatus) []string {
+	out := make([]string, len(statuses))
+	for i, s := range statuses {
+		out[i] = string(s.State)
+	}
+	return out
 }
 
 func checkCounts(statuses []model.CommitStatus) (total, passed int) {

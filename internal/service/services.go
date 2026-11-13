@@ -168,6 +168,12 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 			slog.Warn("workflow_run webhook: repo lookup failed", "repo_id", run.RepoID, "error", err)
 			return
 		}
+		// A pull request Run's ref is refs/pull/N/head, which names no branch; the pull request's head branch does.
+		if run.PullRequestID != nil {
+			if pr, err := stores.Pull.GetByID(context.Background(), *run.PullRequestID); err == nil {
+				run.Ref = "refs/heads/" + pr.HeadBranch
+			}
+		}
 		go webhookSvc.Dispatch(repo.ID, "workflow_run", webhookSvc.WorkflowRunPayload(*repo, run, workflowRunSvc.runURL(repo, &run)))
 	})
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)

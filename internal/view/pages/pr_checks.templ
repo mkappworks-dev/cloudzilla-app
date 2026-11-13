@@ -38,7 +38,7 @@ templ pullChecksBody(data view.PullChecksData) {
 	} else if len(data.Runs) == 0 && len(data.Rows) == 0 {
 		@components.EmptyState("No status checks reported for this PR yet.")
 	} else {
-		{{ states := checkStates(data) }}
+		{{ states := data.States }}
 		{{ passed := checksPassedCount(states) }}
 		{{ failed := checksFailedCount(states) }}
 		{{ waiting := waitingRuns(data.Runs) }}
@@ -143,20 +143,6 @@ templ checksBannerIcon(passed, failed, total, waiting int) {
 	} else {
 		@components.RunStatusIconSized("running", 16)
 	}
-}
-
-// checkStates lists the state of every Job and external status, which is what the banner counts.
-func checkStates(data view.PullChecksData) []string {
-	var states []string
-	for _, run := range data.Runs {
-		for _, j := range run.Jobs {
-			states = append(states, j.State)
-		}
-	}
-	for _, r := range data.Rows {
-		states = append(states, r.State)
-	}
-	return states
 }
 
 func waitingRuns(runs []view.CheckRun) int {

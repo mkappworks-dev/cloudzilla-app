@@ -142,7 +142,10 @@ type PullChecksData struct {
 	AuthorUsername string
 	Runs           []CheckRun
 	// Rows are the statuses no Run owns, posted by external CI.
-	Rows      []components.CheckRow
+	Rows []components.CheckRow
+	// States are the states of the commit's statuses, so the banner counts what the tab badge counts even when two Runs
+	// share a Job context.
+	States    []string
 	HeadSHA   string
 	CanWrite  bool
 	LoadError bool
