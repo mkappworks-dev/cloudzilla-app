@@ -32,6 +32,8 @@ func TestSignatureBadge(t *testing.T) {
 			[]string{">Partially verified<", "isn&#39;t one of rhea&#39;s verified emails", "Verifying rhea@contractor.dev"}},
 		{"unverified no key", service.SignatureResult{Status: service.SignatureUnverified, Reason: service.ReasonNoKey, Kind: service.SignatureKindGPG, KeyID: "B5690EEEBB952194", CommitterEmail: "kiyo@example.com"},
 			[]string{">Unverified<", "no account on this server has the key", "B5690EEEBB952194", "Settings"}},
+		{"other user", service.SignatureResult{Status: service.SignatureUnverified, Reason: service.ReasonOtherUser, Kind: service.SignatureKindGPG, KeyID: "3AA5C34371567BD2", Fingerprint: "4AEE18F8", CommitterEmail: "rhea@corp.dev"},
+			[]string{">Unverified<", "different account than the one that owns rhea@corp.dev", "ask an administrator", "4AEE18F8"}},
 		{"instance", service.SignatureResult{Status: service.SignatureVerified, Kind: "instance", SignerUsername: "Cloudzilla", Fingerprint: "SHA256:inst"},
 			[]string{">Verified<", "made on the web and signed by this server", "Cloudzilla", "SHA256:inst"}},
 	}

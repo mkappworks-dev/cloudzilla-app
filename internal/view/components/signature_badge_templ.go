@@ -686,6 +686,8 @@ func signatureHeadline(r service.SignatureResult) string {
 		return "The signature is valid and the key is " + r.SignerUsername + "'s, but the committer email isn't one of " + r.SignerUsername + "'s verified emails."
 	}
 	switch r.Reason {
+	case service.ReasonOtherUser:
+		return "This commit is signed with a key registered to a different account than the one that owns " + r.CommitterEmail + "."
 	case service.ReasonBadSignature:
 		return "The signature doesn't match the commit."
 	case service.ReasonKeyExpired:
@@ -711,6 +713,8 @@ func signatureHint(r service.SignatureResult) string {
 		return "Adding " + r.CommitterEmail + " to the key's identities makes this Verified."
 	case r.Status == service.SignaturePartiallyVerified:
 		return "Verifying " + r.CommitterEmail + " on " + r.SignerUsername + "'s account makes this Verified."
+	case r.Reason == service.ReasonOtherUser:
+		return "If the key is yours, ask an administrator to remove it from the other account, then add it in Settings → Signing keys."
 	case r.Status == service.SignatureUnverified && r.Reason == service.ReasonNoKey:
 		return "If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view."
 	case r.Reason == service.ReasonUnavailable:

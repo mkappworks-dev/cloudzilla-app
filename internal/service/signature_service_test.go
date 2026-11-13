@@ -78,7 +78,9 @@ type fakeKeyStore struct {
 	gpg   []model.GPGKey
 	ssh   []model.SSHSigningKey
 	users map[int64]SigningIdentity
-	calls struct{ gpg, ssh, dir int }
+	// owners maps a verified address to the account that owns it.
+	owners map[string]int64
+	calls  struct{ gpg, ssh, dir, owners int }
 }
 
 func (f *fakeKeyStore) ListByKeyIDs(_ context.Context, ids []string) ([]model.GPGKey, error) {
@@ -113,6 +115,17 @@ func (f *fakeKeyStore) SigningIdentities(_ context.Context, ids []int64) (map[in
 	for _, id := range ids {
 		if u, ok := f.users[id]; ok {
 			out[id] = u
+		}
+	}
+	return out, nil
+}
+
+func (f *fakeKeyStore) EmailOwners(_ context.Context, emails []string) (map[string]int64, error) {
+	f.calls.owners++
+	out := map[string]int64{}
+	for _, e := range emails {
+		if id, ok := f.owners[e]; ok {
+			out[e] = id
 		}
 	}
 	return out, nil
@@ -359,7 +372,7 @@ func TestSignatureService_UnsignedPageDoesNoQueries(t *testing.T) {
 	if _, err := f.service().Verify(context.Background(), []*object.Commit{fixtureCommit(t, "unsigned")}); err != nil {
 		t.Fatal(err)
 	}
-	if f.calls != (struct{ gpg, ssh, dir int }{}) {
+	if f.calls.gpg+f.calls.ssh+f.calls.dir+f.calls.owners != 0 {
 		t.Errorf("lookups = %+v, want none", f.calls)
 	}
 }
@@ -374,5 +387,97 @@ func TestGPGRings_ParseEachStoredKeyOnce(t *testing.T) {
 	}
 	if rings.parses != 1 {
 		t.Errorf("parses = %d, want 1", rings.parses)
+	}
+}
+
+func TestSignatureService_SquattedKeyIsOtherUser(t *testing.T) {
+	const malloryUser = int64(9)
+	mallory := SigningIdentity{Username: "mallory", VerifiedEmails: []string{"mallory@evil.test"}}
+	rheaGPG := fixtureGPGKey(t, "rhea.pub.asc", malloryUser)
+	rheaSSH := fixtureSSHKey(t, malloryUser)
+
+	tests := []struct {
+		name       string
+		commit     *object.Commit
+		owners     map[string]int64
+		wantStatus SignatureStatus
+		wantReason SignatureReason
+		wantKind   SignatureKind
+	}{
+		{"ssh, email verified on another account", fixtureCommit(t, "ssh-other-email"), map[string]int64{"rhea@contractor.dev": rheaUser}, SignatureUnverified, ReasonOtherUser, SignatureKindSSH},
+		{"gpg, email verified on another account", fixtureCommit(t, "gpg-other-email"), map[string]int64{"rhea.work@example.com": rheaUser}, SignatureUnverified, ReasonOtherUser, SignatureKindGPG},
+		{"ssh, noreply address of another account", fixtureCommit(t, "ssh-noreply"), map[string]int64{"7+rhea@users.noreply.localhost": rheaUser}, SignatureUnverified, ReasonOtherUser, SignatureKindSSH},
+		{"ssh, email verified nowhere", fixtureCommit(t, "ssh-other-email"), nil, SignaturePartiallyVerified, ReasonEmailNotVerified, SignatureKindSSH},
+		{"ssh, email owned by the key's own account", fixtureCommit(t, "ssh-other-email"), map[string]int64{"rhea@contractor.dev": malloryUser}, SignaturePartiallyVerified, ReasonEmailNotVerified, SignatureKindSSH},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f := &fakeKeyStore{
+				gpg:    []model.GPGKey{rheaGPG},
+				ssh:    []model.SSHSigningKey{rheaSSH},
+				users:  map[int64]SigningIdentity{malloryUser: mallory},
+				owners: tc.owners,
+			}
+			got := verifyOne(t, f, tc.commit)
+			if got.Status != tc.wantStatus || got.Reason != tc.wantReason || got.Kind != tc.wantKind {
+				t.Fatalf("got %s/%q/%s, want %s/%q/%s", got.Status, got.Reason, got.Kind, tc.wantStatus, tc.wantReason, tc.wantKind)
+			}
+			if got.ownerID != 0 {
+				t.Errorf("ownerID = %d leaked out of Verify", got.ownerID)
+			}
+			if tc.wantReason != ReasonOtherUser {
+				return
+			}
+			if got.SignerUsername != "" || got.KeyLabel != "" {
+				t.Errorf("signer %q and label %q must stay empty so the squatter isn't named", got.SignerUsername, got.KeyLabel)
+			}
+			if got.Fingerprint == "" && got.KeyID == "" {
+				t.Error("the key's fingerprint or ID must stay so its real owner can recognise it")
+			}
+			if got.CommitterEmail != tc.commit.Committer.Email {
+				t.Errorf("committer email = %q, want %q", got.CommitterEmail, tc.commit.Committer.Email)
+			}
+		})
+	}
+}
+
+func TestSignatureService_OtherUserLeavesEmailNotOnKeyAlone(t *testing.T) {
+	f := &fakeKeyStore{
+		gpg:    []model.GPGKey{fixtureGPGKey(t, "rhea.pub.asc", rheaUser)},
+		users:  map[int64]SigningIdentity{rheaUser: rhea("rhea@example.com", "rhea.work@example.com")},
+		owners: map[string]int64{"rhea.work@example.com": rheaUser},
+	}
+	got := verifyOne(t, f, fixtureCommit(t, "gpg-other-email"))
+	if got.Status != SignaturePartiallyVerified || got.Reason != ReasonEmailNotOnKey || got.SignerUsername != "rhea" {
+		t.Errorf("got %s/%q signer %q, want partially_verified/email_not_on_key by rhea", got.Status, got.Reason, got.SignerUsername)
+	}
+	if f.calls.owners != 0 {
+		t.Errorf("email owner lookups = %d, want none when no commit has an unverified email", f.calls.owners)
+	}
+}
+
+func TestSignatureService_EmailOwnerLookupIsOnePerPage(t *testing.T) {
+	f := &fakeKeyStore{
+		ssh:    []model.SSHSigningKey{fixtureSSHKey(t, 9)},
+		users:  map[int64]SigningIdentity{9: {Username: "mallory"}},
+		owners: map[string]int64{"rhea@contractor.dev": rheaUser},
+	}
+	var page []*object.Commit
+	for i := range 30 {
+		c := fixtureCommit(t, "ssh-other-email")
+		c.Hash = plumbing.NewHash(fmt.Sprintf("%040x", i+1))
+		page = append(page, c)
+	}
+	got, err := f.service().Verify(context.Background(), page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range page {
+		if r := got[c.Hash]; r.Reason != ReasonOtherUser {
+			t.Fatalf("commit %s: %s/%q, want other_user", c.Hash, r.Status, r.Reason)
+		}
+	}
+	if f.calls.owners != 1 {
+		t.Errorf("email owner lookups = %d for 30 commits, want 1", f.calls.owners)
 	}
 }

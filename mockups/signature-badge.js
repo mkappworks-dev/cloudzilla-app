@@ -1,6 +1,6 @@
 // Stand-in for components.SignatureBadge: swaps each <span data-signature="state"></span> for the badge and its
 // popover, with the markup and classes of internal/view/components/signature_badge.templ. The real popover is Alpine;
-// this one toggles `hidden`. States: verified-ssh, verified-gpg, instance, partial, unverified. Add data-floating for
+// this one toggles `hidden`. States: verified-ssh, verified-gpg, instance, partial, other_user, unverified. Add data-floating for
 // SignatureBadgeFloating (fixed popover) and data-icon for SignatureIcon (glyph only, fixed popover).
 (function () {
   var SHIELD = '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>';
@@ -34,6 +34,9 @@
     partial: { tone: 'outline', label: 'Partially verified', head: 'The signature is valid and the key is rhea\'s, but the committer email isn\'t one of rhea\'s verified emails.', who: signer('R', 'rhea', 'committed as rhea@contractor.dev'),
       rows: [['Key type', 'SSH'], ['Key', 'YubiKey 5C'], ['Fingerprint', 'SHA256:p0Qe2Vx8nLk4TzR7cYb1sWm9uHgJdA3oFiNyVa5Kt2E', 1]],
       hint: 'Verifying rhea@contractor.dev on rhea\'s account makes this Verified.' },
+    other_user: { tone: 'warning', label: 'Unverified', head: 'This commit is signed with a key registered to a different account than the one that owns rhea@corp.dev.', who: '',
+      rows: [['Key type', 'SSH'], ['Fingerprint', 'SHA256:p0Qe2Vx8nLk4TzR7cYb1sWm9uHgJdA3oFiNyVa5Kt2E', 1], ['Committer', 'rhea@corp.dev']],
+      hint: 'If the key is yours, ask an administrator to remove it from the other account, then add it in Settings → Signing keys.' },
     unverified: { tone: 'warning', label: 'Unverified', head: 'The commit is signed, but no account on this server has the key.', who: '',
       rows: [['Key type', 'GPG'], ['Key ID', 'B5690EEEBB952194', 1], ['Committer', 'kiyo@example.com']],
       hint: 'If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view.' },

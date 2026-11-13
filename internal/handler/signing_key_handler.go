@@ -69,7 +69,9 @@ func signingKeyFormError(w http.ResponseWriter, r *http.Request, status int, msg
 func signingKeyError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, service.ErrSigningKeyTaken):
-		signingKeyFormError(w, r, http.StatusConflict, "this key is already registered")
+		signingKeyFormError(w, r, http.StatusConflict, "this key is registered to another account on this instance; if it is yours, ask an administrator to remove it")
+	case errors.Is(err, service.ErrSigningKeyOwned):
+		signingKeyFormError(w, r, http.StatusConflict, "this key is already on your account")
 	case errors.Is(err, service.ErrGPGKeyExpired), errors.Is(err, service.ErrGPGKeyRevoked), errors.Is(err, service.ErrGPGNoSigningKey):
 		signingKeyFormError(w, r, http.StatusUnprocessableEntity, err.Error())
 	case errors.Is(err, service.ErrInvalidGPGKey), errors.Is(err, service.ErrGPGPrivateKey), errors.Is(err, service.ErrInvalidSigningKey):

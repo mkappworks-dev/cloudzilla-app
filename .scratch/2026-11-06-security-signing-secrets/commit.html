@@ -38,6 +38,7 @@
       <button type="button" data-mock-state="verified-gpg" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Verified (GPG)</button>
       <button type="button" data-mock-state="instance" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Verified by Cloudzilla</button>
       <button type="button" data-mock-state="partial" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Partially verified</button>
+      <button type="button" data-mock-state="other_user" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unverified (other account)</button>
       <button type="button" data-mock-state="unverified" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unverified</button>
       <button type="button" data-mock-state="unsigned" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unsigned</button>
       <span class="ml-auto"><a href="mock.html" class="underline hover:text-foreground">← commits</a></span>
@@ -123,6 +124,10 @@
         body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + SHIELD + 'The signature is valid and the key is rhea\'s, but the committer email isn\'t one of rhea\'s verified emails.</p>' + signer('RH', 'rhea', 'committed as rhea@contractor.dev') +
           dl([['Key type', 'SSH'], ['Key', 'YubiKey 5C'], ['Fingerprint', 'SHA256:p0Qe2Vx8nLk4TzR7cYb1sWm9uHgJdA3oFiNyVa5Kt2E', 1]]) +
           '<p class="mt-2 text-[12px] text-muted-foreground">Verifying rhea@contractor.dev on rhea\'s account makes this Verified.</p>' + FOOT },
+      other_user: { badge: 'warning', label: 'Unverified', commit: ['docs: clarify the mirror lease timeout', 'c41d7e9', 'c41d7e93a5f08b2d6c1e4a97f3b05d8e2c6a1f40', 'RH', 'Rhea', 'rhea@corp.dev'],
+        body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + WARN + 'This commit is signed with a key registered to a different account than the one that owns rhea@corp.dev.</p>' +
+          dl([['Key type', 'SSH'], ['Fingerprint', 'SHA256:p0Qe2Vx8nLk4TzR7cYb1sWm9uHgJdA3oFiNyVa5Kt2E', 1], ['Committer', 'rhea@corp.dev']]) +
+          '<p class="mt-2 text-[12px] text-muted-foreground">If the key is yours, ask an administrator to remove it from the other account, then add it in Settings → Signing keys.</p>' + FOOT },
       unverified: { badge: 'warning', label: 'Unverified', commit: ['chore: bump x/crypto to v0.31.0', 'e2c7714', 'e2c7714a09d3b8f61c5e2a7d4b90f38c1e6a5d27', 'KI', 'Kiyo', 'kiyo@example.com'],
         body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + WARN + 'The commit is signed, but no account on this server has the key.</p>' +
           dl([['Key type', 'GPG'], ['Key ID', 'B5690EEEBB952194', 1], ['Committer', 'kiyo@example.com']]) +

@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -269,5 +272,62 @@ func TestCodeService_PullCommitsUnverifiedSkipsKeyLookups(t *testing.T) {
 	}
 	if _, err := svc.PullCommits("rhea", "signed", "base", "main"); err != nil || f.calls.ssh == 0 {
 		t.Errorf("PullCommits did not verify: %+v (%v)", f.calls, err)
+	}
+}
+
+func TestUserService_EmailOwners(t *testing.T) {
+	_, _, users, uid := signingStack(t)
+	db := testutil.OpenTestDB(t)
+	testutil.Exec(t, db, `INSERT INTO user_emails (user_id, email) VALUES ($1, 'pending@example.com')`, uid)
+	testutil.Exec(t, db, `UPDATE users SET email_verified_at = NOW() WHERE id = $1`, uid)
+	ctx := context.Background()
+
+	var username string
+	if err := db.QueryRowContext(ctx, `SELECT username FROM users WHERE id = $1`, uid).Scan(&username); err != nil {
+		t.Fatal(err)
+	}
+	noreply := strings.ToLower(noreplyEmail(users.noreplyHost, &model.User{ID: uid, Username: username}))
+	wrongName := strings.Replace(noreply, "+"+username+"@", "+someone-else@", 1)
+
+	got, err := users.EmailOwners(ctx, []string{"Rhea@Example.com", username + "@test.invalid", "pending@example.com", "nobody@example.com", noreply, wrongName})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]int64{"rhea@example.com": uid, username + "@test.invalid": uid, noreply: uid}
+	if !maps.Equal(got, want) {
+		t.Errorf("owners = %v, want %v (unverified, unknown and wrong-username noreply addresses left out)", got, want)
+	}
+	if empty, err := users.EmailOwners(ctx, nil); err != nil || len(empty) != 0 {
+		t.Errorf("no emails: %v, %v", empty, err)
+	}
+}
+
+func TestSignatureService_SquattedKeyEndToEnd(t *testing.T) {
+	keys, sigs, _, rheaID := signingStack(t)
+	db := testutil.OpenTestDB(t)
+	mallory := testutil.SeedUser(t, db, "mal"+testutil.UniqueSuffix(t))
+	ctx := context.Background()
+
+	if _, err := keys.AddSSHKey(ctx, mallory, "stolen", string(fixtureBytes(t, "ed25519.pub"))); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := keys.AddSSHKey(ctx, rheaID, "mine", string(fixtureBytes(t, "ed25519.pub"))); !errors.Is(err, ErrSigningKeyTaken) {
+		t.Fatalf("victim adding her squatted key: got %v, want ErrSigningKeyTaken", err)
+	}
+
+	verify := func(name string) SignatureResult {
+		t.Helper()
+		c := fixtureCommit(t, name)
+		got, err := sigs.Verify(ctx, []*object.Commit{c})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got[c.Hash]
+	}
+	if got := verify("ssh-ed25519"); got.Status != SignatureUnverified || got.Reason != ReasonOtherUser || got.SignerUsername != "" {
+		t.Errorf("rhea@example.com is verified on rhea's account: got %s/%q signer %q, want unverified/other_user, unnamed", got.Status, got.Reason, got.SignerUsername)
+	}
+	if got := verify("ssh-other-email"); got.Status != SignaturePartiallyVerified || got.Reason != ReasonEmailNotVerified {
+		t.Errorf("rhea@contractor.dev is verified nowhere: got %s/%q, want partially_verified/email_not_verified", got.Status, got.Reason)
 	}
 }
