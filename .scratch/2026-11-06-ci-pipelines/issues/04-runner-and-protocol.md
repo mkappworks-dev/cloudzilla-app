@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 03
 Parallel with: 01
 
@@ -53,24 +53,46 @@ token, and a runner binary that starts only hardened containers.
 
 ## Acceptance criteria
 
-- [ ] Register, claim, heartbeat, step and finish work end to end against the router with a fake runner; a revoked
+- [x] Register, claim, heartbeat, step and finish work end to end against the router with a fake runner; a revoked
       runner token is refused at once; an expired or foreign per-job token is refused
-- [ ] A per-job token clones its repo but cannot push, clone another repo, or call a user API
-- [ ] A Job with no heartbeat for 60 s becomes `failed` "runner lost" and its Run fails
-- [ ] With a stub `docker` on `PATH`, every started container's argument list contains the hardening flags, none of
+- [x] A per-job token clones its repo but cannot push, clone another repo, or call a user API
+- [x] A Job with no heartbeat for 60 s becomes `failed` "runner lost" and its Run fails
+- [x] With a stub `docker` on `PATH`, every started container's argument list contains the hardening flags, none of
       them can be changed by a workflow key, and an image outside `allowed_images` fails the Job with the reason
-- [ ] A runner behind no inbound port works (polling only); the server never dials a runner
-- [ ] A Job whose label matches no runner stays `queued`
-- [ ] Runner pages are checked at desktop 1440 in **light and dark**, evidence for both in the PR
-- [ ] The standing mock `mockups/admin_runners.html` (and the repo runners mock from ticket 01) matches the shipped
+- [x] A runner behind no inbound port works (polling only); the server never dials a runner
+- [x] A Job whose label matches no runner stays `queued`
+- [x] Runner pages are checked at desktop 1440 in **light and dark**, evidence for both in the PR
+- [x] The standing mock `mockups/admin_runners.html` (and the repo runners mock from ticket 01) matches the shipped
       pages and is checked under `make mockups` in both themes
-- [ ] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` /
+- [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` /
       `cloudzilla-seed`) with a real `cz-runner` and real Docker: push a workflow, watch the Job run to success and to
       failure, kill the runner and see "runner lost"
-- [ ] `make lint` and `go test ./...` pass
+- [x] `make lint` and `go test ./...` pass
 
 ## Verification
 
 Throwaway server and a runner registered from `/admin/runners`; `docker ps` while a Job runs shows the hardened flags
 (`docker inspect`); a Step that tries `--privileged`-style escapes (mounting `/`, reading `/proc/1/environ` of the host)
 fails inside the container.
+
+## Comments
+
+- Claude, 2026-11-13: done, migration 137. Evidence (commands, outputs, `docker inspect`, runner lost) is in
+  `/private/tmp/claude-501/ci-ticket-04-evidence.md`; screenshots at 1440 in light and dark are under
+  `.scratch/2026-11-06-ci-pipelines/shots/` (gitignored): copy them into the PR.
+  - Runner API for ticket 05 to extend: `POST /api/runner/{register, claim, jobs/{id}/heartbeat,
+    jobs/{id}/steps/{position}, jobs/{id}/finish}`; bodies in `internal/ci/runnerapi`. Log and artifact endpoints
+    should accept the per-job token through `CIRunnerService.VerifyJobToken` (returns job, run and repo ids; the token
+    is `czj_`, read-only, dead once the Job leaves `running`). `Executor.Out` is the one place step output goes: replace
+    its `io.Writer` with the chunk uploader. Secrets are not passed yet; `${{ secrets.* }}` fails the Step on the runner.
+  - A fork pull request's per-job token is bound to the Run's repo, but the fork's commit lives in the head repository,
+    so the clone of a fork Run would fail. Cross-repo pull requests do not exist yet (see ticket 03), so this is for
+    whoever adds them: bind the token to the source repo for fork Runs.
+  - Steps run as separate containers sharing the workspace volume (one `docker run` each, all hardened): tools installed
+    by one Step are gone in the next. The volume root is root-owned and `docker cp` cannot chown, so the checkout lives
+    at `/workspace/src` (world-writable) and `HOME` is `/workspace/home`.
+  - `/admin/runners` is reachable (and its tab shown) when `ci.enabled` is off; it says so and the runner API is absent.
+    Ticket 06 owns hiding the tab. The repo Runners section sits in the existing settings page; ticket 06 moves it into
+    CI/CD.
+  - `strategy.fail-fast` is still not acted on. After a `kill -9`, the runner's `cz-job-*` containers, volume and
+    network remain until removed by hand (documented in `docs/ci.md`).

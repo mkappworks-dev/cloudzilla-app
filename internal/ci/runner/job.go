@@ -201,7 +201,7 @@ func (e *Executor) populate(ctx context.Context, d docker, spec *runnerapi.JobSp
 		return err
 	}
 	pr, pw := io.Pipe()
-	go func() { pw.CloseWithError(tarDir(dir, pw)) }()
+	go func() { pw.CloseWithError(tarWorkspace(dir, pw)) }()
 	defer func() { _ = pr.Close() }()
 	return d.run(ctx, pr, "cp", "-", initName+":"+workspaceDir)
 }
@@ -238,7 +238,7 @@ func (e *Executor) exprContext(spec *runnerapi.JobSpec, st runnerapi.StepSpec, s
 func (e *Executor) stepEnv(spec *runnerapi.JobSpec, st runnerapi.StepSpec) ([]string, error) {
 	ctx := e.exprContext(spec, st, "success")
 	env := map[string]string{
-		"CI": "true", "CLOUDZILLA_ACTIONS": "true", "GITHUB_WORKSPACE": workspaceDir,
+		"CI": "true", "CLOUDZILLA_ACTIONS": "true", "GITHUB_WORKSPACE": checkoutDir, "HOME": homeDir,
 		"GITHUB_SHA": spec.SHA, "GITHUB_REF": spec.Ref, "GITHUB_REPOSITORY": spec.Repository,
 		"GITHUB_REF_NAME": spec.GitHub["ref_name"], "GITHUB_EVENT_NAME": spec.GitHub["event_name"],
 		"GITHUB_ACTOR": spec.GitHub["actor"], "GITHUB_RUN_NUMBER": spec.GitHub["run_number"],
@@ -277,13 +277,13 @@ func shellCommand(shell, script string) (entrypoint string, args []string, err e
 // workdir is the Step's working directory inside the workspace; it may not leave it.
 func workdir(rel string) (string, error) {
 	if rel == "" {
-		return workspaceDir, nil
+		return checkoutDir, nil
 	}
 	clean := path.Clean(rel)
 	if path.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, "../") {
 		return "", fmt.Errorf("working-directory %q must stay inside the workspace", rel)
 	}
-	return path.Join(workspaceDir, clean), nil
+	return path.Join(checkoutDir, clean), nil
 }
 
 // stepArgs is the full `docker run` argument list for one Step.

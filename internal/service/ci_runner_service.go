@@ -301,3 +301,31 @@ func (s *CIRunnerService) Run(ctx context.Context) {
 		}
 	}
 }
+
+// CurrentJobs maps each of runners that is running a Job to it.
+func (s *CIRunnerService) CurrentJobs(ctx context.Context, runners []model.CIRunner) (map[int64]model.CIRunnerJob, error) {
+	ids := make([]int64, len(runners))
+	for i, r := range runners {
+		ids[i] = r.ID
+	}
+	return s.runners.CurrentJobs(ctx, ids)
+}
+
+// ParseRunnerLabels splits a comma-separated label list and checks each label, so the command shown for a
+// registration token is safe to paste into a shell.
+func ParseRunnerLabels(s string) ([]string, error) {
+	var out []string
+	for _, l := range strings.Split(s, ",") {
+		if l = strings.TrimSpace(l); l == "" {
+			continue
+		}
+		if !runnerLabelRe.MatchString(l) {
+			return nil, ErrInvalidRunnerLabel
+		}
+		out = append(out, l)
+	}
+	if len(out) == 0 {
+		return nil, ErrInvalidRunnerLabel
+	}
+	return out, nil
+}

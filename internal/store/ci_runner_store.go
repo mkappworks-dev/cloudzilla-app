@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -133,4 +134,33 @@ func (s *CIRunnerStore) TouchRunner(ctx context.Context, id int64, at time.Time)
 		return fmt.Errorf("touch runner: %w", err)
 	}
 	return nil
+}
+
+// CurrentJobs maps each runner of ids that is running a Job to that Job.
+func (s *CIRunnerStore) CurrentJobs(ctx context.Context, ids []int64) (map[int64]model.CIRunnerJob, error) {
+	out := map[int64]model.CIRunnerJob{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	ph := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		ph[i], args[i] = fmt.Sprintf("$%d", i+1), id
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT j.runner_id, j.name, r.number, repo.owner_name, repo.name
+		 FROM workflow_jobs j JOIN workflow_runs r ON r.id = j.run_id JOIN repositories repo ON repo.id = r.repo_id
+		 WHERE j.status = 'running' AND j.runner_id IN (`+strings.Join(ph, ",")+`)`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("runner current jobs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var j model.CIRunnerJob
+		if err := rows.Scan(&j.RunnerID, &j.JobName, &j.RunNumber, &j.Owner, &j.Repo); err != nil {
+			return nil, err
+		}
+		out[j.RunnerID] = j
+	}
+	return out, rows.Err()
 }

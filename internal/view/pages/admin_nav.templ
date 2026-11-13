@@ -20,5 +20,8 @@ templ adminTabs(currentPath string) {
 		@components.TabLink("/admin/sso", currentPath == "/admin/sso") {
 			Single sign-on
 		}
+		@components.TabLink("/admin/runners", currentPath == "/admin/runners") {
+			Runners
+		}
 	}
 }

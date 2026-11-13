@@ -386,8 +386,9 @@ func TestJobToken_ReachesNoUserAPI(t *testing.T) {
 	spec := e.claim(t, e.registerRunner(t, nil))
 	testutil.Exec(t, testutil.OpenTestDB(t), `UPDATE repositories SET private = true WHERE id = $1`, e.r.id)
 	for _, p := range []string{"/api/user/tokens", "/api/user/keys", "/api/repos/" + e.r.owner.name + "/" + e.r.name} {
-		if rr := e.call(t, http.MethodGet, p, spec.Token, nil); rr.Code != http.StatusUnauthorized {
-			t.Errorf("GET %s with a job token = %d, want 401", p, rr.Code)
+		// A private repo's API answers an unauthenticated caller 404 rather than 401, so either is a refusal.
+		if rr := e.call(t, http.MethodGet, p, spec.Token, nil); rr.Code != http.StatusUnauthorized && rr.Code != http.StatusNotFound {
+			t.Errorf("GET %s with a job token = %d, want 401 or 404", p, rr.Code)
 		}
 	}
 	// It is not a runner token either, so it cannot drive the runner API.

@@ -216,6 +216,7 @@ type RepoSettingsData struct {
 	IsOwner         bool
 	PendingTransfer *model.RepoTransfer // nil unless IsOwner and a transfer awaits its recipient
 	Mirror          *MirrorSettings     // nil unless the repo is a pull mirror
+	Runners         *RunnersFragData    // nil when ci.enabled is off
 	// What the viewer confirms giving others access with.
 	Confirm components.ConfirmFactors
 }

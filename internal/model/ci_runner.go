@@ -31,3 +31,12 @@ type CIRegistrationToken struct {
 	ExpiresAt time.Time  `db:"expires_at"`
 	UsedAt    *time.Time `db:"used_at"`
 }
+
+// CIRunnerJob is the Job a runner is running now, for the runner lists.
+type CIRunnerJob struct {
+	RunnerID  int64
+	JobName   string
+	RunNumber int
+	Owner     string
+	Repo      string
+}

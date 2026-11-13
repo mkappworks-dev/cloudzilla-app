@@ -55,10 +55,14 @@ func GitCheckout(ctx context.Context, spec *runnerapi.JobSpec, dir string) error
 	return nil
 }
 
-// tarDir streams dir as a tar whose entries are world-writable. docker cp ignores the archive's owner and makes
-// everything root's, so mode is the only way a non-root step can write to its own checkout.
-func tarDir(dir string, w io.Writer) error {
+// tarWorkspace streams the workspace volume's initial content: the checkout under src/ and an empty home/. Entries are
+// world-writable because docker cp ignores the archive's owner and makes everything root's, so mode is the only way a
+// non-root step can write to its own checkout.
+func tarWorkspace(dir string, w io.Writer) error {
 	tw := tar.NewWriter(w)
+	if err := tw.WriteHeader(&tar.Header{Name: "home/", Typeflag: tar.TypeDir, Mode: 0o777}); err != nil {
+		return err
+	}
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -71,7 +75,7 @@ func tarDir(dir string, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		hdr := &tar.Header{Name: filepath.ToSlash(rel), ModTime: info.ModTime()}
+		hdr := &tar.Header{Name: filepath.ToSlash(filepath.Join("src", rel)), ModTime: info.ModTime()}
 		switch {
 		case d.IsDir():
 			hdr.Typeflag, hdr.Mode = tar.TypeDir, 0o777

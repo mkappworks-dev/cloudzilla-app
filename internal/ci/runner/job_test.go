@@ -162,16 +162,16 @@ func TestExecute_EveryContainerCarriesTheHardeningFlags(t *testing.T) {
 	}
 	first := starts[1]
 	wantFirst := append(append([]string{"run", "--rm", "--name", "cz-job-7-step-0"}, wantHardening...),
-		"--workdir=/workspace", "--entrypoint=sh",
+		"--workdir=/workspace/src", "--entrypoint=sh",
 		"--env=CI=true", "--env=CLOUDZILLA_ACTIONS=true", "--env=GITHUB_ACTOR=u", "--env=GITHUB_EVENT_NAME=push", "--env=GITHUB_REF=refs/heads/main",
 		"--env=GITHUB_REF_NAME=main", "--env=GITHUB_REPOSITORY=o/r", "--env=GITHUB_RUN_NUMBER=1", "--env=GITHUB_SHA=abc",
-		"--env=GITHUB_WORKSPACE=/workspace", "--env=GOFLAGS=-mod=mod",
+		"--env=GITHUB_WORKSPACE=/workspace/src", "--env=GOFLAGS=-mod=mod", "--env=HOME=/workspace/home",
 		"--", "golang:1.23", "-e", "-c", "go build ./...")
 	if !slices.Equal(first, wantFirst) {
 		t.Errorf("step 0 args =\n%q\nwant\n%q", first, wantFirst)
 	}
 	second := starts[2]
-	if !second.has("--workdir=/workspace/sub/dir") || !second.has("--entrypoint=bash") || !second.has("--env=A=1") || !second.has("--env=B=2") ||
+	if !second.has("--workdir=/workspace/src/sub/dir") || !second.has("--entrypoint=bash") || !second.has("--env=A=1") || !second.has("--env=B=2") ||
 		second[len(second)-1] != "echo abc" {
 		t.Errorf("step 1 args = %q", second)
 	}
@@ -385,13 +385,13 @@ func TestLimits_RefuseRoot(t *testing.T) {
 	}
 }
 
-func TestTarDir_EntriesAreWorldWritable(t *testing.T) {
+func TestTarWorkspace_EntriesAreWorldWritable(t *testing.T) {
 	dir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(dir, "sub"), 0o755)
 	_ = os.WriteFile(filepath.Join(dir, "sub", "a.txt"), []byte("a"), 0o644)
 	_ = os.WriteFile(filepath.Join(dir, "run.sh"), []byte("#!/bin/sh"), 0o755)
 	var buf bytes.Buffer
-	if err := tarDir(dir, &buf); err != nil {
+	if err := tarWorkspace(dir, &buf); err != nil {
 		t.Fatal(err)
 	}
 	modes := map[string]int64{}
@@ -403,7 +403,7 @@ func TestTarDir_EntriesAreWorldWritable(t *testing.T) {
 		}
 		modes[h.Name] = h.Mode
 	}
-	want := map[string]int64{"./": 0o777, "sub/": 0o777, "sub/a.txt": 0o666, "run.sh": 0o777}
+	want := map[string]int64{"home/": 0o777, "src/": 0o777, "src/sub/": 0o777, "src/sub/a.txt": 0o666, "src/run.sh": 0o777}
 	for n, m := range want {
 		if modes[n] != m {
 			t.Errorf("%s mode = %o, want %o", n, modes[n], m)

@@ -494,11 +494,17 @@ the host key (mode 0600), applies newer migrations and prints repository rows wi
 without a row. Sign-ins survive only with the same `auth.jwt_secret`. See
 [Backup and restore](./deployment.md#backup-and-restore).
 
+### `cz-runner`
+
+The CI runner is a separate binary (`make build-runner`) with its own config file, not the server's `config.yaml`:
+`cz-runner register` writes it and `cz-runner run` reads it. Keys, flags and hardening are in [ci](./ci.md#runners).
+
 ### Instance management
 
 User and repository management is handled through the web UI:
 
 - `/setup` -- first-run superadmin creation
+- `/admin/runners` -- CI runners and the read-only `ci.*` limits ([ci](./ci.md#runners))
 - `/admin/settings` -- site settings, invitation management and the Markdown terms of service
 - `/terms` -- the terms of service, public; the text lives in `site_settings` under `terms_content` and falls back to a
   default for a self-hosted instance until a superadmin saves their own (50,000 characters at most; saving an empty text

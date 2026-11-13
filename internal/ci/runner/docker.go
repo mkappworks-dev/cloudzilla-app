@@ -50,7 +50,13 @@ func (l Limits) hardening(network, volume string) []string {
 	}
 }
 
-const workspaceDir = "/workspace"
+// The volume's root is root-owned and docker cp cannot change that, so a non-root Step can write only to directories
+// created below it with a world-writable mode: the checkout and a home for tool caches.
+const (
+	workspaceDir = "/workspace"
+	checkoutDir  = workspaceDir + "/src"
+	homeDir      = workspaceDir + "/home"
+)
 
 // docker runs the docker CLI. Its binary comes from PATH unless Bin says otherwise.
 type docker struct{ bin string }
