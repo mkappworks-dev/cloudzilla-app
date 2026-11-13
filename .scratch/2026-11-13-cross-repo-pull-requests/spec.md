@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Decisions confirmed by the maintainer on 2026-11-13 (recommendations accepted as written).
 
