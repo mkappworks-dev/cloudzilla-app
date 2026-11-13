@@ -126,6 +126,18 @@ func (s *CodeService) ResolveRef(owner, repoName, ref string) (commit *object.Co
 }
 
 func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, error) {
+	if strings.HasPrefix(ref, "refs/pull/") {
+		// A pull request's head ref is a full name: branch and tag lookups below would prefix it.
+		pullRef, err := repo.Reference(plumbing.ReferenceName(ref), true)
+		if err != nil {
+			return nil, "", fmt.Errorf("%w: %s", ErrRefNotFound, ref)
+		}
+		commit, err := repo.CommitObject(pullRef.Hash())
+		if err != nil {
+			return nil, "", fmt.Errorf("%w: %s", ErrRefNotFound, ref)
+		}
+		return commit, ref, nil
+	}
 	if ref != "" {
 		// Try branch
 		if branchRef, err := repo.Reference(plumbing.NewBranchReferenceName(ref), true); err == nil {

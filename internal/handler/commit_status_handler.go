@@ -80,7 +80,7 @@ func (h *Handler) CreateStatus(w http.ResponseWriter, r *http.Request) {
 			if !pr.AutoMergeEnabled {
 				continue
 			}
-			headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
+			headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadRef())
 			if err != nil || headCommit.Hash.String() != sha {
 				continue
 			}

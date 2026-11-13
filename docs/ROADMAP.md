@@ -2507,6 +2507,13 @@ A `workflow_run` webhook fires when a Run completes, and `GET/POST /api/repos/{o
 cancels, re-runs and dispatches Runs (scopes `repo` and `repo:write`). Details: [ci](./ci.md),
 [webhooks](./webhooks.md#workflow_run), [API reference](./api-reference.md#workflow-runs).
 
+### Cross-repository (fork) pull requests ✅
+
+Migration 141. A pull request can take its head branch from another repository of the base's fork network. The head
+commit is copied into the base and read through `refs/pull/<n>/head`, so diff, mergeability and the merge methods are
+unchanged; pushes to the fork update the pull request, and deleting the fork or its branch closes it. Details:
+[pr-merge](./pr-merge.md#pull-requests-from-a-fork), [git-transport](./git-transport.md#after-a-push).
+
 ---
 
 ## Phase 19 — LDAP / SAML Improvements, IP Allowlisting & Access Policies, API Rate Limiting & Quotas

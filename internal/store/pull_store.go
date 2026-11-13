@@ -32,6 +32,26 @@ func NewPullStore(database *sql.DB) *PullStore {
 	return &PullStore{db: database}
 }
 
+// headRepoID is the head repository to store: the base itself unless the PR names another.
+func headRepoID(pr *model.PullRequest) int64 {
+	if pr.HeadRepoID != nil {
+		return *pr.HeadRepoID
+	}
+	return pr.RepoID
+}
+
+// setHeadRepo fills the head repository fields of a pull request read from the database. A head that is gone has no
+// id but still has its label, and the PR is still a cross-repository one.
+func setHeadRepo(pr *model.PullRequest, id sql.NullInt64, label string) {
+	if id.Valid {
+		pr.HeadRepoID = &id.Int64
+	}
+	if (id.Valid && id.Int64 != pr.RepoID) || (!id.Valid && label != "") {
+		pr.HeadRepo = label
+		pr.CrossRepo = true
+	}
+}
+
 func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 	var num int
 	err := s.db.QueryRowContext(ctx,
@@ -47,11 +67,12 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 	var autoMergeStrategy sql.NullString
 	var headSHAOut sql.NullString
 	err = s.db.QueryRowContext(ctx,
-		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft, draft_at, head_sha)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CASE WHEN $9 THEN NOW() END, $10)
+		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft, draft_at, head_sha, head_repo_id, head_repo_label)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CASE WHEN $9 THEN NOW() END, $10, $11, $12)
 		 RETURNING id, created_at, updated_at, merged_at, closed_at, is_draft, draft_at, auto_merge_enabled, auto_merge_strategy, head_sha`,
 		pr.RepoID, pr.Number, pr.AuthorID, pr.Title, pr.Body,
 		string(pr.State), pr.HeadBranch, pr.BaseBranch, pr.IsDraft, sql.NullString{String: pr.HeadSHA, Valid: pr.HeadSHA != ""},
+		headRepoID(pr), pr.HeadRepo,
 	).Scan(&pr.ID, &pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
 		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHAOut)
 	if headSHAOut.Valid {
@@ -99,18 +120,21 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	var autoMergeStrategy, headSHA sql.NullString
 	var autoMergeBy sql.NullInt64
 	var mergedBaseSHA, mergedHeadSHA sql.NullString
+	var headRepo sql.NullInt64
+	var headRepoLabel string
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
 		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by,
-		        merged_base_sha, merged_head_sha
+		        merged_base_sha, merged_head_sha, head_repo_id,
+		        COALESCE((SELECT owner_name || '/' || name FROM repositories WHERE id = pull_requests.head_repo_id), head_repo_label)
 		 FROM pull_requests WHERE repo_id = $1 AND number = $2`,
 		repoID, number,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
 		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy,
-		&mergedBaseSHA, &mergedHeadSHA)
+		&mergedBaseSHA, &mergedHeadSHA, &headRepo, &headRepoLabel)
 	if err != nil {
 		return nil, fmt.Errorf("pr get: %w", err)
 	}
@@ -134,6 +158,7 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	if autoMergeBy.Valid {
 		pr.AutoMergeBy = &autoMergeBy.Int64
 	}
+	setHeadRepo(pr, headRepo, headRepoLabel)
 	return pr, nil
 }
 
@@ -262,24 +287,48 @@ func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullReq
 	return scanPullRows(rows)
 }
 
+// ListOpenByHeadBranch returns repoID's open pull requests whose head is branch of repoID itself, not of a fork.
+func (s *PullStore) ListOpenByHeadBranch(ctx context.Context, repoID int64, branch string) ([]model.PullRequest, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1 AND pr.state = 'open' AND pr.head_branch = $2
+		   AND (pr.head_repo_id = pr.repo_id OR (pr.head_repo_id IS NULL AND pr.head_repo_label = ''))
+		 ORDER BY pr.number DESC`,
+		repoID, branch,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pr list open by head branch: %w", err)
+	}
+	defer rows.Close()
+	return scanPullRows(rows)
+}
+
 func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, error) {
 	pr := &model.PullRequest{}
 	var mergedAt, closedAt, draftAt sql.NullTime
 	var autoMergeStrategy, headSHA sql.NullString
 	var autoMergeBy sql.NullInt64
 	var mergedBaseSHA, mergedHeadSHA sql.NullString
+	var headRepo sql.NullInt64
+	var headRepoLabel string
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
 		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by,
-		        merged_base_sha, merged_head_sha
+		        merged_base_sha, merged_head_sha, head_repo_id,
+		        COALESCE((SELECT owner_name || '/' || name FROM repositories WHERE id = pull_requests.head_repo_id), head_repo_label)
 		 FROM pull_requests WHERE id = $1`,
 		id,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
 		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy,
-		&mergedBaseSHA, &mergedHeadSHA)
+		&mergedBaseSHA, &mergedHeadSHA, &headRepo, &headRepoLabel)
 	if err != nil {
 		return nil, fmt.Errorf("pr get by id: %w", err)
 	}
@@ -303,6 +352,7 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 	if autoMergeBy.Valid {
 		pr.AutoMergeBy = &autoMergeBy.Int64
 	}
+	setHeadRepo(pr, headRepo, headRepoLabel)
 	return pr, nil
 }
 
@@ -624,7 +674,7 @@ func (s *PullStore) UpdateHeadSHA(ctx context.Context, pullID int64, sha string)
 
 func (s *PullStore) UpdateHeadSHAByBranch(ctx context.Context, repoID int64, headBranch, sha string) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE pull_requests SET head_sha = $3 WHERE repo_id = $1 AND head_branch = $2 AND state = 'open'`,
+		`UPDATE pull_requests SET head_sha = $3 WHERE repo_id = $1 AND (head_repo_id = repo_id OR (head_repo_id IS NULL AND head_repo_label = '')) AND head_branch = $2 AND state = 'open'`,
 		repoID, headBranch, sha,
 	)
 	return err
@@ -656,4 +706,47 @@ func (s *PullStore) GetManyByIDs(ctx context.Context, ids []int64) ([]model.Pull
 	}
 	defer rows.Close()
 	return scanPullRows(rows)
+}
+
+// ListOpenFromHead returns the open pull requests of other repositories whose head is branch of headRepoID.
+func (s *PullStore) ListOpenFromHead(ctx context.Context, headRepoID int64, branch string) ([]model.PullRequest, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT p.id, p.number, r.owner_name, r.name
+		 FROM pull_requests p JOIN repositories r ON r.id = p.repo_id
+		 WHERE p.head_repo_id = $1 AND p.repo_id <> $1 AND p.head_branch = $2 AND p.state = 'open'`,
+		headRepoID, branch,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list open pulls from head: %w", err)
+	}
+	defer rows.Close()
+	var prs []model.PullRequest
+	for rows.Next() {
+		pr := model.PullRequest{HeadBranch: branch, HeadRepoID: &headRepoID, CrossRepo: true}
+		if err := rows.Scan(&pr.ID, &pr.Number, &pr.RepoOwner, &pr.RepoName); err != nil {
+			return nil, fmt.Errorf("scan pull from head: %w", err)
+		}
+		prs = append(prs, pr)
+	}
+	return prs, rows.Err()
+}
+
+// CloseFromHead closes the open pull requests of other repositories whose head is headRepoID (only branch, when it
+// isn't empty) and records why on each timeline, as the ghost user: nobody on the base acted.
+func (s *PullStore) CloseFromHead(ctx context.Context, headRepoID int64, branch, reason string) (int, error) {
+	res, err := s.db.ExecContext(ctx,
+		`WITH closed AS (
+		     UPDATE pull_requests SET state = 'closed', closed_at = NOW(), updated_at = NOW()
+		     WHERE head_repo_id = $1 AND repo_id <> $1 AND state = 'open' AND ($2 = '' OR head_branch = $2)
+		     RETURNING id
+		 )
+		 INSERT INTO pull_events (pull_id, actor_id, actor_name, event_type, detail)
+		 SELECT id, ghost_user_id(), 'Cloudzilla', 'closed', $3 FROM closed`,
+		headRepoID, branch, reason,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("close pulls from head: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	return int(n), nil
 }

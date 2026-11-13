@@ -58,17 +58,39 @@ func (s *WorkflowRunService) OnPush(ctx context.Context, repo *model.Repository,
 }
 
 func (s *WorkflowRunService) onBranchMoved(ctx context.Context, repo *model.Repository, userID int64, branch, sha string) {
-	pulls, err := s.pulls.ListOpen(ctx, repo.ID)
+	pulls, err := s.pulls.ListOpenByHeadBranch(ctx, repo.ID, branch)
 	if err != nil {
 		slog.Error("workflow runs: list open pull requests failed", "repo_id", repo.ID, "error", err)
 		return
 	}
 	for i := range pulls {
-		if pulls[i].HeadBranch != branch {
-			continue
-		}
 		pulls[i].HeadSHA = sha
 		s.OnPullRequest(ctx, repo, nil, &pulls[i], "synchronize", userID)
+	}
+	s.onForkBranchMoved(ctx, repo, userID, branch, sha)
+}
+
+// onForkBranchMoved makes a waiting Run for each open pull request into another repository whose head is branch of
+// repo, the fork that was pushed to.
+func (s *WorkflowRunService) onForkBranchMoved(ctx context.Context, fork *model.Repository, userID int64, branch, sha string) {
+	forkPulls, err := s.pulls.ListOpenFromHead(ctx, fork.ID, branch)
+	if err != nil {
+		slog.Error("workflow runs: list fork pull requests failed", "repo_id", fork.ID, "error", err)
+		return
+	}
+	for _, p := range forkPulls {
+		pr, err := s.pulls.GetByID(ctx, p.ID)
+		if err != nil {
+			slog.Warn("workflow runs: load fork pull request failed", "pull_id", p.ID, "error", err)
+			continue
+		}
+		base, err := s.repos.GetByID(ctx, pr.RepoID)
+		if err != nil {
+			slog.Warn("workflow runs: load base repository failed", "pull_id", p.ID, "error", err)
+			continue
+		}
+		pr.HeadSHA = sha
+		s.OnPullRequest(ctx, base, fork, pr, "synchronize", userID)
 	}
 }
 

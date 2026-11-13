@@ -36,7 +36,7 @@ func (s *PullService) BackfillMergedRanges(ctx context.Context, events *PullEven
 				}
 			}
 		}
-		base, head, ok := s.code.ReconstructMergedRange(pr.RepoOwner, pr.RepoName, pr.BaseBranch, pr.HeadBranch, commits)
+		base, head, ok := s.code.ReconstructMergedRange(pr.RepoOwner, pr.RepoName, pr.BaseBranch, pr.HeadRef(), commits)
 		if ok {
 			rebuilt++
 		}

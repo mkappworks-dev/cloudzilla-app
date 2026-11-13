@@ -44,6 +44,9 @@ type JobToken struct {
 	JobID  int64
 	RunID  int64
 	RepoID int64
+	// CloneRepoID is the one repository the token may fetch: the Run's, or for a fork pull request's Run the fork
+	// that holds the commit.
+	CloneRepoID int64
 	// NoSecrets is set for a Run that never received secrets, so there is nothing to mask.
 	NoSecrets bool
 }
@@ -227,9 +230,13 @@ func (s *CIRunnerService) jobSpec(ctx context.Context, job *model.WorkflowJob, t
 			needs[n] = res
 		}
 	}
+	src := repo
+	if head := s.forkHeadRepo(ctx, run); head != nil {
+		src = head
+	}
 	spec := &runnerapi.JobSpec{
 		JobID: job.ID, RunID: run.ID, RunNumber: run.Number, Name: job.Name,
-		Repository: repo.OwnerName + "/" + repo.Name, CloneURL: s.baseURL + "/" + repo.OwnerName + "/" + repo.Name + ".git",
+		Repository: repo.OwnerName + "/" + repo.Name, CloneURL: s.baseURL + "/" + src.OwnerName + "/" + src.Name + ".git",
 		SHA: run.SHA, Ref: run.Ref, RunsOn: job.RunsOn, Container: job.Container, TimeoutMinutes: job.TimeoutMins,
 		Env: job.Env, GitHub: s.runs.githubContext(ctx, run, repo), Matrix: job.Matrix, Needs: needs, Token: token,
 	}
@@ -288,6 +295,23 @@ func (s *CIRunnerService) Finish(ctx context.Context, runner *model.CIRunner, jo
 	return s.runs.FinishJob(ctx, jobID, result, message)
 }
 
+// forkHeadRepo is the head repository of a fork pull request's Run, whose commit lives there rather than in the Run's
+// repository, or nil for any other Run or when the head is gone (the base then holds a copy of the commit).
+func (s *CIRunnerService) forkHeadRepo(ctx context.Context, run *model.WorkflowRun) *model.Repository {
+	if !run.NoSecrets || run.PullRequestID == nil {
+		return nil
+	}
+	pr, err := s.runs.pulls.GetByID(ctx, *run.PullRequestID)
+	if err != nil || !pr.CrossRepo || pr.HeadRepoID == nil {
+		return nil
+	}
+	head, err := s.repos.GetByID(ctx, *pr.HeadRepoID)
+	if err != nil {
+		return nil
+	}
+	return head
+}
+
 // VerifyJobToken returns what a per-job token grants, or ErrRunnerUnauthorized once its Job is no longer running.
 func (s *CIRunnerService) VerifyJobToken(ctx context.Context, raw string) (*JobToken, error) {
 	if !strings.HasPrefix(raw, JobTokenPrefix) {
@@ -304,7 +328,11 @@ func (s *CIRunnerService) VerifyJobToken(ctx context.Context, raw string) (*JobT
 	if err != nil {
 		return nil, err
 	}
-	return &JobToken{JobID: job.ID, RunID: run.ID, RepoID: run.RepoID, NoSecrets: run.NoSecrets}, nil
+	cloneID := run.RepoID
+	if head := s.forkHeadRepo(ctx, run); head != nil {
+		cloneID = head.ID
+	}
+	return &JobToken{JobID: job.ID, RunID: run.ID, RepoID: run.RepoID, CloneRepoID: cloneID, NoSecrets: run.NoSecrets}, nil
 }
 
 // Run fails the Jobs of silent runners every few seconds until ctx ends.

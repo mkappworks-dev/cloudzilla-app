@@ -36,9 +36,13 @@ templ PullNew(data view.PullNewData) {
 			if len(data.Branches) == 0 {
 				@components.EmptyState("This repository has no branches yet. Push at least one commit to create a pull request.")
 			} else {
+				{{ headBranches := data.Branches }}
+				if data.HeadRepo != "" {
+					{{ headBranches = data.HeadBranches }}
+				}
 				{{ effHead := data.Head }}
-				if effHead == "" {
-					{{ effHead = data.Branches[0].Name }}
+				if effHead == "" && len(headBranches) > 0 {
+					{{ effHead = headBranches[0].Name }}
 				}
 				{{ reviewersInit := components.JSLiteral(selectedReviewerList(data.Reviewer.All)) }}
 				<form
@@ -54,10 +58,13 @@ templ PullNew(data view.PullNewData) {
 							<div class="flex flex-wrap items-end gap-3">
 								@pullNewBranchSelect("base_branch", "Base branch", "(target)", data.Branches, data.Base)
 								<span class="text-muted-foreground pb-2" aria-hidden="true">←</span>
-								@pullNewBranchSelect("head_branch", "Head branch", "(yours)", data.Branches, effHead)
+								if len(data.HeadRepoChoices) > 0 {
+									@pullNewHeadRepoSelect(data)
+								}
+								@pullNewBranchSelect("head_branch", "Head branch", "(yours)", headBranches, effHead)
 							</div>
 							<p class="mt-3 text-[12px] text-muted-foreground">
-								Comparing <span class="font-mono text-foreground">{ effHead }</span> → <span class="font-mono text-foreground">{ data.Base }</span>.
+								Comparing <span class="font-mono text-foreground">{ pullNewHeadLabel(data, effHead) }</span> → <span class="font-mono text-foreground">{ data.Base }</span>.
 							</p>
 						</fieldset>
 
@@ -115,6 +122,33 @@ templ PullNew(data view.PullNewData) {
 			}
 		</div>
 	}
+}
+
+// pullNewHeadLabel is the head as a reader names it: owner/name:branch for a fork, the branch alone otherwise.
+func pullNewHeadLabel(data view.PullNewData, branch string) string {
+	if data.HeadRepo == "" {
+		return branch
+	}
+	return data.HeadRepo + ":" + branch
+}
+
+// pullNewHeadRepoSelect picks which repository of the fork network the head branch comes from. Changing it reloads
+// the page, because the head branch list belongs to the chosen repository.
+templ pullNewHeadRepoSelect(data view.PullNewData) {
+	<div class="flex-1 min-w-[10rem] space-y-1.5">
+		<label for="head_repo" class="block text-[12px] font-medium text-muted-foreground">Head repository</label>
+		<select
+			id="head_repo"
+			name="head_repo"
+			class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-mono shadow-xs"
+			onchange="const u=new URL(location.href);u.searchParams.set('head_repo',this.value);u.searchParams.delete('head');location.assign(u)"
+		>
+			<option value="" selected?={ data.HeadRepo == "" }>{ data.Owner + "/" + data.RepoName }</option>
+			for _, c := range data.HeadRepoChoices {
+				<option value={ c } selected?={ c == data.HeadRepo }>{ c }</option>
+			}
+		</select>
+	</div>
 }
 
 // pullNewBranchSelect renders one labelled branch <select> in the Compare

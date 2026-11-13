@@ -31,7 +31,7 @@ var (
 // client pushed from. A refused ref is reported in the status with its reason,
 // and the rest of the push still applies.
 func NewServer(s storer.Storer, vet func(*packp.Command) error) transport.Transport {
-	return casServer{Transport: server.NewServer(loader{s}), s: s, vet: vet}
+	return casServer{Transport: server.NewServer(loader{HidePullRefs(s)}), s: s, vet: vet}
 }
 
 type loader struct{ s storer.Storer }
@@ -47,7 +47,7 @@ type casServer struct {
 func (c casServer) NewReceivePackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.ReceivePackSession, error) {
 	s := WrapForReceive(c.s)
 	st := &casStorer{Storer: s, vet: c.vet, conn: newConnectivity(s)}
-	sess, err := server.NewServer(loader{st}).NewReceivePackSession(ep, auth)
+	sess, err := server.NewServer(loader{HidePullRefs(st)}).NewReceivePackSession(ep, auth)
 	if err != nil {
 		return nil, err
 	}

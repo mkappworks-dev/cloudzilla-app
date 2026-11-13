@@ -9,7 +9,9 @@ them for every repository the organization owns.
   delete, profile README, applied suggestion)
 - `issues` — fired on issue create, close, reopen, including closes by a closing keyword in a merged PR or a pushed
   commit (see [pr-merge](./pr-merge.md#closing-issues)), which fire on the issue's repo
-- `pull_request` — fired on PR create, close, merge
+- `pull_request` — fired on PR create, close, merge. The payload's `pull_request` has `head_branch` and `base_branch`,
+  and `head_repo` (`id`, `full_name`, `fork: true`) when the head branch is in another repository. A fork pull request
+  fires the base repository's hooks only; a push to the fork fires the fork's own `push` hooks
 - `workflow_run` — fired once when a CI Run reaches a final status: success, failure or cancelled (see
   [below](#workflow_run))
 

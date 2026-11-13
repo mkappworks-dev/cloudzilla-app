@@ -302,6 +302,10 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "this suggestion was already applied")
 		return
 	}
+	if pr.CrossRepo {
+		writeError(w, http.StatusUnprocessableEntity, crossRepoUpdateMessage)
+		return
+	}
 
 	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
@@ -400,6 +404,10 @@ func (h *Handler) ApplySuggestionBatch(w http.ResponseWriter, r *http.Request) {
 		comments = append(comments, c)
 		edits = append(edits, service.SuggestionEdit{Path: c.Path, Line: c.Line, Replacement: c.SuggestionBody})
 	}
+	if pr.CrossRepo {
+		writeError(w, http.StatusUnprocessableEntity, crossRepoUpdateMessage)
+		return
+	}
 	if pr.State != model.PRStateOpen {
 		writeError(w, http.StatusUnprocessableEntity, "cannot apply suggestions to a closed or merged pull request")
 		return
@@ -451,7 +459,7 @@ func (h *Handler) renderLineCommentThread(w http.ResponseWriter, r *http.Request
 		RepoName:   repoName,
 		PullNumber: number,
 		Key:        key,
-		Comments:   h.lineCommentViews(r.Context(), owner, repoName, pr.HeadBranch, inThread),
+		Comments:   h.lineCommentViews(r.Context(), owner, repoName, pr.HeadRef(), inThread),
 		CanWrite:   h.Services.Repo.CanWrite(r.Context(), repo, userID),
 		PullOpen:   pr.State == model.PRStateOpen,
 	}))

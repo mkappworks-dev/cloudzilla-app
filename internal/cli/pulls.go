@@ -49,6 +49,8 @@ type CreatePull struct {
 	Head  string
 	Base  string
 	Draft bool
+	// HeadRepo is "owner/name" of the fork holding Head; empty means the pull request's own repository.
+	HeadRepo string
 }
 
 // Review states as the server stores them.
@@ -138,9 +140,13 @@ func (c *Client) listRaw(ctx context.Context, path string) ([]json.RawMessage, e
 }
 
 func (c *Client) CreatePull(ctx context.Context, r Repo, p CreatePull) (Pull, error) {
-	data, err := json.Marshal(map[string]any{
+	fields := map[string]any{
 		"title": p.Title, "body": p.Body, "head_branch": p.Head, "base_branch": p.Base, "is_draft": p.Draft,
-	})
+	}
+	if p.HeadRepo != "" {
+		fields["head_repo"] = p.HeadRepo
+	}
+	data, err := json.Marshal(fields)
 	if err != nil {
 		return Pull{}, err
 	}

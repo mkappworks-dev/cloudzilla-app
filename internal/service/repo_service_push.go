@@ -73,6 +73,7 @@ type postReceiveCommit struct {
 // Dedupes commits shared across multiple updated branches; returns an aggregate error only when every walk fails so a stuck repo doesn't go silent.
 func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) error {
 	s.quota.Recompute(repo)
+	s.syncForkPulls(ctx, repo, commands)
 	if s.contributorStats == nil || gitRepo == nil || repo == nil {
 		return nil
 	}
@@ -246,4 +247,59 @@ func forEachPushedCommit(gitRepo *gogit.Repository, cmd *packp.Command, fn func(
 func commitSubject(message string) string {
 	line, _, _ := strings.Cut(message, "\n")
 	return strings.TrimSpace(line)
+}
+
+// syncForkPulls follows a push to a head branch into the open pull requests of other repositories (a delete closes them): the new commit is
+// copied into each base, its refs/pull ref moves and the PR's head sha follows. A failure leaves that PR on its old
+// head, which is still a consistent one.
+func (s *RepoService) syncForkPulls(ctx context.Context, repo *model.Repository, commands []*packp.Command) {
+	if s.pulls == nil || s.code == nil || repo == nil {
+		return
+	}
+	for _, cmd := range commands {
+		if cmd == nil || !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
+			continue
+		}
+		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
+		if cmd.Action() == packp.Delete {
+			s.CloseForkPullsOfBranch(ctx, repo, branch)
+			continue
+		}
+		prs, err := s.pulls.ListOpenFromHead(ctx, repo.ID, branch)
+		if err != nil {
+			slog.Warn("post-receive: list fork pull requests failed", "repo_id", repo.ID, "branch", branch, "error", err)
+			continue
+		}
+		for _, pr := range prs {
+			s.syncForkPull(ctx, repo, branch, pr)
+		}
+	}
+}
+
+func (s *RepoService) syncForkPull(ctx context.Context, head *model.Repository, branch string, pr model.PullRequest) {
+	tip, err := s.code.CopyPullHead(head.OwnerName, head.Name, branch, pr.RepoOwner, pr.RepoName)
+	if err != nil {
+		slog.Warn("post-receive: copy fork pull head failed", "pull_id", pr.ID, "head_repo_id", head.ID, "branch", branch, "error", err)
+		return
+	}
+	if err := s.code.SetPullHeadRef(pr.RepoOwner, pr.RepoName, pr.Number, tip); err != nil {
+		slog.Warn("post-receive: move fork pull ref failed", "pull_id", pr.ID, "error", err)
+		return
+	}
+	if err := s.pulls.UpdateHeadSHA(ctx, pr.ID, tip.String()); err != nil {
+		slog.Warn("post-receive: update fork pull head sha failed", "pull_id", pr.ID, "error", err)
+	}
+	if base, err := s.repos.GetByOwnerName(ctx, pr.RepoOwner, pr.RepoName); err == nil {
+		s.quota.Recompute(base)
+	}
+}
+
+// CloseForkPullsOfBranch closes the open pull requests of other repositories whose head is the deleted branch.
+func (s *RepoService) CloseForkPullsOfBranch(ctx context.Context, repo *model.Repository, branch string) {
+	if s.pulls == nil || repo == nil {
+		return
+	}
+	if _, err := s.pulls.CloseFromHead(ctx, repo.ID, branch, "head branch was deleted"); err != nil {
+		slog.Warn("close fork pull requests of a deleted branch failed", "repo_id", repo.ID, "branch", branch, "error", err)
+	}
 }

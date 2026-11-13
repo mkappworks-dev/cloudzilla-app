@@ -20,12 +20,17 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
+// crossRepoUpdateMessage explains why a pull request from another repository's branch can't be changed here.
+const crossRepoUpdateMessage = "the head branch is in another repository: update it there"
+
 type createPRRequest struct {
 	Title      string `json:"title"`
 	Body       string `json:"body"`
 	HeadBranch string `json:"head_branch"`
 	BaseBranch string `json:"base_branch"`
 	IsDraft    bool   `json:"is_draft"`
+	// HeadRepo is "owner/name" of the repository holding HeadBranch; empty means the base itself.
+	HeadRepo string `json:"head_repo"`
 }
 
 type updatePRRequest struct {
@@ -72,6 +77,7 @@ func (h *Handler) GetPull(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "pull request not found")
 		return
 	}
+	h.hidePullHead(r, pr)
 	writeJSON(w, http.StatusOK, pr)
 }
 
@@ -93,7 +99,7 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft, claims.Targets)
+	pr, err := h.Services.Pull.CreateFromHead(r.Context(), owner, repoName, req.HeadRepo, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft, claims.Targets)
 	if err != nil {
 		if errors.Is(err, service.ErrPullForbidden) {
 			writeError(w, http.StatusForbidden, "forbidden")
@@ -101,6 +107,10 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		if errors.Is(err, service.ErrPullIntoMirror) {
 			writeError(w, http.StatusUnprocessableEntity, pullIntoMirrorMessage)
+			return
+		}
+		if errors.Is(err, service.ErrPullHeadNotInTree) || errors.Is(err, service.ErrPullHeadBranchMissing) {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		slog.Error("create pull: service create failed",
@@ -114,7 +124,7 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventPROpened, map[string]any{"number": pr.Number, "title": pr.Title})
 
 	go func(owner, repoName string, pr *model.PullRequest, defaultBranch string) {
-		diff, err := h.Services.Code.GetPullDiff(owner, repoName, pr.BaseBranch, pr.HeadBranch)
+		diff, err := h.Services.Code.GetPullDiff(owner, repoName, pr.BaseBranch, pr.HeadRef())
 		if err != nil {
 			return
 		}
@@ -401,6 +411,10 @@ func (h *Handler) UpdatePullBranch(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "only an open pull request can be updated")
 		return
 	}
+	if pr.CrossRepo {
+		writeError(w, http.StatusUnprocessableEntity, crossRepoUpdateMessage)
+		return
+	}
 	headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "the head branch no longer exists")
@@ -480,7 +494,7 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	}
 	var headHash plumbing.Hash
 	var headSHA string
-	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch); err == nil {
+	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadRef()); err == nil {
 		headHash = headCommit.Hash
 		headSHA = headHash.String()
 	}
@@ -511,7 +525,7 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 
 	// Counted before the merge: afterwards a fast-forward or merge commit leaves nothing between base and head.
 	mergedCommits := ""
-	if commits, err := h.Services.Code.PullCommitsUnverified(owner, repoName, pr.BaseBranch, pr.HeadBranch); err == nil {
+	if commits, err := h.Services.Code.PullCommitsUnverified(owner, repoName, pr.BaseBranch, pr.HeadRef()); err == nil {
 		mergedCommits = strconv.Itoa(len(commits))
 	}
 	if (strategy == "merge" || strategy == "squash") && pr.BaseBranch == repo.DefaultBranch {
@@ -522,14 +536,25 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 		}
 	}
 
+	if message == "" && pr.CrossRepo {
+		// The service would name the head ref, which is internal; the fork's branch is what a reader knows.
+		head := pr.HeadRepo + ":" + pr.HeadBranch
+		switch strategy {
+		case "merge":
+			message = service.DefaultMergeMessage(head, pr.BaseBranch)
+		case "squash":
+			message = service.DefaultSquashMessage(head, pr.BaseBranch)
+		}
+	}
+
 	var err error
 	switch strategy {
 	case "merge":
-		err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author, message)
+		err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadRef(), headHash, *author, message)
 	case "squash":
-		err = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author, message)
+		err = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadRef(), headHash, *author, message)
 	default:
-		err = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash)
+		err = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadRef(), headHash)
 	}
 	if errors.Is(err, service.ErrRefMoved) {
 		return nil, &mergeRefusal{http.StatusConflict, branchMovedMsg}
@@ -617,4 +642,13 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 			slog.Error("auto-merge failed", "owner", owner, "repo", repoName, "pull_number", pr.Number, "error", err)
 		}
 	}
+}
+
+// hidePullHead withholds a private head repository's name from a viewer who can't read it.
+func (h *Handler) hidePullHead(r *http.Request, pr *model.PullRequest) {
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	h.Services.Pull.HideUnreadableHead(r.Context(), pr, viewerID)
 }

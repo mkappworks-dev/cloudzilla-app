@@ -261,6 +261,12 @@ Workflow file in the pull request, because approving runs that code on your runn
 makes a new Run that waits again, so approving version 1 never covers version 2. An approved fork Run gets no secrets
 and a read-only per-job token. A reader never sees **Approve**.
 
+A fork pull request is a [cross-repository pull request](./pr-merge.md#pull-requests-from-a-fork): its Run belongs to
+the base repository, but the commit lives in the head repository, so the Job's clone URL and its per-job token point at
+the fork (the token fetches that one repository, never the base). If the fork is deleted before the Job claims, the
+clone falls back to the base, which holds a copy of the commit. A push to the fork's head branch creates the next
+waiting Run.
+
 ### The per-job token
 
 Each claimed Job gets a token that is read-only, bound to one repository and one Job, valid for a git clone over HTTP
@@ -367,9 +373,5 @@ the [API reference](./api-reference.md#workflow-runs), and the `repo` and `repo:
 
 ## Known limitations
 
-- **Fork pull requests cannot exist yet.** The app has no cross-repository pull requests, so the fork approval flow is
-  covered by tests only and has never run on a real fork. When they land, `WorkflowRunService.OnPullRequest` must be
-  called with the fork as the head repository, and a fork Run's per-job token must be bound to the fork so the runner
-  can clone its commit.
 - **One Job container per Job.** Steps share it, so a tool one Step installs is there in the next, but a Job cannot
   start service containers (`services` is rejected).

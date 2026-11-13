@@ -5,6 +5,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
@@ -52,23 +53,25 @@ templ PullChrome(data PullChromeData, children templ.Component) {
 					if data.CanWrite {
 						<button type="button" id="edit-pr-btn" data-pr-patch={ "/api/repos" + pullPath } class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Edit</button>
 					}
-					@components.DropdownMenu() {
-						@components.DropdownMenuTrigger(templ.Attributes{
-							"class": "h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5",
-						}) {
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-							Code
-							<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
-						}
-						@components.DropdownMenuContent(components.DropdownAlignEnd) {
-							@components.DropdownMenuLabel() {
-								{ "Check out — " + data.Pull.HeadBranch }
+					if !data.Pull.CrossRepo {
+						@components.DropdownMenu() {
+							@components.DropdownMenuTrigger(templ.Attributes{
+								"class": "h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5",
+							}) {
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+								Code
+								<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
 							}
-							<pre class="font-mono text-[11px] text-muted-foreground m-1 p-2 rounded-sm border border-border bg-muted overflow-x-auto whitespace-pre">git fetch origin
+							@components.DropdownMenuContent(components.DropdownAlignEnd) {
+								@components.DropdownMenuLabel() {
+									{ "Check out — " + data.Pull.HeadBranch }
+								}
+								<pre class="font-mono text-[11px] text-muted-foreground m-1 p-2 rounded-sm border border-border bg-muted overflow-x-auto whitespace-pre">git fetch origin
 git checkout { data.Pull.HeadBranch }</pre>
-							@components.DropdownMenuSeparator()
-							@components.DropdownMenuLink(codeurl.Path(data.OwnerName, data.Repo.Name, "tree", data.Pull.HeadBranch, ""), nil) {
-								{ "Browse branch code" }
+								@components.DropdownMenuSeparator()
+								@components.DropdownMenuLink(codeurl.Path(data.OwnerName, data.Repo.Name, "tree", data.Pull.HeadBranch, ""), nil) {
+									{ "Browse branch code" }
+								}
 							}
 						}
 					}
@@ -87,7 +90,7 @@ git checkout { data.Pull.HeadBranch }</pre>
 					}
 					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ data.Pull.BaseBranch }</span>
 					{ " from " }
-					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ data.Pull.HeadBranch }</span>
+					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ view.PullHeadLabel(data.Pull) }</span>
 				</p>
 			</div>
 		</section>

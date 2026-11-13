@@ -1066,3 +1066,54 @@ func scanRepoRows(rows *sql.Rows) ([]model.Repository, error) {
 	}
 	return repos, rows.Err()
 }
+
+// ForkRootID follows fork_of_id from id to the repository that was not forked from another. The 64-step bound stops a
+// cycle in bad data from looping.
+func (s *RepoStore) ForkRootID(ctx context.Context, id int64) (int64, error) {
+	var root int64
+	err := s.db.QueryRowContext(ctx,
+		`WITH RECURSIVE chain(id, fork_of_id, depth) AS (
+		     SELECT id, fork_of_id, 0 FROM repositories WHERE id = $1
+		     UNION ALL
+		     SELECT r.id, r.fork_of_id, c.depth + 1 FROM repositories r JOIN chain c ON r.id = c.fork_of_id WHERE c.depth < 64
+		 )
+		 SELECT id FROM chain ORDER BY depth DESC LIMIT 1`,
+		id,
+	).Scan(&root)
+	if err != nil {
+		return 0, fmt.Errorf("fork root: %w", err)
+	}
+	return root, nil
+}
+
+// ForkTree lists the live repositories of rootID's fork network, the root itself included, oldest first. A network
+// past limit is cut short.
+func (s *RepoStore) ForkTree(ctx context.Context, rootID int64, limit int) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`WITH RECURSIVE tree(id, depth) AS (
+		     SELECT id, 0 FROM repositories WHERE id = $1
+		     UNION ALL
+		     SELECT r.id, t.depth + 1 FROM repositories r JOIN tree t ON r.fork_of_id = t.id WHERE t.depth < 64
+		 )
+		 SELECT r.id, r.owner_id, r.org_id, r.owner_name, r.name, r.private
+		 FROM repositories r JOIN tree t ON t.id = r.id
+		 WHERE r.deleted_at IS NULL
+		 ORDER BY r.id LIMIT $2`,
+		rootID, limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("fork tree: %w", err)
+	}
+	defer rows.Close()
+	var out []model.Repository
+	for rows.Next() {
+		var r model.Repository
+		var ownerID, orgID sql.NullInt64
+		if err := rows.Scan(&r.ID, &ownerID, &orgID, &r.OwnerName, &r.Name, &r.Private); err != nil {
+			return nil, fmt.Errorf("scan fork tree: %w", err)
+		}
+		r.OwnerID, r.OrgID = ownerID.Int64, orgID.Int64
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}

@@ -80,6 +80,38 @@ can no longer write the repo, `tryAutoMerge` disarms auto-merge instead of mergi
 compares as its name plus `/`, so `docs.md` comes before `docs/`. go-git refuses to encode a tree in any other order
 ("entries in tree are not sorted").
 
+## Pull requests from a fork
+
+A pull request can take its head branch from another repository of the base's fork network: the base itself, a fork of
+it, a fork of a fork, a sibling fork, or the source it was forked from. Two repositories are in one network when
+following `fork_of_id` from each reaches the same root. `pull_requests.head_repo_id` names the head repository
+(migration 141; NULL once it is hard-deleted) and `head_repo_label` snapshots its `owner/name`.
+
+- **Opening.** `PullService.CreateFromHead` needs `CanRead` on the base and `CanWrite` on the head repository, and the
+  head branch must exist there. A repository outside the network is `422`, a head the author can't write is `403`.
+- **The head is copied into the base.** `CodeService.CopyPullHead` copies the head commit and every object the base
+  lacks into the base's object store (pure go-git, `revlist` against the base's branch tips), and `refs/pull/<n>/head`
+  in the base points at it. `PullRequest.HeadRef()` is that ref for a fork pull request and the branch name for any
+  other, so the merge strategies, `Mergeability`, the commit list and the diff above run on one repository, unchanged.
+  `resolveRef` accepts a `refs/pull/` name as a whole.
+- **Merging writes only the base.** The fork's refs are never touched. `merged_base_sha` and `merged_head_sha` are
+  recorded as usual and the commits live in the base, so the tabs of a merged fork pull request survive the fork's
+  deletion. A default merge or squash message names the head as `owner/name:branch`, not the internal ref.
+- **Nothing writes to the fork.** **Update branch** and applying suggestions would commit to the head branch, so both
+  answer `422` for a fork pull request, and the merge box shows a note instead of the button.
+- **Pushes to the fork** copy the new commit into each base and move the ref and `head_sha`
+  ([git-transport](./git-transport.md#after-a-push)). A push to a base branch that shares a fork pull request's head
+  branch name leaves it alone.
+- **The head goes away.** Soft-deleting the head repository, or deleting its branch, closes the open pull request with a
+  `closed` timeline event ("head repository was deleted", "head branch was deleted") attributed to the ghost user. A
+  hard delete (purge) sets `head_repo_id` to NULL and closes nothing: the pull request stays open and still merges,
+  because the base holds the objects. A rename or transfer changes nothing, because the id is stored: the page reads the
+  current name.
+- **Private heads.** A reader of the base who can't read the head repository sees the pull request, its diff and
+  commits, with the head shown as "a fork"; the JSON has `head_repo_hidden: true` and no `head_repo`.
+- **Not offered:** allowing maintainers to push to the fork's branch, and pull requests between repositories outside one
+  network.
+
 ## CodeService Methods
 
 - `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
