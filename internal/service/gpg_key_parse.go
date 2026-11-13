@@ -21,8 +21,35 @@ var (
 	ErrGPGNoSigningKey = errors.New("this GPG key has no key that can sign")
 )
 
-// parseGPGKey reads one armored public key and checks it can verify commits at now.
+// parsedGPGKey is a readable key block before the add or update rules judge it.
+type parsedGPGKey struct {
+	key *model.GPGKey
+	// revokedNow is go-crypto's verdict at the parse time, which counts a future-dated or unexpired revocation.
+	revokedNow bool
+	canSign    bool
+}
+
+// parseGPGKey reads one armored public key and checks a new key can verify commits at now.
 func parseGPGKey(armored string, now time.Time) (*model.GPGKey, error) {
+	p, err := readGPGKey(armored, now)
+	if err != nil {
+		return nil, err
+	}
+	if p.revokedNow || p.key.RevokedAt != nil || p.key.RemovedAt != nil {
+		return nil, ErrGPGKeyRevoked
+	}
+	if p.key.ExpiresAt != nil && !now.Before(*p.key.ExpiresAt) {
+		return nil, ErrGPGKeyExpired
+	}
+	if !p.canSign {
+		return nil, ErrGPGNoSigningKey
+	}
+	return p.key, nil
+}
+
+// readGPGKey decodes the block and records its revocations, without refusing a key for being expired, revoked or
+// unable to sign: updating a key the account already owns must accept such a block.
+func readGPGKey(armored string, now time.Time) (*parsedGPGKey, error) {
 	armored = strings.TrimSpace(armored)
 	block, err := armor.Decode(strings.NewReader(armored))
 	if err != nil {
@@ -39,9 +66,6 @@ func parseGPGKey(armored string, now time.Time) (*model.GPGKey, error) {
 	if e.PrivateKey != nil {
 		return nil, ErrGPGPrivateKey
 	}
-	if e.Revoked(now) {
-		return nil, ErrGPGKeyRevoked
-	}
 
 	self, _ := e.PrimarySelfSignature()
 	key := &model.GPGKey{
@@ -51,9 +75,7 @@ func parseGPGKey(armored string, now time.Time) (*model.GPGKey, error) {
 		ExpiresAt:   keyExpiry(e.PrimaryKey.CreationTime, self),
 		Emails:      uidEmails(e),
 	}
-	if key.ExpiresAt != nil && !now.Before(*key.ExpiresAt) {
-		return nil, ErrGPGKeyExpired
-	}
+	key.RevokedAt, key.RemovedAt = revocationState(e.Revocations)
 
 	canSign := self == nil || !self.FlagsValid || self.FlagSign
 	for _, sk := range e.Subkeys {
@@ -63,18 +85,31 @@ func parseGPGKey(armored string, now time.Time) (*model.GPGKey, error) {
 			CanSign:     sk.Sig != nil && sk.Sig.FlagsValid && sk.Sig.FlagSign,
 			ExpiresAt:   keyExpiry(sk.PublicKey.CreationTime, sk.Sig),
 		}
-		if len(sk.Revocations) > 0 {
-			t := sk.Revocations[0].CreationTime
-			sub.RevokedAt = &t
-		}
-		live := sub.RevokedAt == nil && (sub.ExpiresAt == nil || now.Before(*sub.ExpiresAt))
+		sub.RevokedAt, sub.RemovedAt = revocationState(sk.Revocations)
+		live := sub.RevokedAt == nil && sub.RemovedAt == nil && (sub.ExpiresAt == nil || now.Before(*sub.ExpiresAt))
 		canSign = canSign || (sub.CanSign && live)
 		key.Subkeys = append(key.Subkeys, sub)
 	}
-	if !canSign {
-		return nil, ErrGPGNoSigningKey
+	return &parsedGPGKey{key: key, revokedNow: e.Revoked(now), canSign: canSign}, nil
+}
+
+// revocationState maps a key's verified revocation signatures onto our two states. The signer's stated reason decides:
+// superseded or retired means the key was simply put away (removed at the signature's time), anything else, including
+// no reason, is treated as compromised, because wrongly distrusting a key is the safe error.
+func revocationState(revs []*packet.Signature) (revoked, removed *time.Time) {
+	for _, r := range revs {
+		t := r.CreationTime
+		if r.RevocationReason != nil && (*r.RevocationReason == packet.KeySuperseded || *r.RevocationReason == packet.KeyRetired) {
+			if removed == nil || t.Before(*removed) {
+				removed = &t
+			}
+			continue
+		}
+		if revoked == nil || t.Before(*revoked) {
+			revoked = &t
+		}
 	}
-	return key, nil
+	return revoked, removed
 }
 
 func keyExpiry(created time.Time, sig *packet.Signature) *time.Time {

@@ -34,6 +34,10 @@ func TestSignatureBadge(t *testing.T) {
 			[]string{">Unverified<", "no account on this server has the key", "B5690EEEBB952194", "Settings"}},
 		{"other user", service.SignatureResult{Status: service.SignatureUnverified, Reason: service.ReasonOtherUser, Kind: service.SignatureKindGPG, KeyID: "3AA5C34371567BD2", Fingerprint: "4AEE18F8", CommitterEmail: "rhea@corp.dev"},
 			[]string{">Unverified<", "different account than the one that owns rhea@corp.dev", "ask an administrator", "4AEE18F8"}},
+		{"key removed", service.SignatureResult{Status: service.SignatureUnverified, Reason: service.ReasonKeyRemoved, Kind: service.SignatureKindSSH, Fingerprint: "SHA256:abc"},
+			[]string{">Unverified<", "The key was removed from the account before this commit was made.", "Commits signed with a different, valid key verify as usual."}},
+		{"key revoked", service.SignatureResult{Status: service.SignatureUnverified, Reason: service.ReasonKeyRevoked, Kind: service.SignatureKindGPG, KeyID: "3AA5C34371567BD2"},
+			[]string{">Unverified<", "The key was revoked by its owner as compromised."}},
 		{"instance", service.SignatureResult{Status: service.SignatureVerified, Kind: "instance", SignerUsername: "Cloudzilla", Fingerprint: "SHA256:inst"},
 			[]string{">Verified<", "made on the web and signed by this server", "Cloudzilla", "SHA256:inst"}},
 	}

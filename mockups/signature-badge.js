@@ -1,6 +1,6 @@
 // Stand-in for components.SignatureBadge: swaps each <span data-signature="state"></span> for the badge and its
 // popover, with the markup and classes of internal/view/components/signature_badge.templ. The real popover is Alpine;
-// this one toggles `hidden`. States: verified-ssh, verified-gpg, instance, partial, other_user, unverified. Add data-floating for
+// this one toggles `hidden`. States: verified-ssh, verified-gpg, instance, partial, other_user, unverified, key-removed, key-revoked. Add data-floating for
 // SignatureBadgeFloating (fixed popover) and data-icon for SignatureIcon (glyph only, fixed popover).
 (function () {
   var SHIELD = '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>';
@@ -40,6 +40,12 @@
     unverified: { tone: 'warning', label: 'Unverified', head: 'The commit is signed, but no account on this server has the key.', who: '',
       rows: [['Key type', 'GPG'], ['Key ID', 'B5690EEEBB952194', 1], ['Committer', 'kiyo@example.com']],
       hint: 'If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view.' },
+    'key-removed': { tone: 'warning', label: 'Unverified', head: 'The key was removed from the account before this commit was made.', who: '',
+      rows: [['Key type', 'SSH'], ['Fingerprint', 'SHA256:Rt4nWc8yQe1LkZx6VbA0sGm3uHdJfP7oIiNx9TaYe2B', 1], ['Committer', 'malith@example.com']],
+      hint: 'Commits signed with a different, valid key verify as usual.' },
+    'key-revoked': { tone: 'warning', label: 'Unverified', head: 'The key was revoked by its owner as compromised.', who: '',
+      rows: [['Key type', 'GPG'], ['Key ID', 'B5690EEEBB952194', 1], ['Committer', 'kiyo@example.com']],
+      hint: 'Commits signed with a different, valid key verify as usual.' },
   };
 
   function build(host, state) {

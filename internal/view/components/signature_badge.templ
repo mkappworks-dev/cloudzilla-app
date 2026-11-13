@@ -210,7 +210,9 @@ func signatureHeadline(r service.SignatureResult) string {
 	case service.ReasonKeyExpired:
 		return "The key had expired when the commit was made."
 	case service.ReasonKeyRevoked:
-		return "The key has been revoked."
+		return "The key was revoked by its owner as compromised."
+	case service.ReasonKeyRemoved:
+		return "The key was removed from the account before this commit was made."
 	case service.ReasonMultipleSignatures:
 		return "The commit carries more than one signature."
 	case service.ReasonUnavailable:
@@ -236,7 +238,7 @@ func signatureHint(r service.SignatureResult) string {
 		return "If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view."
 	case r.Reason == service.ReasonUnavailable:
 		return "Reload the page to try again."
-	case r.Status == service.SignatureUnverified && (r.Reason == service.ReasonKeyExpired || r.Reason == service.ReasonKeyRevoked):
+	case r.Status == service.SignatureUnverified && (r.Reason == service.ReasonKeyExpired || r.Reason == service.ReasonKeyRevoked || r.Reason == service.ReasonKeyRemoved):
 		return "Commits signed with a different, valid key verify as usual."
 	}
 	return ""

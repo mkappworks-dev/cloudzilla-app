@@ -65,8 +65,9 @@ Settled with the user on 2026-11-13, except those marked *derived*.
    is not verified on the account is listed as "not on your account" and does not count.
 7. **Expiry and removal.** A key expired *at the commit's committer date* is `unverified` (`key_expired`); a commit
    signed before expiry stays Verified. Git lets the committer set that date, so "signed before expiry" is forgeable:
-   a knowingly accepted cost. A deleted or revoked key makes its commits `unverified`. GPG subkeys verify when they
-   carry the signing flag.
+   a knowingly accepted cost. A hard-deleted key makes its commits `unverified` (`no_key`); a revoked key makes all of
+   its commits `unverified` (`key_revoked`); a removed key is date-bounded, see decision 14. GPG subkeys verify when
+   they carry the signing flag.
 8. **Surfaces:** commits list, commit page, PR commits tab, then the tree's last-commit row and blame. No new commit
    JSON endpoint; only key CRUD under `/api/user`.
 9. *Derived:* the repository initial commit is a server-made commit and is signed too. Old server-made commits (committer
@@ -84,6 +85,16 @@ Settled with the user on 2026-11-13, except those marked *derived*.
     gap). The 409 on add tells the same account from another account. Proof of possession, several accounts per key and
     an admin reassign feature are declined; the admin runbook is `revoke-credentials`. See
     [ticket 09](./issues/09-signing-key-squatting.md).
+14. **Remove, Revoke and key update** ([ticket 10](./issues/10-signing-key-revocation.md), settled with the user on
+    2026-11-13; decision 4 stands, so no ADR). **Remove** soft-deletes a key (`removed_at`): it still verifies commits
+    whose committer date is before `removed_at`, and later ones are `unverified` (`key_removed`); the back-dating cost
+    of decision 7 extends to removed keys. **Revoke** marks a key compromised, for GPG and SSH: every commit by it, past
+    and future, is `unverified` (`key_revoked`); it is one-way and works on active and removed keys. Posting a GPG block
+    whose fingerprint the account already owns updates the row in place (keys, subkeys, UID emails, expiry, and a
+    revocation certificate); `revoked_at` and `removed_at` are never cleared by an update. A revocation signature maps
+    by reason: compromised or no reason is Revoke, superseded or retired is a Remove at the signature's time (primary
+    key and each subkey). `revoke-credentials` and account deletion stay hard deletes. Cloudzilla never fetches keys
+    from a keyserver.
 
 ## Design
 
@@ -203,6 +214,7 @@ confirmation step-up.
 | [07](./issues/07-signature-badge-tree-blame.md) | Badge on the tree's last-commit row and blame | 04 | 05, 06 |
 | [08](./issues/08-signing-docs-and-e2e.md) | Docs, ROADMAP rewrite, native-git end-to-end on a throwaway server | 01–07 | — |
 | [09](./issues/09-signing-key-squatting.md) | `other_user` reason, clearer 409 for a taken key | — | 10 |
+| [10](./issues/10-signing-key-revocation.md) | Remove keeps history, Revoke, in-place GPG key update | 01–08 | 09 |
 
 Shared-file conflicts: 02 and 05 both edit `signature_service.go`, which is why 05 waits for 02; 04 and 07 both edit view
 models (07 waits). Migrations 130/131 collide with anything else landing first: re-check at build.
@@ -258,3 +270,8 @@ Claude, 2026-11-13: Questions 1 and 2 of the mock README (fourth status; instanc
 decisions 1 and 3 above.
 
 Claude, 2026-11-13: Decision 13 and ticket 09 answer signing-key squatting; options weighed and declined are in the ticket.
+
+Claude, 2026-11-13: Ticket 10 reverses the earlier "keep verify-on-read, document remove = revoke, do nothing else"
+recommendation. That left no way to retire a key without turning its whole history Unverified, so users would keep dead
+keys registered, and `gpg_keys.revoked_at` for a primary key is never set (`parseGPGKey` refuses a revoked key). Decision
+14 fixes both without storing results, so decision 4 and ADR 0002 are untouched. Migration 132 is its migration.

@@ -30,7 +30,8 @@ do" line.
 | `no_key`              | `unverified`         | No account or instance key matches the signature (also: the key's owner no longer exists) |
 | `bad_signature`       | `unverified`         | A key matched but the signature does not verify, for example a tampered message           |
 | `key_expired`         | `unverified`         | The key had expired at the commit's committer date                                        |
-| `key_revoked`         | `unverified`         | The key, or the signing subkey, is revoked                                                |
+| `key_revoked`         | `unverified`         | The key, or the signing subkey, was revoked as compromised, whatever the commit's date    |
+| `key_removed`         | `unverified`         | The owner removed the key (or signing subkey) at or before the commit's committer date    |
 | `multiple_signatures` | `unverified`         | The header holds more than one signature block                                            |
 | `unsupported`         | `unverified`         | Not a PGP or SSH signature, unparseable, or an issuer or algorithm we cannot read         |
 | `unavailable`         | `unverified`         | The key lookup failed (logged); reloading usually clears it                               |
@@ -59,12 +60,26 @@ The committer email is read, not the author email, because that is the one git m
   verified with the stored key. The hardware-key touch flag is not required, because `ssh-keygen -Y sign` can be told to
   skip it, so a `no-touch-required` signature verifies.
 - Expiry is judged at the commit's committer date, not at the time of viewing: a commit signed before its key expired
-  stays Verified. A deleted key makes its commits `unverified` (`no_key`); a revoked one `key_revoked`. A subkey is also
-  bounded by its own expiry and revocation. Revocation is read when the key is added: a key revoked afterwards keeps
-  verifying until its owner removes it or adds the updated key.
-- **Accepted cost.** The committer date is set by the committer, so "signed before expiry" can be forged: whoever holds
-  an expired key can back-date a commit and it will read Verified. Closing this needs a trusted timestamp, which a
-  signed commit does not have. We accept it.
+  stays Verified. A subkey is also bounded by its own expiry, removal and revocation.
+- **Remove and Revoke.** Removing a key (Settings, or `DELETE`) keeps its row with `removed_at` set: it still verifies
+  commits whose committer date is before that moment, and later ones are `unverified` (`key_removed`). Use it when you
+  stop using a key. Revoking a key marks it compromised: every commit by it, past and future, is `unverified`
+  (`key_revoked`). Revoking is final and works on active and removed keys. Both keep the fingerprint registered to the
+  account, so nobody else can claim it. A removed key can be restored (password step-up); a revoked one cannot. Only a
+  deleted row (account deletion, `revoke-credentials`) gives `no_key`.
+- **Updating a GPG key.** Posting an armored block whose fingerprint you already own refreshes the stored key, subkeys,
+  UID emails and expiry in place, so a new expiry or a revocation certificate needs no delete and re-add. An expired or
+  revoked block is accepted for your own key. A revocation never un-happens: an update cannot clear `revoked_at`, nor a
+  subkey's. Posting the block of a removed key restores it unless the block itself revokes it.
+- **Revocation reasons.** The reason code in an uploaded OpenPGP revocation decides: _superseded_ or _retired_ is a
+  removal dated at the revocation signature (earlier commits stay Verified); _compromised_, _no reason_ or anything else
+  is a revocation. The same split applies to each subkey. A new key whose block is already revoked is still refused.
+  Cloudzilla never fetches keys from a keyserver, so a revocation published elsewhere only counts once you upload it or
+  press Revoke.
+- **Accepted cost.** The committer date is set by the committer, so "signed before expiry" and "signed before removal"
+  can be forged: whoever holds an expired or removed key can back-date a commit and it will read Verified. Closing this
+  needs a trusted timestamp, which a signed commit does not have. We accept it; a key that may be in someone else's
+  hands is what Revoke is for.
 
 ## Signing keys
 
@@ -73,29 +88,31 @@ the deploy-key uniqueness rule are untouched, and the same SSH public key may be
 never a way to push, and an auth key never makes a commit Verified. See
 [git-transport](./git-transport.md#ssh-key-management).
 
-Migration `130_create_signing_keys.sql`:
+Migration `130_create_signing_keys.sql`, plus `132_signing_key_removal.sql` (`removed_at` on all three key tables,
+`revoked_at` on `ssh_signing_keys`):
 
-| Table              | Holds                                                                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| `gpg_keys`         | One row per primary key: `key_id` (16 hex), `fingerprint` (40 hex, unique), the armored `public_key`, `expires_at`, `revoked_at` |
-| `gpg_subkeys`      | Subkeys of a GPG key: `key_id`, `fingerprint`, `can_sign`, `expires_at`, `revoked_at`                                            |
-| `gpg_key_emails`   | The key's UID emails, lower-cased; whether each is verified is computed on read                                                  |
-| `ssh_signing_keys` | `title`, `public_key`, SHA256 `fingerprint` (unique), the form `ssh-keygen -l` prints                                            |
+| Table              | Holds                                                                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gpg_keys`         | One row per primary key: `key_id` (16 hex), `fingerprint` (40 hex, unique), the armored `public_key`, `expires_at`, `revoked_at`, `removed_at` |
+| `gpg_subkeys`      | Subkeys of a GPG key: `key_id`, `fingerprint`, `can_sign`, `expires_at`, `revoked_at`, `removed_at`                                            |
+| `gpg_key_emails`   | The key's UID emails, lower-cased; whether each is verified is computed on read                                                                |
+| `ssh_signing_keys` | `title`, `public_key`, SHA256 `fingerprint` (unique), the form `ssh-keygen -l` prints, `removed_at`, `revoked_at`                              |
 
 Rules, enforced by `SigningKeyService` and the handlers in `internal/handler/signing_key_handler.go`:
 
-- A key belongs to one account instance-wide: a fingerprint (or a subkey ID) already registered anywhere is a `409`. The
-  message tells your own account ("already on your account") from another's ("registered to another account"), and names
-  no owner.
+- A key belongs to one account instance-wide: a fingerprint (or a subkey ID) registered to another account is a `409`
+  ("registered to another account", naming no owner), and so is one you revoked. Posting a key you already own updates
+  it (GPG) or returns it (SSH); only a lost race between two adds says "already on your account".
 - Adding needs the same step-up as `POST /api/user/keys` (password, plus a TOTP or email code where the account has
-  them) and is audit-logged (`user.gpg_key.add`, `user.ssh_signing_key.add` and their `.delete` twins). Deleting needs
-  no step-up.
-- The endpoints are session-only: a personal access token cannot add or delete a signing key. See
+  them) and is audit-logged (`user.gpg_key.add|update|delete|revoke|restore` and the `user.ssh_signing_key.*` twins).
+  Remove and Revoke need no step-up; Restore does, because it re-arms a key.
+- The endpoints are session-only: a personal access token cannot add, change or remove a signing key. See
   [access-control](./access-control.md#token-scopes).
-- A GPG key that is private, garbage, already expired, already revoked or has no signing-capable key is refused.
+- A GPG key that is private or garbage is refused; a new key that is already expired, already revoked or has no
+  signing-capable key is too (an update of your own key accepts an expired or revoked block).
 - Account deletion cascades the account's signing keys, so their commits fall to `unverified`. The admin action
-  `revoke-credentials` deletes them too, and the [data export](./api-reference.md) includes their public parts
-  (`ssh_signing_keys.json`).
+  `revoke-credentials` deletes them too, and the [data export](./api-reference.md) includes their public parts and their
+  `removed_at` and `revoked_at` (`ssh_signing_keys.json`).
 
 Routes are listed in [api-reference](./api-reference.md#signing-keys): `GET/POST/DELETE /api/user/gpg_keys` and
 `/api/user/ssh_signing_keys`, with HTMX variants for the Settings page. The UI is **Settings → Signing keys**
