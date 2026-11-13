@@ -302,6 +302,11 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if status, msg := h.secretRefusal(r.Context(), repo, ref, path, content, claims.UserID); status != 0 {
+		refuse(status, msg)
+		return
+	}
+
 	upd, err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message)
 	if err != nil {
 		switch {
@@ -561,6 +566,14 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A pure rename moves a blob already in the repository, which has had its scan.
+	if content != string(file.Content) {
+		if status, msg := h.secretRefusal(r.Context(), repo, ref, newPath, []byte(content), claims.UserID); status != 0 {
+			refuse(status, msg)
+			return
+		}
+	}
+
 	var upd service.RefUpdate
 	if toBranch {
 		if data.NewBranch, data.BranchError = h.newBranchName(r.Context(), repo, claims.Username, data); data.BranchError != "" {
@@ -599,6 +612,19 @@ func (h *Handler) SubmitEditFile(w http.ResponseWriter, r *http.Request) {
 		slog.Error("edit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		http.Error(w, "failed to commit the file", http.StatusInternalServerError)
 	}
+}
+
+// secretRefusal is push protection for a web commit: the status and message that refuse content, or 0 to go on.
+func (h *Handler) secretRefusal(ctx context.Context, repo *model.Repository, branch, path string, content []byte, userID int64) (int, string) {
+	err := h.Services.PushScan.CheckWebContent(ctx, repo, branch, path, content, userID)
+	var detected *service.SecretDetectedError
+	switch {
+	case err == nil:
+		return 0, ""
+	case errors.As(err, &detected):
+		return http.StatusUnprocessableEntity, err.Error()
+	}
+	return http.StatusInternalServerError, err.Error()
 }
 
 // patchBranchPrefix is the stem of the branch name an edit proposes: alice-patch-.

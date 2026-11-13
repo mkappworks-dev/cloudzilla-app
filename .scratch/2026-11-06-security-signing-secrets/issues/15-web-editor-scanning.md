@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 13
 Parallel with: 14, 16
 
@@ -30,14 +30,14 @@ Daisy can paste a key into the web file editor, which does not go through receiv
 
 ## Acceptance criteria
 
-- [ ] A web edit adding a key is refused with 422 and the link; no commit exists; the form keeps the text
-- [ ] The same edit passes once its alert is closed as `used_in_tests`
-- [ ] A web edit that adds no secret is unchanged (existing handler tests)
-- [ ] Merges, squashes and wiki saves are untouched
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
+- [x] A web edit adding a key is refused with 422 and the link; no commit exists; the form keeps the text
+- [x] The same edit passes once its alert is closed as `used_in_tests`
+- [x] A web edit that adds no secret is unchanged (existing handler tests)
+- [x] Merges, squashes and wiki saves are untouched
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
 - [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
-- [ ] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+- [x] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
 
