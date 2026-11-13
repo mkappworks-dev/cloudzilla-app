@@ -318,6 +318,37 @@ func (s *RepoStore) EffectiveRole(ctx context.Context, repoID, userID int64) (st
 	return role.String, nil
 }
 
+// ListManagerIDs returns every user for whom RepoService.CanManage is true outside admin mode: the owner (the org's
+// owners for an org repo), admin collaborators and members of a team granted admin.
+func (s *RepoStore) ListManagerIDs(ctx context.Context, repo *model.Repository) ([]int64, error) {
+	owners := `SELECT owner_id FROM repositories WHERE id = $1 AND org_id IS NULL AND owner_id IS NOT NULL`
+	if repo.OrgID != 0 {
+		owners = `SELECT om.user_id FROM org_members om JOIN repositories r ON r.org_id = om.org_id WHERE r.id = $1 AND om.role = 'owner'`
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT DISTINCT user_id FROM (
+		   `+owners+`
+		   UNION ALL
+		   SELECT user_id FROM permissions WHERE repo_id = $1 AND role = 'admin'
+		   UNION ALL
+		   SELECT tm.user_id FROM team_repos tr JOIN team_members tm ON tm.team_id = tr.team_id
+		    WHERE tr.repo_id = $1 AND tr.role = 'admin'
+		 ) m(user_id) ORDER BY user_id`, repo.ID)
+	if err != nil {
+		return nil, fmt.Errorf("repo list managers: %w", err)
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (s *RepoStore) SetDefaultBranch(ctx context.Context, repoID int64, branch string) error {
 	if _, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET default_branch = $1, updated_at = $2 WHERE id = $3`, branch, time.Now().UTC(), repoID); err != nil {
