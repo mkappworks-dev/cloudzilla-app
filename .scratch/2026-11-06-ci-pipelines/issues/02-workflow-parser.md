@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none
 Parallel with: 01
 
@@ -41,20 +41,26 @@ line-numbered errors, and the parser is pure, so it can be finished and tested b
 
 ## Acceptance criteria
 
-- [ ] Every supported key has a table test; every rejected key asserts the exact message and line
-- [ ] A pasted real-world shell-only GitHub workflow parses; one with `uses:` fails at that line naming `uses`
-- [ ] A matrix of 7×8 fails with the job-limit message; a matrix with `include` and `exclude` expands to the expected
+- [x] Every supported key has a table test; every rejected key asserts the exact message and line
+- [x] A pasted real-world shell-only GitHub workflow parses; one with `uses:` fails at that line naming `uses`
+- [x] A matrix of 7×8 fails with the job-limit message; a matrix with `include` and `exclude` expands to the expected
       names
-- [ ] A `needs` cycle and an unknown `needs` target each fail with the job ids
-- [ ] `if: ${{ failure() && github.ref == 'refs/heads/main' }}` evaluates against a fake context; an unknown function
+- [x] A `needs` cycle and an unknown `needs` target each fail with the job ids
+- [x] `if: ${{ failure() && github.ref == 'refs/heads/main' }}` evaluates against a fake context; an unknown function
       fails at parse time
-- [ ] Branch and tag glob matching has tests for `*`, `**`, `!` and a ref with a slash
-- [ ] The package imports nothing from `store`, `service` or `handler`
+- [x] Branch and tag glob matching has tests for `*`, `**`, `!` and a ref with a slash
+- [x] The package imports nothing from `store`, `service` or `handler`
 - [ ] ~~Light and dark checks at 1440~~ (no UI)
 - [ ] ~~Standing mocks in `mockups/` updated~~ (no UI)
 - [ ] ~~Verification on a throwaway server~~ (pure package; its tests run without a database)
-- [ ] `make lint` and `go test ./...` pass
+- [x] `make lint` and `go test ./...` pass
 
 ## Verification
 
 `go test ./internal/ci/workflow/`.
+
+## Comments
+
+- Claude, 2026-11-13: done. The parser imports `go.yaml.in/yaml/v3` (already an indirect dependency, now direct).
+  `go vet ./...` reports unkeyed-field warnings in generated `internal/view/pages/*_templ.go`, which this ticket does not
+  touch; `go vet ./internal/ci/...`, `golangci-lint run ./internal/ci/...` and `go test ./...` pass.
