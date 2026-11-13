@@ -40,8 +40,8 @@ func TestSigningKeyService_AddGPGKey(t *testing.T) {
 	if _, err := svc.AddGPGKey(ctx, other, armored); !errors.Is(err, ErrSigningKeyTaken) {
 		t.Errorf("same key on another account: got %v, want ErrSigningKeyTaken", err)
 	}
-	if _, err := svc.AddGPGKey(ctx, me, armored); !errors.Is(err, ErrSigningKeyTaken) {
-		t.Errorf("same key twice: got %v, want ErrSigningKeyTaken", err)
+	if _, err := svc.AddGPGKey(ctx, me, armored); !errors.Is(err, ErrSigningKeyOwned) {
+		t.Errorf("same key twice: got %v, want ErrSigningKeyOwned", err)
 	}
 	if theirs, _ := svc.ListGPGKeys(ctx, other); len(theirs) != 0 {
 		t.Errorf("the refused add left %d keys on the other account", len(theirs))
@@ -105,6 +105,9 @@ func TestSigningKeyService_AddSSHKey(t *testing.T) {
 	}
 	if _, err := svc.AddSSHKey(ctx, other, "theirs", pub); !errors.Is(err, ErrSigningKeyTaken) {
 		t.Errorf("same key on another account: got %v, want ErrSigningKeyTaken", err)
+	}
+	if _, err := svc.AddSSHKey(ctx, me, "again", pub); !errors.Is(err, ErrSigningKeyOwned) {
+		t.Errorf("same key twice: got %v, want ErrSigningKeyOwned", err)
 	}
 	if _, err := svc.AddSSHKey(ctx, me, "bad", "ssh-ed25519 nope"); !errors.Is(err, ErrInvalidSigningKey) {
 		t.Errorf("garbage key: got %v, want ErrInvalidSigningKey", err)

@@ -26,6 +26,7 @@ do" line.
 | --------------------- | -------------------- | ----------------------------------------------------------------------------------------- |
 | `email_not_verified`  | `partially_verified` | The committer email is not one of the key owner's verified emails                         |
 | `email_not_on_key`    | `partially_verified` | GPG only: the email is verified on the account but is not a UID email of the key          |
+| `other_user`          | `unverified`         | The email is verified on a different account than the key's owner; no signer is shown     |
 | `no_key`              | `unverified`         | No account or instance key matches the signature (also: the key's owner no longer exists) |
 | `bad_signature`       | `unverified`         | A key matched but the signature does not verify, for example a tampered message           |
 | `key_expired`         | `unverified`         | The key had expired at the commit's committer date                                        |
@@ -83,7 +84,9 @@ Migration `130_create_signing_keys.sql`:
 
 Rules, enforced by `SigningKeyService` and the handlers in `internal/handler/signing_key_handler.go`:
 
-- A key belongs to one account instance-wide: a fingerprint (or a subkey ID) already registered anywhere is a `409`.
+- A key belongs to one account instance-wide: a fingerprint (or a subkey ID) already registered anywhere is a `409`. The
+  message tells your own account ("already on your account") from another's ("registered to another account"), and names
+  no owner.
 - Adding needs the same step-up as `POST /api/user/keys` (password, plus a TOTP or email code where the account has
   them) and is audit-logged (`user.gpg_key.add`, `user.ssh_signing_key.add` and their `.delete` twins). Deleting needs
   no step-up.
@@ -98,6 +101,23 @@ Routes are listed in [api-reference](./api-reference.md#signing-keys): `GET/POST
 `/api/user/ssh_signing_keys`, with HTMX variants for the Settings page. The UI is **Settings → Signing keys**
 (`/settings#signing-keys`): the GPG list with each UID email marked "Verified email" or "not on your account", the SSH
 list (tagged when the same key is also an auth key), and an add dialog that switches between the two.
+
+### Key squatting
+
+Registering a key needs no proof that you hold the private key, so someone can register a victim's public key first. The
+victim cannot add it, and without a rule their commits would read Partially verified with the squatter named. The
+`other_user` reason closes that: when the committer email is verified on a different account than the key's owner, the
+commit is `unverified`, with no signer and no key label shown. The check is one batched email-owner query per page, run
+only when a commit failed the email rule.
+
+- **Accepted gap.** If the committer email is verified on no account at all, `other_user` cannot tell a squat from a
+  real owner who has not verified that address, so the commit stays `partially_verified` and names the key's owner. The
+  popover says the email is unverified on that account.
+- **Declined.** Proof of possession on add (a signed server challenge), the same key on several accounts, and an admin
+  reassign feature. Revisit proof of possession if squatting is seen in the wild.
+- **Runbook.** Find the holder with a SQL lookup of the fingerprint in `gpg_keys`, `gpg_subkeys` or `ssh_signing_keys`.
+  Run `revoke-credentials` on that account, which frees the key but also deletes its PATs, SSH keys and OAuth
+  authorizations, or delete the account when it is not a real user. The owner can then add the key.
 
 ## Where the badge shows
 

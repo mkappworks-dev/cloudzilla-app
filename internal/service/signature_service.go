@@ -37,6 +37,7 @@ const (
 	ReasonKeyRevoked         SignatureReason = "key_revoked"
 	ReasonEmailNotVerified   SignatureReason = "email_not_verified"
 	ReasonEmailNotOnKey      SignatureReason = "email_not_on_key"
+	ReasonOtherUser          SignatureReason = "other_user"
 	ReasonMultipleSignatures SignatureReason = "multiple_signatures"
 )
 
@@ -59,6 +60,9 @@ type SignatureResult struct {
 	KeyID          string
 	SignerUsername string
 	CommitterEmail string
+	// ownerID is the key owner's account while a partially verified result may still turn out to be a squatted key;
+	// Verify clears it.
+	ownerID int64
 }
 
 type gpgKeyLookup interface {
@@ -78,6 +82,8 @@ const instanceSignerName = "Cloudzilla"
 
 type signerDirectory interface {
 	SigningIdentities(ctx context.Context, userIDs []int64) (map[int64]SigningIdentity, error)
+	// EmailOwners maps lower-cased addresses to the account that has verified them.
+	EmailOwners(ctx context.Context, emails []string) (map[string]int64, error)
 }
 
 // SignatureService decides, on every read, whether a commit's signature is made by a key registered to the account
@@ -168,7 +174,43 @@ func (s *SignatureService) Verify(ctx context.Context, commits []*object.Commit)
 	for _, p := range sshPending {
 		out[p.commit.Hash] = judgeSSH(p, sshKeys, identities)
 	}
+	if err := s.demoteSquatted(ctx, out); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+// demoteSquatted turns a partially verified result into unverified/other_user when the committer email is verified on
+// a different account than the key's owner. Registering a key needs no proof of possession, so the owner may be a
+// squatter and must not be named. An email verified nowhere stays partial: that case can't be told apart from an owner
+// who hasn't verified the address yet.
+func (s *SignatureService) demoteSquatted(ctx context.Context, out map[plumbing.Hash]SignatureResult) error {
+	var emails []string
+	for _, res := range out {
+		if res.Status == SignaturePartiallyVerified && res.Reason == ReasonEmailNotVerified {
+			emails = append(emails, strings.ToLower(res.CommitterEmail))
+		}
+	}
+	var owners map[string]int64
+	if len(emails) > 0 {
+		slices.Sort(emails)
+		var err error
+		if owners, err = s.dirs.EmailOwners(ctx, slices.Compact(emails)); err != nil {
+			return err
+		}
+	}
+	for hash, res := range out {
+		if res.ownerID == 0 {
+			continue
+		}
+		if owner, ok := owners[strings.ToLower(res.CommitterEmail)]; ok && owner != res.ownerID {
+			res = SignatureResult{Status: SignatureUnverified, Reason: ReasonOtherUser, Kind: res.Kind,
+				Fingerprint: res.Fingerprint, KeyID: res.KeyID, CommitterEmail: res.CommitterEmail}
+		}
+		res.ownerID = 0
+		out[hash] = res
+	}
+	return nil
 }
 
 // judgeInstance settles the commits signed by an instance key into out and returns the rest.
@@ -473,6 +515,7 @@ func judgeSSH(p pendingSignature, keys []model.SSHSigningKey, identities map[int
 func emailVerdict(res SignatureResult, id SigningIdentity, userID int64, email string, keyEmails []string, checkKey bool) SignatureResult {
 	if !emailVerified(id, userID, email) {
 		res.Status, res.Reason = SignaturePartiallyVerified, ReasonEmailNotVerified
+		res.ownerID = userID
 		return res
 	}
 	if checkKey && !slices.Contains(keyEmails, strings.ToLower(email)) {

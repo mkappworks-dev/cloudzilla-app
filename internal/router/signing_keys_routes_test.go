@@ -243,7 +243,7 @@ func TestSigningKeys_HTMX(t *testing.T) {
 		form url.Values
 		want string
 	}{
-		"duplicate":   {url.Values{"public_key": {armored}}, "already registered"},
+		"duplicate":   {url.Values{"public_key": {armored}}, "already on your account"},
 		"not a key":   {url.Values{"public_key": {"hello"}}, "key"},
 		"no password": {url.Values{"public_key": {armored}, "password": {""}}, "password"},
 	} {

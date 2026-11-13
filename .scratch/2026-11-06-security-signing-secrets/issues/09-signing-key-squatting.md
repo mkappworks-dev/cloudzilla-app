@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: bug
-Status: ready-for-agent
+Status: done
 Blocked by: none
 Parallel with: 10
 
@@ -80,20 +80,20 @@ Rejected, with the trigger to revisit:
 
 ## Acceptance criteria
 
-- [ ] Table-driven cases in `internal/service`: key owned by Mallory, committer email verified on Rhea's account →
+- [x] Table-driven cases in `internal/service`: key owned by Mallory, committer email verified on Rhea's account →
       `unverified` / `other_user`, no signer, no key label, fingerprint kept; same for an SSH key and a GPG key; the noreply
       address of another account; committer email verified on no account → still `partially_verified` /
       `email_not_verified`; committer email verified on the key owner's own account → unchanged; `email_not_on_key` unchanged
-- [ ] A page of 30 commits makes a constant number of queries: the email-owner lookup is one query per call and none when
+- [x] A page of 30 commits makes a constant number of queries: the email-owner lookup is one query per call and none when
       no commit needs it (asserted in a test)
-- [ ] Adding a key that another account holds returns `409` with the "another account" message; adding your own key twice
+- [x] Adding a key that another account holds returns `409` with the "another account" message; adding your own key twice
       returns `409` with the "already on your account" message; neither names an owner (handler tests, JSON and HTMX)
-- [ ] The popover renders `other_user` with no username and no key label; a component test covers it
-- [ ] The standing mock `mockups/signature-badge.js` and every `mockups/` page that draws badge states gain the
+- [x] The popover renders `other_user` with no username and no key label; a component test covers it
+- [x] The standing mock `mockups/signature-badge.js` and every `mockups/` page that draws badge states gain the
       `other_user` state, classes copied from the templ, `COVERAGE.md` / `index.html` where affected, and are checked
       under `make mockups` in light **and** dark at desktop 1440
-- [ ] The scratch mock beside the spec (`commit.html`, `mock.html`) gains the same state and matches the shipped page
-- [ ] `docs/signed-commits.md` updated as listed under Scope
+- [x] The scratch mock beside the spec (`commit.html`, `mock.html`) gains the same state and matches the shipped page
+- [x] `docs/signed-commits.md` updated as listed under Scope
 - [ ] `make generate-templ` re-run and the `_templ.go` files committed; `make lint` and `go test ./...` pass;
       `make test-integration` passes for the new store query
 
@@ -112,3 +112,14 @@ mock under `make mockups`.
 Claude, 2026-11-13: Decided with the user in a grilling session. The 409 split costs one extra lookup on a rare failing
 path. Ticket 10 (key revocation, parallel session) also edits `signature_service.go` and the reasons table in the docs:
 whichever merges second rebases those two spots.
+
+Claude, 2026-11-13: Built on `tech/signing-key-squatting`, not the ticket's branch name. Left unticked: `make lint`
+(golangci-lint is not installed here; `gofmt` and `go vet` are clean, and `go test ./...` passes against a scratch
+Postgres). Checked on a throwaway server (scratch Postgres, `CZ_AUTH_COOKIE_NAME=cz_squat_verify`, `admin@example.test`):
+a second account registered a native-git ed25519 key, the admin's add of it answered `409` "registered to another
+account", the admin adding their own key twice answered `409` "already on your account", and three signed commits pushed
+over HTTP rendered **Unverified** (`other_user`, no username) for the squatted key with a verified email, **Partially
+verified** naming the squatter for an email verified nowhere, and **Verified** for the admin's own key. Light and dark
+at 1440 for the real commit page, `mockups/commits.html` and the scratch `mock.html` / `commit.html`. Only the commits
+list mock gained a row: `COVERAGE.md` and `index.html` are unaffected. The seeded accounts' reauth throttle counts a
+password-less token POST as a failure; it needed a reset on the scratch DB.

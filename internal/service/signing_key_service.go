@@ -12,7 +12,9 @@ import (
 )
 
 var (
+	// ErrSigningKeyTaken means another account holds the key; ErrSigningKeyOwned that the adding account already does.
 	ErrSigningKeyTaken    = store.ErrSigningKeyTaken
+	ErrSigningKeyOwned    = errors.New("signing key already on your account")
 	ErrSigningKeyNotFound = errors.New("signing key not found")
 )
 
@@ -34,6 +36,9 @@ func (s *SigningKeyService) AddGPGKey(ctx context.Context, userID int64, armored
 	}
 	key.UserID = userID
 	if err := s.gpg.Create(ctx, key); err != nil {
+		if errors.Is(err, ErrSigningKeyTaken) {
+			return nil, s.classifyGPGTaken(ctx, userID, key.Fingerprint, err)
+		}
 		return nil, err
 	}
 	return key, nil
@@ -67,6 +72,9 @@ func (s *SigningKeyService) AddSSHKey(ctx context.Context, userID int64, title, 
 		Fingerprint: ssh.FingerprintSHA256(pub),
 	}
 	if err := s.ssh.Create(ctx, key); err != nil {
+		if errors.Is(err, ErrSigningKeyTaken) {
+			return nil, s.classifySSHTaken(ctx, userID, key.Fingerprint, err)
+		}
 		return nil, err
 	}
 	return key, nil
@@ -82,4 +90,32 @@ func (s *SigningKeyService) DeleteSSHKey(ctx context.Context, keyID, userID int6
 		return ErrSigningKeyNotFound
 	}
 	return err
+}
+
+// classifyGPGTaken tells a key the user already holds from one another account holds, so the 409 can say which. A
+// failed lookup keeps the plain taken error.
+func (s *SigningKeyService) classifyGPGTaken(ctx context.Context, userID int64, fingerprint string, taken error) error {
+	keys, err := s.gpg.ListByUser(ctx, userID)
+	if err != nil {
+		return taken
+	}
+	for _, k := range keys {
+		if k.Fingerprint == fingerprint {
+			return ErrSigningKeyOwned
+		}
+	}
+	return taken
+}
+
+func (s *SigningKeyService) classifySSHTaken(ctx context.Context, userID int64, fingerprint string, taken error) error {
+	keys, err := s.ssh.ListByUser(ctx, userID)
+	if err != nil {
+		return taken
+	}
+	for _, k := range keys {
+		if k.Fingerprint == fingerprint {
+			return ErrSigningKeyOwned
+		}
+	}
+	return taken
 }
