@@ -68,19 +68,26 @@
         </div>
         </div>
 
+        <form id="rename-form" class="mb-5 space-y-1.5" onsubmit="return false">
+          <label for="org-slug" class="block text-[12px] font-medium text-muted-foreground">URL slug</label>
+          <div id="org-rename-form-error" class="empty:hidden"></div>
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex min-w-0 flex-1 items-center gap-2">
+              <span class="text-[13px] text-muted-foreground font-mono">/</span>
+              <input id="org-slug" type="text" name="name" value="acme-corp" required autocomplete="off" spellcheck="false" class="h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring" />
+            </div>
+            <div class="min-w-0">
+              <label for="rename-org-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+              <input id="rename-org-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring" />
+            </div>
+            <button type="submit" id="rename-btn" disabled class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Rename</button>
+          </div>
+        </form>
+
         <form class="space-y-5">
           <div>
             <label for="org-display-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">Display name</label>
             <input id="org-display-name" type="text" name="display_name" value="Acme Corporation" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50" />
-          </div>
-
-          <div>
-            <label for="org-slug" class="block text-[12px] font-medium text-muted-foreground mb-1.5 ">URL slug</label>
-            <div class="flex items-center gap-2">
-              <span class="text-[13px] text-muted-foreground font-mono">/</span>
-              <input id="org-slug" type="text" value="acme-corp" disabled class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono" />
-            </div>
-            <p class="mt-1 text-[11.5px] text-muted-foreground">Organization names can't be changed yet.</p>
           </div>
 
           <div>
@@ -548,6 +555,52 @@
     var f = done; done = null;
     if (f && dlg.returnValue === 'confirm') f();
   });
+
+  var renameForm = document.getElementById('rename-form');
+  var renameInput = document.getElementById('org-slug');
+  var renameBtn = document.getElementById('rename-btn');
+  var renameErr = document.getElementById('org-rename-form-error');
+  var orgName = 'acme-corp';
+  var TAKEN = ['mkappworks', 'paper-planes'];
+  function renameError(msg) {
+    renameErr.innerHTML = '';
+    if (!msg) return;
+    var d = document.createElement('div');
+    d.className = 'rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3';
+    d.setAttribute('role', 'alert');
+    d.textContent = msg;
+    renameErr.appendChild(d);
+  }
+  function renameRefusal(n) {
+    if (n === orgName) return 'the organization already has that name';
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$/.test(n)) return 'Use 1-39 letters, digits, - or _, starting with a letter or digit.';
+    if (TAKEN.indexOf(n.toLowerCase()) !== -1) return 'name already taken';
+    return '';
+  }
+  renameInput.addEventListener('input', function () { renameBtn.disabled = renameInput.value === orgName; });
+  renameBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    renameBtn.dataset.confirmTitle = 'Rename this organization?';
+    renameBtn.dataset.confirm = 'It will move to /' + renameInput.value + '. Old links and git remotes keep redirecting until another user or organization takes the old name.';
+    renameBtn.dataset.confirmLabel = 'Rename';
+    renameBtn.setAttribute('data-confirm-danger', 'true');
+    czConfirm(renameBtn, function () {
+      if (!renameForm.reportValidity()) return;
+      var msg = renameRefusal(renameInput.value);
+      renameError(msg);
+      if (msg) return;
+      orgName = renameInput.value;
+      renameBtn.disabled = true;
+      document.getElementById('rename-org-password').value = '';
+      czToast('Organization renamed');
+    });
+  });
+  // Mock-only: ?rename=error shows a refused rename.
+  if (/[?&]rename=error\b/.test(location.search)) {
+    renameInput.value = 'paper-planes';
+    renameBtn.disabled = false;
+    renameError(renameRefusal(renameInput.value));
+  }
 
   document.querySelectorAll('[data-remove-member]').forEach(function (b) {
     b.addEventListener('click', function () {

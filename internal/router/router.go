@@ -346,6 +346,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(authMW).Post("/{org}/transfer", h.TransferOrg)
 		r.With(authMW).Post("/{org}/profile", h.UpdateOrgProfile)
 		r.With(authMW).Post("/{org}/repo-defaults", h.UpdateOrgRepoDefaults)
+		r.With(authMW).Post("/{org}/rename", h.RenameOrg)
 		r.With(authMW).Post("/{org}/delete", h.DeleteOrg)
 		r.Route("/{org}/teams", func(r chi.Router) {
 			r.Use(authMW)

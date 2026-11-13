@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 05; uiux ticket 15 (repository rename) for the alias mechanism
 Parallel: none; shares `org_settings.templ` with 04 and 05.
 
@@ -36,11 +36,13 @@ with a User is refused; non-owner refused; a failed directory move rolls the row
 
 ## Acceptance criteria
 
-- [ ] Rename works and old URLs redirect until claimed
-- [ ] Docs (`docs/organizations.md`, `docs/access-control.md` name rules) and mock updated, light and dark
+- [x] Rename works and old URLs redirect until claimed
+- [x] Docs (`docs/organizations.md`, `docs/access-control.md` name rules) and mock updated, light and dark
 
 ## Verification
 
 Throwaway server on a scratch database at 1440×900, light and dark, per the harness in the [uiux spec](../../2026-11-06-uiux-desktop-9.5/spec.md#verification-harness). Sign in as `admin@example.test` / `cloudzilla-seed`; `paper-planes` is the seeded organization. Rename `paper-planes`, then clone and browse the old URL.
 
 ## Comments
+
+2026-11-13 Claude: ticket 15's alias table is repo-only (`repo_id NOT NULL`), so owner-level aliases got their own `org_aliases` table (migration 128). `RepoAliasStore.Resolve` falls back to it, so the web, API, git HTTP and SSH redirects needed no new code. The owner-name triggers (080, redefined in 128) delete the alias when a user or org takes the name.

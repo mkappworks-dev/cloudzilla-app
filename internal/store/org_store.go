@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
@@ -312,4 +314,72 @@ func (s *OrgStore) SwapAvatarKey(ctx context.Context, orgID int64, key string) (
 		return "", fmt.Errorf("org swap avatar key: %w", err)
 	}
 	return old, nil
+}
+
+// ErrOrgChanged: the org's name is no longer the one the caller read.
+var ErrOrgChanged = errors.New("organization changed since it was read")
+
+// Rename gives the org row newName and leaves oldName as an alias. The org row
+// lock serializes two renames of one org; the owner-name trigger lets the
+// update fail for a user's name and drops any alias at newName. The text names
+// kept in events and notifications follow, as for a repository rename.
+func (s *OrgStore) Rename(ctx context.Context, id int64, oldName, newName string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("org rename: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var current string
+	if err := tx.QueryRowContext(ctx, `SELECT name FROM organizations WHERE id = $1 FOR UPDATE`, id).Scan(&current); err != nil {
+		return fmt.Errorf("org rename lock: %w", err)
+	}
+	if current != oldName {
+		return ErrOrgChanged
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE organizations SET name = $1, updated_at = NOW() WHERE id = $2`, newName, id); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrOrgNameTaken
+		}
+		return fmt.Errorf("org rename update: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE repositories SET owner_name = $1 WHERE org_id = $2`, newName, id); err != nil {
+		return fmt.Errorf("org rename repos: %w", err)
+	}
+	if !strings.EqualFold(oldName, newName) {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO org_aliases (org_id, name) VALUES ($1, $2)
+			 ON CONFLICT (lower(name)) DO UPDATE SET org_id = EXCLUDED.org_id, name = EXCLUDED.name, created_at = NOW()`,
+			id, oldName,
+		); err != nil {
+			return fmt.Errorf("org rename alias: %w", err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE events SET owner_name = $2
+		 WHERE repo_id IN (SELECT id FROM repositories WHERE org_id = $1) AND owner_name <> $2`,
+		id, newName,
+	); err != nil {
+		return fmt.Errorf("org rename events: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE notifications SET owner_name = $2,
+		        subject_url = CASE WHEN left(subject_url, length($3::text) + 1) = $3::text || '/'
+		                           THEN '/' || $2::text || substr(subject_url, length($3::text) + 1)
+		                           ELSE subject_url END
+		 WHERE repo_id IN (SELECT id FROM repositories WHERE org_id = $1)`,
+		id, newName, "/"+oldName,
+	); err != nil {
+		return fmt.Errorf("org rename notifications: %w", err)
+	}
+	return tx.Commit()
+}
+
+// ResolveAlias returns the org that used to be called name, or sql.ErrNoRows.
+func (s *OrgStore) ResolveAlias(ctx context.Context, name string) (*model.Organization, error) {
+	var id int64
+	if err := s.db.QueryRowContext(ctx, `SELECT org_id FROM org_aliases WHERE lower(name) = lower($1)`, name).Scan(&id); err != nil {
+		return nil, fmt.Errorf("org alias resolve: %w", err)
+	}
+	return s.GetByID(ctx, id)
 }

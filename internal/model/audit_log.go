@@ -60,6 +60,7 @@ const (
 	AuditActionOrgProfileUpdate    = "org.profile.update"
 	AuditActionOrgDefaultsUpdate   = "org.defaults.update"
 	AuditActionOrgDelete           = "org.delete"
+	AuditActionOrgRename           = "org.rename"
 	AuditActionOrgAvatarUpdate     = "org.avatar.update"
 	AuditActionOrgAvatarRemove     = "org.avatar.remove"
 	AuditActionTeamCreate          = "org.team.create"

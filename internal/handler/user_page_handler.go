@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,6 +30,10 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		// Not a user — try org
 		org, orgErr := h.Services.Org.Get(r.Context(), username)
 		if orgErr != nil {
+			if moved, aliasErr := h.Services.Org.ResolveAlias(r.Context(), username); aliasErr == nil {
+				http.Redirect(w, r, "/"+url.PathEscape(moved.Name), http.StatusMovedPermanently)
+				return
+			}
 			h.NotFound(w, r)
 			return
 		}

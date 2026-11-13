@@ -97,7 +97,8 @@ challenge and body for a private and a missing repo on all three endpoints.
 
 A path that misses `RepoService.Get` is tried as a former name (`ResolveAlias`). Only a caller who can read the target
 repo is redirected; anyone else gets the missing-repo reply from the table above, so an alias never confirms a private
-repo. The check runs after the same pre-lookup checks, so those answer identically.
+repo. The check runs after the same pre-lookup checks, so those answer identically. A former organization name resolves
+the same way, to the renamed org's live repo of that name ([Rename](./organizations.md#rename)).
 
 | Request                                   | Old path, caller can read the repo |
 | ----------------------------------------- | ---------------------------------- |

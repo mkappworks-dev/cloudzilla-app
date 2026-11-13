@@ -70,6 +70,35 @@ templ OrgSettings(data view.OrgSettingsData) {
 							})
 						</div>
 
+						<form
+							hx-post={ "/api/orgs/" + data.Org.Name + "/rename" }
+							hx-swap="none"
+							data-toast="Organization renamed"
+							x-data={ templ.JSONString(map[string]string{"current": data.Org.Name, "name": data.Org.Name}) }
+							class="mb-5 space-y-1.5"
+						>
+							<label class="block text-[12px] font-medium text-muted-foreground" for="org-slug">URL slug</label>
+							<div id="org-rename-form-error" class="empty:hidden"></div>
+							<div class="flex flex-wrap items-end gap-3">
+								<div class="flex min-w-0 flex-1 items-center gap-2">
+									<span class="text-[13px] text-muted-foreground font-mono">/</span>
+									<input id="org-slug" type="text" name="name" x-model="name" required autocomplete="off" spellcheck="false" class="h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
+								</div>
+								@components.ConfirmFields("rename-org", data.Confirm, true)
+								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+									"type":                "submit",
+									"x-bind:disabled":     "name === current",
+									"data-confirm-action": "true",
+									"data-confirm-title":  "Rename this organization?",
+									":data-confirm-msg":   "'It will move to /' + name + '. Old links and git remotes keep redirecting until another user or organization takes the old name.'",
+									"data-confirm-label":  "Rename",
+									"data-confirm-danger": "true",
+								}) {
+									Rename
+								}
+							</div>
+						</form>
+
 						<form hx-post={ "/api/orgs/" + data.Org.Name + "/profile" } hx-swap="none" hx-on::after:request="if(event.target===this&&!ctx.hx.retarget)this.querySelector('#org-profile-form-error').textContent=''" class="space-y-5" data-toast="Organization saved">
 							<div id="org-profile-form-error" class="empty:hidden"></div>
 							<div>
@@ -80,21 +109,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 									"name":  "display_name",
 									"value": data.Org.DisplayName,
 								})
-							</div>
-
-							<div>
-								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-slug">URL slug</label>
-								<div class="flex items-center gap-2">
-									<span class="text-[13px] text-muted-foreground font-mono">/</span>
-									@components.Input(templ.Attributes{
-										"id":       "org-slug",
-										"type":     "text",
-										"value":    data.Org.Name,
-										"disabled": "disabled",
-										"class":    "font-mono",
-									})
-								</div>
-								<p class="mt-1 text-[11.5px] text-muted-foreground">Organization names can't be changed yet.</p>
 							</div>
 
 							<div>
@@ -744,7 +758,7 @@ func auditActionClass(action string) string {
 	switch action {
 	case model.AuditActionOrgDelete, model.AuditActionTeamDelete:
 		return "bg-destructive/15 text-destructive border-destructive/30"
-	case model.AuditActionOrgProfileUpdate, model.AuditActionOrgDefaultsUpdate, model.AuditActionTeamCreate, model.AuditActionTeamUpdate, model.AuditActionTeamMemberAdd, model.AuditActionTeamMemberRemove:
+	case model.AuditActionOrgProfileUpdate, model.AuditActionOrgRename, model.AuditActionOrgDefaultsUpdate, model.AuditActionTeamCreate, model.AuditActionTeamUpdate, model.AuditActionTeamMemberAdd, model.AuditActionTeamMemberRemove:
 		return "bg-accent text-foreground border-border"
 	case model.AuditActionRepoCreate:
 		return "bg-success/15 text-success border-success/30"
@@ -760,6 +774,8 @@ func auditActionVerb(action string) string {
 	switch action {
 	case model.AuditActionOrgProfileUpdate:
 		return "updated profile on"
+	case model.AuditActionOrgRename:
+		return "renamed"
 	case model.AuditActionOrgDefaultsUpdate:
 		return "updated repository defaults on"
 	case model.AuditActionOrgDelete:
