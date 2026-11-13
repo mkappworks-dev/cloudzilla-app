@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -134,6 +135,90 @@ func (q workflowQ) queryRuns(ctx context.Context, where string, args ...any) ([]
 // ListRuns returns the repo's Runs, newest first.
 func (q workflowQ) ListRuns(ctx context.Context, repoID int64, limit int) ([]model.WorkflowRun, error) {
 	return q.queryRuns(ctx, `WHERE repo_id = $1 ORDER BY number DESC LIMIT $2`, repoID, limit)
+}
+
+// ListRunsFiltered returns one page of the repo's Runs, newest first, and whether more follow.
+func (q workflowQ) ListRunsFiltered(ctx context.Context, repoID int64, f model.RunFilter, limit, offset int) ([]model.WorkflowRun, bool, error) {
+	where := `WHERE repo_id = $1`
+	args := []any{repoID}
+	add := func(cond string, v any) {
+		args = append(args, v)
+		where += fmt.Sprintf(" AND "+cond, len(args))
+	}
+	if f.WorkflowPath != "" {
+		add("workflow_path = $%d", f.WorkflowPath)
+	}
+	if f.Branch != "" {
+		args = append(args, "refs/heads/"+f.Branch, "refs/tags/"+f.Branch)
+		where += fmt.Sprintf(" AND ref IN ($%d, $%d)", len(args)-1, len(args))
+	}
+	if f.Status != "" {
+		add("status = $%d", string(f.Status))
+	}
+	switch f.Event {
+	case "":
+	case "manual":
+		add("event = $%d", model.RunEventDispatch)
+	default:
+		add("event = $%d", f.Event)
+	}
+	args = append(args, limit+1, offset)
+	runs, err := q.queryRuns(ctx, where+fmt.Sprintf(` ORDER BY number DESC LIMIT $%d OFFSET $%d`, len(args)-1, len(args)), args...)
+	if err != nil {
+		return nil, false, err
+	}
+	more := len(runs) > limit
+	if more {
+		runs = runs[:limit]
+	}
+	return runs, more, nil
+}
+
+// RunFacets lists the workflow files and branches or tags the repo's Runs came from.
+func (q workflowQ) RunFacets(ctx context.Context, repoID int64) (model.RunFacets, error) {
+	var out model.RunFacets
+	rows, err := q.q.QueryContext(ctx, `SELECT DISTINCT ON (workflow_path) workflow_path, workflow_name FROM workflow_runs
+		WHERE repo_id = $1 ORDER BY workflow_path, number DESC`, repoID)
+	if err != nil {
+		return out, fmt.Errorf("run facets: %w", err)
+	}
+	for rows.Next() {
+		var w model.RunWorkflow
+		if err := rows.Scan(&w.Path, &w.Name); err != nil {
+			_ = rows.Close()
+			return out, err
+		}
+		out.Workflows = append(out.Workflows, w)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return out, fmt.Errorf("run facets: %w", err)
+	}
+	_ = rows.Close()
+	rows, err = q.q.QueryContext(ctx, `SELECT DISTINCT ref FROM workflow_runs WHERE repo_id = $1 ORDER BY ref`, repoID)
+	if err != nil {
+		return out, fmt.Errorf("run facets: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ref string
+		if err := rows.Scan(&ref); err != nil {
+			return out, err
+		}
+		out.Branches = append(out.Branches, strings.TrimPrefix(strings.TrimPrefix(ref, "refs/heads/"), "refs/tags/"))
+	}
+	return out, rows.Err()
+}
+
+// ActionsVisible reports whether the repo's Actions tab shows: CI is on for it, or it still has Runs to read.
+func (q workflowQ) ActionsVisible(ctx context.Context, repoID int64) (bool, error) {
+	var ok bool
+	err := q.q.QueryRowContext(ctx, `SELECT ci_enabled OR EXISTS (SELECT 1 FROM workflow_runs WHERE repo_id = $1) FROM repositories WHERE id = $1`,
+		repoID).Scan(&ok)
+	if err != nil {
+		return false, fmt.Errorf("actions visible: %w", err)
+	}
+	return ok, nil
 }
 
 // ListRunsBySHA returns the Runs for one commit, oldest first.

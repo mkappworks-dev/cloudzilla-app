@@ -74,14 +74,7 @@ templ pullChecksBody(data view.PullChecksData) {
 }
 
 templ checkRowIcon(state string) {
-	switch state {
-	case "success":
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
-	case "failure", "error":
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-destructive" aria-label="Failed"><path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle></svg>
-	default:
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-warning" aria-label="Pending"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
-	}
+	@components.RunStatusIcon(state)
 }
 
 templ checksBannerIcon(passed, failed, total int) {

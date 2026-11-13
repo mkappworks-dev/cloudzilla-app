@@ -34,8 +34,8 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 		{Label: "Branch protection", Href: "#branches", Key: "branches"},
 		{Label: "Webhooks", Href: "#webhooks", Key: "webhooks"},
 	}...)
-	if d.Runners != nil {
-		items = append(items, components.SettingsSidebarItem{Label: "Runners", Href: "#runners", Key: "runners"})
+	if d.CI != nil {
+		items = append(items, components.SettingsSidebarItem{Label: "CI/CD", Href: "#ci", Key: "ci"})
 	}
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
@@ -2543,22 +2543,44 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if data.Runners != nil {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 136, "<div id=\"runners\" class=\"scroll-mt-6\"></div>")
+			if data.CI != nil {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 136, "<div id=\"ci\" class=\"scroll-mt-6\"></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = fragments.RunnersCard(*data.Runners).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = ciToggleCard(*data.CI).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = runnerDialog(view.RunnerDialogData{Base: data.Runners.Base, Title: "New runner"}).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 137, "<div id=\"secrets\" class=\"scroll-mt-6\"></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = fragments.CISecretsCard(*data.CI).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = ciSecretDialog(data.CI.Base).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				if data.Runners != nil {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 138, "<div id=\"runners\" class=\"scroll-mt-6\"></div>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = fragments.RunnersCard(*data.Runners).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = runnerDialog(view.RunnerDialogData{Base: data.Runners.Base, Title: "New runner"}).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				}
 			}
 			if data.IsOwner {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 137, "<div id=\"template\" class=\"scroll-mt-6\"></div><!-- Template repository section --> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "<div id=\"template\" class=\"scroll-mt-6\"></div><!-- Template repository section --> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -2586,7 +2608,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 138, "<h2 class=\"text-base font-semibold tracking-tight\">Template repository</h2>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 140, "<h2 class=\"text-base font-semibold tracking-tight\">Template repository</h2>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2608,7 +2630,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "<div class=\"flex items-center justify-between\"><div><p class=\"text-sm font-medium text-foreground\">Template repository</p><p class=\"text-xs text-muted-foreground mt-0.5\">Allow other users to create new repositories with the same directory structure and files.</p></div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 141, "<div class=\"flex items-center justify-between\"><div><p class=\"text-sm font-medium text-foreground\">Template repository</p><p class=\"text-xs text-muted-foreground mt-0.5\">Allow other users to create new repositories with the same directory structure and files.</p></div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2617,20 +2639,20 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								templ_7745c5c3_ElementWriter := templ_7745c5c3_Buffer
 								templ_7745c5c3_Buffer := templ.GetBuffer()
 								var templ_7745c5c3_ElementScripts []templ.ComponentScript
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 140, "<input type=\"checkbox\" aria-label=\"Template repository\" checked hx-patch=\"")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "<input type=\"checkbox\" aria-label=\"Template repository\" checked hx-patch=\"")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
 								var templ_7745c5c3_Var108 string
 								templ_7745c5c3_Var108, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/template").Resolve(ctx)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 626, Col: 147}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 633, Col: 147}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var108)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 141, "\" hx-vals='{\"is_template\": \"false\"}' hx-trigger=\"change\"")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, "\" hx-vals='{\"is_template\": \"false\"}' hx-trigger=\"change\"")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -2638,7 +2660,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, " class=\"rounded-sm border-input accent-foreground h-4 w-4\"")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, " class=\"rounded-sm border-input accent-foreground h-4 w-4\"")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -2652,7 +2674,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								}
 								templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, ">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, ">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -2661,33 +2683,33 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								templ_7745c5c3_ElementWriter := templ_7745c5c3_Buffer
 								templ_7745c5c3_Buffer := templ.GetBuffer()
 								var templ_7745c5c3_ElementScripts []templ.ComponentScript
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, "<input type=\"checkbox\" aria-label=\"Template repository\" hx-patch=\"")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "<input type=\"checkbox\" aria-label=\"Template repository\" hx-patch=\"")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
 								var templ_7745c5c3_Var109 string
 								templ_7745c5c3_Var109, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/template").Resolve(ctx)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 631, Col: 84}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 638, Col: 84}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var109)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, "\" hx-vals='{\"is_template\": \"true\"}' hx-trigger=\"change\" hx-confirm=\"")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "\" hx-vals='{\"is_template\": \"true\"}' hx-trigger=\"change\" hx-confirm=\"")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
 								var templ_7745c5c3_Var110 string
 								templ_7745c5c3_Var110, templ_7745c5c3_Err = templruntime.NewAttributeExpression("Anyone will be able to create new repositories with the same directory structure and files as " + data.RepoName + ".").Resolve(ctx)
 								if templ_7745c5c3_Err != nil {
-									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 634, Col: 142}
+									return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 641, Col: 142}
 								}
 								_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var110)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "\" data-confirm-title=\"Make this a template repository?\" data-confirm-label=\"Make template\"")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, "\" data-confirm-title=\"Make this a template repository?\" data-confirm-label=\"Make template\"")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -2695,7 +2717,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, " class=\"rounded-sm border-input accent-foreground h-4 w-4\"")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, " class=\"rounded-sm border-input accent-foreground h-4 w-4\"")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -2709,12 +2731,12 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								}
 								templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, ">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, ">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, "</div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "</div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2738,7 +2760,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 				}
 			}
 			if data.IsOwner {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "<div id=\"archive\" class=\"scroll-mt-6\"></div><!-- Archive / Unarchive section (owner-only) --> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, "<div id=\"archive\" class=\"scroll-mt-6\"></div><!-- Archive / Unarchive section (owner-only) --> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -2767,7 +2789,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						}
 						ctx = templ.InitializeContext(ctx)
 						if data.Repo.IsArchived {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Unarchive this repository</h2>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Unarchive this repository</h2>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -2783,7 +2805,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 									}()
 								}
 								ctx = templ.InitializeContext(ctx)
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, "Restore push access and return the repository to active views.")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "Restore push access and return the repository to active views.")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -2794,7 +2816,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								return templ_7745c5c3_Err
 							}
 						} else {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Archive this repository</h2>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Archive this repository</h2>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -2810,7 +2832,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 									}()
 								}
 								ctx = templ.InitializeContext(ctx)
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "Make the repository read-only and hide it from active views. You can unarchive it later.")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, "Make the repository read-only and hide it from active views. You can unarchive it later.")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -2839,7 +2861,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "<div class=\"flex justify-end\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "<div class=\"flex justify-end\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2856,7 +2878,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 									}()
 								}
 								ctx = templ.InitializeContext(ctx)
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, "Unarchive")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 158, "Unarchive")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -2887,7 +2909,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 									}()
 								}
 								ctx = templ.InitializeContext(ctx)
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "Archive")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 159, "Archive")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -2898,7 +2920,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								return templ_7745c5c3_Err
 							}
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 158, "</div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 160, "</div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2920,7 +2942,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 159, " <div id=\"transfer\" class=\"scroll-mt-6\"></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 161, " <div id=\"transfer\" class=\"scroll-mt-6\"></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -2948,7 +2970,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 160, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Transfer ownership</h2>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 162, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Transfer ownership</h2>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2964,20 +2986,20 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								}()
 							}
 							ctx = templ.InitializeContext(ctx)
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 161, "Transfer this repository to another user, who has ")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 163, "Transfer this repository to another user, who has ")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var121 string
 							templ_7745c5c3_Var121, templ_7745c5c3_Err = templ.JoinStringErrs(transferTTLDays())
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 695, Col: 78}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 702, Col: 78}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var121))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 162, " days to accept it, or at once to an organization you own. You keep owner access only if the new owner is you or an organization you own.")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 164, " days to accept it, or at once to an organization you own. You keep owner access only if the new owner is you or an organization you own.")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -3006,46 +3028,46 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						}
 						ctx = templ.InitializeContext(ctx)
 						if data.PendingTransfer != nil {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 163, "<div class=\"flex flex-wrap items-center justify-between gap-3\"><p class=\"text-[13px]\">Waiting for <span class=\"font-mono\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 165, "<div class=\"flex flex-wrap items-center justify-between gap-3\"><p class=\"text-[13px]\">Waiting for <span class=\"font-mono\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var123 string
 							templ_7745c5c3_Var123, templ_7745c5c3_Err = templ.JoinStringErrs("@" + data.PendingTransfer.RecipientName)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 702, Col: 89}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 709, Col: 89}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var123))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 164, "</span> to accept. <span class=\"text-muted-foreground\"><time datetime=\"")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 166, "</span> to accept. <span class=\"text-muted-foreground\"><time datetime=\"")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var124 string
 							templ_7745c5c3_Var124, templ_7745c5c3_Err = templruntime.NewAttributeExpression(data.PendingTransfer.ExpiresAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 704, Col: 86}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 711, Col: 86}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var124)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 165, "\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var125 string
 							templ_7745c5c3_Var125, templ_7745c5c3_Err = templ.JoinStringErrs(transferExpiry(data.PendingTransfer.ExpiresAt))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 704, Col: 137}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 711, Col: 137}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var125))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 166, "</time></span></p>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, "</time></span></p>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -3061,7 +3083,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 									}()
 								}
 								ctx = templ.InitializeContext(ctx)
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "Cancel transfer")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "Cancel transfer")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -3076,25 +3098,25 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, "</div>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "</div>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 						} else {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "<form hx-post=\"")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 171, "<form hx-post=\"")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var127 string
 							templ_7745c5c3_Var127, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer").Resolve(ctx)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 718, Col: 82}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 725, Col: 82}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var127)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:ctx.response.status===202?'Transfer requested':'Repository transferred'}));}\"><div class=\"flex flex-wrap items-end gap-3\"><label for=\"transfer-new-owner\" class=\"sr-only\">New owner: user or organization name</label>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 172, "\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:ctx.response.status===202?'Transfer requested':'Repository transferred'}));}\"><div class=\"flex flex-wrap items-end gap-3\"><label for=\"transfer-new-owner\" class=\"sr-only\">New owner: user or organization name</label>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -3125,7 +3147,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 									}()
 								}
 								ctx = templ.InitializeContext(ctx)
-								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 171, "Transfer")
+								templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 173, "Transfer")
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err
 								}
@@ -3142,7 +3164,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 172, "</div></form>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "</div></form>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -3159,7 +3181,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 173, "<div id=\"delete\" class=\"scroll-mt-6\"></div><!-- Delete repository (owner-only) --> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 175, "<div id=\"delete\" class=\"scroll-mt-6\"></div><!-- Delete repository (owner-only) --> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3187,7 +3209,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Delete this repository</h2>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 176, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Delete this repository</h2>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -3203,7 +3225,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								}()
 							}
 							ctx = templ.InitializeContext(ctx)
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 175, "Permanently remove this repository and all its data. This cannot be undone.")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 177, "Permanently remove this repository and all its data. This cannot be undone.")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -3231,7 +3253,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 176, "<div class=\"flex justify-end\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 178, "<div class=\"flex justify-end\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -3247,7 +3269,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 								}()
 							}
 							ctx = templ.InitializeContext(ctx)
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 177, "Delete repository")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 179, "Delete repository")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -3257,7 +3279,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 178, "</div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 180, "</div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -3278,7 +3300,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 179, "</div></div></div><script>\n\t\t\t(function () {\n\t\t\t\tvar nav = document.querySelector('nav[aria-label=\"Settings sections\"]');\n\t\t\t\tif (!nav) return;\n\t\t\t\tvar links = Array.prototype.slice.call(nav.querySelectorAll('a[href^=\"#\"]'));\n\t\t\t\tvar targets = links\n\t\t\t\t\t.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })\n\t\t\t\t\t.filter(function (t) { return t.el; });\n\t\t\t\tif (!targets.length) return;\n\t\t\t\tfunction update() {\n\t\t\t\t\tvar active = targets[0];\n\t\t\t\t\tfor (var i = 0; i < targets.length; i++) {\n\t\t\t\t\t\tif (targets[i].el.getBoundingClientRect().top <= 120) active = targets[i];\n\t\t\t\t\t}\n\t\t\t\t\tlinks.forEach(function (l) {\n\t\t\t\t\t\tvar on = l === active.link;\n\t\t\t\t\t\tvar isDanger = l.classList.contains('text-destructive');\n\t\t\t\t\t\tif (!isDanger) {\n\t\t\t\t\t\t\tl.classList.toggle('bg-accent', on);\n\t\t\t\t\t\t\tl.classList.toggle('text-foreground', on);\n\t\t\t\t\t\t\tl.classList.toggle('font-medium', on);\n\t\t\t\t\t\t\tl.classList.toggle('text-muted-foreground', !on);\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tupdate();\n\t\t\t\twindow.addEventListener('scroll', update, { passive: true });\n\t\t\t\twindow.addEventListener('resize', update, { passive: true });\n\t\t\t})();\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 181, "</div></div></div><script>\n\t\t\t(function () {\n\t\t\t\tvar nav = document.querySelector('nav[aria-label=\"Settings sections\"]');\n\t\t\t\tif (!nav) return;\n\t\t\t\tvar links = Array.prototype.slice.call(nav.querySelectorAll('a[href^=\"#\"]'));\n\t\t\t\tvar targets = links\n\t\t\t\t\t.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })\n\t\t\t\t\t.filter(function (t) { return t.el; });\n\t\t\t\tif (!targets.length) return;\n\t\t\t\tfunction update() {\n\t\t\t\t\tvar active = targets[0];\n\t\t\t\t\tfor (var i = 0; i < targets.length; i++) {\n\t\t\t\t\t\tif (targets[i].el.getBoundingClientRect().top <= 120) active = targets[i];\n\t\t\t\t\t}\n\t\t\t\t\tlinks.forEach(function (l) {\n\t\t\t\t\t\tvar on = l === active.link;\n\t\t\t\t\t\tvar isDanger = l.classList.contains('text-destructive');\n\t\t\t\t\t\tif (!isDanger) {\n\t\t\t\t\t\t\tl.classList.toggle('bg-accent', on);\n\t\t\t\t\t\t\tl.classList.toggle('text-foreground', on);\n\t\t\t\t\t\t\tl.classList.toggle('font-medium', on);\n\t\t\t\t\t\t\tl.classList.toggle('text-muted-foreground', !on);\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tupdate();\n\t\t\t\twindow.addEventListener('scroll', update, { passive: true });\n\t\t\t\twindow.addEventListener('resize', update, { passive: true });\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -3325,20 +3347,20 @@ func archiveDialog(owner, repoName string) templ.Component {
 				templ_7745c5c3_ElementWriter := templ_7745c5c3_Buffer
 				templ_7745c5c3_Buffer := templ.GetBuffer()
 				var templ_7745c5c3_ElementScripts []templ.ComponentScript
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 180, "<form hx-post=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 182, "<form hx-post=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var136 string
 				templ_7745c5c3_Var136, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + owner + "/" + repoName + "/archive").Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 806, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 813, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var136)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 181, "\" hx-swap=\"none\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 183, "\" hx-swap=\"none\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3356,7 +3378,7 @@ func archiveDialog(owner, repoName string) templ.Component {
 				}
 				templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 182, ">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 184, ">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -3384,7 +3406,7 @@ func archiveDialog(owner, repoName string) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 183, "Archive this repository?")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 185, "Archive this repository?")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -3409,7 +3431,7 @@ func archiveDialog(owner, repoName string) templ.Component {
 					var templ_7745c5c3_Var140 string
 					templ_7745c5c3_Var140, templ_7745c5c3_Err = templ.JoinStringErrs(repoName + " will become read-only and hidden from active views. You can unarchive it later.")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 812, Col: 100}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 819, Col: 100}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var140))
 					if templ_7745c5c3_Err != nil {
@@ -3439,7 +3461,7 @@ func archiveDialog(owner, repoName string) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 184, "<div class=\"space-y-4\"><div id=\"archive-form-error\"></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 186, "<div class=\"space-y-4\"><div id=\"archive-form-error\"></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3447,7 +3469,7 @@ func archiveDialog(owner, repoName string) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 185, "</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 187, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3469,7 +3491,7 @@ func archiveDialog(owner, repoName string) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 186, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90\">Archive repository</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 188, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90\">Archive repository</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3479,7 +3501,7 @@ func archiveDialog(owner, repoName string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 187, "</form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 189, "</form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -3526,20 +3548,20 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 				templ_7745c5c3_ElementWriter := templ_7745c5c3_Buffer
 				templ_7745c5c3_Buffer := templ.GetBuffer()
 				var templ_7745c5c3_ElementScripts []templ.ComponentScript
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 188, "<form hx-post=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 190, "<form hx-post=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var145 string
 				templ_7745c5c3_Var145, templ_7745c5c3_Err = templruntime.NewAttributeExpression("/api/repos/" + owner + "/" + repoName + "/delete").Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 831, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 838, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var145)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 189, "\" hx-swap=\"none\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 191, "\" hx-swap=\"none\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3557,7 +3579,7 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 				}
 				templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 190, ">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 192, ">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -3585,7 +3607,7 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 191, "<span class=\"text-destructive\">Delete this repository?</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 193, "<span class=\"text-destructive\">Delete this repository?</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -3610,7 +3632,7 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 					var templ_7745c5c3_Var149 string
 					templ_7745c5c3_Var149, templ_7745c5c3_Err = templ.JoinStringErrs("This permanently removes " + repoName + " and all of its data — issues, pull requests, and history. This cannot be undone.")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 837, Col: 133}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 844, Col: 133}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var149))
 					if templ_7745c5c3_Err != nil {
@@ -3640,7 +3662,7 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 192, "<div class=\"space-y-4\"><div id=\"delete-repo-form-error\"></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 194, "<div class=\"space-y-4\"><div id=\"delete-repo-form-error\"></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3648,7 +3670,7 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 193, "<div class=\"flex flex-wrap items-end gap-3\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 195, "<div class=\"flex flex-wrap items-end gap-3\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3656,7 +3678,7 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 194, "</div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 196, "</div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3678,7 +3700,7 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 195, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90\">Delete repository</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 197, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90\">Delete repository</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3688,7 +3710,7 @@ func deleteRepoDialog(owner, repoName string, confirm components.ConfirmFactors)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 196, "</form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 198, "</form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -3721,7 +3743,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 197, "<section id=\"mirror\" class=\"scroll-mt-6 flex flex-col gap-8\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 199, "<section id=\"mirror\" class=\"scroll-mt-6 flex flex-col gap-8\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -3749,7 +3771,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 198, "<h2 class=\"text-base font-semibold tracking-tight\">Pull mirror</h2>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 200, "<h2 class=\"text-base font-semibold tracking-tight\">Pull mirror</h2>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3765,7 +3787,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 199, "Branches and tags follow the source. The repository is read-only until you stop mirroring.")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 201, "Branches and tags follow the source. The repository is read-only until you stop mirroring.")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -3793,48 +3815,48 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 200, "<div class=\"flex flex-col gap-5\"><div class=\"flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-background px-3.5 py-3\"><dl class=\"grid grid-cols-3 gap-6 text-[13px]\"><div><dt class=\"text-xs text-muted-foreground\">Last synced</dt><dd class=\"font-medium\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 202, "<div class=\"flex flex-col gap-5\"><div class=\"flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-background px-3.5 py-3\"><dl class=\"grid grid-cols-3 gap-6 text-[13px]\"><div><dt class=\"text-xs text-muted-foreground\">Last synced</dt><dd class=\"font-medium\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var157 string
 				templ_7745c5c3_Var157, templ_7745c5c3_Err = templ.JoinStringErrs(m.LastSynced)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 874, Col: 46}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 881, Col: 46}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var157))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 201, "</dd></div><div><dt class=\"text-xs text-muted-foreground\">Status</dt>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 203, "</dd></div><div><dt class=\"text-xs text-muted-foreground\">Status</dt>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if m.Failing {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 202, "<dd class=\"font-medium text-destructive\">Failing</dd>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 204, "<dd class=\"font-medium text-destructive\">Failing</dd>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 203, "<dd class=\"font-medium text-success\">Up to date</dd>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 205, "<dd class=\"font-medium text-success\">Up to date</dd>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 204, "</div><div><dt class=\"text-xs text-muted-foreground\">Next sync</dt><dd class=\"font-medium\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 206, "</div><div><dt class=\"text-xs text-muted-foreground\">Next sync</dt><dd class=\"font-medium\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var158 string
 				templ_7745c5c3_Var158, templ_7745c5c3_Err = templ.JoinStringErrs(m.NextSync)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 886, Col: 44}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 893, Col: 44}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var158))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 205, "</dd></div></dl>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 207, "</dd></div></dl>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -3851,7 +3873,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 206, "Sync now")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 208, "Sync now")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -3862,140 +3884,140 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 207, "</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 209, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if m.Failing {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 208, "<p role=\"alert\" class=\"rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 210, "<p role=\"alert\" class=\"rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var160 string
 					templ_7745c5c3_Var160, templ_7745c5c3_Err = templ.JoinStringErrs(m.LastError)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 896, Col: 130}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 903, Col: 130}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var160))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 209, "</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 211, "</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 210, "<form hx-patch=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 212, "<form hx-patch=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var161 string
 				templ_7745c5c3_Var161, templ_7745c5c3_Err = templruntime.NewAttributeExpression(m.APIURL).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 898, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 905, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var161)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 211, "\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&!ctx.hx.retarget)this.querySelector('#mirror-form-error').textContent=''\" data-toast=\"Mirror settings saved\" class=\"space-y-5\"><div id=\"mirror-form-error\" class=\"empty:hidden\"></div><div class=\"space-y-1.5\"><label for=\"mirror-url\" class=\"block text-sm font-medium\">Source URL</label> <input id=\"mirror-url\" type=\"url\" name=\"remote_url\" value=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 213, "\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&!ctx.hx.retarget)this.querySelector('#mirror-form-error').textContent=''\" data-toast=\"Mirror settings saved\" class=\"space-y-5\"><div id=\"mirror-form-error\" class=\"empty:hidden\"></div><div class=\"space-y-1.5\"><label for=\"mirror-url\" class=\"block text-sm font-medium\">Source URL</label> <input id=\"mirror-url\" type=\"url\" name=\"remote_url\" value=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var162 string
 				templ_7745c5c3_Var162, templ_7745c5c3_Err = templruntime.NewAttributeExpression(m.RemoteURL).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 902, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 909, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var162)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 212, "\" required class=\"h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"grid sm:grid-cols-2 gap-4\"><div class=\"space-y-1.5\"><label for=\"mirror-username\" class=\"block text-sm font-medium\">Username</label> <input id=\"mirror-username\" type=\"text\" name=\"auth_username\" value=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 214, "\" required class=\"h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"grid sm:grid-cols-2 gap-4\"><div class=\"space-y-1.5\"><label for=\"mirror-username\" class=\"block text-sm font-medium\">Username</label> <input id=\"mirror-username\" type=\"text\" name=\"auth_username\" value=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var163 string
 				templ_7745c5c3_Var163, templ_7745c5c3_Err = templruntime.NewAttributeExpression(m.AuthUsername).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 907, Col: 91}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 914, Col: 91}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var163)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 213, "\" autocomplete=\"off\" spellcheck=\"false\" class=\"h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"space-y-1.5\"><label for=\"mirror-token\" class=\"block text-sm font-medium\">Access token</label> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 215, "\" autocomplete=\"off\" spellcheck=\"false\" class=\"h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"space-y-1.5\"><label for=\"mirror-token\" class=\"block text-sm font-medium\">Access token</label> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if m.HasToken {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 214, "<input id=\"mirror-token\" type=\"password\" name=\"auth_token\" autocomplete=\"new-password\" placeholder=\"Stored · enter a new one to replace it\" class=\"h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 216, "<input id=\"mirror-token\" type=\"password\" name=\"auth_token\" autocomplete=\"new-password\" placeholder=\"Stored · enter a new one to replace it\" class=\"h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 215, "<input id=\"mirror-token\" type=\"password\" name=\"auth_token\" autocomplete=\"new-password\" placeholder=\"None stored\" class=\"h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 217, "<input id=\"mirror-token\" type=\"password\" name=\"auth_token\" autocomplete=\"new-password\" placeholder=\"None stored\" class=\"h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 216, "</div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 218, "</div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if m.HasToken {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 217, "<label class=\"flex items-center gap-2 text-[13px] text-muted-foreground\"><input type=\"checkbox\" name=\"clear_token\" value=\"1\" class=\"h-4 w-4 accent-[hsl(var(--ring))]\"> Remove the stored token (the source is public)</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 219, "<label class=\"flex items-center gap-2 text-[13px] text-muted-foreground\"><input type=\"checkbox\" name=\"clear_token\" value=\"1\" class=\"h-4 w-4 accent-[hsl(var(--ring))]\"> Remove the stored token (the source is public)</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 218, "<div class=\"space-y-1.5\"><label for=\"mirror-interval\" class=\"block text-sm font-medium\">Sync every</label> <select id=\"mirror-interval\" name=\"interval\" class=\"h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-2.5 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 220, "<div class=\"space-y-1.5\"><label for=\"mirror-interval\" class=\"block text-sm font-medium\">Sync every</label> <select id=\"mirror-interval\" name=\"interval\" class=\"h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-2.5 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, opt := range m.Intervals {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 219, "<option value=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 221, "<option value=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var164 string
 					templ_7745c5c3_Var164, templ_7745c5c3_Err = templruntime.NewAttributeExpression(opt.Value).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 928, Col: 34}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 935, Col: 34}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var164)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 220, "\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 222, "\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					if opt.Selected {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 221, " selected")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 223, " selected")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 222, ">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 224, ">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var165 string
 					templ_7745c5c3_Var165, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 928, Col: 75}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_settings.templ`, Line: 935, Col: 75}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var165))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 223, "</option>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 225, "</option>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 224, "</select><p class=\"text-xs text-muted-foreground\">The token is stored encrypted and never shown again.</p></div><div class=\"flex justify-end\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 226, "</select><p class=\"text-xs text-muted-foreground\">The token is stored encrypted and never shown again.</p></div><div class=\"flex justify-end\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -4011,7 +4033,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 225, "Save changes")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 227, "Save changes")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -4021,7 +4043,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 226, "</div></form></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 228, "</div></form></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -4061,7 +4083,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 227, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Stop mirroring</h2>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 229, "<h2 class=\"text-base font-semibold tracking-tight text-destructive\">Stop mirroring</h2>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -4077,7 +4099,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 228, "Turn this into a regular, writable repository. Its branches stay as they are now, and the stored token is deleted. A repository can't be turned back into a mirror.")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 230, "Turn this into a regular, writable repository. Its branches stay as they are now, and the stored token is deleted. A repository can't be turned back into a mirror.")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -4105,7 +4127,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 229, "<div class=\"flex justify-end\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 231, "<div class=\"flex justify-end\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -4121,7 +4143,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 230, "Stop mirroring")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 232, "Stop mirroring")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -4140,7 +4162,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 231, "</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 233, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -4156,7 +4178,7 @@ func mirrorSettingsSection(m view.MirrorSettings) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 232, "</section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 234, "</section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

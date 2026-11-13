@@ -84,6 +84,8 @@ type RepoSubnavInfo struct {
 	// CanWrite shows the Security tab, which readers and anonymous visitors must not see.
 	CanWrite bool
 	Private  bool
+	// ShowActions shows the Actions tab: ci.enabled is on, and CI is on for the repo or it has Runs to read.
+	ShowActions bool
 	// Feature toggles — when false the corresponding tab is hidden.
 	AllowIssues      bool
 	AllowDiscussions bool
