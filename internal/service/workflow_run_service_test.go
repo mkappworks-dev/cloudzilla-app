@@ -820,3 +820,21 @@ func TestWorkflowRun_PullServiceOpenAndReopenCreateRuns(t *testing.T) {
 		t.Errorf("reopen run = %+v", r)
 	}
 }
+
+func TestWorkflowRun_ClaimWhosePrepareFailsLeavesTheJobQueued(t *testing.T) {
+	e := newCIEnv(t, nil)
+	sha := e.commit(e.repo, "main", map[string]string{ciPath: "on: push\njobs:\n  a:\n    runs-on: linux\n    steps:\n      - run: x\n"})
+	e.pushBranch("main", sha, e.owner.id)
+	svc := e.svcs.WorkflowRun
+
+	boom := errors.New("spec failed")
+	if j, err := svc.ClaimJobFor(testCtx, []string{"linux"}, nil, nil, "hash", func(*model.WorkflowJob) error { return boom }); !errors.Is(err, boom) || j != nil {
+		t.Fatalf("claim = %+v (%v), want the prepare error", j, err)
+	}
+	if got := e.jobs(e.onlyRun()); got["a"] != model.CIStatusQueued {
+		t.Errorf("job after the failed claim = %q, want queued", got["a"])
+	}
+	if j, err := svc.ClaimJobFor(testCtx, []string{"linux"}, nil, nil, "hash", nil); err != nil || j == nil {
+		t.Errorf("the job could not be claimed again: %+v (%v)", j, err)
+	}
+}

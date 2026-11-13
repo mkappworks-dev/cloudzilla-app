@@ -186,11 +186,15 @@ func (s *CIRunnerService) Claim(ctx context.Context, runner *model.CIRunner, off
 	if err != nil {
 		return nil, err
 	}
-	job, err := s.runs.ClaimJobFor(ctx, labels, &runner.ID, runner.RepoID, hash)
+	var spec *runnerapi.JobSpec
+	job, err := s.runs.ClaimJobFor(ctx, labels, &runner.ID, runner.RepoID, hash, func(job *model.WorkflowJob) (err error) {
+		spec, err = s.jobSpec(ctx, job, raw)
+		return err
+	})
 	if err != nil || job == nil {
 		return nil, err
 	}
-	return s.jobSpec(ctx, job, raw)
+	return spec, nil
 }
 
 func (s *CIRunnerService) jobSpec(ctx context.Context, job *model.WorkflowJob, token string) (*runnerapi.JobSpec, error) {
