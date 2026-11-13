@@ -131,7 +131,6 @@
         <section data-when="queued running failed success cancelled waiting no-runner runner-lost truncated" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="graph-heading">
           <header class="px-4 py-3 border-b border-border bg-muted/30 flex items-center gap-2">
             <h2 id="graph-heading" class="text-[13px] font-medium">Jobs</h2>
-            <span class="text-[12px] text-muted-foreground font-mono">on: [push, pull_request]</span>
           </header>
           <div class="p-4 overflow-x-auto">
             <ol class="flex items-center gap-3 w-max" aria-label="Job graph" data-f="graph"></ol>
@@ -209,7 +208,7 @@
   var ICON = {
     success: ['text-success', 'Succeeded', '<path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle>'],
     failure: ['text-destructive', 'Failed', '<path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle>'],
-    running: ['text-warning motion-safe:animate-pulse', 'Running', '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle>'],
+    running: ['text-foreground motion-safe:animate-pulse', 'Running', '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3.5" fill="currentColor"></circle>'],
     waiting: ['text-warning', 'Waiting for approval', '<circle cx="12" cy="12" r="10"></circle><path d="M10 9v6M14 9v6"></path>'],
     queued: ['text-muted-foreground', 'Queued', '<circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 2"></path>'],
     cancelled: ['text-muted-foreground', 'Cancelled', '<circle cx="12" cy="12" r="10"></circle><path d="M4.93 4.93l14.14 14.14"></path>'],
@@ -365,7 +364,6 @@
     var err = /Error: process exited|runner lost/.test(l[1]);
     return '<tr id="' + id + '" class="target:bg-accent/30 hover:bg-muted/50' + (err ? ' bg-destructive/10' : '') + '">' +
       '<td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border"><a href="#' + id + '" class="hover:text-foreground">' + n + '</a></td>' +
-      '<td data-ts class="select-none text-muted-foreground pl-4 py-0 whitespace-nowrap align-top"' + (showTs ? '' : ' hidden') + '>' + l[0] + '</td>' +
       '<td data-line class="pl-4 pr-4 py-0 whitespace-pre">' + l[1] + '</td></tr>';
   }
 
@@ -404,7 +402,7 @@
         return '<details class="group" data-step="' + i + '"' + (open ? ' open' : '') + '>' +
           '<summary class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted/50 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring">' +
           '<span class="flex items-center gap-2 min-w-0">' + icon(st[1]) + '<span class="truncate">' + esc(st[0]) + '</span></span>' +
-          '<span class="flex items-center gap-3 shrink-0"><span class="font-mono text-[11px] text-muted-foreground">' + st[2] + '</span>' +
+          '<span class="flex items-center gap-3 shrink-0">' + (st[3].length ? '<span data-ts class="font-mono text-[11px] text-muted-foreground"' + (showTs ? '' : ' hidden') + '>' + st[3][0][0].slice(0, 8) + '</span>' : '') + '<span class="font-mono text-[11px] text-muted-foreground">' + st[2] + '</span>' +
           '<svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"></polyline></svg></span>' +
           '</summary>' + (st[3].length ? logTable(i, st[3]) : '<p class="px-4 pb-3 text-[12px] text-muted-foreground">No output.</p>') + '</details>';
       }).join('');

@@ -50,8 +50,7 @@ const (
 	DefaultLogLimit = 1000
 )
 
-// SecretSource yields the secret values of a repository for the log backstop. Nothing implements it until the
-// secrets ticket; a nil source masks nothing.
+// SecretSource yields the secret values of a repository for the log backstop. A nil source masks nothing.
 type SecretSource interface {
 	SecretValues(ctx context.Context, repoID int64) ([]string, error)
 }

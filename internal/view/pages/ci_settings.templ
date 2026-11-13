@@ -1,0 +1,94 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+// ciToggleCard is the repo's CI switch. Flipping it posts at once and reloads, so the warning below it is always true.
+templ ciToggleCard(d view.CISettings) {
+	@components.Card(nil) {
+		@components.CardHeader() {
+			@components.CardTitle(2) {
+				CI/CD
+			}
+			@components.CardDescription() {
+				Workflows in <span class="font-mono">.cloudzilla/workflows/</span> run on Runners. <a href="https://github.com/mkappworks-dev/cloudzilla-app/blob/main/docs/ci.md" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-foreground">Supported workflow syntax</a> lists the keys a workflow can use.
+			}
+		}
+		@components.CardContent() {
+			<div class="flex flex-col gap-4">
+				if !d.Enabled {
+					<div role="status" class="rounded-md border border-warning/40 bg-warning/10 p-4 text-[13px]">
+						<p class="font-semibold text-warning">CI is off for this repository</p>
+						<p class="text-muted-foreground mt-1">Pushes and pull requests create no Runs. Existing Runs, logs and commit statuses stay on the <a href={ templ.SafeURL(d.ActionsURL) } class="text-foreground underline underline-offset-2">Actions tab</a>.</p>
+					</div>
+				}
+				<form hx-post={ d.Base + "/ci" } hx-trigger="change" hx-swap="none">
+					<label class="flex items-start justify-between gap-4 cursor-pointer">
+						<span class="min-w-0">
+							<span class="block text-sm font-medium text-foreground">Enable CI for this repository</span>
+							<span class="block text-xs text-muted-foreground mt-0.5">When off, nothing new runs. History is kept.</span>
+						</span>
+						<span class="relative inline-flex items-center mt-0.5">
+							<input type="checkbox" role="switch" id="ci-enabled" name="ci_enabled" checked?={ d.Enabled } class="peer sr-only"/>
+							<span aria-hidden="true" class="relative w-9 h-5 bg-input dark:bg-border-strong rounded-full transition-colors peer-checked:bg-switch dark:peer-checked:bg-switch peer-focus-visible:outline-solid peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed after:absolute after:content-[''] after:top-0.5 after:left-0.5 after:bg-white after:shadow-sm after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-4"></span>
+						</span>
+					</label>
+				</form>
+			</div>
+		}
+	}
+}
+
+templ ciSecretDialog(base string) {
+	@components.Dialog("secret-dialog") {
+		@components.DialogHeader() {
+			@components.DialogTitle("secret-dialog") {
+				Add secret
+			}
+		}
+		@components.DialogBody() {
+			<form id="secret-form" hx-post={ base + "/secrets" } hx-target="#secrets-card" hx-swap="outerHTML" hx-on::after:request="if(event.target===this&&ctx.response.status<400&&!ctx.hx.retarget){this.closest('dialog').close();this.reset();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Secret saved'}}));}" class="flex flex-col gap-4">
+				<div class="space-y-1.5">
+					<label for="secret-name" class="block text-xs font-medium">Name</label>
+					@components.Input(templ.Attributes{"id": "secret-name", "type": "text", "name": "name", "placeholder": "DEPLOY_TOKEN", "required": "required", "autocomplete": "off", "spellcheck": "false", "class": "font-mono"})
+				</div>
+				<div class="space-y-1.5">
+					<label for="secret-value" class="block text-xs font-medium">Value</label>
+					@components.Textarea(templ.Attributes{"id": "secret-value", "name": "value", "rows": "3", "required": "required", "autocomplete": "off", "spellcheck": "false", "class": "font-mono text-xs"})
+					<p class="text-[12px] text-muted-foreground">Write-only. After you save it, it can't be shown again, only replaced.</p>
+				</div>
+				<div id="secret-form-error" class="empty:hidden"></div>
+			</form>
+		}
+		@components.DialogFooter() {
+			@components.DialogClose() {
+				Cancel
+			}
+			@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "secret-form"}) {
+				Save secret
+			}
+		}
+	}
+	<script>
+		(function () {
+			var dlg = document.getElementById('secret-dialog');
+			if (!dlg || dlg.dataset.bound) return;
+			dlg.dataset.bound = '1';
+			// The card is swapped after every save, so its buttons are found by delegation.
+			document.addEventListener('click', function (e) {
+				var t = e.target.closest('[data-secret-open]');
+				if (!t || t.disabled) return;
+				var replace = t.dataset.secretOpen === 'replace';
+				var name = document.getElementById('secret-name');
+				document.getElementById('secret-dialog-title').textContent = replace ? 'Replace ' + t.dataset.name : 'Add secret';
+				name.value = replace ? t.dataset.name : '';
+				name.readOnly = replace;
+				document.getElementById('secret-value').value = '';
+				document.getElementById('secret-form-error').textContent = '';
+				dlg.showModal();
+			});
+		})();
+	</script>
+}

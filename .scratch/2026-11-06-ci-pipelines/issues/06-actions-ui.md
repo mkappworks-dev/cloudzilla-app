@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 05
 Parallel with: none
 
@@ -51,26 +51,53 @@ with live logs, the controls (dispatch, cancel, re-run, approve) and the secrets
 
 ## Acceptance criteria
 
-- [ ] Every state in the mock renders from real data: runs, empty, no-match, YAML error, queued, no-runner, running,
+- [x] Every state in the mock renders from real data: runs, empty, no-match, YAML error, queued, no-runner, running,
       failed, success, cancelled, runner-lost, waiting for approval
-- [ ] A running Job's log tails every 2 s without reloading the page and stops when the Job ends; anchors, timestamps
+- [x] A running Job's log tails every 2 s without reloading the page and stops when the Job ends; anchors, timestamps
       toggle, search and download work
-- [ ] Dispatch, Cancel, Re-run (all / failed) and Approve work for a writer and are absent and refused (403/404) for a
+- [x] Dispatch, Cancel, Re-run (all / failed) and Approve work for a writer and are absent and refused (403/404) for a
       reader and a signed-out user; a private repo shows the same 404 to a non-reader as a missing repo
-- [ ] A secret saved in the UI is never rendered back, reaches a non-fork Job's env, is masked in the log, and is not
+- [x] A secret saved in the UI is never rendered back, reaches a non-fork Job's env, is masked in the log, and is not
       delivered to a fork Run; saving with no `security.secret_key` is refused with a message
-- [ ] `/checks` redirects to `/actions`; the "Commit statuses" filter lists external CI as the old page did
-- [ ] No `x-show`/`space-y` pitfalls from CLAUDE.md (rendered element last); `make generate-templ` re-run and the
+- [x] `/checks` redirects to `/actions`; the "Commit statuses" filter lists external CI as the old page did
+- [x] No `x-show`/`space-y` pitfalls from CLAUDE.md (rendered element last); `make generate-templ` re-run and the
       `_templ.go` files committed
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique
       `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with a real runner; evidence for both themes in
       the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR and checked under `make mockups`
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR and checked under `make mockups`
       in both themes; the mocks match the shipped pages
-- [ ] `make lint`, `npm run fmt:check` and `go test ./...` pass
+- [x] `make lint`, `npm run fmt:check` and `go test ./...` pass
 
 ## Verification
 
 Throwaway server and runner; push a three-Job workflow with a matrix, a failing Step and an artifact; walk the list,
 run page (live log while running), cancel, re-run failed, a fork run's approval and the secrets page, in light and dark
 at 1440 with the built-in browser (a hidden pane stalls Alpine transitions: assert state, then screenshot).
+
+## Comments
+
+- Claude, 2026-11-13: done, migration 139 (`ci_secrets`). Commits: secrets (`01a84daa`), then the Actions tab, run page and
+  CI/CD settings. Evidence (real runner and Docker on a throwaway server, both themes at 1440) is in
+  `/private/tmp/claude-501/ci-ticket-06-evidence.md`; screenshots are under `.scratch/2026-11-06-ci-pipelines/shots/t06-*`
+  (gitignored): copy them into the PR.
+  - Secrets reach the runner as `JobSpec.Secrets` (empty for a fork Run, i.e. `workflow_runs.no_secrets`). The runner
+    resolves `${{ secrets.X }}` itself (`workflow.Context.Secrets`; nil on the server, so the parse-time rule is unchanged),
+    builds its masker from them, and the server's `WorkflowLog.WithSecrets` masks again.
+  - Mock vs shipped: the log stores no per-line times, so the Timestamps toggle shows each Step's start clock in its
+    header (mock changed to match); log line numbers run through the Job and anchor as `#L<n>`; the graph header has no
+    `on:` text; the dispatch hint says `workflow_dispatch`. The shared running icon is `text-foreground` (the mock's run
+    page used `text-warning`; fixed).
+  - `/checks` redirects (301, query kept) when `ci.enabled` is on; with it off the Actions routes don't exist, so
+    `/checks` keeps listing commit statuses and the tab is hidden. The tab also hides when the repo's CI is off and it has
+    no Runs.
+  - A refused control redirects back with `?err=<code>`; the page shows a fixed sentence per code.
+  - Live tail: `hx-trigger="every 2s"` on a hidden poller; each reply swaps in the next poller and appends lines to their
+    Step by out-of-band swap; when the Job ends it answers `HX-Refresh`.
+  - For ticket 07: `components.RunStatusIcon`/`RunStatusIconSized` (accept commit-status states too), `checksCommitCard` now
+    lives in `actions.templ`, `WorkflowRunService.ListRunsBySHA` and the store's `ActionsVisible` are available; the run
+    URL is `/{owner}/{repo}/actions/runs/{n}`; `h.withRepoSubnav` sets `ShowActions`.
+  - Not done / noticed: a fork Run could not be shown live (no cross-repo pull requests yet, see ticket 03), so approval
+    is covered by the router test only. The runner's claim long poll (25 s) outlives the server's 15 s write timeout and
+    logs `EOF` then retries (seen in the runner log; from ticket 04). A matrix expression in an `artifacts:` name is not
+    interpolated (`dist-----matrix.arch---`).

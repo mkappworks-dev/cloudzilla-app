@@ -33,6 +33,7 @@ type Services struct {
 	CommitStatus       *CommitStatusService
 	WorkflowRun        *WorkflowRunService
 	CIRunner           *CIRunnerService
+	CISecret           *CISecretService
 	WorkflowLog        *WorkflowLogService
 	Milestone          *MilestoneService
 	PullReview         *PullReviewService
@@ -150,7 +151,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue).WithBranchProtections(stores.BranchProtection).WithThreadSubscriptions(threadSubSvc)
-	workflowLogSvc := NewWorkflowLogService(stores.WorkflowLog, cfg.CI)
+	ciSecretSvc := NewCISecretService(stores.CISecret, secrets, repoSvc)
+	workflowLogSvc := NewWorkflowLogService(stores.WorkflowLog, cfg.CI).WithSecrets(ciSecretSvc)
 	repoSvc.WithWorkflowLogs(workflowLogSvc)
 	userSvc.WithWorkflowLogs(workflowLogSvc)
 	orgSvc.WithWorkflowLogs(workflowLogSvc)
@@ -191,7 +193,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		CommitStatus:       commitStatusSvc,
 		WorkflowRun:        workflowRunSvc,
 		WorkflowLog:        workflowLogSvc,
-		CIRunner:           NewCIRunnerService(stores.CIRunner, workflowRunSvc, stores.Repo, cfg.Server.BaseURL),
+		CIRunner:           NewCIRunnerService(stores.CIRunner, workflowRunSvc, stores.Repo, cfg.Server.BaseURL).WithSecrets(ciSecretSvc),
+		CISecret:           ciSecretSvc,
 		Milestone:          NewMilestoneService(stores.Milestone, stores.Repo),
 		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection).WithThreadSubscriptions(threadSubSvc),
 		PullLineComment:    NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),

@@ -50,6 +50,13 @@ type CIRunnerService struct {
 	runs    *WorkflowRunService
 	repos   *store.RepoStore
 	baseURL string
+	secrets *CISecretService
+}
+
+// WithSecrets lets a claim carry the repo's secrets to a Run that may have them.
+func (s *CIRunnerService) WithSecrets(src *CISecretService) *CIRunnerService {
+	s.secrets = src
+	return s
 }
 
 func NewCIRunnerService(runners *store.CIRunnerStore, runs *WorkflowRunService, repos *store.RepoStore, baseURL string) *CIRunnerService {
@@ -214,6 +221,11 @@ func (s *CIRunnerService) jobSpec(ctx context.Context, job *model.WorkflowJob, t
 		Repository: repo.OwnerName + "/" + repo.Name, CloneURL: s.baseURL + "/" + repo.OwnerName + "/" + repo.Name + ".git",
 		SHA: run.SHA, Ref: run.Ref, RunsOn: job.RunsOn, Container: job.Container, TimeoutMinutes: job.TimeoutMins,
 		Env: job.Env, GitHub: s.runs.githubContext(ctx, run, repo), Matrix: job.Matrix, Needs: needs, Token: token,
+	}
+	if s.secrets != nil && !run.NoSecrets {
+		if spec.Secrets, err = s.secrets.Values(ctx, run.RepoID); err != nil {
+			return nil, err
+		}
 	}
 	for _, st := range steps {
 		spec.Steps = append(spec.Steps, runnerapi.StepSpec{Position: st.Position, Name: st.Name, Run: st.Run, Shell: st.Shell,

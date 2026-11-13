@@ -25,8 +25,8 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 		{Label: "Branch protection", Href: "#branches", Key: "branches"},
 		{Label: "Webhooks", Href: "#webhooks", Key: "webhooks"},
 	}...)
-	if d.Runners != nil {
-		items = append(items, components.SettingsSidebarItem{Label: "Runners", Href: "#runners", Key: "runners"})
+	if d.CI != nil {
+		items = append(items, components.SettingsSidebarItem{Label: "CI/CD", Href: "#ci", Key: "ci"})
 	}
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
@@ -604,10 +604,17 @@ templ RepoSettings(data view.RepoSettingsData) {
 							})
 						}
 					}
-					if data.Runners != nil {
-						<div id="runners" class="scroll-mt-6"></div>
-						@fragments.RunnersCard(*data.Runners)
-						@runnerDialog(view.RunnerDialogData{Base: data.Runners.Base, Title: "New runner"})
+					if data.CI != nil {
+						<div id="ci" class="scroll-mt-6"></div>
+						@ciToggleCard(*data.CI)
+						<div id="secrets" class="scroll-mt-6"></div>
+						@fragments.CISecretsCard(*data.CI)
+						@ciSecretDialog(data.CI.Base)
+						if data.Runners != nil {
+							<div id="runners" class="scroll-mt-6"></div>
+							@fragments.RunnersCard(*data.Runners)
+							@runnerDialog(view.RunnerDialogData{Base: data.Runners.Base, Title: "New runner"})
+						}
 					}
 					if data.IsOwner {
 						<div id="template" class="scroll-mt-6"></div>

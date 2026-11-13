@@ -23,6 +23,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/runner"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/runnerapi"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -35,9 +36,11 @@ type runnerEnv struct {
 	sha   string
 }
 
-func newRunnerEnv(t *testing.T) *runnerEnv {
+func newRunnerEnv(t *testing.T) *runnerEnv { return newRunnerEnvWith(t, nil) }
+
+func newRunnerEnvWith(t *testing.T, tweak func(*config.Config)) *runnerEnv {
 	t.Helper()
-	e := &runnerEnv{ciPushEnv: newCIPushEnv(t), label: "t" + testutil.UniqueSuffix(t)}
+	e := &runnerEnv{ciPushEnv: newCIPushEnvWith(t, tweak), label: "t" + testutil.UniqueSuffix(t)}
 	wf := fmt.Sprintf("name: CI\non: push\njobs:\n  test:\n    runs-on: %[1]s\n    steps:\n      - run: echo one\n      - run: echo two\n"+
 		"  build:\n    runs-on: %[1]s\n    needs: test\n    steps:\n      - run: echo build\n", e.label)
 	c := testutil.NewPushClient(t, e.r.git)

@@ -311,6 +311,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		PendingTransfer:   pendingTransfer,
 		Mirror:            h.mirrorSettings(r.Context(), repo),
 		Runners:           h.settingsRunners(r.Context(), repo),
+		CI:                h.settingsCI(r.Context(), repo),
 		Confirm:           h.confirmFactors(r, claims.UserID),
 	}))
 }

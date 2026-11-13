@@ -103,3 +103,19 @@ type WorkflowStep struct {
 	FirstLine  int               `db:"log_first_line"`
 	LastLine   int               `db:"log_last_line"`
 }
+
+// RunFilter narrows the runs list. Empty fields match everything; Event "manual" is a workflow_dispatch Run.
+type RunFilter struct {
+	WorkflowPath string
+	Branch       string
+	Status       CIStatus
+	Event        string
+}
+
+// RunFacets are the values the runs list can filter by: what the repo's Runs actually used.
+type RunFacets struct {
+	Workflows []RunWorkflow
+	Branches  []string
+}
+
+type RunWorkflow struct{ Path, Name string }

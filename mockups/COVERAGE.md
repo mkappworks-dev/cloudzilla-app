@@ -33,20 +33,20 @@ statuses" card for external CI.
 
 ## Pages covered by a differently named mock
 
-| Mock                                      | Real page                                                    |
-| ----------------------------------------- | ------------------------------------------------------------ |
-| `actions.html`                            | The repo Actions page (not shipped; replaces `checks.templ`) |
-| `pr.html`                                 | `pull_detail.templ`                                          |
-| `project.html`, `project_board.html`      | `projects.templ`, `project_detail.templ`                     |
-| `profile.html`, `org_profile.html`        | `user.templ`, `org.templ`                                    |
-| `settings.html`, `account_settings.html`  | `repo_settings.templ`, `settings.templ`                      |
-| `new_repo.html`                           | `repo_new.templ`                                             |
-| `my_repositories.html`, `my_pulls.html`   | `account_repos.templ`, `account_pulls.templ`                 |
-| `my_issues.html`, `attention.html`        | `account_issues.templ`, `account_attention.templ`            |
-| `wiki*.html` (six pages)                  | `wiki_page.templ`, `wiki_shared.templ`                       |
-| `discussion_detail_locked.html`           | The locked state of `discussion_detail.templ`                |
-| `issues_closed.html`, `*_closed/answered` | Tab states of the list pages                                 |
-| `issues_filtered.html`                    | `issues.templ` with filter chips and a menu open             |
+| Mock                                      | Real page                                                        |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| `actions.html`                            | The repo Actions page, `actions.templ` (replaces `checks.templ`) |
+| `pr.html`                                 | `pull_detail.templ`                                              |
+| `project.html`, `project_board.html`      | `projects.templ`, `project_detail.templ`                         |
+| `profile.html`, `org_profile.html`        | `user.templ`, `org.templ`                                        |
+| `settings.html`, `account_settings.html`  | `repo_settings.templ`, `settings.templ`                          |
+| `new_repo.html`                           | `repo_new.templ`                                                 |
+| `my_repositories.html`, `my_pulls.html`   | `account_repos.templ`, `account_pulls.templ`                     |
+| `my_issues.html`, `attention.html`        | `account_issues.templ`, `account_attention.templ`                |
+| `wiki*.html` (six pages)                  | `wiki_page.templ`, `wiki_shared.templ`                           |
+| `discussion_detail_locked.html`           | The locked state of `discussion_detail.templ`                    |
+| `issues_closed.html`, `*_closed/answered` | Tab states of the list pages                                     |
+| `issues_filtered.html`                    | `issues.templ` with filter chips and a menu open                 |
 
 ## States with no mock
 
@@ -140,8 +140,9 @@ Some controls and forms have no behaviour. In particular:
 - **CI mocks.** `actions.html`, `actions_run.html`, `pr_checks.html` and `repo_settings_ci.html` carry a dashed "Mock
   state" bar (or `?state=` and `?role=reader|writer|admin`) that switches states and the viewer's role in the page. The
   real pages derive both from the data and the session, and have no such bar.
-- **Repository runners.** `settings.html` carries the Runners section the real settings page has today.
-  `repo_settings_ci.html` draws the same table inside the full CI/CD page, which is a later ticket: the real page has no
-  enable toggle or secrets yet.
+- **Repository runners.** `settings.html` carries the Runners section; `repo_settings_ci.html` draws it inside the full
+  CI/CD page, as the real settings page now does, with the enable toggle and secrets above it.
+- **Run page timestamps.** The log stores no per-line times, so the Timestamps toggle shows when each Step started, in
+  its header. The mock shows the same. Line numbers run through the whole Job, so `#L42` is one anchor per Job.
 - **Repository settings webhooks.** `settings.html` always shows "An organization webhook also fires for this
   repository"; the real page renders it only when the owning organization has a webhook, and never for a personal repo.

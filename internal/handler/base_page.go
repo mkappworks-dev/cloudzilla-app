@@ -87,6 +87,7 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		Active:           active,
 		CanManage:        canManage,
 		Private:          repo.Private,
+		ShowActions:      h.Services.WorkflowRun.ActionsVisible(ctx, repo.ID),
 		AllowIssues:      repo.AllowIssues,
 		AllowDiscussions: repo.AllowDiscussions,
 		AllowProjects:    repo.AllowProjects,
