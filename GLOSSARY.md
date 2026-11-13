@@ -57,8 +57,8 @@ token.
 
 ## Signing
 
-**Signing key** — a GPG key or an SSH public key a User registers to prove their commits are theirs. It is separate from
-an SSH key used to authenticate, even when the key material is the same.
+**Signing key** — a GPG key or an SSH public key a User registers to prove their commits are theirs. It is separate
+from an SSH key used to authenticate, even when the key material is the same.
 
 **Instance signing key** — the key the Instance signs server-made commits with. Held by the Instance, not by any User.
 
