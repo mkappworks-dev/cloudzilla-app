@@ -255,7 +255,7 @@ func TestWorkflowLog_AMultiLineSecretSplitAcrossChunksIsMasked(t *testing.T) {
 	e := newLogEnv(t, nil)
 	e.svcs.WorkflowLog.WithSecrets(secrets{"first-line-secret\nsecond-line-secret\n"})
 	e.append(0, 0, "first-line-secret\n")
-	e.append(0, 1, "second-line-secret\n")
+	e.append(1, 0, "second-line-secret\n")
 	if got := e.full(); strings.Contains(got, "line-secret") || strings.Count(got, "***") != 2 {
 		t.Errorf("log = %q", got)
 	}

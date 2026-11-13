@@ -870,3 +870,55 @@ func TestWorkflowRun_RerunAndApproveRefuseWhenTheRepoCannotRunCI(t *testing.T) {
 		})
 	}
 }
+
+func matrixWorkflow(strategyExtra string) string {
+	return "on: push\njobs:\n  a:\n    runs-on: linux\n    strategy:\n" + strategyExtra + "      matrix:\n        n: [1, 2, 3]\n    steps:\n      - run: x\n  lint:\n    runs-on: linux\n    steps:\n      - run: y\n  after:\n    runs-on: linux\n    needs: a\n    if: always()\n    steps:\n      - run: z\n"
+}
+
+func TestWorkflowRun_FailFastEndsTheRestOfTheMatrixAndNothingElse(t *testing.T) {
+	e := newCIEnv(t, nil)
+	e.pushBranch("main", e.commit(e.repo, "main", map[string]string{ciPath: matrixWorkflow("")}), e.owner.id)
+	run := e.onlyRun()
+	running, err := e.svcs.WorkflowRun.ClaimJob(testCtx, []string{"linux"}, nil)
+	if err != nil || running == nil || running.Name != "a (1)" {
+		t.Fatalf("claim = %+v (%v)", running, err)
+	}
+
+	e.finish(run, "a (2)", model.CIStatusFailure)
+
+	wantJobs(t, e.jobs(run), map[string]model.CIStatus{
+		"a (1)": model.CIStatusCancelled, "a (2)": model.CIStatusFailure, "a (3)": model.CIStatusSkipped,
+		"lint": model.CIStatusQueued, "after": model.CIStatusQueued})
+	if j := e.job(run, "a (3)"); !strings.Contains(j.Message, "fail-fast") {
+		t.Errorf("skipped sibling message = %q", j.Message)
+	}
+}
+
+func TestWorkflowRun_FailFastFalseLetsTheMatrixFinish(t *testing.T) {
+	e := newCIEnv(t, nil)
+	e.pushBranch("main", e.commit(e.repo, "main", map[string]string{ciPath: matrixWorkflow("      fail-fast: false\n")}), e.owner.id)
+	run := e.onlyRun()
+
+	e.finish(run, "a (2)", model.CIStatusFailure)
+
+	wantJobs(t, e.jobs(run), map[string]model.CIStatus{
+		"a (1)": model.CIStatusQueued, "a (2)": model.CIStatusFailure, "a (3)": model.CIStatusQueued,
+		"lint": model.CIStatusQueued, "after": model.CIStatusWaiting})
+}
+
+func TestWorkflowRun_FailedOnlyRerunRunsTheSiblingsFailFastSkipped(t *testing.T) {
+	e := newCIEnv(t, nil)
+	e.pushBranch("main", e.commit(e.repo, "main", map[string]string{ciPath: matrixWorkflow("")}), e.owner.id)
+	run := e.onlyRun()
+	e.finish(run, "a (2)", model.CIStatusFailure)
+	e.finish(run, "lint", model.CIStatusSuccess)
+	e.finish(run, "after", model.CIStatusSuccess)
+
+	if err := e.svcs.WorkflowRun.Rerun(testCtx, e.repo, run.Number, e.owner.id, true); err != nil {
+		t.Fatalf("rerun: %v", err)
+	}
+
+	wantJobs(t, e.jobs(run), map[string]model.CIStatus{
+		"a (1)": model.CIStatusQueued, "a (2)": model.CIStatusQueued, "a (3)": model.CIStatusQueued,
+		"lint": model.CIStatusSuccess, "after": model.CIStatusWaiting})
+}

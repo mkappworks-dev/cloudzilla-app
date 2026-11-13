@@ -64,6 +64,7 @@ type WorkflowJob struct {
 	Matrix        map[string]string `db:"matrix"`
 	Needs         []string          `db:"needs"`
 	IfExpr        string            `db:"if_expr"`
+	FailFast      bool              `db:"fail_fast"`
 	RunsOn        []string          `db:"runs_on"`
 	Container     string            `db:"container"`
 	Env           map[string]string `db:"env"`

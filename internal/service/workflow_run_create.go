@@ -321,7 +321,7 @@ func jobRow(run *model.WorkflowRun, wf *workflow.Workflow, j *workflow.Job) *mod
 	row := &model.WorkflowJob{
 		RunID: run.ID, Attempt: run.Attempt, JobKey: j.ID, Name: j.Name, StatusContext: statusContext(j), Matrix: j.Matrix,
 		Needs: j.Needs, RunsOn: j.RunsOn, Container: j.Container, Env: env, TimeoutMins: j.TimeoutMinutes,
-		Status: model.CIStatusWaiting,
+		Status: model.CIStatusWaiting, FailFast: j.FailFast,
 	}
 	if j.If != nil {
 		row.IfExpr = j.If.String()
@@ -416,7 +416,7 @@ func (s *WorkflowRunService) cancelAll(ctx context.Context, tx *store.WorkflowRu
 }
 
 // Rerun starts the next attempt of a finished Run from its stored workflow file and SHA: every Job, or with failedOnly
-// the Jobs that failed or were cancelled and the Jobs that need them. The earlier attempt's rows are kept.
+// the Jobs that failed, were cancelled or were skipped by fail-fast, and the Jobs that need them. The earlier attempt's rows are kept.
 func (s *WorkflowRunService) Rerun(ctx context.Context, repo *model.Repository, number int, userID int64, failedOnly bool) error {
 	if !s.repoSvc.CanWrite(ctx, repo, userID) {
 		return ErrWorkflowForbidden
@@ -454,13 +454,18 @@ func (s *WorkflowRunService) Rerun(ctx context.Context, repo *model.Repository, 
 	})
 }
 
+// skippedByFailFast marks the Jobs failFast ended before they started; they never ran, so a failed-only re-run runs them.
+func skippedByFailFast(j model.WorkflowJob) bool {
+	return j.Status == model.CIStatusSkipped && strings.HasPrefix(j.Message, failFastPrefix)
+}
+
 // rerunSet names the Jobs to run again. With failedOnly it is the failed or cancelled Jobs plus, transitively, every
 // Job that needs one of them, since those were skipped or never ran on the broken result.
 func rerunSet(current []model.WorkflowJob, failedOnly bool) map[string]bool {
 	redo := map[string]bool{}
 	keys := map[string]bool{}
 	for _, j := range current {
-		if !failedOnly || j.Status == model.CIStatusFailure || j.Status == model.CIStatusCancelled {
+		if !failedOnly || j.Status == model.CIStatusFailure || j.Status == model.CIStatusCancelled || skippedByFailFast(j) {
 			redo[j.Name], keys[j.JobKey] = true, true
 		}
 	}
