@@ -2550,8 +2550,8 @@ middleware always passes the superadmin's own IP through to prevent lockout. CID
 
 _Done in two PRs; the design is in
 [`.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md`](../.scratch/2026-10-06-phase-19.3-api-rate-limiting/spec.md).
-Limits come from config and `CZ_\*`variables, not an admin page or a`rate*limit_config`table, and use a fixed window
-rather than`golang.org/x/time/rate`.*
+Limits come from config and
+`CZ_\*`variables, not an admin page or a`rate*limit_config`table, and use a fixed window rather than`golang.org/x/time/rate`.*
 
 **Rate limits** (no migration): `middleware.APIRateLimit` counts every request that isn't a static asset against a
 per-subject budget for one of four resources (`core`, `git`, `archive`, `search`). Signed-in users get a `web` and a
