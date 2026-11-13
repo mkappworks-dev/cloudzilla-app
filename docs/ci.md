@@ -36,11 +36,11 @@ The commit list, the pull request header and the file tree's last-commit row sho
 icon that links to its latest Run (or to the commit when only external CI reported). `/{owner}/{repo}/checks` still
 resolves: it redirects to the Actions tab, where **Commit statuses** lists what external CI posted.
 
-**Switches.** `ci.enabled` (default on) hides the tab, the routes and the schedulers when off, and creates no Runs.
-Settings, CI/CD has a per-repository toggle that stops new Runs and keeps history. An archived repository creates no
-Runs, and re-running or approving one of its Runs is refused too (`ci_off`), but its logs and artifacts stay readable. A
-private repository, and a soft-deleted one, answers a viewer who cannot read it with the same 404 as a repository that
-does not exist.
+**Switches.** `ci.enabled` (default on) hides the tab, the routes (including `/admin/runners` and its Admin nav tab) and
+the schedulers when off, and creates no Runs. Settings, CI/CD has a per-repository toggle that stops new Runs and keeps
+history. An archived repository creates no Runs, and re-running or approving one of its Runs is refused too (`ci_off`),
+but its logs and artifacts stay readable. A private repository, and a soft-deleted one, answers a viewer who cannot read
+it with the same 404 as a repository that does not exist.
 
 **Who may do what.**
 
@@ -86,6 +86,14 @@ key, every branch and tag matches; with only one, the other kind of ref does not
 - `secrets.*` is checked at parse time and left in the string for the runner; the server never resolves it.
 
 An unknown context, function or operator fails the parse.
+
+### fail-fast
+
+`strategy.fail-fast` defaults to true, as on GitHub. When one Job of a matrix fails, the Jobs of that matrix that have
+not started are `skipped` ("fail-fast: <Job> failed") and one that is running is `cancelled`, so its runner stops at the
+next heartbeat. Other Jobs of the Run are left alone, and a Job that needs the matrix sees a failed result either way.
+With `fail-fast: false` every combination runs to its end. A failed-only re-run runs the Jobs fail-fast skipped as well
+as the failed one.
 
 ## Limits
 
@@ -223,7 +231,9 @@ saving one is refused while the key is not set.
 
 A Job reads a secret as `${{ secrets.NAME }}`, resolved on the runner: the server sends the values with the claim, only
 for the Job's repository and never for a fork Run. The runner and then the server mask a value in the log (the exact
-text, its base64 form and its URL-encoded form). A secret that contains a newline is not masked across the break.
+text, its base64 form and its URL-encoded form). A secret that contains a newline is also masked line by line (each
+line, with its base64 and URL-encoded forms), so a log chunk that ends mid-secret cannot reveal a line; lines shorter
+than 4 characters are not masked on their own, as they would redact ordinary output.
 
 **A writer can read a secret.** Anyone who can push a branch or open a pull request from a branch of the same repository
 runs a workflow of their own with the repository's secrets, so they can print one in a form the masker does not know
@@ -319,8 +329,12 @@ Docker networks to what a Job must not reach:
 
 Run the runner as an unprivileged user in the `docker` group on a dedicated host: access to the Docker socket is root on
 that host, so do not share it with anything else. Keep the runner's config file private (it holds the runner token).
-After a crash or `kill -9`, containers named `cz-job-*` may remain; remove them with `docker rm -f` and the matching
-volumes and networks with `docker volume rm` and `docker network rm`.
+Every container, network and volume the runner creates carries the labels `cz.runner=<runner id>` and `cz.job=<job id>`.
+After a crash or `kill -9`, the next `cz-runner run` removes the labelled leftovers it does not hold a Job for when it
+starts, and again every 10 minutes. Give each runner its own config file, and so its own id: two runners sharing one
+config on a host would remove each other's Jobs. A config written before `runner_id` existed labels with a digest of its
+token instead; resources created by an older runner carry no label and are removed by hand with `docker rm -f`,
+`docker volume rm` and `docker network rm`.
 
 `docker compose --profile runner up` starts a DEV ONLY runner against the host Docker socket (`Dockerfile.cz-runner`);
 set `CZ_RUNNER_TOKEN` to a registration token from `/admin/runners` and `CZ_SERVER_BASE_URL=http://cloudzilla:8080` on
@@ -357,12 +371,6 @@ the [API reference](./api-reference.md#workflow-runs), and the `repo` and `repo:
   covered by tests only and has never run on a real fork. When they land, `WorkflowRunService.OnPullRequest` must be
   called with the fork as the head repository, and a fork Run's per-job token must be bound to the fork so the runner
   can clone its commit.
-- **A `kill -9` of a runner leaves `cz-job-*` containers, volumes and networks behind.** `SIGINT` and `SIGTERM` clean
-  up; remove the rest by hand (see [Operator hardening](#operator-hardening)).
-- **`strategy.fail-fast` is parsed but not acted on.** Matrix siblings keep running after one fails.
-- **A secret containing a newline is not masked across the break**, because logs are masked a line at a time.
-- **`/admin/runners` is reachable, and its tab shown, when `ci.enabled` is off.** The page says CI is off; the runner
-  API is absent.
 - **A matrix expression in an `artifacts:` name is not interpolated** (`dist-${{ matrix.arch }}` is kept as written).
 - **One Job container per Job.** Steps share it, so a tool one Step installs is there in the next, but a Job cannot
   start service containers (`services` is rejected).

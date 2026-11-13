@@ -49,3 +49,24 @@ func TestCombineMasksBothSets(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestMask_EachLineOfAMultiLineSecretIsMaskedOnItsOwn(t *testing.T) {
+	secret := "-----BEGIN KEY-----\r\nAAAAbbbbCCCC\n\nddddEEEEffff\n-----END KEY-----\n"
+	m := New([]string{secret})
+	// A chunk boundary after a newline leaves each side of the secret in a different chunk.
+	for _, chunk := range []string{"AAAAbbbbCCCC\n", "ddddEEEEffff\n", "x " + base64.StdEncoding.EncodeToString([]byte("ddddEEEEffff")), "?" + url.QueryEscape("-----BEGIN KEY-----")} {
+		if out := m.Mask(chunk); strings.Contains(out, "AAAA") || strings.Contains(out, "dddd") || strings.Contains(out, "ZGRkZG") || strings.Contains(out, "BEGIN") {
+			t.Errorf("leaked in %q", out)
+		}
+	}
+	if got := m.Mask("keep\n"); got != "keep\n" {
+		t.Errorf("blank-line handling changed unrelated text: %q", got)
+	}
+}
+
+func TestMask_LinesTooShortToBeMeaningfulAreLeftAlone(t *testing.T) {
+	m := New([]string{"abc\nlonger-line"})
+	if got := m.Mask("abc and longer-line"); got != "abc and "+Redacted {
+		t.Errorf("got %q", got)
+	}
+}

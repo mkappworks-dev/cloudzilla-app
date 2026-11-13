@@ -56,13 +56,10 @@ templ runnerDialog(d view.RunnerDialogData) {
 templ AdminRunners(data view.AdminRunnersData) {
 	@layout.Base(data.BasePage, "Runners") {
 		<div class="space-y-6">
-			@adminTabs("/admin/runners")
+			@adminTabs(data.BasePage, "/admin/runners")
 			<div class="flex justify-between items-center">
 				<h1 class="text-2xl font-semibold tracking-tight">Runners</h1>
 			</div>
-			if !data.CIEnabled {
-				<div role="status" class="p-4 border border-warning/40 bg-warning/10 rounded-md text-sm text-warning">CI is switched off (<span class="font-mono">ci.enabled</span>). Runners cannot register or claim Jobs until it is on.</div>
-			}
 			@fragments.RunnersCard(data.Runners)
 			@components.Card(nil) {
 				@components.CardHeader() {

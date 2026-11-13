@@ -16,9 +16,10 @@ import (
 func basePage(r *http.Request, services *service.Services) BasePage {
 	allowLogin := services.SiteSetting.AllowLogin(r.Context())
 	allowRegistration := services.SiteSetting.AllowRegistration(r.Context())
+	ciEnabled := services.WorkflowRun.Enabled()
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		return BasePage{AllowLogin: allowLogin, AllowRegistration: allowRegistration}
+		return BasePage{AllowLogin: allowLogin, AllowRegistration: allowRegistration, CIEnabled: ciEnabled}
 	}
 	count, err := services.Notification.CountUnread(r.Context(), claims.UserID)
 	if err != nil {
@@ -26,7 +27,7 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 			"error", err, "user_id", claims.UserID, "path", r.URL.Path)
 		count = 0
 	}
-	page := BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration}
+	page := BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration, CIEnabled: ciEnabled}
 	if st := adminmode.FromContext(r.Context()); st != nil && st.UserID() == claims.UserID {
 		page.AdminMode = &view.AdminModeInfo{ExpiresAt: st.ExpiresAt()}
 	}

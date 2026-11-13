@@ -26,6 +26,9 @@ func (s *WorkflowRunService) RepoCIEnabled(ctx context.Context, repoID int64) (b
 	return s.runs.RepoCIEnabled(ctx, repoID)
 }
 
+// Enabled reports the Instance switch, ci.enabled; a nil service (a partial test wiring) is off.
+func (s *WorkflowRunService) Enabled() bool { return s != nil && s.cfg.Enabled }
+
 // ActionsVisible reports whether the Actions tab shows for the repo: the Instance switch is on, and CI is on for the
 // repo or it keeps history worth reading.
 func (s *WorkflowRunService) ActionsVisible(ctx context.Context, repoID int64) bool {

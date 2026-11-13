@@ -119,9 +119,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW, superadminMW).Get("/admin/users", h.PageAdminUsers)
 	r.With(authMW, superadminMW).Get("/admin/users/{username}", h.PageAdminUser)
 	r.With(authMW, superadminMW).Get("/admin/audit-log", h.PageAuditLog)
-	r.With(authMW, superadminMW).Get("/admin/runners", h.PageAdminRunners)
-	r.With(authMW, superadminMW).Post("/admin/runners/tokens", h.CreateAdminRunnerToken)
-	r.With(authMW, superadminMW).Post("/admin/runners/{id}/revoke", h.RevokeAdminRunner)
+	if cfg.CI.Enabled {
+		r.With(authMW, superadminMW).Get("/admin/runners", h.PageAdminRunners)
+		r.With(authMW, superadminMW).Post("/admin/runners/tokens", h.CreateAdminRunnerToken)
+		r.With(authMW, superadminMW).Post("/admin/runners/{id}/revoke", h.RevokeAdminRunner)
+	}
 	r.With(authMW, superadminMW).Get("/admin/sso", h.PageSSOSettings)
 	r.With(authMW, superadminMW).Post("/admin/sso", h.SaveSSOConfig)
 	r.With(authMW, superadminMW).Get("/admin/mode", h.PageAdminMode)

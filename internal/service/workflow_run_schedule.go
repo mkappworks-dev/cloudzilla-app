@@ -22,6 +22,9 @@ func (s *WorkflowRunService) advance(ctx context.Context, tx *store.WorkflowRunT
 	if err != nil {
 		return err
 	}
+	if err := s.failFast(ctx, tx, run, repo, jobs); err != nil {
+		return err
+	}
 	for moved := true; moved; {
 		moved = false
 		for i := range jobs {
@@ -39,6 +42,34 @@ func (s *WorkflowRunService) advance(ctx context.Context, tx *store.WorkflowRunT
 		}
 	}
 	return s.syncRunStatus(ctx, tx, run, jobs)
+}
+
+const failFastPrefix = "fail-fast: "
+
+// failFast ends the unfinished siblings of a failed matrix Job whose strategy has fail-fast: Jobs that have not started
+// are skipped and a running one is cancelled, which the runner learns from its next heartbeat. Other Jobs are left alone.
+func (s *WorkflowRunService) failFast(ctx context.Context, tx *store.WorkflowRunTx, run *model.WorkflowRun, repo *model.Repository, jobs []model.WorkflowJob) error {
+	failed := map[string]string{}
+	for _, j := range jobs {
+		if j.FailFast && len(j.Matrix) > 0 && j.Status == model.CIStatusFailure {
+			failed[j.JobKey] = j.Name
+		}
+	}
+	for i := range jobs {
+		j := &jobs[i]
+		name, ok := failed[j.JobKey]
+		if !ok || j.Status.Finished() || len(j.Matrix) == 0 {
+			continue
+		}
+		status := model.CIStatusSkipped
+		if j.Status == model.CIStatusRunning {
+			status = model.CIStatusCancelled
+		}
+		if err := s.setJobStatus(ctx, tx, run, repo, j, status, failFastPrefix+name+" failed"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // release decides what a waiting Job becomes; ready is false while a Job it needs is unfinished.

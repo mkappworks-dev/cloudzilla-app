@@ -326,14 +326,14 @@ func (q workflowQ) ApproveRun(ctx context.Context, id int64) (bool, error) {
 
 const jobColumns = `id, run_id, attempt, job_key, name, status_context, matrix, needs, if_expr, runs_on, container, env,
 	artifacts, timeout_minutes, status, message, runner_id, lease_until, heartbeat_at, created_at, queued_at, started_at,
-	finished_at`
+	finished_at, fail_fast`
 
 func scanJob(sc interface{ Scan(...any) error }) (*model.WorkflowJob, error) {
 	var j model.WorkflowJob
 	var matrix, needs, runsOn, env, artifacts []byte
 	err := sc.Scan(&j.ID, &j.RunID, &j.Attempt, &j.JobKey, &j.Name, &j.StatusContext, &matrix, &needs, &j.IfExpr, &runsOn,
 		&j.Container, &env, &artifacts, &j.TimeoutMins, &j.Status, &j.Message, &j.RunnerID, &j.LeaseUntil,
-		&j.HeartbeatAt, &j.CreatedAt, &j.QueuedAt, &j.StartedAt, &j.FinishedAt)
+		&j.HeartbeatAt, &j.CreatedAt, &j.QueuedAt, &j.StartedAt, &j.FinishedAt, &j.FailFast)
 	if err != nil {
 		return nil, err
 	}
@@ -360,11 +360,11 @@ func (q workflowQ) InsertJob(ctx context.Context, j *model.WorkflowJob) error {
 	}
 	err := q.q.QueryRowContext(ctx,
 		`INSERT INTO workflow_jobs (run_id, attempt, job_key, name, status_context, matrix, needs, if_expr, runs_on,
-		     container, env, artifacts, timeout_minutes, status, message)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		     container, env, artifacts, timeout_minutes, status, message, fail_fast)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		 RETURNING id, created_at`,
 		j.RunID, j.Attempt, j.JobKey, j.Name, j.StatusContext, enc["matrix"], enc["needs"], j.IfExpr, enc["runs_on"],
-		j.Container, enc["env"], enc["artifacts"], j.TimeoutMins, j.Status, j.Message,
+		j.Container, enc["env"], enc["artifacts"], j.TimeoutMins, j.Status, j.Message, j.FailFast,
 	).Scan(&j.ID, &j.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("insert workflow job: %w", err)

@@ -74,7 +74,7 @@ func registerCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cfg := &runner.Config{Server: server, Token: resp.Token, Name: name, Labels: labels, Images: imageMap, AllowedImages: allowed}
+			cfg := &runner.Config{Server: server, Token: resp.Token, Name: name, RunnerID: resp.RunnerID, Labels: labels, Images: imageMap, AllowedImages: allowed}
 			if err := cfg.Save(path); err != nil {
 				return err
 			}

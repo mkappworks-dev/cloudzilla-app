@@ -76,7 +76,7 @@ func (h *Handler) PageAdminRunners(w http.ResponseWriter, r *http.Request) {
 	}
 	ci := h.Cfg.CI
 	h.render(w, r, pages.AdminRunners(view.AdminRunnersData{
-		BasePage: basePage(r, h.Services), Runners: frag, CIEnabled: ci.Enabled, ServerURL: h.Cfg.Server.BaseURL,
+		BasePage: basePage(r, h.Services), Runners: frag, ServerURL: h.Cfg.Server.BaseURL,
 		Limits: []view.CILimit{
 			{Key: "ci.max_jobs_per_run", Value: strconv.Itoa(ci.MaxJobsPerRun)},
 			{Key: "ci.max_steps_per_run", Value: strconv.Itoa(ci.MaxStepsPerRun)},

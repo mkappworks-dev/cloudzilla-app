@@ -26,6 +26,11 @@ import (
 
 func newVerificationRouter(t *testing.T, smtp config.SMTPConfig) (http.Handler, *service.Services, *sql.DB) {
 	t.Helper()
+	return newRouterWithCI(t, smtp, config.DefaultCI())
+}
+
+func newRouterWithCI(t *testing.T, smtp config.SMTPConfig, ci config.CIConfig) (http.Handler, *service.Services, *sql.DB) {
+	t.Helper()
 	db := testutil.OpenTestDB(t)
 	// Outlives the users a test deletes: with no account left, every route redirects to /setup.
 	testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
@@ -34,7 +39,7 @@ func newVerificationRouter(t *testing.T, smtp config.SMTPConfig) (http.Handler, 
 		Auth:   config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: "cz_token"},
 		Git:    config.GitConfig{ReposRoot: t.TempDir()},
 		SMTP:   smtp,
-		CI:     config.DefaultCI(),
+		CI:     ci,
 	}
 	svc := service.New(store.New(db), cfg)
 	h, err := router.New(svc, cfg, fstest.MapFS{})
