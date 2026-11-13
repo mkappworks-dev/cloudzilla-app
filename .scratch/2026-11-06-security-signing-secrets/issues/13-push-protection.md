@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 10
 Parallel with: 11, 12, 16
 
@@ -33,17 +33,17 @@ Daisy can push an AWS key today and nothing stops her. Both transports share one
 
 ## Acceptance criteria
 
-- [ ] Over HTTP and over SSH, a push adding `AKIA…` to a new branch is refused with the exact status text above and the ref does not move; a second ref sharing the commit is also refused, scanned once (assert one walk)
-- [ ] A fast-forward adding a key, an annotated tag pointing at a commit adding one, and a force push are refused; a delete-only push, a push with no secret, and a push of a value with a closed alert pass
-- [ ] A refused push creates an alert (`blocked`, `reached_ref = false`) and no notification; a retry after Allow (ticket 10 service call) passes and the location is appended
-- [ ] A 1 ms `push_timeout`, a 1-blob cap and a failing scanner each let the push through, log `scan incomplete`, and the post-receive scan alerts with `incomplete = true`
-- [ ] `secret_scanning.push_protection: false` lets a high-confidence push through and alerts after the push
-- [ ] A repo with 5,000 changed files and a 100,000-commit history (see the large-repo harness) adds < 1 s to a small push; record the number in the PR
-- [ ] Branch protection's refusals keep their exact status texts (existing tests unchanged)
+- [x] Over HTTP and over SSH, a push adding `AKIA…` to a new branch is refused with the exact status text above and the ref does not move; a second ref sharing the commit is also refused, scanned once (assert one walk)
+- [x] A fast-forward adding a key, an annotated tag pointing at a commit adding one, and a force push are refused; a delete-only push, a push with no secret, and a push of a value with a closed alert pass
+- [x] A refused push creates an alert (`blocked`, `reached_ref = false`) and no notification; a retry after Allow (ticket 10 service call) passes and the location is appended
+- [x] A 1 ms `push_timeout`, a 1-blob cap and a failing scanner each let the push through, log `scan incomplete`, and the post-receive scan alerts with `incomplete = true`
+- [x] `secret_scanning.push_protection: false` lets a high-confidence push through and alerts after the push
+- [x] A repo with 5,000 changed files and a 100,000-commit history (see the large-repo harness) adds < 1 s to a small push; record the number in the PR
+- [x] Branch protection's refusals keep their exact status texts (existing tests unchanged)
 - [ ] ~~Checked at desktop 1440 in light and dark~~ (no UI in this ticket)
 - [ ] ~~The standing mocks in `mockups/` are updated~~ (no UI in this ticket)
-- [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
-- [ ] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+- [x] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
+- [x] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
 

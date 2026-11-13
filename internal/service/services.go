@@ -149,7 +149,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	issueSvc := NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent).WithThreadSubscriptions(threadSubSvc)
 	secretAlertSvc := NewSecretAlertService(stores.SecretAlert)
 	branchProtectionSvc := NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus)
-	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL)
+	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc})
 	return &Services{
 		User:               userSvc,
 		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),

@@ -84,6 +84,13 @@ func (s *PushScanService) WithNotifier(n SecretAlertNotifier) *PushScanService {
 	return s
 }
 
+// singleAlertNotifier adapts NotificationService, whose digest form takes a count, to one alert at a time.
+type singleAlertNotifier struct{ n *NotificationService }
+
+func (a singleAlertNotifier) NotifySecretAlert(ctx context.Context, repo *model.Repository, alert *model.SecretScanAlert) {
+	a.n.NotifySecretAlert(ctx, *repo, alert, 1)
+}
+
 func (s *PushScanService) WithTokenResolver(r CloudzillaTokenResolver) *PushScanService {
 	s.tokens = r
 	return s
