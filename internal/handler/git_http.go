@@ -151,7 +151,7 @@ func (h *Handler) gitJobTokenRepo(w http.ResponseWriter, r *http.Request, owner,
 		return nil, false
 	}
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil || repo.ID != jt.RepoID {
+	if err != nil || repo.ID != jt.CloneRepoID {
 		http.Error(w, "repository not found", http.StatusNotFound)
 		return nil, false
 	}

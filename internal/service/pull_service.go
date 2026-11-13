@@ -46,8 +46,8 @@ func (s *PullService) WithRuns(r pullRunStarter) *PullService {
 	return s
 }
 
-// startRuns creates the pull request's workflow Runs in the background. A same-repo pull request is the only kind
-// PullService creates.
+// startRuns creates the pull request's workflow Runs in the background. A fork pull request passes its head
+// repository, which makes its Runs wait for approval.
 func (s *PullService) startRuns(repo *model.Repository, pr model.PullRequest, action string, userID int64) {
 	if s.runs == nil {
 		return
@@ -55,7 +55,15 @@ func (s *PullService) startRuns(repo *model.Repository, pr model.PullRequest, ac
 	concurrency.Go("workflow_run.pull_request", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), afterPushTimeout)
 		defer cancel()
-		s.runs.OnPullRequest(ctx, repo, nil, &pr, action, userID)
+		var head *model.Repository
+		if pr.CrossRepo && pr.HeadRepoID != nil {
+			var err error
+			if head, err = s.repos.GetByID(ctx, *pr.HeadRepoID); err != nil {
+				slog.Warn("pull runs: head repository lookup failed", "pull_id", pr.ID, "error", err)
+				return
+			}
+		}
+		s.runs.OnPullRequest(ctx, repo, head, &pr, action, userID)
 	})
 }
 

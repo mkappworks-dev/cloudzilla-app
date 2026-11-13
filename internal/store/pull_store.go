@@ -287,6 +287,27 @@ func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullReq
 	return scanPullRows(rows)
 }
 
+// ListOpenByHeadBranch returns repoID's open pull requests whose head is branch of repoID itself, not of a fork.
+func (s *PullStore) ListOpenByHeadBranch(ctx context.Context, repoID int64, branch string) ([]model.PullRequest, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1 AND pr.state = 'open' AND pr.head_branch = $2
+		   AND (pr.head_repo_id = pr.repo_id OR (pr.head_repo_id IS NULL AND pr.head_repo_label = ''))
+		 ORDER BY pr.number DESC`,
+		repoID, branch,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pr list open by head branch: %w", err)
+	}
+	defer rows.Close()
+	return scanPullRows(rows)
+}
+
 func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, error) {
 	pr := &model.PullRequest{}
 	var mergedAt, closedAt, draftAt sql.NullTime
