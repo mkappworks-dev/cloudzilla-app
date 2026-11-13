@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +21,7 @@ import (
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/runner"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/runnerapi"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -410,3 +414,54 @@ func TestJobToken_DiesWithItsJob(t *testing.T) {
 func timeNow() time.Time { return time.Now() }
 
 func plumbingHash(s string) plumbing.Hash { return plumbing.NewHash(s) }
+
+func TestRunnerClient_SpeaksTheProtocolTheServerServes(t *testing.T) {
+	e := newRunnerEnv(t)
+	srv := httptest.NewServer(e.h)
+	defer srv.Close()
+	ctx := context.Background()
+
+	reg, _ := e.svcs.CIRunner.CreateRegistrationToken(ctx, nil, e.r.owner.id)
+	resp, err := runner.Register(ctx, srv.URL, reg, runnerapi.RegisterRequest{Name: "real-client", Labels: []string{e.label}})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	c := &runner.Client{Server: srv.URL, Token: resp.Token}
+	spec, err := c.Claim(ctx, nil, 0)
+	if err != nil || spec == nil || spec.Name != "test" {
+		t.Fatalf("claim = %+v, %v", spec, err)
+	}
+	if cont, err := c.Heartbeat(ctx, spec.JobID); err != nil || !cont {
+		t.Fatalf("heartbeat = %v, %v", cont, err)
+	}
+	if err := c.SetStep(ctx, spec.JobID, 0, "running"); err != nil {
+		t.Fatalf("step: %v", err)
+	}
+	if err := c.Finish(ctx, spec.JobID, "success", ""); err != nil {
+		t.Fatalf("finish: %v", err)
+	}
+
+	// The checkout a runner does with the per-job token works against this server.
+	spec2, err := c.Claim(ctx, nil, 0)
+	if err != nil || spec2 == nil {
+		t.Fatalf("second claim = %+v, %v", spec2, err)
+	}
+	spec2.CloneURL = srv.URL + e.r.path + ".git"
+	dir := t.TempDir()
+	if err := runner.GitCheckout(ctx, spec2, dir); err != nil {
+		t.Fatalf("checkout: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".cloudzilla", "workflows", "ci.yml")); err != nil {
+		t.Errorf("checkout lacks the workflow file: %v", err)
+	}
+
+	runners, _ := e.svcs.CIRunner.ListInstanceRunners(ctx)
+	for _, r := range runners {
+		if r.Name == "real-client" {
+			_ = e.svcs.CIRunner.Revoke(ctx, r.ID)
+		}
+	}
+	if _, err := c.Claim(ctx, nil, 0); !errors.Is(err, runner.ErrUnauthorized) {
+		t.Errorf("claim after revoke = %v, want ErrUnauthorized", err)
+	}
+}

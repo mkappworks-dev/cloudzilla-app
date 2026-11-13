@@ -56,7 +56,28 @@ services:
       - versitygw_data:/data
     restart: unless-stopped
 
+  # DEV ONLY, started with --profile runner: a cz-runner that starts Job containers through the host Docker socket,
+  # which is root on the host. Never run this beside a server that takes pushes from people you do not trust; real
+  # runners go on their own hosts. Needs CZ_SERVER_BASE_URL=http://cloudzilla:8080 on the server so the clone URL
+  # resolves from here, and CZ_RUNNER_TOKEN from /admin/runners.
+  cz-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.cz-runner
+    profiles: ["runner"]
+    environment:
+      CZ_RUNNER_SERVER: http://cloudzilla:8080
+      CZ_RUNNER_TOKEN: ${CZ_RUNNER_TOKEN:-}
+      CZ_RUNNER_LABELS: ${CZ_RUNNER_LABELS:-linux}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - cz_runner_config:/config
+    depends_on:
+      - cloudzilla
+    restart: unless-stopped
+
 volumes:
+  cz_runner_config:
   postgres_data:
   cloudzilla_data:
   versitygw_data:
