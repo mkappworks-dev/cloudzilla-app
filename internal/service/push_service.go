@@ -27,6 +27,13 @@ type PushService struct {
 	index   *IndexService
 	deps    *DependencyService
 	secrets *PushScanService
+	runs    *WorkflowRunService
+}
+
+// WithWorkflowRuns makes a push create workflow Runs.
+func (s *PushService) WithWorkflowRuns(r *WorkflowRunService) *PushService {
+	s.runs = r
+	return s
 }
 
 func NewPushService(repos *RepoService, code *CodeService, webhook *WebhookService, events *EventService, closer *IssueCloser, index *IndexService, deps *DependencyService) *PushService {
@@ -77,6 +84,14 @@ func (s *PushService) AfterPush(repo *model.Repository, gitRepo *gogit.Repositor
 			ctx, cancel := context.WithTimeout(context.Background(), afterPushTimeout)
 			defer cancel()
 			s.closer.CloseForPush(ctx, actor, repo, gitRepo, commands)
+		})
+	}
+
+	if s.runs != nil {
+		concurrency.Go("workflow_run.on_push", func() {
+			ctx, cancel := context.WithTimeout(context.Background(), afterPushTimeout)
+			defer cancel()
+			s.runs.OnPush(ctx, repo, actor.UserID, commands)
 		})
 	}
 

@@ -131,6 +131,10 @@ func main() {
 		concurrency.Go("mirror.run", func() { services.Mirror.Run(workerCtx) })
 	}
 
+	if cfg.CI.Enabled {
+		concurrency.Go("workflow_run.sweep", func() { services.WorkflowRun.Run(workerCtx) })
+	}
+
 	concurrency.Go("secretscan.backfill", func() { services.SecretScan.RunBackfill(workerCtx) })
 
 	concurrency.Go("quota.backfill", func() { services.Quota.Backfill(workerCtx) })

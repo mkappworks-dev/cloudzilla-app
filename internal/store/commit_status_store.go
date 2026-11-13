@@ -16,13 +16,19 @@ type CommitStatusStore struct{ db *sql.DB }
 func NewCommitStatusStore(db *sql.DB) *CommitStatusStore { return &CommitStatusStore{db: db} }
 
 func (s *CommitStatusStore) Upsert(ctx context.Context, cs *model.CommitStatus) error {
-	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO commit_statuses (repo_id, sha, context, state, target_url, description, creator_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+	return upsertCommitStatus(ctx, s.db, cs)
+}
+
+// upsertCommitStatus overwrites run_id too, so a status an outside system posts over a Run's context stops
+// belonging to that Run.
+func upsertCommitStatus(ctx context.Context, q queryRower, cs *model.CommitStatus) error {
+	err := q.QueryRowContext(ctx,
+		`INSERT INTO commit_statuses (repo_id, sha, context, state, target_url, description, creator_id, run_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		 ON CONFLICT (repo_id, sha, context) DO UPDATE
-		   SET state=$4, target_url=$5, description=$6, creator_id=$7, updated_at=NOW()
+		   SET state=$4, target_url=$5, description=$6, creator_id=$7, run_id=$8, updated_at=NOW()
 		 RETURNING id, created_at, updated_at`,
-		cs.RepoID, cs.SHA, cs.Context, cs.State, cs.TargetURL, cs.Description, cs.CreatorID,
+		cs.RepoID, cs.SHA, cs.Context, cs.State, cs.TargetURL, cs.Description, cs.CreatorID, cs.RunID,
 	).Scan(&cs.ID, &cs.CreatedAt, &cs.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("commit status upsert: %w", err)
@@ -32,7 +38,7 @@ func (s *CommitStatusStore) Upsert(ctx context.Context, cs *model.CommitStatus) 
 
 func (s *CommitStatusStore) ListBySHA(ctx context.Context, repoID int64, sha string) ([]model.CommitStatus, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, sha, context, state, target_url, description, creator_id, created_at, updated_at
+		`SELECT id, repo_id, sha, context, state, target_url, description, creator_id, run_id, created_at, updated_at
 		 FROM commit_statuses WHERE repo_id = $1 AND sha = $2 ORDER BY context`,
 		repoID, sha,
 	)
@@ -43,7 +49,7 @@ func (s *CommitStatusStore) ListBySHA(ctx context.Context, repoID int64, sha str
 	var statuses []model.CommitStatus
 	for rows.Next() {
 		var cs model.CommitStatus
-		if err := rows.Scan(&cs.ID, &cs.RepoID, &cs.SHA, &cs.Context, &cs.State, &cs.TargetURL, &cs.Description, &cs.CreatorID, &cs.CreatedAt, &cs.UpdatedAt); err != nil {
+		if err := rows.Scan(&cs.ID, &cs.RepoID, &cs.SHA, &cs.Context, &cs.State, &cs.TargetURL, &cs.Description, &cs.CreatorID, &cs.RunID, &cs.CreatedAt, &cs.UpdatedAt); err != nil {
 			return nil, err
 		}
 		statuses = append(statuses, cs)
@@ -119,7 +125,7 @@ func (s *CommitStatusStore) ListBySHAs(ctx context.Context, repoID int64, shas [
 		args = append(args, sha)
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, sha, context, state, target_url, description, creator_id, created_at, updated_at
+		`SELECT id, repo_id, sha, context, state, target_url, description, creator_id, run_id, created_at, updated_at
 		 FROM commit_statuses WHERE repo_id = $1 AND sha IN (`+strings.Join(placeholders, ",")+`)
 		 ORDER BY sha, context`,
 		args...,
@@ -131,7 +137,7 @@ func (s *CommitStatusStore) ListBySHAs(ctx context.Context, repoID int64, shas [
 	var statuses []model.CommitStatus
 	for rows.Next() {
 		var cs model.CommitStatus
-		if err := rows.Scan(&cs.ID, &cs.RepoID, &cs.SHA, &cs.Context, &cs.State, &cs.TargetURL, &cs.Description, &cs.CreatorID, &cs.CreatedAt, &cs.UpdatedAt); err != nil {
+		if err := rows.Scan(&cs.ID, &cs.RepoID, &cs.SHA, &cs.Context, &cs.State, &cs.TargetURL, &cs.Description, &cs.CreatorID, &cs.RunID, &cs.CreatedAt, &cs.UpdatedAt); err != nil {
 			return nil, err
 		}
 		statuses = append(statuses, cs)

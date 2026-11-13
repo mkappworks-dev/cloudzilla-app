@@ -31,6 +31,7 @@ type Services struct {
 	Release            *ReleaseService
 	ReleaseAsset       *ReleaseAssetService
 	CommitStatus       *CommitStatusService
+	WorkflowRun        *WorkflowRunService
 	Milestone          *MilestoneService
 	PullReview         *PullReviewService
 	PullLineComment    *PullLineCommentService
@@ -146,6 +147,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue).WithBranchProtections(stores.BranchProtection).WithThreadSubscriptions(threadSubSvc)
+	workflowRunSvc := NewWorkflowRunService(stores.WorkflowRun, stores.Repo, stores.User, stores.Pull, repoSvc, code, cfg.CI, cfg.Server.BaseURL)
+	pullSvc.WithRuns(workflowRunSvc)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
@@ -179,6 +182,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Release:            NewReleaseService(stores.Release, stores.Repo, code).WithAssets(releaseAssetSvc),
 		ReleaseAsset:       releaseAssetSvc,
 		CommitStatus:       commitStatusSvc,
+		WorkflowRun:        workflowRunSvc,
 		Milestone:          NewMilestoneService(stores.Milestone, stores.Repo),
 		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection).WithThreadSubscriptions(threadSubSvc),
 		PullLineComment:    NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
@@ -226,7 +230,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PushVet:            NewPushVetService(branchProtectionSvc, pushScanSvc),
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
-		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc),
+		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc).WithWorkflowRuns(workflowRunSvc),
 		InstanceSigner:     instanceSigner,
 		Secrets:            secrets,
 	}
