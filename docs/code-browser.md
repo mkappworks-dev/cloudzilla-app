@@ -184,8 +184,11 @@ commits are (`UserService.CommitAuthor`, so the keep-email-private setting appli
   `ConfirmDialog` shows as a toast.
 - Each web commit (New file, edit, rename, delete, the profile README editor, an applied suggestion) returns the
   `RefUpdate` it made, and its handler passes it to `PushService.AfterWebCommit`, so it runs everything a push does; see
-  [git-transport](./git-transport.md#after-a-push). A refused commit runs nothing. Web commits consult no branch
-  protection; `block_force_push` can't trigger on a fast-forward. PR merges and wiki edits don't run them.
+  [git-transport](./git-transport.md#after-a-push). A refused commit runs nothing. New file and edit run push protection
+  first (`PushScanService.CheckWebContent`, the policy and text of a push): a blocking key is a 422 in the form's alert
+  with the text kept, and a delete or a rename that leaves the text as it was scans nothing; see
+  [git-transport](./git-transport.md). Web commits consult no branch protection; `block_force_push` can't trigger on a
+  fast-forward. PR merges and wiki edits don't run them.
 
 ---
 
