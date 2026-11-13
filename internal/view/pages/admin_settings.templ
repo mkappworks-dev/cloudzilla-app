@@ -87,6 +87,19 @@ templ AdminSettings(data view.AdminSettingsData) {
 					</form>
 				}
 			}
+			@components.Card(templ.Attributes{"id": "commit-signing"}) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
+						Commit signing
+					}
+					@components.CardDescription() {
+						Merges, squashes and web edits are committed by Cloudzilla and signed with this key, so they show as Verified. Retired keys stay trusted, so older commits keep their badge.
+					}
+				}
+				@components.CardContent() {
+					@fragments.AdminSigningKey(data.SigningKey)
+				}
+			}
 			@components.Card(nil) {
 				@components.CardHeader() {
 					@components.CardTitle(2) {

@@ -171,3 +171,37 @@ func (h *Handler) DeleteInvitation(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
 }
+
+// RotateInstanceSigningKey handles POST /api/admin/signing-key/rotate.
+func (h *Handler) RotateInstanceSigningKey(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok || !claims.IsSuperadmin {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
+	key, err := h.Services.InstanceSigner.Rotate(r.Context())
+	if errors.Is(err, service.ErrNoSecretKey) {
+		writeError(w, http.StatusConflict, "Set security.secret_key before generating a signing key.")
+		return
+	}
+	if err != nil {
+		slog.Error("admin rotate instance signing key", "error", err)
+		writeError(w, http.StatusInternalServerError, "Couldn't rotate the signing key.")
+		return
+	}
+	// Synchronous: a rotation with no trace would be worse than a slow response.
+	if err := h.Services.AuditLog.RecordNow(r.Context(), r, claims.UserID, claims.Username, model.AuditActionAdminSigningKeyRotate,
+		model.AuditTargetInstanceSigningKey, key.ID, key.Fingerprint, nil); err != nil {
+		slog.Error("audit instance signing key rotation", "error", err)
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		// A swap would replace the form the identity dialog is waiting on and leave the dialog open.
+		w.Header().Set("HX-Refresh", "true")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Redirect(w, r, "/admin/settings#commit-signing", http.StatusSeeOther)
+}
