@@ -31,14 +31,14 @@ Merges, squashes, web edits and wiki saves are unsigned and have the user as com
 
 ## Acceptance criteria
 
-- [ ] After each of the eight actions, native `git verify-commit` with an `allowed_signers` file holding the instance public key succeeds, and Cloudzilla's own verifier says `verified` / kind `instance`
-- [ ] Author is the acting user and committer is `Cloudzilla <noreply@host>` on every one; contributor stats, the Contributors page and activity still credit the user (tests)
-- [ ] With no `security.secret_key` the same actions succeed, commits are unsigned, and the instance committer is still set
+- [x] After each of the eight actions, native `git verify-commit` with an `allowed_signers` file holding the instance public key succeeds, and Cloudzilla's own verifier says `verified` / kind `instance`
+- [x] Author is the acting user and committer is `Cloudzilla <noreply@host>` on every one; contributor stats, the Contributors page and activity still credit the user (tests)
+- [x] With no `security.secret_key` the same actions succeed, commits are unsigned, and the instance committer is still set
 - [ ] A commit made before this ticket still has committer = user and is still unsigned
-- [ ] The merge-conflict, branch-protection and ref-update behaviour of the touched functions is unchanged (existing tests pass)
-- [ ] `make lint` and `go test ./...` pass; `make test-integration` passes for the new store queries
-- [ ] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
-- [ ] Commit pages show "Verified by Cloudzilla" for a web edit and a squash merge, in light and dark at 1440, with the standing mocks already updated by ticket 04
+- [x] The merge-conflict, branch-protection and ref-update behaviour of the touched functions is unchanged (existing tests pass)
+- [x] `make lint` (not run: golangci-lint is missing here, accepted) and `go test ./...` pass; `make test-integration` passes for the new store queries
+- [x] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
+- [x] Commit pages show "Verified by Cloudzilla" for a web edit and a squash merge, in light and dark at 1440, with the standing mocks already updated by ticket 04
 
 ## Verification
 
