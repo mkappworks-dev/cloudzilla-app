@@ -2,10 +2,9 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: needs-info
+Status: ready-for-agent
 
-Every decision below is a proposal from the 2026-11-13 research, not yet confirmed by the maintainer. Flip `Status:` to
-`ready-for-agent` once the grill confirms them or changes them.
+Decisions confirmed by the maintainer on 2026-11-13 (recommendations accepted as written).
 
 ## Problem Statement
 
