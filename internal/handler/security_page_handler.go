@@ -101,6 +101,15 @@ func (h *Handler) PageSecurityAlerts(w http.ResponseWriter, r *http.Request) {
 		data.TypeOptions = append(data.TypeOptions, view.SecretTypeOption{Value: t.ID, Label: t.Label, Selected: t.ID == typeID})
 	}
 
+	scanState, scanIncomplete, err := h.Services.SecretScan.ScanState(ctx, repo.ID)
+	if err != nil {
+		slog.Error("security: read history scan state failed", "repo_id", repo.ID, "error", err)
+		h.ServerError(w, r)
+		return
+	}
+	data.HistoryScanning = scanState != "done"
+	data.HistoryIncomplete = scanState == "done" && scanIncomplete
+
 	names := newUsernameCache(h.Services.User)
 	for _, a := range alerts {
 		data.Rows = append(data.Rows, h.securityRow(ctx, repo, a, names))

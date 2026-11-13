@@ -82,12 +82,16 @@ type SecretAlertsData struct {
 	Type            string
 	OpenCount       int
 	ClosedCount     int
-	TypeOptions     []SecretTypeOption
-	Rows            []SecretAlertRow
-	OpenTabURL      string
-	ClosedTabURL    string
-	NewerURL        string
-	OlderURL        string
+	// HistoryScanning is true until the one-time scan of existing commits has finished; HistoryIncomplete, once it
+	// stopped at its time or size budget and may have missed older commits.
+	HistoryScanning   bool
+	HistoryIncomplete bool
+	TypeOptions       []SecretTypeOption
+	Rows              []SecretAlertRow
+	OpenTabURL        string
+	ClosedTabURL      string
+	NewerURL          string
+	OlderURL          string
 }
 
 type SecretSnippetView struct {
