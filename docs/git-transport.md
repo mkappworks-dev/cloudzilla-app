@@ -77,16 +77,18 @@ A caller who can't read a repo gets exactly what a missing repo gets, as on GitH
 never confirmed (see [Private Repos Look Missing](./access-control.md#private-repos-look-missing)). The handlers check
 in this order, and every check before the repo lookup answers the same whether the repo exists or not:
 
-| Check                                                                      | Response                                                                         |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `info/refs` without a `service` of `git-upload-pack` or `git-receive-pack` | `400 invalid service`                                                            |
-| Owner or repo name invalid                                                 | `400 invalid repository path`                                                    |
-| Basic PAT lacks the scope or is bound to a signing key                     | `403` naming the reason                                                          |
-| Repo missing, or the caller can't read it, anonymous                       | `401` with `WWW-Authenticate: Basic realm="git"`, so git prompts for credentials |
-| Repo missing, or the caller can't read it, signed in                       | `404 repository not found`                                                       |
-| Push, anonymous                                                            | `401` challenge                                                                  |
-| Push by a reader without write access                                      | `403 access denied`, not `401`, so git keeps the credential                      |
-| Push to an archived repo                                                   | `403`                                                                            |
+| Check                                                                      | Response                                                                                    |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `info/refs` without a `service` of `git-upload-pack` or `git-receive-pack` | `400 invalid service`                                                                       |
+| Owner or repo name invalid                                                 | `400 invalid repository path`                                                               |
+| Basic PAT lacks the scope or is bound to a signing key                     | `403` naming the reason                                                                     |
+| Former name of a repo the caller can read                                  | `301` on `info/refs`, `308` on a `POST` (see [Renamed repositories](#renamed-repositories)) |
+| Repo missing, or the caller can't read it, anonymous                       | `401` with `WWW-Authenticate: Basic realm="git"`, so git prompts for credentials            |
+| Repo missing, or the caller can't read it, signed in                       | `404 repository not found`                                                                  |
+| Former name of a repo the caller can't read, or of a soft-deleted repo     | the two rows above: an alias never confirms a repo                                          |
+| Push, anonymous                                                            | `401` challenge                                                                             |
+| Push by a reader without write access                                      | `403 access denied`, not `401`, so git keeps the credential                                 |
+| Push to an archived repo                                                   | `403`                                                                                       |
 
 An invalid or expired PAT counts as anonymous. `TestGitHTTP_PrivateRepo_LooksLikeMissingRepo` compares the status,
 challenge and body for a private and a missing repo on all three endpoints.
@@ -104,7 +106,8 @@ repo. The check runs after the same pre-lookup checks, so those answer identical
 
 The `.git` suffix and the query are kept. Git follows the `301` and rebases its remote for the rest of the operation
 (`warning: redirecting to ...`), so clone, fetch and push work unchanged; the redirect precedes the push checks, so a
-reader who can't write sees the usual `403` at the new URL.
+reader who can't write sees the usual `403` at the new URL. A former name of a soft-deleted repo doesn't resolve until
+the repo is restored. Renames, transfers, delete and restore are covered in [repo-rename](./repo-rename.md).
 
 ### Example
 
@@ -334,7 +337,8 @@ git pull
 5. If found, extracts user ID from key owner
 6. User is authenticated and context is populated; with no user key, a matching deploy key is bound instead, to its one
    repo (see [Repository Permission Rules](#repository-permission-rules))
-7. `git-upload-pack` or `git-receive-pack` command is dispatched with user context
+7. `git-upload-pack` or `git-receive-pack` command is dispatched with user context; a path that misses is tried as a
+   former name of a repo the key can see (see [Errors](#errors))
 8. Repository permissions are checked (read for upload-pack, write for receive-pack)
 
 ### Errors

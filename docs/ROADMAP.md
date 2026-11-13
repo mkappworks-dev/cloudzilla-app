@@ -2764,6 +2764,7 @@ Milestone 2 migration numbers are provisional: take the next free number when th
 | `cz` remote CLI client                             | #199             | —            |
 | Device-code login for `cz auth login`              | #207, #214, #216 | 111          |
 | Notifications inbox with subject titles            | #213             | 112          |
+| Repository rename, with redirects from old paths   | 6 PRs, #308–#320 | 122          |
 
 **Critical files touched by every phase:**
 

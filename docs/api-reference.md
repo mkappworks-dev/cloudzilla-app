@@ -304,9 +304,10 @@ a repo the caller cannot read. The `<name>.git` and `<name>.wiki.git` directorie
 changes if the move fails. Afterwards the old path is an alias to the repo (renaming back drops it), the repo's events
 and notifications show the new name (`events.payload` keeps the text it was recorded with), and `repo.rename` is audited
 with `from` and `to`. The repo `id` is unchanged, so webhooks, forks, pull requests, a mirror and the wiki carry over;
-webhook payloads sent afterwards carry the new `repository.full_name`. A pending transfer stays, and accepting it after
-a rename is refused until the recipient reviews the transfer again. Redirects from the old path are described with the
-alias table, not here.
+webhook payloads sent afterwards carry the new `repository.name`, with the same `repository.id`. A pending transfer
+stays, and accepting it after a rename is refused until the recipient reviews the transfer again. Redirects from the old
+path are described under [Former repository paths](#former-repository-paths); the rules are in
+[repo-rename](./repo-rename.md).
 
 A transfer into an organization you own, or into your own account (an org repo you own), happens at once: the response
 redirects to the repository's new URL (`HX-Redirect` for HTMX). It is refused with 422 `transfer failed`, and nothing
