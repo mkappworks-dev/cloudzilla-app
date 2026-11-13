@@ -78,6 +78,12 @@ Settled with the user on 2026-11-13, except those marked *derived*.
     `revoke-credentials` also deletes signing keys; the data export includes them (public parts).
 12. *Derived:* a commit with more than one signature block, an unparseable signature, or an algorithm we do not support
     is `unverified` with a reason, never an error.
+13. **Key squatting** (2026-11-13). Registration needs no proof of possession, so a squatter can hold a victim's key. A
+    valid signature whose committer email is verified on a *different* account than the key owner is `unverified` with
+    reason `other_user`, naming no signer; if the email is verified nowhere it stays `partially_verified` (accepted
+    gap). The 409 on add tells the same account from another account. Proof of possession, several accounts per key and
+    an admin reassign feature are declined; the admin runbook is `revoke-credentials`. See
+    [ticket 09](./issues/09-signing-key-squatting.md).
 
 ## Design
 
@@ -196,6 +202,7 @@ confirmation step-up.
 | [06](./issues/06-sign-server-made-commits.md) | Instance committer and signature on the eight server-made commit sites | 05 | 03, 04, 07 |
 | [07](./issues/07-signature-badge-tree-blame.md) | Badge on the tree's last-commit row and blame | 04 | 05, 06 |
 | [08](./issues/08-signing-docs-and-e2e.md) | Docs, ROADMAP rewrite, native-git end-to-end on a throwaway server | 01–07 | — |
+| [09](./issues/09-signing-key-squatting.md) | `other_user` reason, clearer 409 for a taken key | — | 10 |
 
 Shared-file conflicts: 02 and 05 both edit `signature_service.go`, which is why 05 waits for 02; 04 and 07 both edit view
 models (07 waits). Migrations 130/131 collide with anything else landing first: re-check at build.
@@ -249,3 +256,5 @@ Ticket 17 gets its own spec and tickets in this folder. What it inherits and mus
 
 Claude, 2026-11-13: Questions 1 and 2 of the mock README (fourth status; instance-signed web commits) are answered by
 decisions 1 and 3 above.
+
+Claude, 2026-11-13: Decision 13 and ticket 09 answer signing-key squatting; options weighed and declined are in the ticket.
