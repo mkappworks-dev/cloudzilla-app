@@ -180,7 +180,7 @@
     </div>
 
     <section data-when="push" class="flex flex-col gap-3" aria-labelledby="push-heading">
-      <p id="push-heading" class="text-[13px] text-muted-foreground">What the pusher sees. The <span class="font-mono">remote:</span> lines are the server's; the rest is git.</p>
+      <p id="push-heading" class="text-[13px] text-muted-foreground">What the pusher sees. The reason in parentheses is the server's, one line, the same over HTTP and SSH (the transport has no side-band, so no <span class="font-mono">remote:</span> lines); the rest is git.</p>
       <article class="rounded-md border border-border bg-card overflow-hidden">
         <div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between">
           <code class="text-sm font-mono text-foreground">Terminal</code>
@@ -189,19 +189,8 @@
 Enumerating objects: 7, done.
 Writing objects: 100% (4/4), 412 bytes | 412.00 KiB/s, done.
 Total 4 (delta 3), reused 0 (delta 0)
-<span class="text-destructive">remote: error: push rejected: 1 secret found</span>
-remote:
-remote:   AWS access key ID   AKIA…7QXZ
-remote:     9c8e2a4  config/deploy.env:14
-remote:
-remote: Remove it from the commit and push again:
-remote:   git rebase -i 9c8e2a4~1     # edit 9c8e2a4, delete the key
-remote:
-remote: If it isn't a live secret, someone with write access can allow it:
-remote:   <span class="text-ring">http://localhost:8080/mkappworks/cloudzilla/security/secrets/12</span>
-remote:
 To http://localhost:8080/mkappworks/cloudzilla.git
-<span class="text-destructive"> ! [remote rejected] main -> main (secret detected)</span>
+<span class="text-destructive"> ! [remote rejected] main -> main (secret detected: AWS access key ID in config/deploy.env:14; if it is not a live secret, a writer can allow it at http://localhost:8080/mkappworks/cloudzilla/security/secrets/12)</span>
 <span class="text-destructive">error: failed to push some refs to 'http://localhost:8080/mkappworks/cloudzilla.git'</span></pre>
       </article>
       <p class="text-[12px] text-muted-foreground">The link opens the alert in its <a href="alert.html?state=blocked" class="text-foreground hover:underline">blocked push</a> state, where a writer can allow the secret and the pusher retries.</p>

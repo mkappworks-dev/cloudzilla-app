@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: ready-for-agent
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -26,7 +26,7 @@ Roadmap phase 17.3 is planned and has no UI.
 
 ## Acceptance criteria
 
-- [ ] Spec and tickets exist
+- [x] Spec and tickets exist: [spec-secret-scanning.md](../../2026-11-06-security-signing-secrets/spec-secret-scanning.md), tickets 09–17 in that folder
 - [ ] All its tickets done
 - [ ] ROADMAP status updated
 
@@ -37,3 +37,5 @@ Per its spec.
 ## Comments
 
 2026-11-06 (triage): ready-for-human; needs a spec first; mock decisions to confirm.
+
+Claude, 2026-11-13 (spec): specced after a grill with the user. open/closed + resolution, one-line push-protection reason, allow = close (no timer), auto-revoke on any live Cloudzilla token match, fail-open scan budget. Build order and decisions are in the spec.

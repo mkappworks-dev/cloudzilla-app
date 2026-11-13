@@ -1,0 +1,47 @@
+# Docs, ROADMAP and native-git end-to-end
+
+Created: 2026-11-13
+Category: enhancement
+Status: ready-for-agent
+Blocked by: 09, 10, 11, 12, 13, 14, 15, 16
+Parallel with: none
+
+| Branch | Worktree | PR title | Effort |
+| --- | --- | --- | --- |
+| `feat/phase-17.3-secret-scanning-docs` | `.worktrees/feat+phase-17.3-secret-scanning-docs` | `docs(secrets): secret scanning (17.3)` | M |
+
+Spec: [spec-secret-scanning.md](../spec-secret-scanning.md). Parent: `../../2026-11-06-uiux-desktop-9.5/issues/17-secret-scanning.md`.
+
+## Problem
+
+A shipped feature needs its subsystem doc, a correct ROADMAP entry (the 17.3 migration number and `state` values are stale) and an end-to-end check with real git clients.
+
+## Scope
+
+- `docs/secret-scanning.md`: patterns and confidence, the alert model and resolutions, push protection and the exact rejection text over HTTP and SSH, fail-open budget and its config keys, allow semantics, auto-revoke, backfill, who sees what, notifications and audit actions, and the accepted costs (hash guessability of low-entropy values, loose objects left by a refused push until `cz-admin gc`, no side-band). Link it from CLAUDE.md's subsystem list.
+- `docs/ROADMAP.md`: rewrite 17.3 (no `117_…`, `secret_scan_alerts` with `open/closed` + `resolution`, push protection, auto-revoke, backfill), mark it ✅ with the migration numbers used; update the phase table.
+- Cross-links: `docs/git-transport.md` (the vet hook now also scans; the status text), `docs/access-control.md` (Security tab needs `CanWrite`), `docs/configuration.md` (keys, if ticket 13 and 16 did not finish), `docs/testing.md`, `docs/webhooks.md` (no `secret_scanning_alert` event yet), `GLOSSARY.md` if terms moved.
+- End-to-end on a throwaway server with native git over HTTP and SSH: AWS key, private key, live and dead `czp_` token, a fixture allowed then pushed again, a tag, two refs sharing a commit, a web edit, a backfill of an existing repo, protection off; record each outcome in the PR.
+- Tick the acceptance criteria of `../2026-11-06-uiux-desktop-9.5/issues/17-secret-scanning.md`, set it `done`, update the Run order in that folder's `spec.md`, and set this spec's status to `done`.
+
+## Files (hotspots in bold)
+
+- `docs/secret-scanning.md` (new), **`docs/ROADMAP.md`**, **`CLAUDE.md`**, `docs/git-transport.md`, `docs/access-control.md`, `docs/configuration.md`, `docs/testing.md`, `docs/webhooks.md`
+- `.scratch/2026-11-06-uiux-desktop-9.5/issues/17-secret-scanning.md`, `.scratch/2026-11-06-uiux-desktop-9.5/spec.md`, `.scratch/2026-11-06-security-signing-secrets/spec-secret-scanning.md`
+
+## Acceptance criteria
+
+- [ ] Docs describe behaviour that was seen in the end-to-end run, not planned behaviour; any difference from this spec is recorded in the spec's Comments
+- [ ] `npm run fmt` has been run on the changed `.md` files (not on `.scratch/`) and `npm run fmt:check` passes
+- [ ] ROADMAP 17.3 and the phase table are consistent with the migrations that merged
+- [ ] ~~Checked at desktop 1440 in light and dark~~ (no UI in this ticket)
+- [ ] ~~The standing mocks in `mockups/` are updated~~ (no UI in this ticket)
+- [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
+- [ ] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+
+## Verification
+
+The end-to-end run above is the verification: screenshots of the Security tab, an alert and a rejected push in light and dark at 1440 on the throwaway server, plus the terminal output of both transports.
+
+## Comments
+
