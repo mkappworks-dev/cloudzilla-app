@@ -1,7 +1,6 @@
 // Run page: log search, timestamps toggle, and opening the step that holds a #L<n> anchor.
 (function () {
   var query = '';
-  var busy = false;
 
   function openAnchor() {
     var m = /^#(L\d+)$/.exec(location.hash);
@@ -21,7 +20,6 @@
   }
 
   function applySearch() {
-    busy = true;
     clearMarks();
     var count = 0, q = query.toLowerCase();
     if (q) {
@@ -51,7 +49,6 @@
     }
     var c = document.querySelector('[data-match-count]');
     if (c) c.textContent = q ? count + (count === 1 ? ' match' : ' matches') : '';
-    busy = false;
   }
 
   document.addEventListener('input', function (e) {
@@ -71,7 +68,13 @@
   // The live tail appends rows under a search that is still active; mark them too.
   var steps = document.getElementById('job-steps');
   if (steps) {
-    new MutationObserver(function () { if (query && !busy) applySearch(); }).observe(steps, { childList: true, subtree: true });
+    var observer = new MutationObserver(function () {
+      if (!query) return;
+      applySearch();
+      // applySearch's own DOM edits are queued as records; dropping them stops the observer re-triggering itself.
+      observer.takeRecords();
+    });
+    observer.observe(steps, { childList: true, subtree: true });
   }
 
   window.addEventListener('hashchange', openAnchor);
