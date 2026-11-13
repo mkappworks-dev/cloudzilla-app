@@ -14,6 +14,8 @@ type Stores struct {
 	Pull               *PullStore
 	Comment            *CommentStore
 	SSHKey             *SSHKeyStore
+	GPGKey             *GPGKeyStore
+	SSHSigningKey      *SSHSigningKeyStore
 	Org                *OrgStore
 	Team               *TeamStore
 	Webhook            *WebhookStore
@@ -79,6 +81,8 @@ func New(database *sql.DB) *Stores {
 		Pull:               NewPullStore(database),
 		Comment:            NewCommentStore(database),
 		SSHKey:             NewSSHKeyStore(database),
+		GPGKey:             NewGPGKeyStore(database),
+		SSHSigningKey:      NewSSHSigningKeyStore(database),
 		Org:                NewOrgStore(database),
 		Team:               NewTeamStore(database),
 		Webhook:            NewWebhookStore(database),

@@ -16,6 +16,7 @@ type Services struct {
 	Pull               *PullService
 	Comment            *CommentService
 	SSHKey             *SSHKeyService
+	SigningKey         *SigningKeyService
 	Code               *CodeService
 	Org                *OrgService
 	Team               *TeamService
@@ -147,6 +148,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Pull:               pullSvc,
 		Comment:            NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc).WithThreadSubscriptions(threadSubSvc),
 		SSHKey:             NewSSHKeyService(stores.SSHKey, stores.User, stores.DeployKey),
+		SigningKey:         NewSigningKeyService(stores.GPGKey, stores.SSHSigningKey),
 		Code:               code,
 		Org:                orgSvc,
 		Team:               NewTeamService(stores.Team, orgSvc),

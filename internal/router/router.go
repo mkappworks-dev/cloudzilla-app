@@ -675,6 +675,19 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Delete("/{id}", h.DeleteSSHKey)
 	})
 
+	r.Route("/api/user/gpg_keys", func(r chi.Router) {
+		r.Use(authMW, apiBodyLimit)
+		r.Get("/", h.ListGPGKeys)
+		r.Post("/", h.AddGPGKey)
+		r.Delete("/{id}", h.DeleteGPGKey)
+	})
+	r.Route("/api/user/ssh_signing_keys", func(r chi.Router) {
+		r.Use(authMW, apiBodyLimit)
+		r.Get("/", h.ListSSHSigningKeys)
+		r.Post("/", h.AddSSHSigningKey)
+		r.Delete("/{id}", h.DeleteSSHSigningKey)
+	})
+
 	// Repository transfers offered to the signed-in user
 	r.Route("/api/user/transfers", func(r chi.Router) {
 		r.Use(authMW, apiBodyLimit)

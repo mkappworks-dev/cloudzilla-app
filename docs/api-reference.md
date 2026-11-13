@@ -195,6 +195,20 @@ are refused. See [access control](./access-control.md#connecting-google-to-an-ex
 | POST   | `/api/user/keys`     | Required | Add a new SSH public key (`title`, `public_key`, plus `password` and, with 2FA, `code`; form or JSON). 403 on a wrong confirmation, 429 when throttled |
 | DELETE | `/api/user/keys/:id` | Required | Delete an SSH key by ID                                                                                                                                |
 
+## Signing Keys
+
+Keys that sign commits, kept apart from the SSH authentication keys above: the same SSH public key may be registered as
+both. Session-only. A key belongs to one account instance-wide.
+
+| Method | Path                             | Auth     | Description                                                                                                                                                                                                          |
+| ------ | -------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/user/gpg_keys`             | Required | List your GPG keys with subkeys (`can_sign`), expiry, revocation and UID emails                                                                                                                                      |
+| POST   | `/api/user/gpg_keys`             | Required | Add an armored GPG public key (`public_key`, plus `password` and, with 2FA, `code`). 400 for garbage or a private key block, 422 for an expired or revoked key or one with no signing-capable key, 409 if registered |
+| DELETE | `/api/user/gpg_keys/:id`         | Required | Delete your GPG key and its subkeys and emails; 404 for another user's key                                                                                                                                           |
+| GET    | `/api/user/ssh_signing_keys`     | Required | List your SSH signing keys (SHA256 fingerprint)                                                                                                                                                                      |
+| POST   | `/api/user/ssh_signing_keys`     | Required | Add an SSH signing key (`title`, `public_key`, plus the same step-up). 400 for an unsupported key, 409 if any account registered it                                                                                  |
+| DELETE | `/api/user/ssh_signing_keys/:id` | Required | Delete your SSH signing key; 404 for another user's key                                                                                                                                                              |
+
 ## Personal Access Tokens
 
 | Method | Path                   | Auth     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |

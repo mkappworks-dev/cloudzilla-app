@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none
 Parallel with: none (everything else waits on it)
 
@@ -37,14 +37,14 @@ Nothing can store a key that signs commits. `ssh_keys` is the auth path (MD5 fin
 
 ## Acceptance criteria
 
-- [ ] A valid armored GPG public key is stored with its key ID, fingerprint, subkeys (with `can_sign`), expiry, revocation and UID emails; a private key block, expired key, revoked key, no signing-capable key and a duplicate each get the stated error (`400`/`409`/`422`)
-- [ ] A valid SSH public key is stored with its SHA256 fingerprint; the same key already in `ssh_keys` is accepted and `ssh_keys` is unchanged; the same key on another account is `409`
-- [ ] POST without the password + TOTP step-up is refused; a PAT and an OAuth-app token cannot call any of the six endpoints
-- [ ] Deleting a key removes its rows and subkeys/emails; you cannot delete another user's key
-- [ ] Audit entries are written for add and delete; `revoke-credentials` deletes signing keys; the export contains both files
-- [ ] Account deletion cascades both key tables
+- [x] A valid armored GPG public key is stored with its key ID, fingerprint, subkeys (with `can_sign`), expiry, revocation and UID emails; a private key block, expired key, revoked key, no signing-capable key and a duplicate each get the stated error (`400`/`409`/`422`)
+- [x] A valid SSH public key is stored with its SHA256 fingerprint; the same key already in `ssh_keys` is accepted and `ssh_keys` is unchanged; the same key on another account is `409`
+- [x] POST without the password + TOTP step-up is refused; a PAT and an OAuth-app token cannot call any of the six endpoints
+- [x] Deleting a key removes its rows and subkeys/emails; you cannot delete another user's key
+- [x] Audit entries are written for add and delete; `revoke-credentials` deletes signing keys; the export contains both files
+- [x] Account deletion cascades both key tables
 - [ ] `make lint` and `go test ./...` pass; `make test-integration` passes for the new store queries
-- [ ] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
+- [x] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
 
 ## Verification
 

@@ -34,5 +34,7 @@ var AdminUserSort = SortSpec{{Key: "created", DescFirst: true}, {Key: "username"
 type RevokedCredentials struct {
 	AccessTokens        int64
 	SSHKeys             int64
+	GPGKeys             int64
+	SSHSigningKeys      int64
 	OAuthAuthorizations int64
 }

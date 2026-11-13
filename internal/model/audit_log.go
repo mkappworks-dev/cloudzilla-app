@@ -83,6 +83,10 @@ const (
 	AuditActionDeviceApprove       = "user.device.approve"
 	AuditActionDeviceDeny          = "user.device.deny"
 	AuditActionTokenCreate         = "user.token.create"
+	AuditActionGPGKeyAdd           = "user.gpg_key.add"
+	AuditActionGPGKeyDelete        = "user.gpg_key.delete"
+	AuditActionSSHSigningKeyAdd    = "user.ssh_signing_key.add"
+	AuditActionSSHSigningKeyDelete = "user.ssh_signing_key.delete"
 
 	AuditActionAdminUserSuspend           = "admin.user.suspend"
 	AuditActionAdminUserUnsuspend         = "admin.user.unsuspend"
