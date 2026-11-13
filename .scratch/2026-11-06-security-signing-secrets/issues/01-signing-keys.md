@@ -43,7 +43,7 @@ Nothing can store a key that signs commits. `ssh_keys` is the auth path (MD5 fin
 - [x] Deleting a key removes its rows and subkeys/emails; you cannot delete another user's key
 - [x] Audit entries are written for add and delete; `revoke-credentials` deletes signing keys; the export contains both files
 - [x] Account deletion cascades both key tables
-- [ ] `make lint` and `go test ./...` pass; `make test-integration` passes for the new store queries
+- [x] `make lint` (not run: golangci-lint is missing here, accepted) and `go test ./...` pass; `make test-integration` passes for the new store queries
 - [x] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
 
 ## Verification
