@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -24,9 +25,10 @@ func NewRepoAliasStore(database *sql.DB) *RepoAliasStore {
 	return &RepoAliasStore{db: database}
 }
 
-// Resolve returns the live repo an alias path points at, or sql.ErrNoRows. It
-// never returns another alias, and an alias of a soft-deleted repo does not
-// resolve.
+// Resolve returns the live repo an alias path points at, or sql.ErrNoRows. A
+// path under a former organization name resolves to the repo of that name in
+// the renamed org. It never returns another alias, and an alias of a
+// soft-deleted repo does not resolve.
 func (s *RepoAliasStore) Resolve(ctx context.Context, ownerName, name string) (*model.Repository, error) {
 	var repoID int64
 	err := s.db.QueryRowContext(ctx,
@@ -36,6 +38,15 @@ func (s *RepoAliasStore) Resolve(ctx context.Context, ownerName, name string) (*
 		  WHERE lower(a.owner_name) = lower($1) AND lower(a.name) = lower($2)`,
 		ownerName, name,
 	).Scan(&repoID)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = s.db.QueryRowContext(ctx,
+			`SELECT r.id
+			   FROM org_aliases oa
+			   JOIN repositories r ON r.org_id = oa.org_id AND r.deleted_at IS NULL
+			  WHERE lower(oa.name) = lower($1) AND lower(r.name) = lower($2)`,
+			ownerName, name,
+		).Scan(&repoID)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("repo alias resolve: %w", err)
 	}

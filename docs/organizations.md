@@ -59,7 +59,7 @@ or a superadmin [adds an owner](./access-control.md#adding-an-organization-owner
 | `/{org}`                   | Optional   | Org profile: header, README, most-starred and recently updated repos, people, top languages                                          |
 | `/{org}?tab=repositories`  | Optional   | Every org repo the viewer can see                                                                                                    |
 | `/{org}?tab=people`        | Optional   | Every org member with their role; the profile sidebar shows the first 12                                                             |
-| `/orgs/{org}/settings`     | Owner only | General (profile), Members, Teams, Repository defaults, Webhooks, Audit log, Danger zone (transfer, delete)                          |
+| `/orgs/{org}/settings`     | Owner only | General (profile, URL slug rename), Members, Teams, Repository defaults, Webhooks, Audit log, Danger zone (transfer, delete)         |
 | `/orgs/{org}/teams/{slug}` | Member     | A [team](#teams): its members, and for an owner the member and repository controls, rename and delete; 404 to anyone outside the org |
 | `/repos/new?owner={org}`   | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                                    |
 
@@ -86,7 +86,35 @@ Owners edit these on the settings page (`POST /api/orgs/{org}/profile`):
 | `location`      | Free text                                                                                    |
 | `contact_email` | Shown publicly on the org profile as a `mailto:` link. Not collected on `/organizations/new` |
 
-The org name (URL slug) cannot be changed, and avatar upload is not implemented yet.
+The org name (URL slug) changes through [Rename](#rename), not through this form.
+
+## Rename
+
+An owner renames the org from the URL slug row on the settings page: `POST /api/orgs/{org}/rename` with `name`, behind
+the danger-confirm dialog and the same step-up as transfer. The name follows the creation rule
+([Usernames](./access-control.md#usernames)) and the shared user/org namespace. Statuses: 422 for an invalid name or the
+name it already has; 409 when a user, another org or a leftover directory holds the name, or while one of its mirrors is
+syncing; 403 for a non-owner. The `org.rename` audit entry records `from` and `to`.
+
+`OrgService.RenameOrg` renames `<repos_root>/<old>/` to `<repos_root>/<new>/` in one `os.Rename`, so every repo, wiki
+and trashed copy moves together, then runs `OrgStore.Rename` in one transaction: the `organizations` row, `owner_name`
+on every repo row (soft-deleted included), the old name inserted into `org_aliases`, and the owner text kept in `events`
+and `notifications`. If the transaction fails the directory is renamed back. A crash between the two steps is an
+accepted window, as for a repository move; the recovery is to rename the directory by hand. Repo ids don't change, so
+webhooks, stars, issues, pull requests and avatars (keyed by org id) carry over; payloads sent afterwards carry the new
+`repository.full_name`, while `events.payload` and emails already sent keep the old text. Settings and team URLs
+(`/orgs/{org}/...`) don't redirect.
+
+`org_aliases(org_id, name)` has a unique index on `lower(name)`. An old org name redirects until a user or organization
+takes it: the owner-name triggers (migrations 080 and 129) delete the org alias, and any repo alias under that name, in
+the same statement that creates the account. Renaming an org back to a name it had drops its own alias. Resolution is
+one lookup, so a chain of renames stays flat.
+
+Redirects reuse the repository alias path. `RepoAliasStore.Resolve` falls back from `repo_aliases` to `org_aliases`
+joined to the org's live repo of that name, so `/old/x` redirects to `/new/x` over the web (`301`/`308`), the API, git
+HTTP and SSH, with the visibility rule of [Renamed repositories](./git-transport.md#renamed-repositories): a caller who
+cannot read the repo gets the missing-repo reply. `/old` itself is answered by `PageUser` with a `301` to `/new`; an org
+profile is public. Org pages other than the profile and its repos are not redirected.
 
 ## Repository defaults
 
@@ -174,6 +202,7 @@ Profile edits, repository-default changes, and deletes write audit entries (`org
 | POST   | `/api/orgs/{org}/teams/{slug}/members`            | Required   | Add an org member to the team (`username`); owner only; 422 for someone outside the org                                                                     |
 | DELETE | `/api/orgs/{org}/teams/{slug}/members/{username}` | Required   | Remove a member from the team; owner only                                                                                                                   |
 | POST   | `/api/admin/orgs/{org}/owners`                    | Superadmin | Make a user an owner without being one (`username`); needs the admin's confirmation; see [access-control](./access-control.md#adding-an-organization-owner) |
+| POST   | `/api/orgs/{org}/rename`                          | Required   | Rename the org (`name`, plus the step-up fields); owner only; the old name redirects until someone takes it                                                 |
 | POST   | `/api/orgs/{org}/delete`                          | Required   | Delete the org (`confirm_name` form field); owner only; refused while the org owns repositories                                                             |
 
 Team endpoints need `repo:read` (list) or `repo:admin` (change) on a scoped token. HTMX requests to add, remove, or
@@ -190,6 +219,9 @@ change the role of a member respond with the `OrgMembers` fragment, which the se
 - `UpdateRepoDefaults(ctx, orgID, requestingUserID, visibility, branchName)` → `error` — owner-only; validates both
   values
 - `Delete(ctx, orgID, requestingUserID)` → `error` — owner-only; `ErrOrgHasRepos` while the org owns repos
+- `RenameOrg(ctx, org, requestingUserID, newName)` → `error` — owner-only; see [Rename](#rename). `ErrForbidden`,
+  `ErrInvalidOrgName`, `ErrOrgNameUnchanged`, `ErrOrgNameTaken`, `ErrRepoSyncing`, `ErrOrgChanged`
+- `ResolveAlias(ctx, name)` → `(*Organization, error)` — the org that used to be called `name`, or `sql.ErrNoRows`
 - `ListMembers(ctx, orgID)` → `([]OrgMember, error)`
 - `CountMembers(ctx, orgID)` → `(int, error)`
 - `ListMembershipsForUser(ctx, userID)` → `([]OrgMembership, error)` — every org the user belongs to, tagged with their

@@ -411,6 +411,60 @@ func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/organizations", http.StatusSeeOther)
 }
 
+const orgRenameFormError = "#org-rename-form-error"
+
+// RenameOrg handles POST /api/orgs/{org}/rename, the settings page's Rename form.
+func (h *Handler) RenameOrg(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	org, err := h.Services.Org.Get(r.Context(), chi.URLParam(r, "org"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, "org not found")
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+	htmx := r.Header.Get("HX-Request") == "true"
+	fail := func(status int, msg string) {
+		if htmx {
+			renderFormError(w, orgRenameFormError, msg)
+			return
+		}
+		writeError(w, status, msg)
+	}
+	if !h.confirmOwnerGrant(w, r, org.ID, claims.UserID, confirmationFrom(r), orgRenameFormError) {
+		return
+	}
+	oldName, newName := org.Name, r.FormValue("name")
+	err = h.Services.Org.RenameOrg(r.Context(), org, claims.UserID, newName)
+	switch {
+	case err == nil:
+	case errors.Is(err, service.ErrForbidden):
+		writeError(w, http.StatusForbidden, "only org owners can do this")
+		return
+	case errors.Is(err, service.ErrOrgNameTaken), errors.Is(err, service.ErrRepoSyncing), errors.Is(err, service.ErrOrgChanged):
+		fail(http.StatusConflict, err.Error())
+		return
+	case errors.Is(err, service.ErrOrgNameUnchanged):
+		fail(http.StatusUnprocessableEntity, err.Error())
+		return
+	case errors.Is(err, service.ErrInvalidOrgName):
+		fail(http.StatusUnprocessableEntity, invalidOrgNameMessage)
+		return
+	default:
+		slog.Error("rename org failed", "org", oldName, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to rename organization")
+		return
+	}
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionOrgRename, model.AuditTargetOrg, org.ID, newName, map[string]any{"from": oldName, "to": newName})
+	redirectAfterSave(w, r, "/orgs/"+newName+"/settings")
+}
+
 func (h *Handler) UpdateOrgProfile(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "org")
 

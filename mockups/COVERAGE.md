@@ -93,6 +93,8 @@ Some controls and forms have no behaviour. In particular:
   button, the note instead).
 - **Mock-only state:** `settings.html?rename=error` shows the Rename form refused because the name is taken. The mock
   checks names against a short built-in list and renames nothing on the server.
+- **Mock-only state:** `org_settings.html?rename=error` shows the URL slug Rename form refused because the name is
+  taken. The mock checks names against a short built-in list and renames nothing on the server.
 - **Mock-only state:** `account_settings.html?export=requested|ready|failed` shows each row of "Export your data";
   Request export moves the default row to requested. The real page shows the row the user's latest export is in.
 - **Mock-only state:** `org_settings.html?teams=none` shows the Teams empty state, and `org_team.html?viewer=member` the

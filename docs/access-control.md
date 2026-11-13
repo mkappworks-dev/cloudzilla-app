@@ -845,6 +845,11 @@ Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner
 `ErrOrgNameTaken` for `OrgService.Create`; Google OAuth moves on to the next numbered candidate (`2`, `3`, …) instead.
 Triggers from migration 080 also lock each exact name, so two concurrent creates of one name cannot both take it.
 
+An organization can be renamed ([Rename](./organizations.md#rename)); the new name follows the same rule and namespace.
+The old name stays in `org_aliases` and redirects to the renamed org, but it is not held: any user or organization
+insert or rename onto it succeeds, and the same trigger deletes the alias (and the repo aliases under that name) in that
+statement.
+
 ## Account Deletion
 
 `POST /settings/delete-account` calls `UserService.DeleteUser`. In one transaction, `UserStore.DeleteWithOwnedRepos`
