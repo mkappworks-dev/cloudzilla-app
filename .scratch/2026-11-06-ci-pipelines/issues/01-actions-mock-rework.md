@@ -53,7 +53,7 @@ Remaining:
 - [x] Checked at desktop 1440 in **light and dark** under `make mockups`; screenshots of both themes in the PR
 - [x] The standing mocks in `mockups/` listed under Files are updated in the same PR and `COVERAGE.md` / `index.html`
       reflect them
-- [ ] ~~Verified on a throwaway server~~ (static mocks only; no server code in this ticket)
+- [x] ~~Verified on a throwaway server~~ (static mocks only; no server code in this ticket)
 - [x] `npm run fmt:check` passes for the docs touched; `.scratch/` is not formatted
 
 ## Verification

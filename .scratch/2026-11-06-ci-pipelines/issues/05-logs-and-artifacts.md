@@ -54,8 +54,8 @@ append. Artifacts have no home, and without retention both fill the disk.
 - [x] Oversize and over-count artifacts are refused with the limit named
 - [x] The retention worker deletes expired chunks and artifacts and keeps Run rows and statuses; a repo purge and a
       user delete remove the objects
-- [ ] ~~Light and dark checks at 1440~~ (no UI; the UI is ticket 06)
-- [ ] ~~Standing mocks in `mockups/` updated~~ (no UI)
+- [x] ~~Light and dark checks at 1440~~ (no UI; the UI is ticket 06)
+- [x] ~~Standing mocks in `mockups/` updated~~ (no UI)
 - [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` /
       `cloudzilla-seed`) with a real runner: a Job printing 50 MB and uploading an artifact; `curl` reads the log by
       offset and downloads the artifact, evidence in the PR

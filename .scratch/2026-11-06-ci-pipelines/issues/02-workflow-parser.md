@@ -50,9 +50,9 @@ line-numbered errors, and the parser is pure, so it can be finished and tested b
       fails at parse time
 - [x] Branch and tag glob matching has tests for `*`, `**`, `!` and a ref with a slash
 - [x] The package imports nothing from `store`, `service` or `handler`
-- [ ] ~~Light and dark checks at 1440~~ (no UI)
-- [ ] ~~Standing mocks in `mockups/` updated~~ (no UI)
-- [ ] ~~Verification on a throwaway server~~ (pure package; its tests run without a database)
+- [x] ~~Light and dark checks at 1440~~ (no UI)
+- [x] ~~Standing mocks in `mockups/` updated~~ (no UI)
+- [x] ~~Verification on a throwaway server~~ (pure package; its tests run without a database)
 - [x] `make lint` and `go test ./...` pass
 
 ## Verification

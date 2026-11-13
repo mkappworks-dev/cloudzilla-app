@@ -63,8 +63,8 @@ Runs and Jobs to claim, and the UI needs rows to list.
 - [x] Cancel and re-run (all, failed only) behave per the spec and keep the old attempt's rows
 - [x] `cancel-in-progress` and the queued-run cap cancel the right Runs; the 24 h sweep cancels an unclaimed Job
 - [x] A repo with CI switched off, an archived repo and a soft-deleted repo create no Runs
-- [ ] ~~Light and dark checks at 1440~~ (no UI; the UI is ticket 06)
-- [ ] ~~Standing mocks in `mockups/` updated~~ (no UI)
+- [x] ~~Light and dark checks at 1440~~ (no UI; the UI is ticket 06)
+- [x] ~~Standing mocks in `mockups/` updated~~ (no UI)
 - [x] Verified on a throwaway server: scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` /
       `cloudzilla-seed`; a native `git push` over HTTP and SSH creates the Run (read from the database), evidence in
       the PR
