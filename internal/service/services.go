@@ -96,7 +96,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	if err != nil {
 		panic(err) // config.Load already refuses a short key
 	}
-	code := NewCodeService(cfg.Git)
+	instanceSigner := NewInstanceSigner(stores.InstanceSigningKey, secrets)
+	serverCommits := newServerCommitter(instanceSigner, cfg.Server.BaseURL)
+	code := NewCodeService(cfg.Git).WithServerCommits(serverCommits)
 	index := NewIndexService(stores.CodeSearch, code)
 	webhookSvc := NewWebhookService(stores.Webhook, cfg.Webhook)
 	depSvc := NewDependencyService(stores.Dependency, code)
@@ -105,9 +107,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
 	quotaSvc := NewQuotaService(stores.Repo, stores.User, cfg.Quota, cfg.Git.ReposRoot)
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).
-		WithTransferStore(stores.RepoTransfer).WithAliasStore(stores.RepoAlias).WithMirrorStore(stores.Mirror).WithNoreplyHostFrom(cfg.Server.BaseURL).WithQuota(quotaSvc)
+		WithTransferStore(stores.RepoTransfer).WithAliasStore(stores.RepoAlias).WithMirrorStore(stores.Mirror).WithNoreplyHostFrom(cfg.Server.BaseURL).WithQuota(quotaSvc).WithServerCommits(serverCommits)
 	mirrorSvc := NewMirrorService(stores.Mirror, stores.Repo, repoSvc, webhookSvc, index, depSvc, secrets, cfg.Git, cfg.Mirror)
-	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc).WithQuota(quotaSvc)
+	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc).WithQuota(quotaSvc).WithServerCommits(serverCommits)
 	languageSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(languageSvc)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
@@ -209,7 +211,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
 		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
-		InstanceSigner:     NewInstanceSigner(stores.InstanceSigningKey, secrets),
+		InstanceSigner:     instanceSigner,
 		Secrets:            secrets,
 	}
 }

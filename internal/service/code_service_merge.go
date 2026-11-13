@@ -437,16 +437,11 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
-		Committer:    sig,
 		Message:      cmp.Or(strings.TrimSpace(message), DefaultMergeMessage(head, base)),
 		TreeHash:     mergedTreeHash,
 		ParentHashes: []plumbing.Hash{baseCommit.Hash, headCommit.Hash},
 	}
-	obj := repo.Storer.NewEncodedObject()
-	if err := commit.Encode(obj); err != nil {
-		return err
-	}
-	h, err := repo.Storer.SetEncodedObject(obj)
+	h, err := s.commits.store(repo.Storer, commit)
 	if err != nil {
 		return err
 	}
@@ -504,16 +499,11 @@ func (s *CodeService) UpdatePullBranch(owner, repoName, base, head string, headH
 	sig := author.signature(time.Now())
 	commit := &object.Commit{
 		Author:       sig,
-		Committer:    sig,
 		Message:      DefaultUpdateBranchMessage(base, head),
 		TreeHash:     treeHash,
 		ParentHashes: []plumbing.Hash{headCommit.Hash, baseCommit.Hash},
 	}
-	obj := repo.Storer.NewEncodedObject()
-	if err := commit.Encode(obj); err != nil {
-		return RefUpdate{}, err
-	}
-	newHash, err := repo.Storer.SetEncodedObject(obj)
+	newHash, err := s.commits.store(repo.Storer, commit)
 	if err != nil {
 		return RefUpdate{}, err
 	}
@@ -562,16 +552,11 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
-		Committer:    sig,
 		Message:      cmp.Or(strings.TrimSpace(message), DefaultSquashMessage(head, base)),
 		TreeHash:     treeHash,
 		ParentHashes: []plumbing.Hash{baseCommit.Hash},
 	}
-	obj := repo.Storer.NewEncodedObject()
-	if err := commit.Encode(obj); err != nil {
-		return err
-	}
-	h, err := repo.Storer.SetEncodedObject(obj)
+	h, err := s.commits.store(repo.Storer, commit)
 	if err != nil {
 		return err
 	}
@@ -683,16 +668,11 @@ func (s *CodeService) ApplySuggestions(owner, repoName, branch string, edits []S
 	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
-		Committer:    sig,
 		Message:      suggestionCommitMessage(paths, len(edits)),
 		TreeHash:     newTreeHash,
 		ParentHashes: []plumbing.Hash{headCommit.Hash},
 	}
-	obj := repo.Storer.NewEncodedObject()
-	if err := commit.Encode(obj); err != nil {
-		return RefUpdate{}, err
-	}
-	newHash, err := repo.Storer.SetEncodedObject(obj)
+	newHash, err := s.commits.store(repo.Storer, commit)
 	if err != nil {
 		return RefUpdate{}, err
 	}

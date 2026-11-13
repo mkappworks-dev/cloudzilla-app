@@ -30,6 +30,13 @@ type OrgService struct {
 	cfg     config.GitConfig
 	avatars *AvatarService
 	quota   *QuotaService
+	commits serverCommitter
+}
+
+// WithServerCommits sets how an organization repository's initial commit is committed and signed.
+func (s *OrgService) WithServerCommits(c serverCommitter) *OrgService {
+	s.commits = c
+	return s
 }
 
 func (s *OrgService) WithQuota(q *QuotaService) *OrgService {
@@ -338,7 +345,7 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 			Email: org.Name + "@users.noreply.localhost",
 			When:  time.Now().UTC(),
 		}
-		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, init, org.Name, name, description); err != nil {
+		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, s.commits, init, org.Name, name, description); err != nil {
 			slog.Error("seed initial commit for new org repo failed; repo created empty",
 				"repo_id", r.ID, "org", org.Name, "name", name, "error", err)
 		}

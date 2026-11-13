@@ -20,7 +20,7 @@ func TestSeedInitialCommit_NeedsNoGitBinary(t *testing.T) {
 	}
 	sig := object.Signature{Name: "Alice", Email: "alice@example.com", When: time.Unix(1700000000, 0).UTC()}
 	init := RepoInitOptions{AddREADME: true, Gitignore: "Go", License: "mit"}
-	if err := seedInitialCommit(bareDir, "", sig, init, "alice", "proj", "A project"); err != nil {
+	if err := seedInitialCommit(bareDir, "", sig, serverCommitter{}, init, "alice", "proj", "A project"); err != nil {
 		t.Fatalf("seedInitialCommit: %v", err)
 	}
 
@@ -46,11 +46,11 @@ func TestSeedInitialCommit_NeedsNoGitBinary(t *testing.T) {
 	if commit.Message != "Initial commit" || len(commit.ParentHashes) != 0 {
 		t.Errorf("commit: want a root commit %q, got %q with %d parents", "Initial commit", commit.Message, len(commit.ParentHashes))
 	}
-	for _, got := range []object.Signature{commit.Author, commit.Committer} {
-		if got.Name != sig.Name || got.Email != sig.Email || !got.When.Equal(sig.When) {
-			t.Errorf("commit signature: want %v, got author %v committer %v", sig, commit.Author, commit.Committer)
-			break
-		}
+	if got := commit.Author; got.Name != sig.Name || got.Email != sig.Email || !got.When.Equal(sig.When) {
+		t.Errorf("author: want %v, got %v", sig, got)
+	}
+	if got := commit.Committer; got.Name != "Cloudzilla" || got.Email != "noreply@localhost" || !got.When.Equal(sig.When) {
+		t.Errorf("committer: want Cloudzilla <noreply@localhost> at %v, got %v", sig.When, got)
 	}
 
 	wantGitignore, _ := gitignoreContent("Go")

@@ -64,6 +64,7 @@ type RepoService struct {
 	repos            *store.RepoStore
 	users            *store.UserStore
 	noreplyHost      string
+	commits          serverCommitter
 	orgs             *store.OrgStore
 	contributorStats *ContributorStatsService
 	code             *CodeService
@@ -81,6 +82,12 @@ type RepoService struct {
 // The code service may be nil in tests that do not exercise contributor queries.
 func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, contributorStats *ContributorStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
 	return &RepoService{repos: repos, users: users, orgs: orgs, contributorStats: contributorStats, code: code, cfg: cfg, noreplyHost: defaultNoreplyHost}
+}
+
+// WithServerCommits sets how the repository initial commit is committed and signed.
+func (s *RepoService) WithServerCommits(c serverCommitter) *RepoService {
+	s.commits = c
+	return s
 }
 
 func (s *RepoService) WithNoreplyHostFrom(baseURL string) *RepoService {
