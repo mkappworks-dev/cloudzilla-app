@@ -26,6 +26,8 @@ const (
 
 	registrationTokenTTL = 7 * 24 * time.Hour
 	lostJobSweepEvery    = 15 * time.Second
+	// contactTouchEvery caps how often authenticating rewrites last_contact_at: a waiting claim authenticates every poll.
+	contactTouchEvery = 5 * time.Second
 )
 
 var (
@@ -145,8 +147,11 @@ func (s *CIRunnerService) Authenticate(ctx context.Context, raw string) (*model.
 	if r == nil || r.RevokedAt != nil {
 		return nil, ErrRunnerUnauthorized
 	}
-	if err := s.runners.TouchRunner(ctx, r.ID, time.Now()); err != nil {
-		return nil, err
+	now := time.Now()
+	if r.LastContactAt == nil || now.Sub(*r.LastContactAt) >= contactTouchEvery {
+		if err := s.runners.TouchRunner(ctx, r.ID, now); err != nil {
+			return nil, err
+		}
 	}
 	return r, nil
 }

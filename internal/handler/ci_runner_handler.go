@@ -18,8 +18,12 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
-// claimPollEvery is how often a waiting claim looks for a Job; a Job is picked up within this of being queued.
-const claimPollEvery = time.Second
+// A waiting claim first looks for a Job every claimPollEvery and backs off to claimPollMax, so a Job is picked up
+// within claimPollMax of being queued while an idle runner costs the database little.
+const (
+	claimPollEvery = time.Second
+	claimPollMax   = 5 * time.Second
+)
 
 func bearerToken(r *http.Request) string {
 	if auth := r.Header.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
@@ -80,7 +84,10 @@ func (h *Handler) RunnerClaim(w http.ResponseWriter, r *http.Request) {
 	if r.ContentLength != 0 && !decodeRunnerBody(w, r, &req) {
 		return
 	}
+	// The wait outlives the server's write timeout, which would cut the connection and log EOF at the runner.
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})
 	wait, _ := strconv.Atoi(r.URL.Query().Get("wait"))
+	poll := claimPollEvery
 	deadline := time.Now().Add(time.Duration(min(max(wait, 0), runnerapi.MaxClaimWaitSeconds)) * time.Second)
 	for {
 		spec, err := h.Services.CIRunner.Claim(r.Context(), runner, req.Labels)
@@ -92,15 +99,16 @@ func (h *Handler) RunnerClaim(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, spec)
 			return
 		}
-		if !time.Now().Add(claimPollEvery).Before(deadline) {
+		if !time.Now().Add(poll).Before(deadline) {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		select {
 		case <-r.Context().Done():
 			return
-		case <-time.After(claimPollEvery):
+		case <-time.After(poll):
 		}
+		poll = min(poll*2, claimPollMax)
 		if runner, ok = h.runnerAuth(w, r); !ok {
 			return
 		}

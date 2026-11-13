@@ -469,3 +469,50 @@ func TestRunnerClient_SpeaksTheProtocolTheServerServes(t *testing.T) {
 		t.Errorf("claim after revoke = %v, want ErrUnauthorized", err)
 	}
 }
+
+func TestRunnerClaim_LongPollOutlivesTheServersWriteTimeout(t *testing.T) {
+	e := newRunnerEnv(t)
+	srv := httptest.NewUnstartedServer(e.h)
+	srv.Config.WriteTimeout = 300 * time.Millisecond
+	srv.Start()
+	defer srv.Close()
+	ctx := context.Background()
+
+	reg, _ := e.svcs.CIRunner.CreateRegistrationToken(ctx, nil, e.r.owner.id)
+	resp, err := runner.Register(ctx, srv.URL, reg, runnerapi.RegisterRequest{Name: "idle", Labels: []string{"idle" + testutil.UniqueSuffix(t)}})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	c := &runner.Client{Server: srv.URL, Token: resp.Token}
+	spec, err := c.Claim(ctx, nil, 2*time.Second)
+	if err != nil || spec != nil {
+		t.Errorf("idle claim = %+v, %v; want a clean 204 after the wait", spec, err)
+	}
+}
+
+func TestRunnerAuth_TouchesLastContactAtAtMostEveryFewSeconds(t *testing.T) {
+	e := newRunnerEnv(t)
+	token := e.registerRunner(t, nil)
+	ctx := context.Background()
+	contact := func() time.Time {
+		runners, _ := e.svcs.CIRunner.ListInstanceRunners(ctx)
+		for _, r := range runners {
+			if len(r.Labels) == 1 && r.Labels[0] == e.label && r.LastContactAt != nil {
+				return *r.LastContactAt
+			}
+		}
+		t.Fatal("runner not found")
+		return time.Time{}
+	}
+	if _, err := e.svcs.CIRunner.Authenticate(ctx, token); err != nil {
+		t.Fatal(err)
+	}
+	first := contact()
+	time.Sleep(20 * time.Millisecond)
+	if _, err := e.svcs.CIRunner.Authenticate(ctx, token); err != nil {
+		t.Fatal(err)
+	}
+	if got := contact(); !got.Equal(first) {
+		t.Errorf("last_contact_at moved from %v to %v within the throttle window", first, got)
+	}
+}
