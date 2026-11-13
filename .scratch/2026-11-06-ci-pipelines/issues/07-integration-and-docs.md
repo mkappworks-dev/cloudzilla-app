@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 06
 Parallel with: none
 
@@ -46,22 +46,42 @@ hear about a finished Run or script one, and the ROADMAP still describes the aba
 
 ## Acceptance criteria
 
-- [ ] The PR Checks tab groups Jobs under their Run and still lists external statuses; the Approve button appears only
+- [x] The PR Checks tab groups Jobs under their Run and still lists external statuses; the Approve button appears only
       for a writer on a waiting fork Run
-- [ ] The three badges show the combined state of a commit and link to its latest Run; no extra queries per commit row
+- [x] The three badges show the combined state of a commit and link to its latest Run; no extra queries per commit row
       (asserted in a handler test)
-- [ ] `workflow_run` fires once on completion with a valid HMAC and is not sent to hooks that did not subscribe
-- [ ] The API endpoints enforce scopes and the private-repo 404, and cancel, re-run and dispatch work with a token
-- [ ] `docs/ci.md` exists and every config key from tickets 03–05 is in `docs/configuration.md`
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique
+- [x] `workflow_run` fires once on completion with a valid HMAC and is not sent to hooks that did not subscribe
+- [x] The API endpoints enforce scopes and the private-repo 404, and cancel, re-run and dispatch work with a token
+- [x] `docs/ci.md` exists and every config key from tickets 03–05 is in `docs/configuration.md`
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique
       `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with a real runner; evidence for both themes in
       the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR and checked under `make mockups`
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR and checked under `make mockups`
       in both themes
-- [ ] `make generate-templ` re-run and generated files committed; `make lint`, `npm run fmt:check` and `go test ./...`
+- [x] `make generate-templ` re-run and generated files committed; `make lint`, `npm run fmt:check` and `go test ./...`
       pass
 
 ## Verification
 
 Throwaway server and runner; open a PR with a passing and a failing Job and check the Checks tab, the commit list
 badge and the tree row; a local `nc -l` listener receives the `workflow_run` delivery; `curl` the API with a token.
+
+## Comments
+
+- Claude, 2026-11-13: done, no migration. Evidence (throwaway server, real runner and Docker, `workflow_run` deliveries with
+  valid HMAC, `curl` of the API with `repo:read` and `repo:write` tokens, both themes at 1440) is in
+  `/private/tmp/claude-501/ci-ticket-07-evidence.md`; screenshots are under `.scratch/2026-11-06-ci-pipelines/shots/t07-*`
+  (gitignored): copy them into the PR.
+  - Webhook: `WorkflowRunService.WithCompleted` fires after the commit (`WorkflowRunTx.AfterCommit`) when a Run first reaches a
+    final status through the scheduler, a cancel or a parse failure; a re-run completes and fires again. A pull request Run's
+    `head_branch` is the pull request's head branch. `workflow_run` is also accepted by `PATCH .../hooks/{id}` and the hook's
+    event checkboxes (the old whitelist would have dropped it), and the settings mocks show it.
+  - API: list and get are new; cancel, re-run and dispatch return the Run. The log and artifact GETs of ticket 05 and the new
+    routes now register only while `ci.enabled`, and `actions` joined the scope allow-list's content resources.
+  - Checks tab: Jobs come from the Run's Jobs (not the commit statuses) so queued, skipped and cancelled read exactly; the
+    banner counts the commit's statuses so it agrees with the tab badge when two Runs share a Job context.
+  - Mock vs shipped: none beyond what the mocks already show; the Approve strip is covered by a handler test, not live (fork
+    pull requests cannot exist yet). The repo home page's last-commit row has no badge (the mock has none).
+  - Not done: `/admin/runners` is still reachable and its tab shown with `ci.enabled` off: hiding the tab needs the flag in
+    every admin page's tab strip, not a one-line fix; documented under Known limitations in `docs/ci.md`.
+  - Noticed: `TestPushProtection_ClosedAlertValue_NewLocationAppended` failed once in the full parallel run and passes alone.

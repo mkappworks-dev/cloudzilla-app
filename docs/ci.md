@@ -5,6 +5,55 @@ GitHub Actions syntax ([ADR 0004](./adr/0004-workflow-format-is-a-github-actions
 `internal/ci/workflow`: `Parse(path, data)` returns a validated `Workflow` with matrix jobs already expanded, or
 line-numbered `Error`s. It is pure and knows nothing about the database.
 
+## From a push to a result
+
+A **Run** is one execution of one Workflow for one commit, numbered per Repository. It is created by:
+
+- a push to a branch or tag whose `on.push` filters match (a push that only deletes refs creates none);
+- a pull request that is opened, reopened or has new commits (`opened`, `reopened`, `synchronize`), run for the head
+  commit;
+- **Run workflow** on the Actions tab, or `POST /api/repos/{owner}/{repo}/actions/dispatch`, for a Workflow with
+  `workflow_dispatch`.
+
+The Workflow file is read from the pushed commit and stored with the Run, so a re-run at the same commit uses the same
+file even if the branch has moved on. A file that does not parse creates a Run that failed at once, with zero Jobs, the
+parse message on its page, and one failing commit status named `ci/<file name without extension>`, so a broken Workflow
+cannot be merged around.
+
+A Run is `waiting` (a fork pull request awaiting approval), `queued`, `running`, `success`, `failure` or `cancelled`; a
+Job also has `skipped`. Each Job posts a commit status `ci/<job id>` (`ci/<job id> (<matrix values>)` for a matrix)
+linked to its Run, so a required check in branch protection accepts built-in and external CI alike. A skipped Job
+reports `success`, a cancelled one `error`, so a required check never passes by being cancelled. Two Workflows that use
+the same Job id on one commit share a `ci/<job id>` status.
+
+**Where results show.** The Actions tab lists Runs, with filters for workflow, branch, status and trigger; a Run page
+shows the Job graph and the Steps, streams a running Job's log every 2 seconds, and has line anchors (`#L<n>`), a
+timestamps toggle, log search and downloads for the log and the artifacts. A writer can cancel a Run, re-run all of it
+or only its failed Jobs, run a Workflow by hand, and approve a waiting fork Run. The pull request **Checks** tab groups
+each Run's Jobs under it, with **View run**, and keeps statuses that external CI posted in an **Other statuses** card.
+The commit list, the pull request header and the file tree's last-commit row show the combined state of the commit as an
+icon that links to its latest Run (or to the commit when only external CI reported). `/{owner}/{repo}/checks` still
+resolves: it redirects to the Actions tab, where **Commit statuses** lists what external CI posted.
+
+**Switches.** `ci.enabled` (default on) hides the tab, the routes and the schedulers when off, and creates no Runs.
+Settings, CI/CD has a per-repository toggle that stops new Runs and keeps history. An archived repository creates no
+Runs, but its logs and artifacts stay readable. A private repository, and a soft-deleted one, answers a viewer who
+cannot read it with the same 404 as a repository that does not exist.
+
+**Who may do what.**
+
+| Action                                                           | Needs       |
+| ---------------------------------------------------------------- | ----------- |
+| View Runs, logs and artifacts                                    | `CanRead`   |
+| Run workflow, cancel, re-run, approve a fork Run                 | `CanWrite`  |
+| Repository secrets, repository runners, the CI/CD toggle         | `CanManage` |
+| Instance runners and the read-only CI limits at `/admin/runners` | superadmin  |
+
+Scheduling limits (`ci.*`) are in [configuration](./configuration.md) (the `ci.*` rows). A new Run past
+`ci.max_queued_runs_per_repo` cancels the repository's oldest `queued` Run. A new push cancels the older queued Runs of
+the same Workflow and ref, and `concurrency` with `cancel-in-progress` also stops running ones in the same group. A Job
+queued for more than 24 hours is cancelled as "no runner".
+
 ## Supported keys
 
 | Level                                | Keys                                                                                                                     |
@@ -111,6 +160,19 @@ a shell other than `sh` or `bash` fails the Step). Step `if`, `env`, `run` and `
 Step's `timeout-minutes` kills the processes it started (the Job continues, so `if: always()` Steps still run); the Job
 timeout removes the container.
 
+### Operating a runner
+
+- **Several runners.** A runner takes one Job at a time; start more processes, with the same or different labels, for
+  parallelism. Give a Job's `runs-on` the labels only the right runners hold (`gpu`, `arm64`) to steer it.
+- **Revoking.** Revoke a runner from the same page that registered it; its next request is refused and any Job it holds
+  fails as "runner lost". Revoke a runner you no longer trust before anything else.
+- **Upgrading.** Stop the runner (`SIGTERM` removes its containers), replace the binary, start it. Its Job is lost and
+  can be re-run.
+- **Disk.** Each Job's checkout and volume are removed when it ends; `docker system prune` on the host clears images
+  nobody uses.
+- **Repo runners.** A repository runner claims only that repository's Jobs, so a repository with sensitive builds can
+  have a host of its own.
+
 ### Runner protocol
 
 All calls are `POST`, JSON, with `Authorization: Bearer <token>`. Types are in `internal/ci/runnerapi`.
@@ -136,6 +198,57 @@ The log and artifact endpoints take this token for their own Job only (`403` for
 left `running`), so the runner posts the artifacts before it reports the Job finished. They are not JSON: the log body
 is text and the artifact body is a zip.
 
+## Security model
+
+Workflow code is whatever its author pushed, and a pull request proposes more. It runs only on a Runner, in a
+non-privileged container, never in the server process and never with the Instance's credentials
+([ADR 0003](./adr/0003-workflow-code-runs-only-on-runners-in-containers.md)). The container flags are listed under
+[What runs, and how](#what-runs-and-how). Egress is not filtered by Cloudzilla; see
+[Operator hardening](#operator-hardening).
+
+### Secrets
+
+A repository admin (`CanManage`) stores secrets under Settings, CI/CD. A name is letters, digits and underscores, not
+starting with a digit, up to 100 characters; a value is 1 byte to 16 KiB; a repository holds 100. Values are sealed with
+`security.secret_key` (the same box and per-purpose key derivation as mirror tokens), are write-only in the UI, and
+saving one is refused while the key is not set.
+
+A Job reads a secret as `${{ secrets.NAME }}`, resolved on the runner: the server sends the values with the claim, only
+for the Job's repository and never for a fork Run. The runner and then the server mask a value in the log (the exact
+text, its base64 form and its URL-encoded form). A secret that contains a newline is not masked across the break.
+
+**A writer can read a secret.** Anyone who can push a branch or open a pull request from a branch of the same repository
+runs a workflow of their own with the repository's secrets, so they can print one in a form the masker does not know
+(reversed, split, hex-encoded, sent over the network). Treat a secret as readable by every writer, give each secret the
+least privilege it needs, and keep production credentials out of repositories whose writers you do not trust.
+
+Do not echo a secret or paste it into a command line, where it is also visible to every process in the container. Pass
+it to the one Step that needs it through `env`:
+
+```yaml
+steps:
+  # Wrong: the value is inlined into the script and into the log line that echoes it.
+  - run: curl -H "Authorization: Bearer ${{ secrets.DEPLOY_TOKEN }}" https://deploy.example.com
+  # Right: the Step sees an environment variable and the script never contains the value.
+  - run: curl -H "Authorization: Bearer $DEPLOY_TOKEN" https://deploy.example.com
+    env:
+      DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+```
+
+### Fork pull requests
+
+A pull request whose head repository differs from its base creates a `waiting` Run: its Workflow file is stored but
+nothing runs. A writer approves it from the Run page or the pull request Checks tab (**Approve**), after reading the
+Workflow file in the pull request, because approving runs that code on your runners. Every new push to the pull request
+makes a new Run that waits again, so approving version 1 never covers version 2. An approved fork Run gets no secrets
+and a read-only per-job token. A reader never sees **Approve**.
+
+### The per-job token
+
+Each claimed Job gets a token that is read-only, bound to one repository and one Job, valid for a git clone over HTTP
+and for posting that Job's logs and artifacts, and dead the moment the Job leaves `running`. It is not passed into
+Steps. Details are under [Runner protocol](#runner-protocol).
+
 ## Logs and artifacts
 
 **Logs.** While a Step runs the runner posts its output every second, or sooner at 256 KiB, as chunks of whole lines.
@@ -143,8 +256,7 @@ Each chunk carries a sequence number `seq` chosen by the runner, so a retried PO
 belongs to. The server assigns the line offsets, stores the chunk as an object and then its row, and records the Step's
 line range. A chunk may be up to 1 MiB. The runner masks secret values (exact, base64 and URL-encoded forms) before it
 posts, and the server masks the repo's secret values again as a backstop, so a runner that skips it still can't store
-one. A secret that spans two lines is not masked across the break. No Job carries secrets yet; the hook is
-`WorkflowLogService.WithSecrets`.
+one. A secret that spans two lines is not masked across the break.
 
 A Job's log is capped at `ci.max_log_bytes` (20 MiB). The chunk that crosses it is cut at a line boundary and ends with
 one line, `[log truncated: this Job reached the 20 MiB limit (ci.max_log_bytes)]`; later chunks are dropped and the
@@ -200,3 +312,45 @@ volumes and networks with `docker volume rm` and `docker network rm`.
 `docker compose --profile runner up` starts a DEV ONLY runner against the host Docker socket (`Dockerfile.cz-runner`);
 set `CZ_RUNNER_TOKEN` to a registration token from `/admin/runners` and `CZ_SERVER_BASE_URL=http://cloudzilla:8080` on
 the server so its clone URL resolves from the runner's container.
+
+## Webhook and API
+
+A `workflow_run` webhook fires once when a Run reaches a final status (success, failure or cancelled), after the status
+is committed, to hooks that list `workflow_run`. Existing hooks do not get it until someone adds it. The payload and
+signing are in [webhooks](./webhooks.md#workflow_run); the endpoints (list, get, logs, cancel, re-run, dispatch) are in
+the [API reference](./api-reference.md#workflow-runs), and the `repo` and `repo:write` scopes they need are in
+[access control](./access-control.md#token-scopes). The `cz` CLI has no CI commands in v1.
+
+## Troubleshooting
+
+| Symptom                                            | Cause and fix                                                                                                                                                                                   |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A push made no Run                                 | The file is not under `.cloudzilla/workflows/` with a `.yml` or `.yaml` extension, its `on` does not match the ref, CI is off for the repository or the Instance, or the repository is archived |
+| A Run failed at once with no Jobs                  | The Workflow does not parse: the Run page shows the file, line and key. A key under [Not supported](#not-supported) is the usual cause                                                          |
+| Jobs stay `queued`                                 | No online runner holds every label in `runs-on`; the Run page names the missing label. Register one, or fix the label                                                                           |
+| "No runner" after a day                            | The Job was queued 24 hours with no matching runner and was cancelled; re-run it once a runner exists                                                                                           |
+| Job failed as "runner lost"                        | No heartbeat for 60 s: the runner stopped, lost its network or was revoked. Start it and re-run the failed Jobs                                                                                 |
+| `image "…" is not in this runner's allowed_images` | The Workflow's `container:` is outside the runner's `allowed_images`; add it to the runner config or use an allowed image                                                                       |
+| A Step cannot reach the network or a host          | Egress is the operator's firewall, not Cloudzilla's. Check the runner host's rules                                                                                                              |
+| `secrets.NAME` is empty                            | The secret is not saved for this repository, or the Run is a fork Run, which never gets secrets                                                                                                 |
+| Saving a secret is refused                         | `security.secret_key` is not set on the Instance                                                                                                                                                |
+| A pull request Run says "Approval required"        | It is a fork Run; a writer approves it from the Run page or the Checks tab                                                                                                                      |
+| A log ends with `[log truncated: …]`               | The Job hit `ci.max_log_bytes`; raise it or print less                                                                                                                                          |
+| An artifact will not download                      | It passed `ci.artifact_retention`, or the Job's path did not exist and the Job failed                                                                                                           |
+| The runner logs `EOF` and retries                  | The claim long poll (25 s) outlives the server's 15 s write timeout; harmless                                                                                                                   |
+
+## Known limitations
+
+- **Fork pull requests cannot exist yet.** The app has no cross-repository pull requests, so the fork approval flow is
+  covered by tests only and has never run on a real fork. When they land, `WorkflowRunService.OnPullRequest` must be
+  called with the fork as the head repository, and a fork Run's per-job token must be bound to the fork so the runner
+  can clone its commit.
+- **A `kill -9` of a runner leaves `cz-job-*` containers, volumes and networks behind.** `SIGINT` and `SIGTERM` clean
+  up; remove the rest by hand (see [Operator hardening](#operator-hardening)).
+- **`strategy.fail-fast` is parsed but not acted on.** Matrix siblings keep running after one fails.
+- **A secret containing a newline is not masked across the break**, because logs are masked a line at a time.
+- **`/admin/runners` is reachable, and its tab shown, when `ci.enabled` is off.** The page says CI is off; the runner
+  API is absent.
+- **A matrix expression in an `artifacts:` name is not interpolated** (`dist-${{ matrix.arch }}` is kept as written).
+- **One Job container per Job.** Steps share it, so a tool one Step installs is there in the next, but a Job cannot
+  start service containers (`services` is rejected).

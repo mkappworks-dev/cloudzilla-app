@@ -360,6 +360,7 @@ type TreeLatestCommit struct {
 	CommitURL string
 	Timestamp time.Time
 	Signature service.SignatureResult
+	CI        components.CIBadge
 }
 
 // BlobData holds template data for the file blob viewer page.
@@ -416,6 +417,8 @@ type CommitsData struct {
 	RepoName string
 	Log      *service.CommitLog
 	RefsURL  string
+	// CI is the status badge of each commit by full SHA; a commit without statuses has none.
+	CI map[string]components.CIBadge
 }
 
 // CommitData holds template data for the single commit detail page.

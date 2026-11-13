@@ -413,8 +413,15 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(authMW).Post("/", h.CreateRepo)
 		r.Get("/{owner}/{repo}", h.GetRepo)
 		r.With(authMW).Patch("/{owner}/{repo}", h.UpdateRepo)
-		r.Get("/{owner}/{repo}/actions/runs/{number}/jobs/{jobID}/logs", h.GetWorkflowJobLog)
-		r.Get("/{owner}/{repo}/actions/runs/{number}/artifacts", h.ListWorkflowArtifacts)
+		if cfg.CI.Enabled {
+			r.Get("/{owner}/{repo}/actions/runs", h.ListWorkflowRuns)
+			r.Get("/{owner}/{repo}/actions/runs/{number}", h.GetWorkflowRun)
+			r.With(authMW).Post("/{owner}/{repo}/actions/runs/{number}/cancel", h.CancelWorkflowRun)
+			r.With(authMW).Post("/{owner}/{repo}/actions/runs/{number}/rerun", h.RerunWorkflowRun)
+			r.With(authMW).Post("/{owner}/{repo}/actions/dispatch", h.DispatchWorkflowRun)
+			r.Get("/{owner}/{repo}/actions/runs/{number}/jobs/{jobID}/logs", h.GetWorkflowJobLog)
+			r.Get("/{owner}/{repo}/actions/runs/{number}/artifacts", h.ListWorkflowArtifacts)
+		}
 
 		// Issues
 		r.Route("/{owner}/{repo}/issues", func(r chi.Router) {

@@ -397,8 +397,8 @@ Open routes:
   settings).
 - Content sub-resources of `/api/repos/{owner}/{repo}`: `issues`, `pulls`, `labels`, `milestones`, `releases`,
   `statuses`, `commits`, `branches` (not `branches/protections`), `tags`, `comments`, `stargazers`, `star`, `watch`,
-  `fork`, `projects`, `wiki`, `discussions`. A few of these `GET`s return HTML fragments (e.g. the watch button, issue
-  title/body sections) carrying the same data as the JSON.
+  `fork`, `projects`, `wiki`, `discussions`, `actions`. A few of these `GET`s return HTML fragments (e.g. the watch
+  button, issue title/body sections) carrying the same data as the JSON.
 - `GET /api/orgs/{org}`, `GET /api/orgs/{org}/members`, `POST /api/orgs/{org}/repos`.
 - `GET /api/user` (exactly this path: `{id, username}` of the token's owner; every `/api/user/*` route stays closed),
   `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
@@ -406,8 +406,8 @@ Open routes:
 
 | Scope          | Admits on the open routes                                                                                                                                                                                 |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `repo:read`    | `GET`/`HEAD`; git clone/fetch                                                                                                                                                                             |
-| `repo:write`   | Everything, including creating repos, merging, applying suggestions, and git push                                                                                                                         |
+| `repo:read`    | `GET`/`HEAD`, including CI runs, logs and artifacts under `.../actions/**`; git clone/fetch                                                                                                               |
+| `repo:write`   | Everything, including creating repos, merging, applying suggestions, git push, and cancelling, re-running and dispatching CI runs under `.../actions/**`                                                  |
 | `issues:write` | Reads, plus writes under `.../issues/**`                                                                                                                                                                  |
 | `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, applying a suggestion, and updating the branch                                                                             |
 | `repo:admin`   | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else |
@@ -493,8 +493,11 @@ them (see [Organizations](./organizations.md#repository-grants)).
 **Write** also opens a repository's Security tab (secret scan alerts, close, reopen, allow); readers and anonymous
 visitors get the missing-repository `404`. See [secret-scanning](./secret-scanning.md#who-sees-what).
 
+**CI** ([ci](./ci.md)): reading Runs, logs and artifacts needs read (a private repository answers a non-reader with the
+missing-repository `404`); dispatching, cancelling, re-running and approving a fork Run need write.
+
 **Manage** includes: adding, changing and removing `reader` and `writer` collaborators, branch protection, deploy keys,
-topics, wiki deletion, webhook CRUD, repo settings page access.
+topics, wiki deletion, webhook CRUD, repo settings page access, CI secrets, repository runners and the CI/CD toggle.
 
 **Grant / revoke `admin`** (owner-only, `IsOwner`): giving someone the `admin` role, changing an admin's role, and
 removing an admin. An admin collaborator who tries gets `403`; otherwise they could make a second account of theirs

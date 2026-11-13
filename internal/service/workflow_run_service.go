@@ -41,8 +41,25 @@ type WorkflowRunService struct {
 	code    *CodeService
 	cfg     config.CIConfig
 	baseURL string
+	// onCompleted is told, after the commit, of each Run that reaches a final status.
+	onCompleted func(model.WorkflowRun)
 	// pushDone lets a test wait for OnPush, which AfterPush runs in the background.
 	pushDone func()
+}
+
+// WithCompleted calls fn for each Run that completes, once its final status is committed.
+func (s *WorkflowRunService) WithCompleted(fn func(model.WorkflowRun)) *WorkflowRunService {
+	s.onCompleted = fn
+	return s
+}
+
+// notifyCompleted tells onCompleted about run once tx commits.
+func (s *WorkflowRunService) notifyCompleted(tx *store.WorkflowRunTx, run *model.WorkflowRun) {
+	if s.onCompleted == nil {
+		return
+	}
+	snapshot := *run
+	tx.AfterCommit(func() { s.onCompleted(snapshot) })
 }
 
 // WithPushDone calls fn when OnPush has handled a push.
@@ -62,6 +79,14 @@ func (s *WorkflowRunService) GetRun(ctx context.Context, repoID int64, number in
 
 func (s *WorkflowRunService) ListRuns(ctx context.Context, repoID int64, limit int) ([]model.WorkflowRun, error) {
 	return s.runs.ListRuns(ctx, repoID, limit)
+}
+
+// RunsByIDs returns the repo's Runs with the given IDs, newest first.
+func (s *WorkflowRunService) RunsByIDs(ctx context.Context, repoID int64, ids []int64) ([]model.WorkflowRun, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return s.runs.ListRunsByIDs(ctx, repoID, ids)
 }
 
 // ListJobs returns the Run's Jobs at their latest attempt.

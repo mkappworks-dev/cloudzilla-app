@@ -193,7 +193,8 @@ are deleted after the database change commits.
 
 **Permissions.** View runs, logs and artifacts: `CanRead`, with the "private repo looks missing" 404. Dispatch, cancel,
 re-run and approve: `CanWrite`. Secrets, runners and the CI/CD toggle: `CanManage`. Instance runners and CI limits:
-superadmin at `/admin/runners`. A repo made private, archived or soft-deleted stops serving logs and creating Runs.
+superadmin at `/admin/runners`. A repo made private or soft-deleted stops serving logs and creating Runs. An archived repository creates no Runs, but its
+logs and artifacts stay readable.
 
 **Switches.** `ci.enabled` (default true) hides the tab, routes and workers when off. A per-repo CI/CD toggle (default
 on) stops new Runs and keeps history.

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -56,6 +57,9 @@ func readWebhookInput(w http.ResponseWriter, r *http.Request) (webhookInput, boo
 	return in, true
 }
 
+// webhookEvents are the events a hook can subscribe to; a new hook gets the first three.
+var webhookEvents = []string{"push", "issues", "pull_request", "workflow_run"}
+
 // readWebhookEvents reads the event filter of an update request, answering 400 itself when it is invalid.
 func readWebhookEvents(w http.ResponseWriter, r *http.Request) (string, bool) {
 	if r.Header.Get("HX-Request") == "true" {
@@ -64,7 +68,7 @@ func readWebhookEvents(w http.ResponseWriter, r *http.Request) (string, bool) {
 			return "", false
 		}
 		var parts []string
-		for _, ev := range []string{"push", "issues", "pull_request"} {
+		for _, ev := range webhookEvents {
 			if r.FormValue(ev) == "1" {
 				parts = append(parts, ev)
 			}
@@ -82,10 +86,9 @@ func readWebhookEvents(w http.ResponseWriter, r *http.Request) (string, bool) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return "", false
 	}
-	allowed := map[string]bool{"push": true, "issues": true, "pull_request": true}
 	for _, ev := range strings.Split(req.Events, ",") {
 		ev = strings.TrimSpace(ev)
-		if ev != "" && !allowed[ev] {
+		if ev != "" && !slices.Contains(webhookEvents, ev) {
 			writeError(w, http.StatusBadRequest, "invalid event: "+ev)
 			return "", false
 		}

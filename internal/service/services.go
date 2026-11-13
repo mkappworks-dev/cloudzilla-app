@@ -1,7 +1,11 @@
 package service
 
 import (
+	"context"
+	"log/slog"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/secretbox"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -158,6 +162,20 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	orgSvc.WithWorkflowLogs(workflowLogSvc)
 	workflowRunSvc := NewWorkflowRunService(stores.WorkflowRun, stores.Repo, stores.User, stores.Pull, repoSvc, code, cfg.CI, cfg.Server.BaseURL)
 	pullSvc.WithRuns(workflowRunSvc)
+	workflowRunSvc.WithCompleted(func(run model.WorkflowRun) {
+		repo, err := stores.Repo.GetByID(context.Background(), run.RepoID)
+		if err != nil {
+			slog.Warn("workflow_run webhook: repo lookup failed", "repo_id", run.RepoID, "error", err)
+			return
+		}
+		// A pull request Run's ref is refs/pull/N/head, which names no branch; the pull request's head branch does.
+		if run.PullRequestID != nil {
+			if pr, err := stores.Pull.GetByID(context.Background(), *run.PullRequestID); err == nil {
+				run.Ref = "refs/heads/" + pr.HeadBranch
+			}
+		}
+		go webhookSvc.Dispatch(repo.ID, "workflow_run", webhookSvc.WorkflowRunPayload(*repo, run, workflowRunSvc.runURL(repo, &run)))
+	})
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)

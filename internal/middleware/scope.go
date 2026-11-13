@@ -50,6 +50,7 @@ var repoContentResources = map[string]bool{
 	"projects":    true,
 	"wiki":        true,
 	"discussions": true,
+	"actions":     true,
 }
 
 // pathSegments splits the path chi routes on, so an encoded "%2F" cannot shift

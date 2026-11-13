@@ -31,6 +31,7 @@ templ PullCommits(data view.PullCommitsData) {
 			Deleted:        data.Deleted,
 			MergedBy:       data.MergedBy,
 			MergedCommits: data.MergedCommits,
+			HeadCI:        data.HeadCI,
 		}, pullCommitsBody(data))
 	}
 }

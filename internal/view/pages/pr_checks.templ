@@ -27,6 +27,7 @@ templ PullChecks(data view.PullChecksData) {
 			Deleted:        data.Deleted,
 			MergedBy:       data.MergedBy,
 			MergedCommits: data.MergedCommits,
+			HeadCI:        data.HeadCI,
 		}, pullChecksBody(data))
 	}
 }
@@ -34,94 +35,163 @@ templ PullChecks(data view.PullChecksData) {
 templ pullChecksBody(data view.PullChecksData) {
 	if data.LoadError {
 		@components.EmptyState("Status checks couldn't be loaded.")
-	} else if len(data.Rows) == 0 {
+	} else if len(data.Runs) == 0 && len(data.Rows) == 0 {
 		@components.EmptyState("No status checks reported for this PR yet.")
 	} else {
-		{{ passed := checksPassedCount(data.Rows) }}
-		{{ failed := checksFailedCount(data.Rows) }}
+		{{ states := data.States }}
+		{{ passed := checksPassedCount(states) }}
+		{{ failed := checksFailedCount(states) }}
+		{{ waiting := waitingRuns(data.Runs) }}
 		<section class="mb-6">
-			<div class={ "flex items-center gap-2 border rounded-md px-4 py-3", checksBannerClass(passed, failed, len(data.Rows)) }>
-				@checksBannerIcon(passed, failed, len(data.Rows))
-				<p class="text-[13px] font-medium">{ checksBannerTitle(passed, failed, len(data.Rows)) }</p>
-				<p class="text-[12.5px] text-muted-foreground">· { checksBannerDetail(passed, failed) }</p>
+			<div class={ "flex items-center gap-2 border rounded-md px-4 py-3", checksBannerClass(passed, failed, len(states), waiting) }>
+				@checksBannerIcon(passed, failed, len(states), waiting)
+				<p class="text-[13px] font-medium">{ checksBannerTitle(passed, failed, len(states), waiting) }</p>
+				<p class="text-[12.5px] text-muted-foreground">· { checksBannerDetail(passed, failed, waiting) }</p>
 				if data.HeadSHA != "" {
 					<p class="ml-auto text-[12.5px] text-muted-foreground font-mono">on commit { shortSHA(data.HeadSHA) }</p>
 				}
 			</div>
 		</section>
-		<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Status checks">
-			<ol class="divide-y divide-border">
-				for _, r := range data.Rows {
-					<li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
-						@checkRowIcon(r.State)
+		<div class="flex flex-col gap-4">
+			for i, run := range data.Runs {
+				@pullCheckRun(i, run)
+			}
+		</div>
+		if len(data.Rows) > 0 {
+			<section class={ "rounded-md border border-border bg-card overflow-hidden", templ.KV("mt-4", len(data.Runs) > 0) } aria-labelledby="external-heading">
+				if len(data.Runs) > 0 {
+					<div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
 						<div class="min-w-0 flex-1">
-							<p class="text-[13.5px] font-medium font-mono">{ r.Context }</p>
-							if r.Description != "" {
-								<p class="text-[12px] text-muted-foreground mt-0.5">{ r.Description }</p>
-							}
+							<p id="external-heading" class="text-[13.5px] font-medium">Other statuses</p>
+							<p class="text-[12px] text-muted-foreground mt-0.5">Reported through the status API by external CI</p>
 						</div>
-						if r.URL != "" {
-							<a href={ templ.SafeURL(r.URL) } class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-						}
-					</li>
+					</div>
 				}
-			</ol>
-		</section>
+				<ol class="divide-y divide-border" aria-label="Status checks">
+					for _, r := range data.Rows {
+						<li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+							@checkRowIcon(r.State)
+							<div class="min-w-0 flex-1">
+								<p class="text-[13.5px] font-medium font-mono">{ r.Context }</p>
+								if r.Description != "" {
+									<p class="text-[12px] text-muted-foreground mt-0.5">{ r.Description }</p>
+								}
+							</div>
+							if r.URL != "" {
+								<a href={ templ.SafeURL(r.URL) } class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+							}
+						</li>
+					}
+				</ol>
+			</section>
+		}
 		<p class="mt-4 text-[12.5px] text-muted-foreground">
-			<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/checks") } class="hover:text-foreground">View all checks →</a>
+			<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/actions") } class="hover:text-foreground">View all runs →</a>
 		</p>
 	}
+}
+
+templ pullCheckRun(i int, run view.CheckRun) {
+	<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby={ "run-" + strconv.Itoa(i) }>
+		<div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
+			@components.RunStatusIcon(run.Status)
+			<div class="min-w-0 flex-1">
+				<p id={ "run-" + strconv.Itoa(i) } class="text-[13.5px] font-medium truncate">
+					<a href={ templ.SafeURL(run.URL) } class="hover:underline">{ run.Title }</a>
+					<span class="font-normal text-muted-foreground">· { components.RunStatusLabel(run.Status) }</span>
+				</p>
+				<p class="text-[12px] text-muted-foreground mt-0.5">{ run.Meta }</p>
+			</div>
+			<a href={ templ.SafeURL(run.URL) } class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">View run →</a>
+		</div>
+		if run.Waiting {
+			<div class="px-4 py-3 flex flex-wrap items-center gap-3 border-b border-border bg-warning/10">
+				<p class="text-[13px] min-w-0 flex-1"><span class="font-medium">Approval required</span> — a writer must approve this run before it starts</p>
+				if run.CanApprove {
+					<form method="post" action={ templ.SafeURL(run.URL + "/approve") }>
+						<button type="submit" class="inline-flex items-center justify-center rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px]">Approve</button>
+					</form>
+				}
+			</div>
+		}
+		<ol class="divide-y divide-border" aria-label={ "Jobs in " + run.Title }>
+			for _, j := range run.Jobs {
+				<li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+					@checkRowIcon(j.State)
+					<div class="min-w-0 flex-1">
+						<p class="text-[13.5px] font-medium font-mono">{ j.Context }</p>
+						<p class="text-[12px] text-muted-foreground mt-0.5">{ j.Description }</p>
+					</div>
+					<a href={ templ.SafeURL(j.URL) } class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+				</li>
+			}
+		</ol>
+	</section>
 }
 
 templ checkRowIcon(state string) {
 	@components.RunStatusIcon(state)
 }
 
-templ checksBannerIcon(passed, failed, total int) {
+templ checksBannerIcon(passed, failed, total, waiting int) {
 	if failed > 0 {
-		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-destructive" aria-hidden="true"><path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle></svg>
+		@components.RunStatusIconSized("failure", 16)
+	} else if waiting > 0 {
+		@components.RunStatusIconSized("waiting", 16)
 	} else if passed >= total {
-		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-success" aria-hidden="true"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+		@components.RunStatusIconSized("success", 16)
 	} else {
-		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-warning" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 2"></path></svg>
+		@components.RunStatusIconSized("running", 16)
 	}
 }
 
-func checksPassedCount(rows []components.CheckRow) int {
+func waitingRuns(runs []view.CheckRun) int {
 	n := 0
-	for _, r := range rows {
-		if r.State == "success" {
+	for _, r := range runs {
+		if r.Waiting {
 			n++
 		}
 	}
 	return n
 }
 
-func checksFailedCount(rows []components.CheckRow) int {
+func checksPassedCount(states []string) int {
 	n := 0
-	for _, r := range rows {
-		if r.State == "failure" || r.State == "error" {
+	for _, s := range states {
+		if s == "success" || s == "skipped" {
 			n++
 		}
 	}
 	return n
 }
 
-func checksBannerClass(passed, failed, total int) string {
+func checksFailedCount(states []string) int {
+	n := 0
+	for _, s := range states {
+		if s == "failure" || s == "error" || s == "cancelled" {
+			n++
+		}
+	}
+	return n
+}
+
+func checksBannerClass(passed, failed, total, waiting int) string {
 	switch {
 	case failed > 0:
 		return "border-destructive/40 bg-destructive/10"
-	case passed >= total:
+	case waiting == 0 && passed >= total:
 		return "border-success/40 bg-success/10"
 	default:
 		return "border-warning/40 bg-warning/10"
 	}
 }
 
-func checksBannerTitle(passed, failed, total int) string {
+func checksBannerTitle(passed, failed, total, waiting int) string {
 	switch {
 	case failed > 0:
 		return "Some checks were not successful"
+	case waiting > 0:
+		return "Approval required"
 	case passed >= total:
 		return "All checks have passed"
 	default:
@@ -129,9 +199,12 @@ func checksBannerTitle(passed, failed, total int) string {
 	}
 }
 
-func checksBannerDetail(passed, failed int) string {
-	if failed > 0 {
+func checksBannerDetail(passed, failed, waiting int) string {
+	switch {
+	case failed > 0:
 		return strconv.Itoa(failed) + " failing, " + strconv.Itoa(passed) + " successful"
+	case waiting > 0:
+		return components.Count(waiting, "run is", "runs are") + " waiting for a writer to approve it"
 	}
 	return strconv.Itoa(passed) + " successful " + components.Pluralize(passed, "check", "checks")
 }

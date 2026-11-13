@@ -32,7 +32,13 @@ func NewWorkflowRunStore(db *sql.DB) *WorkflowRunStore {
 }
 
 // WorkflowRunTx is the store's queries on one transaction.
-type WorkflowRunTx struct{ workflowQ }
+type WorkflowRunTx struct {
+	workflowQ
+	afterCommit []func()
+}
+
+// AfterCommit runs fn once the transaction has committed, and never if it rolls back.
+func (t *WorkflowRunTx) AfterCommit(fn func()) { t.afterCommit = append(t.afterCommit, fn) }
 
 // InTx runs fn in a transaction, committing when it returns nil.
 func (s *WorkflowRunStore) InTx(ctx context.Context, fn func(tx *WorkflowRunTx) error) error {
@@ -41,10 +47,17 @@ func (s *WorkflowRunStore) InTx(ctx context.Context, fn func(tx *WorkflowRunTx) 
 		return fmt.Errorf("workflow tx begin: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck
-	if err := fn(&WorkflowRunTx{workflowQ{tx}}); err != nil {
+	wtx := &WorkflowRunTx{workflowQ: workflowQ{tx}}
+	if err := fn(wtx); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	for _, f := range wtx.afterCommit {
+		f()
+	}
+	return nil
 }
 
 // UpsertStatus writes a commit status on the transaction, so it commits with the rows it reports.
@@ -224,6 +237,11 @@ func (q workflowQ) ActionsVisible(ctx context.Context, repoID int64) (bool, erro
 // ListRunsBySHA returns the Runs for one commit, oldest first.
 func (q workflowQ) ListRunsBySHA(ctx context.Context, repoID int64, sha string) ([]model.WorkflowRun, error) {
 	return q.queryRuns(ctx, `WHERE repo_id = $1 AND sha = $2 ORDER BY number`, repoID, sha)
+}
+
+// ListRunsByIDs returns the repo's Runs with the given IDs, newest first.
+func (q workflowQ) ListRunsByIDs(ctx context.Context, repoID int64, ids []int64) ([]model.WorkflowRun, error) {
+	return q.queryRuns(ctx, `WHERE repo_id = $1 AND id = ANY($2) ORDER BY number DESC`, repoID, ids)
 }
 
 // OpenRunsInGroup returns Runs not yet finished that share a concurrency group, except `except`.
