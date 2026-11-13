@@ -42,6 +42,8 @@ type JobToken struct {
 	JobID  int64
 	RunID  int64
 	RepoID int64
+	// NoSecrets is set for a Run that never received secrets, so there is nothing to mask.
+	NoSecrets bool
 }
 
 // CIRunnerService owns runners, their tokens and the per-job token. Scheduling stays in WorkflowRunService.
@@ -297,7 +299,7 @@ func (s *CIRunnerService) VerifyJobToken(ctx context.Context, raw string) (*JobT
 	if err != nil {
 		return nil, err
 	}
-	return &JobToken{JobID: job.ID, RunID: run.ID, RepoID: run.RepoID}, nil
+	return &JobToken{JobID: job.ID, RunID: run.ID, RepoID: run.RepoID, NoSecrets: run.NoSecrets}, nil
 }
 
 // Run fails the Jobs of silent runners every few seconds until ctx ends.

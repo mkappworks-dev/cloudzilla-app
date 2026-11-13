@@ -251,6 +251,39 @@ func TestWorkflowLog_ServerMasksTheReposSecretsAsABackstop(t *testing.T) {
 	}
 }
 
+type countingSecrets struct {
+	mu sync.Mutex
+	n  int
+}
+
+func (c *countingSecrets) SecretValues(context.Context, int64) ([]string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.n++
+	return []string{"hunter2-value"}, nil
+}
+
+func TestWorkflowLog_MaskerIsLoadedOncePerJobAndSkippedForNoSecretRuns(t *testing.T) {
+	e := newLogEnv(t, nil)
+	src := &countingSecrets{}
+	e.svcs.WorkflowLog.WithSecrets(src)
+	for i := range 3 {
+		e.append(0, i, "line hunter2-value\n")
+	}
+	if src.n != 1 {
+		t.Errorf("secrets loaded %d times for 3 chunks, want 1", src.n)
+	}
+	if strings.Contains(e.full(), "hunter2") {
+		t.Errorf("log = %q", e.full())
+	}
+
+	noSecrets := &service.JobToken{JobID: e.tok.JobID + 1000, RunID: e.tok.RunID, RepoID: e.tok.RepoID, NoSecrets: true}
+	_, _ = e.svcs.WorkflowLog.AppendLog(testCtx, noSecrets, 0, 0, []byte("x\n"))
+	if src.n != 1 {
+		t.Errorf("a no-secrets run loaded the repo's secrets (%d loads)", src.n)
+	}
+}
+
 func TestWorkflowLog_ReadingAfterTheObjectsExpiredStopsAtTheGap(t *testing.T) {
 	e := newLogEnv(t, nil)
 	e.append(0, 0, "a\n")
