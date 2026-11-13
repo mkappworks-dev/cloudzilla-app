@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 Parallel with: 02, 04, 05
 
@@ -31,12 +31,12 @@ Users have no place to add the keys that sign their commits. The mock draws a **
 
 ## Acceptance criteria
 
-- [ ] Sections, empty state, both lists and the add dialog match the mock; GPG add shows the parse error inline; a duplicate shows the `409` message
-- [ ] Adding then removing a key works with HTMX, with the step-up fields, and keeps focus order sensible (dialog focus trap, Escape closes)
-- [ ] The "also an auth key" tag shows when the SSH fingerprint is also in `ssh_keys`
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
-- [ ] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
+- [x] Sections, empty state, both lists and the add dialog match the mock; GPG add shows the parse error inline; a duplicate shows the `409` message
+- [x] Adding then removing a key works with HTMX, with the step-up fields, and keeps focus order sensible (dialog focus trap, Escape closes)
+- [x] The "also an auth key" tag shows when the SSH fingerprint is also in `ssh_keys`
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
+- [x] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
 - [ ] `make generate-templ` re-run and the `_templ.go` files committed; `make lint` and `go test ./...` pass
 
 ## Verification

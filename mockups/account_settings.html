@@ -29,6 +29,7 @@
         <a href="#appearance" class="block px-3 py-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent">Appearance</a>
         <a href="#security" class="block px-3 py-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent">Security</a>
         <a href="#ssh-keys" class="block px-3 py-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent">SSH keys</a>
+        <a href="#signing-keys" class="block px-3 py-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent">Signing keys</a>
         <a href="#tokens" class="block px-3 py-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent">Access tokens</a>
         <a href="#oauth-apps" class="block px-3 py-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent">OAuth apps</a>
         <a href="#notifications" class="block px-3 py-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent">Notifications</a>
@@ -252,6 +253,85 @@
               <p class="text-[11.5px] text-muted-foreground mt-0.5">Added <time datetime="2026-03-02T00:00:00Z">Mar 2, 2026</time></p>
             </div>
             <button type="button" data-remove data-confirm-title="Remove this SSH key?" data-confirm-label="Remove" data-confirm-msg="The CI deploy key key will immediately lose access. Any system using it for git operations will stop working." data-toast="SSH key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="signing-keys" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold tracking-tight mb-1">Signing keys</h2>
+            <p class="text-[12.5px] text-muted-foreground">Commits and tags signed with these keys show as Verified when the committer email is one of your verified emails.</p>
+          </div>
+          <button type="button" data-open-add="gpg" class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            Add signing key
+          </button>
+        </div>
+
+        <div id="signing-keys-list">
+          <div data-signing-empty hidden class="bg-background border border-border rounded-lg p-8 text-center">
+            <p class="text-muted-foreground">No signing keys yet.</p>
+            <p class="text-sm text-muted-foreground mt-2">Add a GPG key or an SSH key you sign commits with. Your signed commits then show as Verified.</p>
+          </div>
+          <div data-signing-groups class="flex flex-col gap-6">
+            <div data-signing-group>
+              <h3 class="text-[13.5px] font-medium mb-1">GPG keys</h3>
+              <p class="text-[12.5px] text-muted-foreground mb-3">Each email in the key is checked against your account's emails.</p>
+              <div class="flex flex-col gap-2">
+                <div class="flex items-start gap-3 border border-border rounded-md p-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0 mt-1" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-[13.5px] font-medium">Key ID <span class="font-mono">3AA5C34371567BD2</span></p>
+                    </div>
+                    <p class="text-[11.5px] text-muted-foreground font-mono break-all">4AEE 18F8 3AFD EB23 B1C9 7D04 3AA5 C343 7156 7BD2</p>
+                    <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span class="inline-flex flex-wrap items-center gap-1.5"><span class="text-[12px]">malith@example.com</span> <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Verified email</span></span>
+                      <span class="inline-flex flex-wrap items-center gap-1.5"><span class="text-[12px]">malith@work.example</span> <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-warning/15 text-warning border-warning/30">Not on your account</span></span>
+                    </div>
+                    <p class="text-[11.5px] text-muted-foreground mt-1">Signing subkey <span class="font-mono">4F2A9E01C77B3D65</span> · Added <time datetime="2026-02-03T00:00:00Z">Feb 3, 2026</time> · expires <time datetime="2027-03-01T00:00:00Z">Mar 1, 2027</time></p>
+                  </div>
+                  <button type="button" data-remove data-confirm-title="Remove this GPG key?" data-confirm-label="Remove" data-confirm-msg="Commits signed with this key will show as Unverified once it is removed." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+                </div>
+                <div class="flex items-start gap-3 border border-border rounded-md p-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0 mt-1" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-[13.5px] font-medium">Key ID <span class="font-mono">9C21D0B7E4A68F13</span></p>
+                      <span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Expired</span>
+                    </div>
+                    <p class="text-[11.5px] text-muted-foreground font-mono break-all">71D3 0B5A 92CE 44F1 08A7 6E2D 9C21 D0B7 E4A6 8F13</p>
+                    <p class="text-[11.5px] text-muted-foreground mt-1">Added <time datetime="2026-02-03T00:00:00Z">Feb 3, 2026</time> · expired <time datetime="2026-06-30T00:00:00Z">Jun 30, 2026</time>. Commits signed before then stay Verified.</p>
+                  </div>
+                  <button type="button" data-remove data-confirm-title="Remove this GPG key?" data-confirm-label="Remove" data-confirm-msg="Commits signed with this key will show as Unverified once it is removed." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+                </div>
+              </div>
+            </div>
+            <div data-signing-group>
+              <h3 class="text-[13.5px] font-medium mb-1">SSH signing keys</h3>
+              <p class="text-[12.5px] text-muted-foreground mb-3">For <span class="font-mono">git config gpg.format ssh</span>. A key can sign and authenticate; each use is added separately.</p>
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-3 border border-border rounded-md p-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[13.5px] font-medium">MacBook Pro</p>
+                    <p class="text-[11.5px] text-muted-foreground font-mono break-all">SHA256:Zk1p7vQ3nXh0e9LwYb2sAq5cT8uRfJdM4oGiNxVa6Hw</p>
+                    <p class="text-[11.5px] text-muted-foreground mt-0.5">Added <time datetime="2026-01-14T00:00:00Z">Jan 14, 2026</time> · also an auth key</p>
+                  </div>
+                  <button type="button" data-remove data-confirm-title="Remove this SSH signing key?" data-confirm-label="Remove" data-confirm-msg="Commits signed with this key will show as Unverified once it is removed." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+                </div>
+                <div class="flex items-center gap-3 border border-border rounded-md p-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[13.5px] font-medium">YubiKey 5C</p>
+                    <p class="text-[11.5px] text-muted-foreground font-mono break-all">SHA256:Hq8dLw2mTz9yPb4XvNe1sCk7uRgJfA5oIiVx3MaYt0E</p>
+                    <p class="text-[11.5px] text-muted-foreground mt-0.5">Added <time datetime="2026-09-12T00:00:00Z">Sep 12, 2026</time></p>
+                  </div>
+                  <button type="button" data-remove data-confirm-title="Remove this SSH signing key?" data-confirm-label="Remove" data-confirm-msg="Commits signed with this key will show as Unverified once it is removed." data-toast="Signing key removed" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0">Remove</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -647,6 +727,45 @@
     </form>
   </dialog>
 
+  <dialog id="add-signing-key-dialog" aria-labelledby="add-signing-key-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+    <form id="add-signing-key-form" onsubmit="return false">
+      <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+        <h2 id="add-signing-key-dialog-title" class="text-base font-semibold leading-tight">Add signing key</h2>
+        <p class="text-[13px] text-muted-foreground leading-snug">Only the public key. Cloudzilla never needs the private half.</p>
+      </div>
+      <div class="p-5 text-sm">
+        <div class="space-y-4">
+          <div id="signing-key-error" class="empty:hidden" aria-live="polite"></div>
+          <fieldset class="flex items-center gap-3">
+            <legend class="block text-[12px] font-medium text-muted-foreground mb-1.5">Key type</legend>
+            <label class="flex items-center gap-1.5 text-[13px]"><input type="radio" name="kind" value="gpg" data-kind checked/> GPG</label>
+            <label class="flex items-center gap-1.5 text-[13px]"><input type="radio" name="kind" value="ssh" data-kind/> SSH</label>
+          </fieldset>
+          <div data-kind-show="ssh" hidden>
+            <label for="signing-key-title" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
+            <input id="signing-key-title" name="title" type="text" placeholder="e.g. laptop" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+          </div>
+          <div>
+            <label for="signing-public-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Public key</label>
+            <textarea id="signing-public-key" name="public_key" rows="6" required placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
+            <p data-kind-show="gpg" class="text-[12px] text-muted-foreground mt-1">Paste the output of <span class="font-mono">gpg --armor --export &lt;key-id&gt;</span>. The title is the key ID.</p>
+            <p data-kind-show="ssh" hidden class="text-[12px] text-muted-foreground mt-1">Paste a <span class="font-mono">.pub</span> file. A key already added under SSH keys can be added here too.</p>
+          </div>
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="min-w-0">
+              <label for="signing-key-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+              <input id="signing-key-password" name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-input rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+        <button type="button" data-close class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Add key</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="generate-token-dialog" aria-labelledby="generate-token-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto translate-y-[min(0px,calc(100dvh-28vh-1rem-100%))] backdrop:bg-black/60 backdrop:backdrop-blur-xs">
     <form id="generate-token-form" onsubmit="return false">
       <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
@@ -800,6 +919,32 @@
     }
     btn.addEventListener('click', function () { show('requested'); });
     show(state);
+  })();
+  // Mock-only: the Add signing key dialog switches GPG/SSH; the empty state shows once the last key is removed.
+  (function () {
+    var dlg = document.getElementById('add-signing-key-dialog');
+    var key = document.getElementById('signing-public-key');
+    var list = document.getElementById('signing-keys-list');
+    function kind(k) {
+      dlg.querySelectorAll('[data-kind]').forEach(function (r) { r.checked = r.value === k; });
+      dlg.querySelectorAll('[data-kind-show]').forEach(function (el) { el.hidden = el.dataset.kindShow !== k; });
+      key.placeholder = k === 'gpg' ? '-----BEGIN PGP PUBLIC KEY BLOCK-----' : 'ssh-ed25519 AAAA…';
+    }
+    dlg.querySelectorAll('[data-kind]').forEach(function (r) { r.addEventListener('change', function () { kind(r.value); }); });
+    document.querySelector('[data-open-add]').addEventListener('click', function () { kind('gpg'); dlg.showModal(); });
+    function sync() {
+      var groups = list.querySelectorAll('[data-signing-group]'), any = false;
+      groups.forEach(function (g) {
+        var has = g.querySelector('.border.rounded-md') !== null;
+        g.hidden = !has;
+        any = any || has;
+      });
+      list.querySelector('[data-signing-empty]').hidden = any;
+      list.querySelector('[data-signing-groups]').hidden = !any;
+    }
+    new MutationObserver(sync).observe(list, { childList: true, subtree: true });
+    if (/[?&]signing=empty\b/.test(location.search)) list.querySelectorAll('.border.rounded-md').forEach(function (el) { el.remove(); });
+    sync();
   })();
   document.querySelectorAll('[data-remove-toggle]').forEach(function (b) {
     b.addEventListener('click', function () {

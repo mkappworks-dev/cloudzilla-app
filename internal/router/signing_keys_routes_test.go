@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -206,5 +208,84 @@ func TestSSHSigningKeys_Lifecycle(t *testing.T) {
 	}
 	for _, action := range []string{"user.ssh_signing_key.add", "user.ssh_signing_key.delete"} {
 		waitForAudit(t, e.db, me.id, action, 1)
+	}
+}
+
+func htmxKeyRequest(method, path, session string, form url.Values) *http.Request {
+	req := browserRequest(method, path, session, form)
+	req.Header.Set("HX-Request", "true")
+	return req
+}
+
+func TestSigningKeys_HTMX(t *testing.T) {
+	e := newTransferEnv(t)
+	me := e.account(t)
+	armored := armoredGPGKey(t, "rhea@example.com", false)
+
+	add := func(path string, form url.Values) *httptest.ResponseRecorder {
+		form.Set("password", "password1")
+		return serve(e.h, htmxKeyRequest(http.MethodPost, path, me.session, form))
+	}
+
+	rr := add("/api/user/gpg_keys", url.Values{"public_key": {armored}})
+	if rr.Code != http.StatusOK || rr.Header().Get("HX-Retarget") != "" {
+		t.Fatalf("add gpg: got %d retarget %q: %s", rr.Code, rr.Header().Get("HX-Retarget"), rr.Body)
+	}
+	for _, want := range []string{`id="signing-keys-list"`, "rhea@example.com", "Not on your account", "GPG keys"} {
+		if !strings.Contains(rr.Body.String(), want) {
+			t.Errorf("add gpg fragment lacks %q: %s", want, rr.Body)
+		}
+	}
+
+	for name, tc := range map[string]struct {
+		form url.Values
+		want string
+	}{
+		"duplicate":   {url.Values{"public_key": {armored}}, "already registered"},
+		"not a key":   {url.Values{"public_key": {"hello"}}, "key"},
+		"no password": {url.Values{"public_key": {armored}, "password": {""}}, "password"},
+	} {
+		form := tc.form
+		if _, set := form["password"]; !set {
+			form.Set("password", "password1")
+		}
+		rr := serve(e.h, htmxKeyRequest(http.MethodPost, "/api/user/gpg_keys", me.session, form))
+		if rr.Code != http.StatusOK || rr.Header().Get("HX-Retarget") != "#signing-key-error" || !strings.Contains(rr.Body.String(), tc.want) {
+			t.Errorf("%s: got %d retarget %q body %s, want the message in #signing-key-error", name, rr.Code, rr.Header().Get("HX-Retarget"), rr.Body)
+		}
+	}
+
+	pub := sshPublicKey(t)
+	authBody, _ := json.Marshal(map[string]string{"title": "auth", "public_key": pub, "password": "password1"})
+	if rr := serve(e.h, importJSONRequest(http.MethodPost, "/api/user/keys/", me.session, string(authBody))); rr.Code != http.StatusCreated {
+		t.Fatalf("add auth key: %d %s", rr.Code, rr.Body)
+	}
+	rr = add("/api/user/ssh_signing_keys", url.Values{"title": {"laptop"}, "public_key": {pub}})
+	if !strings.Contains(rr.Body.String(), "also an auth key") || !strings.Contains(rr.Body.String(), "SSH signing keys") {
+		t.Errorf("add ssh fragment lacks the auth-key tag: %s", rr.Body)
+	}
+
+	page := serve(e.h, browserRequest(http.MethodGet, "/settings", me.session, nil))
+	if !strings.Contains(page.Body.String(), `id="signing-keys"`) || !strings.Contains(page.Body.String(), "rhea@example.com") {
+		t.Errorf("settings page lacks the signing keys section: %d", page.Code)
+	}
+
+	var ids []int64
+	rows, err := e.db.Query(`SELECT id FROM gpg_keys WHERE user_id = $1`, me.id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var id int64
+		_ = rows.Scan(&id)
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if len(ids) != 1 {
+		t.Fatalf("stored %d gpg keys, want 1", len(ids))
+	}
+	rr = serve(e.h, htmxKeyRequest(http.MethodDelete, "/api/user/gpg_keys/"+strconv.FormatInt(ids[0], 10), me.session, nil))
+	if rr.Code != http.StatusOK || strings.Contains(rr.Body.String(), "rhea@example.com") || !strings.Contains(rr.Body.String(), `id="signing-keys-list"`) {
+		t.Errorf("delete gpg: got %d %s, want the list without the key", rr.Code, rr.Body)
 	}
 }

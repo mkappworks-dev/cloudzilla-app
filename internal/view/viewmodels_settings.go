@@ -10,6 +10,7 @@ type SettingsData struct {
 	BasePage
 	User                model.User
 	SSHKeys             []model.SSHKey
+	SigningKeys         SigningKeysFragData
 	Tokens              []model.AccessToken
 	SavedReplies        []model.SavedReply
 	OAuthApps           []model.OAuthApp
@@ -154,4 +155,14 @@ type AdminModeData struct {
 	BasePage
 	Confirm components.ConfirmFactors
 	Next    string
+}
+
+// SigningKeysFragData holds template data for the signing keys list, the page section and its HTMX fragment.
+type SigningKeysFragData struct {
+	GPGKeys []model.GPGKey
+	SSHKeys []model.SSHSigningKey
+	// VerifiedEmails holds the owner's verified addresses, lower-cased.
+	VerifiedEmails map[string]bool
+	// AuthFingerprints holds the fingerprints of the owner's SSH authentication keys.
+	AuthFingerprints map[string]bool
 }

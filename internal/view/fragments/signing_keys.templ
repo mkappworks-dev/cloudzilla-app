@@ -1,0 +1,153 @@
+package fragments
+
+import (
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
+)
+
+func gpgExpired(k model.GPGKey) bool {
+	return k.ExpiresAt != nil && !k.ExpiresAt.After(time.Now())
+}
+
+func gpgSigningSubkey(k model.GPGKey) string {
+	for _, s := range k.Subkeys {
+		if s.CanSign {
+			return s.KeyID
+		}
+	}
+	return ""
+}
+
+// gpgFingerprint groups a fingerprint in fours, the way gpg prints it.
+func gpgFingerprint(fp string) string {
+	var b strings.Builder
+	for i, r := range fp {
+		if i > 0 && i%4 == 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+templ SigningKeysList(data view.SigningKeysFragData) {
+	<div id="signing-keys-list">
+		if len(data.GPGKeys) == 0 && len(data.SSHKeys) == 0 {
+			<div class="bg-background border border-border rounded-lg p-8 text-center">
+				<p class="text-muted-foreground">No signing keys yet.</p>
+				<p class="text-sm text-muted-foreground mt-2">Add a GPG key or an SSH key you sign commits with. Your signed commits then show as Verified.</p>
+			</div>
+		} else {
+			<div class="flex flex-col gap-6">
+				if len(data.GPGKeys) > 0 {
+					<div>
+						<h3 class="text-[13.5px] font-medium mb-1">GPG keys</h3>
+						<p class="text-[12.5px] text-muted-foreground mb-3">Each email in the key is checked against your account's emails.</p>
+						<div class="flex flex-col gap-2">
+							for _, k := range data.GPGKeys {
+								@gpgKeyRow(k, data)
+							}
+						</div>
+					</div>
+				}
+				if len(data.SSHKeys) > 0 {
+					<div>
+						<h3 class="text-[13.5px] font-medium mb-1">SSH signing keys</h3>
+						<p class="text-[12.5px] text-muted-foreground mb-3">For <span class="font-mono">git config gpg.format ssh</span>. A key can sign and authenticate; each use is added separately.</p>
+						<div class="flex flex-col gap-2">
+							for _, k := range data.SSHKeys {
+								@sshSigningKeyRow(k, data)
+							}
+						</div>
+					</div>
+				}
+			</div>
+		}
+	</div>
+}
+
+templ keyIcon(extra string) {
+	<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class={ "text-muted-foreground shrink-0", extra } aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+}
+
+templ signingKeyRemove(path, id, title string) {
+	<button
+		type="button"
+		hx-delete={ path + id }
+		hx-target="#signing-keys-list"
+		hx-swap="outerHTML"
+		hx-confirm="Commits signed with this key will show as Unverified once it is removed."
+		data-confirm-title={ title }
+		data-confirm-label="Remove"
+		data-confirm-danger="true"
+		data-toast="Signing key removed"
+		class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
+	>Remove</button>
+}
+
+templ gpgKeyRow(k model.GPGKey, data view.SigningKeysFragData) {
+	<div class="flex items-start gap-3 border border-border rounded-md p-3" data-key-id={ strconv.FormatInt(k.ID, 10) }>
+		@keyIcon("mt-1")
+		<div class="min-w-0 flex-1">
+			<div class="flex flex-wrap items-center gap-2">
+				<p class="text-[13.5px] font-medium">Key ID <span class="font-mono">{ k.KeyID }</span></p>
+				if k.RevokedAt != nil {
+					<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Revoked</span>
+				} else if gpgExpired(k) {
+					<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">Expired</span>
+				}
+			</div>
+			<p class="text-[11.5px] text-muted-foreground font-mono break-all">{ gpgFingerprint(k.Fingerprint) }</p>
+			if len(k.Emails) > 0 {
+				<div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+					for _, email := range k.Emails {
+						<span class="inline-flex flex-wrap items-center gap-1.5">
+							<span class="text-[12px]">{ email }</span>
+							if data.VerifiedEmails[strings.ToLower(email)] {
+								<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Verified email</span>
+							} else {
+								<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-warning/15 text-warning border-warning/30">Not on your account</span>
+							}
+						</span>
+					}
+				</div>
+			}
+			<p class="text-[11.5px] text-muted-foreground mt-1">
+				if sub := gpgSigningSubkey(k); sub != "" {
+					Signing subkey <span class="font-mono">{ sub }</span> ·
+				}
+				Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(k.CreatedAt) }</time>
+				if k.ExpiresAt != nil {
+					if gpgExpired(k) {
+						· expired <time datetime={ k.ExpiresAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*k.ExpiresAt) }</time>. Commits signed before then stay Verified.
+					} else {
+						· expires <time datetime={ k.ExpiresAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(*k.ExpiresAt) }</time>
+					}
+				}
+			</p>
+		</div>
+		@signingKeyRemove("/api/user/gpg_keys/", strconv.FormatInt(k.ID, 10), "Remove this GPG key?")
+	</div>
+}
+
+templ sshSigningKeyRow(k model.SSHSigningKey, data view.SigningKeysFragData) {
+	<div class="flex items-center gap-3 border border-border rounded-md p-3" data-key-id={ strconv.FormatInt(k.ID, 10) }>
+		@keyIcon("")
+		<div class="min-w-0 flex-1">
+			<p class="text-[13.5px] font-medium">{ k.Title }</p>
+			<p class="text-[11.5px] text-muted-foreground font-mono break-all">{ k.Fingerprint }</p>
+			<p class="text-[11.5px] text-muted-foreground mt-0.5">
+				Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Date(k.CreatedAt) }</time>
+				if data.AuthFingerprints[k.Fingerprint] {
+					· also an auth key
+				}
+			</p>
+		</div>
+		@signingKeyRemove("/api/user/ssh_signing_keys/", strconv.FormatInt(k.ID, 10), "Remove this SSH signing key?")
+	</div>
+}
