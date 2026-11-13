@@ -284,7 +284,7 @@ func signedPayload(c *object.Commit) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 	return io.ReadAll(r)
 }
 
@@ -323,8 +323,8 @@ func judgeGPG(p pendingSignature, keys []model.GPGKey, identities map[int64]Sign
 	for i := range keys {
 		key := &keys[i]
 		matchedSub := -1
-		switch {
-		case key.KeyID == p.keyID:
+		switch key.KeyID {
+		case p.keyID:
 		default:
 			for j, sk := range key.Subkeys {
 				if sk.KeyID == p.keyID && sk.CanSign {

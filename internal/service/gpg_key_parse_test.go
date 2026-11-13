@@ -72,7 +72,9 @@ func armorKey(t *testing.T, e *openpgp.Entity, private bool) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
 	return buf.String()
 }
 

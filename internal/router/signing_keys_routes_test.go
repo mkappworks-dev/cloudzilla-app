@@ -43,7 +43,9 @@ func armoredGPGKey(t *testing.T, email string, private bool) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
 	return buf.String()
 }
 
@@ -277,10 +279,15 @@ func TestSigningKeys_HTMX(t *testing.T) {
 	}
 	for rows.Next() {
 		var id int64
-		_ = rows.Scan(&id)
+		if err := rows.Scan(&id); err != nil {
+			t.Fatal(err)
+		}
 		ids = append(ids, id)
 	}
-	rows.Close()
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	_ = rows.Close()
 	if len(ids) != 1 {
 		t.Fatalf("stored %d gpg keys, want 1", len(ids))
 	}
