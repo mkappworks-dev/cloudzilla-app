@@ -19,11 +19,7 @@ func (s *CodeService) PullCommits(owner, repoName, base, head string) ([]CommitS
 	if err != nil {
 		return nil, err
 	}
-	var out []CommitSummary
-	for _, c := range commits {
-		out = append(out, summarizeCommit(c))
-	}
-	return out, nil
+	return s.summarizeCommits(commits), nil
 }
 
 // maxMergeScan bounds the first-parent walk that looks for a PR's merge commit.

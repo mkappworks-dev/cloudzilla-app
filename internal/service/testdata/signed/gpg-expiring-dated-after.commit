@@ -1,0 +1,13 @@
+tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+author Rhea <sam@example.com> 1709294400 +0000
+committer Rhea <sam@example.com> 1709294400 +0000
+gpgsig -----BEGIN PGP SIGNATURE-----
+ 
+ iJEEABYKADkWIQQ7/yDhVp4uFnqEBBqXgTYa9izczwUCZaUeQBsUgAAAAAAEAA5t
+ YW51MiwyLjUrMS4xMiwwLDMACgkQl4E2GvYs3M/KiAEAwtPUpXX7d+zG6l9g1n3u
+ cIBdNRNWZCouSisRynUmdvsA/RBUQDo3O3nU1MP2tmTAf1dS+V23kTeiW6p85bEf
+ oCMM
+ =/9M0
+ -----END PGP SIGNATURE-----
+
+fixture gpg-expiring-dated-after

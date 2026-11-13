@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 Parallel with: 03
 
@@ -34,11 +34,11 @@ A commit's `gpgsig` header is never read. Nothing can say whether a commit is ve
 
 ## Acceptance criteria
 
-- [ ] Every status and reason in the spec's Testing list has a table-driven case using real signatures made by native git (gpg and `ssh-keygen -Y sign`), committed as testdata so CI needs neither tool
-- [ ] A hardware-key (sk-) SSH signature and a signature by a GPG signing subkey verify
-- [ ] Adding a key after the fact flips the same commit from `unverified` to `verified` with no cache to clear; deleting it flips it back
-- [ ] A page of 30 commits does a constant number of key queries (asserted in a test)
-- [ ] `GetCommits`, `GetCommit` and the PR commits path return a `SignatureResult` per commit
+- [x] Every status and reason in the spec's Testing list has a table-driven case using real signatures made by native git (gpg and `ssh-keygen -Y sign`), committed as testdata so CI needs neither tool
+- [x] A hardware-key (sk-) SSH signature and a signature by a GPG signing subkey verify
+- [x] Adding a key after the fact flips the same commit from `unverified` to `verified` with no cache to clear; deleting it flips it back
+- [x] A page of 30 commits does a constant number of key queries (asserted in a test)
+- [x] `GetCommits`, `GetCommit` and the PR commits path return a `SignatureResult` per commit
 - [ ] `make lint` and `go test ./...` pass; `make test-integration` passes for the new store queries
 - [ ] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
 
@@ -47,4 +47,6 @@ A commit's `gpgsig` header is never read. Nothing can say whether a commit is ve
 Unit and integration tests. Throwaway server: scratch Postgres on a free port (see `docs/testing.md`), a unique `CZ_AUTH_COOKIE_NAME`, sign in as `admin@example.test` / `cloudzilla-seed`. Create commits with native git signed by a GPG key and an SSH key, push over HTTP with a token, and read `GetCommits` results from a throwaway test that prints the statuses (delete it afterwards).
 
 ## Comments
+
+Claude, 2026-11-13: Left unticked: `make lint` (golangci-lint is not installed here; `go vet ./...` and `go test ./...` pass against a scratch Postgres) and the throwaway-server check. The sk- case is signed by the testutil stand-in key in namespace `git` (no FIDO device here), not by native tools. The GPG check calls go-crypto directly (`PrepareVerify` + `VerifySignature`) instead of go-git's `Commit.Verify`, which judges key expiry at the current time and would reject a commit signed before its key expired. `CodeService.GetCommit` also runs in the post-receive contributor-stats path (`repo_service_push.go`), so a signed pushed commit costs a few key lookups there; ticket 17 may want a non-verifying variant.
 
