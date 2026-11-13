@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: ready-for-agent
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -26,7 +26,7 @@ Roadmap phase 17.2 is planned and has no UI.
 
 ## Acceptance criteria
 
-- [ ] Spec and tickets exist
+- [x] Spec and tickets exist: [`../2026-11-06-security-signing-secrets/spec.md`](../../2026-11-06-security-signing-secrets/spec.md), tickets 01–08 in its `issues/`
 - [ ] All its tickets done
 - [ ] ROADMAP status updated
 
@@ -37,3 +37,5 @@ Per its spec.
 ## Comments
 
 2026-11-06 (triage): ready-for-human; needs a spec first; mock decisions to confirm.
+
+Claude, 2026-11-13: specced. Build the eight tickets in `../2026-11-06-security-signing-secrets/issues/`; ticket 08 ticks the remaining criteria.

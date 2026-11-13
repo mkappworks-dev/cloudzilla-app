@@ -59,9 +59,9 @@ The current order, updated after each re-score. Rows in one step run as parallel
 | Step | Tickets                    | Runs as                                         | Status                                      |
 | ---- | -------------------------- | ----------------------------------------------- | ------------------------------------------- |
 | ✅    | 00–14, 20, 22 (waves 1–2), 23–26, 28–33, 35–40 | —                  | merged (24, 32, 33, 38, 39: #291–#295; 25, 31, 35, 36, 37, 40: #296–#301; 26, 28: #303, #304; 29: #302) |
-| 6    | 27, 34, 15                 | builds from their specs in `.scratch/2026-11-12-edit-and-release-workflows/`, `.scratch/2026-11-12-unfinished-settings-surfaces/` and `.scratch/2026-11-12-repo-rename/` | 27/01, 27/04, 34/01, 15/01 merged (#308–#311); 27/02, 27/05, 34/02, 34/04, 15/02, 15/04, 15/05 merged (#312–#318); 27/03, 34/03, 34/05, 15/03, 15/06 merged (#319–#323); running now: 34/06, 34/07, 15/07; the remaining tickets of 27, 34 and 15 wait on their `Blocked by` lines |
-| 6    | 16, 17, 18, 19             | spec sessions any time; builds here             | ready-for-human (spec sessions needed)      |
-| 7    | 22 (wave 3)                | after 19                                        | re-score and polish                         |
+| ✅    | 27, 34, 15                 | built from their specs in `.scratch/2026-11-12-edit-and-release-workflows/`, `.scratch/2026-11-12-unfinished-settings-surfaces/` and `.scratch/2026-11-12-repo-rename/` | merged (#308–#326) |
+| 7    | 16, 17, 18, 19             | spec sessions any time; builds here             | 16 specced (`.scratch/2026-11-06-security-signing-secrets/`, tickets 01–08), its tickets run next; 17, 18, 19 are ready-for-human (spec sessions needed) |
+| 8    | 22 (wave 3)                | after 19                                        | re-score and polish                         |
 | —    | 21 mock generator          | —                                               | wontfix: mocks stay hand-written            |
 
 Polish tickets update the hand mocks in `mockups/` in the same PR as the page (ticket 21, the generator, is `wontfix`).
