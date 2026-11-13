@@ -36,6 +36,7 @@
       <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
       <button type="button" data-mock-state="verified" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Verified (SSH)</button>
       <button type="button" data-mock-state="verified-gpg" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Verified (GPG)</button>
+      <button type="button" data-mock-state="instance" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Verified by Cloudzilla</button>
       <button type="button" data-mock-state="partial" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Partially verified</button>
       <button type="button" data-mock-state="unverified" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unverified</button>
       <button type="button" data-mock-state="unsigned" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Unsigned</button>
@@ -110,13 +111,17 @@
     var S = {
       verified: { badge: 'success', label: 'Verified', commit: ['feat(ci): cache Go modules between runs', '7d1e0a2', '7d1e0a2c41b9f08e3d5a6c7b2e91f04d8a3c5e67', 'MK', 'Malith Kuruppu', 'malith@example.com'],
         body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + SHIELD_OK + 'Signed by the committer with a key on their account.</p>' + signer('MK', 'malith', 'malith@example.com') +
-          dl([['Key type', 'SSH · ed25519'], ['Key', 'MacBook Pro'], ['Fingerprint', 'SHA256:Zk1p7vQ3nXh0e9LwYb2sAq5cT8uRfJdM4oGiNxVa6Hw', 1]]) + FOOT },
+          dl([['Key type', 'SSH'], ['Key', 'MacBook Pro'], ['Fingerprint', 'SHA256:Zk1p7vQ3nXh0e9LwYb2sAq5cT8uRfJdM4oGiNxVa6Hw', 1]]) + FOOT },
       'verified-gpg': { badge: 'success', label: 'Verified', commit: ['fix: retry webhook deliveries with backoff', '0cfa3e4', '0cfa3e4b7d21a9c05e8f3b6d4a17c290e5b8d3f1', 'DK', 'Daisy K.', 'daisy@example.com'],
         body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + SHIELD_OK + 'Signed by the committer with a key on their account.</p>' + signer('DK', 'daisy', 'daisy@example.com') +
-          dl([['Key type', 'GPG · RSA 4096'], ['Key ID', '3AA5C34371567BD2', 1], ['Fingerprint', '4AEE 18F8 3AFD EB23 B1C9 7D04 3AA5 C343 7156 7BD2', 1]]) + FOOT },
+          dl([['Key type', 'GPG'], ['Key ID', '3AA5C34371567BD2', 1], ['Fingerprint', '4AEE 18F8 3AFD EB23 B1C9 7D04 3AA5 C343 7156 7BD2', 1]]) + FOOT },
+      instance: { badge: 'success', label: 'Verified', commit: ['Update README.md', '9be41d0', '9be41d07c3a85e1f4b2d6a90c7e3f58b1d4a2c60', 'MK', 'Malith Kuruppu', 'malith@example.com'],
+        body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + SHIELD_OK + 'This commit was made on the web and signed by this server.</p>' +
+          '<div class="mt-3 flex items-center gap-2"><span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-5 w-5 text-[10px]" aria-hidden="true">C</span><span class="text-[13px] font-medium">Cloudzilla</span></div>' +
+          dl([['Fingerprint', 'SHA256:q8Wm3TzR7cYb1sVx0nLk4eJdA2oFiNyHa5Kt9Ep6UgB', 1]]) + FOOT },
       partial: { badge: 'outline', label: 'Partially verified', commit: ['docs: clarify the mirror lease timeout', '5a90c2e', '5a90c2e18f4b7d3a6c0e9b2f5d81a4c7e3b06d92', 'RH', 'Rhea', 'rhea@contractor.dev'],
         body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + SHIELD + 'The signature is valid and the key is rhea\'s, but the committer email isn\'t one of rhea\'s verified emails.</p>' + signer('RH', 'rhea', 'committed as rhea@contractor.dev') +
-          dl([['Key type', 'SSH · ecdsa-sk (hardware key)'], ['Key', 'YubiKey 5C'], ['Fingerprint', 'SHA256:p0Qe2Vx8nLk4TzR7cYb1sWm9uHgJdA3oFiNyVa5Kt2E', 1]]) +
+          dl([['Key type', 'SSH'], ['Key', 'YubiKey 5C'], ['Fingerprint', 'SHA256:p0Qe2Vx8nLk4TzR7cYb1sWm9uHgJdA3oFiNyVa5Kt2E', 1]]) +
           '<p class="mt-2 text-[12px] text-muted-foreground">Verifying rhea@contractor.dev on rhea\'s account makes this Verified.</p>' + FOOT },
       unverified: { badge: 'warning', label: 'Unverified', commit: ['chore: bump x/crypto to v0.31.0', 'e2c7714', 'e2c7714a09d3b8f61c5e2a7d4b90f38c1e6a5d27', 'KI', 'Kiyo', 'kiyo@example.com'],
         body: '<p class="flex items-start gap-2 text-[13px] font-medium">' + WARN + 'The commit is signed, but no account on this server has the key.</p>' +

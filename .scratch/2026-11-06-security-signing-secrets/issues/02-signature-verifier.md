@@ -40,7 +40,7 @@ A commit's `gpgsig` header is never read. Nothing can say whether a commit is ve
 - [x] A page of 30 commits does a constant number of key queries (asserted in a test)
 - [x] `GetCommits`, `GetCommit` and the PR commits path return a `SignatureResult` per commit
 - [ ] `make lint` and `go test ./...` pass; `make test-integration` passes for the new store queries
-- [ ] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
+- [x] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
 
 ## Verification
 
@@ -49,4 +49,6 @@ Unit and integration tests. Throwaway server: scratch Postgres on a free port (s
 ## Comments
 
 Claude, 2026-11-13: Left unticked: `make lint` (golangci-lint is not installed here; `go vet ./...` and `go test ./...` pass against a scratch Postgres) and the throwaway-server check. The sk- case is signed by the testutil stand-in key in namespace `git` (no FIDO device here), not by native tools. The GPG check calls go-crypto directly (`PrepareVerify` + `VerifySignature`) instead of go-git's `Commit.Verify`, which judges key expiry at the current time and would reject a commit signed before its key expired. `CodeService.GetCommit` also runs in the post-receive contributor-stats path (`repo_service_push.go`), so a signed pushed commit costs a few key lookups there; ticket 17 may want a non-verifying variant.
+
+Claude, 2026-11-13 (ticket 04): the throwaway-server box is closed. Commits signed with GPG (ed25519) and SSH (ed25519, ecdsa) keys, and with unregistered keys, pushed over HTTP with a token, came out verified, partially verified (committer email not on the account), unverified (`no_key`) and unsigned as expected. The seed superadmin's primary email is not verified, so the check set `users.email_verified_at` first; without it every commit by `admin@example.test` is partially verified, as the rule says. No FIDO device, so no `sk-` key was pushed. `GetCommit` no longer verifies; pages use `GetVerifiedCommit`.
 

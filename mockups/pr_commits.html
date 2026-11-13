@@ -90,8 +90,8 @@ git checkout daisy/oauth-scopes</pre>
         <a href="commits.html" class="text-primary hover:underline font-mono">main</a>.
       </p>
     </section>
-    <section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Commits in this pull request">
-      <p class="px-4 py-2 border-b border-border bg-muted/40 text-[11.5px] font-mono text-muted-foreground uppercase tracking-wider">
+    <section class="rounded-md border border-border bg-card" aria-label="Commits in this pull request">
+      <p class="px-4 py-2 border-b border-border bg-muted/40 text-[11.5px] font-mono text-muted-foreground uppercase tracking-wider rounded-t-md">
         Commits on May 13, 2026
       </p>
       <ol class="divide-y divide-border">
@@ -106,6 +106,7 @@ git checkout daisy/oauth-scopes</pre>
             </p>
           </div>
           <a href="commit.html" class="text-[11.5px] font-mono text-muted-foreground hover:underline shrink-0">9c8e2a4</a>
+          <span data-signature="verified-gpg"></span>
           <button type="button" data-copy="9c8e2a41f0b7d3e5a6c8b2d4f1e9a7c3b5d8e0f2" class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Copy commit SHA"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg></button>
           <a href="tree.html" class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Browse files at this commit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></a>
         </li>
@@ -120,6 +121,7 @@ git checkout daisy/oauth-scopes</pre>
             </p>
           </div>
           <a href="commit.html" class="text-[11.5px] font-mono text-muted-foreground hover:underline shrink-0">3b1f7da</a>
+          <span data-signature="instance"></span>
           <button type="button" data-copy="3b1f7da9e2c4a6b8d0f1e3c5a7b9d2f4e6a8c0b1" class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Copy commit SHA"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg></button>
           <a href="tree.html" class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Browse files at this commit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></a>
         </li>
@@ -127,7 +129,7 @@ git checkout daisy/oauth-scopes</pre>
       <p class="px-4 py-2 border-b border-border bg-muted/40 text-[11.5px] font-mono text-muted-foreground uppercase tracking-wider border-t">
         Commits on May 12, 2026
       </p>
-      <ol class="divide-y divide-border">
+      <ol class="divide-y divide-border [&>li:last-child]:rounded-b-md">
         <li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
           <span class="inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground h-6 w-6 text-[10px]" role="img" aria-label="daisy">D</span>
           <div class="min-w-0 flex-1">
@@ -139,6 +141,7 @@ git checkout daisy/oauth-scopes</pre>
             </p>
           </div>
           <a href="commit.html" class="text-[11.5px] font-mono text-muted-foreground hover:underline shrink-0">5d2e8c1</a>
+          <span data-signature="partial"></span>
           <button type="button" data-copy="5d2e8c14a7b9d1f3e5c7a9b1d3f5e7c9a1b3d5f7" class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Copy commit SHA"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg></button>
           <a href="tree.html" class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Browse files at this commit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></a>
         </li>
@@ -149,6 +152,7 @@ git checkout daisy/oauth-scopes</pre>
 
 <div id="cz-footer"></div>
 <script src="shell.js"></script>
+<script src="signature-badge.js"></script>
 <script>
   (function () {
     var btn = document.getElementById('edit-pr-btn');
