@@ -22,15 +22,16 @@ var ErrInvalidOrgName = errors.New("invalid organization name")
 
 // OrgService manages organization creation, membership, and ownership transfers.
 type OrgService struct {
-	orgs    *store.OrgStore
-	repos   *store.RepoStore
-	users   *store.UserStore
-	stars   *store.StarStore
-	repo    *RepoService
-	cfg     config.GitConfig
-	avatars *AvatarService
-	quota   *QuotaService
-	commits serverCommitter
+	orgs         *store.OrgStore
+	repos        *store.RepoStore
+	users        *store.UserStore
+	stars        *store.StarStore
+	repo         *RepoService
+	cfg          config.GitConfig
+	avatars      *AvatarService
+	workflowLogs *WorkflowLogService
+	quota        *QuotaService
+	commits      serverCommitter
 }
 
 // WithServerCommits sets how an organization repository's initial commit is committed and signed.
@@ -41,6 +42,12 @@ func (s *OrgService) WithServerCommits(c serverCommitter) *OrgService {
 
 func (s *OrgService) WithQuota(q *QuotaService) *OrgService {
 	s.quota = q
+	return s
+}
+
+// WithWorkflowLogs removes the CI logs and artifacts of a deleted org's repos.
+func (s *OrgService) WithWorkflowLogs(l *WorkflowLogService) *OrgService {
+	s.workflowLogs = l
 	return s
 }
 
@@ -120,6 +127,9 @@ func (s *OrgService) Delete(ctx context.Context, orgID, requestingUserID int64) 
 		return err
 	}
 	s.avatars.DeleteObject(ctx, avatarKey)
+	if s.workflowLogs != nil {
+		s.workflowLogs.SweepOrphans(ctx)
+	}
 	// The org_id cascade drops these rows, so nothing could restore or purge
 	// their copies later.
 	if s.repo != nil {

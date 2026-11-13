@@ -76,6 +76,7 @@ type RepoService struct {
 	quota            *QuotaService
 	attachments      *AttachmentService
 	releaseAssets    *ReleaseAssetService
+	workflowLogs     *WorkflowLogService
 	cfg              config.GitConfig
 }
 
@@ -98,6 +99,12 @@ func (s *RepoService) WithNoreplyHostFrom(baseURL string) *RepoService {
 // WithReleaseAssets removes a purged repo's release asset objects.
 func (s *RepoService) WithReleaseAssets(a *ReleaseAssetService) *RepoService {
 	s.releaseAssets = a
+	return s
+}
+
+// WithWorkflowLogs removes a purged repo's Job logs and artifacts.
+func (s *RepoService) WithWorkflowLogs(l *WorkflowLogService) *RepoService {
+	s.workflowLogs = l
 	return s
 }
 

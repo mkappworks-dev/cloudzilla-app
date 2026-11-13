@@ -33,6 +33,7 @@ type Services struct {
 	CommitStatus       *CommitStatusService
 	WorkflowRun        *WorkflowRunService
 	CIRunner           *CIRunnerService
+	WorkflowLog        *WorkflowLogService
 	Milestone          *MilestoneService
 	PullReview         *PullReviewService
 	PullLineComment    *PullLineCommentService
@@ -92,6 +93,7 @@ func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Avatar.WithBackend(b)
 	s.Attachment.WithBackend(b)
 	s.ReleaseAsset.WithBackend(b)
+	s.WorkflowLog.WithBackend(b)
 	s.Export.WithBackend(b)
 	return s
 }
@@ -148,6 +150,10 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue).WithBranchProtections(stores.BranchProtection).WithThreadSubscriptions(threadSubSvc)
+	workflowLogSvc := NewWorkflowLogService(stores.WorkflowLog, cfg.CI)
+	repoSvc.WithWorkflowLogs(workflowLogSvc)
+	userSvc.WithWorkflowLogs(workflowLogSvc)
+	orgSvc.WithWorkflowLogs(workflowLogSvc)
 	workflowRunSvc := NewWorkflowRunService(stores.WorkflowRun, stores.Repo, stores.User, stores.Pull, repoSvc, code, cfg.CI, cfg.Server.BaseURL)
 	pullSvc.WithRuns(workflowRunSvc)
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
@@ -184,6 +190,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		ReleaseAsset:       releaseAssetSvc,
 		CommitStatus:       commitStatusSvc,
 		WorkflowRun:        workflowRunSvc,
+		WorkflowLog:        workflowLogSvc,
 		CIRunner:           NewCIRunnerService(stores.CIRunner, workflowRunSvc, stores.Repo, cfg.Server.BaseURL),
 		Milestone:          NewMilestoneService(stores.Milestone, stores.Repo),
 		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection).WithThreadSubscriptions(threadSubSvc),
