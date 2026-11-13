@@ -78,3 +78,18 @@ type FinishRequest struct {
 	Result  string `json:"result"`
 	Message string `json:"message"`
 }
+
+// MaxLogChunkBytes is the most one log POST may carry; the runner flushes well below it.
+const MaxLogChunkBytes = 1 << 20
+
+// LogResponse answers a log POST. Truncated tells the runner to stop sending: the Job reached its log cap.
+type LogResponse struct {
+	Truncated bool `json:"truncated"`
+}
+
+// ArtifactResponse answers an artifact upload.
+type ArtifactResponse struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+}

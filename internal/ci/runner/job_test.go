@@ -2,9 +2,11 @@ package runner
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -13,24 +15,30 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/logmask"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/runnerapi"
 )
 
 // stubScript stands in for the docker CLI: it logs each invocation's arguments (NUL separated, records ended by
-// \001) and succeeds, except that a `run` whose arguments mention STUBFAIL exits 3 and one that mentions STUBHANG
-// blocks until `rm -f` removes its container, as the real CLI would exit when its container is removed.
+// \001) and succeeds, except that an `exec` whose arguments mention STUBFAIL exits 3 and one that mentions STUBHANG
+// blocks until `rm -f` or a `kill -9 -1` exec ends it, as the real CLI would exit when its process dies.
 const stubScript = `#!/bin/sh
 printf '%s\0' "$@" >> "$STUB_DIR/log"
 printf '\001' >> "$STUB_DIR/log"
 case "$1" in
-  cp) cat > /dev/null ;;
+  cp)
+    if [ "$2" = "-" ]; then cat > /dev/null
+    elif [ -e "$STUB_DIR/artifact.tar" ]; then cat "$STUB_DIR/artifact.tar"
+    else echo "Could not find the file $2" >&2; exit 1; fi ;;
   rm) for a in "$@"; do last=$a; done; : > "$STUB_DIR/removed-$last" ;;
-  run)
+  exec)
     name=""; prev=""
-    for a in "$@"; do [ "$prev" = "--name" ] && name=$a; prev=$a; done
+    for a in "$@"; do [ "$prev" = "--" ] && name=$a; prev=$a; done
+    case "$*" in *"kill -9 -1"*) : > "$STUB_DIR/removed-$name"; exit 0 ;; esac
     case "$*" in *STUBFAIL*) echo "boom" >&2; exit 3 ;; esac
+    case "$*" in *STUBTAIL*) echo "first line"; while [ ! -e "$STUB_DIR/removed-$name" ]; do sleep 0.02; done; exit 137 ;; esac
     case "$*" in *STUBHANG*) while [ ! -e "$STUB_DIR/removed-$name" ]; do sleep 0.02; done; exit 137 ;; esac
-    echo "ran $name" ;;
+    echo "ran in $name" ;;
 esac
 exit 0
 `
@@ -61,8 +69,17 @@ func stubDocker(t *testing.T) (readCalls func() []call) {
 	}
 }
 
+type postedLog struct {
+	step, seq int
+	text      string
+}
+
 type fakeAPI struct {
 	mu        sync.Mutex
+	logs      []postedLog
+	artifacts map[string][]byte
+	artErr    error
+	truncate  bool
 	steps     []string
 	result    string
 	message   string
@@ -91,10 +108,52 @@ func (f *fakeAPI) Finish(_ context.Context, _ int64, result, message string) err
 	return nil
 }
 
+func (f *fakeAPI) PostLog(_ context.Context, _ int64, token string, step, seq int, data []byte) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if token != "czj_secret" {
+		return false, ErrUnauthorized
+	}
+	f.logs = append(f.logs, postedLog{step, seq, string(data)})
+	return f.truncate, nil
+}
+
+func (f *fakeAPI) UploadArtifact(_ context.Context, _ int64, token, name string, size int64, r io.Reader) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	if int64(len(b)) != size || token != "czj_secret" {
+		return errors.New("bad upload")
+	}
+	if f.artErr != nil {
+		return f.artErr
+	}
+	if f.artifacts == nil {
+		f.artifacts = map[string][]byte{}
+	}
+	f.artifacts[name] = b
+	return nil
+}
+
+func (f *fakeAPI) postedText(step int) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var b strings.Builder
+	for _, l := range f.logs {
+		if l.step == step {
+			b.WriteString(l.text)
+		}
+	}
+	return b.String()
+}
+
 func newExecutor(api *fakeAPI) *Executor {
 	return &Executor{
 		Config: &Config{Images: map[string]string{"linux": "ubuntu:24.04"}},
-		Limits: DefaultLimits(), API: api, Out: &bytes.Buffer{}, HeartbeatEvery: 10 * time.Millisecond,
+		Limits: DefaultLimits(), API: api, HeartbeatEvery: 10 * time.Millisecond, FlushEvery: 20 * time.Millisecond,
 		Checkout: func(_ context.Context, _ *runnerapi.JobSpec, dir string) error {
 			return os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main"), 0o644)
 		},
@@ -116,6 +175,16 @@ func jobSpec(steps ...runnerapi.StepSpec) *runnerapi.JobSpec {
 var wantHardening = []string{
 	"--privileged=false", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=1000:1000", "--cpus=2", "--memory=4g",
 	"--memory-swap=4g", "--pids-limit=512", "--network=cz-job-7", "--volume=cz-job-7:/workspace",
+}
+
+func execs(calls []call) []call {
+	var out []call
+	for _, c := range calls {
+		if c[0] == "exec" {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 func containerStarts(calls []call) []call {
@@ -142,16 +211,17 @@ func TestExecute_EveryContainerCarriesTheHardeningFlags(t *testing.T) {
 	if !api.finished || api.result != "success" {
 		t.Fatalf("result = %q %q", api.result, api.message)
 	}
-	starts := containerStarts(calls())
-	if len(starts) != 3 {
-		t.Fatalf("container starts = %d, want the init container and two steps: %v", len(starts), starts)
+	cs := calls()
+	starts := containerStarts(cs)
+	if len(starts) != 1 || starts[0][0] != "create" {
+		t.Fatalf("container starts = %v, want exactly one create for the whole Job", starts)
 	}
-	for _, c := range starts {
-		for _, f := range wantHardening {
-			if !c.has(f) {
-				t.Errorf("%s %s lacks %s", c[0], c[2], f)
-			}
+	for _, f := range wantHardening {
+		if !starts[0].has(f) {
+			t.Errorf("create lacks %s", f)
 		}
+	}
+	for _, c := range cs {
 		for _, a := range c {
 			if a == "--privileged" || strings.HasPrefix(a, "--cap-add") || strings.HasPrefix(a, "--device") || strings.HasPrefix(a, "--pid=") || strings.HasPrefix(a, "--pid ") ||
 				strings.HasPrefix(a, "--ipc") || strings.HasPrefix(a, "--userns") || strings.Contains(a, "docker.sock") || a == "-v" ||
@@ -160,18 +230,34 @@ func TestExecute_EveryContainerCarriesTheHardeningFlags(t *testing.T) {
 			}
 		}
 	}
-	first := starts[1]
-	wantFirst := append(append([]string{"run", "--rm", "--name", "cz-job-7-step-0"}, wantHardening...),
-		"--workdir=/workspace/src", "--entrypoint=sh",
+	for _, c := range execs(cs) {
+		for _, a := range c {
+			if a == "--" {
+				break
+			}
+			if !strings.HasPrefix(a, "--workdir=") && !strings.HasPrefix(a, "--env=") && a != "exec" {
+				t.Errorf("exec carries an unexpected flag %q", a)
+			}
+		}
+	}
+	wantCreate := append(append([]string{"create", "--name", "cz-job-7"}, wantHardening...), "--entrypoint=sleep", "--", "golang:1.23", "2147483647")
+	if !slices.Equal(starts[0], wantCreate) {
+		t.Errorf("create args =\n%q\nwant\n%q", starts[0], wantCreate)
+	}
+	ex := execs(cs)
+	if len(ex) != 2 {
+		t.Fatalf("execs = %d, want one per step: %v", len(ex), ex)
+	}
+	wantFirst := []string{"exec", "--workdir=/workspace/src",
 		"--env=CI=true", "--env=CLOUDZILLA_ACTIONS=true", "--env=GITHUB_ACTOR=u", "--env=GITHUB_EVENT_NAME=push", "--env=GITHUB_REF=refs/heads/main",
 		"--env=GITHUB_REF_NAME=main", "--env=GITHUB_REPOSITORY=o/r", "--env=GITHUB_RUN_NUMBER=1", "--env=GITHUB_SHA=abc",
 		"--env=GITHUB_WORKSPACE=/workspace/src", "--env=GOFLAGS=-mod=mod", "--env=HOME=/workspace/home",
-		"--", "golang:1.23", "-e", "-c", "go build ./...")
-	if !slices.Equal(first, wantFirst) {
-		t.Errorf("step 0 args =\n%q\nwant\n%q", first, wantFirst)
+		"--", "cz-job-7", "sh", "-e", "-c", "go build ./..."}
+	if !slices.Equal(ex[0], wantFirst) {
+		t.Errorf("step 0 args =\n%q\nwant\n%q", ex[0], wantFirst)
 	}
-	second := starts[2]
-	if !second.has("--workdir=/workspace/src/sub/dir") || !second.has("--entrypoint=bash") || !second.has("--env=A=1") || !second.has("--env=B=2") ||
+	second := ex[1]
+	if !second.has("--workdir=/workspace/src/sub/dir") || !second.has("bash") || !second.has("--env=A=1") || !second.has("--env=B=2") ||
 		second[len(second)-1] != "echo abc" {
 		t.Errorf("step 1 args = %q", second)
 	}
@@ -207,9 +293,9 @@ func TestExecute_NothingInAWorkflowCanLoosenTheFlags(t *testing.T) {
 			if api.result != "failure" || !strings.Contains(api.message, tc.wantMsg) {
 				t.Errorf("result = %q %q, want failure containing %q", api.result, api.message, tc.wantMsg)
 			}
-			for _, c := range containerStarts(calls()) {
-				if c[0] == "run" {
-					t.Errorf("a container started: %q", c)
+			for _, c := range calls() {
+				if c[0] == "exec" {
+					t.Errorf("a step ran: %q", c)
 				}
 				for _, a := range c {
 					if a == "--privileged" {
@@ -249,7 +335,7 @@ func TestExecute_LabelPicksTheDefaultImage(t *testing.T) {
 	calls := stubDocker(t)
 	api := &fakeAPI{}
 	newExecutor(api).Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "x"}))
-	if starts := containerStarts(calls()); len(starts) != 2 || !starts[1].has("ubuntu:24.04") {
+	if starts := containerStarts(calls()); len(starts) != 1 || !starts[0].has("ubuntu:24.04") {
 		t.Errorf("starts = %q", starts)
 	}
 
@@ -292,7 +378,7 @@ func TestExecute_RemovesWhatItMadeEvenWhenAStepFails(t *testing.T) {
 			tail = append(tail, strings.Join(c, " "))
 		}
 	}
-	want := []string{"rm -f cz-job-7-init", "volume rm -f cz-job-7", "network rm cz-job-7"}
+	want := []string{"rm -f cz-job-7", "volume rm -f cz-job-7", "network rm cz-job-7"}
 	if !slices.Equal(tail, want) {
 		t.Errorf("cleanup = %q, want %q", tail, want)
 	}
@@ -302,7 +388,7 @@ func TestExecute_JobCancelledByTheServerStopsTheContainerAndReportsNothing(t *te
 	calls := stubDocker(t)
 	api := &fakeAPI{}
 	api.heartbeat = func() (bool, error) {
-		return !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "run" }), nil
+		return !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" }), nil
 	}
 
 	done := make(chan struct{})
@@ -320,7 +406,7 @@ func TestExecute_JobCancelledByTheServerStopsTheContainerAndReportsNothing(t *te
 	}
 	removedStep := false
 	for _, c := range calls() {
-		if c[0] == "rm" && c.has("cz-job-7-step-0") {
+		if c[0] == "exec" && strings.Contains(strings.Join(c, " "), "kill -9 -1") {
 			removedStep = true
 		}
 	}
@@ -354,7 +440,7 @@ func TestExecute_StoppingTheRunnerKillsTheContainerAndReportsCancelled(t *testin
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
-		for !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "run" }) {
+		for !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" }) {
 			time.Sleep(10 * time.Millisecond)
 		}
 		cancel()
@@ -365,10 +451,28 @@ func TestExecute_StoppingTheRunnerKillsTheContainerAndReportsCancelled(t *testin
 	}
 	killed := false
 	for _, c := range calls() {
-		killed = killed || (c[0] == "rm" && c.has("cz-job-7-step-0"))
+		killed = killed || (c[0] == "exec" && strings.Contains(strings.Join(c, " "), "kill -9 -1"))
 	}
 	if !killed {
 		t.Error("container was not removed on stop")
+	}
+}
+
+func TestExecute_StepsOfAJobShareOneContainer(t *testing.T) {
+	calls := stubDocker(t)
+	api := &fakeAPI{}
+	newExecutor(api).Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "apt-get install -y jq"}, runnerapi.StepSpec{Run: "jq --version"}))
+	ex := execs(calls())
+	if len(ex) != 2 {
+		t.Fatalf("execs = %d", len(ex))
+	}
+	for _, c := range ex {
+		if !c.has("cz-job-7") {
+			t.Errorf("step ran outside the job container: %q", c)
+		}
+	}
+	if n := len(containerStarts(calls())); n != 1 {
+		t.Errorf("container creations = %d, want 1", n)
 	}
 }
 
@@ -449,8 +553,150 @@ func TestExecute_TimeoutMinutesOfAStepAndOfTheJobAreHonoured(t *testing.T) {
 			if api.result != "failure" || api.message != tc.wantMsg {
 				t.Errorf("result = %q %q, want failure %q", api.result, api.message, tc.wantMsg)
 			}
-			if !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "rm" && c.has("cz-job-7-step-0") }) {
+			if !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" && strings.Contains(strings.Join(c, " "), "kill -9 -1") }) {
 				t.Error("container was not removed")
+			}
+		})
+	}
+}
+
+func TestExecute_OutputIsPostedPerStepInOrderWithSecretsMasked(t *testing.T) {
+	stubDocker(t)
+	api := &fakeAPI{}
+	e := newExecutor(api)
+	e.Masker = logmask.New([]string{"cz-job-7"})
+	e.Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "one"}, runnerapi.StepSpec{Run: "two"}))
+
+	if got := api.postedText(0); got != "ran in ***\n" {
+		t.Errorf("step 0 log = %q", got)
+	}
+	if got := api.postedText(1); got != "ran in ***\n" {
+		t.Errorf("step 1 log = %q", got)
+	}
+	for i, l := range api.logs {
+		if l.seq != i {
+			t.Errorf("chunk %d has seq %d", i, l.seq)
+		}
+	}
+}
+
+func TestExecute_OutputIsPostedWhileTheStepIsStillRunning(t *testing.T) {
+	calls := stubDocker(t)
+	api := &fakeAPI{}
+	e := newExecutor(api)
+	e.HeartbeatEvery = time.Hour
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() { e.Execute(ctx, jobSpec(runnerapi.StepSpec{Run: "STUBTAIL"})); close(done) }()
+
+	deadline := time.Now().Add(10 * time.Second)
+	for api.postedText(0) != "first line\n" {
+		if time.Now().After(deadline) {
+			t.Fatalf("nothing posted while the step ran; calls = %v", calls())
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if api.finished {
+		t.Error("the Job had finished before the check")
+	}
+	cancel()
+	<-done
+}
+
+func TestExecute_LogCapReportedByTheServerStopsFurtherPosts(t *testing.T) {
+	stubDocker(t)
+	api := &fakeAPI{truncate: true}
+	newExecutor(api).Execute(context.Background(), jobSpec(runnerapi.StepSpec{Run: "one"}, runnerapi.StepSpec{Run: "two"}))
+	if len(api.logs) != 1 {
+		t.Errorf("posts after truncation = %d, want only the first", len(api.logs))
+	}
+	if api.result != "success" {
+		t.Errorf("a capped log changed the result: %q %q", api.result, api.message)
+	}
+}
+
+func artifactTar(t *testing.T) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	for _, h := range []struct {
+		name, body string
+		typ        byte
+		link       string
+	}{
+		{"dist/", "", tar.TypeDir, ""},
+		{"dist/app.bin", "binary", tar.TypeReg, ""},
+		{"dist/link", "", tar.TypeSymlink, "/etc/passwd"},
+		{"../escape", "x", tar.TypeReg, ""},
+	} {
+		if err := tw.WriteHeader(&tar.Header{Name: h.name, Typeflag: h.typ, Mode: 0o755, Size: int64(len(h.body)), Linkname: h.link}); err != nil {
+			t.Fatal(err)
+		}
+		_, _ = tw.Write([]byte(h.body))
+	}
+	_ = tw.Close()
+	return buf.Bytes()
+}
+
+func TestExecute_ArtifactsAreZippedAndUploadedBeforeTheJobFinishes(t *testing.T) {
+	calls := stubDocker(t)
+	if err := os.WriteFile(filepath.Join(os.Getenv("STUB_DIR"), "artifact.tar"), artifactTar(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	api := &fakeAPI{}
+	spec := jobSpec(runnerapi.StepSpec{Run: "make"})
+	spec.Artifacts = []runnerapi.ArtifactSpec{{Name: "dist", Path: "./dist"}}
+	newExecutor(api).Execute(context.Background(), spec)
+
+	if api.result != "success" {
+		t.Fatalf("result = %q %q", api.result, api.message)
+	}
+	zr, err := zip.NewReader(bytes.NewReader(api.artifacts["dist"]), int64(len(api.artifacts["dist"])))
+	if err != nil {
+		t.Fatalf("uploaded archive: %v", err)
+	}
+	var names []string
+	for _, f := range zr.File {
+		names = append(names, f.Name)
+	}
+	if !slices.Equal(names, []string{"dist/", "dist/app.bin"}) {
+		t.Errorf("zip entries = %q, want the dir and file only: no symlink, nothing outside", names)
+	}
+	var cp call
+	for _, c := range calls() {
+		if c[0] == "cp" && c[1] != "-" {
+			cp = c
+		}
+	}
+	if !slices.Equal(cp, call{"cp", "cz-job-7:/workspace/src/dist", "-"}) {
+		t.Errorf("cp args = %q", cp)
+	}
+}
+
+func TestExecute_AFailedArtifactFailsTheJobAndNamesIt(t *testing.T) {
+	for name, tc := range map[string]struct {
+		path    string
+		artErr  error
+		wantMsg string
+	}{
+		"missing path":   {path: "nothing", wantMsg: `artifact "out": nothing does not exist in the workspace`},
+		"outside":        {path: "../etc", wantMsg: "inside the workspace"},
+		"server refusal": {path: "x", artErr: errors.New("422 a Run can have at most 10 artifacts (ci.max_artifacts_per_run)"), wantMsg: "ci.max_artifacts_per_run"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			stubDocker(t) // without artifact.tar docker cp reports the path missing
+			api := &fakeAPI{artErr: tc.artErr}
+			spec := jobSpec(runnerapi.StepSpec{Run: "make"})
+			spec.Artifacts = []runnerapi.ArtifactSpec{{Name: "out", Path: tc.path}}
+			if tc.artErr != nil {
+				if err := os.WriteFile(filepath.Join(os.Getenv("STUB_DIR"), "artifact.tar"), artifactTar(t), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			newExecutor(api).Execute(context.Background(), spec)
+			if api.result != "failure" || !strings.Contains(api.message, tc.wantMsg) {
+				t.Errorf("result = %q %q, want failure containing %q", api.result, api.message, tc.wantMsg)
 			}
 		})
 	}

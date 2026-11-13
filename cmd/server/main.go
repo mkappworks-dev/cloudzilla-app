@@ -131,6 +131,9 @@ func main() {
 		concurrency.Go("mirror.run", func() { services.Mirror.Run(workerCtx) })
 	}
 
+	// Outside the ci.enabled check: turning CI off must not stop old logs and artifacts from expiring.
+	concurrency.Go("workflow_log.retention", func() { services.WorkflowLog.Run(workerCtx) })
+
 	if cfg.CI.Enabled {
 		concurrency.Go("workflow_run.sweep", func() { services.WorkflowRun.Run(workerCtx) })
 		concurrency.Go("ci_runner.lost_sweep", func() { services.CIRunner.Run(workerCtx) })

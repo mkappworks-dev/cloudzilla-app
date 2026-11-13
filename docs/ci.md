@@ -40,6 +40,8 @@ An unknown context, function or operator fails the parse.
 
 50 Jobs per Run after matrix expansion and 200 Steps per Run; a matrix over the Job limit fails with the count.
 
+Logs and artifacts have their own limits, listed under [Logs and artifacts](#logs-and-artifacts).
+
 ## Not supported
 
 Each of these fails the parse with the file, line and key, as does any key not listed above:
@@ -89,22 +91,25 @@ parallelism. Build it with `make build-runner` (`dist/cz-runner`, a static binar
 ### What runs, and how
 
 For each Job the runner creates a network and a volume named `cz-job-<id>`, clones the Job's commit with go-git into a
-host temp directory using the per-job token, copies it into the volume, then runs each Step as its own `docker run`
-sharing that volume, and removes the network and volume afterwards. A Step sees the checkout at `/workspace/src`
-(`GITHUB_WORKSPACE`, the default working directory) and `HOME=/workspace/home`. Installed packages do not carry from one
-Step to the next: use an image that has the toolchain.
+host temp directory using the per-job token, creates one container named `cz-job-<id>`, copies the checkout into its
+volume and starts it idling (`sleep`). Each Step then runs as a `docker exec` into that container, so tools a Step
+installs are still there in the next. The container, volume and network are removed when the Job ends, and when the
+runner stops on `SIGINT` or `SIGTERM`. A Step sees the checkout at `/workspace/src` (`GITHUB_WORKSPACE`, the default
+working directory) and `HOME=/workspace/home`.
 
-Every container, the checkout one included, gets exactly these flags and nothing a workflow says can change them:
+The Job's container gets exactly these flags and nothing a workflow says can change them:
 
 ```
 --privileged=false --cap-drop=ALL --security-opt=no-new-privileges --user=1000:1000
 --cpus=2 --memory=4g --memory-swap=4g --pids-limit=512 --network=cz-job-<id> --volume=cz-job-<id>:/workspace
 ```
 
-No host path is mounted and the Docker socket is never passed in. The image, `env` names, `working-directory` and
-`shell` are validated before anything starts (an image beginning with `-` or containing spaces, a working directory
-outside the workspace, or a shell other than `sh` or `bash` fails the Step). Step `if`, `env`, `run` and `${{ }}` are
-evaluated on the runner. `timeout-minutes` of a Step and of the Job are enforced by removing the container.
+`docker exec` inherits the user, limits, network and volume and is given only `--workdir` and `--env`. No host path is
+mounted and the Docker socket is never passed in. The image, `env` names, `working-directory` and `shell` are validated
+before anything starts (an image beginning with `-` or containing spaces, a working directory outside the workspace, or
+a shell other than `sh` or `bash` fails the Step). Step `if`, `env`, `run` and `${{ }}` are evaluated on the runner. A
+Step's `timeout-minutes` kills the processes it started (the Job continues, so `if: always()` Steps still run); the Job
+timeout removes the container.
 
 ### Runner protocol
 
@@ -117,6 +122,8 @@ All calls are `POST`, JSON, with `Authorization: Bearer <token>`. Types are in `
 | `/api/runner/jobs/{id}/heartbeat`        | runner       | Renews the 60 s lease; `continue: false` means stop (cancelled)                |
 | `/api/runner/jobs/{id}/steps/{position}` | runner       | `running`, `success`, `failure` or `skipped`                                   |
 | `/api/runner/jobs/{id}/finish`           | runner       | `success`, `failure` or `cancelled`; `409` once the Job has ended              |
+| `/api/runner/jobs/{id}/log`              | per-job      | Text body of whole lines; `?seq=<n>&step=<position>`. See below                |
+| `/api/runner/jobs/{id}/artifacts`        | per-job      | Zip body; `?name=<name>`. See below                                            |
 
 A runner may touch only a Job it holds (`403` otherwise). A Job with no heartbeat for 60 s fails as "runner lost" and
 its Run fails; the sweep runs every 15 s. The runner sends a heartbeat every 10 s.
@@ -125,7 +132,55 @@ The per-job token (`czj_…`) is minted at claim and stored hashed on the Job. I
 repository, valid for `git-upload-pack` over HTTP Basic and nothing else (a push is `403`, another repository `404`, any
 user API `401`), and stops working the moment the Job leaves `running`. The runner never passes it into a Step.
 
-Log and artifact endpoints (ticket 05) will accept this token for its own Job.
+The log and artifact endpoints take this token for their own Job only (`403` for another Job, `401` once the Job has
+left `running`), so the runner posts the artifacts before it reports the Job finished. They are not JSON: the log body
+is text and the artifact body is a zip.
+
+## Logs and artifacts
+
+**Logs.** While a Step runs the runner posts its output every second, or sooner at 256 KiB, as chunks of whole lines.
+Each chunk carries a sequence number `seq` chosen by the runner, so a retried POST is stored once, and the Step it
+belongs to. The server assigns the line offsets, stores the chunk as an object and then its row, and records the Step's
+line range. A chunk may be up to 1 MiB. The runner masks secret values (exact, base64 and URL-encoded forms) before it
+posts, and the server masks the repo's secret values again as a backstop, so a runner that skips it still can't store
+one. A secret that spans two lines is not masked across the break. No Job carries secrets yet; the hook is
+`WorkflowLogService.WithSecrets`.
+
+A Job's log is capped at `ci.max_log_bytes` (20 MiB). The chunk that crosses it is cut at a line boundary and ends with
+one line, `[log truncated: this Job reached the 20 MiB limit (ci.max_log_bytes)]`; later chunks are dropped and the
+reply tells the runner to stop sending.
+
+**Reading a log.**
+
+| Endpoint                                                             | Returns                                                                                     |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `GET /api/repos/{owner}/{repo}/actions/runs/{number}/jobs/{id}/logs` | JSON `{offset, next_offset, total_lines, truncated, complete, lines}`; `?offset=` `?limit=` |
+| `GET /{owner}/{repo}/actions/runs/{number}/jobs/{id}/log`            | The whole log as a `text/plain` download                                                    |
+| `GET /api/repos/{owner}/{repo}/actions/runs/{number}/artifacts`      | JSON list with `download_url`                                                               |
+| `GET /{owner}/{repo}/actions/runs/{number}/artifacts/{artifact id}`  | The artifact's zip as a download                                                            |
+
+`limit` defaults to 1000 lines and is at most 5000. A reader polls with `offset=<next_offset>` until `complete` is true
+and a page comes back empty. Everything needs `CanRead` on every request. A viewer who can't read the repo gets the same
+`404` as for a repo that doesn't exist (`repo not found` from the JSON API, an empty-bodied `404` on the downloads).
+
+**Artifacts.** A Job's `artifacts:` list names paths in the checkout. After the Steps, whether or not the Job passed,
+the runner copies each path out of the Job's container, rewrites it as a zip (directories and regular files only: a
+symlink would point out of the archive when unpacked) and uploads it. A path that does not exist, or an upload the
+server refuses, fails the Job with a message naming the artifact. The archive is downloaded as `<name>.zip`.
+
+## Limits and retention
+
+| Key                        | Default | Meaning                                                           |
+| -------------------------- | ------- | ----------------------------------------------------------------- |
+| `ci.max_log_bytes`         | 20 MiB  | Log per Job; the rest is dropped after a truncation line          |
+| `ci.max_artifact_bytes`    | 100 MiB | One artifact's zip; larger is refused with `413` naming the limit |
+| `ci.max_artifacts_per_run` | 10      | Artifacts per Run attempt; the next is refused with `422`         |
+| `ci.log_retention`         | `720h`  | Age after which a log chunk is deleted                            |
+| `ci.artifact_retention`    | `720h`  | Age after which an artifact is deleted; it stops downloading then |
+
+An hourly worker deletes expired chunks and artifacts. The Run, its Jobs and Steps, and commit statuses stay; a Job
+whose chunks have expired reads as an empty log. Storage layout, deletion order and orphans are in
+[Storage](./storage.md#ci-logs-and-artifacts).
 
 ### Operator hardening
 

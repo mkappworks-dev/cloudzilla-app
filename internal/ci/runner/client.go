@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -33,16 +34,24 @@ func (c *Client) do(ctx context.Context, path, token string, in, out any) (int, 
 		}
 		body = bytes.NewReader(b)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(c.Server, "/")+path, body)
-	if err != nil {
-		return 0, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
 	hc := c.HTTP
 	if hc == nil {
 		hc = &http.Client{Timeout: (runnerapi.MaxClaimWaitSeconds + 30) * time.Second}
 	}
+	return c.send(ctx, hc, path, token, "application/json", body, -1, out)
+}
+
+// send POSTs body, of length bytes (-1 when unknown), and decodes a JSON reply into out.
+func (c *Client) send(ctx context.Context, hc *http.Client, path, token, contentType string, body io.Reader, length int64, out any) (int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(c.Server, "/")+path, body)
+	if err != nil {
+		return 0, err
+	}
+	if length >= 0 {
+		req.ContentLength = length
+	}
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := hc.Do(req)
 	if err != nil {
 		return 0, err
@@ -98,5 +107,28 @@ func (c *Client) SetStep(ctx context.Context, jobID int64, position int, status 
 
 func (c *Client) Finish(ctx context.Context, jobID int64, result, message string) error {
 	_, err := c.do(ctx, fmt.Sprintf("/api/runner/jobs/%d/finish", jobID), c.Token, runnerapi.FinishRequest{Result: result, Message: message}, nil)
+	return err
+}
+
+// PostLog sends whole lines of Step step as chunk seq of the Job's log with the per-job token, and reports whether the
+// server has capped the log, after which sending more is pointless.
+func (c *Client) PostLog(ctx context.Context, jobID int64, token string, step, seq int, data []byte) (bool, error) {
+	var out runnerapi.LogResponse
+	hc := c.HTTP
+	if hc == nil {
+		hc = &http.Client{Timeout: 30 * time.Second}
+	}
+	path := fmt.Sprintf("/api/runner/jobs/%d/log?step=%d&seq=%d", jobID, step, seq)
+	if _, err := c.send(ctx, hc, path, token, "text/plain; charset=utf-8", bytes.NewReader(data), int64(len(data)), &out); err != nil {
+		return false, err
+	}
+	return out.Truncated, nil
+}
+
+// UploadArtifact sends a zip archive of size bytes. It has no client timeout of its own: ctx bounds it, since a
+// large archive on a slow link legitimately takes minutes.
+func (c *Client) UploadArtifact(ctx context.Context, jobID int64, token, name string, size int64, r io.Reader) error {
+	path := fmt.Sprintf("/api/runner/jobs/%d/artifacts?name=%s", jobID, url.QueryEscape(name))
+	_, err := c.send(ctx, &http.Client{}, path, token, "application/zip", r, size, nil)
 	return err
 }

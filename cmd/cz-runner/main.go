@@ -117,7 +117,7 @@ func runCmd() *cobra.Command {
 			}
 			client := &runner.Client{Server: cfg.Server, Token: cfg.Token, HTTP: &http.Client{Timeout: (runnerapi.MaxClaimWaitSeconds + 30) * time.Second}}
 			p := &runner.Poller{Client: client, Labels: cfg.Labels, Once: once, Exec: &runner.Executor{
-				Config: cfg, Limits: lim, API: client, Docker: dockerBin, Checkout: runner.GitCheckout, Out: os.Stdout,
+				Config: cfg, Limits: lim, API: client, Docker: dockerBin, Checkout: runner.GitCheckout,
 			}}
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()

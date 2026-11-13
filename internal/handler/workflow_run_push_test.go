@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"sync/atomic"
 	"testing"
@@ -22,6 +23,7 @@ import (
 const pushedWorkflow = "name: CI\non: push\njobs:\n  test:\n    runs-on: linux\n    steps:\n      - run: go test ./...\n  build:\n    runs-on: linux\n    needs: test\n    steps:\n      - run: go build ./...\n"
 
 type ciPushEnv struct {
+	db    *sql.DB
 	h     http.Handler
 	svcs  *service.Services
 	r     raceRepo
@@ -43,7 +45,7 @@ func newCIPushEnv(t *testing.T) *ciPushEnv {
 	if err != nil {
 		t.Fatalf("router.New: %v", err)
 	}
-	e := &ciPushEnv{h: h, svcs: svcs, r: seedRaceRepo(t, db, reposRoot)}
+	e := &ciPushEnv{db: db, h: h, svcs: svcs, r: seedRaceRepo(t, db, reposRoot)}
 	svcs.WorkflowRun.WithPushDone(func() { e.pushs.Add(1) })
 	return e
 }

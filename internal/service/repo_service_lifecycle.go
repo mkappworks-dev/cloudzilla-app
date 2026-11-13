@@ -117,6 +117,11 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 		if s.releaseAssets != nil {
 			s.releaseAssets.DeleteObjects(ctx, assetsOfRepo(assets, r.ID))
 		}
+		if s.workflowLogs != nil {
+			if err := s.workflowLogs.DeleteForRepo(ctx, r.ID); err != nil {
+				slog.Warn("repo purge: delete CI logs and artifacts failed; the sweep will retry", "repo_id", r.ID, "error", err)
+			}
+		}
 		if s.attachments != nil {
 			if err := s.attachments.DeleteForRepo(ctx, r.ID); err != nil {
 				slog.Warn("repo purge: delete attachments failed; the sweep will retry", "repo_id", r.ID, "error", err)
