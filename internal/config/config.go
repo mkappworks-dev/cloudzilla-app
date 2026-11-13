@@ -181,22 +181,6 @@ type MetricsConfig struct {
 // MaxMirrorInterval is the longest sync interval a pull mirror may have.
 const MaxMirrorInterval = 30 * 24 * time.Hour
 
-// SecretScanningConfig holds secret-scanning settings.
-type SecretScanningConfig struct {
-	BackfillTimeout  time.Duration `mapstructure:"backfill_timeout"`
-	BackfillMaxBlobs int           `mapstructure:"backfill_max_blobs"`
-}
-
-func (c SecretScanningConfig) validate() error {
-	switch {
-	case c.BackfillTimeout <= 0:
-		return fmt.Errorf("secret_scanning.backfill_timeout must be positive, got %s", c.BackfillTimeout)
-	case c.BackfillMaxBlobs < 1:
-		return fmt.Errorf("secret_scanning.backfill_max_blobs must be at least 1, got %d", c.BackfillMaxBlobs)
-	}
-	return nil
-}
-
 // MirrorConfig holds pull-mirror settings.
 type MirrorConfig struct {
 	// Disabling stops syncs and hides mirror options; existing mirrors stay read-only.
@@ -219,6 +203,34 @@ func (m MirrorConfig) validate() error {
 		return fmt.Errorf("mirror.max_concurrent must be at least 1, got %d", m.MaxConcurrent)
 	case m.Timeout <= 0:
 		return fmt.Errorf("mirror.timeout must be positive, got %s", m.Timeout)
+	}
+	return nil
+}
+
+// SecretScanningConfig holds secret scanning settings. Scanning always runs; PushProtection only decides whether a
+// match refuses the push.
+type SecretScanningConfig struct {
+	PushProtection bool          `mapstructure:"push_protection"`
+	MaxBlobBytes   int           `mapstructure:"max_blob_bytes"`
+	PushTimeout    time.Duration `mapstructure:"push_timeout"`
+	MaxBlobs       int           `mapstructure:"max_blobs"`
+
+	BackfillTimeout  time.Duration `mapstructure:"backfill_timeout"`
+	BackfillMaxBlobs int           `mapstructure:"backfill_max_blobs"`
+}
+
+func (c SecretScanningConfig) validate() error {
+	switch {
+	case c.MaxBlobBytes < 1:
+		return fmt.Errorf("secret_scanning.max_blob_bytes must be at least 1, got %d", c.MaxBlobBytes)
+	case c.PushTimeout <= 0:
+		return fmt.Errorf("secret_scanning.push_timeout must be positive, got %s", c.PushTimeout)
+	case c.MaxBlobs < 1:
+		return fmt.Errorf("secret_scanning.max_blobs must be at least 1, got %d", c.MaxBlobs)
+	case c.BackfillTimeout <= 0:
+		return fmt.Errorf("secret_scanning.backfill_timeout must be positive, got %s", c.BackfillTimeout)
+	case c.BackfillMaxBlobs < 1:
+		return fmt.Errorf("secret_scanning.backfill_max_blobs must be at least 1, got %d", c.BackfillMaxBlobs)
 	}
 	return nil
 }
@@ -323,6 +335,12 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("mirror.timeout", "30m")
 	v.SetDefault("secret_scanning.backfill_timeout", "5m")
 	v.SetDefault("secret_scanning.backfill_max_blobs", 200000)
+	v.SetDefault("secret_scanning.push_protection", true)
+	v.SetDefault("secret_scanning.max_blob_bytes", 1<<20)
+	v.SetDefault("secret_scanning.push_timeout", "10s")
+	v.SetDefault("secret_scanning.max_blobs", 5000)
+	v.SetDefault("secret_scanning.backfill_timeout", "5m")
+	v.SetDefault("secret_scanning.backfill_max_blobs", 200000)
 	v.SetDefault("release.max_asset_bytes", int64(512<<20))
 	v.SetDefault("release.max_assets", 20)
 	v.SetDefault("metrics.listen_addr", "")
@@ -376,10 +394,10 @@ func Load(cfgFile string) (*Config, error) {
 	if err := cfg.Mirror.validate(); err != nil {
 		return nil, err
 	}
-	if err := cfg.SecretScanning.validate(); err != nil {
+	if err := cfg.Release.validate(); err != nil {
 		return nil, err
 	}
-	if err := cfg.Release.validate(); err != nil {
+	if err := cfg.SecretScanning.validate(); err != nil {
 		return nil, err
 	}
 	return &cfg, nil

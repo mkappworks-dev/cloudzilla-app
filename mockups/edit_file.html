@@ -37,6 +37,7 @@
       <button type="button" data-ef-state="markers" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Markers refused</button>
       <button type="button" data-ef-state="deleted" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Deleted upstream</button>
       <button type="button" data-ef-state="protected" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Protected branch</button>
+      <button type="button" data-ef-state="secret" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Secret refused</button>
       <button type="button" data-ef-state="taken" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Branch name taken</button>
     </div>
 
@@ -268,6 +269,7 @@ func New(h *handler.Handlers) http.Handler {
     conflict: { text: conflicted, alert: CHANGED, upstream: true, notice: '1 conflict needs resolving. Edit each block between the \u201c<<<<<<< your changes\u201d and \u201c>>>>>>> main (current)\u201d lines, delete the marker lines, then commit.' },
     markers: { text: conflicted, upstream: true, error: 'Remove the \u201c<<<<<<< your changes\u201d and \u201c>>>>>>> main (current)\u201d lines before committing.' },
     protected: { text: base, locked: true },
+    secret: { text: base + 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n', alert: 'secret detected: aws_access_key_id in internal/router/router.go:3; if it is not a live secret, a writer can allow it at http://localhost:8080/alice/demo/security/secrets/1' },
     taken: { text: base, branch: 'main', branchError: 'A branch named main already exists. Pick another name.' },
     deleted: { text: mine, alert: 'This file was deleted or moved on main after you opened it, so your changes weren\u2019t committed.', notice: 'internal/router/router.go no longer exists on main, so there is nothing to merge your changes into. Copy your text before you leave.' }
   };

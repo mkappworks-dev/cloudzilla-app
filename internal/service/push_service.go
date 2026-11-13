@@ -26,17 +26,33 @@ type PushService struct {
 	closer  *IssueCloser
 	index   *IndexService
 	deps    *DependencyService
+	secrets *PushScanService
 }
 
 func NewPushService(repos *RepoService, code *CodeService, webhook *WebhookService, events *EventService, closer *IssueCloser, index *IndexService, deps *DependencyService) *PushService {
 	return &PushService{repos: repos, code: code, webhook: webhook, events: events, closer: closer, index: index, deps: deps}
 }
 
+// WithSecretScan enables the scan after the push; it also covers AfterWebCommit.
+func (s *PushService) WithSecretScan(scan *PushScanService) *PushService {
+	s.secrets = scan
+	return s
+}
+
 // AfterPush fires the push webhooks and records activity, closes issues named by
 // pushed commits, ingests stats, re-indexes code and parses dependencies, each in
 // the background. commands must be only the refs that applied. An actor with no
-// Username (a deploy key) records no activity and closes no issues.
-func (s *PushService) AfterPush(repo *model.Repository, gitRepo *gogit.Repository, actor CloseActor, commands []*packp.Command) {
+// Username (a deploy key) records no activity and closes no issues. scan is the push's secret scan, or nil when
+// there is none to finish.
+func (s *PushService) AfterPush(repo *model.Repository, gitRepo *gogit.Repository, actor CloseActor, commands []*packp.Command, scan *PushScan) {
+	if scan != nil {
+		concurrency.Go("secret_scan.post_receive", func() {
+			ctx, cancel := context.WithTimeout(context.Background(), afterPushTimeout)
+			defer cancel()
+			scan.PostReceive(ctx, commands)
+		})
+	}
+
 	for _, cmd := range commands {
 		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") || cmd.Action() == packp.Delete {
 			continue
@@ -100,9 +116,13 @@ func (s *PushService) AfterWebCommit(repo *model.Repository, actor CloseActor, u
 			"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name, "error", err)
 		return
 	}
+	var scan *PushScan
+	if s.secrets != nil {
+		scan = s.secrets.ForCommit(repo, gitRepo, actor.UserID, upd.New)
+	}
 	s.AfterPush(repo, gitRepo, actor, []*packp.Command{{
 		Name: plumbing.NewBranchReferenceName(upd.Branch),
 		Old:  upd.Old,
 		New:  upd.New,
-	}})
+	}}, scan)
 }
