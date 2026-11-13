@@ -104,6 +104,17 @@ mirror sync and after an import. It alerts and never blocks.
 
 **Artifact** — a named file archive a Job uploads when it finishes.
 
+**Attempt** — one go at a Run's Jobs. A re-run adds an attempt to the same Run rather than making a new one.
+
+**Approval required** — the state of a Run from a fork pull request until a writer approves it. Nothing runs before
+then.
+
+**Secret** — a named value a repository admin stores for Workflows, sealed and never shown again. Not a secret-scanning
+finding.
+
+**Actions** — the Repository tab where Workflows are run and managed. **Checks** is the pull request tab that shows the
+results for one pull request. Neither is called a pipeline; that word is not used.
+
 ## Tools
 
 **`cz`** — the remote command-line client for developers. It talks to the JSON API only.

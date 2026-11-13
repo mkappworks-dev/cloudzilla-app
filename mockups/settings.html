@@ -236,7 +236,7 @@
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">
         <h2 class="text-base font-semibold tracking-tight">Deploy keys</h2>
-        <p class="text-[12px] text-muted-foreground">SSH keys that grant CI/CD pipelines access to this repository.</p>
+        <p class="text-[12px] text-muted-foreground">SSH keys that grant CI/CD systems access to this repository.</p>
       </div>
       <button type="button" onclick="document.getElementById('deploy-key-dialog').showModal()" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Add deploy key</button>
     </div>
@@ -259,14 +259,14 @@
               <td class="py-3 font-mono text-muted-foreground text-xs">SHA256:q3Zt0b8mKJk2r9yH1pXoP4Vw7uE5nL6cA0dGfS2tBxY</td>
               <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-warning/15 text-warning border-warning/30">Read-only</span></td>
               <td class="py-3 text-muted-foreground text-xs">Oct 30, 2026</td>
-              <td class="py-3 text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke this deploy key?" data-confirm="The CI server key will immediately lose access. Any pipeline using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast="Deploy key revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
+              <td class="py-3 text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke this deploy key?" data-confirm="The CI server key will immediately lose access. Anything using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast="Deploy key revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
             </tr>
             <tr>
               <td class="py-3 font-medium text-foreground">Deploy bot</td>
               <td class="py-3 font-mono text-muted-foreground text-xs">SHA256:Hn4yWl2T8dQvR1sKc9mZxE6pUa3jFo5bN7gYiC0eVtM</td>
               <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[12px] font-medium bg-success/15 text-success border-success/30">Read-write</span></td>
               <td class="py-3 text-muted-foreground text-xs">Never</td>
-              <td class="py-3 text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke this deploy key?" data-confirm="The Deploy bot key will immediately lose access. Any pipeline using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast="Deploy key revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
+              <td class="py-3 text-right"><button type="button" data-remove="tr" data-confirm-title="Revoke this deploy key?" data-confirm="The Deploy bot key will immediately lose access. Anything using it will stop working." data-confirm-label="Revoke" data-confirm-danger data-toast="Deploy key revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
             </tr>
         </tbody>
       </table>

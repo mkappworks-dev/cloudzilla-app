@@ -1296,7 +1296,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 80, "SSH keys that grant CI/CD pipelines access to this repository.")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 80, "SSH keys that grant CI/CD systems access to this repository.")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

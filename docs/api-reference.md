@@ -696,8 +696,36 @@ Percent-encode a tag that contains `/`. The `ETag` is the file's SHA-256 and `Ca
 Valid `state` values: `pending`, `success`, `failure`, `error`. Combined state uses worst-case: `error` > `failure` >
 `pending` > `success`.
 
-The repository's Checks tab (`/{owner}/{repo}/checks`) lists the commits with reported statuses, most recently updated
-first.
+The Actions tab's **Commit statuses** filter (`/{owner}/{repo}/actions?source=statuses`) lists the commits with reported
+statuses, most recently updated first. `/{owner}/{repo}/checks` redirects there, and lists them itself when `ci.enabled`
+is off. A status owned by a CI Run carries its `run_id`.
+
+## Workflow runs
+
+CI Runs, read with the `repo` scope (or `repo:read`) and acted on with `repo:write`; they exist only while `ci.enabled`
+is on. A viewer who can't read the repository gets `404 {"error":"repo not found"}`, the same as for a repository that
+doesn't exist, and `404 {"error":"not found"}` for a missing Run or Job in one they can read. See [ci](./ci.md) for what
+a Run is.
+
+| Method | Path                                                         | Auth     | Description                                                                                                                          |
+| ------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/repos/:owner/:repo/actions/runs`                       | CanRead  | Runs, newest first: `?workflow=<path>` `?branch=` `?status=` `?event=push\|pull_request\|manual` `?page=` `?per_page=` (at most 100) |
+| GET    | `/api/repos/:owner/:repo/actions/runs/:number`               | CanRead  | One Run with its Jobs                                                                                                                |
+| GET    | `/api/repos/:owner/:repo/actions/runs/:number/jobs/:id/logs` | CanRead  | A window of a Job's log: `?offset=` `?limit=`; poll with `next_offset` until `complete`                                              |
+| GET    | `/api/repos/:owner/:repo/actions/runs/:number/artifacts`     | CanRead  | Artifacts with `download_url`                                                                                                        |
+| POST   | `/api/repos/:owner/:repo/actions/runs/:number/cancel`        | CanWrite | Cancel a queued, waiting or running Run                                                                                              |
+| POST   | `/api/repos/:owner/:repo/actions/runs/:number/rerun`         | CanWrite | Re-run a finished Run; body `{"failed_only": true}` re-runs only what failed. The Run's `attempt` goes up                            |
+| POST   | `/api/repos/:owner/:repo/actions/dispatch`                   | CanWrite | Start a Workflow: `{"workflow": "ci.yml", "ref": "main"}`; `201` with the new Run                                                    |
+
+A Run is
+`{id, number, workflow_path, workflow_name, event, ref, sha, status, attempt, error, html_url, created_at, started_at, finished_at}`,
+plus `jobs: [{id, name, context, status, message, started_at, finished_at}]` where a single Run is returned. `status` is
+`waiting`, `queued`, `running`, `success`, `failure` or `cancelled` (a Job may also be `skipped`). A refused control is
+`403` for a reader, `409` when the Run's state doesn't allow it (cancelling a finished Run, re-running an unfinished
+one, CI off) and `422` when there is nothing to do (no failed Job to re-run, an unknown branch or tag, a workflow
+without `workflow_dispatch`). Approving a fork Run is a page action, not an API.
+
+A `workflow_run` [webhook](./webhooks.md#workflow_run) tells an integrator when a Run completes.
 
 ## Milestones
 
@@ -813,8 +841,9 @@ included, since the response carries payload URLs) and, like the repository rout
 | GET    | `/api/orgs/:org/hooks/:id/deliveries` | Owner | List delivery history                                                                    |
 | POST   | `/api/orgs/:org/hooks/:id/redeliver`  | Owner | Redeliver a webhook event                                                                |
 
-A member or a repository `admin` gets 403. Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are
-signed with `X-Hub-Signature-256` when a secret is configured (GitHub-compatible HMAC-SHA256).
+A member or a repository `admin` gets 403. Webhooks fire on `push`, `issues`, `pull_request` and (when selected)
+`workflow_run` events. Requests are signed with `X-Hub-Signature-256` when a secret is configured (GitHub-compatible
+HMAC-SHA256).
 
 ## Repository Collaborators
 
