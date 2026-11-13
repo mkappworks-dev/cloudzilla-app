@@ -789,3 +789,34 @@ func TestWorkflowRun_LimitsFailTheRunWithAMessage(t *testing.T) {
 		t.Errorf("run = %+v", run)
 	}
 }
+
+func TestWorkflowRun_PullServiceOpenAndReopenCreateRuns(t *testing.T) {
+	e := newCIEnv(t, nil)
+	e.commit(e.repo, "main", map[string]string{"a.txt": "a"})
+	e.commit(e.repo, "feature", map[string]string{ciPath: "on:\n  pull_request:\n    types: [opened, reopened]\njobs:\n  test:\n    runs-on: linux\n    steps:\n      - run: x\n"})
+	waitRuns := func(n int) {
+		t.Helper()
+		for deadline := time.Now().Add(5 * time.Second); len(e.runs()) != n; time.Sleep(20 * time.Millisecond) {
+			if time.Now().After(deadline) {
+				t.Fatalf("got %d runs, want %d", len(e.runs()), n)
+			}
+		}
+	}
+
+	pr, err := e.svcs.Pull.Create(testCtx, e.repo.OwnerName, e.repo.Name, e.owner.id, "t", "", "feature", "main", false, nil)
+	if err != nil {
+		t.Fatalf("create pr: %v", err)
+	}
+	waitRuns(1)
+	if _, err := e.svcs.Pull.SetState(testCtx, e.repo.OwnerName, e.repo.Name, pr.Number, model.PRStateClosed); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.svcs.Pull.SetState(testCtx, e.repo.OwnerName, e.repo.Name, pr.Number, model.PRStateOpen); err != nil {
+		t.Fatal(err)
+	}
+
+	waitRuns(2)
+	if r := e.runs()[0]; r.Event != "pull_request" || r.PullRequestID == nil || *r.PullRequestID != pr.ID {
+		t.Errorf("reopen run = %+v", r)
+	}
+}
