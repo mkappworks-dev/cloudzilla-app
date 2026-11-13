@@ -32,7 +32,13 @@ func NewWorkflowRunStore(db *sql.DB) *WorkflowRunStore {
 }
 
 // WorkflowRunTx is the store's queries on one transaction.
-type WorkflowRunTx struct{ workflowQ }
+type WorkflowRunTx struct {
+	workflowQ
+	afterCommit []func()
+}
+
+// AfterCommit runs fn once the transaction has committed, and never if it rolls back.
+func (t *WorkflowRunTx) AfterCommit(fn func()) { t.afterCommit = append(t.afterCommit, fn) }
 
 // InTx runs fn in a transaction, committing when it returns nil.
 func (s *WorkflowRunStore) InTx(ctx context.Context, fn func(tx *WorkflowRunTx) error) error {
@@ -41,10 +47,17 @@ func (s *WorkflowRunStore) InTx(ctx context.Context, fn func(tx *WorkflowRunTx) 
 		return fmt.Errorf("workflow tx begin: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck
-	if err := fn(&WorkflowRunTx{workflowQ{tx}}); err != nil {
+	wtx := &WorkflowRunTx{workflowQ: workflowQ{tx}}
+	if err := fn(wtx); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	for _, f := range wtx.afterCommit {
+		f()
+	}
+	return nil
 }
 
 // UpsertStatus writes a commit status on the transaction, so it commits with the rows it reports.

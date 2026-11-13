@@ -121,8 +121,15 @@ func (s *WorkflowRunService) syncRunStatus(ctx context.Context, tx *store.Workfl
 	if next == "" || next == run.Status {
 		return nil
 	}
+	wasOpen := !run.Status.Finished()
 	run.Status = next
-	return tx.UpdateRunState(ctx, run.ID, next)
+	if err := tx.UpdateRunState(ctx, run.ID, next); err != nil {
+		return err
+	}
+	if wasOpen && next.Finished() {
+		s.notifyCompleted(tx, run)
+	}
+	return nil
 }
 
 func runStatusOf(jobs []model.WorkflowJob) model.CIStatus {
@@ -247,9 +254,13 @@ func (s *WorkflowRunService) cancelRun(ctx context.Context, tx *store.WorkflowRu
 	if err := tx.SetRunCancelledBy(ctx, run.ID, by); err != nil {
 		return err
 	}
+	wasOpen := !run.Status.Finished()
 	run.Status = model.CIStatusCancelled
 	if err := tx.UpdateRunState(ctx, run.ID, run.Status); err != nil {
 		return err
+	}
+	if wasOpen {
+		s.notifyCompleted(tx, run)
 	}
 	slog.Debug("workflow run cancelled", "run_id", run.ID, "reason", msg)
 	return nil

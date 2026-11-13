@@ -400,6 +400,31 @@ func (s *WebhookService) PullPayload(action string, repo model.Repository, pr mo
 	}
 }
 
+// WorkflowRunPayload is the body of a workflow_run event, sent when a Run reaches a final status.
+func (s *WebhookService) WorkflowRunPayload(repo model.Repository, run model.WorkflowRun, runURL string) map[string]any {
+	return map[string]any{
+		"action": "completed",
+		"workflow_run": map[string]any{
+			"id":          run.ID,
+			"number":      run.Number,
+			"name":        run.WorkflowName,
+			"path":        run.WorkflowPath,
+			"event":       run.Event,
+			"attempt":     run.Attempt,
+			"status":      "completed",
+			"conclusion":  string(run.Status),
+			"head_sha":    run.SHA,
+			"head_branch": strings.TrimPrefix(strings.TrimPrefix(run.Ref, "refs/heads/"), "refs/tags/"),
+			"html_url":    runURL,
+		},
+		"repository": map[string]any{
+			"id":        repo.ID,
+			"name":      repo.Name,
+			"full_name": repo.OwnerName + "/" + repo.Name,
+		},
+	}
+}
+
 func (s *WebhookService) ReleasePayload(action, owner, repoName string, release model.Release) map[string]any {
 	return map[string]any{
 		"action": action,

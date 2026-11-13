@@ -250,6 +250,7 @@ func (s *WorkflowRunService) persistRun(ctx context.Context, tx *store.WorkflowR
 		return err
 	}
 	if wf == nil {
+		s.notifyCompleted(tx, run)
 		return s.upsertParseFailure(ctx, tx, repo, run)
 	}
 	if err := s.insertJobs(ctx, tx, repo, run, wf, nil); err != nil {

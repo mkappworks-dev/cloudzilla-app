@@ -41,8 +41,25 @@ type WorkflowRunService struct {
 	code    *CodeService
 	cfg     config.CIConfig
 	baseURL string
+	// onCompleted is told, after the commit, of each Run that reaches a final status.
+	onCompleted func(model.WorkflowRun)
 	// pushDone lets a test wait for OnPush, which AfterPush runs in the background.
 	pushDone func()
+}
+
+// WithCompleted calls fn for each Run that completes, once its final status is committed.
+func (s *WorkflowRunService) WithCompleted(fn func(model.WorkflowRun)) *WorkflowRunService {
+	s.onCompleted = fn
+	return s
+}
+
+// notifyCompleted tells onCompleted about run once tx commits.
+func (s *WorkflowRunService) notifyCompleted(tx *store.WorkflowRunTx, run *model.WorkflowRun) {
+	if s.onCompleted == nil {
+		return
+	}
+	snapshot := *run
+	tx.AfterCommit(func() { s.onCompleted(snapshot) })
 }
 
 // WithPushDone calls fn when OnPush has handled a push.
