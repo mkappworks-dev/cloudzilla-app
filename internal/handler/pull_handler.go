@@ -535,6 +535,17 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 		}
 	}
 
+	if message == "" && pr.CrossRepo {
+		// The service would name the head ref, which is internal; the fork's branch is what a reader knows.
+		head := pr.HeadRepo + ":" + pr.HeadBranch
+		switch strategy {
+		case "merge":
+			message = service.DefaultMergeMessage(head, pr.BaseBranch)
+		case "squash":
+			message = service.DefaultSquashMessage(head, pr.BaseBranch)
+		}
+	}
+
 	var err error
 	switch strategy {
 	case "merge":
