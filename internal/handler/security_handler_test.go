@@ -19,6 +19,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/secretscan"
@@ -34,6 +35,7 @@ type securityFixture struct {
 	router  http.Handler
 	repo    seededRepo
 	svc     *service.Services
+	h       *handler.Handler
 	headSHA string
 }
 
@@ -68,7 +70,7 @@ func newSecurityFixture(t *testing.T, private bool) securityFixture {
 	r.Post("/{owner}/{repo}/security/secrets/{number}/reopen", h.ReopenSecretAlert)
 	r.Post("/{owner}/{repo}/security/secrets/{number}/allow", h.AllowSecretAlert)
 	return securityFixture{
-		db: db, repo: repo, svc: svc, headSHA: head.Hash.String(),
+		db: db, repo: repo, svc: svc, h: h, headSHA: head.Hash.String(),
 		router: middleware.OptionalAuth(testJWTSecret, testCookieName, nil, nil)(r),
 	}
 }
@@ -410,4 +412,40 @@ func TestSecurity_UnknownAlertNumberIs404(t *testing.T) {
 			t.Errorf("%s: %d, want 404", path, rr.Code)
 		}
 	}
+}
+
+func TestSecurity_IntroFollowsPushProtection(t *testing.T) {
+	f := newSecurityFixture(t, false)
+
+	off := f.get(f.repo.path+"/security/secrets", f.repo.owner.token).Body.String()
+	if strings.Contains(off, "are rejected") {
+		t.Error("the intro claims pushes are rejected with push protection off")
+	}
+	assertContains(t, off, "push protection is off")
+
+	f.h.Cfg.SecretScanning.PushProtection = true
+	assertContains(t, f.get(f.repo.path+"/security/secrets", f.repo.owner.token).Body.String(),
+		"pushes that add a known secret type are rejected")
+}
+
+func TestSecurity_WebEditorAlertHasNoCommitToLinkTo(t *testing.T) {
+	f := newSecurityFixture(t, false)
+	f.headSHA = strings.Repeat("0", 40)
+	a := f.record(t, "aws_access_key_id", securityTestKey, model.SecretEventBlocked, 2)
+
+	for name, page := range map[string]string{
+		"list":  f.get(f.repo.path+"/security/secrets", f.repo.owner.token).Body.String(),
+		"alert": f.get(f.alertPath(a), f.repo.owner.token).Body.String(),
+	} {
+		if strings.Contains(page, "/commit/"+f.headSHA) || strings.Contains(page, "0000000") {
+			t.Errorf("%s page links the commit of an edit that was refused", name)
+		}
+		assertContains(t, page, "config/deploy.env:2")
+	}
+	page := f.get(f.alertPath(a), f.repo.owner.token).Body.String()
+	assertContains(t, page, "refused before it was committed")
+	if strings.Contains(page, "Commit no longer available") {
+		t.Error("the alert page says the commit is gone, but there never was one")
+	}
+	assertContains(t, page, "This secret blocked a push")
 }

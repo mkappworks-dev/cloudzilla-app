@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -88,7 +89,7 @@ func (h *Handler) PageSecurityAlerts(w http.ResponseWriter, r *http.Request) {
 	data := view.SecretAlertsData{
 		BasePage: h.withRepoSubnav(ctx, basePage(r, h.Services), repo, "security", h.canManageRepo(r, repo)),
 		Owner:    repo.OwnerName, RepoName: repo.Name,
-		State: state, Type: typeID,
+		State: state, Type: typeID, PushProtection: h.Cfg.SecretScanning.PushProtection,
 		OpenTabURL:   securityListURL(base, model.SecretAlertOpen, typeID, 1),
 		ClosedTabURL: securityListURL(base, model.SecretAlertClosed, typeID, 1),
 	}
@@ -166,8 +167,10 @@ func (h *Handler) securityRow(ctx context.Context, repo *model.Repository, a mod
 	}
 	if loc := primaryLocation(locs); loc != nil {
 		row.Location = loc.FilePath + ":" + strconv.Itoa(loc.LineNumber)
-		row.CommitShort = view.ShortSHA(loc.CommitSHA)
-		row.CommitURL = "/" + repo.OwnerName + "/" + repo.Name + "/commit/" + loc.CommitSHA
+		if hasCommit(loc.CommitSHA) {
+			row.CommitShort = view.ShortSHA(loc.CommitSHA)
+			row.CommitURL = "/" + repo.OwnerName + "/" + repo.Name + "/commit/" + loc.CommitSHA
+		}
 	}
 	if evs, err := h.Services.SecretAlert.Events(ctx, a.ID); err == nil {
 		if ev := firstSighting(evs); ev != nil && ev.ActorID != nil {
@@ -176,6 +179,9 @@ func (h *Handler) securityRow(ctx context.Context, repo *model.Repository, a mod
 	}
 	return row
 }
+
+// hasCommit is false for the all-zero SHA of a web edit that was refused: it names no commit.
+func hasCommit(sha string) bool { return sha != "" && sha != plumbing.ZeroHash.String() }
 
 // primaryLocation prefers a location a ref reaches: the commit a reader can still open.
 func primaryLocation(locs []model.SecretScanLocation) *model.SecretScanLocation {
@@ -269,12 +275,13 @@ func (h *Handler) PageSecurityAlert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, l := range locs {
-		data.Locations = append(data.Locations, view.SecretLocationView{
-			Text:        l.FilePath + ":" + strconv.Itoa(l.LineNumber),
-			CommitShort: view.ShortSHA(l.CommitSHA),
-			CommitURL:   base + "/commit/" + l.CommitSHA,
-		})
-		if data.OnDefaultBranch {
+		lv := view.SecretLocationView{Text: l.FilePath + ":" + strconv.Itoa(l.LineNumber)}
+		if hasCommit(l.CommitSHA) {
+			lv.CommitShort = view.ShortSHA(l.CommitSHA)
+			lv.CommitURL = base + "/commit/" + l.CommitSHA
+		}
+		data.Locations = append(data.Locations, lv)
+		if data.OnDefaultBranch || !hasCommit(l.CommitSHA) {
 			continue
 		}
 		if on, err := h.Services.Code.CommitOnBranch(repo.OwnerName, repo.Name, l.CommitSHA, repo.DefaultBranch); err == nil && on {
@@ -284,7 +291,9 @@ func (h *Handler) PageSecurityAlert(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if loc := primaryLocation(locs); loc != nil {
+	if loc := primaryLocation(locs); loc != nil && !hasCommit(loc.CommitSHA) {
+		data.Snippet = view.SecretSnippetView{Path: loc.FilePath, NoCommit: true}
+	} else if loc != nil {
 		data.CommitShort = view.ShortSHA(loc.CommitSHA)
 		data.CommitURL = base + "/commit/" + loc.CommitSHA
 		data.Snippet = h.securitySnippet(repo, alert, *loc)
@@ -316,7 +325,7 @@ func (h *Handler) securitySnippet(repo *model.Repository, alert *model.SecretSca
 
 func (h *Handler) securityEvent(ctx context.Context, repo *model.Repository, ev model.SecretScanEvent, names *usernameCache) view.SecretEventView {
 	out := view.SecretEventView{Kind: ev.Kind, Ref: ev.Ref, Detail: ev.Detail, When: ev.CreatedAt}
-	if ev.CommitSHA != "" {
+	if hasCommit(ev.CommitSHA) {
 		out.CommitShort = view.ShortSHA(ev.CommitSHA)
 		out.CommitURL = "/" + repo.OwnerName + "/" + repo.Name + "/commit/" + ev.CommitSHA
 	}

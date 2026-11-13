@@ -86,6 +86,8 @@ type SecretAlertsData struct {
 	// stopped at its time or size budget and may have missed older commits.
 	HistoryScanning   bool
 	HistoryIncomplete bool
+	// PushProtection is secret_scanning.push_protection: whether a push that adds a secret is refused.
+	PushProtection bool
 	TypeOptions       []SecretTypeOption
 	Rows              []SecretAlertRow
 	OpenTabURL        string
@@ -101,6 +103,8 @@ type SecretSnippetView struct {
 	Lines       []SecretSnippetViewLine
 	// Gone is set when the commit or file is no longer in the repository.
 	Gone bool
+	// NoCommit is set for an alert from a web edit that was refused: there never was a commit.
+	NoCommit bool
 }
 
 type SecretSnippetViewLine struct {
