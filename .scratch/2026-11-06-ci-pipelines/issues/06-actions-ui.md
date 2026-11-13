@@ -47,7 +47,7 @@ with live logs, the controls (dispatch, cancel, re-run, approve) and the secrets
   **`internal/view/viewmodels_repo.go`**, `internal/view/components/run_status_icon.templ` (new),
   **`internal/view/fragments/repo_subnav.templ`**, `internal/view/pages/checks.templ`
 - `mockups/actions.html`, `actions_run.html`, `repo_settings_ci.html`, `COVERAGE.md`, `index.html`, `shell.js`
-- `.scratch/2026-11-06-ci-pipelines/` mocks, `tailwind/input.css` only if a class is missing
+- `tailwind/input.css` only if a class is missing
 
 ## Acceptance criteria
 
@@ -66,7 +66,7 @@ with live logs, the controls (dispatch, cancel, re-run, approve) and the secrets
       `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with a real runner; evidence for both themes in
       the PR
 - [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR and checked under `make mockups`
-      in both themes; the scratch mock matches the shipped page
+      in both themes; the mocks match the shipped pages
 - [ ] `make lint`, `npm run fmt:check` and `go test ./...` pass
 
 ## Verification

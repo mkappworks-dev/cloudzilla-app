@@ -9,7 +9,7 @@ Blocked by: 00
 | --- | --- | --- | --- | --- | --- |
 | `feat/phase-18.1-ci-runner` | `.worktrees/feat+phase-18.1-ci-runner` | `feat: ci pipelines (18.1–18.3)` | 3 | L | Features +0.6 |
 
-Mock: `../2026-11-06-ci-pipelines/`
+Mock: `mockups/actions.html` and the pages listed in `mockups/COVERAGE.md` (scratch notes: `../2026-11-06-ci-pipelines/`)
 
 ## Problem
 
@@ -40,3 +40,5 @@ Per its spec.
 ## Comments
 
 2026-11-06 (triage): ready-for-human; needs a spec first; Actions tab decided, workflow format still open.
+
+2026-11-13 (spec): specced in `../2026-11-06-ci-pipelines/` (spec, tickets 01-07, ADRs 0003 and 0004). Workflow format: GitHub-Actions subset. Tab name reconfirmed as Actions (repo) with Checks kept on the PR page.

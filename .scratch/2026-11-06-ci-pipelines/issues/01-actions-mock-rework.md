@@ -3,6 +3,9 @@
 Created: 2026-11-13
 Category: enhancement
 Status: ready-for-agent
+Progress: the Actions, run, PR Checks, repository CI settings, admin runners and status-icon mocks were reworked in the
+spec PR and now live in `mockups/` (`actions.html`, `actions_run.html`, `pr_checks.html`, `repo_settings_ci.html`,
+`admin_runners.html`, `actions_status_icons.html`). What remains is the shipped-page work below.
 Blocked by: none
 Parallel with: 02, 03
 
@@ -21,35 +24,29 @@ mock, so it has to be right first.
 
 ## Scope
 
-- Rename and rework `mock.html` as the Actions runs list: tab bar highlights **Actions**; "Commit statuses" becomes a
-  filter (external CI) beside workflow, branch, status and trigger; "Pipelines" wording removed everywhere.
-- New statuses drawn once with a shared icon set: `queued` (muted clock), `waiting` ("Approval required", with an
-  Approve button), `running` (pulsing dot), `success`, `failure`, `cancelled` (slashed circle), `skipped` (dash).
-- `run.html`: add the fork-approval banner state, a `no-runner` state ("No runner with label `gpu`" on the queued Job),
-  a `runner-lost` failed Job state, the secrets-masked log line (`***`), artifacts with expiry, and the "log truncated"
-  line. Keep the existing states.
-- `pr_checks.html`: groups built-in Jobs under their Run with "View run", plus the Approve button for a fork run.
-- New mock pages: repo Settings → CI/CD (enable toggle, secrets list with add/replace/delete and write-only values,
-  repo runners with registration-token flow and a copyable `cz-runner register` command) and `/admin/runners` (instance
-  runners, labels, last contact, revoke).
-- Small mocks of the three status icons for the commit list, PR header and file-tree last-commit row.
-- Standing mocks in `mockups/`: rename `actions.html` content from the Checks page to the Actions list (the file already
-  exists and maps to the Checks page today), add run, settings and admin runner pages, and update `COVERAGE.md`,
-  `index.html` and `shell.js` where affected. The scratch mock's README is rewritten to the final decisions and
-  its old "ROADMAP vs mock" table removed.
+The scratch rework is done: the mocks moved from `.scratch/2026-11-06-ci-pipelines/` into `mockups/`, with the
+Actions tab, the shared status icon set (`mockups/actions_status_icons.js`), the fork-approval, `no-runner`,
+`runner-lost`, masked-log, artifact-expiry and "log truncated" states, and the new settings and admin runner pages.
+
+Remaining:
+
+- Update every other `mockups/` page that still says Checks for the repo tab or links to it: `commits.html`,
+  `commit.html`, `pull.html`-style PR pages and `tree.html` (status icons from `actions_status_icons.js`), and the
+  `index.html` / `COVERAGE.md` entries.
+- Keep Pull requests highlighted on `pr_checks.html` (the real app's behaviour) and re-verify every page and `?state=`
+  in light and dark at 1440.
 
 ## Files (hotspots in bold)
 
-- `.scratch/2026-11-06-ci-pipelines/mock.html`, `run.html`, `pr_checks.html`, `mock-input.css`, `README.md`, new
-  `settings.html`, `admin_runners.html`
-- **`mockups/actions.html`**, `mockups/pr_checks.html`, new `mockups/actions_run.html`, `mockups/repo_settings_ci.html`,
-  `mockups/admin_runners.html`, **`mockups/COVERAGE.md`**, `mockups/index.html`, `mockups/shell.js`, `mockups/commits.html`,
-  `mockups/pull.html` (status icons only)
+- **`mockups/actions.html`**, `mockups/actions_run.html`, `mockups/pr_checks.html`, `mockups/repo_settings_ci.html`,
+  `mockups/admin_runners.html`, `mockups/actions_status_icons.html`, `mockups/actions_status_icons.js`
+- **`mockups/COVERAGE.md`**, `mockups/index.html`, `mockups/shell.js`, `mockups/commits.html`, `mockups/commit.html`,
+  `mockups/pr.html`
 
 ## Acceptance criteria
 
-- [ ] Every state listed above renders from `?state=` and has no "Pipelines" wording
-- [ ] The tab bar highlights Actions on the list and run pages and Pull requests on the PR Checks page, matching the real
+- [x] Every state renders from `?state=` and has no "Pipelines" wording (checked in the spec PR)
+- [x] The tab bar highlights Actions on the list and run pages and Pull requests on the PR Checks page, matching the real
       app's behaviour
 - [ ] Classes come from existing templ components (table, tabs, accordion, alert, dialog, dropdown menu, blob line
       table, release asset rows); no class absent from `tailwind/input.css`'s sources
@@ -61,5 +58,5 @@ mock, so it has to be right first.
 
 ## Verification
 
-`make mockups`, open each page and each `?state=` in light and dark at 1440; compare with `internal/view/pages/checks.templ`
+`make mockups`, open each page of the six mocks above and each `?state=` in light and dark at 1440; compare with `internal/view/pages/checks.templ`
 and `pr_checks.templ` for the class sources.

@@ -4,8 +4,8 @@ Created: 2026-11-06
 Category: enhancement
 Status: ready-for-agent
 
-Research and the comparison behind these decisions: `research.md`. Mock: `mock.html`, `run.html`, `pr_checks.html`
-(reworked by ticket 01). Parent ticket: `../2026-11-06-uiux-desktop-9.5/issues/18-ci-pipelines.md`.
+Research and the comparison behind these decisions: `research.md`. Mock: `mockups/actions.html`,
+`actions_run.html`, `pr_checks.html`, `repo_settings_ci.html`, `admin_runners.html` (reworked by ticket 01). Parent ticket: `../2026-11-06-uiux-desktop-9.5/issues/18-ci-pipelines.md`.
 
 ## Problem Statement
 
@@ -258,6 +258,11 @@ Integration. Every UI ticket is also checked at 1440 px in light and dark.
 - Enforcing network egress on the runner host
 
 ## Further Notes
+
+- Tab name, reconfirmed 2026-11-13 against the alternatives "Checks" and "Pipelines": the repo tab is **Actions**. It is
+  where Workflows are run and managed. The PR tab stays **Checks** because it is a results view of one pull request.
+  Keeping "Checks" in both places would give one name to two different pages, and "Pipelines" contradicts the Workflow
+  and Run vocabulary and the GitHub-Actions-subset format.
 
 - Tickets are in `issues/`; ticket 01 reworks the mock first (runs list moves from Checks to Actions). The build runs on
   one integration branch with one final PR, as for 16 and 17.

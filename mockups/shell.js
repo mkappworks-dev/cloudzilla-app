@@ -1,6 +1,6 @@
 /* App shell for the mockups, mirroring internal/view/layout/layout.templ.
  *
- *   <div id="cz-header" data-repo-tab="issues"></div>      repo pages (code pull_requests issues milestones checks
+ *   <div id="cz-header" data-repo-tab="issues"></div>      repo pages (code pull_requests issues milestones actions
  *                                                          discussions projects wiki releases settings)
  *   <div id="cz-header" data-account-tab="repositories">   signed-in account pages (overview repositories gists
  *                                                          pulls issues attention activity settings)
@@ -24,7 +24,7 @@
     pull_requests: '<circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"/>',
     issues: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>',
     milestones: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
-    checks: '<circle cx="12" cy="12" r="9"/><polygon points="10 8 16 12 10 16 10 8"/>',
+    actions: '<circle cx="12" cy="12" r="9"/><polygon points="10 8 16 12 10 16 10 8"/>',
     discussions: '<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>',
     projects: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
     wiki: '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>',
@@ -184,7 +184,7 @@
   var REPO_TABS = [
     ['code', 'Code', 'repo.html', 0], ['pull_requests', 'Pull requests', 'pulls.html', 12],
     ['issues', 'Issues', 'issues.html', 23], ['milestones', 'Milestones', 'milestones.html', 0],
-    ['checks', 'Checks', 'actions.html', 0], ['discussions', 'Discussions', 'discussions.html', 5],
+    ['actions', 'Actions', 'actions.html', 0], ['discussions', 'Discussions', 'discussions.html', 5],
     ['projects', 'Projects', 'project.html', 0], ['wiki', 'Wiki', 'wiki.html', 0],
     ['releases', 'Releases', 'releases.html', 3], ['security', 'Security', 'security_secrets.html', 3],
     ['settings', 'Settings', 'settings.html', 0, 'ml-auto'],
