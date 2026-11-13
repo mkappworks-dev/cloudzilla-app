@@ -9,6 +9,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
@@ -101,4 +102,69 @@ func TestWebEditor_ProtectionOff_CommitsAndAlertsAfter(t *testing.T) {
 		t.Fatalf("status = %d: %.300s", code, body)
 	}
 	eventually(t, "the alert after the web commit", func() bool { return len(e.alerts(t)) == 1 })
+}
+
+func TestWebEditor_LiveToken_RevokedAndRefusedWithoutAllowLink(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	e := newPushEnv(t, db, nil)
+	_, raw, _ := newOwnerToken(t, e, db)
+	before := e.r.mainTip.String()
+
+	code, body, head := e.editA(t, "one\nTOKEN="+raw+"\n")
+
+	if code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want 422: %.300s", code, body)
+	}
+	if !strings.Contains(body, "Cloudzilla access token in a.txt:2") || !strings.Contains(body, "the token was revoked") {
+		t.Errorf("form lacks the revoked text: %.400s", body)
+	}
+	if strings.Contains(body, "allow it") {
+		t.Error("form offers an allow link for a revoked token")
+	}
+	if head != before {
+		t.Errorf("main moved to %s", head)
+	}
+	if _, _, err := e.svcs.AccessToken.Validate(context.Background(), raw); err == nil {
+		t.Error("the leaked token still validates")
+	}
+	a := onlyAlert(t, e)
+	if a.State != model.SecretAlertClosed || !a.AutoRevoked || a.Resolution != model.SecretResolutionRevoked {
+		t.Errorf("alert = %+v, want closed revoked auto_revoked", a)
+	}
+}
+
+func TestWebEditor_UnknownToken_CommitsWithoutAlert(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	e := newPushEnv(t, db, nil)
+
+	code, body, _ := e.editA(t, "one\nTOKEN=czp_"+strings.Repeat("cd", 32)+"\n")
+
+	if code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303: %.300s", code, body)
+	}
+	e.waitPostReceive(t, 1)
+	if n := len(e.alerts(t)); n != 0 {
+		t.Errorf("%d alerts, want 0", n)
+	}
+}
+
+func TestWebEditor_ExpiredToken_CommitsWithClosedAlert(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	e := newPushEnv(t, db, nil)
+	_, raw, tok := newOwnerToken(t, e, db)
+	testutil.Exec(t, db, `UPDATE access_tokens SET expires_at = NOW() - INTERVAL '1 hour' WHERE id = $1`, tok.ID)
+
+	code, body, _ := e.editA(t, "one\nTOKEN="+raw+"\n")
+
+	if code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303: %.300s", code, body)
+	}
+	e.waitPostReceive(t, 1)
+	a := onlyAlert(t, e)
+	if a.State != model.SecretAlertClosed || a.AutoRevoked || a.Resolution != model.SecretResolutionRevoked {
+		t.Errorf("alert = %+v, want closed revoked, not auto_revoked", a)
+	}
+	if got, err := store.New(db).AccessToken.GetByHash(context.Background(), tok.TokenHash); err != nil || got.ID != tok.ID {
+		t.Errorf("expired token was deleted: %v", err)
+	}
 }

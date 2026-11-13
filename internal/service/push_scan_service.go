@@ -52,6 +52,8 @@ type PushScanService struct {
 	scan     SecretScanFunc
 	notifier SecretAlertNotifier
 	tokens   CloudzillaTokenResolver
+
+	postReceiveDone func()
 }
 
 func NewPushScanService(alerts *SecretAlertService, cfg config.SecretScanningConfig, baseURL string) *PushScanService {
@@ -94,6 +96,12 @@ func (a singleAlertNotifier) NotifySecretAlert(ctx context.Context, repo *model.
 
 func (s *PushScanService) WithTokenResolver(r CloudzillaTokenResolver) *PushScanService {
 	s.tokens = r
+	return s
+}
+
+// WithPostReceiveDone calls f when each scan after a push ends; tests use it to wait for the background work.
+func (s *PushScanService) WithPostReceiveDone(f func()) *PushScanService {
+	s.postReceiveDone = f
 	return s
 }
 
@@ -562,6 +570,9 @@ func (p *PushScan) reachable(tips []plumbing.Hash) []*object.Commit {
 // PostReceive scans the applied commits that push protection did not finish or did not run on, records what the
 // push let through, and marks every applied commit as reached by a ref.
 func (p *PushScan) PostReceive(ctx context.Context, commands []*packp.Command) {
+	if p.svc.postReceiveDone != nil {
+		defer p.svc.postReceiveDone()
+	}
 	var tips []plumbing.Hash
 	refOf := make(map[plumbing.Hash]string)
 	for _, cmd := range commands {

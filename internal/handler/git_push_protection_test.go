@@ -34,7 +34,14 @@ type pushEnv struct {
 	svcs  *service.Services
 	r     raceRepo
 	calls atomic.Int32
+	posts atomic.Int32
 	notes *recordingNotifier
+}
+
+// waitPostReceive waits until n scans after a push have finished, so none is still writing when the test's rows go.
+func (e *pushEnv) waitPostReceive(t *testing.T, n int32) {
+	t.Helper()
+	eventually(t, "the scan after the push", func() bool { return e.posts.Load() >= n })
 }
 
 type recordingNotifier struct {
@@ -74,7 +81,7 @@ func newPushEnv(t *testing.T, db *sql.DB, tune func(*config.SecretScanningConfig
 		t.Fatalf("router.New: %v", err)
 	}
 	e := &pushEnv{h: h, svcs: svcs, r: seedRaceRepo(t, db, reposRoot), notes: &recordingNotifier{}}
-	svcs.PushScan.WithNotifier(e.notes).WithScanner(func(path string, content []byte, max int) ([]secretscan.Finding, error) {
+	svcs.PushScan.WithNotifier(e.notes).WithPostReceiveDone(func() { e.posts.Add(1) }).WithScanner(func(path string, content []byte, max int) ([]secretscan.Finding, error) {
 		e.calls.Add(1)
 		return secretscan.Scan(path, content, max), nil
 	})

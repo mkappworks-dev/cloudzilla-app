@@ -27,7 +27,8 @@ func (s *PushScanService) CheckWebContent(ctx context.Context, repo *model.Repos
 		slog.Warn("push-protection: web scan incomplete", "repo_id", repo.ID, "error", err)
 		return nil
 	}
-	p := &PushScan{svc: s, repo: repo, pusherID: actorID, recorded: make(map[string]*model.SecretScanAlert)}
+	p := &PushScan{svc: s, repo: repo, pusherID: actorID, recorded: make(map[string]*model.SecretScanAlert),
+		revokedHashes: make(map[string]bool)}
 	cmd := &packp.Command{Name: plumbing.NewBranchReferenceName(branch)}
 	var blocking []blockedFinding
 	for _, f := range findings {
@@ -35,6 +36,17 @@ func (s *PushScanService) CheckWebContent(ctx context.Context, repo *model.Repos
 			continue
 		}
 		pf := pathFinding{Finding: f, Path: path}
+		revoked, handled, err := p.revokeLeakedToken(ctx, cmd, plumbing.ZeroHash, pf)
+		if err != nil {
+			slog.Error("push-protection: revoke token", "repo_id", repo.ID, "error", err)
+			return ErrSecretCheckFailed
+		}
+		if handled {
+			if revoked {
+				blocking = append(blocking, blockedFinding{pathFinding: pf, revoked: true})
+			}
+			continue
+		}
 		live, err := p.worthBlocking(ctx, pf)
 		if err != nil {
 			slog.Error("push-protection: check secret", "repo_id", repo.ID, "error", err)
@@ -66,7 +78,7 @@ func (s *PushScanService) CheckWebContent(ctx context.Context, repo *model.Repos
 		}
 	}
 	return &SecretDetectedError{
-		Type: first.SecretType, Path: path, Line: blocking[0].Line, More: len(blocking) - 1,
+		Type: first.SecretType, Path: path, Line: blocking[0].Line, More: len(blocking) - 1, Revoked: blocking[0].revoked,
 		URL: fmt.Sprintf("%s/%s/%s/security/secrets/%d", s.baseURL, repo.OwnerName, repo.Name, first.Number),
 	}
 }
