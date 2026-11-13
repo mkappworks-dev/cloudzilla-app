@@ -9,7 +9,8 @@ line-numbered `Error`s. It is pure and knows nothing about the database.
 
 A **Run** is one execution of one Workflow for one commit, numbered per Repository. It is created by:
 
-- a push to a branch or tag whose `on.push` filters match (a push that only deletes refs creates none);
+- a push to a branch or tag whose `on.push` filters match (a push that only deletes refs creates none), including the
+  new tip a pull request merge leaves on its base branch;
 - a pull request that is opened, reopened or has new commits (`opened`, `reopened`, `synchronize`), run for the head
   commit;
 - **Run workflow** on the Actions tab, or `POST /api/repos/{owner}/{repo}/actions/dispatch`, for a Workflow with
@@ -37,8 +38,9 @@ resolves: it redirects to the Actions tab, where **Commit statuses** lists what 
 
 **Switches.** `ci.enabled` (default on) hides the tab, the routes and the schedulers when off, and creates no Runs.
 Settings, CI/CD has a per-repository toggle that stops new Runs and keeps history. An archived repository creates no
-Runs, but its logs and artifacts stay readable. A private repository, and a soft-deleted one, answers a viewer who
-cannot read it with the same 404 as a repository that does not exist.
+Runs, and re-running or approving one of its Runs is refused too (`ci_off`), but its logs and artifacts stay readable. A
+private repository, and a soft-deleted one, answers a viewer who cannot read it with the same 404 as a repository that
+does not exist.
 
 **Who may do what.**
 
@@ -98,7 +100,11 @@ Each of these fails the parse with the file, line and key, as does any key not l
 `uses` (actions and reusable workflows), `services`, `schedule`, `paths` filters, `pull_request_target`, `permissions`,
 `outputs`, `environment`, `defaults`, `workflow_call`, `workflow_dispatch` inputs.
 
-`actions/upload-artifact` is a `uses:` step, so Cloudzilla has the job-level `artifacts:` list instead.
+`actions/upload-artifact` is a `uses:` step, so Cloudzilla has the job-level `artifacts:` list instead. An artifact
+`name` can use `${{ matrix.* }}`; the runner interpolates it before the upload.
+
+Job names must be unique in a Run: two Jobs with the same `name:`, a Job id equal to another Job's `name:`, and
+duplicate matrix values or `include` entries fail the parse with the line of the Job.
 
 ## Runners
 
@@ -144,7 +150,9 @@ host temp directory using the per-job token, creates one container named `cz-job
 volume and starts it idling (`sleep`). Each Step then runs as a `docker exec` into that container, so tools a Step
 installs are still there in the next. The container, volume and network are removed when the Job ends, and when the
 runner stops on `SIGINT` or `SIGTERM`. A Step sees the checkout at `/workspace/src` (`GITHUB_WORKSPACE`, the default
-working directory) and `HOME=/workspace/home`.
+working directory) and `HOME=/workspace/home`. A Step's environment and script never appear in `docker exec` arguments,
+where any local user could read them with `ps`: the runner writes each to a `0600` file under `/workspace/home/.cz-step`
+over stdin, and the Step sources and deletes them.
 
 The Job's container gets exactly these flags and nothing a workflow says can change them:
 
@@ -249,6 +257,11 @@ Each claimed Job gets a token that is read-only, bound to one repository and one
 and for posting that Job's logs and artifacts, and dead the moment the Job leaves `running`. It is not passed into
 Steps. Details are under [Runner protocol](#runner-protocol).
 
+A waiting claim looks for a Job after 1 s, then 2 s, 4 s and every 5 s, so an idle runner is cheap and a new Job starts
+within 5 s. The route has no write deadline, so the 25 s wait never hits the server's `write_timeout`. The server writes
+a runner's `last_contact_at` at most every 5 s. A claim builds the Job's spec in the same transaction, so a failure
+leaves the Job `queued` for the next poll.
+
 ## Logs and artifacts
 
 **Logs.** While a Step runs the runner posts its output every second, or sooner at 256 KiB, as chunks of whole lines.
@@ -337,7 +350,6 @@ the [API reference](./api-reference.md#workflow-runs), and the `repo` and `repo:
 | A pull request Run says "Approval required"        | It is a fork Run; a writer approves it from the Run page or the Checks tab                                                                                                                      |
 | A log ends with `[log truncated: …]`               | The Job hit `ci.max_log_bytes`; raise it or print less                                                                                                                                          |
 | An artifact will not download                      | It passed `ci.artifact_retention`, or the Job's path did not exist and the Job failed                                                                                                           |
-| The runner logs `EOF` and retries                  | The claim long poll (25 s) outlives the server's 15 s write timeout; harmless                                                                                                                   |
 
 ## Known limitations
 
