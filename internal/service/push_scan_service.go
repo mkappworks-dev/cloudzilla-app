@@ -21,6 +21,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/secretscan"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // ErrSecretCheckFailed is all a pusher learns of a failure checking a push for secrets: go-git sends a vet error's
@@ -107,12 +108,18 @@ type SecretDetectedError struct {
 	Type, Path string
 	Line, More int
 	URL        string
+	// Revoked marks a leaked Cloudzilla token the instance has deleted; there is nothing to allow.
+	Revoked bool
 }
 
 func (e *SecretDetectedError) Error() string {
 	more := ""
 	if e.More > 0 {
 		more = fmt.Sprintf(" and %d more", e.More)
+	}
+	if e.Revoked {
+		return fmt.Sprintf("secret detected: Cloudzilla access token in %s:%d%s (the token was revoked); see %s",
+			e.Path, e.Line, more, e.URL)
 	}
 	return fmt.Sprintf("secret detected: %s in %s:%d%s; if it is not a live secret, a writer can allow it at %s",
 		e.Type, e.Path, e.Line, more, e.URL)
@@ -147,6 +154,8 @@ type PushScan struct {
 	blobsRead int
 	// recorded holds the alerts a blocked push already wrote, so a second ref sharing a commit does not repeat them.
 	recorded map[string]*model.SecretScanAlert
+	// revokedHashes remembers the tokens this push deleted, which no longer resolve, so their other locations are recorded.
+	revokedHashes map[string]bool
 
 	incomplete bool
 	reason     string
@@ -158,16 +167,17 @@ type PushScan struct {
 // Begin starts the scan of one push to gitRepo. Call Expect with the push's commands before the first ref is vetted.
 func (s *PushScanService) Begin(repo *model.Repository, gitRepo *gogit.Repository, pusherID int64) *PushScan {
 	return &PushScan{
-		svc:      s,
-		repo:     repo,
-		store:    gitRepo.Storer,
-		pusherID: pusherID,
-		byHash:   make(map[plumbing.Hash]*object.Commit),
-		scanned:  make(map[plumbing.Hash]bool),
-		findings: make(map[plumbing.Hash][]pathFinding),
-		blobs:    make(map[plumbing.Hash][]secretscan.Finding),
-		recorded: make(map[string]*model.SecretScanAlert),
-		budgeted: true,
+		svc:           s,
+		repo:          repo,
+		store:         gitRepo.Storer,
+		pusherID:      pusherID,
+		byHash:        make(map[plumbing.Hash]*object.Commit),
+		scanned:       make(map[plumbing.Hash]bool),
+		findings:      make(map[plumbing.Hash][]pathFinding),
+		blobs:         make(map[plumbing.Hash][]secretscan.Finding),
+		recorded:      make(map[string]*model.SecretScanAlert),
+		revokedHashes: make(map[string]bool),
+		budgeted:      true,
 	}
 }
 
@@ -221,6 +231,15 @@ func (p *PushScan) Check(ctx context.Context, cmd *packp.Command) error {
 			if f.Confidence != secretscan.High {
 				continue
 			}
+			if revoked, handled, err := p.revokeLeakedToken(ctx, cmd, c.Hash, f); err != nil {
+				slog.Error("push-protection: revoke token", "repo_id", p.repo.ID, "error", err)
+				return ErrSecretCheckFailed
+			} else if handled {
+				if revoked {
+					blocking = append(blocking, blockedFinding{c.Hash, f, true})
+				}
+				continue
+			}
 			live, err := p.worthBlocking(ctx, f)
 			if err != nil {
 				slog.Error("push-protection: check secret", "repo_id", p.repo.ID, "error", err)
@@ -243,7 +262,7 @@ func (p *PushScan) Check(ctx context.Context, cmd *packp.Command) error {
 				continue
 			}
 			seen[k] = true
-			blocking = append(blocking, blockedFinding{c.Hash, f})
+			blocking = append(blocking, blockedFinding{c.Hash, f, false})
 		}
 	}
 	if len(blocking) == 0 {
@@ -260,13 +279,15 @@ func (p *PushScan) Check(ctx context.Context, cmd *packp.Command) error {
 	}
 	return &SecretDetectedError{
 		Type: first.SecretType, Path: blocking[0].Path, Line: blocking[0].Line, More: len(blocking) - 1,
-		URL: fmt.Sprintf("%s/%s/%s/security/secrets/%d", p.svc.baseURL, p.repo.OwnerName, p.repo.Name, first.Number),
+		Revoked: blocking[0].revoked,
+		URL:     fmt.Sprintf("%s/%s/%s/security/secrets/%d", p.svc.baseURL, p.repo.OwnerName, p.repo.Name, first.Number),
 	}
 }
 
 type blockedFinding struct {
 	commit plumbing.Hash
 	pathFinding
+	revoked bool
 }
 
 func (p *PushScan) recordBlocked(ctx context.Context, cmd *packp.Command, b blockedFinding) (*model.SecretScanAlert, error) {
@@ -281,8 +302,62 @@ func (p *PushScan) recordBlocked(ctx context.Context, cmd *packp.Command, b bloc
 		slog.Error("push-protection: record alert", "repo_id", p.repo.ID, "error", err)
 		return nil, ErrSecretCheckFailed
 	}
+	if b.revoked {
+		if err := p.svc.alerts.AutoRevoke(ctx, alert.ID); err != nil && !errors.Is(err, store.ErrSecretAlertState) {
+			slog.Error("push-protection: close revoked alert", "repo_id", p.repo.ID, "error", err)
+			return nil, ErrSecretCheckFailed
+		}
+	}
 	p.recorded[k] = alert
 	return alert, nil
+}
+
+// revokeLeakedToken settles a czp_ finding when the resolver can tell expired from unknown. handled is false for any
+// other finding; revoked means the token was deleted just now and its alert is still to be recorded and closed.
+func (p *PushScan) revokeLeakedToken(ctx context.Context, cmd *packp.Command, commit plumbing.Hash, f pathFinding) (revoked, handled bool, err error) {
+	if f.Type != model.SecretTypeCloudzillaToken {
+		return false, false, nil
+	}
+	r, ok := p.svc.tokens.(TokenOutcomeResolver)
+	if !ok {
+		return false, false, nil
+	}
+	hash := secretscan.Hash(p.repo.ID, f.Value)
+	if p.revokedHashes[hash] {
+		return true, true, nil
+	}
+	sg := model.SecretSighting{CommitSHA: commit.String(), FilePath: f.Path, Ref: cmd.Name.String(), ActorID: p.pusherID}
+	out, err := p.settleToken(ctx, r, f, sg, model.SecretEventBlocked)
+	if out == TokenRevoked && err == nil {
+		p.revokedHashes[hash] = true
+	}
+	return out == TokenRevoked, true, err
+}
+
+// settleToken resolves f and, but for a revoke, files the alert closed: a closed alert only gains the location, and an
+// expired token's alert closes as revoked with no user. A revoke is left for the caller to record.
+func (p *PushScan) settleToken(ctx context.Context, r TokenOutcomeResolver, f pathFinding, sg model.SecretSighting, kind string) (TokenOutcome, error) {
+	hash := secretscan.Hash(p.repo.ID, f.Value)
+	closed, err := p.svc.alerts.IsClosed(ctx, p.repo.ID, hash)
+	if err != nil {
+		return TokenUnknown, err
+	}
+	if closed {
+		_, _, err := p.svc.alerts.Record(ctx, p.repo.ID, f.Finding, sg, kind)
+		return TokenUnknown, err
+	}
+	out, err := r.ResolveToken(ctx, p.repo, f.Value)
+	if err != nil || out == TokenUnknown || out == TokenRevoked {
+		return out, err
+	}
+	alert, _, err := p.svc.alerts.Record(ctx, p.repo.ID, f.Finding, sg, kind)
+	if err != nil {
+		return out, err
+	}
+	if err := p.svc.alerts.Close(ctx, alert.ID, 0, model.SecretResolutionRevoked); err != nil && !errors.Is(err, store.ErrSecretAlertState) {
+		return out, err
+	}
+	return TokenExpired, nil
 }
 
 // worthBlocking drops a czp_ value that is not a live token.
@@ -553,6 +628,11 @@ func (p *PushScan) refFor(c *object.Commit, refOf map[plumbing.Hash]string) stri
 
 // recordAfterPush records one finding of an applied commit; it reports false when the database fails.
 func (p *PushScan) recordAfterPush(ctx context.Context, c *object.Commit, f pathFinding, ref string) bool {
+	if f.Type == model.SecretTypeCloudzillaToken {
+		if r, ok := p.svc.tokens.(TokenOutcomeResolver); ok {
+			return p.revokeAfterPush(ctx, r, c, f, ref)
+		}
+	}
 	live, err := p.worthBlocking(ctx, f)
 	if err != nil {
 		slog.Error("secret-scan: resolve token", "repo_id", p.repo.ID, "error", err)
@@ -570,6 +650,31 @@ func (p *PushScan) recordAfterPush(ctx context.Context, c *object.Commit, f path
 	}
 	if created && p.svc.notifier != nil {
 		p.svc.notifier.NotifySecretAlert(ctx, p.repo, alert)
+	}
+	return true
+}
+
+// revokeAfterPush settles one czp_ finding of an applied commit; it reports false when the database fails.
+func (p *PushScan) revokeAfterPush(ctx context.Context, r TokenOutcomeResolver, c *object.Commit, f pathFinding, ref string) bool {
+	sg := model.SecretSighting{CommitSHA: c.Hash.String(), FilePath: f.Path, Ref: ref, ActorID: p.pusherID, Incomplete: p.incomplete}
+	out, err := p.settleToken(ctx, r, f, sg, model.SecretEventFound)
+	if err != nil {
+		slog.Error("secret-scan: settle token", "repo_id", p.repo.ID, "error", err)
+		return false
+	}
+	if out != TokenRevoked {
+		return true
+	}
+	alert, _, err := p.svc.alerts.Record(ctx, p.repo.ID, f.Finding, sg, model.SecretEventFound)
+	if err == nil {
+		err = p.svc.alerts.AutoRevoke(ctx, alert.ID)
+		if errors.Is(err, store.ErrSecretAlertState) {
+			err = nil
+		}
+	}
+	if err != nil {
+		slog.Error("secret-scan: record revoked token", "repo_id", p.repo.ID, "error", err)
+		return false
 	}
 	return true
 }
