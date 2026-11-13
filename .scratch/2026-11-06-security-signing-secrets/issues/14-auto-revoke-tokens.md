@@ -35,7 +35,7 @@ Kiyo commits their personal access token in `scripts/smoke.sh`. The server store
 - [x] A live token in a push by a different user revokes the owner's token and the pusher sees the revoked text; the alert has no Allow action
 - [x] The same token seen again later (same hash) appends a location to the closed alert and does nothing else
 - [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
 - [x] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
 - [x] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
@@ -45,3 +45,4 @@ Throwaway server: create a PAT in Settings, commit it into a file, push with nat
 
 ## Comments
 
+Claude, 2026-11-13: the Auto-revoked badge state already ships in `mockups/security_secrets.html` and `security_secret_alert.html` from ticket 12, which checked them in both themes; this ticket changed no markup, so no further mock edit was needed.
