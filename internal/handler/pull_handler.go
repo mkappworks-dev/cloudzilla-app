@@ -510,7 +510,7 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 
 	// Counted before the merge: afterwards a fast-forward or merge commit leaves nothing between base and head.
 	mergedCommits := ""
-	if commits, err := h.Services.Code.PullCommits(owner, repoName, pr.BaseBranch, pr.HeadBranch); err == nil {
+	if commits, err := h.Services.Code.PullCommitsUnverified(owner, repoName, pr.BaseBranch, pr.HeadBranch); err == nil {
 		mergedCommits = strconv.Itoa(len(commits))
 	}
 	if (strategy == "merge" || strategy == "squash") && pr.BaseBranch == repo.DefaultBranch {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -18,9 +19,10 @@ func (s *CodeService) verifySignatures(commits []*object.Commit) map[plumbing.Ha
 	if err == nil {
 		return res
 	}
+	slog.Error("signature verification lookup failed", "error", err, "commits", len(commits))
 	res = make(map[plumbing.Hash]SignatureResult, len(commits))
 	for _, c := range commits {
-		res[c.Hash] = SignatureResult{Status: SignatureUnverified, Reason: ReasonUnsupported, CommitterEmail: c.Committer.Email}
+		res[c.Hash] = SignatureResult{Status: SignatureUnverified, Reason: ReasonUnavailable, CommitterEmail: c.Committer.Email}
 		if c.PGPSignature == "" {
 			res[c.Hash] = SignatureResult{Status: SignatureUnsigned, CommitterEmail: c.Committer.Email}
 		}

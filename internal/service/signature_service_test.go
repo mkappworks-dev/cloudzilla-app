@@ -363,3 +363,16 @@ func TestSignatureService_UnsignedPageDoesNoQueries(t *testing.T) {
 		t.Errorf("lookups = %+v, want none", f.calls)
 	}
 }
+
+func TestGPGRings_ParseEachStoredKeyOnce(t *testing.T) {
+	key := fixtureGPGKey(t, "rhea.pub.asc", rheaUser)
+	rings := &gpgRings{}
+	for range 5 {
+		if _, ok := rings.publicKey(&key, key.KeyID); !ok {
+			t.Fatal("primary key not found")
+		}
+	}
+	if rings.parses != 1 {
+		t.Errorf("parses = %d, want 1", rings.parses)
+	}
+}

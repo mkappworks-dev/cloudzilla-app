@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/secretbox"
 )
 
 const serverCommitBaseURL = "https://git.example.test"
@@ -215,5 +217,37 @@ func TestServerCommits_WithoutASecretKeyAreUnsignedButStillInstanceCommitted(t *
 				t.Errorf("commit is signed without a secret key: %q", commit.PGPSignature)
 			}
 		})
+	}
+}
+
+type countingHandler struct{ warns *int }
+
+func (h countingHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (h countingHandler) Handle(_ context.Context, r slog.Record) error {
+	if r.Level == slog.LevelWarn {
+		*h.warns++
+	}
+	return nil
+}
+func (h countingHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+func (h countingHandler) WithGroup(string) slog.Handler      { return h }
+
+func TestWarnUndecryptableKeyOncePerOutage(t *testing.T) {
+	warns := 0
+	prev := slog.Default()
+	slog.SetDefault(slog.New(countingHandler{&warns}))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+	undecryptableWarned.Store(false)
+
+	for range 3 {
+		noteInstanceKeyOutcome(secretbox.ErrUndecryptable)
+	}
+	if warns != 1 {
+		t.Fatalf("warns = %d, want 1 for a persistent outage", warns)
+	}
+	noteInstanceKeyOutcome(nil)
+	noteInstanceKeyOutcome(secretbox.ErrUndecryptable)
+	if warns != 2 {
+		t.Errorf("warns = %d, want 2 after the key became readable and failed again", warns)
 	}
 }

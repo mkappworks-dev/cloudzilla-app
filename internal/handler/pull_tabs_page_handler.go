@@ -325,7 +325,7 @@ func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, 
 	}
 	base, head, rangeKnown := pullDiffRefs(pull)
 	if own&commitsBadge == 0 && rangeKnown {
-		if commits, err := h.Services.Code.PullCommits(owner, repoName, base, head); err == nil {
+		if commits, err := h.Services.Code.PullCommitsUnverified(owner, repoName, base, head); err == nil {
 			c.CommitsCount = len(commits)
 		} else {
 			logFail("commit walk", err)

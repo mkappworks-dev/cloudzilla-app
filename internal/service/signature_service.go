@@ -30,6 +30,7 @@ type SignatureReason string
 
 const (
 	ReasonUnsupported        SignatureReason = "unsupported"
+	ReasonUnavailable        SignatureReason = "unavailable"
 	ReasonNoKey              SignatureReason = "no_key"
 	ReasonBadSignature       SignatureReason = "bad_signature"
 	ReasonKeyExpired         SignatureReason = "key_expired"
@@ -160,8 +161,9 @@ func (s *SignatureService) Verify(ctx context.Context, commits []*object.Commit)
 		}
 	}
 
+	rings := &gpgRings{}
 	for _, p := range gpgPending {
-		out[p.commit.Hash] = judgeGPG(p, gpgKeys, identities)
+		out[p.commit.Hash] = judgeGPG(p, gpgKeys, identities, rings)
 	}
 	for _, p := range sshPending {
 		out[p.commit.Hash] = judgeSSH(p, sshKeys, identities)
@@ -314,7 +316,7 @@ func issuerKeyID(sig *packet.Signature) (string, bool) {
 	return "", false
 }
 
-func judgeGPG(p pendingSignature, keys []model.GPGKey, identities map[int64]SigningIdentity) SignatureResult {
+func judgeGPG(p pendingSignature, keys []model.GPGKey, identities map[int64]SigningIdentity, rings *gpgRings) SignatureResult {
 	committer := p.commit.Committer
 	res := SignatureResult{Kind: SignatureKindGPG, KeyID: p.keyID, CommitterEmail: committer.Email}
 	found := false
@@ -333,7 +335,7 @@ func judgeGPG(p pendingSignature, keys []model.GPGKey, identities map[int64]Sign
 				continue
 			}
 		}
-		pub, ok := gpgPublicKey(key, p.keyID)
+		pub, ok := rings.publicKey(key, p.keyID)
 		if !ok {
 			continue
 		}
@@ -367,13 +369,28 @@ func judgeGPG(p pendingSignature, keys []model.GPGKey, identities map[int64]Sign
 	return res
 }
 
-// gpgPublicKey finds the packet for keyID in the stored armored key.
-func gpgPublicKey(key *model.GPGKey, keyID string) (*packet.PublicKey, bool) {
-	ring, err := openpgp.ReadArmoredKeyRing(strings.NewReader(key.PublicKey))
-	if err != nil || len(ring) != 1 {
+// gpgRings parses each stored armored key once per Verify call, however many commits and candidate keys meet it.
+type gpgRings struct {
+	parsed map[string]*openpgp.Entity
+	parses int
+}
+
+// publicKey finds the packet for keyID in the stored armored key.
+func (r *gpgRings) publicKey(key *model.GPGKey, keyID string) (*packet.PublicKey, bool) {
+	e, seen := r.parsed[key.Fingerprint]
+	if !seen {
+		r.parses++
+		if ring, err := openpgp.ReadArmoredKeyRing(strings.NewReader(key.PublicKey)); err == nil && len(ring) == 1 {
+			e = ring[0]
+		}
+		if r.parsed == nil {
+			r.parsed = map[string]*openpgp.Entity{}
+		}
+		r.parsed[key.Fingerprint] = e
+	}
+	if e == nil {
 		return nil, false
 	}
-	e := ring[0]
 	if fmt.Sprintf("%016x", e.PrimaryKey.KeyId) == keyID {
 		return e.PrimaryKey, true
 	}

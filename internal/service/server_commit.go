@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -32,6 +33,20 @@ func (c serverCommitter) identity(when time.Time) object.Signature {
 	return object.Signature{Name: instanceSignerName, Email: "noreply@" + host, When: when}
 }
 
+// undecryptableWarned keeps a sealed-under-another-key instance key from logging on every server-made commit.
+var undecryptableWarned atomic.Bool
+
+// noteInstanceKeyOutcome warns once per outage; a readable key re-arms the warning.
+func noteInstanceKeyOutcome(err error) {
+	if !errors.Is(err, secretbox.ErrUndecryptable) {
+		undecryptableWarned.Store(false)
+		return
+	}
+	if undecryptableWarned.CompareAndSwap(false, true) {
+		slog.Warn("instance signing key is sealed under another security.secret_key; committing unsigned")
+	}
+}
+
 // store sets commit's committer, signs it and writes it to st. Without a usable key the commit is stored unsigned,
 // so a missing or foreign security.secret_key never blocks a merge or an edit.
 func (c serverCommitter) store(st storer.EncodedObjectStorer, commit *object.Commit) (plumbing.Hash, error) {
@@ -44,12 +59,12 @@ func (c serverCommitter) store(st storer.EncodedObjectStorer, commit *object.Com
 		}
 		// The server-made call paths take no context.
 		sig, err := c.signer.Sign(context.Background(), payload)
+		noteInstanceKeyOutcome(err)
 		switch {
 		case err == nil:
 			commit.PGPSignature = sig
 		case errors.Is(err, ErrNoSecretKey):
 		case errors.Is(err, secretbox.ErrUndecryptable):
-			slog.Warn("instance signing key is sealed under another security.secret_key; committing unsigned")
 		default:
 			return plumbing.ZeroHash, err
 		}

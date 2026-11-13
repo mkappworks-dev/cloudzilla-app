@@ -235,8 +235,8 @@ func TestCodeService_FailedLookupLeavesTheCommitUnverifiedNotTheReadFailed(t *te
 	if err != nil {
 		t.Fatalf("GetCommits: %v", err)
 	}
-	if got := log.Commits[0].Signature; got.Status != SignatureUnverified || got.Reason != ReasonUnsupported {
-		t.Errorf("signature = %+v, want unverified/unsupported", got)
+	if got := log.Commits[0].Signature; got.Status != SignatureUnverified || got.Reason != ReasonUnavailable {
+		t.Errorf("signature = %+v, want unverified/unavailable", got)
 	}
 	detail, err := svc.GetVerifiedCommit("rhea", "signed", head.String())
 	if err != nil || detail.Signature.Status != SignatureUnverified {
@@ -249,5 +249,25 @@ func TestCodeService_WithoutSignaturesLeavesTheResultEmpty(t *testing.T) {
 	log, err := svc.GetCommits("rhea", "signed", "main", 1, 30)
 	if err != nil || log.Commits[0].Signature != (SignatureResult{}) {
 		t.Errorf("signature = %+v (%v), want the zero value", log.Commits[0].Signature, err)
+	}
+}
+
+func TestCodeService_PullCommitsUnverifiedSkipsKeyLookups(t *testing.T) {
+	svc, _ := signedRepo(t, "ssh-ed25519")
+	f := &fakeKeyStore{}
+	svc.WithSignatures(f.service())
+
+	commits, err := svc.PullCommitsUnverified("rhea", "signed", "base", "main")
+	if err != nil || len(commits) != 1 {
+		t.Fatalf("PullCommitsUnverified: %v (%v)", commits, err)
+	}
+	if f.calls.gpg+f.calls.ssh+f.calls.dir != 0 {
+		t.Errorf("lookups = %+v, want none", f.calls)
+	}
+	if commits[0].Signature != (SignatureResult{}) {
+		t.Errorf("signature = %+v, want the zero value", commits[0].Signature)
+	}
+	if _, err := svc.PullCommits("rhea", "signed", "base", "main"); err != nil || f.calls.ssh == 0 {
+		t.Errorf("PullCommits did not verify: %+v (%v)", f.calls, err)
 	}
 }

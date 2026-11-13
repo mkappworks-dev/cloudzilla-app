@@ -15,9 +15,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
-// SignatureKind has no constant for the server's own key yet.
-const instanceSignature service.SignatureKind = "instance"
-
 // SignatureBadge is the verdict pill after a commit's SHA and the popover it opens; unsigned commits render nothing.
 // The popover ships in the page so opening it costs no request.
 func SignatureBadge(r service.SignatureResult) templ.Component {
@@ -165,7 +162,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.NewAttributeExpression(signatureLabel(r.Status) + " signature").Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 54, Col: 57}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 51, Col: 57}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 					if templ_7745c5c3_Err != nil {
@@ -178,7 +175,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(signatureLabel(r.Status)).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 55, Col: 37}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 52, Col: 37}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 					if templ_7745c5c3_Err != nil {
@@ -253,7 +250,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(signatureLabel(r.Status))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 64, Col: 31}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 61, Col: 31}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -290,7 +287,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(signatureHeadline(r))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 82, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 79, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -300,7 +297,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if r.Kind == instanceSignature {
+			if r.Kind == service.SignatureKindInstance {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<div class=\"mt-3 flex items-center gap-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -329,7 +326,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + r.SignerUsername)).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 92, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 89, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 				if templ_7745c5c3_Err != nil {
@@ -342,7 +339,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(r.SignerUsername)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 92, Col: 122}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 89, Col: 122}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -365,7 +362,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 						var templ_7745c5c3_Var15 string
 						templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(r.CommitterEmail)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 96, Col: 40}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 93, Col: 40}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 						if templ_7745c5c3_Err != nil {
@@ -375,7 +372,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 						var templ_7745c5c3_Var16 string
 						templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(r.CommitterEmail)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 98, Col: 27}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 95, Col: 27}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 						if templ_7745c5c3_Err != nil {
@@ -396,7 +393,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if r.Kind != instanceSignature {
+			if r.Kind != service.SignatureKindInstance {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<dt class=\"text-muted-foreground\">Key type</dt><dd>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -404,7 +401,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(signatureKindLabel(r.Kind))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 107, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 104, Col: 38}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -423,7 +420,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(r.KeyLabel)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 111, Col: 22}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 108, Col: 22}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -442,7 +439,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(r.KeyID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 115, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 112, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -461,7 +458,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(r.Fingerprint)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 119, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 116, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
@@ -472,7 +469,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 					return templ_7745c5c3_Err
 				}
 			}
-			if r.SignerUsername == "" && r.CommitterEmail != "" && r.Kind != instanceSignature {
+			if r.SignerUsername == "" && r.CommitterEmail != "" && r.Kind != service.SignatureKindInstance {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<dt class=\"text-muted-foreground\">Committer</dt><dd>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -480,7 +477,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(r.CommitterEmail)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 123, Col: 28}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 120, Col: 28}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -503,7 +500,7 @@ func signatureWidget(r service.SignatureResult, floating bool, icon bool) templ.
 				var templ_7745c5c3_Var22 string
 				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(hint)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 127, Col: 61}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 124, Col: 61}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 				if templ_7745c5c3_Err != nil {
@@ -551,7 +548,7 @@ func signatureGlyph(s service.SignatureStatus, size int, class string) templ.Com
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(size)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 137, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 134, Col: 32}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
 			if templ_7745c5c3_Err != nil {
@@ -564,7 +561,7 @@ func signatureGlyph(s service.SignatureStatus, size int, class string) templ.Com
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(size)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 137, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/signature_badge.templ`, Line: 134, Col: 62}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
 			if templ_7745c5c3_Err != nil {
@@ -670,6 +667,8 @@ func signatureKindLabel(k service.SignatureKind) string {
 		return "GPG"
 	case service.SignatureKindSSH:
 		return "SSH"
+	case service.SignatureKindInstance:
+		return "Cloudzilla"
 	default:
 		return "Unknown"
 	}
@@ -677,7 +676,7 @@ func signatureKindLabel(k service.SignatureKind) string {
 
 func signatureHeadline(r service.SignatureResult) string {
 	switch {
-	case r.Kind == instanceSignature:
+	case r.Kind == service.SignatureKindInstance:
 		return "This commit was made on the web and signed by this server."
 	case r.Status == service.SignatureVerified:
 		return "Signed by the committer with a key on their account."
@@ -695,6 +694,8 @@ func signatureHeadline(r service.SignatureResult) string {
 		return "The key has been revoked."
 	case service.ReasonMultipleSignatures:
 		return "The commit carries more than one signature."
+	case service.ReasonUnavailable:
+		return "The signature couldn't be checked right now."
 	case service.ReasonUnsupported:
 		return "The signature isn't in a format this server can check."
 	default:
@@ -704,7 +705,7 @@ func signatureHeadline(r service.SignatureResult) string {
 
 func signatureHint(r service.SignatureResult) string {
 	switch {
-	case r.Kind == instanceSignature:
+	case r.Kind == service.SignatureKindInstance:
 		return ""
 	case r.Status == service.SignaturePartiallyVerified && r.Reason == service.ReasonEmailNotOnKey:
 		return "Adding " + r.CommitterEmail + " to the key's identities makes this Verified."
@@ -712,6 +713,8 @@ func signatureHint(r service.SignatureResult) string {
 		return "Verifying " + r.CommitterEmail + " on " + r.SignerUsername + "'s account makes this Verified."
 	case r.Status == service.SignatureUnverified && r.Reason == service.ReasonNoKey:
 		return "If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view."
+	case r.Reason == service.ReasonUnavailable:
+		return "Reload the page to try again."
 	case r.Status == service.SignatureUnverified && (r.Reason == service.ReasonKeyExpired || r.Reason == service.ReasonKeyRevoked):
 		return "Commits signed with a different, valid key verify as usual."
 	}

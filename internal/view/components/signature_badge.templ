@@ -6,9 +6,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
-// SignatureKind has no constant for the server's own key yet.
-const instanceSignature service.SignatureKind = "instance"
-
 // SignatureBadge is the verdict pill after a commit's SHA and the popover it opens; unsigned commits render nothing.
 // The popover ships in the page so opening it costs no request.
 templ SignatureBadge(r service.SignatureResult) {
@@ -81,7 +78,7 @@ templ signatureWidget(r service.SignatureResult, floating bool, icon bool) {
 					@signatureGlyph(r.Status, 14, "shrink-0 mt-[3px] "+signatureIconClass(r.Status))
 					<span>{ signatureHeadline(r) }</span>
 				</p>
-				if r.Kind == instanceSignature {
+				if r.Kind == service.SignatureKindInstance {
 					<div class="mt-3 flex items-center gap-2">
 						@Initials("Cloudzilla", AvatarSizeXS, "Cloudzilla")
 						<span class="text-[13px] font-medium">Cloudzilla</span>
@@ -102,7 +99,7 @@ templ signatureWidget(r service.SignatureResult, floating bool, icon bool) {
 					</div>
 				}
 				<dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
-					if r.Kind != instanceSignature {
+					if r.Kind != service.SignatureKindInstance {
 						<dt class="text-muted-foreground">Key type</dt>
 						<dd>{ signatureKindLabel(r.Kind) }</dd>
 					}
@@ -118,7 +115,7 @@ templ signatureWidget(r service.SignatureResult, floating bool, icon bool) {
 						<dt class="text-muted-foreground">Fingerprint</dt>
 						<dd class="font-mono break-all">{ r.Fingerprint }</dd>
 					}
-					if r.SignerUsername == "" && r.CommitterEmail != "" && r.Kind != instanceSignature {
+					if r.SignerUsername == "" && r.CommitterEmail != "" && r.Kind != service.SignatureKindInstance {
 						<dt class="text-muted-foreground">Committer</dt>
 						<dd>{ r.CommitterEmail }</dd>
 					}
@@ -187,6 +184,8 @@ func signatureKindLabel(k service.SignatureKind) string {
 		return "GPG"
 	case service.SignatureKindSSH:
 		return "SSH"
+	case service.SignatureKindInstance:
+		return "Cloudzilla"
 	default:
 		return "Unknown"
 	}
@@ -194,7 +193,7 @@ func signatureKindLabel(k service.SignatureKind) string {
 
 func signatureHeadline(r service.SignatureResult) string {
 	switch {
-	case r.Kind == instanceSignature:
+	case r.Kind == service.SignatureKindInstance:
 		return "This commit was made on the web and signed by this server."
 	case r.Status == service.SignatureVerified:
 		return "Signed by the committer with a key on their account."
@@ -212,6 +211,8 @@ func signatureHeadline(r service.SignatureResult) string {
 		return "The key has been revoked."
 	case service.ReasonMultipleSignatures:
 		return "The commit carries more than one signature."
+	case service.ReasonUnavailable:
+		return "The signature couldn't be checked right now."
 	case service.ReasonUnsupported:
 		return "The signature isn't in a format this server can check."
 	default:
@@ -221,7 +222,7 @@ func signatureHeadline(r service.SignatureResult) string {
 
 func signatureHint(r service.SignatureResult) string {
 	switch {
-	case r.Kind == instanceSignature:
+	case r.Kind == service.SignatureKindInstance:
 		return ""
 	case r.Status == service.SignaturePartiallyVerified && r.Reason == service.ReasonEmailNotOnKey:
 		return "Adding " + r.CommitterEmail + " to the key's identities makes this Verified."
@@ -229,6 +230,8 @@ func signatureHint(r service.SignatureResult) string {
 		return "Verifying " + r.CommitterEmail + " on " + r.SignerUsername + "'s account makes this Verified."
 	case r.Status == service.SignatureUnverified && r.Reason == service.ReasonNoKey:
 		return "If this is your key, add it under Settings → Signing keys. Commits re-verify on the next view."
+	case r.Reason == service.ReasonUnavailable:
+		return "Reload the page to try again."
 	case r.Status == service.SignatureUnverified && (r.Reason == service.ReasonKeyExpired || r.Reason == service.ReasonKeyRevoked):
 		return "Commits signed with a different, valid key verify as usual."
 	}
