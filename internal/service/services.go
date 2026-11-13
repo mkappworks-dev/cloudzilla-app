@@ -73,6 +73,8 @@ type Services struct {
 	Attachment         *AttachmentService
 	Export             *ExportService
 	SecretAlert        *SecretAlertService
+	PushScan           *PushScanService
+	PushVet            *PushVetService
 	Mirror             *MirrorService
 	Quota              *QuotaService
 	InstanceSigner     *InstanceSigner
@@ -145,6 +147,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
 	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
 	issueSvc := NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent).WithThreadSubscriptions(threadSubSvc)
+	secretAlertSvc := NewSecretAlertService(stores.SecretAlert)
+	branchProtectionSvc := NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus)
+	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL)
 	return &Services{
 		User:               userSvc,
 		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
@@ -176,7 +181,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		AccessToken:        NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
 		DeviceGrant:        NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken, stores.User).WithEmail(emailSvc),
 		DeployKey:          NewDeployKeyService(stores.DeployKey, stores.SSHKey),
-		BranchProtection:   NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
+		BranchProtection:   branchProtectionSvc,
 		Reaction:           NewReactionService(stores.Reaction),
 		TOTP:               totpSvc,
 		OAuthLink:          NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
@@ -209,10 +214,12 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Avatar:             avatarSvc,
 		Attachment:         attachmentSvc,
 		Export:             exportSvc,
-		SecretAlert:        NewSecretAlertService(stores.SecretAlert),
+		SecretAlert:        secretAlertSvc,
+		PushScan:           pushScanSvc,
+		PushVet:            NewPushVetService(branchProtectionSvc, pushScanSvc),
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
-		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
+		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc),
 		InstanceSigner:     instanceSigner,
 		Secrets:            secrets,
 	}

@@ -31,6 +31,8 @@ type Config struct {
 	Mirror    MirrorConfig    `mapstructure:"mirror"`
 	Release   ReleaseConfig   `mapstructure:"release"`
 	Metrics   MetricsConfig   `mapstructure:"metrics"`
+
+	SecretScanning SecretScanningConfig `mapstructure:"secret_scanning"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -206,6 +208,27 @@ func (m MirrorConfig) validate() error {
 	return nil
 }
 
+// SecretScanningConfig holds secret scanning settings. Scanning always runs; PushProtection only decides whether a
+// match refuses the push.
+type SecretScanningConfig struct {
+	PushProtection bool          `mapstructure:"push_protection"`
+	MaxBlobBytes   int           `mapstructure:"max_blob_bytes"`
+	PushTimeout    time.Duration `mapstructure:"push_timeout"`
+	MaxBlobs       int           `mapstructure:"max_blobs"`
+}
+
+func (c SecretScanningConfig) validate() error {
+	switch {
+	case c.MaxBlobBytes < 1:
+		return fmt.Errorf("secret_scanning.max_blob_bytes must be at least 1, got %d", c.MaxBlobBytes)
+	case c.PushTimeout <= 0:
+		return fmt.Errorf("secret_scanning.push_timeout must be positive, got %s", c.PushTimeout)
+	case c.MaxBlobs < 1:
+		return fmt.Errorf("secret_scanning.max_blobs must be at least 1, got %d", c.MaxBlobs)
+	}
+	return nil
+}
+
 // ReleaseConfig holds release-asset limits.
 type ReleaseConfig struct {
 	MaxAssetBytes int64 `mapstructure:"max_asset_bytes"`
@@ -304,6 +327,10 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("mirror.default_interval", "8h")
 	v.SetDefault("mirror.max_concurrent", 3)
 	v.SetDefault("mirror.timeout", "30m")
+	v.SetDefault("secret_scanning.push_protection", true)
+	v.SetDefault("secret_scanning.max_blob_bytes", 1<<20)
+	v.SetDefault("secret_scanning.push_timeout", "10s")
+	v.SetDefault("secret_scanning.max_blobs", 5000)
 	v.SetDefault("release.max_asset_bytes", int64(512<<20))
 	v.SetDefault("release.max_assets", 20)
 	v.SetDefault("metrics.listen_addr", "")
@@ -358,6 +385,9 @@ func Load(cfgFile string) (*Config, error) {
 		return nil, err
 	}
 	if err := cfg.Release.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.SecretScanning.validate(); err != nil {
 		return nil, err
 	}
 	return &cfg, nil

@@ -271,6 +271,40 @@ func (c *connectivity) added(tip *commitInfo) ([]*commitInfo, error) {
 	return added, nil
 }
 
+// AddedCommits returns the commits that tips reach and no ref reaches, as git
+// rev-list <tips> --not --all does; a tip may be a commit or a tag of one, and
+// a commit two tips share is returned once. Call it before the refs move.
+func AddedCommits(s storer.Storer, tips []plumbing.Hash) ([]*object.Commit, error) {
+	c := newConnectivity(s)
+	if err := c.loadRefs(); err != nil {
+		return nil, err
+	}
+	seen := make(map[plumbing.Hash]bool)
+	var out []*object.Commit
+	for _, h := range tips {
+		tip := c.peel(h)
+		if tip == nil {
+			continue
+		}
+		added, err := c.added(tip)
+		if err != nil {
+			return nil, err
+		}
+		for _, cm := range added {
+			if seen[cm.hash] {
+				continue
+			}
+			seen[cm.hash] = true
+			commit, err := object.GetCommit(s, cm.hash)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, commit)
+		}
+	}
+	return out, nil
+}
+
 // parentsFirst orders cs so that each commit follows its parents among them.
 func parentsFirst(cs []*commitInfo) []*commitInfo {
 	in := make(map[plumbing.Hash]*commitInfo, len(cs))

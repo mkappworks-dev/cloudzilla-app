@@ -329,3 +329,43 @@ func TestLoad_ReleaseInvalid(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad_SecretScanningDefaultsAndEnv(t *testing.T) {
+	cfg, err := config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	want := config.SecretScanningConfig{PushProtection: true, MaxBlobBytes: 1 << 20, PushTimeout: 10 * time.Second, MaxBlobs: 5000}
+	if cfg.SecretScanning != want {
+		t.Errorf("defaults = %+v, want %+v", cfg.SecretScanning, want)
+	}
+
+	t.Setenv("CZ_SECRET_SCANNING_PUSH_PROTECTION", "false")
+	t.Setenv("CZ_SECRET_SCANNING_MAX_BLOB_BYTES", "2048")
+	t.Setenv("CZ_SECRET_SCANNING_PUSH_TIMEOUT", "3s")
+	t.Setenv("CZ_SECRET_SCANNING_MAX_BLOBS", "10")
+	cfg, err = config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	want = config.SecretScanningConfig{MaxBlobBytes: 2048, PushTimeout: 3 * time.Second, MaxBlobs: 10}
+	if cfg.SecretScanning != want {
+		t.Errorf("env = %+v, want %+v", cfg.SecretScanning, want)
+	}
+}
+
+func TestLoad_SecretScanningInvalid(t *testing.T) {
+	for _, tc := range []struct{ env, value, wantKey string }{
+		{"CZ_SECRET_SCANNING_MAX_BLOB_BYTES", "0", "secret_scanning.max_blob_bytes"},
+		{"CZ_SECRET_SCANNING_PUSH_TIMEOUT", "0s", "secret_scanning.push_timeout"},
+		{"CZ_SECRET_SCANNING_MAX_BLOBS", "0", "secret_scanning.max_blobs"},
+	} {
+		t.Run(tc.env+"="+tc.value, func(t *testing.T) {
+			t.Setenv(tc.env, tc.value)
+			_, err := config.Load("")
+			if err == nil || !strings.Contains(err.Error(), tc.wantKey) {
+				t.Errorf("err = %v, want one naming %s", err, tc.wantKey)
+			}
+		})
+	}
+}
