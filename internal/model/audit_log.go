@@ -38,6 +38,8 @@ const (
 	AuditTargetRepo = "repo"
 	AuditTargetPull = "pull"
 	AuditTargetUser = "user"
+	// AuditTargetInstanceSigningKey names the key by fingerprint.
+	AuditTargetInstanceSigningKey = "instance_signing_key"
 )
 
 // Common action constants.
@@ -96,6 +98,7 @@ const (
 	AuditActionAdminUserCredentialsRevoke = "admin.user.credentials_revoke"
 	AuditActionAdminOrgOwnerAdd           = "admin.org.owner_add"
 	AuditActionAdminUserDelete            = "admin.user.delete"
+	AuditActionAdminSigningKeyRotate      = "admin.signing_key.rotate"
 )
 
 // Admin mode: entering and leaving, and each mutating request that only passed through it.

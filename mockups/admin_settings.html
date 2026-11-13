@@ -108,6 +108,54 @@ You are responsible for activity under your account and for keeping your credent
   </div>
 </div>
 
+<div id="commit-signing" class="rounded-lg border border-border bg-card text-card-foreground">
+  <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+    <h2 class="text-[13px] font-semibold leading-none tracking-tight">Commit signing</h2>
+    <p class="text-[12px] text-muted-foreground">Merges, squashes and web edits are committed by Cloudzilla and signed with this key, so they show as Verified. Retired keys stay trusted, so older commits keep their badge.</p>
+  </div>
+  <div class="p-5 space-y-4">
+    <div data-mock-only class="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+      <span>Mock state:</span>
+      <button type="button" data-sk-state="key" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Active key</button>
+      <button type="button" data-sk-state="none" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">No key yet</button>
+      <button type="button" data-sk-state="nosecret" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">No secret key</button>
+      <button type="button" data-sk-state="unreadable" class="h-7 px-2.5 border border-border rounded-md hover:bg-accent">Key unreadable</button>
+    </div>
+    <div id="admin-signing-key" class="space-y-4">
+      <div id="sk-nosecret" role="status" hidden class="border border-warning/40 bg-warning/10 rounded-md p-4 text-[13px] space-y-1">
+        <p class="font-semibold text-warning">Commit signing is off</p>
+        <p class="text-muted-foreground"><code class="font-mono text-foreground">security.secret_key</code> (<code class="font-mono text-foreground">CZ_SECURITY_SECRET_KEY</code>) isn't set, so the server has nowhere safe to keep a signing key. Merges and web edits are still committed as Cloudzilla but stay unsigned. Set the key and restart; the signing key is then generated the first time the server makes a commit.</p>
+      </div>
+      <div id="sk-unreadable" role="status" hidden class="border border-warning/40 bg-warning/10 rounded-md p-4 text-[13px] space-y-1">
+        <p class="font-semibold text-warning">The signing key can't be read</p>
+        <p class="text-muted-foreground">It was sealed under a different <code class="font-mono text-foreground">security.secret_key</code>. New server-made commits stay unsigned until you rotate the key. Commits it signed before stay Verified.</p>
+      </div>
+      <dl id="sk-key" class="grid gap-3 text-[13px]">
+        <div class="space-y-1">
+          <dt class="text-xs font-medium text-muted-foreground">Fingerprint</dt>
+          <dd id="sk-fingerprint" class="font-mono break-all">SHA256:Qm4vT1xk9pR0dLr7sTn4YhE8uWcJb1aZfGq5oXiRtN6</dd>
+        </div>
+        <div class="space-y-1">
+          <dt class="text-xs font-medium text-muted-foreground">Created</dt>
+          <dd><time datetime="2026-11-13T09:12:00Z">2026-11-13</time></dd>
+        </div>
+        <div class="space-y-1.5">
+          <dt class="text-xs font-medium text-muted-foreground">Public key</dt>
+          <dd class="flex flex-wrap items-start gap-2">
+            <code id="sk-public" class="min-w-0 flex-1 bg-muted border border-border rounded-sm px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK3vQ2xk9mP0dLr7sTn4YhE8uWcJb1aZfGq5oXiRtN6M</code>
+            <button type="button" id="sk-copy" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Copy</button>
+          </dd>
+          <dd class="text-xs text-muted-foreground">To check a server-made commit with git, add this line to your <code class="font-mono">allowed_signers</code> file, prefixed with <code class="font-mono">noreply@your-host</code> and a space.</dd>
+        </div>
+      </dl>
+      <p id="sk-none" hidden class="text-sm text-muted-foreground">No signing key yet. One is generated the first time the server makes a commit, or now.</p>
+      <form id="sk-rotate-form" onsubmit="return false">
+        <button type="submit" id="sk-rotate" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm">Rotate key</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="rounded-lg border border-border bg-card text-card-foreground">
   <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
     <h2 class="text-[13px] font-semibold leading-none tracking-tight">Email verification</h2>
@@ -230,6 +278,46 @@ You are responsible for activity under your account and for keeping your credent
     this.reset();
     czToast('Email marked verified');
   });
+
+  (function () {
+    var fps = ['SHA256:Qm4vT1xk9pR0dLr7sTn4YhE8uWcJb1aZfGq5oXiRtN6', 'SHA256:Zb7cH2nW5eK8yUq1oLd3VfAx9TgMr4JsPi6XuE0Cy2B'];
+    var keys = ['ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK3vQ2xk9mP0dLr7sTn4YhE8uWcJb1aZfGq5oXiRtN6M', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPw8nB2yLc5RtU1eXq7ZkJh4GdVs9aMfOo3iAxT6Yb0N'];
+    var gen = 0;
+    var OUTLINE = ' border border-input bg-transparent hover:bg-accent hover:text-accent-foreground';
+    var PRIMARY = ' bg-primary text-primary-foreground hover:bg-primary/90';
+    var BASE = 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-9 px-4 text-sm';
+    var $ = function (id) { return document.getElementById(id); };
+    function show(state) {
+      $('sk-key').hidden = state === 'none';
+      $('sk-none').hidden = state !== 'none';
+      $('sk-nosecret').hidden = state !== 'nosecret';
+      $('sk-unreadable').hidden = state !== 'unreadable';
+      $('sk-rotate-form').hidden = state === 'nosecret';
+      $('sk-rotate').textContent = state === 'none' ? 'Generate key' : 'Rotate key';
+      $('sk-rotate').className = BASE + (state === 'none' ? PRIMARY : OUTLINE);
+      $('sk-fingerprint').textContent = fps[gen % 2];
+      $('sk-public').textContent = keys[gen % 2];
+    }
+    document.querySelectorAll('[data-sk-state]').forEach(function (b) {
+      b.addEventListener('click', function () { show(b.dataset.skState); });
+    });
+    $('sk-rotate-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      confirmAction({ title: 'Rotate the signing key?', msg: 'New server-made commits are signed with a new key. Commits signed by the old key stay Verified.', label: 'Rotate key' }, function () {
+        gen++;
+        show('key');
+        czToast('Signing key rotated');
+      });
+    });
+    $('sk-copy').addEventListener('click', function () {
+      var b = this;
+      navigator.clipboard.writeText($('sk-public').textContent).then(function () {
+        b.textContent = 'Copied';
+        setTimeout(function () { b.textContent = 'Copy'; }, 2000);
+      });
+    });
+    show('key');
+  })();
 </script>
 <script src="shell.js"></script>
 </body>

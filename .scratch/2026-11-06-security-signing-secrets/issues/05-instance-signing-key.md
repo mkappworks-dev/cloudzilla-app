@@ -33,14 +33,14 @@ Server-made commits need a key the instance holds (ADR 0002), and the verifier m
 
 ## Acceptance criteria
 
-- [ ] The first call generates and seals a key; the private half in the table is not the plaintext key and fails to open under another `security.secret_key` (`ErrUndecryptable`)
-- [ ] Rotate retires the old row, creates a new active one, and a signature by the retired key still verifies as `verified`
-- [ ] Only one active row can exist (unique partial index; two concurrent first calls produce one key)
-- [ ] With no `security.secret_key`: `ErrNoSecretKey`, the startup warning, and the admin section explains why
-- [ ] Non-superadmins get `403` on the rotate route; rotation requires the step-up and writes an audit entry
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
-- [ ] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
+- [x] The first call generates and seals a key; the private half in the table is not the plaintext key and fails to open under another `security.secret_key` (`ErrUndecryptable`)
+- [x] Rotate retires the old row, creates a new active one, and a signature by the retired key still verifies as `verified`
+- [x] Only one active row can exist (unique partial index; two concurrent first calls produce one key)
+- [x] With no `security.secret_key`: `ErrNoSecretKey`, the startup warning, and the admin section explains why
+- [x] Non-superadmins get `403` on the rotate route; rotation requires the step-up and writes an audit entry
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
+- [x] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
 - [ ] `make generate-templ` re-run and the `_templ.go` files committed; `make lint` and `go test ./...` pass
 
 ## Verification

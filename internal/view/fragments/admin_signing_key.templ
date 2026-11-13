@@ -1,0 +1,77 @@
+package fragments
+
+import (
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+templ AdminSigningKey(data view.AdminSigningKeyFragData) {
+	<div id="admin-signing-key" class="space-y-4">
+		if !data.Sealable {
+			<div role="status" class="border border-warning/40 bg-warning/10 rounded-md p-4 text-[13px] space-y-1">
+				<p class="font-semibold text-warning">Commit signing is off</p>
+				<p class="text-muted-foreground">
+					<code class="font-mono text-foreground">security.secret_key</code> (<code class="font-mono text-foreground">CZ_SECURITY_SECRET_KEY</code>) isn't set, so the server has nowhere safe to keep a signing key. Merges and web edits are still committed as Cloudzilla but stay unsigned. Set the key and restart; the signing key is then generated the first time the server makes a commit.
+				</p>
+			</div>
+		}
+		if data.Unreadable {
+			<div role="status" class="border border-warning/40 bg-warning/10 rounded-md p-4 text-[13px] space-y-1">
+				<p class="font-semibold text-warning">The signing key can't be read</p>
+				<p class="text-muted-foreground">
+					It was sealed under a different <code class="font-mono text-foreground">security.secret_key</code>. New server-made commits stay unsigned until you rotate the key. Commits it signed before stay Verified.
+				</p>
+			</div>
+		}
+		if data.HasKey {
+			<dl class="grid gap-3 text-[13px]">
+				<div class="space-y-1">
+					<dt class="text-xs font-medium text-muted-foreground">Fingerprint</dt>
+					<dd class="font-mono break-all">{ data.Fingerprint }</dd>
+				</div>
+				<div class="space-y-1">
+					<dt class="text-xs font-medium text-muted-foreground">Created</dt>
+					<dd><time datetime={ data.CreatedAt.UTC().Format(time.RFC3339) }>{ data.CreatedAt.Format("2006-01-02") }</time></dd>
+				</div>
+				<div class="space-y-1.5" x-data="{ copied: false }">
+					<dt class="text-xs font-medium text-muted-foreground">Public key</dt>
+					<dd class="flex flex-wrap items-start gap-2">
+						<code x-ref="key" class="min-w-0 flex-1 bg-muted border border-border rounded-sm px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">{ data.PublicKey }</code>
+						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+							"type":   "button",
+							"@click": "navigator.clipboard.writeText($refs.key.textContent).then(() => { copied = true; setTimeout(() => copied = false, 2000) })",
+						}) {
+							<span x-text="copied ? 'Copied' : 'Copy'">Copy</span>
+						}
+					</dd>
+					<dd class="text-xs text-muted-foreground">
+						To check a server-made commit with git, add this line to your <code class="font-mono">allowed_signers</code> file, prefixed with <code class="font-mono">noreply@your-host</code> and a space.
+					</dd>
+				</div>
+			</dl>
+		} else if data.Sealable {
+			<p class="text-sm text-muted-foreground">No signing key yet. One is generated the first time the server makes a commit, or now.</p>
+		}
+		if data.Sealable {
+			<form
+				method="POST"
+				action="/api/admin/signing-key/rotate"
+				hx-post="/api/admin/signing-key/rotate"
+				hx-swap="none"
+				data-confirm-identity="Rotate key"
+			>
+				if data.HasKey {
+					@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Rotate key
+					}
+				} else {
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Generate key
+					}
+				}
+			</form>
+		}
+	</div>
+}

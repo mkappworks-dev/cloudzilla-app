@@ -74,6 +74,7 @@ type Services struct {
 	Export             *ExportService
 	Mirror             *MirrorService
 	Quota              *QuotaService
+	InstanceSigner     *InstanceSigner
 	Push               *PushService
 	// Secrets is nil when security.secret_key is unset.
 	Secrets *secretbox.Box
@@ -119,7 +120,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	reauthSvc := NewReauthService(stores.User, totpSvc).WithEmailCodes(emailSvc).
 		WithProviderSignIn(stores.OAuthState, ssoSvc, cfg.OAuth.GoogleClientID != "")
 	userSvc.WithReauth(reauthSvc)
-	code.WithSignatures(NewSignatureService(stores.GPGKey, stores.SSHSigningKey, userSvc))
+	code.WithSignatures(NewSignatureService(stores.GPGKey, stores.SSHSigningKey, userSvc).WithInstanceKeys(stores.InstanceSigningKey))
 	emailVerificationSvc.WithAdditionalEmails(stores.UserEmail, reauthSvc)
 	threadSubSvc := NewThreadSubscriptionService(stores.ThreadSubscription, stores.Watch)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc).WithThreadSubscriptions(threadSubSvc)
@@ -208,6 +209,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
 		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
+		InstanceSigner:     NewInstanceSigner(stores.InstanceSigningKey, secrets),
 		Secrets:            secrets,
 	}
 }

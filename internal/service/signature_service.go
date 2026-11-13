@@ -44,6 +44,8 @@ type SignatureKind string
 const (
 	SignatureKindGPG SignatureKind = "gpg"
 	SignatureKindSSH SignatureKind = "ssh"
+	// SignatureKindInstance is a commit the server signed itself (ADR 0002).
+	SignatureKindInstance SignatureKind = "instance"
 )
 
 // SignatureResult is what a page needs to badge a commit; it carries no go-git or crypto types.
@@ -66,6 +68,13 @@ type sshSigningKeyLookup interface {
 	ListByFingerprints(ctx context.Context, fingerprints []string) ([]model.SSHSigningKey, error)
 }
 
+type instanceKeyLookup interface {
+	ListByFingerprints(ctx context.Context, fingerprints []string) ([]model.InstanceSigningKey, error)
+}
+
+// instanceSignerName is the signer shown for a commit the server signed.
+const instanceSignerName = "Cloudzilla"
+
 type signerDirectory interface {
 	SigningIdentities(ctx context.Context, userIDs []int64) (map[int64]SigningIdentity, error)
 }
@@ -76,10 +85,18 @@ type SignatureService struct {
 	gpg  gpgKeyLookup
 	ssh  sshSigningKeyLookup
 	dirs signerDirectory
+	// instance is nil until WithInstanceKeys; its keys, active and retired, are checked before any account's.
+	instance instanceKeyLookup
 }
 
 func NewSignatureService(gpg gpgKeyLookup, sshKeys sshSigningKeyLookup, dirs signerDirectory) *SignatureService {
 	return &SignatureService{gpg: gpg, ssh: sshKeys, dirs: dirs}
+}
+
+// WithInstanceKeys makes the server's own signing keys, active and retired, trusted.
+func (s *SignatureService) WithInstanceKeys(keys instanceKeyLookup) *SignatureService {
+	s.instance = keys
+	return s
 }
 
 // pendingSignature is a signed commit that needs a key lookup before it can be judged.
@@ -114,6 +131,10 @@ func (s *SignatureService) Verify(ctx context.Context, commits []*object.Commit)
 		}
 	}
 
+	sshPending, err := s.judgeInstance(ctx, out, sshPending)
+	if err != nil {
+		return nil, err
+	}
 	gpgKeys, err := s.lookupGPG(ctx, gpgPending)
 	if err != nil {
 		return nil, err
@@ -146,6 +167,44 @@ func (s *SignatureService) Verify(ctx context.Context, commits []*object.Commit)
 		out[p.commit.Hash] = judgeSSH(p, sshKeys, identities)
 	}
 	return out, nil
+}
+
+// judgeInstance settles the commits signed by an instance key into out and returns the rest.
+func (s *SignatureService) judgeInstance(ctx context.Context, out map[plumbing.Hash]SignatureResult, pending []pendingSignature) ([]pendingSignature, error) {
+	if s.instance == nil || len(pending) == 0 {
+		return pending, nil
+	}
+	fps := make([]string, 0, len(pending))
+	for _, p := range pending {
+		fps = append(fps, ssh.FingerprintSHA256(p.pub))
+	}
+	slices.Sort(fps)
+	keys, err := s.instance.ListByFingerprints(ctx, slices.Compact(fps))
+	if err != nil {
+		return nil, err
+	}
+	if len(keys) == 0 {
+		return pending, nil
+	}
+	var rest []pendingSignature
+	for _, p := range pending {
+		fp := ssh.FingerprintSHA256(p.pub)
+		i := slices.IndexFunc(keys, func(k model.InstanceSigningKey) bool { return k.Fingerprint == fp })
+		if i < 0 {
+			rest = append(rest, p)
+			continue
+		}
+		// The committer is the instance, not an account, so the email rule doesn't apply.
+		res := SignatureResult{Kind: SignatureKindInstance, Fingerprint: fp, KeyLabel: instanceSignerName,
+			SignerUsername: instanceSignerName, CommitterEmail: p.commit.Committer.Email}
+		if verifySSHSig(p.pub, sshSigNamespace, p.payload, p.blob, false) != nil {
+			res.Status, res.Reason = SignatureUnverified, ReasonBadSignature
+		} else {
+			res.Status = SignatureVerified
+		}
+		out[p.commit.Hash] = res
+	}
+	return rest, nil
 }
 
 func (s *SignatureService) lookupGPG(ctx context.Context, pending []pendingSignature) ([]model.GPGKey, error) {

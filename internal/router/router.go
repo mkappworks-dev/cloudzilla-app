@@ -631,6 +631,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Use(authMW, superadminMW, apiBodyLimit)
 		r.Post("/settings", h.UpdateSiteSetting)
 		r.Post("/terms", h.UpdateTerms)
+		r.Post("/signing-key/rotate", h.RotateInstanceSigningKey)
 		r.Post("/invitations", h.CreateInvitation)
 		r.Delete("/invitations/{id}", h.DeleteInvitation)
 		r.Post("/users/verify-email", h.AdminVerifyEmail)
