@@ -12,7 +12,10 @@ import (
 const Redacted = "***"
 
 // Masker replaces each secret, and its base64 and URL-encoded forms, with Redacted. The zero value and nil mask nothing.
-type Masker struct{ r *strings.Replacer }
+type Masker struct {
+	r       *strings.Replacer
+	secrets []string
+}
 
 func New(secrets []string) *Masker {
 	seen := map[string]bool{}
@@ -44,7 +47,18 @@ func New(secrets []string) *Masker {
 	for _, f := range forms {
 		pairs = append(pairs, f, Redacted)
 	}
-	return &Masker{r: strings.NewReplacer(pairs...)}
+	return &Masker{r: strings.NewReplacer(pairs...), secrets: slices.Clone(secrets)}
+}
+
+// Combine masks everything any of ms masks; nil entries add nothing.
+func Combine(ms ...*Masker) *Masker {
+	var all []string
+	for _, m := range ms {
+		if m != nil {
+			all = append(all, m.secrets...)
+		}
+	}
+	return New(all)
 }
 
 func (m *Masker) Mask(s string) string {

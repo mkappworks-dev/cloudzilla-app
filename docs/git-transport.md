@@ -294,7 +294,9 @@ and an Instance with `ci.enabled` off create none. Nothing runs a Job until a Ru
 
 A commit made in the browser reaches the same method through `AfterWebCommit`, with one create or update command built
 from the `RefUpdate` the commit returned, so it fires everything a push of that commit would. Pull mirrors and the
-seeder keep their own variants (no actor, so no events). PR merges and wiki commits don't call it yet.
+seeder keep their own variants (no actor, so no events). A pull request merge (UI, API or auto-merge) calls only
+`WorkflowRunService.OnPush` for the new base tip, so `on: push` workflows run for the merge result; it makes no other
+`AfterPush` call. Wiki commits don't call `AfterPush` yet.
 
 ---
 

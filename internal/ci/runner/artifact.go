@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/runnerapi"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/ci/workflow"
 )
 
 // uploadArtifacts archives each `artifacts:` path out of the Job's container and posts it. Every entry is tried, and
@@ -72,7 +73,12 @@ func (e *Executor) uploadArtifact(ctx context.Context, d docker, spec *runnerapi
 	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
-	return e.API.UploadArtifact(ctx, spec.JobID, spec.Token, a.Name, size, tmp)
+	// Without Secrets in scope: a name is shown in the UI.
+	name, err := workflow.Interpolate(a.Name, workflow.Context{GitHub: spec.GitHub, Matrix: spec.Matrix, Needs: spec.Needs, Status: "success"})
+	if err != nil {
+		return fmt.Errorf("name: %w", err)
+	}
+	return e.API.UploadArtifact(ctx, spec.JobID, spec.Token, name, size, tmp)
 }
 
 // zipTar rewrites the tar stream of `docker cp` as a zip. Only directories and regular files are kept: a symlink in an

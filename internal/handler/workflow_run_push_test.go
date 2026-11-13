@@ -134,3 +134,30 @@ func TestGitPush_WorkflowWithYAMLErrorCreatesFailedRun(t *testing.T) {
 		t.Errorf("statuses = %+v", statuses)
 	}
 }
+
+func TestMergePull_CreatesPushRunForTheNewBaseTip(t *testing.T) {
+	for _, strategy := range []string{"merge", "squash"} {
+		t.Run(strategy, func(t *testing.T) {
+			e := newCIPushEnv(t)
+			code := service.NewCodeService(config.GitConfig{ReposRoot: e.r.gitDir[:len(e.r.gitDir)-len(e.r.owner.name+"/"+e.r.name+".git")-1]})
+			if _, err := code.CommitFile(e.r.owner.name, e.r.name, "feature", ".cloudzilla/workflows/ci.yml", []byte(pushedWorkflow), raceAuthor, "add ci"); err != nil {
+				t.Fatalf("commit workflow: %v", err)
+			}
+			seedOpenPull(t, e.db, e.r.seededRepo)
+			before := e.pushs.Load()
+
+			rr := requestAPIBody(e.h, http.MethodPatch, "/api/repos"+e.r.path+"/pulls/1", e.r.owner.token,
+				`{"state":"merged","merge_strategy":"`+strategy+`"}`)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("merge: %d %s", rr.Code, rr.Body.String())
+			}
+			eventually(t, "the push run after the merge", func() bool { return e.pushs.Load() > before })
+
+			runs := e.runs(t)
+			tip := branchHash(t, e.r.git, "main")
+			if len(runs) != 1 || runs[0].Event != model.RunEventPush || runs[0].Ref != string(mainRef) || runs[0].SHA != tip.String() {
+				t.Fatalf("runs = %+v, want one push run on main at %s", runs, tip)
+			}
+		})
+	}
+}

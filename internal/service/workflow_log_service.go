@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/attachment"
@@ -62,6 +63,7 @@ type WorkflowLogService struct {
 	backend storage.Backend
 	cfg     config.CIConfig
 	secrets SecretSource
+	maskers sync.Map // job id -> maskEntry
 }
 
 func NewWorkflowLogService(logs *store.WorkflowLogStore, cfg config.CIConfig) *WorkflowLogService {
@@ -109,15 +111,37 @@ func (s *WorkflowLogService) truncationLine() string {
 	return fmt.Sprintf("[log truncated: this Job reached the %s limit (ci.max_log_bytes)]\n", humanBytes(s.cfg.MaxLogBytes))
 }
 
-func (s *WorkflowLogService) mask(ctx context.Context, repoID int64, data []byte) ([]byte, error) {
-	if s.secrets == nil {
+// maskerTTL bounds how long a Job's masker is reused; Jobs run for hours at most, and a stale entry only lingers.
+const maskerTTL = time.Hour
+
+type maskEntry struct {
+	m   *logmask.Masker
+	exp time.Time
+}
+
+// mask hides the Job's repo secrets in data. The masker is built once per Job: loading and decrypting every secret
+// for each chunk POST would repeat for the life of the Job.
+func (s *WorkflowLogService) mask(ctx context.Context, tok *JobToken, data []byte) ([]byte, error) {
+	if s.secrets == nil || tok.NoSecrets {
 		return data, nil
 	}
-	values, err := s.secrets.SecretValues(ctx, repoID)
+	now := time.Now()
+	if v, ok := s.maskers.Load(tok.JobID); ok && now.Before(v.(maskEntry).exp) {
+		return v.(maskEntry).m.MaskBytes(data), nil
+	}
+	values, err := s.secrets.SecretValues(ctx, tok.RepoID)
 	if err != nil {
 		return nil, fmt.Errorf("log masking: %w", err)
 	}
-	return logmask.New(values).MaskBytes(data), nil
+	s.maskers.Range(func(k, v any) bool {
+		if !now.Before(v.(maskEntry).exp) {
+			s.maskers.Delete(k)
+		}
+		return true
+	})
+	m := logmask.New(values)
+	s.maskers.Store(tok.JobID, maskEntry{m: m, exp: now.Add(maskerTTL)})
+	return m.MaskBytes(data), nil
 }
 
 // AppendLog stores data, whole lines of Step step (-1 for none), as chunk number seq of the Job. A seq already stored
@@ -130,7 +154,7 @@ func (s *WorkflowLogService) AppendLog(ctx context.Context, tok *JobToken, step,
 	if len(data) == 0 {
 		return false, nil
 	}
-	data, err := s.mask(ctx, tok.RepoID, data)
+	data, err := s.mask(ctx, tok, data)
 	if err != nil {
 		return false, err
 	}

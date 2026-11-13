@@ -175,6 +175,19 @@ func (s *WorkflowRunService) eligible(ctx context.Context, repo *model.Repositor
 	return fresh, on, err
 }
 
+// requireEligible gates the paths that start Jobs for an existing Run, which would otherwise hand out secrets in a
+// repository that may no longer run CI.
+func (s *WorkflowRunService) requireEligible(ctx context.Context, repo *model.Repository) error {
+	_, ok, err := s.eligible(ctx, repo)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrCIDisabled
+	}
+	return nil
+}
+
 func (s *WorkflowRunService) limits() workflow.Limits {
 	return workflow.Limits{MaxJobs: s.cfg.MaxJobsPerRun, MaxSteps: s.cfg.MaxStepsPerRun, MaxJobMinutes: s.cfg.MaxJobMinutes}
 }
@@ -407,6 +420,9 @@ func (s *WorkflowRunService) cancelAll(ctx context.Context, tx *store.WorkflowRu
 func (s *WorkflowRunService) Rerun(ctx context.Context, repo *model.Repository, number int, userID int64, failedOnly bool) error {
 	if !s.repoSvc.CanWrite(ctx, repo, userID) {
 		return ErrWorkflowForbidden
+	}
+	if err := s.requireEligible(ctx, repo); err != nil {
+		return err
 	}
 	return s.mutateRun(ctx, repo, number, func(tx *store.WorkflowRunTx, run *model.WorkflowRun) error {
 		if !run.Status.Finished() {

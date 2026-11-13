@@ -113,6 +113,9 @@ func (s *WorkflowRunService) Approve(ctx context.Context, repo *model.Repository
 	if !s.repoSvc.CanWrite(ctx, repo, userID) {
 		return ErrWorkflowForbidden
 	}
+	if err := s.requireEligible(ctx, repo); err != nil {
+		return err
+	}
 	return s.mutateRun(ctx, repo, number, func(tx *store.WorkflowRunTx, run *model.WorkflowRun) error {
 		ok, err := tx.ApproveRun(ctx, run.ID)
 		if err != nil {
@@ -222,12 +225,13 @@ func (s *WorkflowRunService) Run(ctx context.Context) {
 // ClaimJob leases the oldest queued Job whose runs-on labels the runner holds, and starts its Run. It returns nil
 // when nothing is claimable.
 func (s *WorkflowRunService) ClaimJob(ctx context.Context, labels []string, runnerID *int64) (*model.WorkflowJob, error) {
-	return s.ClaimJobFor(ctx, labels, runnerID, nil, "")
+	return s.ClaimJobFor(ctx, labels, runnerID, nil, "", nil)
 }
 
 // ClaimJobFor is ClaimJob limited to one repo's Jobs when repoID is not nil, and it stores tokenHash, the hash of the
-// per-job token, on the claimed Job in the same transaction.
-func (s *WorkflowRunService) ClaimJobFor(ctx context.Context, labels []string, runnerID, repoID *int64, tokenHash string) (*model.WorkflowJob, error) {
+// per-job token, on the claimed Job in the same transaction. A non-nil prepare runs before the commit, and its error
+// rolls the claim back, so a Job whose spec cannot be built stays queued instead of waiting out the lease.
+func (s *WorkflowRunService) ClaimJobFor(ctx context.Context, labels []string, runnerID, repoID *int64, tokenHash string, prepare func(*model.WorkflowJob) error) (*model.WorkflowJob, error) {
 	var claimed *model.WorkflowJob
 	err := s.runs.InTx(ctx, func(tx *store.WorkflowRunTx) error {
 		job, err := tx.ClaimQueuedJob(ctx, labels, runnerID, repoID, jobLease, s.cfg.MaxConcurrentRunsPerRepo)
@@ -251,9 +255,17 @@ func (s *WorkflowRunService) ClaimJobFor(ctx context.Context, labels []string, r
 			return err
 		}
 		claimed = job
+		if prepare != nil {
+			if err := prepare(job); err != nil {
+				return err
+			}
+		}
 		return s.advance(ctx, tx, run, repo)
 	})
-	return claimed, err
+	if err != nil {
+		return nil, err
+	}
+	return claimed, nil
 }
 
 // GetJob returns one Job by id.

@@ -26,6 +26,8 @@ const (
 
 	registrationTokenTTL = 7 * 24 * time.Hour
 	lostJobSweepEvery    = 15 * time.Second
+	// contactTouchEvery caps how often authenticating rewrites last_contact_at: a waiting claim authenticates every poll.
+	contactTouchEvery = 5 * time.Second
 )
 
 var (
@@ -42,6 +44,8 @@ type JobToken struct {
 	JobID  int64
 	RunID  int64
 	RepoID int64
+	// NoSecrets is set for a Run that never received secrets, so there is nothing to mask.
+	NoSecrets bool
 }
 
 // CIRunnerService owns runners, their tokens and the per-job token. Scheduling stays in WorkflowRunService.
@@ -143,8 +147,11 @@ func (s *CIRunnerService) Authenticate(ctx context.Context, raw string) (*model.
 	if r == nil || r.RevokedAt != nil {
 		return nil, ErrRunnerUnauthorized
 	}
-	if err := s.runners.TouchRunner(ctx, r.ID, time.Now()); err != nil {
-		return nil, err
+	now := time.Now()
+	if r.LastContactAt == nil || now.Sub(*r.LastContactAt) >= contactTouchEvery {
+		if err := s.runners.TouchRunner(ctx, r.ID, now); err != nil {
+			return nil, err
+		}
 	}
 	return r, nil
 }
@@ -186,11 +193,15 @@ func (s *CIRunnerService) Claim(ctx context.Context, runner *model.CIRunner, off
 	if err != nil {
 		return nil, err
 	}
-	job, err := s.runs.ClaimJobFor(ctx, labels, &runner.ID, runner.RepoID, hash)
+	var spec *runnerapi.JobSpec
+	job, err := s.runs.ClaimJobFor(ctx, labels, &runner.ID, runner.RepoID, hash, func(job *model.WorkflowJob) (err error) {
+		spec, err = s.jobSpec(ctx, job, raw)
+		return err
+	})
 	if err != nil || job == nil {
 		return nil, err
 	}
-	return s.jobSpec(ctx, job, raw)
+	return spec, nil
 }
 
 func (s *CIRunnerService) jobSpec(ctx context.Context, job *model.WorkflowJob, token string) (*runnerapi.JobSpec, error) {
@@ -293,7 +304,7 @@ func (s *CIRunnerService) VerifyJobToken(ctx context.Context, raw string) (*JobT
 	if err != nil {
 		return nil, err
 	}
-	return &JobToken{JobID: job.ID, RunID: run.ID, RepoID: run.RepoID}, nil
+	return &JobToken{JobID: job.ID, RunID: run.ID, RepoID: run.RepoID, NoSecrets: run.NoSecrets}, nil
 }
 
 // Run fails the Jobs of silent runners every few seconds until ctx ends.
