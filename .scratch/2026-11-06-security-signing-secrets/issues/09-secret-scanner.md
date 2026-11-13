@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: —
 Parallel with: none
 
@@ -30,14 +30,14 @@ Nothing in Cloudzilla can recognise a secret. Every later ticket (push protectio
 
 ## Acceptance criteria
 
-- [ ] Each pattern has a hit, a near-miss and a false-positive fixture in a table-driven test; `AKIAIOSFODNN7EXAMPLE` is found, `AKIA` + 15 characters is not
-- [ ] `Mask` never returns more than eight characters of the value; `Hash` differs across repo IDs and is stable across calls
-- [ ] A binary blob, an over-size blob and a 200-match blob behave as specified
-- [ ] No test or log line prints a `Value` (a test captures `slog` output for a scan of a file with a key)
+- [x] Each pattern has a hit, a near-miss and a false-positive fixture in a table-driven test; `AKIAIOSFODNN7EXAMPLE` is found, `AKIA` + 15 characters is not
+- [x] `Mask` never returns more than eight characters of the value; `Hash` differs across repo IDs and is stable across calls
+- [x] A binary blob, an over-size blob and a 200-match blob behave as specified
+- [x] No test or log line prints a `Value` (a test captures `slog` output for a scan of a file with a key)
 - [ ] ~~Checked at desktop 1440 in light and dark~~ (no UI in this ticket)
 - [ ] ~~The standing mocks in `mockups/` are updated~~ (no UI in this ticket)
 - [ ] ~~Verified on a throwaway server~~ (pure package; unit tests are the verification)
-- [ ] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+- [x] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
 
