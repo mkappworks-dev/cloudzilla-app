@@ -42,3 +42,10 @@ func TestMask_LongerSecretWinsOverItsPrefix(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestCombineMasksBothSets(t *testing.T) {
+	m := Combine(New([]string{"runner-token"}), nil, New([]string{"job-secret"}))
+	if got := m.Mask("a runner-token b job-secret"); got != "a *** b ***" {
+		t.Errorf("got %q", got)
+	}
+}

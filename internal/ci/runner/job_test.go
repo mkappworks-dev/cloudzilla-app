@@ -35,6 +35,10 @@ case "$1" in
     name=""; prev=""
     for a in "$@"; do [ "$prev" = "--" ] && name=$a; prev=$a; done
     case "$*" in *"kill -9 -1"*) : > "$STUB_DIR/removed-$name"; exit 0 ;; esac
+    case " $* " in *" -i "*) mkdir -p "$STUB_DIR/files"; for a in "$@"; do last=$a; done; cat > "$STUB_DIR/files/$(basename "$last")"; exit 0 ;; esac
+    content=""
+    for a in "$@"; do case "$a" in */.cz-step/*) [ -e "$STUB_DIR/files/$(basename "$a")" ] && content="$content $(cat "$STUB_DIR/files/$(basename "$a")")" ;; esac; done
+    set -- "$@" "$content"
     case "$*" in *STUBFAIL*) echo "boom" >&2; exit 3 ;; esac
     case "$*" in *STUBTAIL*) echo "first line"; while [ ! -e "$STUB_DIR/removed-$name" ]; do sleep 0.02; done; exit 137 ;; esac
     case "$*" in *STUBHANG*) while [ ! -e "$STUB_DIR/removed-$name" ]; do sleep 0.02; done; exit 137 ;; esac
@@ -177,10 +181,19 @@ var wantHardening = []string{
 	"--memory-swap=4g", "--pids-limit=512", "--network=cz-job-7", "--volume=cz-job-7:/workspace",
 }
 
+func stubFile(t *testing.T, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(os.Getenv("STUB_DIR"), "files", name))
+	if err != nil {
+		t.Fatalf("stub file %s: %v", name, err)
+	}
+	return string(b)
+}
+
 func execs(calls []call) []call {
 	var out []call
 	for _, c := range calls {
-		if c[0] == "exec" {
+		if c[0] == "exec" && !c.has("-i") {
 			out = append(out, c)
 		}
 	}
@@ -235,7 +248,7 @@ func TestExecute_EveryContainerCarriesTheHardeningFlags(t *testing.T) {
 			if a == "--" {
 				break
 			}
-			if !strings.HasPrefix(a, "--workdir=") && !strings.HasPrefix(a, "--env=") && a != "exec" {
+			if !strings.HasPrefix(a, "--workdir=") && a != "exec" {
 				t.Errorf("exec carries an unexpected flag %q", a)
 			}
 		}
@@ -248,17 +261,22 @@ func TestExecute_EveryContainerCarriesTheHardeningFlags(t *testing.T) {
 	if len(ex) != 2 {
 		t.Fatalf("execs = %d, want one per step: %v", len(ex), ex)
 	}
-	wantFirst := []string{"exec", "--workdir=/workspace/src",
-		"--env=CI=true", "--env=CLOUDZILLA_ACTIONS=true", "--env=GITHUB_ACTOR=u", "--env=GITHUB_EVENT_NAME=push", "--env=GITHUB_REF=refs/heads/main",
-		"--env=GITHUB_REF_NAME=main", "--env=GITHUB_REPOSITORY=o/r", "--env=GITHUB_RUN_NUMBER=1", "--env=GITHUB_SHA=abc",
-		"--env=GITHUB_WORKSPACE=/workspace/src", "--env=GOFLAGS=-mod=mod", "--env=HOME=/workspace/home",
-		"--", "cz-job-7", "sh", "-e", "-c", "go build ./..."}
+	wantFirst := []string{"exec", "--workdir=/workspace/src", "--", "cz-job-7", "sh", "-c", stepWrapper, "sh",
+		"/workspace/home/.cz-step/0.env", "/workspace/home/.cz-step/0.sh", "sh", "-e"}
 	if !slices.Equal(ex[0], wantFirst) {
 		t.Errorf("step 0 args =\n%q\nwant\n%q", ex[0], wantFirst)
 	}
+	if got := stubFile(t, "0.sh"); got != "go build ./..." {
+		t.Errorf("step 0 script = %q", got)
+	}
+	for _, want := range []string{"export CI='true'\n", "export GITHUB_SHA='abc'\n", "export GOFLAGS='-mod=mod'\n", "export HOME='/workspace/home'\n"} {
+		if !strings.Contains(stubFile(t, "0.env"), want) {
+			t.Errorf("step 0 env file lacks %q: %q", want, stubFile(t, "0.env"))
+		}
+	}
 	second := ex[1]
-	if !second.has("--workdir=/workspace/src/sub/dir") || !second.has("bash") || !second.has("--env=A=1") || !second.has("--env=B=2") ||
-		second[len(second)-1] != "echo abc" {
+	if !second.has("--workdir=/workspace/src/sub/dir") || !second.has("bash") || stubFile(t, "1.sh") != "echo abc" ||
+		!strings.Contains(stubFile(t, "1.env"), "export A='1'\n") || !strings.Contains(stubFile(t, "1.env"), "export B='2'\n") {
 		t.Errorf("step 1 args = %q", second)
 	}
 	if !slices.Equal(api.steps, []string{"0:running", "0:success", "1:running", "1:success"}) {
@@ -388,7 +406,7 @@ func TestExecute_JobCancelledByTheServerStopsTheContainerAndReportsNothing(t *te
 	calls := stubDocker(t)
 	api := &fakeAPI{}
 	api.heartbeat = func() (bool, error) {
-		return !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" }), nil
+		return !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" && !c.has("-i") }), nil
 	}
 
 	done := make(chan struct{})
@@ -440,7 +458,7 @@ func TestExecute_StoppingTheRunnerKillsTheContainerAndReportsCancelled(t *testin
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
-		for !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" }) {
+		for !slices.ContainsFunc(calls(), func(c call) bool { return c[0] == "exec" && !c.has("-i") }) {
 			time.Sleep(10 * time.Millisecond)
 		}
 		cancel()
@@ -581,7 +599,7 @@ func TestExecute_OutputIsPostedPerStepInOrderWithSecretsMasked(t *testing.T) {
 }
 
 func TestExecute_JobSecretsReachStepEnvAndAreMasked(t *testing.T) {
-	calls := stubDocker(t)
+	stubDocker(t)
 	api := &fakeAPI{}
 	e := newExecutor(api)
 	spec := jobSpec(runnerapi.StepSpec{Run: "one", Env: map[string]string{"TOKEN": "${{ secrets.TOKEN }}"}})
@@ -591,8 +609,32 @@ func TestExecute_JobSecretsReachStepEnvAndAreMasked(t *testing.T) {
 	if got := api.postedText(0); got != "ran in ***\n" {
 		t.Errorf("log = %q: the Job's own secret was not masked", got)
 	}
-	if !slices.ContainsFunc(execs(calls()), func(c call) bool { return slices.Contains(c, "--env=TOKEN=cz-job-7") }) {
-		t.Errorf("secret not in the step env: %v", execs(calls()))
+	if !strings.Contains(stubFile(t, "0.env"), "export TOKEN='cz-job-7'\n") {
+		t.Errorf("secret not in the step env file: %q", stubFile(t, "0.env"))
+	}
+}
+
+func TestExecute_NoSecretValueReachesDockerArgv(t *testing.T) {
+	calls := stubDocker(t)
+	e := newExecutor(&fakeAPI{})
+	const secret, multi = "hunter2-value", "line1\nit's line2"
+	spec := jobSpec(runnerapi.StepSpec{Run: "echo ${{ secrets.TOKEN }}", Env: map[string]string{"TOKEN": "${{ secrets.TOKEN }}", "PEM": "${{ secrets.PEM }}"}})
+	spec.Secrets = map[string]string{"TOKEN": secret, "PEM": multi}
+	e.Execute(context.Background(), spec)
+
+	for _, c := range calls() {
+		for _, a := range c {
+			if strings.Contains(a, secret) || strings.Contains(a, "line2") {
+				t.Errorf("secret value in docker %s argv: %q", c[0], c)
+			}
+		}
+	}
+	if env := stubFile(t, "0.env"); !strings.Contains(env, "export TOKEN='"+secret+"'\n") || !strings.Contains(env, `export PEM='line1
+it'\''s line2'`) {
+		t.Errorf("env file = %q", env)
+	}
+	if got := stubFile(t, "0.sh"); got != "echo "+secret {
+		t.Errorf("script = %q", got)
 	}
 }
 
@@ -715,5 +757,47 @@ func TestExecute_AFailedArtifactFailsTheJobAndNamesIt(t *testing.T) {
 				t.Errorf("result = %q %q, want failure containing %q", api.result, api.message, tc.wantMsg)
 			}
 		})
+	}
+}
+
+func TestExecute_ConfiguredMaskerStillAppliesWhenTheJobHasSecrets(t *testing.T) {
+	stubDocker(t)
+	api := &fakeAPI{}
+	e := newExecutor(api)
+	e.Masker = logmask.New([]string{"cz-job-7"})
+	spec := jobSpec(runnerapi.StepSpec{Run: "one"})
+	spec.Secrets = map[string]string{"UNRELATED": "other-secret"}
+	e.Execute(context.Background(), spec)
+
+	if got := api.postedText(0); got != "ran in ***\n" {
+		t.Errorf("log = %q: the runner's own mask values were dropped", got)
+	}
+}
+
+func TestExecute_FirstFailureSurvivesALaterBadCondition(t *testing.T) {
+	stubDocker(t)
+	api := &fakeAPI{}
+	newExecutor(api).Execute(context.Background(), jobSpec(
+		runnerapi.StepSpec{Name: "build", Run: "STUBFAIL"},
+		runnerapi.StepSpec{Name: "later", Run: "x", If: "1 +"},
+	))
+	if api.result != "failure" || !strings.Contains(api.message, "step 1 (build)") {
+		t.Errorf("result = %q %q, want the first step's failure", api.result, api.message)
+	}
+}
+
+func TestExecute_ArtifactNameInterpolatesTheMatrix(t *testing.T) {
+	stubDocker(t)
+	if err := os.WriteFile(filepath.Join(os.Getenv("STUB_DIR"), "artifact.tar"), artifactTar(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	api := &fakeAPI{}
+	spec := jobSpec(runnerapi.StepSpec{Run: "make"})
+	spec.Matrix = map[string]string{"arch": "arm64"}
+	spec.Artifacts = []runnerapi.ArtifactSpec{{Name: "dist-${{ matrix.arch }}", Path: "./dist"}}
+	newExecutor(api).Execute(context.Background(), spec)
+
+	if _, ok := api.artifacts["dist-arm64"]; !ok || api.result != "success" {
+		t.Errorf("artifacts = %v, result %q %q", api.artifacts, api.result, api.message)
 	}
 }

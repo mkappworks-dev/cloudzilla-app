@@ -54,8 +54,6 @@ const idleSeconds = "2147483647"
 
 var envKeyRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-// Execute runs one Job to its end and reports the result. A Job the server cancelled mid-run is torn down without a
-// result, since the server already ended it.
 func (e *Executor) minutes(n int) time.Duration {
 	if e.Minute == 0 {
 		return time.Duration(n) * time.Minute
@@ -63,6 +61,8 @@ func (e *Executor) minutes(n int) time.Duration {
 	return time.Duration(n) * e.Minute
 }
 
+// Execute runs one Job to its end and reports the result. A Job the server cancelled mid-run is torn down without a
+// result, since the server already ended it.
 func (e *Executor) Execute(ctx context.Context, spec *runnerapi.JobSpec) {
 	jobCtx, cancel := context.WithTimeout(ctx, e.minutes(spec.TimeoutMinutes))
 	defer cancel()
@@ -158,7 +158,7 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 	// The log outlives ctx: output of a cancelled or timed-out Job is still worth posting while its token lives.
 	masker := e.Masker
 	if len(spec.Secrets) > 0 {
-		masker = logmask.New(slices.Collect(maps.Values(spec.Secrets)))
+		masker = logmask.Combine(e.Masker, logmask.New(slices.Collect(maps.Values(spec.Secrets))))
 	}
 	logs := newLogStream(context.WithoutCancel(ctx), e.API, spec.JobID, spec.Token, masker, e.FlushEvery)
 	defer logs.Close()
@@ -171,7 +171,9 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 		skip, err := e.skipStep(spec, st, failed != "")
 		if err != nil {
 			e.setStep(ctx, spec, st.Position, "failure")
-			failed = fmt.Sprintf("step %d (%s): %v", st.Position+1, st.Name, err)
+			if failed == "" {
+				failed = fmt.Sprintf("step %d (%s): %v", st.Position+1, st.Name, err)
+			}
 			continue
 		}
 		if skip {
@@ -273,7 +275,7 @@ func (e *Executor) exprContext(spec *runnerapi.JobSpec, st runnerapi.StepSpec, s
 
 // stepEnv is the environment of a Step: the builtins, then the Job's env, then the Step's. The per-job token is not
 // part of it, so workflow code never sees it.
-func (e *Executor) stepEnv(spec *runnerapi.JobSpec, st runnerapi.StepSpec) ([]string, error) {
+func (e *Executor) stepEnv(spec *runnerapi.JobSpec, st runnerapi.StepSpec) (map[string]string, error) {
 	ctx := e.exprContext(spec, st, "success")
 	env := map[string]string{
 		"CI": "true", "CLOUDZILLA_ACTIONS": "true", "GITHUB_WORKSPACE": checkoutDir, "HOME": homeDir,
@@ -293,21 +295,26 @@ func (e *Executor) stepEnv(spec *runnerapi.JobSpec, st runnerapi.StepSpec) ([]st
 			env[k] = out
 		}
 	}
-	args := make([]string, 0, 2*len(env))
-	for _, k := range slices.Sorted(maps.Keys(env)) {
-		args = append(args, "--env="+k+"="+env[k])
-	}
-	return args, nil
+	return env, nil
 }
 
-// shellCommand is the entrypoint and arguments that run script. The script is one argv element, so it is never
-// parsed by anything but the shell inside the container.
-func shellCommand(shell, script string) (entrypoint string, args []string, err error) {
+// envFile renders env as `export` lines for the shell to source. Single quotes keep every byte literal, newlines
+// included.
+func envFile(env map[string]string) string {
+	var b strings.Builder
+	for _, k := range slices.Sorted(maps.Keys(env)) {
+		b.WriteString("export " + k + "='" + strings.ReplaceAll(env[k], "'", `'\''`) + "'\n")
+	}
+	return b.String()
+}
+
+// shellCommand is the interpreter and its flags for running a script file.
+func shellCommand(shell string) (entrypoint string, args []string, err error) {
 	switch shell {
 	case "", "sh":
-		return "sh", []string{"-e", "-c", script}, nil
+		return "sh", []string{"-e"}, nil
 	case "bash":
-		return "bash", []string{"--noprofile", "--norc", "-eo", "pipefail", "-c", script}, nil
+		return "bash", []string{"--noprofile", "--norc", "-eo", "pipefail"}, nil
 	}
 	return "", nil, fmt.Errorf("unsupported shell %q", shell)
 }
@@ -324,14 +331,27 @@ func workdir(rel string) (string, error) {
 	return path.Join(checkoutDir, clean), nil
 }
 
-// stepArgs is the full `docker exec` argument list for one Step. exec inherits the container's user, limits,
-// network and volume, so it takes no flag that could loosen them.
-func (e *Executor) stepArgs(spec *runnerapi.JobSpec, st runnerapi.StepSpec, container string) ([]string, error) {
+// stepDir holds a Step's env file and script inside the container. They travel over stdin and the volume rather than
+// argv, which any local user of the runner host can read from ps while the Step runs.
+const stepDir = homeDir + "/.cz-step"
+
+// stepRun is one Step ready to exec: the files to put in the container and the `docker exec` argument list. exec
+// inherits the container's user, limits, network and volume, so it takes no flag that could loosen them.
+type stepRun struct {
+	envPath, envBody       string
+	scriptPath, scriptBody string
+	args                   []string
+}
+
+// stepWrapper sources and removes the env file, runs the interpreter on the script and removes the script.
+const stepWrapper = `env=$1; scr=$2; shift 2; . "$env"; rm -f "$env"; "$@" "$scr"; rc=$?; rm -f "$scr"; exit $rc`
+
+func (e *Executor) stepRun(spec *runnerapi.JobSpec, st runnerapi.StepSpec, container string) (*stepRun, error) {
 	script, err := workflow.Interpolate(st.Run, e.exprContext(spec, st, "success"))
 	if err != nil {
 		return nil, err
 	}
-	envArgs, err := e.stepEnv(spec, st)
+	env, err := e.stepEnv(spec, st)
 	if err != nil {
 		return nil, err
 	}
@@ -339,21 +359,35 @@ func (e *Executor) stepArgs(spec *runnerapi.JobSpec, st runnerapi.StepSpec, cont
 	if err != nil {
 		return nil, err
 	}
-	entry, shellArgs, err := shellCommand(st.Shell, script)
+	entry, shellArgs, err := shellCommand(st.Shell)
 	if err != nil {
 		return nil, err
 	}
-	args := []string{"exec", "--workdir=" + wd}
-	args = append(args, envArgs...)
-	args = append(args, "--", container, entry)
-	return append(args, shellArgs...), nil
+	r := &stepRun{
+		envPath: fmt.Sprintf("%s/%d.env", stepDir, st.Position), envBody: envFile(env),
+		scriptPath: fmt.Sprintf("%s/%d.sh", stepDir, st.Position), scriptBody: script,
+	}
+	r.args = append([]string{"exec", "--workdir=" + wd, "--", container, "sh", "-c", stepWrapper, "sh", r.envPath, r.scriptPath, entry}, shellArgs...)
+	return r, nil
+}
+
+// put writes body to path inside the container, readable by the Job's user only.
+func (d docker) put(ctx context.Context, container, path, body string) error {
+	return d.run(ctx, strings.NewReader(body), "exec", "-i", "--", container, "sh", "-c", `umask 077; mkdir -p "${1%/*}" && cat > "$1"`, "sh", path)
 }
 
 func (e *Executor) runStep(ctx context.Context, d docker, spec *runnerapi.JobSpec, st runnerapi.StepSpec, container string, out io.Writer) error {
-	args, err := e.stepArgs(spec, st, container)
+	run, err := e.stepRun(spec, st, container)
 	if err != nil {
 		return err
 	}
+	if err := d.put(ctx, container, run.envPath, run.envBody); err != nil {
+		return err
+	}
+	if err := d.put(ctx, container, run.scriptPath, run.scriptBody); err != nil {
+		return err
+	}
+	args := run.args
 	stepCtx := ctx
 	if st.TimeoutMinutes > 0 {
 		var cancel context.CancelFunc
