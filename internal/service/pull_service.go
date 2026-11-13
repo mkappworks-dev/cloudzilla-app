@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -29,6 +30,30 @@ type PullService struct {
 	issues        *store.IssueStore
 	protections   *store.BranchProtectionStore
 	threads       threadAutoSubscriber
+	runs          pullRunStarter
+}
+
+// pullRunStarter creates workflow Runs for a pull request event.
+type pullRunStarter interface {
+	OnPullRequest(ctx context.Context, base, head *model.Repository, pr *model.PullRequest, action string, userID int64)
+}
+
+func (s *PullService) WithRuns(r pullRunStarter) *PullService {
+	s.runs = r
+	return s
+}
+
+// startRuns creates the pull request's workflow Runs in the background. A same-repo pull request is the only kind
+// PullService creates.
+func (s *PullService) startRuns(repo *model.Repository, pr model.PullRequest, action string, userID int64) {
+	if s.runs == nil {
+		return
+	}
+	concurrency.Go("workflow_run.pull_request", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), afterPushTimeout)
+		defer cancel()
+		s.runs.OnPullRequest(ctx, repo, nil, &pr, action, userID)
+	})
 }
 
 // NewPullService creates a PullService backed by the given stores.
@@ -274,6 +299,7 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 			slog.Warn("pr create: resolve head ref failed", "pull_id", pr.ID, "head", head, "error", resolveErr)
 		}
 	}
+	s.startRuns(repo, *pr, "opened", authorID)
 	return pr, nil
 }
 
@@ -363,8 +389,14 @@ func (s *PullService) SetState(ctx context.Context, owner, repoName string, numb
 	if pr.State == model.PRStateMerged {
 		return nil, fmt.Errorf("merged PRs cannot be updated")
 	}
+	reopened := pr.State == model.PRStateClosed && state == model.PRStateOpen
 	if err := s.pulls.UpdateState(ctx, pr.ID, state); err != nil {
 		return nil, err
+	}
+	if reopened {
+		if repo, err := s.repos.GetByID(ctx, pr.RepoID); err == nil {
+			s.startRuns(repo, *pr, "reopened", pr.AuthorID)
+		}
 	}
 	// Re-fetch so merged_at/closed_at and updated_at reflect DB values
 	return s.Get(ctx, owner, repoName, number)

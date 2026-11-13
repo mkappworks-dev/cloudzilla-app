@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 Parallel with: 01
 
@@ -51,26 +51,43 @@ Runs and Jobs to claim, and the UI needs rows to list.
 
 ## Acceptance criteria
 
-- [ ] A native `git push` of a commit with a valid workflow creates a Run with its Jobs and `ci/<job>` pending
+- [x] A native `git push` of a commit with a valid workflow creates a Run with its Jobs and `ci/<job>` pending
       statuses; a delete-only push creates none; a workflow with a YAML error creates a failed Run and one failing
       status
-- [ ] A matrix expands to the expected Jobs; a Job with unmet `needs` stays blocked and moves `queued` when they finish
+- [x] A matrix expands to the expected Jobs; a Job with unmet `needs` stays blocked and moves `queued` when they finish
       (driven by service calls in the test)
-- [ ] A required status check `ci/test` blocks the PR merge until the Job succeeds, and a failing workflow status
+- [x] A required status check `ci/test` blocks the PR merge until the Job succeeds, and a failing workflow status
       blocks it too
-- [ ] A fork PR creates a `waiting` Run; Approve queues it; a second push creates a second waiting Run; a reader's
+- [x] A fork PR creates a `waiting` Run; Approve queues it; a second push creates a second waiting Run; a reader's
       Approve is refused
-- [ ] Cancel and re-run (all, failed only) behave per the spec and keep the old attempt's rows
-- [ ] `cancel-in-progress` and the queued-run cap cancel the right Runs; the 24 h sweep cancels an unclaimed Job
-- [ ] A repo with CI switched off, an archived repo and a soft-deleted repo create no Runs
+- [x] Cancel and re-run (all, failed only) behave per the spec and keep the old attempt's rows
+- [x] `cancel-in-progress` and the queued-run cap cancel the right Runs; the 24 h sweep cancels an unclaimed Job
+- [x] A repo with CI switched off, an archived repo and a soft-deleted repo create no Runs
 - [ ] ~~Light and dark checks at 1440~~ (no UI; the UI is ticket 06)
 - [ ] ~~Standing mocks in `mockups/` updated~~ (no UI)
-- [ ] Verified on a throwaway server: scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` /
+- [x] Verified on a throwaway server: scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` /
       `cloudzilla-seed`; a native `git push` over HTTP and SSH creates the Run (read from the database), evidence in
       the PR
-- [ ] `make lint` and `go test ./...` pass (router-seam tests use the push client)
+- [x] `make lint` and `go test ./...` pass (router-seam tests use the push client)
 
 ## Verification
 
 Throwaway server per `docs/testing.md`; push `.cloudzilla/workflows/ci.yml` with native git, then `psql` the run, job
 and status rows. Repeat from a fork repo for the `waiting` state.
+
+## Comments
+
+- Claude, 2026-11-13: done, migration 136. Evidence of the throwaway-server run (HTTP, SSH, deploy key, YAML error,
+  delete-only push) is in `/private/tmp/claude-501/ci-ticket-03-evidence.md`; copy it into the PR.
+  - A fork Run could not be shown on the server: `pull_requests` has no head repository, so the app cannot open a
+    cross-repo pull request yet. `WorkflowRunService.OnPullRequest(base, head, ...)` takes the head repository
+    explicitly, and `TestWorkflowRun_ForkPullRequestWaitsForApproval` covers the `waiting` / approve / second-push /
+    reader-refused flow against the real database. Whatever adds cross-repo pull requests must call it with the fork.
+  - Commit statuses keep the four existing states: queued, waiting and running are `pending`, skipped is `success`
+    and cancelled is `error`, with the detail in the description. Widening the state check for the UI icons is ticket
+    06's call.
+  - `strategy.fail-fast` is parsed but not acted on yet (the runner ticket decides what cancelling a sibling mid-run
+    means). Two workflows that use the same job id on one SHA share a `ci/<job id>` status.
+  - For ticket 04: call `WorkflowRunService.ClaimJob(ctx, labels, runnerID)` and `FinishJob(ctx, jobID, result,
+    message)`; the scheduler, statuses and Run status follow from them. `workflow_jobs.runner_id` has no foreign key
+    until the runners table exists.

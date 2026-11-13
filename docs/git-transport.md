@@ -277,8 +277,17 @@ Pattern set, alert model, allow semantics and the accepted costs are in [secret-
 Both transports hand the refs that applied to `PushService.AfterPush(repo, gitRepo, actor, commands, scan)`, which
 starts each of these in the background: the `push` webhook per updated branch, a push activity event, closing keywords
 in commits that fast-forward the default branch, `OnPostReceive` (contributor stats, open PRs' head SHA, primary
-language), the code-search re-index and the dependency parse. An actor with no `Username` (a deploy key) records no
-activity and closes no issues.
+language), the code-search re-index, the dependency parse and workflow Runs. An actor with no `Username` (a deploy key)
+records no activity and closes no issues.
+
+`WorkflowRunService.OnPush` creates the Runs: for each branch or tag the push created or moved (a delete creates none)
+it reads `.cloudzilla/workflows/` at the new commit, parses each file, keeps the workflows whose `on.push` filters match
+the ref, and writes the Run, its Jobs and Steps and one `ci/<job id>` pending commit status per Job in one transaction.
+The same push also makes a `pull_request` Run for each open pull request whose head branch moved. A file that does not
+parse makes a failed Run with no Jobs and one failing `ci/<file name>` status. A deploy-key push has no user, so its
+statuses are attributed to the repository owner. A repository with CI switched off, an archived one, a soft-deleted one
+and an Instance with `ci.enabled` off create none. Nothing runs a Job until a Runner claims it, so the Jobs stay
+`queued`.
 
 A commit made in the browser reaches the same method through `AfterWebCommit`, with one create or update command built
 from the `RefUpdate` the commit returned, so it fires everything a push of that commit would. Pull mirrors and the
