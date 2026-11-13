@@ -471,7 +471,7 @@ func TestPushProtection_DeadCloudzillaToken_Passes(t *testing.T) {
 	if got := refs[topicRef]; got != "ok" {
 		t.Fatalf("status = %q, want ok", got)
 	}
-	time.Sleep(100 * time.Millisecond)
+	e.waitPostReceive(t, 1)
 	if n := len(e.alerts(t)); n != 0 {
 		t.Errorf("%d alerts for a token no stored hash matches", n)
 	}

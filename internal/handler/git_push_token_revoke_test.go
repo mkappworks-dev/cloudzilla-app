@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/go-git/go-git/v5/plumbing"
 
@@ -89,7 +88,7 @@ func TestPushProtection_UnknownToken_NoAlert(t *testing.T) {
 	if got := refs[topicRef]; got != "ok" {
 		t.Fatalf("status = %q, want ok", got)
 	}
-	time.Sleep(100 * time.Millisecond)
+	e.waitPostReceive(t, 1)
 	if n := len(e.alerts(t)); n != 0 {
 		t.Errorf("%d alerts, want 0", n)
 	}
@@ -108,7 +107,7 @@ func TestPushProtection_ExpiredToken_ClosedAlertNoRevoke(t *testing.T) {
 	if got := refs[topicRef]; got != "ok" {
 		t.Fatalf("status = %q, want ok", got)
 	}
-	eventually(t, "the closed alert", func() bool { return len(e.alerts(t)) == 1 })
+	e.waitPostReceive(t, 1)
 	a := onlyAlert(t, e)
 	if a.State != model.SecretAlertClosed || a.AutoRevoked || a.Resolution != model.SecretResolutionRevoked {
 		t.Errorf("alert = %+v, want closed revoked, not auto_revoked", a)

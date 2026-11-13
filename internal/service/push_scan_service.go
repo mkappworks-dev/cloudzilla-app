@@ -167,6 +167,8 @@ type PushScan struct {
 
 	incomplete bool
 	reason     string
+	// unfinished holds the applied commits the push-time scan stopped before reaching; only their findings are flagged.
+	unfinished map[plumbing.Hash]bool
 	deadline   time.Time
 	// budgeted is false for the scan after the push, which only the context bounds.
 	budgeted bool
@@ -601,6 +603,10 @@ func (p *PushScan) PostReceive(ctx context.Context, commands []*packp.Command) {
 		return
 	}
 	p.budgeted = false
+	p.unfinished = make(map[plumbing.Hash]bool)
+	for _, c := range applied {
+		p.unfinished[c.Hash] = p.incomplete && !p.scanned[c.Hash]
+	}
 	p.scanCommits(ctx, applied)
 
 	repoID := p.repo.ID
@@ -663,7 +669,7 @@ func (p *PushScan) recordAfterPush(ctx context.Context, c *object.Commit, f path
 		return true
 	}
 	alert, created, err := p.svc.alerts.Record(ctx, p.repo.ID, f.Finding, model.SecretSighting{
-		CommitSHA: c.Hash.String(), FilePath: f.Path, Ref: ref, ActorID: p.pusherID, Incomplete: p.incomplete,
+		CommitSHA: c.Hash.String(), FilePath: f.Path, Ref: ref, ActorID: p.pusherID, Incomplete: p.unfinished[c.Hash],
 	}, model.SecretEventFound)
 	if err != nil {
 		slog.Error("secret-scan: record alert", "repo_id", p.repo.ID, "error", err)
@@ -677,7 +683,7 @@ func (p *PushScan) recordAfterPush(ctx context.Context, c *object.Commit, f path
 
 // revokeAfterPush settles one czp_ finding of an applied commit; it reports false when the database fails.
 func (p *PushScan) revokeAfterPush(ctx context.Context, r TokenOutcomeResolver, c *object.Commit, f pathFinding, ref string) bool {
-	sg := model.SecretSighting{CommitSHA: c.Hash.String(), FilePath: f.Path, Ref: ref, ActorID: p.pusherID, Incomplete: p.incomplete}
+	sg := model.SecretSighting{CommitSHA: c.Hash.String(), FilePath: f.Path, Ref: ref, ActorID: p.pusherID, Incomplete: p.unfinished[c.Hash]}
 	out, err := p.settleToken(ctx, r, f, sg, model.SecretEventFound)
 	if err != nil {
 		slog.Error("secret-scan: settle token", "repo_id", p.repo.ID, "error", err)
