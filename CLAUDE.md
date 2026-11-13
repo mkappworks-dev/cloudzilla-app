@@ -93,6 +93,8 @@ Read the matching doc before working in an area:
   guard, sealed tokens, `mirror.*` config
 - [storage](./docs/storage.md) — local/S3 `Backend`, object layout and backup, avatar processing and `/avatars/*`
   serving, `components.Avatar`'s context lookup
+- [repo-rename](./docs/repo-rename.md) — who may rename, `repo_aliases` rules, redirect table, crash recovery, stable
+  `repository.id`
 - [organizations](./docs/organizations.md) — `OrgService`; `/{owner}` resolves user first, then org
 - [webhooks](./docs/webhooks.md) — events, HMAC signing, fire-and-forget `Dispatch`
 - [notifications](./docs/notifications.md) — types; skipped when `actorID == authorID`

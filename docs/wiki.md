@@ -28,6 +28,14 @@ The wiki can be turned off per repository with the **Wiki** feature toggle in re
 (`repositories.allow_wiki`, migration 058). A disabled wiki answers 404 on every route above. It also answers 404 when a
 repository named `<repo>.wiki`, created before that suffix was reserved, holds the directory.
 
+## Rename and transfer
+
+A [rename or transfer](./repo-rename.md) moves `<repo>.wiki.git` together with `<repo>.git`, so the pages, their history
+and `.order` follow the repository. An old wiki URL redirects with the rest of the old path (`301` for a `GET`, `308`
+for the `POST` and `DELETE` API calls, query and slug kept). A repo with no wiki directory yet is renamed without one.
+If the new path already holds a wiki directory, or a `<new>.wiki` repo holds it as its git dir, the rename is refused
+with `409`, so a repo never picks up another's wiki.
+
 ## Storage and conflicts
 
 The wiki's disk use counts toward the owner's storage [quota](./configuration.md#quotas); a save at or over it returns
