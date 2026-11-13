@@ -801,3 +801,22 @@ func TestExecute_ArtifactNameInterpolatesTheMatrix(t *testing.T) {
 		t.Errorf("artifacts = %v, result %q %q", api.artifacts, api.result, api.message)
 	}
 }
+
+func TestLogStream_AMultiLineSecretSplitAcrossChunksIsMasked(t *testing.T) {
+	api := &fakeAPI{}
+	ls := newLogStream(context.Background(), api, 1, "czj_secret", logmask.New([]string{"first-line-secret\nsecond-line-secret"}), time.Hour)
+	w := ls.Writer(0)
+	_, _ = w.Write([]byte("first-line-secret\n"))
+	ls.mu.Lock()
+	ls.flush(false)
+	ls.mu.Unlock()
+	_, _ = w.Write([]byte("second-line-secret\n"))
+	ls.Close()
+	var all string
+	for _, l := range api.logs {
+		all += l.text
+	}
+	if len(api.logs) != 2 || strings.Contains(all, "line-secret") {
+		t.Errorf("posts = %+v", api.logs)
+	}
+}

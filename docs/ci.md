@@ -223,7 +223,9 @@ saving one is refused while the key is not set.
 
 A Job reads a secret as `${{ secrets.NAME }}`, resolved on the runner: the server sends the values with the claim, only
 for the Job's repository and never for a fork Run. The runner and then the server mask a value in the log (the exact
-text, its base64 form and its URL-encoded form). A secret that contains a newline is not masked across the break.
+text, its base64 form and its URL-encoded form). A secret that contains a newline is also masked line by line (each line, with its base64 and URL-encoded forms), so a
+log chunk that ends mid-secret cannot reveal a line; lines shorter than 4 characters are not masked on their own, as
+they would redact ordinary output.
 
 **A writer can read a secret.** Anyone who can push a branch or open a pull request from a branch of the same repository
 runs a workflow of their own with the repository's secrets, so they can print one in a form the masker does not know
@@ -360,7 +362,6 @@ the [API reference](./api-reference.md#workflow-runs), and the `repo` and `repo:
 - **A `kill -9` of a runner leaves `cz-job-*` containers, volumes and networks behind.** `SIGINT` and `SIGTERM` clean
   up; remove the rest by hand (see [Operator hardening](#operator-hardening)).
 - **`strategy.fail-fast` is parsed but not acted on.** Matrix siblings keep running after one fails.
-- **A secret containing a newline is not masked across the break**, because logs are masked a line at a time.
 - **`/admin/runners` is reachable, and its tab shown, when `ci.enabled` is off.** The page says CI is off; the runner
   API is absent.
 - **A matrix expression in an `artifacts:` name is not interpolated** (`dist-${{ matrix.arch }}` is kept as written).
