@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 11, 12, 13
 Parallel with: 15, 16
 
@@ -30,14 +30,14 @@ Kiyo commits their personal access token in `scripts/smoke.sh`. The server store
 
 ## Acceptance criteria
 
-- [ ] A pushed live `czp_` token is deleted, its owner gets a notification and mail, the audit entry exists, and the next API request with it is 401
-- [ ] A well-formed but unknown or already-deleted `czp_` token produces no alert; an expired one produces a closed `revoked` alert and no revoke
-- [ ] A live token in a push by a different user revokes the owner's token and the pusher sees the revoked text; the alert has no Allow action
-- [ ] The same token seen again later (same hash) appends a location to the closed alert and does nothing else
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] A pushed live `czp_` token is deleted, its owner gets a notification and mail, the audit entry exists, and the next API request with it is 401
+- [x] A well-formed but unknown or already-deleted `czp_` token produces no alert; an expired one produces a closed `revoked` alert and no revoke
+- [x] A live token in a push by a different user revokes the owner's token and the pusher sees the revoked text; the alert has no Allow action
+- [x] The same token seen again later (same hash) appends a location to the closed alert and does nothing else
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
 - [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
-- [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
-- [ ] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+- [x] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
+- [x] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
 
