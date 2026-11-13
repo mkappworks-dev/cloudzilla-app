@@ -339,8 +339,6 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("secret_scanning.max_blob_bytes", 1<<20)
 	v.SetDefault("secret_scanning.push_timeout", "10s")
 	v.SetDefault("secret_scanning.max_blobs", 5000)
-	v.SetDefault("secret_scanning.backfill_timeout", "5m")
-	v.SetDefault("secret_scanning.backfill_max_blobs", 200000)
 	v.SetDefault("release.max_asset_bytes", int64(512<<20))
 	v.SetDefault("release.max_assets", 20)
 	v.SetDefault("metrics.listen_addr", "")
