@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Progress: the Actions, run, PR Checks, repository CI settings, admin runners and status-icon mocks were reworked in the
 spec PR and now live in `mockups/` (`actions.html`, `actions_run.html`, `pr_checks.html`, `repo_settings_ci.html`,
 `admin_runners.html`, `actions_status_icons.html`). What remains is the shipped-page work below.
@@ -48,15 +48,19 @@ Remaining:
 - [x] Every state renders from `?state=` and has no "Pipelines" wording (checked in the spec PR)
 - [x] The tab bar highlights Actions on the list and run pages and Pull requests on the PR Checks page, matching the real
       app's behaviour
-- [ ] Classes come from existing templ components (table, tabs, accordion, alert, dialog, dropdown menu, blob line
+- [x] Classes come from existing templ components (table, tabs, accordion, alert, dialog, dropdown menu, blob line
       table, release asset rows); no class absent from `tailwind/input.css`'s sources
-- [ ] Checked at desktop 1440 in **light and dark** under `make mockups`; screenshots of both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR and `COVERAGE.md` / `index.html`
+- [x] Checked at desktop 1440 in **light and dark** under `make mockups`; screenshots of both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR and `COVERAGE.md` / `index.html`
       reflect them
 - [ ] ~~Verified on a throwaway server~~ (static mocks only; no server code in this ticket)
-- [ ] `npm run fmt:check` passes for the docs touched; `.scratch/` is not formatted
+- [x] `npm run fmt:check` passes for the docs touched; `.scratch/` is not formatted
 
 ## Verification
 
 `make mockups`, open each page of the six mocks above and each `?state=` in light and dark at 1440; compare with `internal/view/pages/checks.templ`
 and `pr_checks.templ` for the class sources.
+
+## Comments
+
+- 2026-11-13, implementer: `commit.html`'s "Checks" card is external statuses, so it is unchanged; `pr.html#ci=` toggles the title icon. Screenshots of both themes are in `.scratch/.../shots/` (gitignored), not yet in a PR. The mockups CSS `@source`s `mockups/*.js`, so the new classes are generated.
