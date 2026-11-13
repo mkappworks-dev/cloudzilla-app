@@ -85,7 +85,7 @@ func (c *PushClient) Commit(parent plumbing.Hash, files map[string]string, msg s
 	}
 	tree := c.buildTree(flat, "")
 	c.clock++
-	sig := object.Signature{Name: "Tester", Email: "tester@example.com", When: time.Unix(1_700_000_000+c.clock, 0).UTC()}
+	sig := object.Signature{Name: "Tester", Email: "tester@example.com", When: time.Unix(time.Now().Unix()+c.clock, 0).UTC()}
 	return c.write(&object.Commit{Author: sig, Committer: sig, Message: msg, TreeHash: tree, ParentHashes: parents})
 }
 
