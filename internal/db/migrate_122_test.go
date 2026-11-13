@@ -32,7 +32,7 @@ func TestRepoAliasesMigration_FreshDBHasTheTable(t *testing.T) {
 
 func TestRepoAliasesMigration_AppliesOnPopulatedDB(t *testing.T) {
 	db := testutil.OpenFreshTestDB(t)
-	// Seeded before the drop: the owner-name trigger on users (migration 128) reads repo_aliases.
+	// Seeded before the drop: the owner-name trigger on users (migration 129) reads repo_aliases.
 	owner := seedNamedUser(t, db, "bob")
 	for _, name := range []string{"one", "two"} {
 		testutil.Exec(t, db, `INSERT INTO repositories (owner_id, owner_name, name) VALUES ($1, 'bob', $2)`, owner, name)

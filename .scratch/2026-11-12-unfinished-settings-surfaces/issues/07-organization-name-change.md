@@ -45,4 +45,4 @@ Throwaway server on a scratch database at 1440×900, light and dark, per the har
 
 ## Comments
 
-2026-11-13 Claude: ticket 15's alias table is repo-only (`repo_id NOT NULL`), so owner-level aliases got their own `org_aliases` table (migration 128). `RepoAliasStore.Resolve` falls back to it, so the web, API, git HTTP and SSH redirects needed no new code. The owner-name triggers (080, redefined in 128) delete the alias when a user or org takes the name.
+2026-11-13 Claude: ticket 15's alias table is repo-only (`repo_id NOT NULL`), so owner-level aliases got their own `org_aliases` table (migration 129). `RepoAliasStore.Resolve` falls back to it, so the web, API, git HTTP and SSH redirects needed no new code. The owner-name triggers (080, redefined in 129) delete the alias when a user or org takes the name.

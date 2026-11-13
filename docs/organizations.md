@@ -106,7 +106,7 @@ webhooks, stars, issues, pull requests and avatars (keyed by org id) carry over;
 (`/orgs/{org}/...`) don't redirect.
 
 `org_aliases(org_id, name)` has a unique index on `lower(name)`. An old org name redirects until a user or organization
-takes it: the owner-name triggers (migrations 080 and 128) delete the org alias, and any repo alias under that name, in
+takes it: the owner-name triggers (migrations 080 and 129) delete the org alias, and any repo alias under that name, in
 the same statement that creates the account. Renaming an org back to a name it had drops its own alias. Resolution is
 one lookup, so a chain of renames stays flat.
 
