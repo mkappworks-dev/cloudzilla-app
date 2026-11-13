@@ -20,17 +20,12 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-const (
-	backfillDetail = "history scan"
-	// Matches the push path's per-blob cap (secret_scanning.max_blob_bytes).
-	backfillMaxBlobBytes = 1 << 20
-)
+const backfillDetail = "history scan"
 
 // SecretTokenResolver decides what a cloudzilla_token finding means. Without one, such findings are dropped as not
-// live, since a czp_ lookalike that matches no stored hash is not a secret.
+// live, since a czp_ lookalike that matches no stored hash is not a secret. TokenRevoker implements it.
 type SecretTokenResolver interface {
-	// ResolveToken reports whether value is a live token of the instance. Revoking it is the implementation's business.
-	ResolveToken(ctx context.Context, repo model.Repository, f secretscan.Finding) (live bool, err error)
+	ResolveToken(ctx context.Context, repo *model.Repository, value string) (TokenOutcome, error)
 }
 
 // SecretScanNotifier is the part of NotificationService a scan reports through.
@@ -52,6 +47,9 @@ type SecretScanService struct {
 
 func NewSecretScanService(scans *store.SecretScanStore, repos *store.RepoStore, alerts *SecretAlertService, notifier SecretScanNotifier,
 	git config.GitConfig, cfg config.SecretScanningConfig) *SecretScanService {
+	if cfg.MaxBlobBytes < 1 {
+		cfg.MaxBlobBytes = defaultSecretScanning().MaxBlobBytes
+	}
 	return &SecretScanService{scans: scans, repos: repos, alerts: alerts, notifier: notifier, git: git, cfg: cfg, wake: make(chan struct{}, 1)}
 }
 
@@ -225,7 +223,7 @@ func (w *historyWalk) scanBlob(ctx context.Context, h plumbing.Hash, path string
 	}
 	w.blobs[h] = struct{}{}
 	blob, err := object.GetBlob(w.st, h)
-	if err != nil || blob.Size > backfillMaxBlobBytes {
+	if err != nil || blob.Size > int64(w.svc.cfg.MaxBlobBytes) {
 		return nil
 	}
 	rd, err := blob.Reader()
@@ -237,7 +235,7 @@ func (w *historyWalk) scanBlob(ctx context.Context, h plumbing.Hash, path string
 	if err != nil {
 		return nil
 	}
-	for _, f := range secretscan.Scan(path, content, backfillMaxBlobBytes) {
+	for _, f := range secretscan.Scan(path, content, w.svc.cfg.MaxBlobBytes) {
 		if err := w.record(ctx, f, path); err != nil {
 			return err
 		}
@@ -246,19 +244,18 @@ func (w *historyWalk) scanBlob(ctx context.Context, h plumbing.Hash, path string
 }
 
 func (w *historyWalk) record(ctx context.Context, f secretscan.Finding, path string) error {
-	revoked := false
+	var outcome TokenOutcome
 	if f.Type == model.SecretTypeCloudzillaToken {
 		if w.svc.tokens == nil {
 			return nil
 		}
-		live, err := w.svc.tokens.ResolveToken(ctx, *w.repo, f)
-		if err != nil {
+		var err error
+		if outcome, err = w.svc.tokens.ResolveToken(ctx, w.repo, f.Value); err != nil {
 			return fmt.Errorf("secret scan: resolve token: %w", err)
 		}
-		if !live {
+		if outcome == TokenUnknown {
 			return nil
 		}
-		revoked = true
 	}
 	loc := model.SecretSighting{CommitSHA: w.sha, FilePath: path, Line: f.Line, Ref: w.ref, Detail: backfillDetail}
 	known, err := w.svc.scans.HasLocation(ctx, w.repo.ID, secretscan.Hash(w.repo.ID, f.Value), loc)
@@ -272,22 +269,19 @@ func (w *historyWalk) record(ctx context.Context, f secretscan.Finding, path str
 	if err != nil {
 		return fmt.Errorf("secret scan: record: %w", err)
 	}
-	if revoked {
-		if err := w.svc.alerts.AutoRevoke(ctx, alert.ID); err != nil {
-			return fmt.Errorf("secret scan: close revoked alert: %w", err)
-		}
+	switch outcome {
+	case TokenRevoked:
+		err = w.svc.alerts.AutoRevoke(ctx, alert.ID)
+	case TokenExpired:
+		err = w.svc.alerts.Close(ctx, alert.ID, 0, model.SecretResolutionRevoked)
 	}
-	if created {
+	if err != nil && !errors.Is(err, store.ErrSecretAlertState) {
+		return fmt.Errorf("secret scan: close token alert: %w", err)
+	}
+	if created && outcome != TokenExpired {
 		w.opened = append(w.opened, alert)
 	}
 	return nil
-}
-
-// backfillTokenResolver lets the history scan revoke a leaked token the way the push path does.
-type backfillTokenResolver struct{ revoker *TokenRevoker }
-
-func (b backfillTokenResolver) ResolveToken(ctx context.Context, repo model.Repository, f secretscan.Finding) (bool, error) {
-	return b.revoker.ResolveLiveToken(ctx, &repo, f.Value)
 }
 
 func (s *SecretScanService) scanClaimed(parent context.Context, repoID int64) {

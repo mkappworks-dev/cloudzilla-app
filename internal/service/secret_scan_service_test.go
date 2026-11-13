@@ -189,15 +189,65 @@ func TestBackfill_CloudzillaTokenDroppedWithoutResolver(t *testing.T) {
 	}
 }
 
-type liveTokens struct{ live bool }
+type tokenOutcomes struct{ outcome TokenOutcome }
 
-func (l liveTokens) ResolveToken(context.Context, model.Repository, secretscan.Finding) (bool, error) {
-	return l.live, nil
+func (l tokenOutcomes) ResolveToken(context.Context, *model.Repository, string) (TokenOutcome, error) {
+	return l.outcome, nil
+}
+
+func TestBackfill_ExpiredCloudzillaTokenFilesAClosedRevokedAlert(t *testing.T) {
+	f := newScanFixture(t, defaultScanCfg)
+	f.svc.WithTokenResolver(tokenOutcomes{TokenExpired})
+	st := memory.NewStorage()
+	tok := "czp_" + "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	setRef(t, st, "refs/heads/main", commitFiles(t, st, map[string]string{"t": "TOKEN=" + tok + "\n"}))
+
+	if _, err := f.svc.scanHistory(context.Background(), f.repo, st); err != nil {
+		t.Fatal(err)
+	}
+
+	got, _, err := f.alerts.List(context.Background(), f.repo.ID, "", "", 1)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("err=%v alerts=%+v, want one", err, got)
+	}
+	if a := got[0]; a.State != "closed" || a.Resolution != model.SecretResolutionRevoked || a.AutoRevoked {
+		t.Errorf("alert = %+v, want closed revoked, not auto_revoked", a)
+	}
+}
+
+func TestBackfill_UnknownCloudzillaTokenIsDropped(t *testing.T) {
+	f := newScanFixture(t, defaultScanCfg)
+	f.svc.WithTokenResolver(tokenOutcomes{TokenUnknown})
+	st := memory.NewStorage()
+	tok := "czp_" + "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	setRef(t, st, "refs/heads/main", commitFiles(t, st, map[string]string{"t": "TOKEN=" + tok + "\n"}))
+
+	if _, err := f.svc.scanHistory(context.Background(), f.repo, st); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, _, _ := f.alerts.List(context.Background(), f.repo.ID, "", "", 1); len(got) != 0 {
+		t.Errorf("alerts = %+v, want none", got)
+	}
+}
+
+func TestBackfill_MaxBlobBytesIsHonoured(t *testing.T) {
+	cfg := defaultScanCfg
+	cfg.MaxBlobBytes = 16
+	f := newScanFixture(t, cfg)
+	st := memory.NewStorage()
+	setRef(t, st, "refs/heads/main", commitFiles(t, st, map[string]string{".env": "AWS_KEY=" + awsKey + "\n"}))
+
+	w, err := f.svc.scanHistory(context.Background(), f.repo, st)
+
+	if err != nil || len(w.opened) != 0 {
+		t.Fatalf("err=%v opened=%d, want a blob over max_blob_bytes skipped", err, len(w.opened))
+	}
 }
 
 func TestBackfill_LiveCloudzillaTokenIsRecorded(t *testing.T) {
 	f := newScanFixture(t, defaultScanCfg)
-	f.svc.WithTokenResolver(liveTokens{live: true})
+	f.svc.WithTokenResolver(tokenOutcomes{TokenRevoked})
 	st := memory.NewStorage()
 	tok := "czp_" + "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	setRef(t, st, "refs/heads/main", commitFiles(t, st, map[string]string{"t": "TOKEN=" + tok + "\n"}))
