@@ -239,30 +239,13 @@ func (p *PushScan) Check(ctx context.Context, cmd *packp.Command) error {
 			if f.Confidence != secretscan.High {
 				continue
 			}
-			if revoked, handled, err := p.revokeLeakedToken(ctx, cmd, c.Hash, f); err != nil {
-				slog.Error("push-protection: revoke token", "repo_id", p.repo.ID, "error", err)
-				return ErrSecretCheckFailed
-			} else if handled {
-				if revoked {
-					blocking = append(blocking, blockedFinding{c.Hash, f, true})
-				}
-				continue
-			}
-			live, err := p.worthBlocking(ctx, f)
-			if err != nil {
-				slog.Error("push-protection: check secret", "repo_id", p.repo.ID, "error", err)
-				return ErrSecretCheckFailed
-			}
-			if !live {
+			block, revoked := p.blocks(ctx, cmd, c.Hash, f)
+			if !block {
 				continue
 			}
 			hash := secretscan.Hash(p.repo.ID, f.Value)
-			closed, err := p.svc.alerts.IsClosed(ctx, p.repo.ID, hash)
-			if err != nil {
-				slog.Error("push-protection: look up alert", "repo_id", p.repo.ID, "error", err)
-				return ErrSecretCheckFailed
-			}
-			if closed {
+			if revoked {
+				blocking = append(blocking, blockedFinding{c.Hash, f, true})
 				continue
 			}
 			k := fmt.Sprintf("%s|%s|%d", hash, f.Path, f.Line)
@@ -290,6 +273,33 @@ func (p *PushScan) Check(ctx context.Context, cmd *packp.Command) error {
 		Revoked: blocking[0].revoked,
 		URL:     fmt.Sprintf("%s/%s/%s/security/secrets/%d", p.svc.baseURL, p.repo.OwnerName, p.repo.Name, first.Number),
 	}
+}
+
+// blocks reports whether push protection refuses the high-confidence finding f; revoked marks a token deleted just now.
+// A failed read fails open: it is logged and the scan marked incomplete, and PostReceive settles f.
+func (p *PushScan) blocks(ctx context.Context, cmd *packp.Command, commit plumbing.Hash, f pathFinding) (block, revoked bool) {
+	revoked, handled, err := p.revokeLeakedToken(ctx, cmd, commit, f)
+	if err != nil {
+		p.stop("revoke token", err)
+		return false, false
+	}
+	if handled {
+		return revoked, revoked
+	}
+	live, err := p.worthBlocking(ctx, f)
+	if err != nil {
+		p.stop("resolve token", err)
+		return false, false
+	}
+	if !live {
+		return false, false
+	}
+	closed, err := p.svc.alerts.IsClosed(ctx, p.repo.ID, secretscan.Hash(p.repo.ID, f.Value))
+	if err != nil {
+		p.stop("look up alert", err)
+		return false, false
+	}
+	return !closed, false
 }
 
 type blockedFinding struct {

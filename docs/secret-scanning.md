@@ -81,7 +81,9 @@ A blocked push writes its alert at once, since the URL needs an id; the pusher's
 
 The push-wide clock starts at the first ref. `secret_scanning.push_timeout` (10s), `secret_scanning.max_blobs` (5000) or a
 scanner error stops the scan, logs `push-protection: scan incomplete`, lets the push through, and leaves the rest to the
-post-receive scan, whose alerts say "scan incomplete". A match always blocks. `secret_scanning.max_blob_bytes` (1 MiB)
+post-receive scan, whose alerts say "scan incomplete". So does a failed read in the check (the closed-alert lookup, the
+token lookup): it is logged and the post-receive scan settles the finding. A match always blocks; only a failed write of
+the alert for a known match refuses the push. `secret_scanning.max_blob_bytes` (1 MiB)
 skips larger blobs on the push path. With `secret_scanning.push_protection: false` nothing blocks and every finding is
 raised after the push. Keys are in [configuration](./configuration.md).
 

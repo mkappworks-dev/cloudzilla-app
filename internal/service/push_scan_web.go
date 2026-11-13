@@ -14,8 +14,8 @@ import (
 
 // CheckWebContent applies push protection to content about to be committed at path on branch from the browser. The
 // commit does not exist yet, so a blocked alert has no commit to name. It returns a *SecretDetectedError to refuse,
-// ErrSecretCheckFailed when the policy lookup breaks, and nil otherwise, including when the scan cannot finish: the
-// commit is then scanned afterwards by AfterWebCommit.
+// ErrSecretCheckFailed when a blocked alert cannot be written, and nil otherwise, including when the scan or a lookup
+// cannot finish: the commit is then scanned afterwards by AfterWebCommit.
 func (s *PushScanService) CheckWebContent(ctx context.Context, repo *model.Repository, branch, path string, content []byte, actorID int64) error {
 	if !s.cfg.PushProtection {
 		return nil
@@ -36,32 +36,8 @@ func (s *PushScanService) CheckWebContent(ctx context.Context, repo *model.Repos
 			continue
 		}
 		pf := pathFinding{Finding: f, Path: path}
-		revoked, handled, err := p.revokeLeakedToken(ctx, cmd, plumbing.ZeroHash, pf)
-		if err != nil {
-			slog.Error("push-protection: revoke token", "repo_id", repo.ID, "error", err)
-			return ErrSecretCheckFailed
-		}
-		if handled {
-			if revoked {
-				blocking = append(blocking, blockedFinding{pathFinding: pf, revoked: true})
-			}
-			continue
-		}
-		live, err := p.worthBlocking(ctx, pf)
-		if err != nil {
-			slog.Error("push-protection: check secret", "repo_id", repo.ID, "error", err)
-			return ErrSecretCheckFailed
-		}
-		if !live {
-			continue
-		}
-		closed, err := s.alerts.IsClosed(ctx, repo.ID, secretscan.Hash(repo.ID, f.Value))
-		if err != nil {
-			slog.Error("push-protection: look up alert", "repo_id", repo.ID, "error", err)
-			return ErrSecretCheckFailed
-		}
-		if !closed {
-			blocking = append(blocking, blockedFinding{pathFinding: pf})
+		if block, revoked := p.blocks(ctx, cmd, plumbing.ZeroHash, pf); block {
+			blocking = append(blocking, blockedFinding{pathFinding: pf, revoked: revoked})
 		}
 	}
 	if len(blocking) == 0 {
