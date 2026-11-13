@@ -246,6 +246,7 @@ func (w *historyWalk) scanBlob(ctx context.Context, h plumbing.Hash, path string
 }
 
 func (w *historyWalk) record(ctx context.Context, f secretscan.Finding, path string) error {
+	revoked := false
 	if f.Type == model.SecretTypeCloudzillaToken {
 		if w.svc.tokens == nil {
 			return nil
@@ -257,6 +258,7 @@ func (w *historyWalk) record(ctx context.Context, f secretscan.Finding, path str
 		if !live {
 			return nil
 		}
+		revoked = true
 	}
 	loc := model.SecretSighting{CommitSHA: w.sha, FilePath: path, Line: f.Line, Ref: w.ref, Detail: backfillDetail}
 	known, err := w.svc.scans.HasLocation(ctx, w.repo.ID, secretscan.Hash(w.repo.ID, f.Value), loc)
@@ -270,10 +272,22 @@ func (w *historyWalk) record(ctx context.Context, f secretscan.Finding, path str
 	if err != nil {
 		return fmt.Errorf("secret scan: record: %w", err)
 	}
+	if revoked {
+		if err := w.svc.alerts.AutoRevoke(ctx, alert.ID); err != nil {
+			return fmt.Errorf("secret scan: close revoked alert: %w", err)
+		}
+	}
 	if created {
 		w.opened = append(w.opened, alert)
 	}
 	return nil
+}
+
+// backfillTokenResolver lets the history scan revoke a leaked token the way the push path does.
+type backfillTokenResolver struct{ revoker *TokenRevoker }
+
+func (b backfillTokenResolver) ResolveToken(ctx context.Context, repo model.Repository, f secretscan.Finding) (bool, error) {
+	return b.revoker.ResolveLiveToken(ctx, &repo, f.Value)
 }
 
 func (s *SecretScanService) scanClaimed(parent context.Context, repoID int64) {

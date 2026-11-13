@@ -152,8 +152,10 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
 	issueSvc := NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent).WithThreadSubscriptions(threadSubSvc)
 	branchProtectionSvc := NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus)
+	tokenRevoker := NewTokenRevoker(stores.AccessToken, auditSvc, notifSvc)
+	secretScanSvc.WithTokenResolver(backfillTokenResolver{tokenRevoker})
 	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc}).
-		WithTokenResolver(NewTokenRevoker(stores.AccessToken, auditSvc, notifSvc))
+		WithTokenResolver(tokenRevoker)
 	return &Services{
 		User:               userSvc,
 		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),

@@ -205,6 +205,10 @@ func TestBackfill_LiveCloudzillaTokenIsRecorded(t *testing.T) {
 	if err != nil || len(w.opened) != 1 || w.opened[0].SecretType != model.SecretTypeCloudzillaToken {
 		t.Fatalf("err=%v opened=%v", err, w.opened)
 	}
+	got, err := f.alerts.Get(context.Background(), f.repo.ID, w.opened[0].Number)
+	if err != nil || got.State != "closed" || !got.AutoRevoked {
+		t.Fatalf("a live token's alert must close as auto-revoked: err=%v alert=%+v", err, got)
+	}
 }
 
 func TestBackfill_ScanClaimedSendsOneDigestAndFinishes(t *testing.T) {
