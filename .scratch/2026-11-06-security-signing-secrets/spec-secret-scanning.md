@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Mock: [README.md](./README.md), [security.html](./security.html) and [alert.html](./alert.html). Parent ticket:
 `../2026-11-06-uiux-desktop-9.5/issues/17-secret-scanning.md`. Signing's spec ([spec.md](./spec.md)) is done and shares
@@ -107,7 +107,7 @@ Re-check the next free number on `origin/main` when a ticket starts (131 is the 
 the next number; the later migrations (11, 16) take the next free ones in order of merge.
 
 ```sql
--- 132_create_secret_scan_alerts.sql
+-- 133_create_secret_scan_alerts.sql
 CREATE TABLE secret_scan_alerts (
     id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     repo_id        BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
@@ -149,10 +149,10 @@ CREATE TABLE secret_scan_events (                   -- the alert page's Activity
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 133_secret_scan_notifications.sql: widen notifications_type_check with 'secret_alert', 'secret_allowed',
+-- 134_secret_scan_notifications.sql: widen notifications_type_check with 'secret_alert', 'secret_allowed',
 --   'token_revoked' (re-read the latest definition, migration 099, when building)
 
--- 134_create_repo_secret_scans.sql
+-- 135_create_repo_secret_scans.sql
 CREATE TABLE repo_secret_scans (                    -- backfill job state, one row per repository
     repo_id      BIGINT PRIMARY KEY REFERENCES repositories(id) ON DELETE CASCADE,
     state        TEXT NOT NULL CHECK (state IN ('pending','running','done','failed')),
@@ -163,13 +163,13 @@ CREATE TABLE repo_secret_scans (                    -- backfill job state, one r
 );
 ```
 
-Migration 134 inserts a `pending` row for every existing repository; new repositories get one at creation. A repo whose
+Migration 135 inserts a `pending` row for every existing repository; new repositories get one at creation. A repo whose
 row is not `done` shows "Scanning existing history…" on the Security page.
 
 ### Scanner (`internal/secretscan`)
 
-A pure package, no database. `Scan(path string, content []byte) []Finding` returns `Finding{Type, Line, Value, Confidence}`
-from a static `[]Pattern`; `Mask(value)` gives the hint; `Hash(repoID, value)` the dedupe key. `Value` stays in memory
+A pure package, no database. `Scan(path string, content []byte, maxBytes int) []Finding` returns `Finding{Type, Line, Value, Confidence}`
+from a static `[]Pattern`; `Mask(value)` gives the hint (at most eight characters); `Hash(repoID, value)` the dedupe key. `Value` stays in memory
 only. The initial set, each a regexp with a fixture and a near-miss test:
 
 | Type                | Matches                                                    | Confidence |
@@ -231,7 +231,7 @@ days.
 - **`GET …/security/secrets/{n}`**: the mock's alert page: masked snippet, How to fix, Activity, the aside (pattern, all
   locations, whether the value is on the default branch), **Close as** (Revoked, False positive, Used in tests), Reopen,
   and for a `blocked` alert the banner with **Allow as used in tests / false positive**.
-- **Actions** (writers, HTMX variants as elsewhere): `POST …/{n}/close` (`resolution`), `…/reopen`, `…/allow`
+- **Actions** (writers; form POSTs that redirect to the alert page): `POST …/{n}/close` (`resolution`), `…/reopen`, `…/allow`
   (`resolution` ∈ `false_positive`, `used_in_tests`). `allow` on a live-token alert is refused.
 - **Copy to change in the mocks, done in this PR:** `alert.html`'s blocked banner (no one-hour allowance) and
   `security.html`'s `push` terminal (one line). Ticket 12 also adds the Security tab to `mockups/shell.js` and a standing
@@ -252,7 +252,7 @@ days.
 | [17](./issues/17-secret-scanning-docs-and-e2e.md) | Docs, ROADMAP rewrite, native-git end-to-end on a throwaway server | 09–16 | — |
 
 Shared-file conflicts: 12 and 16 both edit the Security page view model (16 waits for 12); 13, 14 and 15 all edit `PushScanService` (14 and 15 wait for 13); 11 and 16 both add a migration and
-`NotificationService` methods. Migrations 132–134 collide with anything landing first: re-check at build. Signing
+`NotificationService` methods. Migrations 133–135 are what merged; they collide with anything landing first: re-check at build. Signing
 follow-ups (`tech/signing-key-revocation`, `tech/signing-key-squatting`) may touch signing code; nothing here depends on
 them.
 
@@ -287,3 +287,13 @@ Claude, 2026-11-13: forge comparison behind the decisions. GitHub scans full his
 with a reason and fails open on timeout; GitLab's push protection uses high-confidence patterns only, skips blobs over
 1 MiB, fails open on timeout and auto-revokes only on public projects; Gitea/Forgejo have none, and Bitbucket Data Center
 detects without blocking. Decision 3 departs from the mock's one-hour allowance on purpose.
+
+Claude, 2026-11-13 (built, ticket 17): shipped as specced except where the code differs; the text above now follows the
+code. Differences: migrations are 133 to 135, not 132 to 134; `Scan` takes `maxBytes`; `Mask` caps the hint at eight
+characters (a private key's kind, `****` for a short value); actions are form POSTs that redirect (`303`) to the alert
+page, not HTMX swaps; the token check is two interfaces, `CloudzillaTokenResolver` (`ResolveLiveToken`) on the push path
+and `SecretTokenResolver` on the backfill, with `TokenOutcomeResolver` telling an expired token (alert opens closed as
+`revoked`, no badge, no block) from an unknown one (no alert); the history walk skips blobs over a fixed 1 MiB rather
+than `secret_scanning.max_blob_bytes`; a web-editor alert has no commit, so it stays blocked until a ref reaches the
+value; the Security page's intro still says pushes are rejected when `push_protection` is off. See
+[docs/secret-scanning.md](../../docs/secret-scanning.md).

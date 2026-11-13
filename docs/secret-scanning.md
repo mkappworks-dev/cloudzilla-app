@@ -57,8 +57,8 @@ holds is not "added" by a later push, so it is not scanned.
 ## Push protection
 
 Both transports build their `vet` hook with `PushVetService.Begin`, so branch protection and the secret check cannot
-drift; see [git-transport](./git-transport.md#push-protection). The scan runs once per push, shared across refs: it walks the
-commits the push adds (`gittransport.AddedCommits`), reads only the blobs each commit changed against its parents, and
+drift; see [git-transport](./git-transport.md#push-protection). The scan runs once per push, shared across refs: it
+walks the commits the push adds (`gittransport.AddedCommits`), reads only the blobs each commit changed against its parents, and
 memoises by commit, so two refs sharing a commit scan once and produce one alert. Branches and tags are scanned, deletes
 are not.
 
@@ -74,7 +74,7 @@ With several findings, `:<line>` is followed by ` and N more`. A leaked Cloudzil
 reads `internal error checking for secrets` (the only fail-closed path: the match is already known). The URL is built from
 `server.base_url`.
 
-A blocked push writes its alert at once, since the URL needs an id; the pusher's own commit is on no ref, so the alert is
+A blocked push writes its alert at once, since the URL needs an id; the pusher's commit is on no ref, so the alert is
 "blocked" until a ref reaches it.
 
 ### Fail open
