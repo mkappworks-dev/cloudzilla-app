@@ -154,6 +154,20 @@ func TestPRCreateSendsServerFieldNamesWithDefaultBase(t *testing.T) {
 	}
 }
 
+func TestPRCreateFromAForkSendsItsRepoAndChecksTheBranchThere(t *testing.T) {
+	h := newRepoHarness(t, createRoutes(created(nil)))
+	if err := h.run("pr", "create", "-R", "ada/demo", "--head-repo", "daisy/demo", "--head", "fix-x", "--title", "T", "--body", "b"); err != nil {
+		t.Fatal(err)
+	}
+	body := sent(t, h, "POST /api/repos/ada/demo/pulls/")
+	if body["head_repo"] != "daisy/demo" || body["head_branch"] != "fix-x" {
+		t.Errorf("body = %v", body)
+	}
+	if joined := strings.Join(h.gitArgs, " "); !strings.Contains(joined, "ls-remote --exit-code --heads "+h.api.URL+"/daisy/demo.git fix-x") {
+		t.Errorf("the branch must be looked for in the fork, git args = %v", h.gitArgs)
+	}
+}
+
 func TestPRCreateDefaultsHeadToCurrentBranch(t *testing.T) {
 	h := newRepoHarness(t, createRoutes(created(nil)))
 	dir := remoteCheckout(t, h.api.URL+"/ada/demo.git")

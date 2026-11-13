@@ -129,7 +129,7 @@ cz issue close 12
 
 cz pr list [--state open|closed|merged|all]
 cz pr view 7
-cz pr create -t "Fix links" [-H branch] [-B main] [-b text] [--draft]
+cz pr create -t "Fix links" [-H branch] [--head-repo owner/name] [-B main] [-b text] [--draft]
 cz pr merge 7 [--ff | --merge | --squash]
 cz pr close 7
 cz pr review 7 --approve | --request-changes -b text | --comment -b text
@@ -142,6 +142,7 @@ cz pr review 7 --approve | --request-changes -b text | --comment -b text
   created. If a label or assignee step fails after the issue exists, the error gives its number and URL.
 - `pr create` defaults `--head` to the current branch and `--base` to the repository's default branch. It checks that
   the head branch is on the remote and refuses if it isn't; the server would accept any head name.
+  `--head-repo owner/name` opens the pull request from a branch of that fork, and the branch is looked for there.
 - `pr merge` needs `repo:write`. A `pulls:write` token is told so. Conflicts, requested changes, branch protection and
   required checks come back as the server's reason with a non-zero exit.
 - `pr close` refuses a pull request that is no longer open.

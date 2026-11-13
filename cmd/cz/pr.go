@@ -217,7 +217,14 @@ func prCreateCmd(a *app) *cobra.Command {
 			if p.Head == p.Base {
 				return fmt.Errorf("head and base are both %q; pass --head or --base", p.Head)
 			}
-			if err := a.requirePushed(ctx, creds, target, p.Head); err != nil {
+			pushedTo := target
+			if p.HeadRepo != "" {
+				if pushedTo, err = cli.ParseRepo(p.HeadRepo, creds.Host); err != nil {
+					return fmt.Errorf("--head-repo: %w", err)
+				}
+				p.HeadRepo = pushedTo.String()
+			}
+			if err := a.requirePushed(ctx, creds, pushedTo, p.Head); err != nil {
 				return err
 			}
 			if p.Body, err = a.readBody(ctx, bf, cmd); err != nil {
@@ -239,6 +246,7 @@ func prCreateCmd(a *app) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&p.Title, "title", "t", "", "title (required)")
 	f.StringVarP(&p.Head, "head", "H", "", "branch with the changes (default: the current branch)")
+	f.StringVar(&p.HeadRepo, "head-repo", "", "owner/name of the fork that holds the head branch (default: the repository itself)")
 	f.StringVarP(&p.Base, "base", "B", "", "branch to merge into (default: the repository's default branch)")
 	f.BoolVarP(&p.Draft, "draft", "d", false, "open as a draft")
 	return cmd

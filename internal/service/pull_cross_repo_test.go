@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -438,5 +439,23 @@ func TestForkRenamed_PullShowsTheCurrentName(t *testing.T) {
 	}
 	if got.State != model.PRStateOpen {
 		t.Errorf("state = %q, a rename must leave the PR open", got.State)
+	}
+}
+
+func TestPullPayload_NamesAForkHead(t *testing.T) {
+	svc := service.NewWebhookService(nil, czconfig.WebhookConfig{})
+	base := model.Repository{ID: 1, Name: "demo"}
+	fork, headID := &model.PullRequest{Number: 2, HeadBranch: "fix-x", CrossRepo: true, HeadRepo: "daisy/demo", HeadRepoID: new(int64)}, int64(9)
+	*fork.HeadRepoID = headID
+
+	got := svc.PullPayload("opened", base, *fork)["pull_request"].(map[string]any)["head_repo"]
+	same := svc.PullPayload("opened", base, model.PullRequest{Number: 3, HeadBranch: "x"})["pull_request"].(map[string]any)["head_repo"]
+
+	want := map[string]any{"id": headID, "full_name": "daisy/demo", "fork": true}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("head_repo = %v, want %v", got, want)
+	}
+	if same != nil {
+		t.Errorf("a same-repository pull request has no head_repo, got %v", same)
 	}
 }

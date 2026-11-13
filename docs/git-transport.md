@@ -292,6 +292,12 @@ statuses are attributed to the repository owner. A repository with CI switched o
 and an Instance with `ci.enabled` off create none. Nothing runs a Job until a Runner claims it, so the Jobs stay
 `queued`.
 
+`OnPostReceive` also follows a push to a head branch into the open pull requests of other repositories (a fork pull
+request, by `head_repo_id` and branch): it copies the new commit into each base's object store, moves
+`refs/pull/<n>/head` and updates `head_sha`; a delete closes them. A copy that fails is logged and leaves the pull
+request on its old head. `refs/pull/*` is hidden from every ref advertisement (`gittransport.HidePullRefs`, HTTP and
+SSH, upload and receive) and a push that names one is refused (`ErrPullRefPush`): the server writes those refs.
+
 A commit made in the browser reaches the same method through `AfterWebCommit`, with one create or update command built
 from the `RefUpdate` the commit returned, so it fires everything a push of that commit would. Pull mirrors and the
 seeder keep their own variants (no actor, so no events). A pull request merge (UI, API or auto-merge) calls only

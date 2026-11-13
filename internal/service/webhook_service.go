@@ -383,16 +383,20 @@ func (s *WebhookService) IssuePayload(action string, repo model.Repository, issu
 }
 
 func (s *WebhookService) PullPayload(action string, repo model.Repository, pr model.PullRequest) map[string]any {
+	pull := map[string]any{
+		"id":          pr.ID,
+		"number":      pr.Number,
+		"title":       pr.Title,
+		"state":       string(pr.State),
+		"head_branch": pr.HeadBranch,
+		"base_branch": pr.BaseBranch,
+	}
+	if pr.CrossRepo && pr.HeadRepoID != nil {
+		pull["head_repo"] = map[string]any{"id": *pr.HeadRepoID, "full_name": pr.HeadRepo, "fork": true}
+	}
 	return map[string]any{
-		"action": action,
-		"pull_request": map[string]any{
-			"id":          pr.ID,
-			"number":      pr.Number,
-			"title":       pr.Title,
-			"state":       string(pr.State),
-			"head_branch": pr.HeadBranch,
-			"base_branch": pr.BaseBranch,
-		},
+		"action":       action,
+		"pull_request": pull,
 		"repository": map[string]any{
 			"id":   repo.ID,
 			"name": repo.Name,
