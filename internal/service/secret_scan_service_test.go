@@ -43,8 +43,8 @@ func putBlob(t *testing.T, st storage.Storer, content string) plumbing.Hash {
 	enc := st.NewEncodedObject()
 	enc.SetType(plumbing.BlobObject)
 	w, _ := enc.Writer()
-	w.Write([]byte(content))
-	w.Close()
+	_, _ = w.Write([]byte(content))
+	_ = w.Close()
 	h, err := st.SetEncodedObject(enc)
 	if err != nil {
 		t.Fatal(err)
@@ -281,10 +281,10 @@ func TestSecretScanStore_PendingLifecycle(t *testing.T) {
 	}
 
 	// A sync that lands while a scan runs must not be lost when the scan finishes.
-	s.MarkPending(ctx, repoID)
-	s.Claim(ctx, time.Minute)
-	s.MarkPending(ctx, repoID)
-	s.Finish(ctx, repoID, false)
+	_ = s.MarkPending(ctx, repoID)
+	_, _, _ = s.Claim(ctx, time.Minute)
+	_ = s.MarkPending(ctx, repoID)
+	_ = s.Finish(ctx, repoID, false)
 	if state, _, _ := s.State(ctx, repoID); state != "pending" {
 		t.Fatalf("a mid-scan MarkPending ended %q, want pending", state)
 	}
@@ -300,8 +300,8 @@ func TestSecretScanStore_FailedRetriesAfterItsDelay(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, owner, "owner"+suffix, suffix)
 	s := store.New(db).SecretScan
 	ctx := context.Background()
-	s.Claim(ctx, time.Minute)
-	s.Fail(ctx, repoID, "boom", time.Hour)
+	_, _, _ = s.Claim(ctx, time.Minute)
+	_ = s.Fail(ctx, repoID, "boom", time.Hour)
 	if _, ok, _ := s.Claim(ctx, time.Minute); ok {
 		t.Fatal("a failed scan was retried before its delay")
 	}

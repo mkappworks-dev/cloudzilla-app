@@ -199,12 +199,12 @@ func (w *historyWalk) walkTree(ctx context.Context, h plumbing.Hash, prefix stri
 	}
 	for _, e := range tree.Entries {
 		p := prefix + e.Name
-		switch {
-		case e.Mode == filemode.Dir:
+		switch e.Mode {
+		case filemode.Dir:
 			if err := w.walkTree(ctx, e.Hash, p+"/"); err != nil {
 				return err
 			}
-		case e.Mode == filemode.Regular || e.Mode == filemode.Executable || e.Mode == filemode.Deprecated:
+		case filemode.Regular, filemode.Executable, filemode.Deprecated:
 			if err := w.scanBlob(ctx, e.Hash, p); err != nil {
 				return err
 			}
@@ -233,7 +233,7 @@ func (w *historyWalk) scanBlob(ctx context.Context, h plumbing.Hash, path string
 		return nil
 	}
 	content, err := io.ReadAll(rd)
-	rd.Close()
+	_ = rd.Close()
 	if err != nil {
 		return nil
 	}
