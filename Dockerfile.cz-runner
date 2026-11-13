@@ -1,0 +1,13 @@
+# DEV ONLY: the runner for docker-compose's `runner` profile. The server image has no runner and no Docker access;
+# see docs/ci.md for running cz-runner on a real host.
+FROM golang:1.27-alpine AS builder
+WORKDIR /app
+COPY . .
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${VERSION}" -o /cz-runner ./cmd/cz-runner/.
+
+FROM alpine:3.24
+RUN apk add --no-cache ca-certificates docker-cli
+COPY --from=builder /cz-runner /usr/local/bin/cz-runner
+# Registers once with CZ_RUNNER_TOKEN, then polls. The config volume keeps the runner token across restarts.
+ENTRYPOINT ["/bin/sh", "-c", "[ -f /config/config.yaml ] || cz-runner register --config /config/config.yaml --server \"$CZ_RUNNER_SERVER\" --token \"$CZ_RUNNER_TOKEN\" --labels \"$CZ_RUNNER_LABELS\"; exec cz-runner run --config /config/config.yaml"]

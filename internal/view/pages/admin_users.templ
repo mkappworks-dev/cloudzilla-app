@@ -15,7 +15,7 @@ import (
 templ AdminUsers(data view.AdminUsersData) {
 	@layout.Base(data.BasePage, "Users") {
 		<div class="space-y-6">
-			@adminTabs("/admin/users")
+			@adminTabs(data.BasePage, "/admin/users")
 			<div class="flex justify-between items-center">
 				<h1 class="text-2xl font-semibold tracking-tight">Users</h1>
 				<span class="text-sm text-muted-foreground">{ components.Count(data.TotalCount, "account", "accounts") }</span>
@@ -152,7 +152,7 @@ templ AdminUser(data view.AdminUserData) {
 	{{ u := data.Detail.User }}
 	@layout.Base(data.BasePage, u.Username+" · Users") {
 		<div class="space-y-6">
-			@adminTabs("/admin/users")
+			@adminTabs(data.BasePage, "/admin/users")
 			<div class="flex flex-wrap items-center gap-3">
 				<a href="/admin/users" class="text-sm text-muted-foreground hover:underline">Users</a>
 				<span class="text-muted-foreground" aria-hidden="true">/</span>

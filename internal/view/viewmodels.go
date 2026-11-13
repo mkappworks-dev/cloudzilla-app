@@ -37,6 +37,8 @@ type BasePage struct {
 	// or `/{owner}/{repo}`). The topbar's workspace switcher labels its trigger
 	// with this name when set, falling back to the logged-in user otherwise.
 	OwnerContext string
+	// CIEnabled is ci.enabled; it hides the admin Runners tab.
+	CIEnabled bool
 	// SetupPending hides site-wide links: until setup completes, every route but /setup redirects back to it.
 	SetupPending bool
 	// CodeLight and CodeDark are the viewer's code themes; read them through CodeThemeLight/CodeThemeDark.
@@ -84,6 +86,8 @@ type RepoSubnavInfo struct {
 	// CanWrite shows the Security tab, which readers and anonymous visitors must not see.
 	CanWrite bool
 	Private  bool
+	// ShowActions shows the Actions tab: ci.enabled is on, and CI is on for the repo or it has Runs to read.
+	ShowActions bool
 	// Feature toggles — when false the corresponding tab is hidden.
 	AllowIssues      bool
 	AllowDiscussions bool

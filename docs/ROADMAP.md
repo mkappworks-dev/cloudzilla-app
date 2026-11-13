@@ -1004,7 +1004,7 @@ DELETE /api/user/tokens/{id}        (authMW)   — revoke PAT
 
 ### 5.2 Deploy Keys
 
-_Per-repository SSH keys with read-only or read-write access; designed for CI/CD pipelines._
+_Per-repository SSH keys with read-only or read-write access; designed for CI/CD systems._
 
 **Migration** (`028_create_deploy_keys.sql`):
 
@@ -2325,7 +2325,7 @@ calls needed; purely local parsing.
 
 # Milestone 2 — Advanced Infrastructure (Phases 16–20) ⬜ PLANNED
 
-_Container registry, Git LFS, CI/CD pipelines, clustering, and GraphQL API._
+_Container registry, Git LFS, built-in CI, clustering, and GraphQL API._
 
 ---
 
@@ -2466,75 +2466,46 @@ required) lists alerts and closes, reopens and allows them. No new webhook event
 
 ---
 
-## Phase 18 — CI/CD Pipeline Runner, Pipeline YAML Config & UI, CI Status Dashboard
+## Phase 18 — Built-in CI: Workflows, Runs and Runners
 
-_First-class built-in continuous integration without needing an external CI service._
+_First-class continuous integration without an external CI service. Workflow code runs only on separate `cz-runner`
+processes, in non-privileged Docker containers
+([ADR 0003](./adr/0003-workflow-code-runs-only-on-runners-in-containers.md)), and the format is a subset of GitHub
+Actions syntax ([ADR 0004](./adr/0004-workflow-format-is-a-github-actions-subset.md)). Vocabulary is in
+[GLOSSARY](../GLOSSARY.md); the design is in
+[`.scratch/2026-11-06-ci-pipelines/spec.md`](../.scratch/2026-11-06-ci-pipelines/spec.md) and the reference in
+[ci](./ci.md). "Pipeline" is not used._
 
-### Phase 18.1 — CI/CD Pipeline Runner (basic)
+### Phase 18.1 — Workflows and Runs ✅
 
-**Migration** (`118_create_pipelines.sql`):
+**Migration** (`136_create_workflow_runs.sql`): `workflow_runs` (per-repository number from `workflow_run_counters`),
+`workflow_jobs`, `workflow_steps`, `commit_statuses.run_id` and `repositories.ci_enabled`.
 
-```sql
-CREATE TABLE pipelines (
-    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    repo_id     BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
-    commit_sha  TEXT NOT NULL,
-    branch      TEXT NOT NULL DEFAULT '',
-    status      TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','success','failure','cancelled')),
-    triggered_by BIGINT REFERENCES users(id),
-    started_at  TIMESTAMPTZ,
-    finished_at TIMESTAMPTZ,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE TABLE pipeline_jobs (
-    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    pipeline_id BIGINT NOT NULL REFERENCES pipelines(id) ON DELETE CASCADE,
-    name        TEXT NOT NULL,
-    status      TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','success','failure','skipped')),
-    log_output  TEXT NOT NULL DEFAULT '',
-    started_at  TIMESTAMPTZ,
-    finished_at TIMESTAMPTZ,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
+A Workflow is a YAML file under `.cloudzilla/workflows/`; the parser (`internal/ci/workflow`) is pure and rejects every
+key outside the subset with its file, line and key. A push, a pull request event or **Run workflow** creates a Run per
+matching file; each Job posts a commit status `ci/<job id>` linked to its Run, so branch protection's required checks
+work for built-in and external CI. Fork pull requests wait for a writer's approval.
 
-On push, `PipelineService.TriggerForCommit(ctx, repo, sha, branch)` is called fire-and-forget. The runner reads
-`.cloudzilla-ci.yml` from the commit tree, spawns jobs as goroutines (exec via `os/exec`, sandboxed to a temp
-directory), streams log output to `pipeline_jobs.log_output`, and updates statuses. The commit status API (Phase 3.2) is
-updated with pass/fail results automatically.
+### Phase 18.2 — Runners, logs and artifacts ✅
 
----
+**Migrations** (`137_create_ci_runners.sql`, `138_create_ci_logs_artifacts.sql`, `139_create_ci_secrets.sql`):
+`ci_runners` and their registration tokens, `workflow_log_chunks`, `workflow_artifacts`, `ci_secrets`.
 
-### Phase 18.2 — Pipeline YAML Config & UI
+`cz-runner` registers with a one-time token, long-polls for a Job over outbound HTTPS and runs each Job in a hardened
+container through the `docker` CLI. Logs are posted in chunks with line offsets and tailed by the page; artifacts are
+zips downloaded through the app with `CanRead` on every request; an hourly worker applies retention. Repository secrets
+are sealed with `security.secret_key`, delivered to non-fork Runs and masked in logs.
 
-**Migration** (`119_create_pipeline_config.sql`):
+### Phase 18.3 — Actions tab, Checks and integration ✅
 
-```sql
-CREATE TABLE pipeline_configs (
-    id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    repo_id   BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE UNIQUE,
-    yaml_path TEXT NOT NULL DEFAULT '.cloudzilla-ci.yml',
-    enabled   BOOLEAN NOT NULL DEFAULT TRUE,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
+_No migration._
 
-The YAML schema supports `jobs:` with `name`, `runs-on` (host only in v1), `steps:` (each with `name`, `run` shell
-command), and `env:` key-value pairs. A `PipelineConfigService.Parse(yamlContent string)` function validates the schema
-using `encoding/yaml` (no new dep; already stdlib-compatible via `gopkg.in/yaml.v3` which is used by Viper). The repo
-settings page gains a "CI/CD" section to enable/disable pipelines and view the YAML schema reference.
-`GET /{owner}/{repo}/actions` lists pipeline runs.
-
----
-
-### Phase 18.3 — CI Status Dashboard
-
-_Zero-migration — reads from existing `pipelines` and `pipeline_jobs` tables._
-
-`GET /{owner}/{repo}/actions` renders a paginated list of pipeline runs with status badges, branch names, commit SHAs,
-and durations. `GET /{owner}/{repo}/actions/{id}` shows the detailed job log (streamed via HTMX `hx-trigger="every 2s"`
-polling while status is `running`). Branch and status filters supported via query params. The commit list, PR detail,
-and tree pages show a status indicator badge linking to the most recent pipeline run for that commit SHA.
+The Actions tab lists and filters Runs; the Run page streams logs; Settings, CI/CD holds secrets, runners and the
+per-repository toggle. The pull request Checks tab groups Jobs under their Run and keeps external statuses in their own
+card; the commit list, pull request header and file tree show the combined state of a commit and link to its latest Run.
+A `workflow_run` webhook fires when a Run completes, and `GET/POST /api/repos/{owner}/{repo}/actions/...` lists, reads,
+cancels, re-runs and dispatches Runs (scopes `repo` and `repo:write`). Details: [ci](./ci.md),
+[webhooks](./webhooks.md#workflow_run), [API reference](./api-reference.md#workflow-runs).
 
 ---
 
@@ -2655,9 +2626,8 @@ CREATE TABLE cluster_nodes (
 
 Multiple Cloudzilla instances share the same PostgreSQL database and S3/GCS storage backend. Sticky sessions or a
 session token stored in PostgreSQL (`sessions` table) replace the stateless JWT-only approach for pages that need it.
-Background jobs (webhook retry, pipeline runner, secret scanning) use advisory locks
-(`SELECT pg_try_advisory_lock(...)`) to prevent duplicate execution across nodes. Node health endpoint:
-`GET /api/cluster/health`.
+Background jobs (webhook retry, CI scheduler, secret scanning) use advisory locks (`SELECT pg_try_advisory_lock(...)`)
+to prevent duplicate execution across nodes. Node health endpoint: `GET /api/cluster/health`.
 
 ---
 
@@ -2730,9 +2700,9 @@ Authentication via the same JWT/PAT bearer token as the REST API. A GraphQL Play
 | 17.1  | Git LFS Support                                       | ⬜ Planned | 116          |
 | 17.2  | Signed Commit Verification (GPG/SSH)                  | ✅ Done    | 130, 131     |
 | 17.3  | Secret Scanning                                       | ✅ Done    | 133-135      |
-| 18.1  | CI/CD Pipeline Runner (basic)                         | ⬜ Planned | 118          |
-| 18.2  | Pipeline YAML Config & UI                             | ⬜ Planned | 119          |
-| 18.3  | CI Status Dashboard                                   | ⬜ Planned | —            |
+| 18.1  | Workflows and Runs                                    | ✅ Done    | 136, 140     |
+| 18.2  | Runners, logs and artifacts                           | ✅ Done    | 137-139      |
+| 18.3  | Actions tab, Checks and integration                   | ✅ Done    | —            |
 | 19.1  | LDAP / SAML Improvements                              | ⬜ Planned | —            |
 | 19.2  | IP Allowlisting & Access Policies                     | ⬜ Planned | 120          |
 | 19.3  | API Rate Limiting & Quotas                            | ✅ Done    | 110          |

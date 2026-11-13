@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CI/CD · Settings · mkappworks/cloudzilla — Cloudzilla</title>
+<link rel="stylesheet" href="/assets/tailwind.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div id="cz-header" data-repo-tab="settings"></div>
+
+<main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
+<div class="space-y-6">
+
+  <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
+    <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
+    <a href="?state=default" data-mock-state="default" class="h-7 px-2.5 inline-flex items-center rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Default</a>
+    <a href="?state=no-secret-key" data-mock-state="no-secret-key" class="h-7 px-2.5 inline-flex items-center rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">No secret key</a>
+    <a href="?state=new-runner" data-mock-state="new-runner" class="h-7 px-2.5 inline-flex items-center rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">New runner</a>
+    <a href="?state=ci-off" data-mock-state="ci-off" class="h-7 px-2.5 inline-flex items-center rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">CI off</a>
+    <span class="ml-auto"><a href="actions_run.html" class="underline hover:text-foreground">run page</a></span>
+  </div>
+
+  <section aria-labelledby="settings-title">
+    <h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Repository settings</h1>
+  </section>
+
+  <div class="grid grid-cols-12 gap-8">
+    <aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
+      <div class="lg:sticky lg:top-4">
+        <nav aria-label="Settings sections" class="w-56 flex-none">
+          <ul class="space-y-1">
+            <li><a href="settings.html#general" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">General</a></li>
+            <li><a href="settings.html#access" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Access</a></li>
+            <li><a href="settings.html#collaborators" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Collaborators</a></li>
+            <li><a href="settings.html#deploy-keys" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Deploy keys</a></li>
+            <li><a href="settings.html#labels" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Labels</a></li>
+            <li><a href="settings.html#branches" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Branch protection</a></li>
+            <li><a href="settings.html#webhooks" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Webhooks</a></li>
+            <li><a href="#ci" aria-current="page" class="block px-3 py-1.5 rounded-sm text-sm font-medium bg-accent text-foreground">CI/CD</a></li>
+            <li><a href="settings.html#template" class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Template</a></li>
+            <li role="presentation" aria-hidden="true"><p class="font-mono text-[12px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-destructive">Danger zone</p></li>
+            <li><a href="settings.html#visibility" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Visibility</a></li>
+            <li><a href="settings.html#archive" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Archive</a></li>
+            <li><a href="settings.html#transfer" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Transfer ownership</a></li>
+            <li><a href="settings.html#delete" class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">Delete repository</a></li>
+          </ul>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="col-span-12 lg:col-span-9 space-y-8">
+
+      <section id="ci" class="scroll-mt-6">
+        <div class="rounded-lg border border-border bg-card text-card-foreground">
+          <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+            <h2 class="text-base font-semibold tracking-tight">CI/CD</h2>
+            <p class="text-[12px] text-muted-foreground">Workflows in <span class="font-mono">.cloudzilla/workflows/</span> run on Runners. See <a href="#" class="underline underline-offset-2 hover:text-foreground">Supported workflow syntax</a> for the keys a workflow can use.</p>
+          </div>
+          <div class="p-5 space-y-4">
+            <div data-when="ci-off" hidden role="status" class="rounded-md border border-warning/40 bg-warning/10 p-4 text-[13px]">
+              <p class="font-semibold text-warning">CI is off for this repository</p>
+              <p class="text-muted-foreground mt-1">Pushes and pull requests create no Runs. Existing Runs, logs and commit statuses stay on the <a href="actions.html" class="text-foreground underline underline-offset-2">Actions tab</a>.</p>
+            </div>
+            <label class="flex items-start justify-between gap-4 cursor-pointer">
+              <span class="min-w-0">
+                <span class="block text-sm font-medium text-foreground">Enable CI for this repository</span>
+                <span class="block text-xs text-muted-foreground mt-0.5">When off, nothing new runs. History is kept.</span>
+              </span>
+              <span class="relative inline-flex items-center mt-0.5">
+                <input type="checkbox" role="switch" id="ci-enabled" name="ci_enabled" checked class="peer sr-only" />
+                <span aria-hidden="true" class="relative w-9 h-5 bg-input dark:bg-border-strong rounded-full transition-colors peer-checked:bg-switch dark:peer-checked:bg-switch peer-focus-visible:outline-solid peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed after:absolute after:content-[''] after:top-0.5 after:left-0.5 after:bg-white after:shadow-sm after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-4"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section id="secrets" class="scroll-mt-6">
+        <div class="rounded-lg border border-border bg-card text-card-foreground">
+          <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <h2 class="text-base font-semibold tracking-tight">Secrets</h2>
+                <p class="text-[12px] text-muted-foreground">Available to workflows as <span class="font-mono">${{ secrets.NAME }}</span>. Values are write-only: nobody can read one back here.</p>
+              </div>
+              <button type="button" id="add-secret-btn" data-secret-open="add" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px] shrink-0">Add secret</button>
+            </div>
+          </div>
+          <div class="p-5 space-y-4">
+            <div data-when="no-secret-key" hidden role="status" class="rounded-md border border-warning/40 bg-warning/10 p-4 text-[13px]">
+              <p class="font-semibold text-warning">Set security.secret_key to store secrets</p>
+              <p class="text-muted-foreground mt-1">Secrets are sealed with <code class="font-mono text-foreground">security.secret_key</code> (<code class="font-mono text-foreground">CZ_SECURITY_SECRET_KEY</code>), which isn't set on this Instance. Ask an administrator to set it and restart the server.</p>
+            </div>
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-muted-foreground border-b border-border">
+                  <th scope="col" class="pb-2 font-medium">Name</th>
+                  <th scope="col" class="pb-2 font-medium">Created by</th>
+                  <th scope="col" class="pb-2 font-medium">Updated</th>
+                  <th scope="col" class="pb-2"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <tr>
+                  <td class="py-3 font-mono font-medium text-foreground">DEPLOY_TOKEN</td>
+                  <td class="py-3 text-muted-foreground">malith</td>
+                  <td class="py-3 text-muted-foreground text-xs">Nov 2, 2026</td>
+                  <td class="py-3 text-right whitespace-nowrap">
+                    <button type="button" data-secret-open="replace" data-name="DEPLOY_TOKEN" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Replace</button>
+                    <button type="button" data-confirm-open data-title="Delete DEPLOY_TOKEN?" data-msg="Workflows that read it get an empty value from the next Run." data-label="Delete" data-toast="Secret deleted" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px] ml-1">Delete</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="py-3 font-mono font-medium text-foreground">REGISTRY_PASSWORD</td>
+                  <td class="py-3 text-muted-foreground">daisy</td>
+                  <td class="py-3 text-muted-foreground text-xs">Oct 21, 2026</td>
+                  <td class="py-3 text-right whitespace-nowrap">
+                    <button type="button" data-secret-open="replace" data-name="REGISTRY_PASSWORD" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]">Replace</button>
+                    <button type="button" data-confirm-open data-title="Delete REGISTRY_PASSWORD?" data-msg="Workflows that read it get an empty value from the next Run." data-label="Delete" data-toast="Secret deleted" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px] ml-1">Delete</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="text-[12px] text-muted-foreground">A writer can read a secret by pushing a workflow that prints it. Secrets are withheld from fork pull requests.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="runners" class="scroll-mt-6">
+        <div class="rounded-lg border border-border bg-card text-card-foreground">
+          <div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <h2 class="text-base font-semibold tracking-tight">Runners</h2>
+                <p class="text-[12px] text-muted-foreground">Machines that run this repository's Jobs. Instance Runners registered by an administrator also pick up its Jobs.</p>
+              </div>
+              <button type="button" data-runner-open class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px] shrink-0">New runner</button>
+            </div>
+          </div>
+          <div class="p-5">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-muted-foreground border-b border-border">
+                  <th scope="col" class="pb-2 font-medium">Name</th>
+                  <th scope="col" class="pb-2 font-medium">Labels</th>
+                  <th scope="col" class="pb-2 font-medium">Status</th>
+                  <th scope="col" class="pb-2 font-medium">Last contact</th>
+                  <th scope="col" class="pb-2"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <tr>
+                  <td class="py-3 font-mono font-medium text-foreground">build-box-01</td>
+                  <td class="py-3"><span class="inline-flex gap-1"><span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">docker</span><span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">linux</span></span></td>
+                  <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/15 text-success border-success/30">Online</span></td>
+                  <td class="py-3 text-muted-foreground text-xs">12 seconds ago</td>
+                  <td class="py-3 text-right"><button type="button" data-confirm-open data-title="Revoke build-box-01?" data-msg="Its token stops working on the next request. A Job it is running fails with runner lost." data-label="Revoke" data-toast="Runner revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
+                </tr>
+                <tr>
+                  <td class="py-3 font-mono font-medium text-foreground">arm-runner</td>
+                  <td class="py-3"><span class="inline-flex gap-1"><span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">docker</span><span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">arm64</span></span></td>
+                  <td class="py-3"><span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-transparent">Offline</span></td>
+                  <td class="py-3 text-muted-foreground text-xs">3 days ago</td>
+                  <td class="py-3 text-right"><button type="button" data-confirm-open data-title="Revoke arm-runner?" data-msg="Its token stops working on the next request." data-label="Revoke" data-toast="Runner revoked" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-8 px-3 text-[13px]">Revoke</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+</main>
+
+<dialog id="secret-dialog" aria-labelledby="secret-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="secret-dialog-title" class="text-base font-semibold leading-tight">Add secret</h2>
+  </div>
+  <div class="p-5 text-sm">
+    <form id="secret-form" class="space-y-4" onsubmit="return false">
+      <div class="space-y-1.5">
+        <label for="secret-name" class="block text-xs font-medium">Name</label>
+        <input id="secret-name" type="text" name="name" placeholder="DEPLOY_TOKEN" required autocomplete="off" spellcheck="false" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs transition-colors placeholder:text-muted-foreground read-only:bg-muted/50 read-only:text-muted-foreground" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="secret-value" class="block text-xs font-medium">Value</label>
+        <textarea id="secret-value" name="value" rows="3" required autocomplete="off" spellcheck="false" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs font-mono shadow-xs placeholder:text-muted-foreground"></textarea>
+        <p class="text-[12px] text-muted-foreground">Write-only. After you save it, it can't be shown again, only replaced.</p>
+      </div>
+    </form>
+  </div>
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+    <button type="submit" form="secret-form" id="secret-save" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Save secret</button>
+  </div>
+</dialog>
+
+<dialog id="runner-dialog" aria-labelledby="runner-dialog-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[560px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="sticky top-0 z-10 bg-popover flex flex-col gap-1 p-5 border-b border-border">
+    <h2 id="runner-dialog-title" class="text-base font-semibold leading-tight">New runner</h2>
+  </div>
+  <div class="p-5 text-sm space-y-4">
+    <form id="runner-form" class="space-y-1.5" onsubmit="return false">
+      <label for="runner-labels" class="block text-xs font-medium">Labels</label>
+      <input id="runner-labels" type="text" name="labels" value="docker" autocomplete="off" spellcheck="false" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs" />
+      <p class="text-[12px] text-muted-foreground">Comma-separated. A Job's <span class="font-mono">runs-on</span> must match one of them.</p>
+    </form>
+    <div id="runner-result" hidden class="space-y-3">
+      <div role="status" class="rounded-md border border-warning/40 bg-warning/10 p-3 text-[13px]">
+        <p class="font-semibold text-warning">Copy this token now</p>
+        <p class="text-muted-foreground mt-0.5">It is shown once and registers one runner.</p>
+      </div>
+      <div class="space-y-1.5">
+        <label for="runner-token" class="block text-xs font-medium">Registration token</label>
+        <input id="runner-token" readonly value="czreg_9fT2kLq7VbXw3NhYd0RzPs6mUe1AaCj8" class="flex h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-xs font-mono" />
+      </div>
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <label for="runner-command" class="block text-xs font-medium">Run this on the runner host</label>
+          <button type="button" data-copy="runner-command" class="h-7 px-2.5 text-[12px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5">Copy command</button>
+        </div>
+        <textarea id="runner-command" readonly rows="4" class="flex w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-xs font-mono leading-relaxed"></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="sticky bottom-0 z-10 bg-popover flex items-center justify-end gap-2 p-5 border-t border-border">
+    <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Close</button>
+    <button type="button" id="runner-generate" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Generate token</button>
+  </div>
+</dialog>
+
+<dialog id="confirm-dialog" aria-labelledby="confirm-title" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs">
+  <div class="p-5">
+    <h2 id="confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+    <p id="confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" id="confirm-go" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90"></button>
+    </div>
+  </div>
+</dialog>
+
+<div id="cz-footer"></div>
+<script src="shell.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var state = new URLSearchParams(location.search).get('state') || 'default';
+  var toastText = '';
+
+  document.querySelectorAll('[data-mock-state]').forEach(function (a) {
+    a.setAttribute('aria-pressed', String(a.dataset.mockState === state));
+  });
+  document.querySelectorAll('[data-when]').forEach(function (el) { el.hidden = el.dataset.when !== state; });
+
+  if (state === 'ci-off') $('ci-enabled').checked = false;
+  $('ci-enabled').addEventListener('change', function () {
+    document.querySelector('[data-when="ci-off"]').hidden = this.checked;
+  });
+  if (state === 'no-secret-key') {
+    $('add-secret-btn').disabled = true;
+    document.querySelectorAll('[data-secret-open="replace"]').forEach(function (b) { b.disabled = true; });
+  }
+
+  function command() {
+    $('runner-command').value = 'cz-runner register --server https://git.example.test --token ' + $('runner-token').value +
+      ' --labels ' + ($('runner-labels').value.trim() || 'docker');
+  }
+  function generate() {
+    $('runner-result').hidden = false;
+    $('runner-generate').hidden = true;
+    $('runner-labels').readOnly = true;
+    command();
+  }
+  $('runner-generate').addEventListener('click', generate);
+  if (state === 'new-runner') { generate(); $('runner-dialog').showModal(); }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-secret-open]');
+    if (t && !t.disabled) {
+      var replace = t.dataset.secretOpen === 'replace';
+      $('secret-dialog-title').textContent = replace ? 'Replace ' + t.dataset.name : 'Add secret';
+      $('secret-name').value = replace ? t.dataset.name : '';
+      $('secret-name').readOnly = replace;
+      $('secret-value').value = '';
+      $('secret-dialog').showModal();
+      return;
+    }
+    if (e.target.closest('[data-runner-open]')) { $('runner-dialog').showModal(); return; }
+    var c = e.target.closest('[data-confirm-open]');
+    if (c) {
+      $('confirm-title').textContent = c.dataset.title;
+      $('confirm-msg').textContent = c.dataset.msg;
+      $('confirm-go').textContent = c.dataset.label;
+      toastText = c.dataset.toast;
+      $('confirm-dialog').showModal();
+      return;
+    }
+    if (e.target.closest('#confirm-go')) { $('confirm-dialog').close(); window.czToast(toastText); return; }
+    var cp = e.target.closest('[data-copy]');
+    if (cp) {
+      try { navigator.clipboard.writeText($(cp.dataset.copy).value); } catch (err) {}
+      window.czToast('Command copied');
+    }
+  });
+  $('secret-form').addEventListener('submit', function () {
+    $('secret-dialog').close();
+    window.czToast('Secret saved');
+  });
+})();
+</script>
+</body>
+</html>

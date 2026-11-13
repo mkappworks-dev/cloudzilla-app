@@ -190,7 +190,7 @@ func DeployKeys(data view.DeployKeysFragData) templ.Component {
 						"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys/" + strconv.FormatInt(dk.ID, 10),
 						"hx-target":           "#deploy-keys-list",
 						"hx-swap":             "outerHTML",
-						"hx-confirm":          "The " + dk.Title + " key will immediately lose access. Any pipeline using it will stop working.",
+						"hx-confirm":          "The " + dk.Title + " key will immediately lose access. Anything using it will stop working.",
 						"data-confirm-title":  "Revoke this deploy key?",
 						"data-confirm-label":  "Revoke",
 						"data-confirm-danger": "true",

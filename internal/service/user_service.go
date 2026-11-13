@@ -61,15 +61,16 @@ var dummyPasswordHash = func() []byte {
 
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
-	store       *store.UserStore
-	repos       *RepoService
-	cfg         config.AuthConfig
-	noreplyHost string
-	verifier    *EmailVerificationService
-	reauth      *ReauthService
-	notices     *EmailService
-	avatars     *AvatarService
-	exports     *ExportService
+	store        *store.UserStore
+	repos        *RepoService
+	cfg          config.AuthConfig
+	noreplyHost  string
+	verifier     *EmailVerificationService
+	reauth       *ReauthService
+	notices      *EmailService
+	avatars      *AvatarService
+	exports      *ExportService
+	workflowLogs *WorkflowLogService
 }
 
 // NewUserService creates a UserService backed by the given user store and auth config.
@@ -403,6 +404,10 @@ func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 		return err
 	}
 	s.avatars.DeleteObject(ctx, avatarKey)
+	if s.workflowLogs != nil {
+		// The owned repos' rows cascaded away, so their log and artifact rows are orphans now.
+		s.workflowLogs.SweepOrphans(ctx)
+	}
 	if s.exports != nil {
 		s.exports.DeleteObjects(ctx, exportKeys)
 	}
@@ -443,6 +448,12 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 // WithAvatars removes a deleted user's avatar object.
 func (s *UserService) WithAvatars(a *AvatarService) *UserService {
 	s.avatars = a
+	return s
+}
+
+// WithWorkflowLogs removes the CI logs and artifacts of a deleted user's repos.
+func (s *UserService) WithWorkflowLogs(l *WorkflowLogService) *UserService {
+	s.workflowLogs = l
 	return s
 }
 

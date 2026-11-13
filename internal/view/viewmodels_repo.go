@@ -197,6 +197,16 @@ type ReleaseDetailData struct {
 	MaxAssets     int
 }
 
+// CISettings is the CI/CD section of the repo settings.
+type CISettings struct {
+	Enabled bool
+	Secrets []model.CISecret
+	// HasKey is false when security.secret_key is unset, so secrets can't be saved.
+	HasKey     bool
+	Base       string
+	ActionsURL string
+}
+
 // RepoSettingsData holds template data for the repository settings page.
 type RepoSettingsData struct {
 	BasePage
@@ -216,6 +226,8 @@ type RepoSettingsData struct {
 	IsOwner         bool
 	PendingTransfer *model.RepoTransfer // nil unless IsOwner and a transfer awaits its recipient
 	Mirror          *MirrorSettings     // nil unless the repo is a pull mirror
+	Runners         *RunnersFragData    // nil when ci.enabled is off
+	CI              *CISettings         // nil when ci.enabled is off
 	// What the viewer confirms giving others access with.
 	Confirm components.ConfirmFactors
 }
@@ -348,6 +360,7 @@ type TreeLatestCommit struct {
 	CommitURL string
 	Timestamp time.Time
 	Signature service.SignatureResult
+	CI        components.CIBadge
 }
 
 // BlobData holds template data for the file blob viewer page.
@@ -404,6 +417,8 @@ type CommitsData struct {
 	RepoName string
 	Log      *service.CommitLog
 	RefsURL  string
+	// CI is the status badge of each commit by full SHA; a commit without statuses has none.
+	CI map[string]components.CIBadge
 }
 
 // CommitData holds template data for the single commit detail page.

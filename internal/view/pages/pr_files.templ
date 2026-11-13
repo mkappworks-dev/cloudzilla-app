@@ -34,6 +34,7 @@ templ PullFiles(data view.PullFilesData) {
 			Deleted:        data.Deleted,
 			MergedBy:       data.MergedBy,
 			MergedCommits: data.MergedCommits,
+			HeadCI:        data.HeadCI,
 		}, pullFilesBody(data))
 	}
 }

@@ -12,22 +12,41 @@ in November 2026; update it when a mock is added.
 | `device_login.templ`    | `/login/device`, `/login/device/confirm` |                 |
 | `not_found.templ`       | any 404                                  |                 |
 
+## Mocks of pages not yet shipped
+
+Built-in CI (ROADMAP 18.1-18.3) is drawn ahead of the code. There is no template to copy from yet, so the spec in
+`.scratch/2026-11-06-ci-pipelines/spec.md` is the source; the tickets under it ship the pages.
+
+| Mock                        | Future page                                                             |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `actions.html`              | `/{owner}/{repo}/actions`, the runs list; replaces the repo Checks page |
+| `actions_run.html`          | `/{owner}/{repo}/actions/runs/{n}`: Jobs, Steps, logs and Artifacts     |
+| `repo_settings_ci.html`     | Repository Settings, CI/CD: enable toggle, secrets, repository runners  |
+| `admin_runners.html`        | `/admin/runners`: instance runners, labels, last contact, revoke        |
+| `actions_status_icons.html` | The status icon in a commit-list row, the PR header and the file tree   |
+
+`commits.html`, `tree.html` and `pr.html` carry the status icon: a mix of states on the commit list, success on the
+tree's last-commit row, `pr.html#ci=` on the title.
+
+`pr_checks.html` is a shipped page redrawn for the same work: one Run card per Run with its Jobs, then an "Other
+statuses" card for external CI.
+
 ## Pages covered by a differently named mock
 
-| Mock                                      | Real page                                         |
-| ----------------------------------------- | ------------------------------------------------- |
-| `actions.html`                            | `checks.templ`: the repo Checks page              |
-| `pr.html`                                 | `pull_detail.templ`                               |
-| `project.html`, `project_board.html`      | `projects.templ`, `project_detail.templ`          |
-| `profile.html`, `org_profile.html`        | `user.templ`, `org.templ`                         |
-| `settings.html`, `account_settings.html`  | `repo_settings.templ`, `settings.templ`           |
-| `new_repo.html`                           | `repo_new.templ`                                  |
-| `my_repositories.html`, `my_pulls.html`   | `account_repos.templ`, `account_pulls.templ`      |
-| `my_issues.html`, `attention.html`        | `account_issues.templ`, `account_attention.templ` |
-| `wiki*.html` (six pages)                  | `wiki_page.templ`, `wiki_shared.templ`            |
-| `discussion_detail_locked.html`           | The locked state of `discussion_detail.templ`     |
-| `issues_closed.html`, `*_closed/answered` | Tab states of the list pages                      |
-| `issues_filtered.html`                    | `issues.templ` with filter chips and a menu open  |
+| Mock                                      | Real page                                                        |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| `actions.html`                            | The repo Actions page, `actions.templ` (replaces `checks.templ`) |
+| `pr.html`                                 | `pull_detail.templ`                                              |
+| `project.html`, `project_board.html`      | `projects.templ`, `project_detail.templ`                         |
+| `profile.html`, `org_profile.html`        | `user.templ`, `org.templ`                                        |
+| `settings.html`, `account_settings.html`  | `repo_settings.templ`, `settings.templ`                          |
+| `new_repo.html`                           | `repo_new.templ`                                                 |
+| `my_repositories.html`, `my_pulls.html`   | `account_repos.templ`, `account_pulls.templ`                     |
+| `my_issues.html`, `attention.html`        | `account_issues.templ`, `account_attention.templ`                |
+| `wiki*.html` (six pages)                  | `wiki_page.templ`, `wiki_shared.templ`                           |
+| `discussion_detail_locked.html`           | The locked state of `discussion_detail.templ`                    |
+| `issues_closed.html`, `*_closed/answered` | Tab states of the list pages                                     |
+| `issues_filtered.html`                    | `issues.templ` with filter chips and a menu open                 |
 
 ## States with no mock
 
@@ -45,12 +64,13 @@ Mocks show the happy path. These real states are not drawn:
   cannot comment on; the `pr.html` merge box's lock line ("Only collaborators with write access…") in place of Merge and
   Close.
 - **PR states.** `pr.html` opens in other states through hashes: `#pr=open|draft|merged`,
-  `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly`, `#manage=yes`
-  (a repo admin or owner, who gets Dismiss review on a blocking request for changes; join with `&`). The `conflicts` box
-  carries the command-line steps, `ready` offers Update branch, and `viewer=readonly` on `ready` reads "Ready, waiting
-  for a maintainer". A dismissed review's timeline entry ("Dismissed by …: reason") has no mock.
-  `pr_files.html#merged=unavailable` is a merged PR whose diff was never recorded ("Diff unavailable after merge."); the
-  Commits tab says the same for its commits and has no mock.
+  `#merge=ready|needs|checks-pending|failing|changes|conflicts|auto`, `#viewer=reviewer|author|readonly`,
+  `#ci=success|failure|running|none` (the title's CI status icon), `#manage=yes` (a repo admin or owner, who gets
+  Dismiss review on a blocking request for changes; join with `&`). The `conflicts` box carries the command-line steps,
+  `ready` offers Update branch, and `viewer=readonly` on `ready` reads "Ready, waiting for a maintainer". A dismissed
+  review's timeline entry ("Dismissed by …: reason") has no mock. `pr_files.html#merged=unavailable` is a merged PR
+  whose diff was never recorded ("Diff unavailable after merge."); the Commits tab says the same for its commits and has
+  no mock.
 - **Other states.** Closed pull requests; archived and mirror repo banners; binary file in `blob`; hidden-issue project
   card; form validation errors (`Alert` destructive) on every create page but `new_file.html` (submit a blank, `.git` or
   slash-ended path, or open `#error`); inline field errors on `login.html`, `register.html`, `new_repo.html` and
@@ -117,6 +137,12 @@ Some controls and forms have no behaviour. In particular:
 
 - **Project board cards.** Every card opens the card dialog, with the linked issue or PR shown as a link inside it. In
   the real app only note cards open the dialog; a linked issue or PR card navigates straight to that item.
-- **PR checks page.** The repo tab bar highlights Checks. The real app keeps Pull requests highlighted on every PR tab.
+- **CI mocks.** `actions.html`, `actions_run.html`, `pr_checks.html` and `repo_settings_ci.html` carry a dashed "Mock
+  state" bar (or `?state=` and `?role=reader|writer|admin`) that switches states and the viewer's role in the page. The
+  real pages derive both from the data and the session, and have no such bar.
+- **Repository runners.** `settings.html` carries the Runners section; `repo_settings_ci.html` draws it inside the full
+  CI/CD page, as the real settings page now does, with the enable toggle and secrets above it.
+- **Run page timestamps.** The log stores no per-line times, so the Timestamps toggle shows when each Step started, in
+  its header. The mock shows the same. Line numbers run through the whole Job, so `#L42` is one anchor per Job.
 - **Repository settings webhooks.** `settings.html` always shows "An organization webhook also fires for this
   repository"; the real page renders it only when the owning organization has a webhook, and never for a personal repo.

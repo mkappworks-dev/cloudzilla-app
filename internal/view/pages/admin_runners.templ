@@ -1,0 +1,87 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+// runnerDialog is the "New runner" dialog; its form swaps the one-time token into #runner-result.
+templ runnerDialog(d view.RunnerDialogData) {
+	@components.Dialog("runner-dialog") {
+		@components.DialogHeader() {
+			@components.DialogTitle("runner-dialog") {
+				{ d.Title }
+			}
+		}
+		@components.DialogBody() {
+			<div class="space-y-4">
+				<form id="runner-form" hx-post={ d.Base + "/tokens" } hx-target="#runner-result" hx-swap="innerHTML" hx-on::after:request="if(event.target===this&&ctx.response.status<400&&!ctx.hx.retarget){this.querySelector('#runner-labels').readOnly=true;document.getElementById('runner-generate').hidden=true;}" class="space-y-1.5">
+					<label for="runner-labels" class="block text-xs font-medium">Labels</label>
+					@components.Input(templ.Attributes{"id": "runner-labels", "type": "text", "name": "labels", "value": "linux", "autocomplete": "off", "spellcheck": "false", "class": "font-mono"})
+					<p class="text-[12px] text-muted-foreground">Comma-separated. A Job's <span class="font-mono">runs-on</span> must match one of them.</p>
+					<div id="runner-form-error" class="empty:hidden"></div>
+				</form>
+				<div id="runner-result"></div>
+			</div>
+		}
+		@components.DialogFooter() {
+			@components.DialogClose() {
+				Close
+			}
+			@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "runner-form", "id": "runner-generate"}) {
+				Generate token
+			}
+		}
+	}
+	<script>
+		(function () {
+			var dlg = document.getElementById('runner-dialog');
+			if (!dlg || dlg.dataset.bound) return;
+			dlg.dataset.bound = '1';
+			// The card is swapped after a revoke, so the open buttons are found by delegation.
+			document.addEventListener('click', function (e) {
+				if (!e.target.closest('[data-runner-open]')) return;
+				document.getElementById('runner-result').textContent = '';
+				var labels = document.getElementById('runner-labels');
+				labels.readOnly = false;
+				document.getElementById('runner-generate').hidden = false;
+				dlg.showModal();
+			});
+		})();
+	</script>
+}
+
+templ AdminRunners(data view.AdminRunnersData) {
+	@layout.Base(data.BasePage, "Runners") {
+		<div class="space-y-6">
+			@adminTabs(data.BasePage, "/admin/runners")
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-semibold tracking-tight">Runners</h1>
+			</div>
+			@fragments.RunnersCard(data.Runners)
+			@components.Card(nil) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
+						CI limits
+					}
+					@components.CardDescription() {
+						Read-only here. Change them under <span class="font-mono">ci.*</span> in <span class="font-mono">config.yaml</span> or with <span class="font-mono">CZ_CI_*</span> and restart.
+					}
+				}
+				@components.CardContent() {
+					<dl class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-[13px]">
+						for _, l := range data.Limits {
+							<div class="space-y-1">
+								<dt class="text-xs font-medium text-muted-foreground font-mono">{ l.Key }</dt>
+								<dd>{ l.Value }</dd>
+							</div>
+						}
+					</dl>
+				}
+			}
+		</div>
+		@runnerDialog(view.RunnerDialogData{Base: "/admin/runners", Title: "New instance runner", Instance: true})
+	}
+}

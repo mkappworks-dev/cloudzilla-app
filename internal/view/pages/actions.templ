@@ -1,0 +1,386 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
+)
+
+const (
+	actionsBtnPrimary = "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90"
+	actionsSelect     = "h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none"
+	actionsBranchPill = "font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]"
+	actionsChevron    = "pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+)
+
+func selectedIf(on bool) templ.Attributes {
+	if on {
+		return templ.Attributes{"selected": true}
+	}
+	return nil
+}
+
+templ Actions(data view.ActionsData) {
+	@layout.Base(data.BasePage, "Actions · "+data.Owner+"/"+data.RepoName) {
+		<div class="flex flex-col gap-6">
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="actions-title">
+				<div class="min-w-0">
+					<h1 id="actions-title" class="text-2xl font-semibold tracking-tight">Actions</h1>
+					<p class="mt-1 text-[13px] text-muted-foreground">Runs of the workflow files in <span class="font-mono">.cloudzilla/workflows/</span>, and statuses that external CI reports through the status API.</p>
+				</div>
+				if data.Dispatch != nil && !data.Legacy {
+					@dispatchPopover(*data.Dispatch)
+				}
+			</section>
+			if data.Flash != "" {
+				<div role="alert" class="relative w-full rounded-md border p-4 border-destructive/40 bg-destructive/10 text-destructive text-sm">{ data.Flash }</div>
+			}
+			if !data.Legacy {
+				@actionsFilters(data)
+			}
+			if data.RepoCIOff {
+				<div role="status" class="rounded-md border border-warning/40 bg-warning/10 p-4 text-[13px]">
+					<p class="font-semibold text-warning">CI is off for this repository</p>
+					<p class="text-muted-foreground mt-1">Pushes and pull requests create no Runs. Existing Runs, logs and commit statuses stay here.</p>
+				</div>
+			}
+			if data.Filter.Source == view.SourceStatuses {
+				@actionsStatuses(data)
+			} else {
+				@actionsRuns(data)
+			}
+		</div>
+	}
+}
+
+templ actionsFilters(data view.ActionsData) {
+	<form method="get" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/actions") } class="flex flex-wrap items-center gap-1.5" aria-label="Filter runs">
+		<div class="relative">
+			<select name="source" aria-label="Filter by source" class={ actionsSelect }>
+				<option value="workflows" { selectedIf(data.Filter.Source != view.SourceStatuses)... }>Workflow runs</option>
+				<option value="statuses" { selectedIf(data.Filter.Source == view.SourceStatuses)... }>Commit statuses (external CI)</option>
+			</select>
+			@chevronDown()
+		</div>
+		if data.Filter.Source != view.SourceStatuses {
+			<div class="relative">
+				<select name="workflow" aria-label="Filter by workflow" class={ actionsSelect }>
+					<option value="">All workflows</option>
+					for _, w := range data.Facets.Workflows {
+						<option value={ w.Path } { selectedIf(data.Filter.Workflow == w.Path)... }>{ w.Name }</option>
+					}
+				</select>
+				@chevronDown()
+			</div>
+			<div class="relative">
+				<select name="branch" aria-label="Filter by branch" class={ actionsSelect }>
+					<option value="">All branches</option>
+					for _, b := range data.Facets.Branches {
+						<option value={ b } { selectedIf(data.Filter.Branch == b)... }>{ b }</option>
+					}
+				</select>
+				@chevronDown()
+			</div>
+			<div class="relative">
+				<select name="status" aria-label="Filter by status" class={ actionsSelect }>
+					<option value="">Any status</option>
+					for _, o := range statusOptions {
+						<option value={ o[0] } { selectedIf(data.Filter.Status == o[0])... }>{ o[1] }</option>
+					}
+				</select>
+				@chevronDown()
+			</div>
+			<div class="relative">
+				<select name="event" aria-label="Filter by trigger" class={ actionsSelect }>
+					<option value="">Any trigger</option>
+					<option value="push" { selectedIf(data.Filter.Event == "push")... }>Push</option>
+					<option value="pull_request" { selectedIf(data.Filter.Event == "pull_request")... }>Pull request</option>
+					<option value="manual" { selectedIf(data.Filter.Event == "manual")... }>Manual</option>
+				</select>
+				@chevronDown()
+			</div>
+		}
+		<button type="submit" class="h-8 px-3 text-[13px] bg-accent text-accent-foreground border border-border rounded-md hover:bg-accent/80">Apply</button>
+	</form>
+}
+
+var statusOptions = [][2]string{
+	{"waiting", "Approval required"}, {"queued", "Queued"}, {"running", "Running"},
+	{"success", "Succeeded"}, {"failure", "Failed"}, {"cancelled", "Cancelled"},
+}
+
+templ chevronDown() {
+	<svg class={ actionsChevron } width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+}
+
+templ actionsRuns(data view.ActionsData) {
+	if data.Failure != nil {
+		<div role="alert" class="relative w-full rounded-md border p-4 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:pl-7 [&>svg~*]:pl-7 border-destructive/40 bg-destructive/10 text-destructive">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+			<h5 class="mb-1 font-medium leading-none tracking-tight">{ data.Failure.File } couldn't be parsed on { data.Failure.Ref }</h5>
+			<div class="text-sm [&_p]:leading-relaxed opacity-90">
+				<p>Pushes to <span class="font-mono">{ data.Failure.Ref }</span> since <a href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "commit", data.Failure.SHA, "")) } class="font-mono underline">{ shortSHA(data.Failure.SHA) }</a> start no runs of it. <a href={ templ.SafeURL(data.Failure.URL) } class="underline">See the error</a>.</p>
+			</div>
+		</div>
+	}
+	if data.NoRunner && data.CanManage && len(data.Rows) > 0 {
+		<div class="bg-background border border-border rounded-lg p-6 text-center">
+			<p class="text-muted-foreground">No runners registered.</p>
+			<p class="text-sm text-muted-foreground mt-2">Register one in <a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings#runners") } class="text-foreground hover:underline">Settings → CI/CD</a>, or add an instance runner under <a href="/admin/runners" class="text-foreground hover:underline">Admin → Runners</a>.</p>
+		</div>
+	}
+	if len(data.Rows) > 0 {
+		<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Workflow runs">
+			<ol class="divide-y divide-border">
+				for _, row := range data.Rows {
+					@actionsRunRow(row)
+				}
+			</ol>
+		</section>
+		@components.PaginationLabeled(data.NewerURL, data.OlderURL)
+	} else if data.Filter.Active() {
+		@components.EmptyStateWithHint("No runs match these filters.", filterSummary(data))
+	} else if data.NewerURL != "" {
+		@components.EmptyState("No more runs.")
+		@components.PaginationLabeled(data.NewerURL, "")
+	} else {
+		@actionsEmpty(data)
+	}
+}
+
+func filterSummary(d view.ActionsData) string {
+	var parts []string
+	if d.Filter.Workflow != "" {
+		name := d.Filter.Workflow
+		for _, w := range d.Facets.Workflows {
+			if w.Path == d.Filter.Workflow {
+				name = w.Name
+			}
+		}
+		parts = append(parts, "Workflow "+name)
+	}
+	if d.Filter.Branch != "" {
+		parts = append(parts, "branch "+d.Filter.Branch)
+	}
+	if d.Filter.Status != "" {
+		parts = append(parts, "status "+components.RunStatusLabel(d.Filter.Status))
+	}
+	if d.Filter.Event != "" {
+		parts = append(parts, "trigger "+d.Filter.Event)
+	}
+	out := ""
+	for i, p := range parts {
+		if i > 0 {
+			out += " · "
+		}
+		out += p
+	}
+	return out
+}
+
+templ actionsRunRow(row view.RunRow) {
+	<li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">
+		<span class="mt-[3px]">
+			@components.RunStatusIcon(row.Status)
+		</span>
+		<div class="min-w-0 flex-1">
+			<div class="flex flex-wrap items-center gap-2">
+				<a href={ templ.SafeURL(row.URL) } class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">{ row.Title }</a>
+				if row.Badge != "" {
+					if row.BadgeWarning {
+						<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-warning/15 text-warning border-warning/30">{ row.Badge }</span>
+					} else {
+						<span class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium bg-destructive/15 text-destructive border-destructive/30">{ row.Badge }</span>
+					}
+				}
+				if row.Note != "" {
+					<span class="text-[12px] text-warning">{ row.Note }</span>
+				}
+			</div>
+			<p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+				<span class="font-medium text-foreground">{ row.WorkflowName }</span>
+				<span class="font-mono">#{ strconv.Itoa(row.Number) }</span>
+				<span aria-hidden="true">·</span>
+				if row.PullNumber > 0 {
+					<span>Pull request <a href={ templ.SafeURL(row.PullURL) } class="relative z-10 hover:text-foreground hover:underline">#{ strconv.Itoa(row.PullNumber) }</a> by { row.PullBy }</span>
+				} else {
+					<span>{ row.Trigger }</span>
+				}
+				<span aria-hidden="true">·</span>
+				<span class={ actionsBranchPill }>{ row.Ref }</span>
+				<a href={ templ.SafeURL(row.SHAURL) } class="relative z-10 hover:text-foreground hover:underline font-mono">{ row.SHA }</a>
+			</p>
+		</div>
+		if row.CanApprove {
+			<form method="post" action={ templ.SafeURL(row.URL + "/approve") } class="relative z-10 shrink-0 self-center">
+				<button type="submit" class={ actionsBtnPrimary + " h-8 px-3 text-[13px]" }>Approve</button>
+			</form>
+		}
+		<div class="hidden sm:flex shrink-0 flex-col items-end gap-0.5 text-[12px] text-muted-foreground">
+			<span class="inline-flex items-center gap-1 font-mono">
+				if row.Duration != "—" {
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 2"></path></svg>
+				}
+				{ row.Duration }
+			</span>
+			<span>{ row.When }</span>
+		</div>
+	</li>
+}
+
+templ actionsEmpty(data view.ActionsData) {
+	<section class="bg-background border border-border rounded-lg p-8">
+		<p class="text-center text-muted-foreground">No workflows in this repository yet.</p>
+		<p class="mt-2 text-center text-sm text-muted-foreground">Commit a YAML file under <span class="font-mono">.cloudzilla/workflows/</span> on the default branch. The next push runs it:</p>
+		<pre class="mt-4 text-xs text-foreground bg-muted rounded-sm p-3 overflow-x-auto font-mono">{ workflowExample }</pre>
+		<p class="mt-4 text-center text-sm text-muted-foreground">
+			Statuses that external CI posts still show under the <a href={ templ.SafeURL(data.StatusesURL) } class="text-foreground hover:underline">Commit statuses</a> filter.
+			if data.CanManage {
+				CI can be turned off in <a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings#ci") } class="text-foreground hover:underline">Settings → CI/CD</a>.
+			}
+		</p>
+	</section>
+}
+
+const workflowExample = "# .cloudzilla/workflows/ci.yml\nname: CI\non: [push, pull_request]\njobs:\n  test:\n    runs-on: docker\n    steps:\n      - name: Test\n        run: go test ./..."
+
+templ actionsStatuses(data view.ActionsData) {
+	if len(data.Commits) == 0 && data.NewerURL == "" {
+		@checksEmptyState(data.StatusAPIURL)
+	} else if len(data.Commits) == 0 {
+		@components.EmptyState("No more statuses.")
+		@components.PaginationLabeled(data.NewerURL, "")
+	} else {
+		<ol class="flex flex-col gap-4" aria-label="Commits with statuses">
+			for _, c := range data.Commits {
+				@checksCommitCard(data.Owner, data.RepoName, c)
+			}
+		</ol>
+		@components.PaginationLabeled(data.NewerURL, data.OlderURL)
+	}
+}
+
+templ dispatchPopover(d view.DispatchData) {
+	<div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
+		<button type="button" @click="open = !open" :aria-expanded="open" aria-haspopup="dialog" class={ actionsBtnPrimary + " h-9 px-4 text-sm" }>
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+			Run workflow
+			<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+		</button>
+		<div x-cloak x-show="open" role="dialog" aria-labelledby="dispatch-title" class="absolute right-0 top-full mt-1.5 z-50 w-[320px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3">
+			<form method="post" action={ templ.SafeURL(d.Action) } class="flex flex-col gap-3">
+				<p id="dispatch-title" class="text-[13px] font-medium">Run a workflow by hand</p>
+				if len(d.Workflows) == 0 {
+					<p class="text-[12px] text-muted-foreground">No workflow on <span class="font-mono">{ d.Default }</span> has a <span class="font-mono">workflow_dispatch</span> trigger. Add <span class="font-mono">on: workflow_dispatch</span> to one and push it.</p>
+				} else {
+					<div>
+						<label for="dispatch-workflow" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Workflow</label>
+						<div class="relative">
+							<select id="dispatch-workflow" name="workflow" class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50">
+								for _, w := range d.Workflows {
+									<option value={ dispatchFile(w) }>{ w.Name } · { dispatchFile(w) }</option>
+								}
+							</select>
+							@dispatchChevron()
+						</div>
+						<p class="text-[11px] text-muted-foreground mt-1">Only workflows with <span class="font-mono">on: workflow_dispatch</span> are listed.</p>
+					</div>
+					<div>
+						<label for="dispatch-ref" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Branch or tag</label>
+						<div class="relative">
+							<select id="dispatch-ref" name="ref" class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs font-mono disabled:cursor-not-allowed disabled:opacity-50">
+								<optgroup label="Branches">
+									for _, b := range d.Branches {
+										<option value={ b } { selectedIf(b == d.Default)... }>{ b }</option>
+									}
+								</optgroup>
+								if len(d.Tags) > 0 {
+									<optgroup label="Tags">
+										for _, t := range d.Tags {
+											<option value={ t }>{ t }</option>
+										}
+									</optgroup>
+								}
+							</select>
+							@dispatchChevron()
+						</div>
+						<p class="text-[11px] text-muted-foreground mt-1">The workflow file is read from this ref.</p>
+					</div>
+					<button type="submit" class={ actionsBtnPrimary + " h-8 px-3 text-[13px]" }>Run workflow</button>
+				}
+			</form>
+		</div>
+	</div>
+}
+
+templ dispatchChevron() {
+	<svg class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+}
+
+func dispatchFile(w service.DispatchWorkflow) string {
+	for i := len(w.Path) - 1; i >= 0; i-- {
+		if w.Path[i] == '/' {
+			return w.Path[i+1:]
+		}
+	}
+	return w.Path
+}
+
+templ checksCommitCard(owner, repoName string, c service.CommitChecks) {
+	<li class="rounded-md border border-border bg-card overflow-hidden">
+		<div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
+			@components.RunStatusIcon(string(c.State))
+			<div class="min-w-0 flex-1">
+				if c.Subject != "" {
+					<p class="text-[13.5px] font-medium truncate">{ c.Subject }</p>
+				} else {
+					<p class="text-[13.5px] font-medium font-mono truncate">{ c.SHA }</p>
+				}
+				<p class="text-[12px] text-muted-foreground mt-0.5">
+					{ strconv.Itoa(c.Passed) } of { strconv.Itoa(len(c.Statuses)) } passed
+					·
+					<a href={ templ.SafeURL(codeurl.Path(owner, repoName, "commit", c.SHA, "")) } class="font-mono hover:text-foreground hover:underline">{ shortSHA(c.SHA) }</a>
+					·
+					<time datetime={ c.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ timefmt.Relative(c.UpdatedAt) }</time>
+				</p>
+			</div>
+		</div>
+		<ol class="divide-y divide-border" aria-label={ "Statuses on " + shortSHA(c.SHA) }>
+			for _, s := range c.Statuses {
+				<li class="px-4 py-2.5 flex items-center gap-3">
+					@components.RunStatusIcon(string(s.State))
+					<div class="min-w-0 flex-1">
+						<p class="text-[13px] font-medium font-mono">{ s.Context }</p>
+						if s.Description != "" {
+							<p class="text-[12px] text-muted-foreground mt-0.5">{ s.Description }</p>
+						}
+					</div>
+					if s.TargetURL != "" {
+						<a href={ templ.URL(s.TargetURL) } class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+					}
+				</li>
+			}
+		</ol>
+	</li>
+}
+
+templ checksEmptyState(statusAPIURL string) {
+	<section class="bg-background border border-border rounded-lg p-8">
+		<p class="text-center text-muted-foreground">No commit statuses reported yet.</p>
+		<p class="mt-2 text-center text-sm text-muted-foreground">External CI reports a status by posting it for a commit SHA with a personal access token:</p>
+		<pre class="mt-4 text-xs text-foreground bg-muted rounded-sm p-3 overflow-x-auto font-mono">{ checksCurlExample(statusAPIURL) }</pre>
+	</section>
+}
+
+func checksCurlExample(statusAPIURL string) string {
+	return "curl -X POST \\\n" +
+		"  -H \"Authorization: Bearer $CZ_TOKEN\" \\\n" +
+		"  -H \"Content-Type: application/json\" \\\n" +
+		"  -d '{\"state\":\"success\",\"context\":\"ci/build\",\"description\":\"Build passed\",\"target_url\":\"https://ci.example.com/runs/1\"}' \\\n" +
+		"  " + statusAPIURL
+}

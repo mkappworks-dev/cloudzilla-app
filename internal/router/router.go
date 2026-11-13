@@ -119,6 +119,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW, superadminMW).Get("/admin/users", h.PageAdminUsers)
 	r.With(authMW, superadminMW).Get("/admin/users/{username}", h.PageAdminUser)
 	r.With(authMW, superadminMW).Get("/admin/audit-log", h.PageAuditLog)
+	if cfg.CI.Enabled {
+		r.With(authMW, superadminMW).Get("/admin/runners", h.PageAdminRunners)
+		r.With(authMW, superadminMW).Post("/admin/runners/tokens", h.CreateAdminRunnerToken)
+		r.With(authMW, superadminMW).Post("/admin/runners/{id}/revoke", h.RevokeAdminRunner)
+	}
 	r.With(authMW, superadminMW).Get("/admin/sso", h.PageSSOSettings)
 	r.With(authMW, superadminMW).Post("/admin/sso", h.SaveSSOConfig)
 	r.With(authMW, superadminMW).Get("/admin/mode", h.PageAdminMode)
@@ -240,6 +245,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(authMW).Get("/{owner}/{repo}/fork", h.PageForkRepo)
+	r.With(authMW).Post("/{owner}/{repo}/settings/ci", h.UpdateRepoCI)
+	r.With(authMW).Post("/{owner}/{repo}/settings/secrets", h.SaveCISecret)
+	r.With(authMW).Post("/{owner}/{repo}/settings/secrets/{name}/delete", h.DeleteCISecret)
+	r.With(authMW).Post("/{owner}/{repo}/settings/runners/tokens", h.CreateRepoRunnerToken)
+	r.With(authMW).Post("/{owner}/{repo}/settings/runners/{id}/revoke", h.RevokeRepoRunner)
 	r.With(authMW).Post("/{owner}/{repo}/settings/general", h.UpdateRepoGeneral)
 	r.With(authMW).Post("/{owner}/{repo}/settings/rename", h.RenameRepoSettings)
 	r.With(authMW).Post("/{owner}/{repo}/settings/features", h.UpdateRepoFeatures)
@@ -249,6 +259,18 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/download/{tag}/{name}", h.DownloadReleaseAsset)
 	r.With(optAuthMW).Head("/{owner}/{repo}/releases/download/{tag}/{name}", h.DownloadReleaseAsset)
+	if cfg.CI.Enabled {
+		r.With(optAuthMW).Get("/{owner}/{repo}/actions", h.PageActions)
+		r.With(optAuthMW).Get("/{owner}/{repo}/actions/runs/{number}", h.PageActionsRun)
+		r.With(optAuthMW).Get("/{owner}/{repo}/actions/runs/{number}/jobs/{jobID}/tail", h.PageActionsJobTail)
+		r.With(authMW).Post("/{owner}/{repo}/actions/dispatch", h.DispatchWorkflow)
+		r.With(authMW).Post("/{owner}/{repo}/actions/runs/{number}/cancel", h.CancelRun)
+		r.With(authMW).Post("/{owner}/{repo}/actions/runs/{number}/rerun", h.RerunRun)
+		r.With(authMW).Post("/{owner}/{repo}/actions/runs/{number}/approve", h.ApproveRun)
+	}
+	r.With(optAuthMW).Get("/{owner}/{repo}/actions/runs/{number}/artifacts/{id}", h.DownloadWorkflowArtifact)
+	r.With(optAuthMW).Head("/{owner}/{repo}/actions/runs/{number}/artifacts/{id}", h.DownloadWorkflowArtifact)
+	r.With(optAuthMW).Get("/{owner}/{repo}/actions/runs/{number}/jobs/{jobID}/log", h.DownloadWorkflowJobLog)
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
 	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
 	r.With(authMW).Get("/{owner}/{repo}/milestones/new", h.PageNewMilestone)
@@ -393,6 +415,15 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(authMW).Post("/", h.CreateRepo)
 		r.Get("/{owner}/{repo}", h.GetRepo)
 		r.With(authMW).Patch("/{owner}/{repo}", h.UpdateRepo)
+		if cfg.CI.Enabled {
+			r.Get("/{owner}/{repo}/actions/runs", h.ListWorkflowRuns)
+			r.Get("/{owner}/{repo}/actions/runs/{number}", h.GetWorkflowRun)
+			r.With(authMW).Post("/{owner}/{repo}/actions/runs/{number}/cancel", h.CancelWorkflowRun)
+			r.With(authMW).Post("/{owner}/{repo}/actions/runs/{number}/rerun", h.RerunWorkflowRun)
+			r.With(authMW).Post("/{owner}/{repo}/actions/dispatch", h.DispatchWorkflowRun)
+			r.Get("/{owner}/{repo}/actions/runs/{number}/jobs/{jobID}/logs", h.GetWorkflowJobLog)
+			r.Get("/{owner}/{repo}/actions/runs/{number}/artifacts", h.ListWorkflowArtifacts)
+		}
 
 		// Issues
 		r.Route("/{owner}/{repo}/issues", func(r chi.Router) {
@@ -738,6 +769,23 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// TOTP verification (no auth — reads cz_totp_pending cookie)
 	r.Get("/auth/2fa", h.PageTOTPVerify)
 	r.Post("/auth/2fa/verify", h.VerifyTOTP)
+
+	// Runner protocol: polled by cz-runner over outbound HTTPS, authenticated by its own tokens.
+	if cfg.CI.Enabled {
+		r.Route("/api/runner", func(r chi.Router) {
+			r.Use(middleware.NoStore)
+			r.With(apiBodyLimit).Post("/register", h.RunnerRegister)
+			r.With(apiBodyLimit).Post("/claim", h.RunnerClaim)
+			r.With(apiBodyLimit).Post("/jobs/{id}/heartbeat", h.RunnerHeartbeat)
+			r.With(apiBodyLimit).Post("/jobs/{id}/steps/{position}", h.RunnerStep)
+			r.With(apiBodyLimit).Post("/jobs/{id}/finish", h.RunnerFinish)
+			// The log body is read under its own cap; the artifact body is an archive, capped past the limit so the
+			// service can refuse it by name.
+			r.Post("/jobs/{id}/log", h.RunnerPostLog)
+			r.With(middleware.MaxBodySize(cfg.CI.MaxArtifactBytes+handler.ReleaseAssetBodyOverhead)).
+				Post("/jobs/{id}/artifacts", h.RunnerUploadArtifact)
+		})
+	}
 
 	// Git HTTP Smart Protocol routes
 	r.With(gitAuthMW).Get("/{owner}/{repo}/info/refs", h.GitInfoRefs)

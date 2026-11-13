@@ -89,6 +89,10 @@ func (h *Handler) gitReadableRepo(w http.ResponseWriter, r *http.Request, owner,
 		http.Error(w, "invalid repository path", http.StatusBadRequest)
 		return nil, nil, false
 	}
+	if _, password, ok := r.BasicAuth(); ok && strings.HasPrefix(password, service.JobTokenPrefix) {
+		repo, ok := h.gitJobTokenRepo(w, r, owner, repoName, password)
+		return repo, nil, ok
+	}
 	gu, err := h.resolveGitUser(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
@@ -116,6 +120,42 @@ func (h *Handler) gitReadableRepo(w http.ResponseWriter, r *http.Request, owner,
 		http.Error(w, "repository not found", http.StatusNotFound)
 	}
 	return nil, nil, false
+}
+
+// isUploadPackRequest reports whether r is a fetch: the ref advertisement for upload-pack or the pack request itself.
+func isUploadPackRequest(r *http.Request) bool {
+	switch {
+	case strings.HasSuffix(r.URL.Path, "/info/refs"):
+		return r.URL.Query().Get("service") == "git-upload-pack"
+	case strings.HasSuffix(r.URL.Path, "/git-upload-pack"):
+		return true
+	}
+	return false
+}
+
+// gitJobTokenRepo authorises a runner's per-job token: fetch from the one repo its Job runs in, nothing else. The
+// token bypasses user permissions on purpose, since the Job's triggering user may be gone, so every other path
+// (push, another repo) must be refused here. A repo other than the Job's looks missing, as an unreadable one does.
+func (h *Handler) gitJobTokenRepo(w http.ResponseWriter, r *http.Request, owner, repoName, token string) (*model.Repository, bool) {
+	if !isUploadPackRequest(r) {
+		http.Error(w, "a job token can only fetch", http.StatusForbidden)
+		return nil, false
+	}
+	jt, err := h.Services.CIRunner.VerifyJobToken(r.Context(), token)
+	if errors.Is(err, service.ErrRunnerUnauthorized) {
+		gitAuthChallenge(w)
+		return nil, false
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return nil, false
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || repo.ID != jt.RepoID {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return nil, false
+	}
+	return repo, true
 }
 
 // gitMovedRedirect sends git to the repo's current URL, keeping the .git suffix, the endpoint and the

@@ -31,6 +31,7 @@ type Config struct {
 	Mirror         MirrorConfig         `mapstructure:"mirror"`
 	SecretScanning SecretScanningConfig `mapstructure:"secret_scanning"`
 	Release        ReleaseConfig        `mapstructure:"release"`
+	CI             CIConfig             `mapstructure:"ci"`
 	Metrics        MetricsConfig        `mapstructure:"metrics"`
 }
 
@@ -235,6 +236,53 @@ func (c SecretScanningConfig) validate() error {
 	return nil
 }
 
+// CIConfig holds the limits on workflow Runs. Enabled false hides CI and creates no Runs.
+type CIConfig struct {
+	Enabled                  bool          `mapstructure:"enabled"`
+	MaxJobsPerRun            int           `mapstructure:"max_jobs_per_run"`
+	MaxStepsPerRun           int           `mapstructure:"max_steps_per_run"`
+	MaxQueuedRunsPerRepo     int           `mapstructure:"max_queued_runs_per_repo"`
+	MaxConcurrentRunsPerRepo int           `mapstructure:"max_concurrent_runs_per_repo"`
+	MaxJobMinutes            int           `mapstructure:"max_job_minutes"`
+	MaxLogBytes              int64         `mapstructure:"max_log_bytes"`
+	MaxArtifactBytes         int64         `mapstructure:"max_artifact_bytes"`
+	MaxArtifactsPerRun       int           `mapstructure:"max_artifacts_per_run"`
+	LogRetention             time.Duration `mapstructure:"log_retention"`
+	ArtifactRetention        time.Duration `mapstructure:"artifact_retention"`
+}
+
+// DefaultCI is the CI configuration a fresh install gets.
+func DefaultCI() CIConfig {
+	return CIConfig{Enabled: true, MaxJobsPerRun: 50, MaxStepsPerRun: 200, MaxQueuedRunsPerRepo: 20,
+		MaxConcurrentRunsPerRepo: 5, MaxJobMinutes: 360, MaxLogBytes: 20 << 20, MaxArtifactBytes: 100 << 20,
+		MaxArtifactsPerRun: 10, LogRetention: 30 * 24 * time.Hour, ArtifactRetention: 30 * 24 * time.Hour}
+}
+
+func (c CIConfig) validate() error {
+	for _, l := range []struct {
+		key string
+		v   int
+	}{
+		{"ci.max_jobs_per_run", c.MaxJobsPerRun}, {"ci.max_steps_per_run", c.MaxStepsPerRun},
+		{"ci.max_queued_runs_per_repo", c.MaxQueuedRunsPerRepo}, {"ci.max_concurrent_runs_per_repo", c.MaxConcurrentRunsPerRepo},
+		{"ci.max_job_minutes", c.MaxJobMinutes}, {"ci.max_artifacts_per_run", c.MaxArtifactsPerRun},
+	} {
+		if l.v < 1 {
+			return fmt.Errorf("%s must be at least 1, got %d", l.key, l.v)
+		}
+	}
+	for _, l := range []struct {
+		key string
+		v   int64
+	}{{"ci.max_log_bytes", c.MaxLogBytes}, {"ci.max_artifact_bytes", c.MaxArtifactBytes},
+		{"ci.log_retention", int64(c.LogRetention)}, {"ci.artifact_retention", int64(c.ArtifactRetention)}} {
+		if l.v < 1 {
+			return fmt.Errorf("%s must be at least 1, got %d", l.key, l.v)
+		}
+	}
+	return nil
+}
+
 // ReleaseConfig holds release-asset limits.
 type ReleaseConfig struct {
 	MaxAssetBytes int64 `mapstructure:"max_asset_bytes"`
@@ -339,6 +387,17 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("secret_scanning.max_blob_bytes", 1<<20)
 	v.SetDefault("secret_scanning.push_timeout", "10s")
 	v.SetDefault("secret_scanning.max_blobs", 5000)
+	v.SetDefault("ci.enabled", true)
+	v.SetDefault("ci.max_jobs_per_run", 50)
+	v.SetDefault("ci.max_steps_per_run", 200)
+	v.SetDefault("ci.max_queued_runs_per_repo", 20)
+	v.SetDefault("ci.max_concurrent_runs_per_repo", 5)
+	v.SetDefault("ci.max_job_minutes", 360)
+	v.SetDefault("ci.max_log_bytes", int64(20<<20))
+	v.SetDefault("ci.max_artifact_bytes", int64(100<<20))
+	v.SetDefault("ci.max_artifacts_per_run", 10)
+	v.SetDefault("ci.log_retention", 30*24*time.Hour)
+	v.SetDefault("ci.artifact_retention", 30*24*time.Hour)
 	v.SetDefault("release.max_asset_bytes", int64(512<<20))
 	v.SetDefault("release.max_assets", 20)
 	v.SetDefault("metrics.listen_addr", "")
@@ -393,6 +452,9 @@ func Load(cfgFile string) (*Config, error) {
 		return nil, err
 	}
 	if err := cfg.Release.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.CI.validate(); err != nil {
 		return nil, err
 	}
 	if err := cfg.SecretScanning.validate(); err != nil {

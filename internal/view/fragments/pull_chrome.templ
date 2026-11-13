@@ -25,6 +25,7 @@ type PullChromeData struct {
 	Deleted        int
 	MergedBy       string
 	MergedCommits  int
+	HeadCI         components.CIBadge
 }
 
 templ PullChrome(data PullChromeData, children templ.Component) {
@@ -43,6 +44,9 @@ templ PullChrome(data PullChromeData, children templ.Component) {
 				<h1 id="pull-title" class="text-2xl tracking-tight font-medium min-w-0">
 					<span id="pr-title-text">{ data.Pull.Title }</span>
 					<span class="text-muted-foreground font-normal" aria-label={ "Pull request number " + strconv.Itoa(data.Pull.Number) }>#{ strconv.Itoa(data.Pull.Number) }</span>
+					if data.HeadCI.State != "" {
+						<span class="inline-flex align-middle ml-1">@components.CommitCIBadge(data.HeadCI, 20)</span>
+					}
 				</h1>
 				<div class="flex items-center gap-1.5 shrink-0">
 					if data.CanWrite {
