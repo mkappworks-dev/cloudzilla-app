@@ -68,6 +68,13 @@ An existing repository can't become a mirror.
 
 Every schedule time the store sets comes from the database clock.
 
+## Rename
+
+A mirror can be [renamed or transferred](./repo-rename.md): the upstream URL is not ours and `repo_mirrors.repo_id`
+doesn't change. The rename is refused with `409` (`ErrRepoSyncing`) while a sync holds the lease; the check is a
+point-in-time read, so a sync that claims the lease just after it fails on its stale directory and backs off like any
+failure. Archived mirrors can be renamed too.
+
 ## Read-only
 
 `Repository.IsMirror` is derived with `EXISTS` on `repo_mirrors` in every repo query, and `Repository.ContentReadOnly()`

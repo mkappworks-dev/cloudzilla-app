@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02, 03, 04, 05, 06
 
 | Branch                 | Worktree                          | PR title                                        | Effort |
@@ -32,12 +32,17 @@ See [spec.md](../spec.md). The behaviour has to be documented where the subsyste
 
 ## Acceptance criteria
 
-- [ ] Every doc above updated; `npm run fmt:check` passes
-- [ ] End-to-end run done on a throwaway server: rename, transfer, delete, restore, reuse the old name, HTTP and SSH git
-- [ ] Ticket 15 marked `done` and ROADMAP updated
+- [x] Every doc above updated; `npm run fmt:check` passes
+- [x] End-to-end run done on a throwaway server: rename, transfer, delete, restore, reuse the old name, HTTP and SSH git
+- [x] Ticket 15 marked `done` and ROADMAP updated
 
 ## Verification
 
 Throwaway server and scratch DB as in the spec; paste the git transcripts into the PR.
 
 ## Comments
+
+2026-11-13 (build session): docs/repo-rename.md added and the subsystem docs updated. The end-to-end run (61 checks,
+native git over HTTP and SSH on a scratch Postgres) passed; the transcript is in the PR. Docs found two spec drifts: push, issue and PR
+webhook payloads carry `repository.{id,name}` only (`full_name` is release-only), and an import has no row to rename, so only the
+mirror-lease guard exists.

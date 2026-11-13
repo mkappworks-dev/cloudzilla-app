@@ -505,7 +505,8 @@ days, and lapses once the requester no longer owns the repo (`RepoService.incomi
 read). The recipient sees the collaborators who keep their roles before accepting, and accepts the `owner/name` they
 were shown: a repo renamed or moved in between is refused (`ErrTransferChanged`). Accepting deletes the offer and
 updates the repo row in one transaction (`RepoTransferStore.Accept`), so a transfer cancelled or declined meanwhile
-moves nothing; any other owner change (`RepoStore.UpdateOwner`) ends the offer too.
+moves nothing; any other owner change (`RepoStore.UpdateOwner`) ends the offer too. The old `owner/name` becomes an
+alias in the same transaction (see [repo-rename](./repo-rename.md)). Renaming needs `CanManage`, not `IsOwner`.
 
 ### Organization Repo Ownership
 
@@ -594,6 +595,9 @@ read a repo gets exactly the response a missing repo gets, and only readers ever
 - Line comment update, delete and apply-suggestion only act on a comment on the URL's pull request
   (`h.lineCommentOnURLPull`). Line comment IDs are global, so otherwise write access to one repo would reach another's
   comments, and `/apply` would commit its suggestion content.
+- A repo's former name (`repo_aliases`) redirects only a caller who can read the repo; for anyone else it is a missing
+  repo, byte for byte. The `RepoAlias` middleware holds back the handler's `404` and asks the alias table only after it,
+  and git transport applies the same rule (see [repo-rename](./repo-rename.md)).
 - `POST /api/repos/from-template` answers a private repo's ID with the same 404 as a missing ID, before checking that it
   is a template.
 - `GET /search/code?repo=owner/name` matches nothing when the viewer can't read that repo, exactly as when it doesn't

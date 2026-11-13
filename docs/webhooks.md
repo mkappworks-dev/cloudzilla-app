@@ -16,6 +16,13 @@ them for every repository the organization owns.
 Webhooks are dispatched fire-and-forget (`go s.Dispatch(...)`). Each delivery is recorded in `webhook_deliveries` with
 the event name, payload, response code, and any error.
 
+**Renames:** a webhook belongs to the repository id, so it survives a [rename or transfer](./repo-rename.md) and keeps
+firing. Payloads sent afterwards carry the current `repository.name`; `repository.id` never changes, so a receiver
+should key on it. Only release payloads add `full_name` (`owner/name`), and push, issue and pull request payloads carry
+no owner at all. Deliveries already recorded keep the text they were sent with, and there is no `renamed` event yet. An
+organization hook follows the repository's current `org_id`, so a repo transferred in or out starts or stops reaching it
+from the next event.
+
 **HMAC signing:** if a secret is configured, requests include `X-Hub-Signature-256: sha256=<HMAC-SHA256>`
 (GitHub-compatible).
 

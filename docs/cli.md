@@ -181,5 +181,9 @@ cz api POST /api/repos/alice/site/issues --input issue.json
 - `repo:admin` tokens (collaborators, deploy keys, webhooks, transfer, delete) need every request signed with an SSH
   key. `cz` doesn't sign requests.
 - Repository imports aren't available over token auth.
+- Rename a repository. `PATCH /api/repos/{owner}/{repo}` with `name` needs the account-password confirmation, which a
+  token can't give, so only a `repo:admin` token (signed requests) can; `cz` has no rename command. An old `owner/repo`
+  still resolves through `cz`, which reports the `301`/`308` instead of following it (see
+  [Safety behaviour](#safety-behaviour)).
 - Instance operation (migrations, backup, password resets) belongs to `cz-admin`, which needs the server's config and
   database.

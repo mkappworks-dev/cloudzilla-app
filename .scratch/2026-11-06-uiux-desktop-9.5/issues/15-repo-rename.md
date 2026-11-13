@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: done
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -24,8 +24,8 @@ Repo settings render the name read-only ("Renaming from settings is not yet avai
 ## Acceptance criteria
 
 - [x] Spec and tickets exist
-- [ ] All its tickets done
-- [ ] ROADMAP status updated
+- [x] All its tickets done
+- [x] ROADMAP status updated
 
 ## Verification
 
@@ -38,3 +38,5 @@ Per its spec.
 2026-11-12 (spec session): spec written at [`.scratch/2026-11-12-repo-rename/spec.md`](../../2026-11-12-repo-rename/spec.md).
 The build tickets (01–07) live there, not here; this ticket is done when they are, and ticket 07 marks it `done`.
 Status stays `ready-for-human` until then. Org name change stays with ticket 34.
+
+2026-11-13: all seven build tickets in the repo-rename spec are done; ROADMAP lists the feature under shipped outside the phase plan.
