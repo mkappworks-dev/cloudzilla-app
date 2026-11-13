@@ -838,3 +838,35 @@ func TestWorkflowRun_ClaimWhosePrepareFailsLeavesTheJobQueued(t *testing.T) {
 		t.Errorf("the job could not be claimed again: %+v (%v)", j, err)
 	}
 }
+
+func TestWorkflowRun_RerunAndApproveRefuseWhenTheRepoCannotRunCI(t *testing.T) {
+	for name, off := range map[string]string{
+		"archived": `UPDATE repositories SET is_archived = true WHERE id = $1`,
+		"ci off":   `UPDATE repositories SET ci_enabled = false WHERE id = $1`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			e := newCIEnv(t, nil)
+			sha := e.commit(e.repo, "main", map[string]string{ciPath: ciWorkflow})
+			e.pushBranch("main", sha, e.owner.id)
+			run := e.onlyRun()
+			e.finish(run, "test", model.CIStatusFailure)
+			if _, err := e.db.Exec(off, e.repo.ID); err != nil {
+				t.Fatal(err)
+			}
+			fresh, err := store.NewRepoStore(e.db).GetByID(testCtx, e.repo.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := e.svcs.WorkflowRun.Rerun(testCtx, fresh, run.Number, e.owner.id, false); !errors.Is(err, service.ErrCIDisabled) {
+				t.Errorf("rerun = %v, want ErrCIDisabled", err)
+			}
+			if err := e.svcs.WorkflowRun.Approve(testCtx, fresh, run.Number, e.owner.id); !errors.Is(err, service.ErrCIDisabled) {
+				t.Errorf("approve = %v, want ErrCIDisabled", err)
+			}
+			if r := e.run(run.Number); r.Attempt != run.Attempt {
+				t.Errorf("attempt moved from %d to %d", run.Attempt, r.Attempt)
+			}
+		})
+	}
+}

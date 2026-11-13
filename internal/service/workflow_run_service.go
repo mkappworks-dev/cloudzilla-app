@@ -113,6 +113,9 @@ func (s *WorkflowRunService) Approve(ctx context.Context, repo *model.Repository
 	if !s.repoSvc.CanWrite(ctx, repo, userID) {
 		return ErrWorkflowForbidden
 	}
+	if err := s.requireEligible(ctx, repo); err != nil {
+		return err
+	}
 	return s.mutateRun(ctx, repo, number, func(tx *store.WorkflowRunTx, run *model.WorkflowRun) error {
 		ok, err := tx.ApproveRun(ctx, run.ID)
 		if err != nil {
