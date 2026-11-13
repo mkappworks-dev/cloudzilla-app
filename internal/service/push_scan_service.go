@@ -301,7 +301,30 @@ func (p *PushScan) blocks(ctx context.Context, cmd *packp.Command, commit plumbi
 		p.stop("look up alert", err)
 		return false, false
 	}
-	return !closed, false
+	if closed {
+		if err := p.noteClosed(ctx, f, p.sightingOf(cmd, commit, f), model.SecretEventBlocked); err != nil {
+			slog.Error("push-protection: append location", "repo_id", p.repo.ID, "error", err)
+		}
+		return false, false
+	}
+	return true, false
+}
+
+func (p *PushScan) sightingOf(cmd *packp.Command, commit plumbing.Hash, f pathFinding) model.SecretSighting {
+	return model.SecretSighting{CommitSHA: commit.String(), FilePath: f.Path, Ref: cmd.Name.String(), ActorID: p.pusherID}
+}
+
+// noteClosed records a sighting of a value whose alert is closed. At check time the push may still be refused, so only
+// the location is added; the scan after the push adds the event.
+func (p *PushScan) noteClosed(ctx context.Context, f pathFinding, sg model.SecretSighting, kind string) error {
+	if kind == model.SecretEventBlocked {
+		if sg.CommitSHA == plumbing.ZeroHash.String() {
+			return nil
+		}
+		return p.svc.alerts.AppendLocation(ctx, p.repo.ID, f.Finding, sg)
+	}
+	_, _, err := p.svc.alerts.Record(ctx, p.repo.ID, f.Finding, sg, kind)
+	return err
 }
 
 type blockedFinding struct {
@@ -346,7 +369,7 @@ func (p *PushScan) revokeLeakedToken(ctx context.Context, cmd *packp.Command, co
 	if p.revokedHashes[hash] {
 		return true, true, nil
 	}
-	sg := model.SecretSighting{CommitSHA: commit.String(), FilePath: f.Path, Ref: cmd.Name.String(), ActorID: p.pusherID}
+	sg := p.sightingOf(cmd, commit, f)
 	out, err := p.settleToken(ctx, r, f, sg, model.SecretEventBlocked)
 	if out == TokenRevoked && err == nil {
 		p.revokedHashes[hash] = true
@@ -363,8 +386,7 @@ func (p *PushScan) settleToken(ctx context.Context, r TokenOutcomeResolver, f pa
 		return TokenUnknown, err
 	}
 	if closed {
-		_, _, err := p.svc.alerts.Record(ctx, p.repo.ID, f.Finding, sg, kind)
-		return TokenUnknown, err
+		return TokenUnknown, p.noteClosed(ctx, f, sg, kind)
 	}
 	out, err := r.ResolveToken(ctx, p.repo, f.Value)
 	if err != nil || out == TokenUnknown || out == TokenRevoked {

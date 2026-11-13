@@ -37,6 +37,12 @@ func (s *SecretAlertService) Record(ctx context.Context, repoID int64, f secrets
 	return s.alerts.Record(ctx, repoID, f.Type, secretscan.Hash(repoID, f.Value), secretscan.Mask(f.Value), kind, loc)
 }
 
+// AppendLocation adds the sighting of f to its existing alert as a location only, with no event.
+func (s *SecretAlertService) AppendLocation(ctx context.Context, repoID int64, f secretscan.Finding, loc model.SecretSighting) error {
+	loc.Line = f.Line
+	return s.alerts.AppendLocation(ctx, repoID, secretscan.Hash(repoID, f.Value), loc)
+}
+
 // Close closes an open alert with a resolution: revoked, false_positive or used_in_tests.
 func (s *SecretAlertService) Close(ctx context.Context, alertID, actorID int64, resolution string) error {
 	if !validResolution(resolution) {

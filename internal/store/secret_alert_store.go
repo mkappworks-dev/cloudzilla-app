@@ -92,6 +92,17 @@ func (s *SecretAlertStore) Record(ctx context.Context, repoID int64, secretType,
 	return alert, created, nil
 }
 
+// AppendLocation adds a location to the alert for hash, with no event, for a push that is still to be applied. It does
+// nothing when the repository has no such alert.
+func (s *SecretAlertStore) AppendLocation(ctx context.Context, repoID int64, hash string, sg model.SecretSighting) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO secret_scan_locations (alert_id, commit_sha, file_path, line_number, reached_ref)
+		 SELECT id, $3, $4, $5, FALSE FROM secret_scan_alerts WHERE repo_id = $1 AND secret_hash = $2
+		 ON CONFLICT (alert_id, commit_sha, file_path, line_number) DO NOTHING`,
+		repoID, hash, sg.CommitSHA, sg.FilePath, sg.Line)
+	return err
+}
+
 // Close closes an open alert. eventKind is 'closed', 'allowed' or 'auto_revoked'; actorID 0 records no user.
 func (s *SecretAlertStore) Close(ctx context.Context, alertID, actorID int64, resolution, eventKind string, autoRevoked bool) error {
 	return s.transition(ctx, alertID, model.SecretAlertOpen, eventKind, actorID, resolution,

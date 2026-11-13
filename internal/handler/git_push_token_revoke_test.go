@@ -137,7 +137,21 @@ func TestPushProtection_RevokedTokenSeenAgain_AppendsLocation(t *testing.T) {
 	if got := refs[again]; got != "ok" {
 		t.Fatalf("status = %q, want ok", got)
 	}
-	eventually(t, "the second location", func() bool { return len(e.locations(t, a.ID)) > before })
+	e.waitPostReceive(t, 2)
+	if len(e.locations(t, a.ID)) <= before {
+		t.Error("the second location was not appended")
+	}
+	evs, err := e.svcs.SecretAlert.Events(context.Background(), a.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kinds []string
+	for _, ev := range evs {
+		kinds = append(kinds, ev.Kind)
+	}
+	if got := strings.Join(kinds, ","); got != "blocked,auto_revoked,found" {
+		t.Errorf("events = %s, want the check to add none of its own", got)
+	}
 	if n := revokeAudits(t, db, ownerID); n != 1 {
 		t.Errorf("%d audit entries, want 1", n)
 	}

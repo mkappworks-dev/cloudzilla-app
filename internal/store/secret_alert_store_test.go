@@ -57,6 +57,33 @@ func TestSecretAlertStore_RecordDedupesOnHashAndAppendsLocations(t *testing.T) {
 	}
 }
 
+func TestSecretAlertStore_AppendLocationAddsNoEventAndSkipsUnknownHashes(t *testing.T) {
+	s, _, _, repo := secretFixture(t)
+	ctx := context.Background()
+	a, _, err := s.Record(ctx, repo, "aws_access_key_id", "h1", "AKIA1234", model.SecretEventFound, sighting("c1", 3))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for range 2 {
+		if err := s.AppendLocation(ctx, repo, "h1", sighting("c2", 9)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.AppendLocation(ctx, repo, "unknown", sighting("c3", 1)); err != nil {
+		t.Fatal(err)
+	}
+
+	locs, _ := s.Locations(ctx, a.ID)
+	events, _ := s.Events(ctx, a.ID)
+	if len(locs) != 2 || len(events) != 1 {
+		t.Errorf("alert has %d locations and %d events, want 2 and 1", len(locs), len(events))
+	}
+	if locs[1].ReachedRef {
+		t.Error("an appended location counts as reached before a ref holds it")
+	}
+}
+
 func TestSecretAlertStore_BlockedLocationIsPromotedWhenARefReachesIt(t *testing.T) {
 	s, _, _, repo := secretFixture(t)
 	ctx := context.Background()
