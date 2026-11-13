@@ -81,6 +81,7 @@ templ Blame(data view.BlameData) {
 									CommittedAt: line.AuthorTime,
 									CommitURL:   "/" + data.Owner + "/" + data.RepoName + "/commit/" + commitHashFor(line),
 									HunkStart:   line.ShowMeta,
+									Signature:   line.Signature,
 								})
 							}
 						</tbody>

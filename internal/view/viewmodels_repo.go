@@ -347,6 +347,7 @@ type TreeLatestCommit struct {
 	AuthorURL string
 	CommitURL string
 	Timestamp time.Time
+	Signature service.SignatureResult
 }
 
 // BlobData holds template data for the file blob viewer page.

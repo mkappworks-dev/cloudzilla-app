@@ -2,7 +2,9 @@
 
 ## SSH Key Management
 
-Users add SSH public keys for git operations via the API.
+Users add SSH public keys for git operations via the API. These keys authenticate pushes and pulls only. Keys that sign
+commits are a separate set with their own tables; registering one never grants access, and an auth key never makes a
+commit Verified. See [signed-commits](./signed-commits.md#signing-keys).
 
 ### API
 

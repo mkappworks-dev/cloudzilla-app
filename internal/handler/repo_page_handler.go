@@ -539,6 +539,8 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 			AuthorURL: "/" + newest.LastCommit.Author,
 			CommitURL: "/" + owner + "/" + repoName + "/commit/" + newest.LastCommit.SHA,
 			Timestamp: newest.LastCommit.Timestamp,
+			// Outside the entries cache so a key added later takes effect on the next view.
+			Signature: h.Services.Code.SignatureForCommit(owner, repoName, newest.LastCommit.SHA),
 		}
 	}
 
@@ -710,7 +712,7 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := viewerOf(r)
 
-	commit, err := h.Services.Code.GetCommit(owner, repoName, sha)
+	commit, err := h.Services.Code.GetVerifiedCommit(owner, repoName, sha)
 	if err != nil {
 		h.NotFound(w, r)
 		return

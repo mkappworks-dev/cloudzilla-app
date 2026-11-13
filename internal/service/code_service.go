@@ -66,6 +66,21 @@ type CodeService struct {
 	// treeCacheKeys is a best-effort insert counter that drives the
 	// treeCacheMaxKeys-bounded eviction sweep.
 	treeCacheKeys int64
+	// signatures is nil until WithSignatures; commits then carry a zero SignatureResult.
+	signatures *SignatureService
+	commits    serverCommitter
+}
+
+// WithServerCommits sets how the commits this service writes are committed and signed.
+func (s *CodeService) WithServerCommits(c serverCommitter) *CodeService {
+	s.commits = c
+	return s
+}
+
+// WithSignatures makes commit lists and details carry a verification result.
+func (s *CodeService) WithSignatures(v *SignatureService) *CodeService {
+	s.signatures = v
+	return s
 }
 
 // NewCodeService returns a CodeService configured to read repos from cfg.ReposRoot.

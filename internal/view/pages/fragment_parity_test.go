@@ -28,6 +28,16 @@ func TestListFragments_MatchThePageMarkup(t *testing.T) {
 		{ID: 7, Title: "laptop <work>", Fingerprint: "SHA256:abc", CreatedAt: created},
 		{ID: 9, Title: "ci", Fingerprint: "SHA256:def", CreatedAt: created},
 	}
+	past := created.AddDate(0, -1, 0)
+	signing := view.SigningKeysFragData{
+		GPGKeys: []model.GPGKey{
+			{ID: 1, KeyID: "3AA5C34371567BD2", Fingerprint: "4AEE18F83AFDEB23B1C97D043AA5C3437156 7BD2", Emails: []string{"Ada@Example.test", "ada@work.test"}, CreatedAt: created, Subkeys: []model.GPGSubkey{{KeyID: "4F2A9E01C77B3D65", CanSign: true}}},
+			{ID: 2, KeyID: "9C21D0B7E4A68F13", Fingerprint: "71D30B5A92CE44F108A76E2D9C21D0B7E4A68F13", CreatedAt: created, ExpiresAt: &past},
+		},
+		SSHKeys:          []model.SSHSigningKey{{ID: 5, Title: "laptop <work>", Fingerprint: "SHA256:abc", CreatedAt: created}},
+		VerifiedEmails:   map[string]bool{"ada@example.test": true},
+		AuthFingerprints: map[string]bool{"SHA256:abc": true},
+	}
 	tokens := []model.AccessToken{
 		{ID: 3, Name: "deploy", LastEight: "abcd1234", Scopes: []string{"repo:read", "repo:write"}, ExpiresAt: &expires, SigningKey: "ssh-ed25519 AAAA", Targets: []string{"ada/hollow"}},
 		{ID: 4, Name: "scratch", LastEight: "efgh5678"},
@@ -55,6 +65,17 @@ func TestListFragments_MatchThePageMarkup(t *testing.T) {
 			page:        pages.Settings(view.SettingsData{SSHKeys: keys}),
 			frag:        fragments.SSHKeysList(view.SSHKeysFragData{SSHKeys: keys}),
 			wantDeletes: 2,
+		},
+		{
+			name: "signing keys", id: "signing-keys-list",
+			page:        pages.Settings(view.SettingsData{SigningKeys: signing}),
+			frag:        fragments.SigningKeysList(signing),
+			wantDeletes: 3,
+		},
+		{
+			name: "empty signing keys", id: "signing-keys-list",
+			page: pages.Settings(view.SettingsData{}),
+			frag: fragments.SigningKeysList(view.SigningKeysFragData{}),
 		},
 		{
 			name: "tokens", id: "tokens-list",

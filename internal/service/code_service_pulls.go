@@ -1,8 +1,32 @@
 package service
 
+import "github.com/go-git/go-git/v5/plumbing/object"
+
 // PullCommits returns commits reachable from head but not from base, in
-// reverse-chronological order.
+// reverse-chronological order, with signature verdicts.
 func (s *CodeService) PullCommits(owner, repoName, base, head string) ([]CommitSummary, error) {
+	commits, err := s.pullCommitObjects(owner, repoName, base, head)
+	if err != nil {
+		return nil, err
+	}
+	return s.summarizeCommits(commits), nil
+}
+
+// PullCommitsUnverified is PullCommits without verdicts, for callers that only count: a badge must not pay for key
+// lookups.
+func (s *CodeService) PullCommitsUnverified(owner, repoName, base, head string) ([]CommitSummary, error) {
+	commits, err := s.pullCommitObjects(owner, repoName, base, head)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CommitSummary, len(commits))
+	for i, c := range commits {
+		out[i] = summarizeCommit(c)
+	}
+	return out, nil
+}
+
+func (s *CodeService) pullCommitObjects(owner, repoName, base, head string) ([]*object.Commit, error) {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
@@ -15,15 +39,7 @@ func (s *CodeService) PullCommits(owner, repoName, base, head string) ([]CommitS
 	if err != nil {
 		return nil, err
 	}
-	commits, err := commitRange(repo, baseCommit.Hash, headCommit.Hash)
-	if err != nil {
-		return nil, err
-	}
-	var out []CommitSummary
-	for _, c := range commits {
-		out = append(out, summarizeCommit(c))
-	}
-	return out, nil
+	return commitRange(repo, baseCommit.Hash, headCommit.Hash)
 }
 
 // maxMergeScan bounds the first-parent walk that looks for a PR's merge commit.

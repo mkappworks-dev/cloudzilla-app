@@ -114,7 +114,7 @@ func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, 
 		// empty repo the user can still push to, so we log and return success
 		// rather than 500-ing on already-created state.
 		sig := commitAuthorFor(s.noreplyHost, owner).signature(time.Now().UTC())
-		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, init, owner.Username, name, description); err != nil {
+		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, s.commits, init, owner.Username, name, description); err != nil {
 			slog.Error("seed initial commit for new repo failed; repo created empty",
 				"repo_id", r.ID, "owner", ownerUsername, "name", name, "error", err)
 		}
@@ -136,7 +136,7 @@ func initBareRepo(path, defaultBranch string) error {
 
 // seedInitialCommit writes the objects into the bare repo itself: a go-git push
 // to a local path execs git-receive-pack, and the Docker image ships no git.
-func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init RepoInitOptions, ownerName, repoName, description string) error {
+func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, commits serverCommitter, init RepoInitOptions, ownerName, repoName, description string) error {
 	files := map[string]string{}
 
 	if init.AddREADME {
@@ -182,12 +182,7 @@ func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init
 		return fmt.Errorf("write tree: %w", err)
 	}
 
-	commit := &object.Commit{Author: sig, Committer: sig, Message: "Initial commit", TreeHash: tree}
-	commitObj := bare.Storer.NewEncodedObject()
-	if err := commit.Encode(commitObj); err != nil {
-		return fmt.Errorf("encode commit: %w", err)
-	}
-	commitHash, err := bare.Storer.SetEncodedObject(commitObj)
+	commitHash, err := commits.store(bare.Storer, &object.Commit{Author: sig, Message: "Initial commit", TreeHash: tree})
 	if err != nil {
 		return fmt.Errorf("write commit: %w", err)
 	}

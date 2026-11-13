@@ -224,7 +224,7 @@ func (c ReleaseConfig) validate() error {
 
 // SecurityConfig holds keys for secrets stored at rest.
 type SecurityConfig struct {
-	// Losing or changing it makes every stored mirror credential unreadable.
+	// Losing or changing it makes every stored mirror credential and the instance signing key unreadable.
 	SecretKey string `mapstructure:"secret_key"`
 }
 

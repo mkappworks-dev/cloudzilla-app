@@ -255,6 +255,12 @@ func (s *ExportService) writeZip(ctx context.Context, dst io.Writer, userID int6
 			return writeArray(zw, "ssh_keys.json", func(fn func(store.ExportSSHKey) error) error { return st.EachSSHKey(ctx, userID, fn) })
 		},
 		func() error {
+			return writeArray(zw, "gpg_keys.json", func(fn func(store.ExportGPGKey) error) error { return st.EachGPGKey(ctx, userID, fn) })
+		},
+		func() error {
+			return writeArray(zw, "ssh_signing_keys.json", func(fn func(store.ExportSSHSigningKey) error) error { return st.EachSSHSigningKey(ctx, userID, fn) })
+		},
+		func() error {
 			return writeArray(zw, "issues.json", func(fn func(store.ExportIssue) error) error { return st.EachIssue(ctx, userID, fn) })
 		},
 		func() error {

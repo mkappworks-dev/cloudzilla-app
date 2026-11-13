@@ -129,7 +129,7 @@ func (s *UserStore) Demote(ctx context.Context, userID int64) error {
 	})
 }
 
-// RevokeCredentials deletes userID's personal access tokens, SSH keys and
+// RevokeCredentials deletes userID's personal access tokens, SSH keys, signing keys and
 // OAuth app authorizations and ends their sessions. Deploy keys stay: they
 // belong to repositories, not to the user.
 func (s *UserStore) RevokeCredentials(ctx context.Context, userID int64) (model.RevokedCredentials, error) {
@@ -141,6 +141,8 @@ func (s *UserStore) RevokeCredentials(ctx context.Context, userID int64) (model.
 		}{
 			{"access_tokens", &out.AccessTokens},
 			{"ssh_keys", &out.SSHKeys},
+			{"gpg_keys", &out.GPGKeys},
+			{"ssh_signing_keys", &out.SSHSigningKeys},
 			{"oauth_authorizations", &out.OAuthAuthorizations},
 		} {
 			res, err := tx.ExecContext(ctx, `DELETE FROM `+d.table+` WHERE user_id = $1`, userID)

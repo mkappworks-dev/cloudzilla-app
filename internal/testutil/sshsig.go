@@ -149,11 +149,16 @@ func NewHardwareECDSAKey(t *testing.T) (*HardwareKey, string) {
 // SignSSHSig is SignSSHSig for the security key; touched sets its
 // user-presence flag, as a touch does. See OpenSSH's PROTOCOL.u2f.
 func (k *HardwareKey) SignSSHSig(message []byte, touched bool) string {
+	return k.SignSSHSigIn(model.SignedRequestNamespace, message, touched)
+}
+
+// SignSSHSigIn is SignSSHSig in another namespace, such as "git" for commits.
+func (k *HardwareKey) SignSSHSigIn(namespace string, message []byte, touched bool) string {
 	sum := sha512.Sum512(message)
 	signed := append([]byte("SSHSIG"), ssh.Marshal(struct {
 		Namespace, Reserved, HashAlg string
 		Hash                         []byte
-	}{model.SignedRequestNamespace, "", "sha512", sum[:]})...)
+	}{namespace, "", "sha512", sum[:]})...)
 	var flags byte
 	if touched {
 		flags = 0x01
@@ -171,6 +176,6 @@ func (k *HardwareKey) SignSSHSig(message []byte, touched bool) string {
 		PublicKey                    []byte
 		Namespace, Reserved, HashAlg string
 		Signature                    []byte
-	}{1, k.pubBlob, model.SignedRequestNamespace, "", "sha512", sigBlob})...)
+	}{1, k.pubBlob, namespace, "", "sha512", sigBlob})...)
 	return base64.StdEncoding.EncodeToString(blob)
 }

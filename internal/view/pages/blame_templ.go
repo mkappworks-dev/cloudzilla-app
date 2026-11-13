@@ -241,6 +241,7 @@ func Blame(data view.BlameData) templ.Component {
 					CommittedAt:    line.AuthorTime,
 					CommitURL:      "/" + data.Owner + "/" + data.RepoName + "/commit/" + commitHashFor(line),
 					HunkStart:      line.ShowMeta,
+					Signature:      line.Signature,
 				}).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

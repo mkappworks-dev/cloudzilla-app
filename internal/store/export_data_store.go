@@ -32,6 +32,17 @@ type ExportSSHKey struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type ExportGPGKey struct {
+	KeyID       string     `json:"key_id"`
+	Fingerprint string     `json:"fingerprint"`
+	PublicKey   string     `json:"public_key"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	RevokedAt   *time.Time `json:"revoked_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+type ExportSSHSigningKey = ExportSSHKey
+
 type ExportIssue struct {
 	Repository string     `json:"repository"`
 	Number     int        `json:"number"`
@@ -149,6 +160,22 @@ func (s *ExportStore) EachSSHKey(ctx context.Context, userID int64, fn func(Expo
 	return eachRow(ctx, s.db, `SELECT title, public_key, fingerprint, created_at FROM ssh_keys WHERE user_id = $1 ORDER BY id`, []any{userID},
 		func(r *sql.Rows) (ExportSSHKey, error) {
 			var k ExportSSHKey
+			return k, r.Scan(&k.Title, &k.PublicKey, &k.Fingerprint, &k.CreatedAt)
+		}, fn)
+}
+
+func (s *ExportStore) EachGPGKey(ctx context.Context, userID int64, fn func(ExportGPGKey) error) error {
+	return eachRow(ctx, s.db, `SELECT key_id, fingerprint, public_key, expires_at, revoked_at, created_at FROM gpg_keys WHERE user_id = $1 ORDER BY id`, []any{userID},
+		func(r *sql.Rows) (ExportGPGKey, error) {
+			var k ExportGPGKey
+			return k, r.Scan(&k.KeyID, &k.Fingerprint, &k.PublicKey, &k.ExpiresAt, &k.RevokedAt, &k.CreatedAt)
+		}, fn)
+}
+
+func (s *ExportStore) EachSSHSigningKey(ctx context.Context, userID int64, fn func(ExportSSHSigningKey) error) error {
+	return eachRow(ctx, s.db, `SELECT title, public_key, fingerprint, created_at FROM ssh_signing_keys WHERE user_id = $1 ORDER BY id`, []any{userID},
+		func(r *sql.Rows) (ExportSSHSigningKey, error) {
+			var k ExportSSHSigningKey
 			return k, r.Scan(&k.Title, &k.PublicKey, &k.Fingerprint, &k.CreatedAt)
 		}, fn)
 }

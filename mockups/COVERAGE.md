@@ -91,6 +91,8 @@ Some controls and forms have no behaviour. In particular:
 - **File deletion** in `blob.html`: confirmation shows feedback but leaves the file displayed.
 - **Mock-only state:** `account_settings.html?smtp=off` shows the Email section with no outgoing email (no Add email
   button, the note instead).
+- **Mock-only state:** `account_settings.html?signing=empty` shows the Signing keys section with no keys. Removing the
+  last key shows the same state; the Add signing key dialog switches GPG and SSH but stores nothing.
 - **Mock-only state:** `settings.html?rename=error` shows the Rename form refused because the name is taken. The mock
   checks names against a short built-in list and renames nothing on the server.
 - **Mock-only state:** `org_settings.html?rename=error` shows the URL slug Rename form refused because the name is

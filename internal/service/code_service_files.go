@@ -117,7 +117,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 	if err != nil {
 		return RefUpdate{}, err
 	}
-	upd, err := commitOnto(repo, branchRef, parent, rootTreeHash, author, message)
+	upd, err := s.commitOnto(repo, branchRef, parent, rootTreeHash, author, message)
 	if err != nil {
 		return RefUpdate{}, err
 	}
@@ -307,10 +307,10 @@ func (s *CodeService) editFile(owner, repoName, branch, newBranch, oldPath, newP
 		return RefUpdate{}, err
 	}
 	if newBranch == "" {
-		return commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message)
+		return s.commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message)
 	}
 	newRef := plumbing.NewBranchReferenceName(newBranch)
-	commitHash, err := writeCommit(repo, tip, rootHash, author, message)
+	commitHash, err := s.writeCommit(repo, tip, rootHash, author, message)
 	if err != nil {
 		return RefUpdate{}, err
 	}
@@ -341,7 +341,7 @@ func (s *CodeService) DeleteFile(owner, repoName, branch, filePath, baseSHA stri
 	if err != nil {
 		return "", RefUpdate{}, err
 	}
-	upd, err := commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message)
+	upd, err := s.commitOnto(repo, plumbing.NewBranchReferenceName(branch), tip, rootHash, author, message)
 	if err != nil {
 		return "", RefUpdate{}, err
 	}
@@ -399,12 +399,12 @@ func baseEntry(repo *gogit.Repository, branch, filePath, baseSHA string, symlink
 
 // commitOnto commits tree onto branch with parent (nil for a branch's first
 // commit), moving the branch only if it still points at parent.
-func commitOnto(repo *gogit.Repository, branchRef plumbing.ReferenceName, parent *object.Commit, tree plumbing.Hash, author GitAuthor, message string) (RefUpdate, error) {
+func (s *CodeService) commitOnto(repo *gogit.Repository, branchRef plumbing.ReferenceName, parent *object.Commit, tree plumbing.Hash, author GitAuthor, message string) (RefUpdate, error) {
 	var oldTip plumbing.Hash
 	if parent != nil {
 		oldTip = parent.Hash
 	}
-	commitHash, err := writeCommit(repo, parent, tree, author, message)
+	commitHash, err := s.writeCommit(repo, parent, tree, author, message)
 	if err != nil {
 		return RefUpdate{}, err
 	}
@@ -416,24 +416,18 @@ func commitOnto(repo *gogit.Repository, branchRef plumbing.ReferenceName, parent
 
 // writeCommit stores a commit of tree on top of parent (nil for a root commit)
 // without moving any ref.
-func writeCommit(repo *gogit.Repository, parent *object.Commit, tree plumbing.Hash, author GitAuthor, message string) (plumbing.Hash, error) {
+func (s *CodeService) writeCommit(repo *gogit.Repository, parent *object.Commit, tree plumbing.Hash, author GitAuthor, message string) (plumbing.Hash, error) {
 	var parentHashes []plumbing.Hash
 	if parent != nil {
 		parentHashes = []plumbing.Hash{parent.Hash}
 	}
 	sig := author.signature(time.Now())
-	commit := object.Commit{
+	return s.commits.store(repo.Storer, &object.Commit{
 		Author:       sig,
-		Committer:    sig,
 		Message:      message,
 		TreeHash:     tree,
 		ParentHashes: parentHashes,
-	}
-	commitObj := repo.Storer.NewEncodedObject()
-	if err := commit.Encode(commitObj); err != nil {
-		return plumbing.ZeroHash, err
-	}
-	return repo.Storer.SetEncodedObject(commitObj)
+	})
 }
 
 func writeBlob(repo *gogit.Repository, content []byte) (plumbing.Hash, error) {

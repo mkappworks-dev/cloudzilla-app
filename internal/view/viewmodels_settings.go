@@ -1,6 +1,8 @@
 package view
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
@@ -10,6 +12,7 @@ type SettingsData struct {
 	BasePage
 	User                model.User
 	SSHKeys             []model.SSHKey
+	SigningKeys         SigningKeysFragData
 	Tokens              []model.AccessToken
 	SavedReplies        []model.SavedReply
 	OAuthApps           []model.OAuthApp
@@ -82,6 +85,19 @@ type AdminSettingsData struct {
 	Invitations []model.Invitation
 	Terms       string
 	Confirm     components.ConfirmFactors
+	SigningKey  AdminSigningKeyFragData
+}
+
+// AdminSigningKeyFragData holds template data for the admin "Commit signing" section.
+type AdminSigningKeyFragData struct {
+	// Sealable is false when security.secret_key is unset.
+	Sealable bool
+	// Unreadable means the active key was sealed under another security.secret_key.
+	Unreadable  bool
+	HasKey      bool
+	Fingerprint string
+	PublicKey   string
+	CreatedAt   time.Time
 }
 
 // TermsData holds template data for the public terms page.
@@ -154,4 +170,14 @@ type AdminModeData struct {
 	BasePage
 	Confirm components.ConfirmFactors
 	Next    string
+}
+
+// SigningKeysFragData holds template data for the signing keys list, the page section and its HTMX fragment.
+type SigningKeysFragData struct {
+	GPGKeys []model.GPGKey
+	SSHKeys []model.SSHSigningKey
+	// VerifiedEmails holds the owner's verified addresses, lower-cased.
+	VerifiedEmails map[string]bool
+	// AuthFingerprints holds the fingerprints of the owner's SSH authentication keys.
+	AuthFingerprints map[string]bool
 }

@@ -225,7 +225,7 @@ func (s *CodeService) WikiPageSetOrder(owner, repoName string, orderedSlugs []st
 		return fmt.Errorf("wiki open: %w", err)
 	}
 	content := strings.Join(orderedSlugs, "\n")
-	return wikiCommit(repo, ".order", []byte(content), author, "Reorder wiki pages")
+	return s.wikiCommit(repo, ".order", []byte(content), author, "Reorder wiki pages")
 }
 
 // WikiPageSave creates or updates a wiki page in the bare repo, creating the
@@ -251,7 +251,7 @@ func (s *CodeService) WikiPageSave(owner, repoName, slug, content string, author
 
 	// Build the new tree by reading the current HEAD tree (if any) and
 	// inserting / replacing the target file, then writing a new commit.
-	return wikiCommit(repo, slug+".md", []byte(content), author, message)
+	return s.wikiCommit(repo, slug+".md", []byte(content), author, message)
 }
 
 // WikiPageRename rewrites .order in the same commit so the user-defined
@@ -314,7 +314,7 @@ func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug string, a
 		}
 		return out, blobs, nil
 	}
-	return wikiMutateTree(repo, parentCommit, author, message, mutate)
+	return s.wikiMutateTree(repo, parentCommit, author, message, mutate)
 }
 
 // WikiPageDelete strips the slug from .order in the same commit so the
@@ -360,7 +360,7 @@ func (s *CodeService) WikiPageDelete(owner, repoName, slug string, author GitAut
 		}
 		return out, blobs, nil
 	}
-	if err := wikiMutateTree(repo, parentCommit, author, "Delete "+slug, mutate); err != nil {
+	if err := s.wikiMutateTree(repo, parentCommit, author, "Delete "+slug, mutate); err != nil {
 		if errors.Is(err, errWikiNoChange) {
 			return nil
 		}
@@ -390,7 +390,7 @@ type blobWrite struct {
 // wikiMutateTree commits a tree built from the parent's entries after applying
 // mutate(); blobs returned from the callback are co-written into the same tree
 // by name. Used to keep .order in sync with rename/delete in a single commit.
-func wikiMutateTree(
+func (s *CodeService) wikiMutateTree(
 	repo *gogit.Repository,
 	parentCommit *object.Commit,
 	author GitAuthor,
@@ -445,18 +445,12 @@ func wikiMutateTree(
 
 	now := time.Now()
 	sig := author.signature(now)
-	commitObj := stor.NewEncodedObject()
-	commit := object.Commit{
+	commitHash, err := s.commits.store(stor, &object.Commit{
 		Author:       sig,
-		Committer:    sig,
 		Message:      message,
 		TreeHash:     treeHash,
 		ParentHashes: []plumbing.Hash{parentCommit.Hash},
-	}
-	if err := commit.Encode(commitObj); err != nil {
-		return err
-	}
-	commitHash, err := stor.SetEncodedObject(commitObj)
+	})
 	if err != nil {
 		return err
 	}
@@ -484,8 +478,8 @@ func wikiMutateTree(
 
 // wikiCommit writes filename/content into the bare repo as a new commit on
 // the default (main) branch, preserving all other files from HEAD.
-func wikiCommit(repo *gogit.Repository, filename string, content []byte, author GitAuthor, message string) error {
-	_, err := commitSingleFile(repo, plumbing.NewBranchReferenceName("main"), author, message, filename, content)
+func (s *CodeService) wikiCommit(repo *gogit.Repository, filename string, content []byte, author GitAuthor, message string) error {
+	_, err := s.commitSingleFile(repo, plumbing.NewBranchReferenceName("main"), author, message, filename, content)
 	return err
 }
 
@@ -493,7 +487,7 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 // on branchRef, preserving all other files from the current branch tip. When
 // branchRef does not yet exist (empty repo), the commit becomes the initial
 // commit on that branch and HEAD is pointed at it.
-func commitSingleFile(
+func (s *CodeService) commitSingleFile(
 	repo *gogit.Repository,
 	branchRef plumbing.ReferenceName,
 	author GitAuthor,
@@ -555,18 +549,12 @@ func commitSingleFile(
 		return RefUpdate{}, err
 	}
 
-	commitObj := storer.NewEncodedObject()
-	commit := object.Commit{
+	commitHash, err := s.commits.store(storer, &object.Commit{
 		Author:       sig,
-		Committer:    sig,
 		Message:      message,
 		TreeHash:     treeHash,
 		ParentHashes: parentHashes,
-	}
-	if err := commit.Encode(commitObj); err != nil {
-		return RefUpdate{}, err
-	}
-	commitHash, err := storer.SetEncodedObject(commitObj)
+	})
 	if err != nil {
 		return RefUpdate{}, err
 	}

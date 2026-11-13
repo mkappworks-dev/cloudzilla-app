@@ -35,15 +35,15 @@ in `shots/` (gitignored, not committed).
 | `SignatureStatus`: `verified`, `unverified`, `unsigned`                         | Adds `partially_verified`: valid signature from the account's key, but the committer email isn't one of the account's verified emails               |
 | Verify with keys already in `ssh_keys`                                          | A separate signing use: an SSH key is added as auth, signing or both (`ssh_keys.usage`, or `ssh_signing_keys`)                                      |
 | `gpg_keys`, `GET/POST/DELETE /api/user/gpg_keys`                                | Same, plus `gpg_key_emails` and subkeys; web route `/settings#signing-keys`                                                                         |
-| `repositories.verify_commits BOOLEAN`, described as a cache                     | Not drawn. A cache wants `commit_signatures (repo_id, sha, status, key_id, signer_id)`; `verify_commits` reads like "require signed commits"         |
+| `repositories.verify_commits BOOLEAN`, described as a cache                     | Dropped by [spec.md](./spec.md): verify on read, no cache. A cache wanted `commit_signatures (repo_id, sha, status, key_id, signer_id)`; `verify_commits` reads like "require signed commits"         |
 | `secret_scan_alerts.state` in `open`, `resolved`, `false_positive`               | `state` `open`/`closed` plus `resolution` `revoked`/`false_positive`/`used_in_tests`, `resolved_by`, `resolved_at`, and an `alert_locations` table    |
 | Scan after push; `GET /{owner}/{repo}/security/secrets`                          | Also push protection: pre-receive rejection, plus a one-hour allowance per (repo, secret hash) from `POST …/security/secrets/{n}/allow`               |
 | Owners notified per finding                                                     | Repo admins notified; Cloudzilla tokens found in a push are revoked automatically ("Auto-revoked" badge)                                            |
 
 ## Open questions
 
-- Is "Partially verified" worth a fourth status, or should that case show Unverified with the reason in the popover?
-- Should web edits and merges be signed by an instance key, so they show as Verified?
+- ~~Is "Partially verified" worth a fourth status?~~ Yes; see [spec.md](./spec.md) decision 1.
+- ~~Should web edits and merges be signed by an instance key?~~ Yes, with the instance as committer; see [spec.md](./spec.md) decision 3 and [ADR 0002](../../docs/adr/0002-instance-signs-server-made-commits.md). The mock gains a "Verified by Cloudzilla" popover state and an admin "Commit signing" section in tickets 04 and 05.
 - The alert page masks the secret in the snippet it reads from the commit. Should writers be able to reveal it?
 - Push protection isn't in 17.3. Is it in scope, and should the allowance need write access or the pusher's own
   confirmation?

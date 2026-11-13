@@ -138,13 +138,15 @@ func TestUserStore_RevokeCredentialsKeepsDeployKeys(t *testing.T) {
 	testutil.Exec(t, db, `INSERT INTO access_tokens (user_id, name, token_hash, last_eight) VALUES ($1, 't', $2, '12345678')`, id, "revoke_"+sfx)
 	testutil.Exec(t, db, `INSERT INTO ssh_keys (user_id, title, public_key, fingerprint) VALUES ($1, 'k', 'ssh-ed25519 AAAA', $2)`, id, "fp_user_"+sfx)
 	testutil.Exec(t, db, `INSERT INTO deploy_keys (repo_id, title, public_key, fingerprint) VALUES ($1, 'd', 'ssh-ed25519 BBBB', $2)`, repoID, "fp_deploy_"+sfx)
+	testutil.Exec(t, db, `INSERT INTO gpg_keys (user_id, key_id, fingerprint, public_key) VALUES ($1, 'k', $2, 'armored')`, id, "fp_gpg_"+sfx)
+	testutil.Exec(t, db, `INSERT INTO ssh_signing_keys (user_id, title, public_key, fingerprint) VALUES ($1, 's', 'ssh-ed25519 CCCC', $2)`, id, "fp_sign_"+sfx)
 	before, _ := users.SessionState(ctx, id)
 
 	got, err := users.RevokeCredentials(ctx, id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != (model.RevokedCredentials{AccessTokens: 1, SSHKeys: 1}) {
+	if got != (model.RevokedCredentials{AccessTokens: 1, SSHKeys: 1, GPGKeys: 1, SSHSigningKeys: 1}) {
 		t.Errorf("revoked %+v", got)
 	}
 	var deployKeys int

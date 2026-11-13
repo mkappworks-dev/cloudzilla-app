@@ -62,6 +62,9 @@ func main() {
 
 	stores := store.New(database)
 	services := service.New(stores, cfg).WithStorage(backend)
+	if services.Secrets == nil {
+		slog.Warn("security.secret_key is not set: server-made commits are not signed and mirror credentials can't be stored")
+	}
 	if err := services.Import.RemoveStaleTemp(); err != nil {
 		slog.Warn("remove clones of interrupted imports failed", "error", err)
 	}

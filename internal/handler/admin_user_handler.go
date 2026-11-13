@@ -112,7 +112,7 @@ func (h *Handler) AdminResetUserTOTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AdminRevokeUserCredentials(w http.ResponseWriter, r *http.Request) {
 	h.adminUserAction(w, r, model.AuditActionAdminUserCredentialsRevoke, func(c middleware.Claims, username string) (*model.User, map[string]any, error) {
 		u, n, err := h.Services.AdminUser.RevokeCredentials(r.Context(), c.UserID, username)
-		return u, map[string]any{"access_tokens": n.AccessTokens, "ssh_keys": n.SSHKeys, "oauth_authorizations": n.OAuthAuthorizations}, err
+		return u, map[string]any{"access_tokens": n.AccessTokens, "ssh_keys": n.SSHKeys, "gpg_keys": n.GPGKeys, "ssh_signing_keys": n.SSHSigningKeys, "oauth_authorizations": n.OAuthAuthorizations}, err
 	})
 }
 

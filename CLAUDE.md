@@ -93,6 +93,8 @@ Read the matching doc before working in an area:
   guard, sealed tokens, `mirror.*` config
 - [storage](./docs/storage.md) — local/S3 `Backend`, object layout and backup, avatar processing and `/avatars/*`
   serving, `components.Avatar`'s context lookup
+- [signed-commits](./docs/signed-commits.md) — `SignatureService` statuses and reasons, the committer-email rule,
+  GPG/SSH signing keys, instance-signed server-made commits, rotation, no-`security.secret_key` behaviour
 - [repo-rename](./docs/repo-rename.md) — who may rename, `repo_aliases` rules, redirect table, crash recovery, stable
   `repository.id`
 - [organizations](./docs/organizations.md) — `OrgService`; `/{owner}` resolves user first, then org

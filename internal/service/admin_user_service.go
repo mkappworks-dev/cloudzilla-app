@@ -180,7 +180,7 @@ func (s *AdminUserService) resetTOTP(ctx context.Context, u *model.User) error {
 	return nil
 }
 
-// RevokeCredentials deletes the account's tokens, SSH keys and app grants and
+// RevokeCredentials deletes the account's tokens, SSH and signing keys and app grants and
 // ends its sessions, and tells the user.
 func (s *AdminUserService) RevokeCredentials(ctx context.Context, actorID int64, username string) (*model.User, model.RevokedCredentials, error) {
 	u, err := s.target(ctx, actorID, username)
@@ -238,7 +238,7 @@ func adminTOTPResetNotice(username string) (subject, body string) {
 
 func adminCredentialsRevokedNotice(username string) (subject, body string) {
 	return "An administrator revoked your Cloudzilla tokens and keys",
-		fmt.Sprintf("<p>An administrator deleted the personal access tokens, SSH keys and app authorizations of <strong>@%s</strong>, and signed it out everywhere.</p>"+
+		fmt.Sprintf("<p>An administrator deleted the personal access tokens, SSH keys, signing keys and app authorizations of <strong>@%s</strong>, and signed it out everywhere.</p>"+
 			"<p>Sign in again and create new ones as needed.</p>", html.EscapeString(username))
 }
 

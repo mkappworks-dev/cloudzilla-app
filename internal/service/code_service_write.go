@@ -30,7 +30,7 @@ func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content 
 	}
 
 	branchRef := plumbing.NewBranchReferenceName(defaultBranch)
-	upd, err := commitSingleFile(repo, branchRef, author, message, "README.md", []byte(content))
+	upd, err := s.commitSingleFile(repo, branchRef, author, message, "README.md", []byte(content))
 	if err != nil {
 		return RefUpdate{}, fmt.Errorf("profile readme commit: %w", err)
 	}

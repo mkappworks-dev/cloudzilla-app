@@ -104,6 +104,9 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	if data.AdditionalEmails, err = h.Services.EmailVerifier.Addresses(ctx, claims.UserID); err != nil {
 		slog.Error("list additional emails", "user_id", claims.UserID, "error", err)
 	}
+	if data.SigningKeys, err = h.signingKeysFragData(ctx, claims.UserID); err != nil {
+		slog.Error("list signing keys", "user_id", claims.UserID, "error", err)
+	}
 	if data.Export, err = h.Services.Export.Latest(ctx, claims.UserID); err != nil {
 		slog.Error("load latest export", "user_id", claims.UserID, "error", err)
 	}

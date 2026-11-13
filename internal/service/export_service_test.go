@@ -66,6 +66,8 @@ func (e exportEnv) seedContent(t *testing.T, userID int64, username, tag string)
 	e.exec(t, `INSERT INTO pull_reviews (pull_id, repo_id, author_id, state, body) VALUES ($1, $2, $3, 'commented', $4)`, pull, repo, userID, "review-"+tag)
 	e.exec(t, `INSERT INTO pull_line_comments (pull_id, repo_id, author_id, path, line, body) VALUES ($1, $2, $3, 'a.go', 3, $4)`, pull, repo, userID, "line-"+tag)
 	e.exec(t, `INSERT INTO ssh_keys (user_id, title, public_key, fingerprint) VALUES ($1, $2, 'ssh-ed25519 AAAA'||$2, 'SHA256:'||$2)`, userID, "key-"+tag)
+	e.exec(t, `INSERT INTO gpg_keys (user_id, key_id, fingerprint, public_key) VALUES ($1, 'gpgkey-'||$2, 'gpgkey-fp-'||$2, 'armored-gpgkey-'||$2)`, userID, tag)
+	e.exec(t, `INSERT INTO ssh_signing_keys (user_id, title, public_key, fingerprint) VALUES ($1, 'sigkey-'||$2, 'ssh-ed25519 AAAA'||$2, 'SHA256:sigkey-'||$2)`, userID, tag)
 	e.exec(t, `INSERT INTO gists (id, owner_id, owner_name, description) VALUES ($1, $2, $3, $4)`, "g"+tag, userID, username, "gist-"+tag)
 	e.exec(t, `INSERT INTO gist_files (gist_id, filename, content) VALUES ($1, 'f.txt', $2)`, "g"+tag, "gistfile-"+tag)
 	e.exec(t, `INSERT INTO stars (user_id, repo_id) VALUES ($1, $2)`, userID, repo)
@@ -138,8 +140,8 @@ func TestExportService_ZipHoldsOnlyTheListedFilesOfTheUser(t *testing.T) {
 	env.waitFor(t, alice, "ready")
 	files := env.unzip(t, alice, id)
 
-	want := []string{"comments.json", "gists.json", "issues.json", "profile.json", "pull_line_comments.json", "pull_requests.json",
-		"pull_reviews.json", "ssh_keys.json", "stars.json", "watches.json"}
+	want := []string{"comments.json", "gists.json", "gpg_keys.json", "issues.json", "profile.json", "pull_line_comments.json", "pull_requests.json",
+		"pull_reviews.json", "ssh_keys.json", "ssh_signing_keys.json", "stars.json", "watches.json"}
 	got := make([]string, 0, len(files))
 	for name := range files {
 		got = append(got, name)
@@ -155,7 +157,7 @@ func TestExportService_ZipHoldsOnlyTheListedFilesOfTheUser(t *testing.T) {
 			}
 		}
 	}), "\n")
-	for _, marker := range []string{"issue-", "pull-", "comment-", "review-", "line-", "key-", "gist-", "gistfile-"} {
+	for _, marker := range []string{"issue-", "pull-", "comment-", "review-", "line-", "key-", "gpgkey-", "sigkey-", "gist-", "gistfile-"} {
 		if !strings.Contains(all, marker+aliceTag) {
 			t.Errorf("the export lacks %s%s", marker, aliceTag)
 		}
