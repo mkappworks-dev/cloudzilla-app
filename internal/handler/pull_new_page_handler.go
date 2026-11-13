@@ -51,7 +51,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("new PR: label list failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
-	hc := h.pickHead(r.Context(), repo, claims.UserID, r.URL.Query().Get("head_repo"), canWrite)
+	hc := h.pickHead(r.Context(), repo, claims.UserID, r.URL.Query().Get("head_repo"), r.URL.Query().Has("head_repo"), canWrite)
 
 	var suggested []model.User
 	// Reviewers are suggested from the files a head changes in the base repository, which a fork's branch isn't in.
@@ -118,7 +118,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	headBranch := r.FormValue("head_branch")
 	baseBranch := r.FormValue("base_branch")
 	isDraft := r.FormValue("draft") == "1"
-	hc := h.pickHead(r.Context(), repo, claims.UserID, r.FormValue("head_repo"), true)
+	hc := h.pickHead(r.Context(), repo, claims.UserID, r.FormValue("head_repo"), true, true)
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	// Opening a PR needs only read access; labels and reviewers are write-only metadata.
@@ -170,6 +170,11 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 
 	if title == "" {
 		renderErr("Title is required")
+		return
+	}
+	if hc.unknown {
+		// Falling back to the base would open a pull request from a different branch than the one chosen.
+		renderErr("The head repository is not available to you.")
 		return
 	}
 
@@ -235,12 +240,13 @@ type headChoice struct {
 	repo     string // "owner/name" of the selected head, empty for the base itself
 	choices  []string
 	branches []service.BranchInfo // the selected head's branches, nil for the base itself
+	unknown  bool                 // a head was requested that the viewer may not use
 }
 
 // pickHead resolves the requested head repository (query or form value) against what viewerID may use. An unknown or
 // unwritable request falls back to the base; with none requested, a viewer who can't write the base starts on their
 // own fork, since a branch there is the only head they can offer.
-func (h *Handler) pickHead(ctx context.Context, base *model.Repository, viewerID int64, requested string, canWrite bool) headChoice {
+func (h *Handler) pickHead(ctx context.Context, base *model.Repository, viewerID int64, requested string, explicit, canWrite bool) headChoice {
 	var hc headChoice
 	repos, err := h.Services.Pull.HeadRepoChoices(ctx, base, viewerID)
 	if err != nil {
@@ -250,12 +256,13 @@ func (h *Handler) pickHead(ctx context.Context, base *model.Repository, viewerID
 	for _, r := range repos {
 		hc.choices = append(hc.choices, r.OwnerName+"/"+r.Name)
 	}
-	if requested == "" && !canWrite {
+	if requested == "" && !explicit && !canWrite {
 		if own, err := h.Services.Repo.ForksOwnedBy(ctx, base.ID, viewerID); err == nil && len(own) > 0 {
 			requested = own[0].OwnerName + "/" + own[0].Name
 		}
 	}
 	if !slices.Contains(hc.choices, requested) {
+		hc.unknown = requested != ""
 		return hc
 	}
 	hc.repo = requested

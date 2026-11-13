@@ -459,3 +459,56 @@ func TestPullPayload_NamesAForkHead(t *testing.T) {
 		t.Errorf("a same-repository pull request has no head_repo, got %v", same)
 	}
 }
+
+func TestForkPull_ReopenRefreshesAStaleHead(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr := openForkPullService(t, e)
+	if _, err := e.pulls.SetState(ctx, e.upOwner, e.upRepo, pr.Number, model.PRStateClosed); err != nil {
+		t.Fatal(err)
+	}
+	next := e.pushToFork(t, "fix-x", false)
+
+	got, err := e.pulls.SetState(ctx, e.upOwner, e.upRepo, pr.Number, model.PRStateOpen)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+
+	if got.HeadSHA != next.String() {
+		t.Errorf("head sha after reopen = %q, want the fork's new tip %s", got.HeadSHA, next)
+	}
+	base, err := gogit.PlainOpen(filepath.Join(e.root, e.upOwner, e.upRepo+".git"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ref, err := base.Reference(service.PullHeadRef(pr.Number), true); err != nil || ref.Hash() != next {
+		t.Errorf("pull ref = %v (err %v), want %s", ref, err, next)
+	}
+}
+
+func TestForkPull_ReopenRefusedWhenTheHeadIsGone(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr := openForkPullService(t, e)
+	if _, err := e.pulls.SetState(ctx, e.upOwner, e.upRepo, pr.Number, model.PRStateClosed); err != nil {
+		t.Fatal(err)
+	}
+	testutil.Exec(t, e.db, `DELETE FROM repositories WHERE id = $1`, e.fork.ID)
+
+	_, err := e.pulls.SetState(ctx, e.upOwner, e.upRepo, pr.Number, model.PRStateOpen)
+
+	if !errors.Is(err, service.ErrPullHeadGone) {
+		t.Fatalf("err = %v, want ErrPullHeadGone", err)
+	}
+}
+
+func TestPullCreate_FromFork_NeedsTheTokenToCoverTheFork(t *testing.T) {
+	e := newForkPullEnv(t)
+
+	_, err := e.pulls.CreateFromHead(context.Background(), e.upOwner, e.upRepo, e.forkOwner+"/"+e.forkRepo,
+		e.forkerID, "Fix x", "", "fix-x", "main", false, []string{e.upOwner + "/" + e.upRepo})
+
+	if !errors.Is(err, service.ErrPullForbidden) {
+		t.Fatalf("a token limited to the base repo opened a pull from a fork it doesn't cover: err = %v", err)
+	}
+}

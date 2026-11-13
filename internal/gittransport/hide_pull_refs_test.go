@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
@@ -49,5 +50,13 @@ func TestAdvertisement_HidesPullRefs(t *testing.T) {
 		if _, ok := adv.References["refs/pull/1/head"]; ok {
 			t.Errorf("%s: refs/pull/1/head must not be advertised", name)
 		}
+	}
+}
+
+func TestHidePullRefs_KeepsDeltaReuse(t *testing.T) {
+	repo := testutil.InitBareRepo(t, t.TempDir())
+
+	if _, ok := gittransport.HidePullRefs(repo.Storer).(storer.DeltaObjectStorer); !ok {
+		t.Error("the wrapper dropped DeltaObjectStorer, so every fetch would recompute its deltas")
 	}
 }

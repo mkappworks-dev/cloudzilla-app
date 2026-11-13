@@ -56,7 +56,12 @@ func (s *PullService) startRuns(repo *model.Repository, pr model.PullRequest, ac
 		ctx, cancel := context.WithTimeout(context.Background(), afterPushTimeout)
 		defer cancel()
 		var head *model.Repository
-		if pr.CrossRepo && pr.HeadRepoID != nil {
+		if pr.CrossRepo {
+			// A head that is gone has no workflow source to trust: running it as a same-repository pull request
+			// would hand a stranger's workflow the base's secrets.
+			if pr.HeadRepoID == nil {
+				return
+			}
 			var err error
 			if head, err = s.repos.GetByID(ctx, *pr.HeadRepoID); err != nil {
 				slog.Warn("pull runs: head repository lookup failed", "pull_id", pr.ID, "error", err)
@@ -296,7 +301,7 @@ func (s *PullService) CreateFromHead(ctx context.Context, owner, repoName, headR
 	if repo.IsMirror {
 		return nil, ErrPullIntoMirror
 	}
-	headSrc, err := s.resolveHeadRepo(ctx, repo, headRepo, authorID)
+	headSrc, err := s.resolveHeadRepo(ctx, repo, headRepo, authorID, targets)
 	if err != nil {
 		return nil, err
 	}
@@ -330,14 +335,20 @@ func (s *PullService) CreateFromHead(ctx context.Context, owner, repoName, headR
 	autoSubscribe(ctx, s.threads, authorID, repo.ID, model.ThreadKindPull, pr.Number, model.ThreadReasonAuthor)
 	s.syncKeywordLinks(ctx, repo, pr, authorID, targets)
 	if headSrc != nil {
-		if err := s.code.SetPullHeadRef(owner, repoName, pr.Number, copied); err != nil {
-			slog.Warn("pr create: set head ref failed", "pull_id", pr.ID, "error", err)
+		// Copied again now the row exists: a push to the fork between the first copy and the insert was not synced,
+		// because the pull request was not open to follow yet.
+		tip, err := s.refreshForkHead(ctx, pr, headSrc)
+		if err != nil {
+			slog.Warn("pr create: refresh head failed; keeping the first copy", "pull_id", pr.ID, "error", err)
+			tip = copied
+			if rerr := s.code.SetPullHeadRef(owner, repoName, pr.Number, copied); rerr != nil {
+				slog.Warn("pr create: set head ref failed", "pull_id", pr.ID, "error", rerr)
+			}
+			if uerr := s.pulls.UpdateHeadSHA(ctx, pr.ID, copied.String()); uerr != nil {
+				slog.Warn("pr create: update head sha failed", "pull_id", pr.ID, "error", uerr)
+			}
 		}
-		if err := s.pulls.UpdateHeadSHA(ctx, pr.ID, copied.String()); err != nil {
-			slog.Warn("pr create: update head sha failed", "pull_id", pr.ID, "error", err)
-		} else {
-			pr.HeadSHA = copied.String()
-		}
+		pr.HeadSHA = tip.String()
 	} else if s.code != nil {
 		if headCommit, _, resolveErr := s.code.ResolveRef(owner, repoName, head); resolveErr == nil && headCommit != nil {
 			if shaErr := s.pulls.UpdateHeadSHA(ctx, pr.ID, headCommit.Hash.String()); shaErr == nil {
@@ -354,7 +365,7 @@ func (s *PullService) CreateFromHead(ctx context.Context, owner, repoName, headR
 }
 
 // resolveHeadRepo returns the head repository of a cross-repository pull request, or nil when the head is the base.
-func (s *PullService) resolveHeadRepo(ctx context.Context, base *model.Repository, headRepo string, authorID int64) (*model.Repository, error) {
+func (s *PullService) resolveHeadRepo(ctx context.Context, base *model.Repository, headRepo string, authorID int64, targets []string) (*model.Repository, error) {
 	if headRepo == "" {
 		return nil, nil
 	}
@@ -372,7 +383,7 @@ func (s *PullService) resolveHeadRepo(ctx context.Context, base *model.Repositor
 	if head.ID == base.ID {
 		return nil, nil
 	}
-	if !s.repoSvc.CanWrite(ctx, head, authorID) {
+	if !s.repoSvc.CanWrite(ctx, head, authorID) || (len(targets) > 0 && !model.TargetsCover(targets, head.OwnerName, head.Name)) {
 		return nil, ErrPullForbidden
 	}
 	baseRoot, err := s.repos.ForkRootID(ctx, base.ID)
@@ -476,6 +487,12 @@ func (s *PullService) SetState(ctx context.Context, owner, repoName string, numb
 		return nil, fmt.Errorf("merged PRs cannot be updated")
 	}
 	reopened := pr.State == model.PRStateClosed && state == model.PRStateOpen
+	if reopened && pr.CrossRepo {
+		// Pushes to a closed pull request's head are not followed, so its copy of the head may be stale.
+		if err := s.refreshClosedForkHead(ctx, pr); err != nil {
+			return nil, err
+		}
+	}
 	if err := s.pulls.UpdateState(ctx, pr.ID, state); err != nil {
 		return nil, err
 	}
@@ -730,4 +747,41 @@ func (s *PullService) HeadRepoChoices(ctx context.Context, base *model.Repositor
 		}
 	}
 	return out, nil
+}
+
+// ErrPullHeadGone refuses reopening a fork pull request whose head repository or branch no longer exists.
+var ErrPullHeadGone = errors.New("the head repository or branch no longer exists")
+
+// refreshForkHead copies the head branch's current tip into the base, points the pull request's ref at it and records
+// it as head_sha.
+func (s *PullService) refreshForkHead(ctx context.Context, pr *model.PullRequest, head *model.Repository) (plumbing.Hash, error) {
+	base, err := s.repos.GetByID(ctx, pr.RepoID)
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	tip, err := s.code.CopyPullHead(head.OwnerName, head.Name, pr.HeadBranch, base.OwnerName, base.Name)
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	if err := s.code.SetPullHeadRef(base.OwnerName, base.Name, pr.Number, tip); err != nil {
+		return plumbing.ZeroHash, err
+	}
+	if err := s.pulls.UpdateHeadSHA(ctx, pr.ID, tip.String()); err != nil {
+		return plumbing.ZeroHash, err
+	}
+	return tip, nil
+}
+
+func (s *PullService) refreshClosedForkHead(ctx context.Context, pr *model.PullRequest) error {
+	if pr.HeadRepoID == nil || s.code == nil {
+		return ErrPullHeadGone
+	}
+	head, err := s.repos.GetByID(ctx, *pr.HeadRepoID)
+	if err != nil {
+		return ErrPullHeadGone
+	}
+	if _, err := s.refreshForkHead(ctx, pr, head); err != nil {
+		return fmt.Errorf("%w: %v", ErrPullHeadGone, err)
+	}
+	return nil
 }

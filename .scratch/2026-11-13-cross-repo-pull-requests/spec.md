@@ -178,3 +178,8 @@ CI treats it as a fork Run: it waits for a writer's approval and runs without se
 - Disk use: the base holds a copy of every fork PR's new objects. Accepted; `RepoService` quota recompute already runs
   after a push, and the copy should be counted against the base.
 - The CI ticket is blocked until `feat/phase-18-ci-pipelines` is merged. The spec and the other tickets do not depend on it.
+- Accepted after review: the `pull_request` webhook payload and a default merge message name the head repository even
+  when it is private, because the base's maintainers see the pull request and its author chose to open it; only the API
+  and the pages withhold the name from a reader of the base who can't read the fork. The head picker runs one role
+  lookup per repository in the network (at most 200) on each new-PR page load; batching them is a later change if a
+  network grows that large.

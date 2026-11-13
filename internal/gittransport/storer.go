@@ -40,7 +40,18 @@ type hidePullRefs struct {
 
 // HidePullRefs returns a view of s whose IterReferences omits refs/pull/*.
 func HidePullRefs(s storer.Storer) storer.Storer {
-	return hidePullRefs{s}
+	h := hidePullRefs{s}
+	// go-git reuses stored deltas only when the storer it is handed implements DeltaObjectStorer, so the wrapper must
+	// keep that interface or every fetch recomputes its deltas.
+	if d, ok := s.(storer.DeltaObjectStorer); ok {
+		return hidePullRefsDelta{hidePullRefs: h, DeltaObjectStorer: d}
+	}
+	return h
+}
+
+type hidePullRefsDelta struct {
+	hidePullRefs
+	storer.DeltaObjectStorer
 }
 
 func (h hidePullRefs) IterReferences() (storer.ReferenceIter, error) {

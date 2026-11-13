@@ -230,9 +230,9 @@ func (s *CIRunnerService) jobSpec(ctx context.Context, job *model.WorkflowJob, t
 			needs[n] = res
 		}
 	}
-	src, err := s.runSource(ctx, run)
-	if err != nil {
-		return nil, err
+	src := repo
+	if head := s.forkHeadRepo(ctx, run); head != nil {
+		src = head
 	}
 	spec := &runnerapi.JobSpec{
 		JobID: job.ID, RunID: run.ID, RunNumber: run.Number, Name: job.Name,
@@ -295,17 +295,21 @@ func (s *CIRunnerService) Finish(ctx context.Context, runner *model.CIRunner, jo
 	return s.runs.FinishJob(ctx, jobID, result, message)
 }
 
-// runSource is the repository a Run's commit is cloned from: the Run's own, except for a fork pull request's Run, whose
-// commit is in the head repository. A head that is gone falls back to the Run's repository, which holds a copy.
-func (s *CIRunnerService) runSource(ctx context.Context, run *model.WorkflowRun) (*model.Repository, error) {
-	if run.NoSecrets && run.PullRequestID != nil {
-		if pr, err := s.runs.pulls.GetByID(ctx, *run.PullRequestID); err == nil && pr.CrossRepo && pr.HeadRepoID != nil {
-			if head, err := s.repos.GetByID(ctx, *pr.HeadRepoID); err == nil {
-				return head, nil
-			}
-		}
+// forkHeadRepo is the head repository of a fork pull request's Run, whose commit lives there rather than in the Run's
+// repository, or nil for any other Run or when the head is gone (the base then holds a copy of the commit).
+func (s *CIRunnerService) forkHeadRepo(ctx context.Context, run *model.WorkflowRun) *model.Repository {
+	if !run.NoSecrets || run.PullRequestID == nil {
+		return nil
 	}
-	return s.repos.GetByID(ctx, run.RepoID)
+	pr, err := s.runs.pulls.GetByID(ctx, *run.PullRequestID)
+	if err != nil || !pr.CrossRepo || pr.HeadRepoID == nil {
+		return nil
+	}
+	head, err := s.repos.GetByID(ctx, *pr.HeadRepoID)
+	if err != nil {
+		return nil
+	}
+	return head
 }
 
 // VerifyJobToken returns what a per-job token grants, or ErrRunnerUnauthorized once its Job is no longer running.
@@ -324,11 +328,11 @@ func (s *CIRunnerService) VerifyJobToken(ctx context.Context, raw string) (*JobT
 	if err != nil {
 		return nil, err
 	}
-	src, err := s.runSource(ctx, run)
-	if err != nil {
-		return nil, err
+	cloneID := run.RepoID
+	if head := s.forkHeadRepo(ctx, run); head != nil {
+		cloneID = head.ID
 	}
-	return &JobToken{JobID: job.ID, RunID: run.ID, RepoID: run.RepoID, CloneRepoID: src.ID, NoSecrets: run.NoSecrets}, nil
+	return &JobToken{JobID: job.ID, RunID: run.ID, RepoID: run.RepoID, CloneRepoID: cloneID, NoSecrets: run.NoSecrets}, nil
 }
 
 // Run fails the Jobs of silent runners every few seconds until ctx ends.

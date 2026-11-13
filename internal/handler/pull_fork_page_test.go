@@ -137,3 +137,36 @@ func TestPagePullDetail_PrivateForkIsNamedOnlyAsAFork(t *testing.T) {
 	}
 	assertContains(t, page, "a fork")
 }
+
+func TestPageNewPull_ReadOnlyViewerCanPickTheBaseExplicitly(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	f := forkWithBranch(t, db, api, reposRoot)
+
+	page := requestAPI(api, http.MethodGet, f.path+"/pulls/new?head_repo=", f.forker.token).Body.String()
+
+	if strings.Contains(page, `<option value="`+f.forkRepo+`" selected>`) {
+		t.Error("choosing the base repository was undone: the page selected the fork again")
+	}
+}
+
+func TestPageNewPullSubmit_RefusesAHeadRepoTheViewerMayNotUse(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	f := forkWithBranch(t, db, api, reposRoot)
+	stranger := seedSignedInUser(t, db)
+
+	rr := postForm(t, api, stranger.token, f.path+"/pulls/new", url.Values{
+		"title": {"Add x"}, "head_repo": {f.forkRepo}, "head_branch": {"feature"}, "base_branch": {"main"},
+	})
+
+	if rr.Code == http.StatusSeeOther {
+		t.Fatal("a pull request was opened from a head repository the viewer can't write to")
+	}
+	assertContains(t, rr.Body.String(), "head repository is not available")
+	if n := countRows(t, db, `SELECT COUNT(*) FROM pull_requests WHERE repo_id = $1`, f.id); n != 0 {
+		t.Errorf("a pull request exists, got %d", n)
+	}
+}
