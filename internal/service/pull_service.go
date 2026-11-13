@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -256,10 +259,22 @@ func (s *PullService) listRows(ctx context.Context, owner, repoName string, pull
 var (
 	ErrPullForbidden  = fmt.Errorf("forbidden: cannot open pull requests on this repository")
 	ErrPullIntoMirror = errors.New("pull mirrors are read-only")
+
+	// ErrPullHeadNotInTree refuses a head repository that is not the base or one of its forks, directly or through a
+	// shared source.
+	ErrPullHeadNotInTree = errors.New("the head repository must be in the same fork network as the base")
+	// ErrPullHeadBranchMissing is returned when the head branch can't be read from the head repository.
+	ErrPullHeadBranchMissing = errors.New("the head branch can't be read from the head repository")
 )
 
 // targets are the repos and orgs the author's token is limited to, if any.
 func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool, targets []string) (*model.PullRequest, error) {
+	return s.CreateFromHead(ctx, owner, repoName, "", authorID, title, body, head, base, isDraft, targets)
+}
+
+// CreateFromHead opens a pull request whose head branch is in headRepo ("owner/name"), a repository in the base's
+// fork tree. An empty headRepo, or the base itself, is a same-repository pull request.
+func (s *PullService) CreateFromHead(ctx context.Context, owner, repoName, headRepo string, authorID int64, title, body, head, base string, isDraft bool, targets []string) (*model.PullRequest, error) {
 	if len(title) > MaxTitleLen {
 		return nil, ErrTitleTooLong
 	}
@@ -273,6 +288,19 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 	if repo.IsMirror {
 		return nil, ErrPullIntoMirror
 	}
+	headSrc, err := s.resolveHeadRepo(ctx, repo, headRepo, authorID)
+	if err != nil {
+		return nil, err
+	}
+	var copied plumbing.Hash
+	if headSrc != nil {
+		if s.code == nil {
+			return nil, errors.New("pull from a fork needs the code service")
+		}
+		if copied, err = s.code.CopyPullHead(headSrc.OwnerName, headSrc.Name, head, owner, repoName); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrPullHeadBranchMissing, err)
+		}
+	}
 	pr := &model.PullRequest{
 		RepoID:     repo.ID,
 		AuthorID:   authorID,
@@ -283,12 +311,25 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 		BaseBranch: base,
 		IsDraft:    isDraft,
 	}
+	if headSrc != nil {
+		pr.HeadRepoID = &headSrc.ID
+		pr.HeadRepo = headSrc.OwnerName + "/" + headSrc.Name
+	}
 	if err := s.pulls.Create(ctx, pr); err != nil {
 		return nil, err
 	}
 	autoSubscribe(ctx, s.threads, authorID, repo.ID, model.ThreadKindPull, pr.Number, model.ThreadReasonAuthor)
 	s.syncKeywordLinks(ctx, repo, pr, authorID, targets)
-	if s.code != nil {
+	if headSrc != nil {
+		if err := s.code.SetPullHeadRef(owner, repoName, pr.Number, copied); err != nil {
+			slog.Warn("pr create: set head ref failed", "pull_id", pr.ID, "error", err)
+		}
+		if err := s.pulls.UpdateHeadSHA(ctx, pr.ID, copied.String()); err != nil {
+			slog.Warn("pr create: update head sha failed", "pull_id", pr.ID, "error", err)
+		} else {
+			pr.HeadSHA = copied.String()
+		}
+	} else if s.code != nil {
 		if headCommit, _, resolveErr := s.code.ResolveRef(owner, repoName, head); resolveErr == nil && headCommit != nil {
 			if shaErr := s.pulls.UpdateHeadSHA(ctx, pr.ID, headCommit.Hash.String()); shaErr == nil {
 				pr.HeadSHA = headCommit.Hash.String()
@@ -301,6 +342,42 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 	}
 	s.startRuns(repo, *pr, "opened", authorID)
 	return pr, nil
+}
+
+// resolveHeadRepo returns the head repository of a cross-repository pull request, or nil when the head is the base.
+func (s *PullService) resolveHeadRepo(ctx context.Context, base *model.Repository, headRepo string, authorID int64) (*model.Repository, error) {
+	if headRepo == "" {
+		return nil, nil
+	}
+	headOwner, headName, ok := strings.Cut(headRepo, "/")
+	if !ok {
+		return nil, ErrPullHeadNotInTree
+	}
+	head, err := s.repos.GetByOwnerAndName(ctx, headOwner, headName)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrPullHeadNotInTree
+		}
+		return nil, fmt.Errorf("head repo: %w", err)
+	}
+	if head.ID == base.ID {
+		return nil, nil
+	}
+	if !s.repoSvc.CanWrite(ctx, head, authorID) {
+		return nil, ErrPullForbidden
+	}
+	baseRoot, err := s.repos.ForkRootID(ctx, base.ID)
+	if err != nil {
+		return nil, err
+	}
+	headRoot, err := s.repos.ForkRootID(ctx, head.ID)
+	if err != nil {
+		return nil, err
+	}
+	if baseRoot != headRoot {
+		return nil, ErrPullHeadNotInTree
+	}
+	return head, nil
 }
 
 func (s *PullService) List(ctx context.Context, owner, repoName string) ([]model.PullRequest, error) {

@@ -32,6 +32,23 @@ func NewPullStore(database *sql.DB) *PullStore {
 	return &PullStore{db: database}
 }
 
+// headRepoID is the head repository to store: the base itself unless the PR names another.
+func headRepoID(pr *model.PullRequest) int64 {
+	if pr.HeadRepoID != nil {
+		return *pr.HeadRepoID
+	}
+	return pr.RepoID
+}
+
+func setHeadRepo(pr *model.PullRequest, id sql.NullInt64, label string) {
+	if id.Valid {
+		pr.HeadRepoID = &id.Int64
+	}
+	if id.Valid && id.Int64 != pr.RepoID {
+		pr.HeadRepo = label
+	}
+}
+
 func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 	var num int
 	err := s.db.QueryRowContext(ctx,
@@ -47,11 +64,12 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 	var autoMergeStrategy sql.NullString
 	var headSHAOut sql.NullString
 	err = s.db.QueryRowContext(ctx,
-		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft, draft_at, head_sha)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CASE WHEN $9 THEN NOW() END, $10)
+		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft, draft_at, head_sha, head_repo_id, head_repo_label)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CASE WHEN $9 THEN NOW() END, $10, $11, $12)
 		 RETURNING id, created_at, updated_at, merged_at, closed_at, is_draft, draft_at, auto_merge_enabled, auto_merge_strategy, head_sha`,
 		pr.RepoID, pr.Number, pr.AuthorID, pr.Title, pr.Body,
 		string(pr.State), pr.HeadBranch, pr.BaseBranch, pr.IsDraft, sql.NullString{String: pr.HeadSHA, Valid: pr.HeadSHA != ""},
+		headRepoID(pr), pr.HeadRepo,
 	).Scan(&pr.ID, &pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
 		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHAOut)
 	if headSHAOut.Valid {
@@ -99,18 +117,20 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	var autoMergeStrategy, headSHA sql.NullString
 	var autoMergeBy sql.NullInt64
 	var mergedBaseSHA, mergedHeadSHA sql.NullString
+	var headRepo sql.NullInt64
+	var headRepoLabel string
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
 		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by,
-		        merged_base_sha, merged_head_sha
+		        merged_base_sha, merged_head_sha, head_repo_id, head_repo_label
 		 FROM pull_requests WHERE repo_id = $1 AND number = $2`,
 		repoID, number,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
 		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy,
-		&mergedBaseSHA, &mergedHeadSHA)
+		&mergedBaseSHA, &mergedHeadSHA, &headRepo, &headRepoLabel)
 	if err != nil {
 		return nil, fmt.Errorf("pr get: %w", err)
 	}
@@ -134,6 +154,7 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	if autoMergeBy.Valid {
 		pr.AutoMergeBy = &autoMergeBy.Int64
 	}
+	setHeadRepo(pr, headRepo, headRepoLabel)
 	return pr, nil
 }
 
@@ -268,18 +289,20 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 	var autoMergeStrategy, headSHA sql.NullString
 	var autoMergeBy sql.NullInt64
 	var mergedBaseSHA, mergedHeadSHA sql.NullString
+	var headRepo sql.NullInt64
+	var headRepoLabel string
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
 		        auto_merge_enabled, auto_merge_strategy, head_sha, auto_merge_by,
-		        merged_base_sha, merged_head_sha
+		        merged_base_sha, merged_head_sha, head_repo_id, head_repo_label
 		 FROM pull_requests WHERE id = $1`,
 		id,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
 		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA, &autoMergeBy,
-		&mergedBaseSHA, &mergedHeadSHA)
+		&mergedBaseSHA, &mergedHeadSHA, &headRepo, &headRepoLabel)
 	if err != nil {
 		return nil, fmt.Errorf("pr get by id: %w", err)
 	}
@@ -303,6 +326,7 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 	if autoMergeBy.Valid {
 		pr.AutoMergeBy = &autoMergeBy.Int64
 	}
+	setHeadRepo(pr, headRepo, headRepoLabel)
 	return pr, nil
 }
 

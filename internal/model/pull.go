@@ -31,6 +31,10 @@ type PullRequest struct {
 	AutoMergeEnabled  bool       `db:"auto_merge_enabled"   json:"auto_merge_enabled"`
 	AutoMergeStrategy string     `db:"auto_merge_strategy"  json:"auto_merge_strategy,omitempty"`
 	HeadSHA           string     `db:"head_sha"             json:"head_sha,omitempty"`
+	// HeadRepoID is the repository the head branch lives in; nil once that repository is gone.
+	HeadRepoID *int64 `db:"head_repo_id" json:"-"`
+	// HeadRepo is the head's "owner/name" when it differs from the base, set by GetByID, GetByNumber and Create only.
+	HeadRepo string `db:"-" json:"head_repo,omitempty"`
 	// AutoMergeBy is the user who armed auto-merge, read by GetByID and GetByNumber only.
 	AutoMergeBy *int64 `db:"auto_merge_by" json:"-"`
 	// MergedBaseSHA and MergedHeadSHA are the base tip and head tip the merge saw, read by GetByID and GetByNumber

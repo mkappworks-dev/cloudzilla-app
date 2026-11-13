@@ -1066,3 +1066,22 @@ func scanRepoRows(rows *sql.Rows) ([]model.Repository, error) {
 	}
 	return repos, rows.Err()
 }
+
+// ForkRootID follows fork_of_id from id to the repository that was not forked from another. The 64-step bound stops a
+// cycle in bad data from looping.
+func (s *RepoStore) ForkRootID(ctx context.Context, id int64) (int64, error) {
+	var root int64
+	err := s.db.QueryRowContext(ctx,
+		`WITH RECURSIVE chain(id, fork_of_id, depth) AS (
+		     SELECT id, fork_of_id, 0 FROM repositories WHERE id = $1
+		     UNION ALL
+		     SELECT r.id, r.fork_of_id, c.depth + 1 FROM repositories r JOIN chain c ON r.id = c.fork_of_id WHERE c.depth < 64
+		 )
+		 SELECT id FROM chain ORDER BY depth DESC LIMIT 1`,
+		id,
+	).Scan(&root)
+	if err != nil {
+		return 0, fmt.Errorf("fork root: %w", err)
+	}
+	return root, nil
+}

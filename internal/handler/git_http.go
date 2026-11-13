@@ -236,7 +236,7 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// MapLoader is keyed on ep.String() (e.g. "file:///"), not the input to NewEndpoint.
-	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
+	srv := server.NewServer(server.MapLoader{ep.String(): gittransport.HidePullRefs(gitRepo.Storer)})
 
 	w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", strings.TrimPrefix(svc, "git-")))
 
@@ -325,7 +325,7 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
+	srv := server.NewServer(server.MapLoader{ep.String(): gittransport.HidePullRefs(gitRepo.Storer)})
 	sess, err := srv.NewUploadPackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)

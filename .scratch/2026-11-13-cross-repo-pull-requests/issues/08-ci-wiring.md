@@ -3,7 +3,7 @@
 Created: 2026-11-13
 Category: enhancement
 Status: ready-for-agent
-Blocked by: 06, 07, and `feat/phase-18-ci-pipelines` merged to main
+Blocked by: 06, 07
 
 ## Problem
 

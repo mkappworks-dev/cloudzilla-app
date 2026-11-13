@@ -26,6 +26,8 @@ type createPRRequest struct {
 	HeadBranch string `json:"head_branch"`
 	BaseBranch string `json:"base_branch"`
 	IsDraft    bool   `json:"is_draft"`
+	// HeadRepo is "owner/name" of the repository holding HeadBranch; empty means the base itself.
+	HeadRepo string `json:"head_repo"`
 }
 
 type updatePRRequest struct {
@@ -93,7 +95,7 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft, claims.Targets)
+	pr, err := h.Services.Pull.CreateFromHead(r.Context(), owner, repoName, req.HeadRepo, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft, claims.Targets)
 	if err != nil {
 		if errors.Is(err, service.ErrPullForbidden) {
 			writeError(w, http.StatusForbidden, "forbidden")
@@ -101,6 +103,10 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		if errors.Is(err, service.ErrPullIntoMirror) {
 			writeError(w, http.StatusUnprocessableEntity, pullIntoMirrorMessage)
+			return
+		}
+		if errors.Is(err, service.ErrPullHeadNotInTree) || errors.Is(err, service.ErrPullHeadBranchMissing) {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		slog.Error("create pull: service create failed",

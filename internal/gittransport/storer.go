@@ -6,7 +6,12 @@
 // "Concurrent ref updates".
 package gittransport
 
-import "github.com/go-git/go-git/v5/plumbing/storer"
+import (
+	"strings"
+
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/storer"
+)
 
 // receivePackStorer hides any methods of the wrapped storer that aren't
 // part of storer.Storer itself. Critically it hides PackfileWriter(),
@@ -25,4 +30,25 @@ type receivePackStorer struct {
 // parse-with-storage pack-ingestion path.
 func WrapForReceive(s storer.Storer) storer.Storer {
 	return receivePackStorer{s}
+}
+
+// hidePullRefs leaves refs/pull/* out of the ref advertisement; a fork pull request's head is for the server, not for
+// clones. Only IterReferences is filtered, so a ref is still readable and writable by name.
+type hidePullRefs struct {
+	storer.Storer
+}
+
+// HidePullRefs returns a view of s whose IterReferences omits refs/pull/*.
+func HidePullRefs(s storer.Storer) storer.Storer {
+	return hidePullRefs{s}
+}
+
+func (h hidePullRefs) IterReferences() (storer.ReferenceIter, error) {
+	it, err := h.Storer.IterReferences()
+	if err != nil {
+		return nil, err
+	}
+	return storer.NewReferenceFilteredIter(func(r *plumbing.Reference) bool {
+		return !strings.HasPrefix(r.Name().String(), "refs/pull/")
+	}, it), nil
 }

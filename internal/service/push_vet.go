@@ -2,12 +2,18 @@ package service
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+// ErrPullRefPush refuses a push to refs/pull/*: the server writes those, and a client moving one would change what a
+// fork pull request merges.
+var ErrPullRefPush = errors.New("refs/pull/ is reserved for pull requests")
 
 // PushVetService makes the vet hook both transports give gittransport.NewServer, so HTTP and SSH cannot drift.
 type PushVetService struct {
@@ -38,6 +44,9 @@ func (v *PushVet) Expect(cmds []*packp.Command) { v.scan.Expect(cmds) }
 
 // Check is the vet hook for gittransport.NewServer.
 func (v *PushVet) Check(cmd *packp.Command) error {
+	if strings.HasPrefix(cmd.Name.String(), "refs/pull/") {
+		return ErrPullRefPush
+	}
 	if err := v.svc.protection.CheckPushCommand(v.ctx, v.repo.ID, v.gitRepo, cmd); err != nil {
 		return err
 	}
