@@ -180,6 +180,16 @@ func (c combo) includeMatches(inc []pair, axes []string) bool {
 func (d *decoder) expand(jobsNode *yaml.Node, raws []*rawJob) []*Job {
 	var out []*Job
 	steps := 0
+	seen := map[string]bool{}
+	// workflow_jobs is UNIQUE (run_id, attempt, name), so a repeated name must fail here rather than at insert.
+	unique := func(r *rawJob, name string) bool {
+		if seen[name] {
+			d.errAt(r.key, "job %q: duplicate job name %q", r.id, name)
+			return false
+		}
+		seen[name] = true
+		return true
+	}
 	for _, r := range raws {
 		base := r.job.Name
 		if base == "" {
@@ -187,6 +197,9 @@ func (d *decoder) expand(jobsNode *yaml.Node, raws []*rawJob) []*Job {
 		}
 		if r.matrix == nil {
 			r.job.Name = base
+			if !unique(r, base) {
+				continue
+			}
 			out = append(out, jobPtr(r.job))
 			steps += len(r.job.Steps)
 			continue
@@ -211,6 +224,9 @@ func (d *decoder) expand(jobsNode *yaml.Node, raws []*rawJob) []*Job {
 				}
 			}
 			j.Name = base + " (" + strings.Join(names, ", ") + ")"
+			if !unique(r, j.Name) {
+				continue
+			}
 			out = append(out, jobPtr(j))
 			steps += len(j.Steps)
 		}

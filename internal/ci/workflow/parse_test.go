@@ -221,6 +221,25 @@ func TestEmptyStepsAndDuplicateJobs(t *testing.T) {
 	}
 }
 
+func TestDuplicateJobNames(t *testing.T) {
+	const head = "on: push\njobs:\n"
+	const body = "    runs-on: x\n    steps:\n      - run: x\n"
+	tests := map[string]string{
+		"same name:":     head + "  a:\n    name: test\n" + body + "  b:\n    name: test\n" + body,
+		"id vs name:":    head + "  a:\n" + body + "  b:\n    name: a\n" + body,
+		"matrix values":  head + "  a:\n    strategy:\n      matrix:\n        os: [x, x]\n" + body,
+		"matrix include": head + "  a:\n    strategy:\n      matrix:\n        include:\n          - os: x\n          - os: x\n" + body,
+	}
+	for name, src := range tests {
+		t.Run(name, func(t *testing.T) {
+			e := firstError(t, src)
+			if !strings.Contains(e.Message, "duplicate job name") || e.Line == 0 {
+				t.Errorf("got %v", e)
+			}
+		})
+	}
+}
+
 func TestErrorString(t *testing.T) {
 	e := Error{File: "f.yml", Line: 3, Column: 5, Message: "boom"}
 	if e.Error() != "f.yml:3:5: boom" {
