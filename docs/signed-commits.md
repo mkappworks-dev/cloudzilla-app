@@ -32,8 +32,10 @@ do" line.
 | `key_revoked`         | `unverified`         | The key, or the signing subkey, is revoked                                                |
 | `multiple_signatures` | `unverified`         | The header holds more than one signature block                                            |
 | `unsupported`         | `unverified`         | Not a PGP or SSH signature, unparseable, or an issuer or algorithm we cannot read         |
+| `unavailable`         | `unverified`         | The key lookup failed (logged); reloading usually clears it                               |
 
-A commit that cannot be judged is `unverified` with a reason, never an error. Only a failed key lookup is an error.
+A commit that cannot be judged is `unverified` with a reason, never an error. A failed key lookup is logged and shows as
+`unavailable`.
 
 A commit signed by an instance key is `verified` with the signer "Cloudzilla" and key kind `instance`. The email rule
 does not apply: its committer is the instance, not an account.
@@ -57,7 +59,8 @@ The committer email is read, not the author email, because that is the one git m
   skip it, so a `no-touch-required` signature verifies.
 - Expiry is judged at the commit's committer date, not at the time of viewing: a commit signed before its key expired
   stays Verified. A deleted key makes its commits `unverified` (`no_key`); a revoked one `key_revoked`. A subkey is also
-  bounded by its own expiry and revocation.
+  bounded by its own expiry and revocation. Revocation is read when the key is added: a key revoked afterwards keeps
+  verifying until its owner removes it or adds the updated key.
 - **Accepted cost.** The committer date is set by the committer, so "signed before expiry" can be forged: whoever holds
   an expired key can back-date a commit and it will read Verified. Closing this needs a trusted timestamp, which a
   signed commit does not have. We accept it.
