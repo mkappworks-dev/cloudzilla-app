@@ -371,6 +371,5 @@ the [API reference](./api-reference.md#workflow-runs), and the `repo` and `repo:
   covered by tests only and has never run on a real fork. When they land, `WorkflowRunService.OnPullRequest` must be
   called with the fork as the head repository, and a fork Run's per-job token must be bound to the fork so the runner
   can clone its commit.
-- **A matrix expression in an `artifacts:` name is not interpolated** (`dist-${{ matrix.arch }}` is kept as written).
 - **One Job container per Job.** Steps share it, so a tool one Step installs is there in the next, but a Job cannot
   start service containers (`services` is rejected).

@@ -2700,7 +2700,7 @@ Authentication via the same JWT/PAT bearer token as the REST API. A GraphQL Play
 | 17.1  | Git LFS Support                                       | ⬜ Planned | 116          |
 | 17.2  | Signed Commit Verification (GPG/SSH)                  | ✅ Done    | 130, 131     |
 | 17.3  | Secret Scanning                                       | ✅ Done    | 133-135      |
-| 18.1  | Workflows and Runs                                    | ✅ Done    | 136          |
+| 18.1  | Workflows and Runs                                    | ✅ Done    | 136, 140     |
 | 18.2  | Runners, logs and artifacts                           | ✅ Done    | 137-139      |
 | 18.3  | Actions tab, Checks and integration                   | ✅ Done    | —            |
 | 19.1  | LDAP / SAML Improvements                              | ⬜ Planned | —            |
