@@ -335,7 +335,8 @@ func TestLoad_SecretScanningDefaultsAndEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	want := config.SecretScanningConfig{PushProtection: true, MaxBlobBytes: 1 << 20, PushTimeout: 10 * time.Second, MaxBlobs: 5000}
+	want := config.SecretScanningConfig{PushProtection: true, MaxBlobBytes: 1 << 20, PushTimeout: 10 * time.Second, MaxBlobs: 5000,
+		BackfillTimeout: 5 * time.Minute, BackfillMaxBlobs: 200000}
 	if cfg.SecretScanning != want {
 		t.Errorf("defaults = %+v, want %+v", cfg.SecretScanning, want)
 	}
@@ -348,7 +349,8 @@ func TestLoad_SecretScanningDefaultsAndEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	want = config.SecretScanningConfig{MaxBlobBytes: 2048, PushTimeout: 3 * time.Second, MaxBlobs: 10}
+	want = config.SecretScanningConfig{MaxBlobBytes: 2048, PushTimeout: 3 * time.Second, MaxBlobs: 10,
+		BackfillTimeout: 5 * time.Minute, BackfillMaxBlobs: 200000}
 	if cfg.SecretScanning != want {
 		t.Errorf("env = %+v, want %+v", cfg.SecretScanning, want)
 	}

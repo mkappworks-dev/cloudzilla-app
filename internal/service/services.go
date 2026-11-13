@@ -73,6 +73,7 @@ type Services struct {
 	Attachment         *AttachmentService
 	Export             *ExportService
 	SecretAlert        *SecretAlertService
+	SecretScan         *SecretScanService
 	PushScan           *PushScanService
 	PushVet            *PushVetService
 	Mirror             *MirrorService
@@ -128,7 +129,10 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	code.WithSignatures(NewSignatureService(stores.GPGKey, stores.SSHSigningKey, userSvc).WithInstanceKeys(stores.InstanceSigningKey))
 	emailVerificationSvc.WithAdditionalEmails(stores.UserEmail, reauthSvc)
 	threadSubSvc := NewThreadSubscriptionService(stores.ThreadSubscription, stores.Watch)
+	secretAlertSvc := NewSecretAlertService(stores.SecretAlert)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc).WithThreadSubscriptions(threadSubSvc)
+	secretScanSvc := NewSecretScanService(stores.SecretScan, stores.Repo, secretAlertSvc, notifSvc, cfg.Git, cfg.SecretScanning)
+	mirrorSvc.WithSecretScans(secretScanSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	avatarSvc := NewAvatarService(stores.User, stores.Org, stores.Avatar, orgSvc)
 	attachmentSvc := NewAttachmentService(stores.Attachment)
@@ -147,7 +151,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
 	passwordResetSvc := NewPasswordResetService(stores.PasswordReset, stores.User, reauthSvc, emailSvc, cfg.Server.BaseURL)
 	issueSvc := NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention).WithEventStore(stores.IssueEvent).WithThreadSubscriptions(threadSubSvc)
-	secretAlertSvc := NewSecretAlertService(stores.SecretAlert)
 	branchProtectionSvc := NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus)
 	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc}).
 		WithTokenResolver(NewTokenRevoker(stores.AccessToken, auditSvc, notifSvc))
@@ -209,13 +212,14 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		ContributorStats:   contributorStatsSvc,
 		Attention:          attentionSvc,
 		Language:           languageSvc,
-		Import:             NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
+		Import:             NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc).WithSecretScans(secretScanSvc),
 		IssueCloser:        issueCloser,
 		Health:             NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:             avatarSvc,
 		Attachment:         attachmentSvc,
 		Export:             exportSvc,
 		SecretAlert:        secretAlertSvc,
+		SecretScan:         secretScanSvc,
 		PushScan:           pushScanSvc,
 		PushVet:            NewPushVetService(branchProtectionSvc, pushScanSvc),
 		Mirror:             mirrorSvc,

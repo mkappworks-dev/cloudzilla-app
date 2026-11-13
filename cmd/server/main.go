@@ -131,6 +131,8 @@ func main() {
 		concurrency.Go("mirror.run", func() { services.Mirror.Run(workerCtx) })
 	}
 
+	concurrency.Go("secretscan.backfill", func() { services.SecretScan.RunBackfill(workerCtx) })
+
 	concurrency.Go("quota.backfill", func() { services.Quota.Backfill(workerCtx) })
 	concurrency.Go("pull.backfill-merged-ranges", func() { services.Pull.BackfillMergedRanges(workerCtx, services.PullEvent) })
 	concurrency.Go("attachment.sweep", func() { services.Attachment.Run(workerCtx) })

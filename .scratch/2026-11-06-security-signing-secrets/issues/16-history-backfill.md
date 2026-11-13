@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 10, 11, 12
 Parallel with: 13, 14, 15
 
@@ -32,15 +32,15 @@ The feature ships on repositories with years of commits. Without a history scan 
 
 ## Acceptance criteria
 
-- [ ] A repo with a key in an old commit on a non-default branch gets one alert, one `found` event and one admin digest after the job runs; a second run adds nothing
-- [ ] A file unchanged across 10,000 commits is read once (benchmark or counter assertion); a budget overrun marks the scan `incomplete` and the next run does not restart from scratch needlessly
-- [ ] Two scheduler instances on one database never claim the same repo (lease test)
-- [ ] A mirror sync and an import re-queue the scan; `blocked`-only alerts past 7 days are swept
-- [ ] The banners render for `pending`, `running` and `incomplete`
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
-- [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
-- [ ] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+- [x] A repo with a key in an old commit on a non-default branch gets one alert, one `found` event and one admin digest after the job runs; a second run adds nothing
+- [x] A file unchanged across 10,000 commits is read once (benchmark or counter assertion); a budget overrun marks the scan `incomplete` and the next run does not restart from scratch needlessly
+- [x] Two scheduler instances on one database never claim the same repo (lease test)
+- [x] A mirror sync and an import re-queue the scan; `blocked`-only alerts past 7 days are swept
+- [x] The banners render for `pending`, `running` and `incomplete`
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` / `shell.js` where affected) and checked under `make mockups` in both themes
+- [x] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
+- [x] `make generate-templ` re-run and the `_templ.go` files committed (if `.templ` changed); `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
 
