@@ -30,12 +30,12 @@ ROADMAP promises the badge on tree and blame. The tree's last-commit row and bla
 
 ## Acceptance criteria
 
-- [ ] The tree's last-commit row and blame hunks show the badge and popover for each status; unsigned shows nothing
-- [ ] Blame on a 1000-line file with 40 distinct commits does one batched key lookup (test)
-- [ ] Popovers inside blame do not clip or scroll the table
-- [ ] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
-- [ ] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
-- [ ] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
+- [x] The tree's last-commit row and blame hunks show the badge and popover for each status; unsigned shows nothing
+- [x] Blame on a 1000-line file with 40 distinct commits does one batched key lookup (test)
+- [x] Popovers inside blame do not clip or scroll the table
+- [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
+- [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
+- [x] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
 - [ ] `make generate-templ` re-run and the `_templ.go` files committed; `make lint` and `go test ./...` pass
 
 ## Verification
@@ -44,3 +44,4 @@ Throwaway server: scratch Postgres on a free port (see `docs/testing.md`), a uni
 
 ## Comments
 
+Claude, 2026-11-13: Left unticked: `make lint` (golangci-lint is not installed here; `gofmt` is clean). The scratch mocks beside the spec show neither the tree nor blame, so nothing there needed a change. Blame and the tree header use fixed-position popovers (`SignatureIcon`, `SignatureBadgeFloating`) that flip above the badge when they would run off the bottom, because both sit inside `overflow-hidden` or scrolling containers. The tree verdict is computed per view outside the 60s entries cache.

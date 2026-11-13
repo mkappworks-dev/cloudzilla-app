@@ -38,3 +38,17 @@ func (s *CodeService) summarizeCommits(commits []*object.Commit) []CommitSummary
 	}
 	return out
 }
+
+// SignatureForCommit is the verdict for one commit, for page chrome that shows a commit it didn't load in full. A
+// commit that can't be read has no verdict, so no badge.
+func (s *CodeService) SignatureForCommit(owner, repoName, sha string) SignatureResult {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return SignatureResult{}
+	}
+	c, err := repo.CommitObject(plumbing.NewHash(sha))
+	if err != nil {
+		return SignatureResult{}
+	}
+	return s.verifySignatures([]*object.Commit{c})[c.Hash]
+}

@@ -539,6 +539,8 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 			AuthorURL: "/" + newest.LastCommit.Author,
 			CommitURL: "/" + owner + "/" + repoName + "/commit/" + newest.LastCommit.SHA,
 			Timestamp: newest.LastCommit.Timestamp,
+			// Outside the entries cache so a key added later takes effect on the next view.
+			Signature: h.Services.Code.SignatureForCommit(owner, repoName, newest.LastCommit.SHA),
 		}
 	}
 

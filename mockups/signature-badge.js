@@ -1,6 +1,7 @@
 // Stand-in for components.SignatureBadge: swaps each <span data-signature="state"></span> for the badge and its
 // popover, with the markup and classes of internal/view/components/signature_badge.templ. The real popover is Alpine;
-// this one toggles `hidden`. States: verified-ssh, verified-gpg, instance, partial, unverified.
+// this one toggles `hidden`. States: verified-ssh, verified-gpg, instance, partial, unverified. Add data-floating for
+// SignatureBadgeFloating (fixed popover) and data-icon for SignatureIcon (glyph only, fixed popover).
 (function () {
   var SHIELD = '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>';
   var ICON = {
@@ -40,11 +41,15 @@
 
   function build(host, state) {
     var d = S[state], icon = ICON[d.tone];
+    var glyph = function (size, cls) {
+      return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="' + cls + '" aria-hidden="true" focusable="false">' + icon[1] + '</svg>';
+    };
+    var isIcon = 'icon' in host.dataset, floating = isIcon || 'floating' in host.dataset;
     host.outerHTML =
       '<div class="relative inline-block" data-sig>' +
-        '<button type="button" data-sig-btn aria-expanded="false" aria-haspopup="dialog" class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium ' + BTN[d.tone] + '">' + d.label + '</button>' +
-        '<div hidden data-sig-panel role="dialog" aria-label="Commit signature" class="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left font-normal whitespace-normal">' +
-          '<p class="flex items-start gap-2 text-[13px] font-medium"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-[3px] ' + icon[0] + '" aria-hidden="true" focusable="false">' + icon[1] + '</svg><span>' + d.head + '</span></p>' +
+        '<button type="button" data-sig-btn aria-expanded="false" aria-haspopup="dialog" ' + (isIcon ? 'aria-label="' + d.label + ' signature" title="' + d.label + '" class="inline-flex items-center justify-center h-5 w-5 rounded-full border ' : 'class="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium ') + BTN[d.tone] + '">' + (isIcon ? glyph(12, '') : d.label) + '</button>' +
+        '<div hidden data-sig-panel role="dialog" aria-label="Commit signature" class="' + (floating ? 'fixed' : 'absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5') + ' z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left font-normal whitespace-normal">' +
+          '<p class="flex items-start gap-2 text-[13px] font-medium">' + glyph(14, 'shrink-0 mt-[3px] ' + icon[0]) + '<span>' + d.head + '</span></p>' +
           d.who + dl(d.rows) + (d.hint ? '<p class="mt-2 text-[12px] text-muted-foreground">' + d.hint + '</p>' : '') +
           '<div role="separator" class="my-2 h-px bg-border"></div><a href="account_settings.html" class="text-[12px] text-muted-foreground hover:text-foreground">About signing keys →</a>' +
         '</div></div>';
@@ -59,11 +64,26 @@
     var btn = w.querySelector('[data-sig-btn]'), panel = w.querySelector('[data-sig-panel]');
     btn.addEventListener('click', function () {
       var open = panel.hidden;
+      if (open && panel.classList.contains('fixed')) {
+        var b = btn.getBoundingClientRect(), w = Math.min(340, window.innerWidth - 48);
+        panel.style.top = b.bottom + 6 + 'px';
+        panel.hidden = false;
+        var h = panel.offsetHeight;
+        if (b.bottom + 6 + h > window.innerHeight - 8) panel.style.top = Math.max(8, b.top - 6 - h) + 'px';
+        panel.style.left = Math.max(8, Math.min(b.left, window.innerWidth - w - 8)) + 'px';
+      }
       document.querySelectorAll('[data-sig]').forEach(close);
       panel.hidden = !open;
       btn.setAttribute('aria-expanded', String(open));
     });
   });
+  function closeFloating() {
+    document.querySelectorAll('[data-sig]').forEach(function (w) {
+      if (w.querySelector('[data-sig-panel]').classList.contains('fixed')) close(w);
+    });
+  }
+  window.addEventListener('scroll', closeFloating, true);
+  window.addEventListener('resize', closeFloating);
   document.addEventListener('click', function (e) {
     document.querySelectorAll('[data-sig]').forEach(function (w) { if (!w.contains(e.target)) close(w); });
   });

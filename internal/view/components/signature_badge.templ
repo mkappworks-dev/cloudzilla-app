@@ -1,6 +1,10 @@
 package components
 
-import "github.com/mkappworks-dev/cloudzilla-app/internal/service"
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+)
 
 // SignatureKind has no constant for the server's own key yet.
 const instanceSignature service.SignatureKind = "instance"
@@ -8,37 +12,73 @@ const instanceSignature service.SignatureKind = "instance"
 // SignatureBadge is the verdict pill after a commit's SHA and the popover it opens; unsigned commits render nothing.
 // The popover ships in the page so opening it costs no request.
 templ SignatureBadge(r service.SignatureResult) {
+	@signatureWidget(r, false, false)
+}
+
+// SignatureBadgeFloating is SignatureBadge for hosts that clip overflow: the popover is fixed to the viewport.
+templ SignatureBadgeFloating(r service.SignatureResult) {
+	@signatureWidget(r, true, false)
+}
+
+// SignatureIcon is the verdict as a bare status glyph for dense rows such as blame, with a fixed-position popover.
+templ SignatureIcon(r service.SignatureResult) {
+	@signatureWidget(r, true, true)
+}
+
+templ signatureWidget(r service.SignatureResult, floating bool, icon bool) {
 	if r.Status != "" && r.Status != service.SignatureUnsigned {
-		<div class="relative inline-block" x-data="{ open: false }" x-on:keydown.escape="if (open) { open = false; $refs.btn.focus() }" x-on:click.outside="open = false">
+		<div
+			class="relative inline-block"
+			if floating {
+				x-data="{ open: false, top: 0, left: 0, place() { const b = $refs.btn.getBoundingClientRect(); const w = Math.min(340, window.innerWidth - 48); this.top = b.bottom + 6; this.left = Math.max(8, Math.min(b.left, window.innerWidth - w - 8)); this.$nextTick(() => { const h = $refs.panel.offsetHeight; if (this.top + h > window.innerHeight - 8) this.top = Math.max(8, b.top - 6 - h) }) } }"
+				x-on:scroll.window.capture="open = false"
+				x-on:resize.window="open = false"
+			} else {
+				x-data="{ open: false }"
+			}
+			x-on:keydown.escape="if (open) { open = false; $refs.btn.focus() }"
+			x-on:click.outside="open = false"
+		>
 			<button
 				type="button"
 				x-ref="btn"
-				x-on:click="open = !open"
+				if floating {
+					x-on:click="open = !open; if (open) place()"
+				} else {
+					x-on:click="open = !open"
+				}
 				:aria-expanded="open ? 'true' : 'false'"
 				aria-expanded="false"
 				aria-haspopup="dialog"
-				class={ "inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium", signatureBadgeClass(r.Status) }
-			>{ signatureLabel(r.Status) }</button>
+				if icon {
+					aria-label={ signatureLabel(r.Status) + " signature" }
+					title={ signatureLabel(r.Status) }
+					class={ "inline-flex items-center justify-center h-5 w-5 rounded-full border", signatureBadgeClass(r.Status) }
+				} else {
+					class={ "inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium", signatureBadgeClass(r.Status) }
+				}
+			>
+				if icon {
+					@signatureGlyph(r.Status, 12, "")
+				} else {
+					{ signatureLabel(r.Status) }
+				}
+			</button>
 			<div
 				x-show="open"
 				x-cloak
+				x-ref="panel"
 				role="dialog"
 				aria-label="Commit signature"
-				class="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left font-normal whitespace-normal"
+				if floating {
+					:style="'top:' + top + 'px; left:' + left + 'px'"
+					class="fixed z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left font-normal whitespace-normal"
+				} else {
+					class="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-50 w-[340px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3 text-left font-normal whitespace-normal"
+				}
 			>
 				<p class="flex items-start gap-2 text-[13px] font-medium">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class={ "shrink-0 mt-[3px]", signatureIconClass(r.Status) } aria-hidden="true" focusable="false">
-						if r.Status == service.SignatureUnverified {
-							<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
-							<line x1="12" y1="9" x2="12" y2="13"></line>
-							<line x1="12" y1="17" x2="12.01" y2="17"></line>
-						} else {
-							<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-							if r.Status == service.SignatureVerified {
-								<path d="M9 12l2 2 4-4"></path>
-							}
-						}
-					</svg>
+					@signatureGlyph(r.Status, 14, "shrink-0 mt-[3px] "+signatureIconClass(r.Status))
 					<span>{ signatureHeadline(r) }</span>
 				</p>
 				if r.Kind == instanceSignature {
@@ -91,6 +131,21 @@ templ SignatureBadge(r service.SignatureResult) {
 			</div>
 		</div>
 	}
+}
+
+templ signatureGlyph(s service.SignatureStatus, size int, class string) {
+	<svg width={ strconv.Itoa(size) } height={ strconv.Itoa(size) } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class={ class } aria-hidden="true" focusable="false">
+		if s == service.SignatureUnverified {
+			<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+			<line x1="12" y1="9" x2="12" y2="13"></line>
+			<line x1="12" y1="17" x2="12.01" y2="17"></line>
+		} else {
+			<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+			if s == service.SignatureVerified {
+				<path d="M9 12l2 2 4-4"></path>
+			}
+		}
+	</svg>
 }
 
 func signatureBadgeClass(s service.SignatureStatus) string {

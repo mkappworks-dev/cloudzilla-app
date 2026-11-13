@@ -6,6 +6,8 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 )
@@ -21,6 +23,8 @@ type BlameLine struct {
 	AuthorName string
 	AuthorTime time.Time
 	ShowMeta   bool
+	// Signature is set on hunk-start lines only; the rest of a hunk renders no badge.
+	Signature SignatureResult
 }
 
 // BlameResult holds per-line blame annotations for a file at a given ref.
@@ -68,6 +72,8 @@ func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult,
 		}
 	}
 
+	s.attachBlameSignatures(repo, lines)
+
 	texts := make([]string, len(lines))
 	for i, l := range lines {
 		texts[i] = l.Text
@@ -85,4 +91,25 @@ func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult,
 		Breadcrumbs: buildBreadcrumbs(owner, repoName, resolvedRef, path, true),
 		BlobURL:     codeurl.Path(owner, repoName, "blob", resolvedRef, path),
 	}, nil
+}
+
+// attachBlameSignatures verifies each distinct commit once, however many hunks or lines it owns.
+func (s *CodeService) attachBlameSignatures(repo *gogit.Repository, lines []BlameLine) {
+	seen := map[string]bool{}
+	var commits []*object.Commit
+	for _, l := range lines {
+		if !l.ShowMeta || seen[l.FullHash] {
+			continue
+		}
+		seen[l.FullHash] = true
+		if c, err := repo.CommitObject(plumbing.NewHash(l.FullHash)); err == nil {
+			commits = append(commits, c)
+		}
+	}
+	results := s.verifySignatures(commits)
+	for i := range lines {
+		if lines[i].ShowMeta {
+			lines[i].Signature = results[plumbing.NewHash(lines[i].FullHash)]
+		}
+	}
 }
