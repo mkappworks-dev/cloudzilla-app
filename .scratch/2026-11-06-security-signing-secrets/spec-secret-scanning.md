@@ -293,7 +293,10 @@ code. Differences: migrations are 133 to 135, not 132 to 134; `Scan` takes `maxB
 characters (a private key's kind, `****` for a short value); actions are form POSTs that redirect (`303`) to the alert
 page, not HTMX swaps; the token check is two interfaces, `CloudzillaTokenResolver` (`ResolveLiveToken`) on the push path
 and `SecretTokenResolver` on the backfill, with `TokenOutcomeResolver` telling an expired token (alert opens closed as
-`revoked`, no badge, no block) from an unknown one (no alert); the history walk skips blobs over a fixed 1 MiB rather
-than `secret_scanning.max_blob_bytes`; a web-editor alert has no commit, so it stays blocked until a ref reaches the
-value; the Security page's intro still says pushes are rejected when `push_protection` is off. See
+`revoked`, no badge, no block) from an unknown one (no alert); a web-editor alert has no commit, so it stays blocked
+until a ref reaches the value, and admins are told when one does. Review fixes (2026-11-13): a read that fails in the
+check fails open and only a failed alert write refuses; a web edit revokes a live token like a push; a private key is
+hashed over its material through the END marker; the backfill honours `max_blob_bytes`, files expired tokens as closed
+alerts, and does not resume (a restarted scan starts over, bounded by `backfill_timeout` and `backfill_max_blobs`); the
+Security page intro follows `push_protection`. See
 [docs/secret-scanning.md](../../docs/secret-scanning.md).
