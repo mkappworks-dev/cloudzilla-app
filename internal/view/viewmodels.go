@@ -37,6 +37,8 @@ type BasePage struct {
 	// or `/{owner}/{repo}`). The topbar's workspace switcher labels its trigger
 	// with this name when set, falling back to the logged-in user otherwise.
 	OwnerContext string
+	// CIEnabled is ci.enabled; it hides the admin Runners tab.
+	CIEnabled bool
 	// SetupPending hides site-wide links: until setup completes, every route but /setup redirects back to it.
 	SetupPending bool
 	// CodeLight and CodeDark are the viewer's code themes; read them through CodeThemeLight/CodeThemeDark.

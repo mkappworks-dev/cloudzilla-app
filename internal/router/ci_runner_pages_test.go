@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
@@ -151,5 +152,32 @@ func TestRepoRunners_ManagerManagesOwnRunnersOnly(t *testing.T) {
 	}
 	if code := runnerClaimCode(e, runnerToken); code != http.StatusUnauthorized {
 		t.Errorf("revoked runner claim = %d, want 401", code)
+	}
+}
+
+func TestAdminRunners_AbsentWhileCIIsOff(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		ci := config.DefaultCI()
+		ci.Enabled = enabled
+		h, _, db := newRouterWithCI(t, config.SMTPConfig{}, ci)
+		admin := superadminJWT(t, testutil.SeedSuperadmin(t, db, testutil.UniqueSuffix(t)), "root")
+
+		tabs := serve(h, browserRequest(http.MethodGet, "/admin/settings", admin, nil))
+		if tabs.Code != http.StatusOK {
+			t.Fatalf("enabled=%v: admin settings = %d", enabled, tabs.Code)
+		}
+		if got := strings.Contains(tabs.Body.String(), `href="/admin/runners"`); got != enabled {
+			t.Errorf("enabled=%v: Runners tab shown = %v", enabled, got)
+		}
+		for _, c := range []struct{ method, path string }{
+			{http.MethodGet, "/admin/runners"},
+			{http.MethodPost, "/admin/runners/tokens"},
+			{http.MethodPost, "/admin/runners/1/revoke"},
+		} {
+			code := serve(h, browserRequest(c.method, c.path, admin, url.Values{"labels": {"linux"}})).Code
+			if enabled && code == http.StatusNotFound && c.method == http.MethodGet || !enabled && code != http.StatusNotFound {
+				t.Errorf("enabled=%v: %s %s = %d", enabled, c.method, c.path, code)
+			}
+		}
 	}
 }

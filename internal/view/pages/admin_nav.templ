@@ -3,10 +3,11 @@ package pages
 import (
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-templ adminTabs(currentPath string) {
+templ adminTabs(base view.BasePage, currentPath string) {
 	@components.Tabs("Admin sections") {
 		@components.TabLink("/admin/settings", currentPath == "/admin/settings") {
 			Settings
@@ -20,8 +21,10 @@ templ adminTabs(currentPath string) {
 		@components.TabLink("/admin/sso", currentPath == "/admin/sso") {
 			Single sign-on
 		}
-		@components.TabLink("/admin/runners", currentPath == "/admin/runners") {
-			Runners
+		if base.CIEnabled {
+			@components.TabLink("/admin/runners", currentPath == "/admin/runners") {
+				Runners
+			}
 		}
 	}
 }

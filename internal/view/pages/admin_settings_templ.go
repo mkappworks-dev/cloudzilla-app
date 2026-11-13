@@ -55,7 +55,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = adminTabs("/admin/settings").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = adminTabs(data.BasePage, "/admin/settings").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

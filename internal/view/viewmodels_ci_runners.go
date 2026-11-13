@@ -42,9 +42,8 @@ type CILimit struct {
 // AdminRunnersData is the view model for GET /admin/runners.
 type AdminRunnersData struct {
 	BasePage
-	Runners   RunnersFragData
-	Limits    []CILimit
-	CIEnabled bool
+	Runners RunnersFragData
+	Limits  []CILimit
 	// ServerURL is shown in the register command.
 	ServerURL string
 }

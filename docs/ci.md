@@ -36,7 +36,7 @@ The commit list, the pull request header and the file tree's last-commit row sho
 icon that links to its latest Run (or to the commit when only external CI reported). `/{owner}/{repo}/checks` still
 resolves: it redirects to the Actions tab, where **Commit statuses** lists what external CI posted.
 
-**Switches.** `ci.enabled` (default on) hides the tab, the routes and the schedulers when off, and creates no Runs.
+**Switches.** `ci.enabled` (default on) hides the tab, the routes (including `/admin/runners` and its Admin nav tab) and the schedulers when off, and creates no Runs.
 Settings, CI/CD has a per-repository toggle that stops new Runs and keeps history. An archived repository creates no
 Runs, and re-running or approving one of its Runs is refused too (`ci_off`), but its logs and artifacts stay readable. A
 private repository, and a soft-deleted one, answers a viewer who cannot read it with the same 404 as a repository that
@@ -364,8 +364,6 @@ the [API reference](./api-reference.md#workflow-runs), and the `repo` and `repo:
   called with the fork as the head repository, and a fork Run's per-job token must be bound to the fork so the runner
   can clone its commit.
 - **`strategy.fail-fast` is parsed but not acted on.** Matrix siblings keep running after one fails.
-- **`/admin/runners` is reachable, and its tab shown, when `ci.enabled` is off.** The page says CI is off; the runner
-  API is absent.
 - **A matrix expression in an `artifacts:` name is not interpolated** (`dist-${{ matrix.arch }}` is kept as written).
 - **One Job container per Job.** Steps share it, so a tool one Step installs is there in the next, but a Job cannot
   start service containers (`services` is rejected).
