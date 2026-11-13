@@ -39,7 +39,7 @@ type Executor struct {
 	Checkout Checkout
 	// Out also receives each Step's output; the server's copy is the log, so a nil Out is fine.
 	Out io.Writer
-	// Masker hides secret values before output leaves the runner. Nothing sets it until Jobs carry secrets.
+	// Masker hides extra values before output leaves the runner; the Job's own secrets are always masked too.
 	Masker *logmask.Masker
 	// FlushEvery is how often streamed output is posted; a second unless a test shortens it.
 	FlushEvery time.Duration
@@ -156,7 +156,11 @@ func (e *Executor) run(ctx context.Context, spec *runnerapi.JobSpec) (string, st
 	}
 
 	// The log outlives ctx: output of a cancelled or timed-out Job is still worth posting while its token lives.
-	logs := newLogStream(context.WithoutCancel(ctx), e.API, spec.JobID, spec.Token, e.Masker, e.FlushEvery)
+	masker := e.Masker
+	if len(spec.Secrets) > 0 {
+		masker = logmask.New(slices.Collect(maps.Values(spec.Secrets)))
+	}
+	logs := newLogStream(context.WithoutCancel(ctx), e.API, spec.JobID, spec.Token, masker, e.FlushEvery)
 	defer logs.Close()
 
 	failed := ""
@@ -260,7 +264,11 @@ func (e *Executor) exprContext(spec *runnerapi.JobSpec, st runnerapi.StepSpec, s
 		env = map[string]string{}
 	}
 	maps.Copy(env, st.Env)
-	return workflow.Context{GitHub: spec.GitHub, Env: env, Matrix: spec.Matrix, Needs: spec.Needs, Status: status}
+	secrets := spec.Secrets
+	if secrets == nil {
+		secrets = map[string]string{}
+	}
+	return workflow.Context{GitHub: spec.GitHub, Env: env, Matrix: spec.Matrix, Secrets: secrets, Needs: spec.Needs, Status: status}
 }
 
 // stepEnv is the environment of a Step: the builtins, then the Job's env, then the Step's. The per-job token is not

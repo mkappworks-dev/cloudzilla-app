@@ -580,6 +580,22 @@ func TestExecute_OutputIsPostedPerStepInOrderWithSecretsMasked(t *testing.T) {
 	}
 }
 
+func TestExecute_JobSecretsReachStepEnvAndAreMasked(t *testing.T) {
+	calls := stubDocker(t)
+	api := &fakeAPI{}
+	e := newExecutor(api)
+	spec := jobSpec(runnerapi.StepSpec{Run: "one", Env: map[string]string{"TOKEN": "${{ secrets.TOKEN }}"}})
+	spec.Secrets = map[string]string{"TOKEN": "cz-job-7"}
+	e.Execute(context.Background(), spec)
+
+	if got := api.postedText(0); got != "ran in ***\n" {
+		t.Errorf("log = %q: the Job's own secret was not masked", got)
+	}
+	if !slices.ContainsFunc(execs(calls()), func(c call) bool { return slices.Contains(c, "--env=TOKEN=cz-job-7") }) {
+		t.Errorf("secret not in the step env: %v", execs(calls()))
+	}
+}
+
 func TestExecute_OutputIsPostedWhileTheStepIsStillRunning(t *testing.T) {
 	calls := stubDocker(t)
 	api := &fakeAPI{}

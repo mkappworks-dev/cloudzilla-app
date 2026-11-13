@@ -12,6 +12,8 @@ type Context struct {
 	GitHub map[string]string
 	Env    map[string]string
 	Matrix map[string]string
+	// Secrets is nil on the server, where secrets.* cannot be expanded; the runner sets it, empty for a fork Run.
+	Secrets map[string]string
 	// Needs maps a job id to its result: success, failure, cancelled or skipped.
 	Needs map[string]string
 	// Status is the running status success(), failure() and cancelled() report; empty means success.
@@ -367,7 +369,10 @@ func evalRef(path []string, ctx Context) (any, error) {
 	case "needs":
 		return ctx.Needs[path[1]], nil
 	}
-	return nil, fmt.Errorf("secrets.%s is only available on the runner", path[1])
+	if ctx.Secrets == nil {
+		return nil, fmt.Errorf("secrets.%s is only available on the runner", path[1])
+	}
+	return ctx.Secrets[path[1]], nil
 }
 
 func evalCall(c callNode, ctx Context) (any, error) {

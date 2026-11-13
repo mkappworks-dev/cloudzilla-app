@@ -30,7 +30,9 @@ type ciPushEnv struct {
 	pushs atomic.Int32
 }
 
-func newCIPushEnv(t *testing.T) *ciPushEnv {
+func newCIPushEnv(t *testing.T) *ciPushEnv { return newCIPushEnvWith(t, nil) }
+
+func newCIPushEnvWith(t *testing.T, tweak func(*config.Config)) *ciPushEnv {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
@@ -39,6 +41,9 @@ func newCIPushEnv(t *testing.T) *ciPushEnv {
 		Auth:   config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
 		Git:    config.GitConfig{ReposRoot: reposRoot},
 		CI:     config.DefaultCI(),
+	}
+	if tweak != nil {
+		tweak(cfg)
 	}
 	svcs := service.New(store.New(db), cfg)
 	h, err := router.New(svcs, cfg, fstest.MapFS{})

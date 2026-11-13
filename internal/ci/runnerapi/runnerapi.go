@@ -41,8 +41,7 @@ type ArtifactSpec struct {
 	Path string `json:"path"`
 }
 
-// JobSpec is one claimed Job: everything the runner needs, and no secret. Secrets are ticket 05's business and arrive
-// as env there.
+// JobSpec is one claimed Job: everything the runner needs. Secrets is empty for a fork Run.
 type JobSpec struct {
 	JobID          int64             `json:"job_id"`
 	RunID          int64             `json:"run_id"`
@@ -61,6 +60,7 @@ type JobSpec struct {
 	Needs          map[string]string `json:"needs"`
 	Steps          []StepSpec        `json:"steps"`
 	Artifacts      []ArtifactSpec    `json:"artifacts"`
+	Secrets        map[string]string `json:"secrets,omitempty"`
 	// Token is the per-job token: read-only, bound to this repo and Job, dead when the Job ends.
 	Token string `json:"token"`
 }
