@@ -13,6 +13,8 @@ import (
 	"html/template"
 	"strconv"
 	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 // BlameLine is the per-row view-model rendered by BlameRow.
@@ -31,6 +33,7 @@ type BlameLine struct {
 	// the same commit. Non-first rows render a single "·" placeholder instead
 	// of the full author/SHA/date metadata.
 	HunkStart bool
+	Signature service.SignatureResult
 }
 
 func BlameRow(line BlameLine) templ.Component {
@@ -98,7 +101,7 @@ func BlameRow(line BlameLine) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL(line.CommitURL)).ResolveURL(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 32, Col: 44}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 35, Col: 44}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -111,13 +114,17 @@ func BlameRow(line BlameLine) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(line.ShortSHA)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 32, Col: 117}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 35, Col: 117}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</a>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = SignatureIcon(line.Signature).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -129,7 +136,7 @@ func BlameRow(line BlameLine) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("/" + line.AuthorUsername)).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 34, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 38, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -142,7 +149,7 @@ func BlameRow(line BlameLine) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.NewAttributeExpression(line.AuthorEmail).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 34, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 38, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 				if templ_7745c5c3_Err != nil {
@@ -155,7 +162,7 @@ func BlameRow(line BlameLine) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(line.AuthorUsername)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 34, Col: 184}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 38, Col: 184}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -173,7 +180,7 @@ func BlameRow(line BlameLine) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templruntime.NewAttributeExpression(line.AuthorEmail).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 36, Col: 36}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 40, Col: 36}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 				if templ_7745c5c3_Err != nil {
@@ -186,7 +193,7 @@ func BlameRow(line BlameLine) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(line.AuthorName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 36, Col: 95}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 40, Col: 95}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -204,7 +211,7 @@ func BlameRow(line BlameLine) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(line.CommittedAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 38, Col: 112}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 42, Col: 112}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 			if templ_7745c5c3_Err != nil {
@@ -217,7 +224,7 @@ func BlameRow(line BlameLine) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.NewAttributeExpression(line.CommittedAt.UTC().Format(time.RFC3339)).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 38, Col: 166}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 42, Col: 166}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 			if templ_7745c5c3_Err != nil {
@@ -230,7 +237,7 @@ func BlameRow(line BlameLine) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(line.CommittedAt.Format("2006-01-02"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 38, Col: 208}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 42, Col: 208}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -253,7 +260,7 @@ func BlameRow(line BlameLine) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.NewAttributeExpression("L" + strconv.Itoa(line.LineNumber)).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 45, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 49, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 		if templ_7745c5c3_Err != nil {
@@ -266,7 +273,7 @@ func BlameRow(line BlameLine) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.SafeURL("#L" + strconv.Itoa(line.LineNumber))).ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 45, Col: 107}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 49, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 		if templ_7745c5c3_Err != nil {
@@ -279,7 +286,7 @@ func BlameRow(line BlameLine) templ.Component {
 		var templ_7745c5c3_Var16 string
 		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(line.LineNumber))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 45, Col: 171}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/blame_row.templ`, Line: 49, Col: 171}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 		if templ_7745c5c3_Err != nil {

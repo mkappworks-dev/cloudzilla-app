@@ -4,6 +4,8 @@ import (
 	"html/template"
 	"strconv"
 	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 // BlameLine is the per-row view-model rendered by BlameRow.
@@ -22,6 +24,7 @@ type BlameLine struct {
 	// the same commit. Non-first rows render a single "·" placeholder instead
 	// of the full author/SHA/date metadata.
 	HunkStart bool
+	Signature service.SignatureResult
 }
 
 templ BlameRow(line BlameLine) {
@@ -30,6 +33,7 @@ templ BlameRow(line BlameLine) {
 			if line.HunkStart {
 				<div class="flex items-center gap-2 overflow-hidden">
 					<a href={ templ.SafeURL(line.CommitURL) } class="font-mono font-medium hover:underline shrink-0">{ line.ShortSHA }</a>
+					@SignatureIcon(line.Signature)
 					if line.AuthorUsername != "" {
 						<a href={ templ.SafeURL("/" + line.AuthorUsername) } title={ line.AuthorEmail } class="truncate text-muted-foreground hover:text-foreground hover:underline">{ line.AuthorUsername }</a>
 					} else {

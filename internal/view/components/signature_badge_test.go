@@ -61,3 +61,30 @@ func TestSignatureBadge_UnsignedRendersNothing(t *testing.T) {
 		}
 	}
 }
+
+func TestSignatureIcon_FixedPopoverAndNoLabel(t *testing.T) {
+	var buf bytes.Buffer
+	r := service.SignatureResult{Status: service.SignatureVerified, Kind: service.SignatureKindSSH, SignerUsername: "malith"}
+	if err := SignatureIcon(r).Render(context.Background(), &buf); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	for _, want := range []string{`aria-label="Verified signature"`, "fixed z-50", "place()", "Signed by the committer"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in: %s", want, out)
+		}
+	}
+	if strings.Contains(out, ">Verified<") {
+		t.Errorf("icon rendered a text label: %s", out)
+	}
+}
+
+func TestSignatureIcon_UnsignedRendersNothing(t *testing.T) {
+	var buf bytes.Buffer
+	if err := SignatureIcon(service.SignatureResult{Status: service.SignatureUnsigned}).Render(context.Background(), &buf); err != nil {
+		t.Fatal(err)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("rendered %q", buf.String())
+	}
+}
