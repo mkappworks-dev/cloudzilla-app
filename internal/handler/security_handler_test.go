@@ -294,6 +294,27 @@ func TestSecurity_CloseReopenAllowChangeStateAndWriteAuditAndEvents(t *testing.T
 	}
 }
 
+func TestSecurity_AllowNotifiesAdminsButNotTheAllower(t *testing.T) {
+	f := newSecurityFixture(t, false)
+	writer := f.user(t, model.RoleWriter)
+	a := f.record(t, "jwt_secret", "JWT_SECRET=aaaaaaaaaaaaaaaaaaaa", model.SecretEventBlocked, 3)
+
+	if rr := f.post(f.alertPath(a)+"/allow", writer.token, url.Values{"resolution": {"false_positive"}}); rr.Code != http.StatusSeeOther {
+		t.Fatalf("allow: %d %s", rr.Code, rr.Body.String())
+	}
+
+	ns, err := f.svc.Notification.List(context.Background(), f.repo.owner.id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ns) != 1 || ns[0].Type != model.NotifSecretAllowed || ns[0].SubjectID != int64(a.Number) {
+		t.Errorf("owner notifications = %+v, want one secret_allowed for alert %d", ns, a.Number)
+	}
+	if got, _ := f.svc.Notification.List(context.Background(), writer.id); len(got) != 0 {
+		t.Errorf("the allower got %d notifications, want 0", len(got))
+	}
+}
+
 func TestSecurity_AllowRefusedForCloudzillaToken(t *testing.T) {
 	f := newSecurityFixture(t, false)
 	token := "czp_" + strings.Repeat("ab", 32)

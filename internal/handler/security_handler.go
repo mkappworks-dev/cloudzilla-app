@@ -13,7 +13,7 @@ import (
 
 // CloseSecretAlert closes an open alert with the resolution the form names.
 func (h *Handler) CloseSecretAlert(w http.ResponseWriter, r *http.Request) {
-	h.secretAlertAction(w, r, model.AuditActionSecretScanClose, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
+	h.secretAlertAction(w, r, model.AuditActionSecretScanClose, func(r *http.Request, _ *model.Repository, alert *model.SecretScanAlert, actorID int64) (string, error) {
 		resolution := r.FormValue("resolution")
 		return resolution, h.Services.SecretAlert.Close(r.Context(), alert.ID, actorID, resolution)
 	})
@@ -21,23 +21,31 @@ func (h *Handler) CloseSecretAlert(w http.ResponseWriter, r *http.Request) {
 
 // ReopenSecretAlert reopens a closed alert, so its value is blocked again.
 func (h *Handler) ReopenSecretAlert(w http.ResponseWriter, r *http.Request) {
-	h.secretAlertAction(w, r, model.AuditActionSecretScanReopen, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
+	h.secretAlertAction(w, r, model.AuditActionSecretScanReopen, func(r *http.Request, _ *model.Repository, alert *model.SecretScanAlert, actorID int64) (string, error) {
 		return "", h.Services.SecretAlert.Reopen(r.Context(), alert.ID, actorID)
 	})
 }
 
 // AllowSecretAlert closes an alert as a false positive or test value, which stops its value being blocked.
 func (h *Handler) AllowSecretAlert(w http.ResponseWriter, r *http.Request) {
-	h.secretAlertAction(w, r, model.AuditActionSecretScanAllow, func(r *http.Request, alert *model.SecretScanAlert, actorID int64) (string, error) {
+	h.secretAlertAction(w, r, model.AuditActionSecretScanAllow, func(r *http.Request, repo *model.Repository, alert *model.SecretScanAlert, actorID int64) (string, error) {
 		resolution := r.FormValue("resolution")
-		return resolution, h.Services.SecretAlert.Allow(r.Context(), alert.ID, actorID, resolution)
+		if err := h.Services.SecretAlert.Allow(r.Context(), alert.ID, actorID, resolution); err != nil {
+			return resolution, err
+		}
+		if actor, err := h.Services.User.GetByID(r.Context(), actorID); err != nil {
+			slog.Error("security: load allowing user", "user_id", actorID, "error", err)
+		} else {
+			h.Services.Notification.NotifySecretAllowed(r.Context(), *repo, alert, *actor)
+		}
+		return resolution, nil
 	})
 }
 
 // secretAlertAction runs one alert transition for a writer and, when it succeeds, records the audit entry and goes
 // back to the alert page. apply returns the resolution to put in the audit metadata.
 func (h *Handler) secretAlertAction(w http.ResponseWriter, r *http.Request, auditAction string,
-	apply func(*http.Request, *model.SecretScanAlert, int64) (string, error),
+	apply func(*http.Request, *model.Repository, *model.SecretScanAlert, int64) (string, error),
 ) {
 	repo, actorID, ok := h.securityRepo(w, r)
 	if !ok {
@@ -52,7 +60,7 @@ func (h *Handler) secretAlertAction(w http.ResponseWriter, r *http.Request, audi
 		return
 	}
 
-	resolution, err := apply(r, alert, actorID)
+	resolution, err := apply(r, repo, alert, actorID)
 	switch {
 	case errors.Is(err, service.ErrSecretResolution):
 		settingsError(w, r, http.StatusBadRequest, "choose a resolution: revoked, false positive or used in tests")
