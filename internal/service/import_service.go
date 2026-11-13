@@ -99,6 +99,7 @@ type ImportService struct {
 	cfg          config.ImportConfig
 	slots        chan struct{}
 	mirrors      *MirrorService
+	scans        secretScanQueue
 
 	mu   sync.Mutex
 	jobs map[string]*importJob
@@ -118,6 +119,12 @@ func NewImportService(repo *RepoService, git config.GitConfig, cfg config.Import
 
 func (s *ImportService) WithMirrors(m *MirrorService) *ImportService {
 	s.mirrors = m
+	return s
+}
+
+// WithSecretScans queues a history scan once an import has published its repository.
+func (s *ImportService) WithSecretScans(q secretScanQueue) *ImportService {
+	s.scans = q
 	return s
 }
 
@@ -258,7 +265,10 @@ func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *im
 		return err
 	}
 	if mirror == nil {
-		_, err = s.repo.CreateFromImport(ctx, target, job.Name, description, private, branch, dir)
+		repo, err := s.repo.CreateFromImport(ctx, target, job.Name, description, private, branch, dir)
+		if err == nil {
+			s.queueSecretScan(ctx, repo)
+		}
 		return err
 	}
 	repo, err := s.repo.createFromImport(ctx, target, job.Name, description, private, branch, dir,
@@ -267,7 +277,18 @@ func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *im
 		return err
 	}
 	s.mirrors.indexImported(ctx, repo)
+	s.queueSecretScan(ctx, repo)
 	return nil
+}
+
+// The repository row is inserted before its content is moved in, so the scan the insert queued may run on an empty one.
+func (s *ImportService) queueSecretScan(ctx context.Context, repo *model.Repository) {
+	if s.scans == nil {
+		return
+	}
+	if err := s.scans.MarkPending(context.WithoutCancel(ctx), repo.ID); err != nil {
+		slog.Error("import: queue secret scan failed", "repo_id", repo.ID, "error", err)
+	}
 }
 
 func (s *ImportService) failureMessage(ctx context.Context, job *importJob, guard *importGuard, err error) string {

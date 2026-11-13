@@ -73,6 +73,7 @@ type Services struct {
 	Attachment         *AttachmentService
 	Export             *ExportService
 	SecretAlert        *SecretAlertService
+	SecretScan         *SecretScanService
 	Mirror             *MirrorService
 	Quota              *QuotaService
 	InstanceSigner     *InstanceSigner
@@ -126,7 +127,10 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	code.WithSignatures(NewSignatureService(stores.GPGKey, stores.SSHSigningKey, userSvc).WithInstanceKeys(stores.InstanceSigningKey))
 	emailVerificationSvc.WithAdditionalEmails(stores.UserEmail, reauthSvc)
 	threadSubSvc := NewThreadSubscriptionService(stores.ThreadSubscription, stores.Watch)
+	secretAlertSvc := NewSecretAlertService(stores.SecretAlert)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc).WithThreadSubscriptions(threadSubSvc)
+	secretScanSvc := NewSecretScanService(stores.SecretScan, stores.Repo, secretAlertSvc, notifSvc, cfg.Git, cfg.SecretScanning)
+	mirrorSvc.WithSecretScans(secretScanSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	avatarSvc := NewAvatarService(stores.User, stores.Org, stores.Avatar, orgSvc)
 	attachmentSvc := NewAttachmentService(stores.Attachment)
@@ -203,13 +207,14 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		ContributorStats:   contributorStatsSvc,
 		Attention:          attentionSvc,
 		Language:           languageSvc,
-		Import:             NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc),
+		Import:             NewImportService(repoSvc, cfg.Git, cfg.Import).WithMirrors(mirrorSvc).WithSecretScans(secretScanSvc),
 		IssueCloser:        issueCloser,
 		Health:             NewHealthService(stores.Health, cfg.Git.ReposRoot),
 		Avatar:             avatarSvc,
 		Attachment:         attachmentSvc,
 		Export:             exportSvc,
-		SecretAlert:        NewSecretAlertService(stores.SecretAlert),
+		SecretAlert:        secretAlertSvc,
+		SecretScan:         secretScanSvc,
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
 		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),

@@ -16,21 +16,22 @@ const DevJWTSecret = "dev-only-do-not-use-in-production-override-via-CZ_AUTH_JWT
 
 // Config holds the full application configuration loaded from YAML and environment variables.
 type Config struct {
-	Server    ServerConfig    `mapstructure:"server"`
-	Database  DatabaseConfig  `mapstructure:"database"`
-	Auth      AuthConfig      `mapstructure:"auth"`
-	Git       GitConfig       `mapstructure:"git"`
-	OAuth     OAuthConfig     `mapstructure:"oauth"`
-	SMTP      SMTPConfig      `mapstructure:"smtp"`
-	Import    ImportConfig    `mapstructure:"import"`
-	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
-	Quota     QuotaConfig     `mapstructure:"quota"`
-	Webhook   WebhookConfig   `mapstructure:"webhook"`
-	Storage   StorageConfig   `mapstructure:"storage"`
-	Security  SecurityConfig  `mapstructure:"security"`
-	Mirror    MirrorConfig    `mapstructure:"mirror"`
-	Release   ReleaseConfig   `mapstructure:"release"`
-	Metrics   MetricsConfig   `mapstructure:"metrics"`
+	Server         ServerConfig         `mapstructure:"server"`
+	Database       DatabaseConfig       `mapstructure:"database"`
+	Auth           AuthConfig           `mapstructure:"auth"`
+	Git            GitConfig            `mapstructure:"git"`
+	OAuth          OAuthConfig          `mapstructure:"oauth"`
+	SMTP           SMTPConfig           `mapstructure:"smtp"`
+	Import         ImportConfig         `mapstructure:"import"`
+	RateLimit      RateLimitConfig      `mapstructure:"rate_limit"`
+	Quota          QuotaConfig          `mapstructure:"quota"`
+	Webhook        WebhookConfig        `mapstructure:"webhook"`
+	Storage        StorageConfig        `mapstructure:"storage"`
+	Security       SecurityConfig       `mapstructure:"security"`
+	Mirror         MirrorConfig         `mapstructure:"mirror"`
+	SecretScanning SecretScanningConfig `mapstructure:"secret_scanning"`
+	Release        ReleaseConfig        `mapstructure:"release"`
+	Metrics        MetricsConfig        `mapstructure:"metrics"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -180,6 +181,22 @@ type MetricsConfig struct {
 // MaxMirrorInterval is the longest sync interval a pull mirror may have.
 const MaxMirrorInterval = 30 * 24 * time.Hour
 
+// SecretScanningConfig holds secret-scanning settings.
+type SecretScanningConfig struct {
+	BackfillTimeout  time.Duration `mapstructure:"backfill_timeout"`
+	BackfillMaxBlobs int           `mapstructure:"backfill_max_blobs"`
+}
+
+func (c SecretScanningConfig) validate() error {
+	switch {
+	case c.BackfillTimeout <= 0:
+		return fmt.Errorf("secret_scanning.backfill_timeout must be positive, got %s", c.BackfillTimeout)
+	case c.BackfillMaxBlobs < 1:
+		return fmt.Errorf("secret_scanning.backfill_max_blobs must be at least 1, got %d", c.BackfillMaxBlobs)
+	}
+	return nil
+}
+
 // MirrorConfig holds pull-mirror settings.
 type MirrorConfig struct {
 	// Disabling stops syncs and hides mirror options; existing mirrors stay read-only.
@@ -304,6 +321,8 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("mirror.default_interval", "8h")
 	v.SetDefault("mirror.max_concurrent", 3)
 	v.SetDefault("mirror.timeout", "30m")
+	v.SetDefault("secret_scanning.backfill_timeout", "5m")
+	v.SetDefault("secret_scanning.backfill_max_blobs", 200000)
 	v.SetDefault("release.max_asset_bytes", int64(512<<20))
 	v.SetDefault("release.max_assets", 20)
 	v.SetDefault("metrics.listen_addr", "")
@@ -355,6 +374,9 @@ func Load(cfgFile string) (*Config, error) {
 		return nil, err
 	}
 	if err := cfg.Mirror.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.SecretScanning.validate(); err != nil {
 		return nil, err
 	}
 	if err := cfg.Release.validate(); err != nil {
