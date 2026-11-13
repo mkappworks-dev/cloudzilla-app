@@ -72,6 +72,8 @@ type PullChromeCounts struct {
 	// author may not be who merged it. MergedCommits is 0 for a PR merged before the count was recorded.
 	MergedBy      string
 	MergedCommits int
+	// HeadCI is the combined state of the head commit, shown beside the title.
+	HeadCI components.CIBadge
 }
 
 // PullDetailData holds template data for the pull request detail page.
@@ -120,6 +122,17 @@ type PullCommitsData struct {
 	Unavailable bool
 }
 
+// CheckRun is one workflow Run on a pull request's head commit with its Jobs.
+type CheckRun struct {
+	Title      string
+	Status     string
+	URL        string
+	Meta       string
+	Waiting    bool
+	CanApprove bool
+	Jobs       []components.CheckRow
+}
+
 type PullChecksData struct {
 	BasePage
 	PullChromeCounts
@@ -127,10 +140,12 @@ type PullChecksData struct {
 	Repo           *model.Repository
 	Pull           *model.PullRequest
 	AuthorUsername string
-	Rows           []components.CheckRow
-	HeadSHA        string
-	CanWrite       bool
-	LoadError      bool
+	Runs           []CheckRun
+	// Rows are the statuses no Run owns, posted by external CI.
+	Rows      []components.CheckRow
+	HeadSHA   string
+	CanWrite  bool
+	LoadError bool
 }
 
 type PullFilesData struct {

@@ -74,7 +74,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
-	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull, commitsBadge)
+	chromeCounts := h.pullChromeCounts(r.Context(), repo, owner, repoName, pull, commitsBadge)
 	chromeCounts.CommitsCount = len(commits)
 
 	h.render(w, r, pages.PullCommits(view.PullCommitsData{
@@ -121,7 +121,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var rows []components.CheckRow
+	var statuses []model.CommitStatus
 	var loadErrChecks bool
 	var headSHA string
 	headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch)
@@ -130,20 +130,11 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		loadErrChecks = true
 	} else {
 		headSHA = headCommit.Hash.String()
-		statuses, serr := h.Services.CommitStatus.List(r.Context(), owner, repoName, headSHA)
+		var serr error
+		statuses, serr = h.Services.CommitStatus.List(r.Context(), owner, repoName, headSHA)
 		if serr != nil {
 			slog.Warn("pull checks: status list failed", "owner", owner, "repo", repoName, "pull_number", number, "error", serr)
 			loadErrChecks = true
-		} else {
-			rows = make([]components.CheckRow, 0, len(statuses))
-			for _, s := range statuses {
-				rows = append(rows, components.CheckRow{
-					Context:     s.Context,
-					State:       string(s.State),
-					Description: s.Description,
-					URL:         s.TargetURL,
-				})
-			}
 		}
 	}
 
@@ -162,13 +153,9 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
-	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull, checksBadge)
-	chromeCounts.ChecksTotal = len(rows)
-	for _, row := range rows {
-		if row.State == string(model.CommitStatusSuccess) {
-			chromeCounts.ChecksPassed++
-		}
-	}
+	runs, rows := h.checkRuns(r.Context(), repo, statuses, canWrite)
+	chromeCounts := h.pullChromeCounts(r.Context(), repo, owner, repoName, pull, checksBadge)
+	chromeCounts.ChecksTotal, chromeCounts.ChecksPassed = checkCounts(statuses)
 
 	h.render(w, r, pages.PullChecks(view.PullChecksData{
 		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
@@ -176,6 +163,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		Repo:             repo,
 		Pull:             pull,
 		AuthorUsername:   authorUsername,
+		Runs:             runs,
 		Rows:             rows,
 		HeadSHA:          headSHA,
 		CanWrite:         canWrite,
@@ -262,7 +250,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
-	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull, filesBadge)
+	chromeCounts := h.pullChromeCounts(r.Context(), repo, owner, repoName, pull, filesBadge)
 	chromeCounts.FilesCount = len(diff.Files)
 	chromeCounts.Added = diff.TotalAdded
 	chromeCounts.Deleted = diff.TotalDeleted
@@ -304,7 +292,7 @@ const (
 // pullChromeCounts loads the tab badges not in own. A tab counts its own
 // badges from the data its body renders, so the header can't contradict the
 // body (or its error banner) and nothing is loaded twice.
-func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, pull *model.PullRequest, own pullBadge) view.PullChromeCounts {
+func (h *Handler) pullChromeCounts(ctx context.Context, repo *model.Repository, owner, repoName string, pull *model.PullRequest, own pullBadge) view.PullChromeCounts {
 	var c view.PullChromeCounts
 	logFail := func(what string, err error) {
 		slog.Warn("pull chrome counts: "+what+" failed; tab badge may be wrong",
@@ -331,15 +319,22 @@ func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, 
 			logFail("commit walk", err)
 		}
 	}
-	if own&checksBadge == 0 {
+	headSHA := pull.MergedHeadSHA
+	if pull.State != model.PRStateMerged {
 		if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
-			if statuses, err := h.Services.CommitStatus.List(ctx, owner, repoName, headCommit.Hash.String()); err == nil {
+			headSHA = headCommit.Hash.String()
+		} else {
+			logFail("ref resolution", err)
+		}
+	}
+	if headSHA != "" {
+		c.HeadCI = h.ciBadge(ctx, repo, headSHA)
+		if own&checksBadge == 0 {
+			if statuses, err := h.Services.CommitStatus.List(ctx, owner, repoName, headSHA); err == nil {
 				c.ChecksTotal, c.ChecksPassed = checkCounts(statuses)
 			} else {
 				logFail("status list", err)
 			}
-		} else {
-			logFail("ref resolution", err)
 		}
 	}
 	if own&filesBadge == 0 && rangeKnown {

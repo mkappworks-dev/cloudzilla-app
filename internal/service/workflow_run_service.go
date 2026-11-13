@@ -64,6 +64,14 @@ func (s *WorkflowRunService) ListRuns(ctx context.Context, repoID int64, limit i
 	return s.runs.ListRuns(ctx, repoID, limit)
 }
 
+// RunsByIDs returns the repo's Runs with the given IDs, newest first.
+func (s *WorkflowRunService) RunsByIDs(ctx context.Context, repoID int64, ids []int64) ([]model.WorkflowRun, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return s.runs.ListRunsByIDs(ctx, repoID, ids)
+}
+
 // ListJobs returns the Run's Jobs at their latest attempt.
 func (s *WorkflowRunService) ListJobs(ctx context.Context, runID int64) ([]model.WorkflowJob, error) {
 	return s.runs.CurrentJobs(ctx, runID)

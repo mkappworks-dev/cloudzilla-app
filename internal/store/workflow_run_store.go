@@ -226,6 +226,11 @@ func (q workflowQ) ListRunsBySHA(ctx context.Context, repoID int64, sha string) 
 	return q.queryRuns(ctx, `WHERE repo_id = $1 AND sha = $2 ORDER BY number`, repoID, sha)
 }
 
+// ListRunsByIDs returns the repo's Runs with the given IDs, newest first.
+func (q workflowQ) ListRunsByIDs(ctx context.Context, repoID int64, ids []int64) ([]model.WorkflowRun, error) {
+	return q.queryRuns(ctx, `WHERE repo_id = $1 AND id = ANY($2) ORDER BY number DESC`, repoID, ids)
+}
+
 // OpenRunsInGroup returns Runs not yet finished that share a concurrency group, except `except`.
 func (q workflowQ) OpenRunsInGroup(ctx context.Context, repoID int64, group string, except int64) ([]model.WorkflowRun, error) {
 	return q.queryRuns(ctx,

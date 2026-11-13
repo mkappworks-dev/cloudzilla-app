@@ -144,3 +144,46 @@ func (s *CommitStatusStore) ListBySHAs(ctx context.Context, repoID int64, shas [
 	}
 	return statuses, rows.Err()
 }
+
+// CIStatusRow is one commit status with the number of the Run that owns it; RunID and RunNumber are nil for a status
+// an outside system posted.
+type CIStatusRow struct {
+	SHA       string
+	State     model.CommitStatusState
+	RunID     *int64
+	RunNumber *int
+}
+
+// ListCIBySHAs returns the state and owning Run of every status on the given SHAs in one query, so a page of commits
+// costs the same however many rows it has.
+func (s *CommitStatusStore) ListCIBySHAs(ctx context.Context, repoID int64, shas []string) ([]CIStatusRow, error) {
+	if len(shas) == 0 {
+		return nil, nil
+	}
+	placeholders := make([]string, len(shas))
+	args := make([]any, 0, len(shas)+1)
+	args = append(args, repoID)
+	for i, sha := range shas {
+		placeholders[i] = fmt.Sprintf("$%d", i+2)
+		args = append(args, sha)
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT cs.sha, cs.state, cs.run_id, r.number
+		 FROM commit_statuses cs LEFT JOIN workflow_runs r ON r.id = cs.run_id
+		 WHERE cs.repo_id = $1 AND cs.sha IN (`+strings.Join(placeholders, ",")+`)`,
+		args...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("commit status ci by shas: %w", err)
+	}
+	defer rows.Close()
+	var out []CIStatusRow
+	for rows.Next() {
+		var row CIStatusRow
+		if err := rows.Scan(&row.SHA, &row.State, &row.RunID, &row.RunNumber); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}

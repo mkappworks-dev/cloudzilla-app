@@ -543,6 +543,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 			Timestamp: newest.LastCommit.Timestamp,
 			// Outside the entries cache so a key added later takes effect on the next view.
 			Signature: h.Services.Code.SignatureForCommit(owner, repoName, newest.LastCommit.SHA),
+			CI:        h.ciBadge(r.Context(), repo, newest.LastCommit.SHA),
 		}
 	}
 
@@ -692,6 +693,11 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
+	shas := make([]string, len(log.Commits))
+	for i, c := range log.Commits {
+		shas[i] = c.FullHash
+	}
+
 	h.render(w, r, pages.Commits(view.CommitsData{
 		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:     *repo,
@@ -699,6 +705,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 		RepoName: repoName,
 		Log:      log,
 		RefsURL:  "/" + owner + "/" + repoName + "/refs",
+		CI:       h.ciBadges(r.Context(), repo, shas),
 	}))
 }
 
