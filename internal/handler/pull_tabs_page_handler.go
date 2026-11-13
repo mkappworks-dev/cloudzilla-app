@@ -124,7 +124,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 	var statuses []model.CommitStatus
 	var loadErrChecks bool
 	var headSHA string
-	headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch)
+	headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadRef())
 	if rerr != nil {
 		slog.Warn("pull checks: ref resolution failed", "owner", owner, "repo", repoName, "pull_number", number, "error", rerr)
 		loadErrChecks = true
@@ -231,7 +231,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 
 	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
 	lineComments := map[view.LineCommentKey][]RenderedLineComment{}
-	for _, v := range h.lineCommentViews(r.Context(), owner, repoName, pull.HeadBranch, rawLineComments) {
+	for _, v := range h.lineCommentViews(r.Context(), owner, repoName, pull.HeadRef(), rawLineComments) {
 		key := view.LineCommentKeyOf(v.PullLineComment)
 		lineComments[key] = append(lineComments[key], v)
 	}
@@ -276,7 +276,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 // saw, since afterwards the branches show nothing. known is false for a merged PR with no recorded range.
 func pullDiffRefs(pull *model.PullRequest) (base, head string, known bool) {
 	if pull.State != model.PRStateMerged {
-		return pull.BaseBranch, pull.HeadBranch, true
+		return pull.BaseBranch, pull.HeadRef(), true
 	}
 	return pull.MergedBaseSHA, pull.MergedHeadSHA, pull.MergedHeadSHA != ""
 }
@@ -322,7 +322,7 @@ func (h *Handler) pullChromeCounts(ctx context.Context, repo *model.Repository, 
 	}
 	headSHA := pull.MergedHeadSHA
 	if pull.State != model.PRStateMerged {
-		if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
+		if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadRef()); err == nil {
 			headSHA = headCommit.Hash.String()
 		} else {
 			logFail("ref resolution", err)

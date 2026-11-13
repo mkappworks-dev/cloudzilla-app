@@ -46,6 +46,7 @@ func setHeadRepo(pr *model.PullRequest, id sql.NullInt64, label string) {
 	}
 	if id.Valid && id.Int64 != pr.RepoID {
 		pr.HeadRepo = label
+		pr.CrossRepo = true
 	}
 }
 

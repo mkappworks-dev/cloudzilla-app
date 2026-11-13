@@ -51,6 +51,8 @@ type MergeabilityBoxData struct {
 	CanManage bool
 	// CanUpdateBranch offers merging base into head: the viewer can write and base has commits head lacks.
 	CanUpdateBranch bool
+	// UpdateFromFork says the head is behind base but lives in another repository, which only its owner can update.
+	UpdateFromFork bool
 
 	AutoMergeEnabled  bool
 	AutoMergeStrategy string
@@ -199,6 +201,9 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 						if d.ChecksURL != "" {
 							<a href={ templ.SafeURL(d.ChecksURL) } class="text-[13px] text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground">View checks →</a>
 						}
+				}
+				if d.UpdateFromFork {
+					<span class="text-[12px] text-muted-foreground">The head branch is behind and lives in another repository: update it there.</span>
 				}
 				if d.CanUpdateBranch {
 					<button

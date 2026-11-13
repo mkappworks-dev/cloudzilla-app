@@ -265,12 +265,12 @@ func (s *CommitStatusService) RequiredCheckCounts(ctx context.Context, pullID in
 	// Prefer the cached head SHA (kept fresh on push); resolve the ref only as a fallback.
 	headSHA := pr.HeadSHA
 	if headSHA == "" {
-		headCommit, _, err := s.code.ResolveRef(repo.OwnerName, repo.Name, pr.HeadBranch)
+		headCommit, _, err := s.code.ResolveRef(repo.OwnerName, repo.Name, pr.HeadRef())
 		if err != nil {
-			return len(requiredContexts), 0, 0, fmt.Errorf("resolve head ref %q: %w", pr.HeadBranch, err)
+			return len(requiredContexts), 0, 0, fmt.Errorf("resolve head ref %q: %w", pr.HeadRef(), err)
 		}
 		if headCommit == nil {
-			return len(requiredContexts), 0, 0, fmt.Errorf("resolve head ref %q: head commit not found", pr.HeadBranch)
+			return len(requiredContexts), 0, 0, fmt.Errorf("resolve head ref %q: head commit not found", pr.HeadRef())
 		}
 		headSHA = headCommit.Hash.String()
 	}

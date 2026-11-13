@@ -20,6 +20,9 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
+// crossRepoUpdateMessage explains why a pull request from another repository's branch can't be changed here.
+const crossRepoUpdateMessage = "the head branch is in another repository: update it there"
+
 type createPRRequest struct {
 	Title      string `json:"title"`
 	Body       string `json:"body"`
@@ -120,7 +123,7 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventPROpened, map[string]any{"number": pr.Number, "title": pr.Title})
 
 	go func(owner, repoName string, pr *model.PullRequest, defaultBranch string) {
-		diff, err := h.Services.Code.GetPullDiff(owner, repoName, pr.BaseBranch, pr.HeadBranch)
+		diff, err := h.Services.Code.GetPullDiff(owner, repoName, pr.BaseBranch, pr.HeadRef())
 		if err != nil {
 			return
 		}
@@ -407,6 +410,10 @@ func (h *Handler) UpdatePullBranch(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "only an open pull request can be updated")
 		return
 	}
+	if pr.CrossRepo {
+		writeError(w, http.StatusUnprocessableEntity, crossRepoUpdateMessage)
+		return
+	}
 	headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "the head branch no longer exists")
@@ -486,7 +493,7 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	}
 	var headHash plumbing.Hash
 	var headSHA string
-	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch); err == nil {
+	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadRef()); err == nil {
 		headHash = headCommit.Hash
 		headSHA = headHash.String()
 	}
@@ -517,7 +524,7 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 
 	// Counted before the merge: afterwards a fast-forward or merge commit leaves nothing between base and head.
 	mergedCommits := ""
-	if commits, err := h.Services.Code.PullCommitsUnverified(owner, repoName, pr.BaseBranch, pr.HeadBranch); err == nil {
+	if commits, err := h.Services.Code.PullCommitsUnverified(owner, repoName, pr.BaseBranch, pr.HeadRef()); err == nil {
 		mergedCommits = strconv.Itoa(len(commits))
 	}
 	if (strategy == "merge" || strategy == "squash") && pr.BaseBranch == repo.DefaultBranch {
@@ -531,11 +538,11 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	var err error
 	switch strategy {
 	case "merge":
-		err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author, message)
+		err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadRef(), headHash, *author, message)
 	case "squash":
-		err = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash, *author, message)
+		err = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadRef(), headHash, *author, message)
 	default:
-		err = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, headHash)
+		err = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadRef(), headHash)
 	}
 	if errors.Is(err, service.ErrRefMoved) {
 		return nil, &mergeRefusal{http.StatusConflict, branchMovedMsg}

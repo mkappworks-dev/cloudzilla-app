@@ -10,24 +10,37 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-func TestCreatePull_FromForkHead_201(t *testing.T) {
+type forkPullFixture struct {
+	router           http.Handler
+	upOwner, upRepo  string
+	upID             int64
+	forkerID         int64
+	forker, forkRepo string
+	forkSHA          plumbing.Hash
+}
+
+// openForkPull forks an upstream, adds a commit on the fork's fix-x and opens the pull request through the API.
+func openForkPull(t *testing.T) forkPullFixture {
+	t.Helper()
 	db := testutil.OpenTestDB(t)
 	root := t.TempDir()
 	suffix := testutil.UniqueSuffix(t)
 	upID := testutil.SeedUser(t, db, suffix)
-	upOwner, upRepo := "testuser_"+suffix, "testrepo_"+suffix
-	testutil.SeedRepo(t, db, upID, upOwner, suffix)
-	up := testutil.InitBareRepo(t, filepath.Join(root, upOwner, upRepo+".git"))
+	f := forkPullFixture{upOwner: "testuser_" + suffix, upRepo: "testrepo_" + suffix, upID: upID}
+	testutil.SeedRepo(t, db, upID, f.upOwner, suffix)
+	up := testutil.InitBareRepo(t, filepath.Join(root, f.upOwner, f.upRepo+".git"))
 	main := testutil.WriteCommit(t, up.Storer, "init")
 	if err := up.Storer.SetReference(plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), main)); err != nil {
 		t.Fatal(err)
@@ -52,31 +65,52 @@ func TestCreatePull_FromForkHead_201(t *testing.T) {
 		AuditLog:    service.NewAuditService(store.NewAuditLogStore(db)),
 		SiteSetting: service.NewSiteSettingService(store.NewSiteSettingStore(db), store.NewUserStore(db)),
 	}
-	router := pullRouterWithAuth(handler.New(svc, cfg))
+	h := handler.New(svc, cfg)
+	r := chi.NewRouter()
+	r.Post("/api/repos/{owner}/{repo}/pulls", h.CreatePull)
+	r.Post("/api/repos/{owner}/{repo}/pulls/{number}/update-branch", h.UpdatePullBranch)
+	f.router = middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(r)
 
-	forkerID := testutil.SeedUser(t, db, suffix+"_f")
-	forker := "testuser_" + suffix + "_f"
-	fork, err := repoSvc.Fork(context.Background(), upOwner, upRepo, forkerID, forker, service.ForkOptions{})
+	f.forkerID = testutil.SeedUser(t, db, suffix+"_f")
+	f.forker = "testuser_" + suffix + "_f"
+	fork, err := repoSvc.Fork(context.Background(), f.upOwner, f.upRepo, f.forkerID, f.forker, service.ForkOptions{})
 	if err != nil {
 		t.Fatalf("fork: %v", err)
 	}
-	forkGit, err := gogit.PlainOpen(filepath.Join(root, forker, fork.Name+".git"))
+	f.forkRepo = fork.Name
+	forkGit, err := gogit.PlainOpen(filepath.Join(root, f.forker, fork.Name+".git"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	forkSHA := testutil.WriteCommit(t, forkGit.Storer, "fork change", main)
-	if err := forkGit.Storer.SetReference(plumbing.NewHashReference(plumbing.NewBranchReferenceName("fix-x"), forkSHA)); err != nil {
+	f.forkSHA = testutil.WriteCommit(t, forkGit.Storer, "fork change", main)
+	if err := forkGit.Storer.SetReference(plumbing.NewHashReference(plumbing.NewBranchReferenceName("fix-x"), f.forkSHA)); err != nil {
 		t.Fatal(err)
 	}
+	return f
+}
 
-	body, _ := json.Marshal(map[string]any{
-		"title": "Fix x", "head_branch": "fix-x", "base_branch": "main", "head_repo": forker + "/" + fork.Name,
-	})
-	req := httptest.NewRequest(http.MethodPost, "/api/repos/"+upOwner+"/"+upRepo+"/pulls", bytes.NewReader(body))
+func (f forkPullFixture) post(t *testing.T, path string, userID int64, username string, body any) *httptest.ResponseRecorder {
+	t.Helper()
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, forkerID, forker))
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, userID, username))
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	f.router.ServeHTTP(rr, req)
+	return rr
+}
+
+func (f forkPullFixture) open(t *testing.T) *httptest.ResponseRecorder {
+	t.Helper()
+	return f.post(t, "/api/repos/"+f.upOwner+"/"+f.upRepo+"/pulls", f.forkerID, f.forker, map[string]any{
+		"title": "Fix x", "head_branch": "fix-x", "base_branch": "main", "head_repo": f.forker + "/" + f.forkRepo,
+	})
+}
+
+func TestCreatePull_FromForkHead_201(t *testing.T) {
+	f := openForkPull(t)
+
+	rr := f.open(t)
 
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d: %s", rr.Code, rr.Body.String())
@@ -85,11 +119,24 @@ func TestCreatePull_FromForkHead_201(t *testing.T) {
 	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
 		t.Fatal(err)
 	}
-	if got["head_repo"] != forker+"/"+fork.Name {
-		t.Errorf("head_repo = %v, want %s/%s", got["head_repo"], forker, fork.Name)
+	if got["head_repo"] != f.forker+"/"+f.forkRepo {
+		t.Errorf("head_repo = %v, want %s/%s", got["head_repo"], f.forker, f.forkRepo)
 	}
-	if got["head_sha"] != forkSHA.String() {
-		t.Errorf("head_sha = %v, want %s", got["head_sha"], forkSHA)
+	if got["head_sha"] != f.forkSHA.String() {
+		t.Errorf("head_sha = %v, want %s", got["head_sha"], f.forkSHA)
+	}
+}
+
+func TestUpdatePullBranch_ForkPull_422(t *testing.T) {
+	f := openForkPull(t)
+	if rr := f.open(t); rr.Code != http.StatusCreated {
+		t.Fatalf("open: %d %s", rr.Code, rr.Body.String())
+	}
+
+	rr := f.post(t, "/api/repos/"+f.upOwner+"/"+f.upRepo+"/pulls/1/update-branch", f.upID, f.upOwner, nil)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("want 422, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 

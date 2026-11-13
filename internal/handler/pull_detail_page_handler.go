@@ -71,7 +71,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var headStatuses []model.CommitStatus
-	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
+	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadRef()); err == nil {
 		headStatuses, _ = h.Services.CommitStatus.List(r.Context(), owner, repoName, headCommit.Hash.String())
 	}
 	if headStatuses == nil {
@@ -133,7 +133,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 			mergeabilityBox.AutoMergeByName = armer.Username
 		}
 	}
-	mg, mgErr := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
+	mg, mgErr := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadRef())
 	if mgErr != nil {
 		slog.Warn("pull detail: mergeability failed; rendering as unavailable",
 			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", mgErr)
@@ -148,7 +148,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		mergeabilityBox.CanThreeWayMerge = !mg.HasConflicts && mg.Ahead > 0
 		mergeabilityBox.CanSquash = !mg.HasConflicts && mg.Ahead > 0
 	}
-	mergeabilityBox.CanUpdateBranch = canWrite2 && !repo.ContentReadOnly() && !pull.IsDraft && !mergeabilityBox.Unavailable &&
+	mergeabilityBox.UpdateFromFork = pull.CrossRepo && !mergeabilityBox.Unavailable && mergeabilityBox.Behind > 0
+	mergeabilityBox.CanUpdateBranch = canWrite2 && !pull.CrossRepo && !repo.ContentReadOnly() && !pull.IsDraft && !mergeabilityBox.Unavailable &&
 		!mergeabilityBox.HasConflicts && mergeabilityBox.Ahead > 0 && mergeabilityBox.Behind > 0
 	if repo.ContentReadOnly() {
 		mergeabilityBox.CanFastForward, mergeabilityBox.CanThreeWayMerge, mergeabilityBox.CanSquash = false, false, false

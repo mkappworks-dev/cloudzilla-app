@@ -235,7 +235,7 @@ func (s *PullService) listRows(ctx context.Context, owner, repoName string, pull
 			row.ReviewState = reviewStates[p.ID]
 		}
 		if s.code != nil {
-			if commit, _, err := s.code.ResolveRef(owner, repoName, p.HeadBranch); err == nil {
+			if commit, _, err := s.code.ResolveRef(owner, repoName, p.HeadRef()); err == nil {
 				row.HeadSHA = commit.Hash.String()
 				if s.commitStatus != nil {
 					if combined, statuses, err := s.commitStatus.GetCombined(ctx, owner, repoName, row.HeadSHA); err == nil {
@@ -314,6 +314,7 @@ func (s *PullService) CreateFromHead(ctx context.Context, owner, repoName, headR
 	if headSrc != nil {
 		pr.HeadRepoID = &headSrc.ID
 		pr.HeadRepo = headSrc.OwnerName + "/" + headSrc.Name
+		pr.CrossRepo = true
 	}
 	if err := s.pulls.Create(ctx, pr); err != nil {
 		return nil, err

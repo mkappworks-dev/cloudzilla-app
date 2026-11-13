@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strconv"
 	"testing"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -23,6 +27,7 @@ type forkPullEnv struct {
 	forkOwner         string
 	forkRepo          string
 	pulls             *service.PullService
+	code              *service.CodeService
 	repos             *service.RepoService
 	mainHash, forkSHA plumbing.Hash
 }
@@ -65,6 +70,7 @@ func newForkPullEnv(t *testing.T) *forkPullEnv {
 		t.Fatalf("set fix-x: %v", err)
 	}
 
+	e.code = codeSvc
 	e.pulls = service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), e.repos).
 		WithCIDeps(codeSvc, nil, nil, nil, nil, nil)
 	return e
@@ -127,3 +133,90 @@ func TestPullCreate_HeadOutsideForkTree_Refused(t *testing.T) {
 		t.Fatalf("err = %v, want ErrPullHeadNotInTree", err)
 	}
 }
+
+func TestForkPull_ReadsThroughItsHeadRef(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr, err := e.pulls.CreateFromHead(ctx, e.upOwner, e.upRepo, e.forkOwner+"/"+e.forkRepo,
+		e.forkerID, "Fix x", "", "fix-x", "main", false, nil)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	got, err := e.pulls.Get(ctx, e.upOwner, e.upRepo, pr.Number)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head := got.HeadRef()
+
+	mg, err := e.code.Mergeability(ctx, e.upOwner, e.upRepo, "main", head)
+	if err != nil {
+		t.Fatalf("mergeability: %v", err)
+	}
+	if mg.Ahead != 1 || mg.Behind != 0 || mg.HasConflicts {
+		t.Errorf("mergeability = ahead %d, behind %d, conflicts %v; want 1, 0, false", mg.Ahead, mg.Behind, mg.HasConflicts)
+	}
+	commits, err := e.code.PullCommits(e.upOwner, e.upRepo, "main", head)
+	if err != nil {
+		t.Fatalf("commits: %v", err)
+	}
+	if len(commits) != 1 || commits[0].Message != "fork change" {
+		t.Errorf("commits = %+v, want the one fork commit", commits)
+	}
+	if _, err := e.code.GetPullDiff(e.upOwner, e.upRepo, "main", head); err != nil {
+		t.Errorf("diff: %v", err)
+	}
+}
+
+func TestPullHeadRef(t *testing.T) {
+	same := &model.PullRequest{Number: 3, HeadBranch: "feature"}
+	cross := &model.PullRequest{Number: 3, HeadBranch: "feature", CrossRepo: true}
+	if got := same.HeadRef(); got != "feature" {
+		t.Errorf("same-repo head ref = %q, want the branch", got)
+	}
+	if got := cross.HeadRef(); got != "refs/pull/3/head" {
+		t.Errorf("cross-repo head ref = %q, want refs/pull/3/head", got)
+	}
+}
+
+func TestForkPull_BehindWhenBaseMovesOn(t *testing.T) {
+	e := newForkPullEnv(t)
+	ctx := context.Background()
+	pr, err := e.pulls.CreateFromHead(ctx, e.upOwner, e.upRepo, e.forkOwner+"/"+e.forkRepo,
+		e.forkerID, "Fix x", "", "fix-x", "main", false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := gogit.PlainOpen(filepath.Join(e.root, e.upOwner, e.upRepo+".git"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mainCommit, err := base.CommitObject(e.mainHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sig := object.Signature{Name: "Tester", Email: "t@test.invalid", When: time.Unix(1, 0).UTC()}
+	// Same tree as main, so upstream moves on without touching a path the fork changed.
+	moved := &object.Commit{Author: sig, Committer: sig, Message: "upstream moves on", TreeHash: mainCommit.TreeHash, ParentHashes: []plumbing.Hash{e.mainHash}}
+	enc := base.Storer.NewEncodedObject()
+	if err := moved.Encode(enc); err != nil {
+		t.Fatal(err)
+	}
+	next, err := base.Storer.SetEncodedObject(enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := base.Storer.SetReference(plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), next)); err != nil {
+		t.Fatal(err)
+	}
+
+	mg, err := e.code.Mergeability(ctx, e.upOwner, e.upRepo, "main", "refs/pull/"+itoa(pr.Number)+"/head")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if mg.Ahead != 1 || mg.Behind != 1 || mg.HasConflicts {
+		t.Errorf("mergeability = ahead %d, behind %d, conflicts %v; want 1, 1, false", mg.Ahead, mg.Behind, mg.HasConflicts)
+	}
+}
+
+func itoa(n int) string { return strconv.Itoa(n) }
