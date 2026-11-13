@@ -490,6 +490,9 @@ belong to. Both sources fill the Reader, Writer and Admin rows above, and a team
 cannot grant or revoke `admin`, transfer, archive or delete. Teams exist only in orgs, and an org owner alone grants
 them (see [Organizations](./organizations.md#repository-grants)).
 
+**Write** also opens a repository's Security tab (secret scan alerts, close, reopen, allow); readers and anonymous
+visitors get the missing-repository `404`. See [secret-scanning](./secret-scanning.md#who-sees-what).
+
 **Manage** includes: adding, changing and removing `reader` and `writer` collaborators, branch protection, deploy keys,
 topics, wiki deletion, webhook CRUD, repo settings page access.
 

@@ -265,8 +265,10 @@ Other failures read `internal error checking for secrets`. A value with a closed
 `push-protection: scan incomplete`; with `secret_scanning.push_protection` off the walk still runs and nothing blocks.
 `PushScan.PostReceive`, started by `AfterPush`, scans what the push did not finish, records `found` events (`incomplete`
 when the budget ran out), notifies repo admins of new alerts and marks every applied commit as reached. A
-`cloudzilla_token` finding is a finding only when `CloudzillaTokenResolver` (ticket 14) says it is live; without one it
+`cloudzilla_token` finding is a finding only when `CloudzillaTokenResolver` says it is live (`TokenRevoker` deletes it); without one it
 is dropped.
+
+Pattern set, alert model, allow semantics and the accepted costs are in [secret-scanning](./secret-scanning.md).
 
 ---
 

@@ -84,6 +84,12 @@ the value stops being blocked in that Repository.
 
 **Auto-revoked** — a secret scan alert for a Cloudzilla personal access token that the Instance deleted on finding it.
 
+**Blocked alert** — an open secret scan alert whose every location is on a commit no ref reaches, because push
+protection refused the push. It is deleted after 7 days if no ref ever reaches it.
+
+**History scan** — the one-time background scan of every ref of a Repository for secrets, queued at creation, after a
+mirror sync and after an import. It alerts and never blocks.
+
 ## Tools
 
 **`cz`** — the remote command-line client for developers. It talks to the JSON API only.
