@@ -1,6 +1,6 @@
 package handler_test
 
-// Integration tests for the repo Checks page. All tests require TEST_DATABASE_DSN and skip otherwise.
+// Integration tests for /checks on an Instance with ci.enabled off, where it still lists commit statuses. All tests require TEST_DATABASE_DSN and skip otherwise.
 
 import (
 	"net/http"
@@ -88,7 +88,7 @@ func TestPageChecks_EmptyStateShowsCurlExample(t *testing.T) {
 		t.Fatalf("want 200, got %d", rr.Code)
 	}
 	body := rr.Body.String()
-	assertContains(t, body, "No checks reported yet")
+	assertContains(t, body, "No commit statuses reported yet")
 	assertContains(t, body, "http://localhost:8080/api/repos"+f.repo.path+"/statuses/")
 }
 
@@ -102,7 +102,7 @@ func TestPageChecks_Paginates(t *testing.T) {
 	assertContains(t, first, `href="`+f.repo.path+`/checks?page=2"`)
 
 	second := requestAPI(f.app, http.MethodGet, f.repo.path+"/checks?page=2", "").Body.String()
-	assertContains(t, second, `href="`+f.repo.path+`/checks?page=1"`)
+	assertContains(t, second, `href="`+f.repo.path+`/checks"`)
 	if strings.Contains(second, `/checks?page=3"`) {
 		t.Error("the last page must not link to an older page")
 	}
@@ -113,18 +113,20 @@ func TestPageChecks_PagePastTheEndLinksBack(t *testing.T) {
 	f.postStatus(t, f.headSHA, `{"state":"success"}`)
 
 	body := requestAPI(f.app, http.MethodGet, f.repo.path+"/checks?page=3", "").Body.String()
-	assertContains(t, body, "No more checks.")
+	assertContains(t, body, "No more statuses.")
 	assertContains(t, body, `href="`+f.repo.path+`/checks?page=2"`)
-	if strings.Contains(body, "No checks reported yet") {
+	if strings.Contains(body, "No commit statuses reported yet") {
 		t.Error("a page past the end must not claim the repo has no checks")
 	}
 }
 
-func TestPageChecks_SubnavTabIsActive(t *testing.T) {
+func TestPageChecks_WithCIOffHasNoActionsTab(t *testing.T) {
 	f := seedChecksFixture(t, false)
 
 	body := requestAPI(f.app, http.MethodGet, f.repo.path+"/checks", "").Body.String()
-	assertContains(t, body, `href="`+f.repo.path+`/checks" aria-current="page"`)
+	if strings.Contains(body, `href="`+f.repo.path+`/actions"`) {
+		t.Error("the Actions tab shows although ci.enabled is off")
+	}
 }
 
 func TestPageActions_IsGone(t *testing.T) {

@@ -65,6 +65,7 @@ templ Commits(data view.CommitsData) {
 										class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline"
 										title={ c.FullHash }
 									>{ c.FullHash[:7] }</a>
+									@components.CommitCIBadge(data.CI[c.FullHash], 14)
 									@components.SignatureBadge(c.Signature)
 									<a
 										href={ templ.SafeURL(codeurl.Path(data.Owner, data.RepoName, "tree", c.FullHash, "")) }

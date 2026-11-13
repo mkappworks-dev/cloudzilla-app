@@ -10,9 +10,42 @@ them for every repository the organization owns.
 - `issues` — fired on issue create, close, reopen, including closes by a closing keyword in a merged PR or a pushed
   commit (see [pr-merge](./pr-merge.md#closing-issues)), which fire on the issue's repo
 - `pull_request` — fired on PR create, close, merge
+- `workflow_run` — fired once when a CI Run reaches a final status: success, failure or cancelled (see
+  [below](#workflow_run))
 
 There is no event for secret scanning: alerts reach admins as [notifications](./notifications.md), not webhooks (see
 [secret-scanning](./secret-scanning.md#notifications-and-audit)).
+
+## workflow_run
+
+Fired after the Run's final status is committed, once per completion: a re-run completes again and fires again. A
+workflow file that fails to parse creates a Run that is already failed and fires too. It goes only to hooks whose events
+include `workflow_run`, which is off for every existing hook and for new ones that don't ask for it (the default stays
+`push,issues,pull_request`); turn it on in the hook's event checkboxes or `PATCH .../hooks/{id}` with
+`{"events": "push,workflow_run"}`. The `X-Cloudzilla-Event` header is `workflow_run`.
+
+```json
+{
+  "action": "completed",
+  "workflow_run": {
+    "id": 41,
+    "number": 7,
+    "name": "CI",
+    "path": ".cloudzilla/workflows/ci.yml",
+    "event": "push",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "failure",
+    "head_sha": "0cfa3e4…",
+    "head_branch": "main",
+    "html_url": "https://git.example.com/alice/app/actions/runs/7"
+  },
+  "repository": { "id": 12, "name": "app", "full_name": "alice/app" }
+}
+```
+
+`conclusion` is `success`, `failure` or `cancelled`. `event` is `push`, `pull_request` or `workflow_dispatch`;
+`head_branch` is the branch or tag name. Signing, retries and the private network guard are the same as for every event.
 
 ## Delivery
 
@@ -77,7 +110,8 @@ as a repository webhook.
 
 HTMX requests for create/delete swap `fragment-webhooks-list` into `#webhooks-list`.
 
-Default events when `events` is omitted: `push,issues,pull_request`.
+Default events when `events` is omitted: `push,issues,pull_request`. A `PATCH` accepts `push`, `issues`, `pull_request`
+and `workflow_run`.
 
 ## WebhookService (`internal/service/webhook_service.go`)
 
@@ -94,6 +128,7 @@ Default events when `events` is omitted: `push,issues,pull_request`.
 - `PushPayload(repo, pusher, branch, headSHA)` → `map[string]any`
 - `IssuePayload(action, repo, issue)` → `map[string]any`
 - `PullPayload(action, repo, pr)` → `map[string]any`
+- `WorkflowRunPayload(repo, run, runURL)` → `map[string]any`; sent by the callback `WorkflowRunService.WithCompleted`
 
 ## Repo Settings Page
 

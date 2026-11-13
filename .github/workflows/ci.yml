@@ -235,6 +235,9 @@ jobs:
       - name: Build cz client
         run: go build -o dist/cz ./cmd/cz/.
 
+      - name: Build cz-runner
+        run: go build -o dist/cz-runner ./cmd/cz-runner/.
+
       - name: Upload binaries
         uses: actions/upload-artifact@v7
         with:

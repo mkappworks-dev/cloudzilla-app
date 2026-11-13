@@ -1,7 +1,11 @@
 package service
 
 import (
+	"context"
+	"log/slog"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/secretbox"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -31,6 +35,10 @@ type Services struct {
 	Release            *ReleaseService
 	ReleaseAsset       *ReleaseAssetService
 	CommitStatus       *CommitStatusService
+	WorkflowRun        *WorkflowRunService
+	CIRunner           *CIRunnerService
+	CISecret           *CISecretService
+	WorkflowLog        *WorkflowLogService
 	Milestone          *MilestoneService
 	PullReview         *PullReviewService
 	PullLineComment    *PullLineCommentService
@@ -90,6 +98,7 @@ func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Avatar.WithBackend(b)
 	s.Attachment.WithBackend(b)
 	s.ReleaseAsset.WithBackend(b)
+	s.WorkflowLog.WithBackend(b)
 	s.Export.WithBackend(b)
 	return s
 }
@@ -146,6 +155,27 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
 	).WithReviewerDeps(stores.ContributorStats, stores.User).WithMentionStore(stores.Mention).WithIssueStore(stores.Issue).WithBranchProtections(stores.BranchProtection).WithThreadSubscriptions(threadSubSvc)
+	ciSecretSvc := NewCISecretService(stores.CISecret, secrets, repoSvc)
+	workflowLogSvc := NewWorkflowLogService(stores.WorkflowLog, cfg.CI).WithSecrets(ciSecretSvc)
+	repoSvc.WithWorkflowLogs(workflowLogSvc)
+	userSvc.WithWorkflowLogs(workflowLogSvc)
+	orgSvc.WithWorkflowLogs(workflowLogSvc)
+	workflowRunSvc := NewWorkflowRunService(stores.WorkflowRun, stores.Repo, stores.User, stores.Pull, repoSvc, code, cfg.CI, cfg.Server.BaseURL)
+	pullSvc.WithRuns(workflowRunSvc)
+	workflowRunSvc.WithCompleted(func(run model.WorkflowRun) {
+		repo, err := stores.Repo.GetByID(context.Background(), run.RepoID)
+		if err != nil {
+			slog.Warn("workflow_run webhook: repo lookup failed", "repo_id", run.RepoID, "error", err)
+			return
+		}
+		// A pull request Run's ref is refs/pull/N/head, which names no branch; the pull request's head branch does.
+		if run.PullRequestID != nil {
+			if pr, err := stores.Pull.GetByID(context.Background(), *run.PullRequestID); err == nil {
+				run.Ref = "refs/heads/" + pr.HeadBranch
+			}
+		}
+		go webhookSvc.Dispatch(repo.ID, "workflow_run", webhookSvc.WorkflowRunPayload(*repo, run, workflowRunSvc.runURL(repo, &run)))
+	})
 	eventSvc := NewEventService(stores.Event, stores.User, stores.Repo)
 	auditSvc := NewAuditService(stores.AuditLog)
 	issueCloser := NewIssueCloser(stores.Issue, stores.IssueEvent, stores.Repo, repoSvc, webhookSvc, notifSvc, eventSvc)
@@ -179,6 +209,10 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Release:            NewReleaseService(stores.Release, stores.Repo, code).WithAssets(releaseAssetSvc),
 		ReleaseAsset:       releaseAssetSvc,
 		CommitStatus:       commitStatusSvc,
+		WorkflowRun:        workflowRunSvc,
+		WorkflowLog:        workflowLogSvc,
+		CIRunner:           NewCIRunnerService(stores.CIRunner, workflowRunSvc, stores.Repo, cfg.Server.BaseURL).WithSecrets(ciSecretSvc),
+		CISecret:           ciSecretSvc,
 		Milestone:          NewMilestoneService(stores.Milestone, stores.Repo),
 		PullReview:         NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection).WithThreadSubscriptions(threadSubSvc),
 		PullLineComment:    NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
@@ -226,7 +260,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PushVet:            NewPushVetService(branchProtectionSvc, pushScanSvc),
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
-		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc),
+		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc).WithWorkflowRuns(workflowRunSvc),
 		InstanceSigner:     instanceSigner,
 		Secrets:            secrets,
 	}

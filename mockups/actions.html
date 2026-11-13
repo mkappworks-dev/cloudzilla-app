@@ -3,144 +3,296 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Checks · mkappworks/cloudzilla — Cloudzilla</title>
+<title>Actions · mkappworks/cloudzilla — Cloudzilla</title>
 <link rel="stylesheet" href="/assets/tailwind.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>[data-role-hidden]{display:none!important}</style>
 </head>
 <body class="min-h-screen flex flex-col antialiased font-sans">
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
-<div id="cz-header" data-repo-tab="checks"></div>
+<div id="cz-header" data-repo-tab="actions"></div>
 
 <main id="main-content" tabindex="-1" class="max-w-[1400px] mx-auto px-6 pt-6 pb-20 flex-1 w-full">
   <div class="flex flex-col gap-6">
-    <section aria-labelledby="checks-title">
-      <h1 id="checks-title" class="text-2xl font-semibold tracking-tight">Checks</h1>
-      <p class="mt-1 text-[13px] text-muted-foreground">Statuses that CI reports on this repository's commits through the status API.</p>
+
+    <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
+      <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
+      <button type="button" data-mock-state="runs" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Runs</button>
+      <button type="button" data-mock-state="waiting" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Fork run waiting</button>
+      <button type="button" data-mock-state="no-runner" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">No runner</button>
+      <button type="button" data-mock-state="statuses" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Commit statuses</button>
+      <button type="button" data-mock-state="yaml-error" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Workflow YAML error</button>
+      <button type="button" data-mock-state="no-match" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Filters match nothing</button>
+      <button type="button" data-mock-state="empty" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">No workflows</button>
+      <button type="button" data-mock-state="dispatch" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Run workflow open</button>
+      <span class="font-mono text-[10px] uppercase tracking-wider ml-2">Viewing as</span>
+      <button type="button" data-mock-role="reader" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Reader</button>
+      <button type="button" data-mock-role="writer" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Writer</button>
+      <button type="button" data-mock-role="admin" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Admin</button>
+      <span class="ml-auto">Other pages: <a href="actions_run.html" class="underline hover:text-foreground">actions_run.html</a> · <a href="pr_checks.html" class="underline hover:text-foreground">pr_checks.html</a> · <a href="repo_settings_ci.html" class="underline hover:text-foreground">repo_settings_ci.html</a> · <a href="admin_runners.html" class="underline hover:text-foreground">admin_runners.html</a> · <a href="actions_status_icons.html" class="underline hover:text-foreground">actions_status_icons.html</a></span>
+    </div>
+
+    <section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="actions-title">
+      <div class="min-w-0">
+        <h1 id="actions-title" class="text-2xl font-semibold tracking-tight">Actions</h1>
+        <p class="mt-1 text-[13px] text-muted-foreground">Runs of the workflow files in <span class="font-mono">.cloudzilla/workflows/</span>, and statuses that external CI reports through the status API.</p>
+      </div>
+      <div class="relative" data-when="runs waiting no-runner statuses yaml-error no-match dispatch" data-dispatch>
+        <button type="button" data-dispatch-btn aria-expanded="false" aria-haspopup="dialog" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+          Run workflow
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+        </button>
+        <div hidden data-dispatch-panel role="dialog" aria-labelledby="dispatch-title" class="absolute right-0 top-full mt-1.5 z-50 w-[320px] max-w-[calc(100vw-3rem)] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3">
+          <form onsubmit="return false" class="flex flex-col gap-3">
+            <p id="dispatch-title" class="text-[13px] font-medium">Run a workflow by hand</p>
+            <div>
+              <label for="dispatch-workflow" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Workflow</label>
+              <div class="relative">
+                <select id="dispatch-workflow" name="workflow" class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs disabled:cursor-not-allowed disabled:opacity-50">
+                  <option value="release.yml">Release · release.yml</option>
+                  <option value="nightly.yml">Nightly · nightly.yml</option>
+                </select>
+                <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+              </div>
+              <p class="text-[11px] text-muted-foreground mt-1">Only workflows with <span class="font-mono">on: workflow_dispatch</span> are listed. CI and Docs run on push and pull request only.</p>
+            </div>
+            <div>
+              <label for="dispatch-ref" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Branch or tag</label>
+              <div class="relative">
+                <select id="dispatch-ref" name="ref" class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-xs font-mono disabled:cursor-not-allowed disabled:opacity-50">
+                  <optgroup label="Branches">
+                    <option selected>main</option>
+                    <option>daisy/webhook-retry</option>
+                    <option>kiyo/runner-docs</option>
+                  </optgroup>
+                  <optgroup label="Tags">
+                    <option>v0.4.1</option>
+                    <option>v0.4.0</option>
+                  </optgroup>
+                </select>
+                <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+              </div>
+              <p class="text-[11px] text-muted-foreground mt-1">The workflow file is read from this ref.</p>
+            </div>
+            <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px]">Run workflow</button>
+          </form>
+        </div>
+      </div>
     </section>
-    <ol class="flex flex-col gap-4" aria-label="Commits with checks">
-      <li class="rounded-md border border-border bg-card overflow-hidden">
-        <div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13.5px] font-medium truncate">Add OAuth scopes to access tokens</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">
-              3 of 3 passed
-              ·
-              <a href="commit.html" class="font-mono hover:text-foreground hover:underline">9c8e2a4</a>
-              ·
-              <time datetime="2026-05-13T14:08:00Z">12 minutes ago</time>
-            </p>
-          </div>
-        </div>
-        <ol class="divide-y divide-border" aria-label="Checks on 9c8e2a4">
-        <li class="px-4 py-2.5 flex items-center gap-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-medium font-mono">ci/build</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">Build passed in 1m 42s</p>
-          </div>
-          <a href="https://ci.example.com/runs/1201" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-        </li>
-        <li class="px-4 py-2.5 flex items-center gap-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-medium font-mono">ci/test</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">412 tests passed</p>
-          </div>
-          <a href="https://ci.example.com/runs/1202" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-        </li>
-        <li class="px-4 py-2.5 flex items-center gap-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-medium font-mono">security/govulncheck</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">No known vulnerabilities</p>
-          </div>
-          <a href="https://ci.example.com/runs/1203" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-        </li>
-        </ol>
-      </li>
-      <li class="rounded-md border border-border bg-card overflow-hidden">
-        <div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-destructive" aria-label="Failed"><path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13.5px] font-medium truncate">fix: retry webhook deliveries with backoff</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">
-              2 of 3 passed
-              ·
-              <a href="commit.html" class="font-mono hover:text-foreground hover:underline">0cfa3e4</a>
-              ·
-              <time datetime="2026-05-13T11:00:00Z">3 hours ago</time>
-            </p>
-          </div>
-        </div>
-        <ol class="divide-y divide-border" aria-label="Checks on 0cfa3e4">
-        <li class="px-4 py-2.5 flex items-center gap-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-medium font-mono">ci/build</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">Build passed in 1m 38s</p>
-          </div>
-          <a href="https://ci.example.com/runs/1204" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-        </li>
-        <li class="px-4 py-2.5 flex items-center gap-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-destructive" aria-label="Failed"><path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-medium font-mono">ci/test</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">2 tests failed: TestDispatchRetry, TestDispatchBackoff</p>
-          </div>
-          <a href="https://ci.example.com/runs/1205" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-        </li>
-        <li class="px-4 py-2.5 flex items-center gap-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-medium font-mono">security/govulncheck</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">No known vulnerabilities</p>
-          </div>
-          <a href="https://ci.example.com/runs/1206" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-        </li>
-        </ol>
-      </li>
-      <li class="rounded-md border border-border bg-card overflow-hidden">
-        <div class="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-warning" aria-label="Pending"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13.5px] font-medium truncate">tech(ui): tier 9 — sweep legacy palette across fragments</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">
-              1 of 2 passed
-              ·
-              <a href="commit.html" class="font-mono hover:text-foreground hover:underline">623cff3</a>
-              ·
-              <time datetime="2026-05-12T18:05:00Z">yesterday</time>
-            </p>
-          </div>
-        </div>
-        <ol class="divide-y divide-border" aria-label="Checks on 623cff3">
-        <li class="px-4 py-2.5 flex items-center gap-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-medium font-mono">ci/build</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">Build passed in 1m 45s</p>
-          </div>
-          <a href="https://ci.example.com/runs/1207" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-        </li>
-        <li class="px-4 py-2.5 flex items-center gap-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-warning" aria-label="Pending"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
-          <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-medium font-mono">ci/test</p>
-            <p class="text-[12px] text-muted-foreground mt-0.5">Running…</p>
-          </div>
-          <a href="https://ci.example.com/runs/1208" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
-        </li>
-        </ol>
-      </li>
-    </ol>
+
+    <form onsubmit="return false" class="flex flex-wrap items-center gap-1.5" aria-label="Filter runs" data-when="runs waiting no-runner statuses yaml-error no-match dispatch">
+      <div class="relative">
+        <select name="source" aria-label="Filter by source" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+          <option value="workflows">Workflow runs</option>
+          <option value="statuses">Commit statuses (external CI)</option>
+        </select>
+        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+      </div>
+      <div class="relative">
+        <select name="workflow" aria-label="Filter by workflow" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+          <option value="">All workflows</option>
+          <option value="ci.yml">CI</option>
+          <option value="docs.yml">Docs</option>
+          <option value="release.yml">Release</option>
+          <option value="nightly.yml">Nightly</option>
+        </select>
+        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+      </div>
+      <div class="relative">
+        <select name="branch" aria-label="Filter by branch" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+          <option value="">All branches</option>
+          <option value="main">main</option>
+          <option value="daisy/webhook-retry">daisy/webhook-retry</option>
+          <option value="kiyo/runner-docs">kiyo/runner-docs</option>
+        </select>
+        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+      </div>
+      <div class="relative">
+        <select name="status" aria-label="Filter by status" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+          <option value="">Any status</option>
+          <option value="waiting">Approval required</option>
+          <option value="queued">Queued</option>
+          <option value="running">Running</option>
+          <option value="success">Succeeded</option>
+          <option value="failure">Failed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+      </div>
+      <div class="relative">
+        <select name="event" aria-label="Filter by trigger" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+          <option value="">Any trigger</option>
+          <option value="push">Push</option>
+          <option value="pull_request">Pull request</option>
+          <option value="manual">Manual</option>
+        </select>
+        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+      </div>
+      <button type="submit" class="h-8 px-3 text-[13px] bg-accent text-accent-foreground border border-border rounded-md hover:bg-accent/80">Apply</button>
+    </form>
+
+    <div data-when="yaml-error" role="alert" class="relative w-full rounded-md border p-4 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:pl-7 [&>svg~*]:pl-7 border-destructive/40 bg-destructive/10 text-destructive">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      <h5 class="mb-1 font-medium leading-none tracking-tight">deploy.yml couldn't be parsed on main</h5>
+      <div class="text-sm [&_p]:leading-relaxed opacity-90">
+        <p>Pushes to <span class="font-mono">main</span> since <a href="#" class="font-mono underline">5be12f0</a> start no Deploy runs. <a href="actions_run.html?state=yaml-error" class="underline">See the error</a>.</p>
+      </div>
+    </div>
+
+    <div data-when="no-runner" data-needs="admin" class="bg-background border border-border rounded-lg p-6 text-center">
+      <p class="text-muted-foreground">No runners registered.</p>
+      <p class="text-sm text-muted-foreground mt-2">Register one in <a href="repo_settings_ci.html" class="text-foreground hover:underline">Settings → CI/CD</a>, or add an instance runner under <a href="admin_runners.html" class="text-foreground hover:underline">Admin → Runners</a>.</p>
+    </div>
+
+    <section data-when="runs waiting no-runner yaml-error dispatch" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Workflow runs">
+      <ol id="run-rows" class="divide-y divide-border"></ol>
+    </section>
+
+    <section data-when="statuses" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Commit statuses">
+      <ol id="status-rows" class="divide-y divide-border"></ol>
+    </section>
+
+    <div data-when="runs waiting no-runner statuses yaml-error dispatch" class="flex items-center justify-between">
+      <div></div>
+      <div><a href="#" class="text-sm text-foreground hover:underline">Older &rarr;</a></div>
+    </div>
+
+    <div data-when="no-match" class="bg-background border border-border rounded-lg p-8 text-center">
+      <p class="text-muted-foreground">No runs match these filters.</p>
+      <p class="text-sm text-muted-foreground mt-2">Workflow Release · branch main · status Failed</p>
+    </div>
+
+    <section data-when="empty" class="bg-background border border-border rounded-lg p-8">
+      <p class="text-center text-muted-foreground">No workflows in this repository yet.</p>
+      <p class="mt-2 text-center text-sm text-muted-foreground">Commit a YAML file under <span class="font-mono">.cloudzilla/workflows/</span> on the default branch. The next push runs it:</p>
+      <pre class="mt-4 text-xs text-foreground bg-muted rounded-sm p-3 overflow-x-auto font-mono"># .cloudzilla/workflows/ci.yml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: docker
+    steps:
+      - name: Test
+        run: go test ./...</pre>
+      <p class="mt-4 text-center text-sm text-muted-foreground">Statuses that external CI posts still show under the <a href="#" class="text-foreground hover:underline">Commit statuses</a> filter. CI can be turned off in <a href="repo_settings_ci.html" class="text-foreground hover:underline">Settings → CI/CD</a>.</p>
+    </section>
+
   </div>
 </main>
 
 <div id="cz-footer"></div>
 <script src="shell.js"></script>
+<script src="actions_status_icons.js"></script>
+<script>
+  (function () {
+    var BRANCH = 'font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]';
+    var CLOCK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 2"></path></svg>';
+    var STOP = 'relative z-10 hover:text-foreground hover:underline';
+    var PILL = 'inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium ';
+    var BADGE = {
+      warning: PILL + 'bg-warning/15 text-warning border-warning/30',
+      destructive: PILL + 'bg-destructive/15 text-destructive border-destructive/30'
+    };
+
+    var RUNS = [
+      { s: 'yaml-error', status: 'failure', href: 'actions_run.html?state=yaml-error', title: 'ci: add a deploy workflow', wf: 'deploy.yml', plain: true, by: 'Push by malith', branch: 'main', sha: '5be12f0', badge: ['destructive', 'Invalid workflow'], dur: '—', when: '2 minutes ago' },
+      { s: 'waiting', status: 'waiting', href: 'actions_run.html?state=waiting', title: 'fix: handle empty webhook secret', wf: 'CI', num: 149, by: 'Pull request #356 from fork <b class="font-medium text-foreground">ravi/cloudzilla</b>', branch: 'ravi:empty-secret', sha: '3a91c7e', badge: ['warning', 'Approval required'], approve: true, dur: '—', when: 'Waiting for approval' },
+      { s: 'no-runner', status: 'queued', href: 'actions_run.html?state=no-runner', title: 'feat(ci): GPU-backed model tests', wf: 'GPU tests', num: 150, by: 'Push by malith', branch: 'main', sha: 'f20c8d3', note: 'No runner with label gpu', dur: '—', when: 'Queued 14 minutes ago' },
+      { status: 'running', href: 'actions_run.html?state=running', title: 'feat(ci): cache Go modules between runs', wf: 'CI', num: 146, by: 'Push by malith', branch: 'main', sha: '7d1e0a2', dur: '1m 12s', when: 'Running' },
+      { status: 'queued', href: 'actions_run.html?state=queued', title: 'docs: document the runner sandbox', wf: 'CI', num: 147, by: 'Pull request <a href="#" class="' + STOP + '">#352</a> by kiyo', branch: 'kiyo/runner-docs', sha: 'e41b0c9', dur: '—', when: 'Queued' },
+      { status: 'failure', href: 'actions_run.html?state=failed', title: 'fix: retry webhook deliveries with backoff', wf: 'CI', num: 145, by: 'Pull request <a href="#" class="' + STOP + '">#349</a> by daisy', branch: 'daisy/webhook-retry', sha: '0cfa3e4', dur: '3m 02s', when: '3 hours ago' },
+      { status: 'success', href: 'actions_run.html?state=success', title: 'Add OAuth scopes to access tokens', wf: 'CI', num: 144, by: 'Pull request <a href="#" class="' + STOP + '">#341</a> by daisy', branch: 'daisy/oauth-scopes', sha: '9c8e2a4', dur: '2m 14s', when: '5 hours ago' },
+      { status: 'success', href: 'actions_run.html?state=success', title: 'chore: release v0.4.1', wf: 'Release', num: 12, by: 'Manual run by malith', branch: 'v0.4.1', sha: '420b44b', dur: '6m 40s', when: 'yesterday' },
+      { status: 'cancelled', href: 'actions_run.html?state=cancelled', title: 'wip: try the arm64 runner image', wf: 'CI', num: 143, by: 'Push by daisy · cancelled by malith', branch: 'daisy/arm64', sha: 'b7f20d1', dur: '48s', when: '2 days ago' }
+    ];
+    var STATE_ROWS = {
+      'runs': [3, 4, 5, 6, 7, 8],
+      'yaml-error': [0, 3, 4, 5, 6, 7, 8],
+      'dispatch': [3, 4, 5, 6, 7, 8],
+      'waiting': [1, 3, 4, 5, 6],
+      'no-runner': [2, 3, 5, 6]
+    };
+
+    function runRow(r) {
+      var sub = r.plain ? '<span class="font-medium text-foreground">' + r.wf + '</span>'
+        : '<span class="font-medium text-foreground">' + r.wf + '</span><span class="font-mono">#' + r.num + '</span>';
+      var approve = r.approve
+        ? '<button type="button" data-needs="writer" class="relative z-10 shrink-0 self-center inline-flex items-center justify-center rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-[13px]">Approve</button>' : '';
+      var badge = r.badge ? '<span class="' + BADGE[r.badge[0]] + '">' + r.badge[1] + '</span>' : '';
+      var note = r.note ? '<span class="text-[12px] text-warning">' + r.note + '</span>' : '';
+      var dur = r.dur === '—' ? '<span class="font-mono">—</span>' : '<span class="inline-flex items-center gap-1 font-mono">' + CLOCK + r.dur + '</span>';
+      return '<li class="relative px-4 py-3 flex items-start gap-3 hover:bg-muted/40">' +
+        '<span class="mt-[3px]" data-status="' + r.status + '"></span>' +
+        '<div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2">' +
+        '<a href="' + r.href + '" class="text-[13.5px] font-medium hover:underline after:absolute after:inset-0">' + r.title + '</a>' + badge + note + '</div>' +
+        '<p class="mt-0.5 text-[12px] text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">' + sub +
+        '<span aria-hidden="true">·</span><span>' + r.by + '</span><span aria-hidden="true">·</span>' +
+        '<span class="' + BRANCH + '">' + r.branch + '</span><a href="#" class="' + STOP + ' font-mono">' + r.sha + '</a></p></div>' +
+        approve +
+        '<div class="hidden sm:flex shrink-0 flex-col items-end gap-0.5 text-[12px] text-muted-foreground">' + dur + '<span>' + r.when + '</span></div></li>';
+    }
+    function statusRow(x) {
+      return '<li class="px-4 py-3 flex items-start gap-3 hover:bg-muted/40"><span class="mt-[3px]" data-status="' + x[0] + '"></span>' +
+        '<div class="min-w-0 flex-1"><p class="text-[13.5px] font-medium font-mono">' + x[1] + '</p>' +
+        '<p class="mt-0.5 text-[12px] text-muted-foreground">' + x[2] + ' · <span class="' + BRANCH + '">main</span> <span class="font-mono">' + x[3] + '</span></p></div>' +
+        '<a href="#" class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a></li>';
+    }
+    document.getElementById('status-rows').innerHTML = [
+      ['success', 'security/govulncheck', 'No known vulnerabilities', '7d1e0a2'],
+      ['failure', 'buildkite/linux-arm64', 'Build 2210 failed', '0cfa3e4'],
+      ['running', 'buildkite/linux-amd64', 'Build 2211 running', '7d1e0a2']
+    ].map(statusRow).join('');
+    window.czFillStatusIcons();
+
+    var wrap = document.querySelector('[data-dispatch]');
+    var btn = wrap.querySelector('[data-dispatch-btn]');
+    var panel = wrap.querySelector('[data-dispatch-panel]');
+    function setOpen(open) { panel.hidden = !open; btn.setAttribute('aria-expanded', String(open)); }
+    btn.addEventListener('click', function () { setOpen(panel.hidden); });
+    document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) setOpen(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+
+    var role = new URLSearchParams(location.search).get('role') || 'admin';
+    var RANK = { reader: 0, writer: 1, admin: 2 };
+    function applyRole() {
+      document.querySelectorAll('[data-needs]').forEach(function (el) {
+        el.toggleAttribute('data-role-hidden', RANK[role] < RANK[el.dataset.needs]);
+      });
+      document.querySelectorAll('[data-mock-role]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mockRole === role)); });
+    }
+    var state;
+    function show(next) {
+      state = next;
+      var rows = STATE_ROWS[state];
+      if (rows) {
+        document.getElementById('run-rows').innerHTML = rows.map(function (i) { return runRow(RUNS[i]); }).join('');
+        window.czFillStatusIcons();
+      }
+      document.querySelectorAll('[data-when]').forEach(function (el) {
+        el.toggleAttribute('hidden', el.dataset.when.split(' ').indexOf(state) < 0);
+      });
+      document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.mockState === state));
+      });
+      document.querySelector('select[name=source]').value = state === 'statuses' ? 'statuses' : 'workflows';
+      setOpen(state === 'dispatch');
+      applyRole();
+    }
+    document.querySelectorAll('[data-mock-state]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); show(b.dataset.mockState); });
+    });
+    document.querySelectorAll('[data-mock-role]').forEach(function (b) {
+      b.addEventListener('click', function () { role = b.dataset.mockRole; applyRole(); });
+    });
+    document.querySelector('select[name=source]').addEventListener('change', function (e) {
+      show(e.target.value === 'statuses' ? 'statuses' : 'runs');
+    });
+    show(new URLSearchParams(location.search).get('state') || 'runs');
+  })();
+</script>
 </body>
 </html>

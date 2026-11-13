@@ -1,7 +1,8 @@
 # Object storage
 
 Files that live outside git and PostgreSQL go through `internal/storage`. Today that means avatars, markdown image
-attachments, release assets and account exports. Git repos, wikis and gists still live under `git.repos_root`.
+attachments, release assets, CI logs and artifacts, and account exports. Git repos, wikis and gists still live under
+`git.repos_root`.
 
 ## Backends
 
@@ -88,6 +89,8 @@ avatars/org/<org id>/<sha256 of the stored bytes>.<png|jpg>
 attachments/repo/<repo id>/<token>.<png|jpg|gif|webp>
 releases/repo/<repo id>/<release id>/<token>.bin
 exports/<user id>/<export id>.zip
+ci/logs/repo/<repo id>/job/<job id>/<seq>-<token>.log
+ci/artifacts/repo/<repo id>/run/<run id>/<token>.zip
 ```
 
 - `users.avatar_key` and `organizations.avatar_key` hold the full key, or `''` for none.
@@ -194,6 +197,37 @@ Deleting an asset or a release deletes the objects after the database change com
 `RepoService.PurgeExpired`. Deleting a user or an org drops its repos' rows but not their objects. If an object delete
 fails, the failure is logged and the object stays as an orphan: any object under `releases/` that no
 `release_assets.storage_key` names is safe to delete.
+
+## CI logs and artifacts
+
+Job output and `artifacts:` archives from built-in CI ([ci](./ci.md#logs-and-artifacts)). The handlers are in
+`internal/handler/ci_runner_log_handler.go` (the runner side), `workflow_log_handler.go` and
+`workflow_artifact_handler.go`, the service in `internal/service/workflow_log_service.go`.
+
+- **Logs:** the `Backend` can't append, so a log is a series of chunk objects, one per POST of the runner, each with a
+  `workflow_log_chunks` row holding its first line, line count and key. `workflow_jobs.log_bytes` and `log_lines` count
+  what the chunks hold, so the 20 MiB cap (`ci.max_log_bytes`) is a column read and survives the chunks' expiry. A
+  chunk's row insert and the counter update are one statement-guarded transaction: if another chunk of the Job committed
+  first, the write is retried with fresh offsets (three tries).
+- **Artifacts:** the runner's zip is spooled to a temp file while its SHA-256 is computed, then put with its exact size.
+  `workflow_artifacts` holds the name, size, SHA-256, key and expiry. The count limit is checked under a lock on the Run
+  row. Names are cleaned like release asset names, so they never reach the key.
+- **Order:** the object is written before the row, and deleted again if the row fails.
+- **Rows:** `job_id` and `repo_id` have no foreign keys, so the rows outlive a cascade that removes a repo, user or org
+  and the sweep can find the objects it left.
+- **Download:** the rules of [release assets](#release-assets) apply: `RepoService.CanRead` on every request, the same
+  `404` for every refusal, `Content-Disposition: attachment`, `nosniff`,
+  `Content-Security-Policy: default-src 'none'; sandbox`, `Cache-Control: private, no-cache`. An artifact past its
+  expiry is a `404` before the sweep has deleted it. A repo made private or soft-deleted stops serving at once.
+- **Retention:** `WorkflowLogService.Run` (`workflow_log.retention` in `main.go`, running even with `ci.enabled` off)
+  sweeps hourly. It deletes chunks older than `ci.log_retention` and artifacts past their expiry, in batches of 500,
+  rows first and objects after the delete commits. Run rows, Jobs, Steps and commit statuses are kept; a Job whose
+  chunks are gone reads as an empty log.
+- **Cleanup:** `RepoService.PurgeExpired` deletes a purged repo's rows and objects. Deleting a user or an org cascades
+  the repos away, and the same call then runs `SweepOrphans`, which deletes rows whose repo or Job no longer exists. The
+  hourly sweep does that too, so a missed delete is only late.
+- A failed object delete is logged and leaves an orphan: any object under `ci/` that no `workflow_log_chunks` or
+  `workflow_artifacts` row names is safe to delete.
 
 ## Account export
 

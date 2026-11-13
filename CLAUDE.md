@@ -97,6 +97,8 @@ Read the matching doc before working in an area:
   GPG/SSH signing keys, instance-signed server-made commits, rotation, no-`security.secret_key` behaviour
 - [secret-scanning](./docs/secret-scanning.md) — patterns and confidence, alerts and resolutions, push protection and
   its one-line refusal, fail-open budget, allow = close, auto-revoke of `czp_` tokens, history backfill, Security tab
+- [ci](./docs/ci.md) — Workflows, Runs, `cz-runner`, the security model and secrets, fork approval, `workflow_run` and
+  the Actions API, `ci.*` limits
 - [repo-rename](./docs/repo-rename.md) — who may rename, `repo_aliases` rules, redirect table, crash recovery, stable
   `repository.id`
 - [organizations](./docs/organizations.md) — `OrgService`; `/{owner}` resolves user first, then org

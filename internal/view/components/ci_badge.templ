@@ -1,0 +1,17 @@
+package components
+
+// CIBadge is the combined CI state of a commit as a link: to its latest Run when it has one, else to the commit. The
+// zero value renders nothing.
+type CIBadge struct {
+	State string
+	Href  string
+	Title string
+}
+
+templ CommitCIBadge(b CIBadge, size int) {
+	if b.State != "" {
+		<a href={ templ.SafeURL(b.Href) } class="inline-flex shrink-0 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" title={ b.Title }>
+			@RunStatusIconSized(b.State, size)
+		</a>
+	}
+}

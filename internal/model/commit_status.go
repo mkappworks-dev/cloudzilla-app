@@ -20,6 +20,8 @@ type CommitStatus struct {
 	TargetURL   string            `db:"target_url"  json:"target_url"`
 	Description string            `db:"description" json:"description"`
 	CreatorID   int64             `db:"creator_id"  json:"creator_id"`
-	CreatedAt   time.Time         `db:"created_at"  json:"created_at"`
-	UpdatedAt   time.Time         `db:"updated_at"  json:"updated_at"`
+	// RunID is the workflow Run that owns the status; nil for a status an outside system posted.
+	RunID     *int64    `db:"run_id"      json:"run_id,omitempty"`
+	CreatedAt time.Time `db:"created_at"  json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"  json:"updated_at"`
 }

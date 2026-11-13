@@ -28,6 +28,9 @@
         <h1 id="pull-title" class="text-2xl tracking-tight font-medium min-w-0">
           <span id="pr-title-text">Add OAuth scopes to access tokens</span>
           <span class="text-muted-foreground font-normal" aria-label="Pull request number 341">#341</span>
+          <span data-when="ci=success" class="inline-flex align-middle ml-1"><a href="actions_run.html?state=success" class="inline-flex shrink-0 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" title="Succeeded — latest run" data-status="success" data-size="20"></a></span>
+          <span data-when="ci=failure" class="inline-flex align-middle ml-1"><a href="actions_run.html?state=failed" class="inline-flex shrink-0 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" title="Failed — latest run" data-status="failure" data-size="20"></a></span>
+          <span data-when="ci=running" class="inline-flex align-middle ml-1"><a href="actions_run.html?state=running" class="inline-flex shrink-0 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" title="Running — latest run" data-status="running" data-size="20"></a></span>
         </h1>
         <div class="flex items-center gap-1.5 shrink-0">
           <button type="button" id="edit-pr-btn" class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Edit</button>
@@ -1073,6 +1076,7 @@ git push origin daisy/oauth-scopes</code></pre>
 
 <div id="cz-footer"></div>
 <script src="shell.js"></script>
+<script src="actions_status_icons.js"></script>
 <script>
   (function () {
     var btn = document.getElementById('edit-pr-btn');
@@ -1230,7 +1234,7 @@ git push origin daisy/oauth-scopes</code></pre>
     document.getElementById('review-dialog').close();
   });
 
-  var state = { pr: 'open', merge: 'ready', viewer: 'reviewer', manage: 'no' };
+  var state = { ci: 'success', pr: 'open', merge: 'ready', viewer: 'reviewer', manage: 'no' };
   function readHash() {
     location.hash.slice(1).split('&').forEach(function (pair) {
       var kv = pair.split('=');

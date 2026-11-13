@@ -119,6 +119,37 @@ func (s *CommitStatusService) ListRecentCommits(ctx context.Context, repoID int6
 	return commits, hasMore, nil
 }
 
+// CommitCI is the combined state of a commit's statuses and the number of the newest Run that reported on it; RunNumber
+// is 0 when only outside systems did.
+type CommitCI struct {
+	State     model.CommitStatusState
+	RunNumber int
+}
+
+// CIBySHAs returns the CommitCI of each SHA that has statuses, in one query.
+func (s *CommitStatusService) CIBySHAs(ctx context.Context, repoID int64, shas []string) (map[string]CommitCI, error) {
+	rows, err := s.statuses.ListCIBySHAs(ctx, repoID, shas)
+	if err != nil {
+		return nil, err
+	}
+	states := map[string][]model.CommitStatus{}
+	newest := map[string]int64{}
+	out := map[string]CommitCI{}
+	for _, row := range rows {
+		states[row.SHA] = append(states[row.SHA], model.CommitStatus{State: row.State})
+		ci := out[row.SHA]
+		if row.RunID != nil && row.RunNumber != nil && *row.RunID > newest[row.SHA] {
+			newest[row.SHA], ci.RunNumber = *row.RunID, *row.RunNumber
+		}
+		out[row.SHA] = ci
+	}
+	for sha, ci := range out {
+		ci.State = store.CombineStates(states[sha])
+		out[sha] = ci
+	}
+	return out, nil
+}
+
 // CIChecks holds the required and passing check counts for a PR.
 type CIChecks struct{ Required, Passing int }
 

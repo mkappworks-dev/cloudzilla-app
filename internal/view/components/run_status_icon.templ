@@ -1,0 +1,85 @@
+package components
+
+import "strconv"
+
+// RunStatusLabel is the accessible name of a status. Commit-status states map onto Run statuses first: pending reads
+// as running and error as failure.
+func RunStatusLabel(status string) string {
+	switch NormalizeRunStatus(status) {
+	case "queued":
+		return "Queued"
+	case "waiting":
+		return "Approval required"
+	case "running":
+		return "Running"
+	case "success":
+		return "Succeeded"
+	case "failure":
+		return "Failed"
+	case "cancelled":
+		return "Cancelled"
+	}
+	return "Skipped"
+}
+
+// NormalizeRunStatus maps the commit-status states "pending" and "error" onto Run statuses; anything unknown is
+// "skipped", the neutral icon.
+func NormalizeRunStatus(status string) string {
+	switch status {
+	case "queued", "waiting", "running", "success", "failure", "cancelled", "skipped":
+		return status
+	case "pending":
+		return "running"
+	case "error":
+		return "failure"
+	}
+	return "skipped"
+}
+
+func runStatusClass(status string) string {
+	switch status {
+	case "waiting":
+		return "shrink-0 text-warning"
+	case "running":
+		return "shrink-0 text-foreground motion-safe:animate-pulse"
+	case "success":
+		return "shrink-0 text-success"
+	case "failure":
+		return "shrink-0 text-destructive"
+	}
+	return "shrink-0 text-muted-foreground"
+}
+
+// RunStatusIcon is the one status icon of every CI surface: Run, Job, Step and commit-status rows.
+templ RunStatusIcon(status string) {
+	@RunStatusIconSized(status, 14)
+}
+
+templ RunStatusIconSized(status string, size int) {
+	{{ s := NormalizeRunStatus(status) }}
+	<svg width={ strconv.Itoa(size) } height={ strconv.Itoa(size) } viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class={ runStatusClass(s) } role="img" aria-label={ RunStatusLabel(s) }>
+		switch s {
+		case "queued":
+			<circle cx="12" cy="12" r="10"></circle>
+			<path d="M12 7v5l3 2"></path>
+		case "waiting":
+			<circle cx="12" cy="12" r="10"></circle>
+			<path d="M10 9v6M14 9v6"></path>
+		case "running":
+			<circle cx="12" cy="12" r="10"></circle>
+			<circle cx="12" cy="12" r="3.5" fill="currentColor"></circle>
+		case "success":
+			<circle cx="12" cy="12" r="10"></circle>
+			<path d="M9 12l2 2 4-4"></path>
+		case "failure":
+			<circle cx="12" cy="12" r="10"></circle>
+			<path d="M15 9l-6 6M9 9l6 6"></path>
+		case "cancelled":
+			<circle cx="12" cy="12" r="10"></circle>
+			<path d="M4.93 4.93l14.14 14.14"></path>
+		default:
+			<circle cx="12" cy="12" r="10"></circle>
+			<path d="M8 12h8"></path>
+		}
+	</svg>
+}

@@ -51,6 +51,12 @@ func CSRF(secure bool) func(http.Handler) http.Handler {
 				return
 			}
 
+			// The runner API reads only bearer tokens, never a cookie, so there is no ambient credential to forge.
+			if strings.HasPrefix(r.URL.Path, "/api/runner/") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Skip CSRF for git smart protocol endpoints (they use their own auth)
 			if isGitEndpoint(r.URL.Path) {
 				next.ServeHTTP(w, r)

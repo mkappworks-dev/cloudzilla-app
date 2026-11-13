@@ -25,6 +25,9 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 		{Label: "Branch protection", Href: "#branches", Key: "branches"},
 		{Label: "Webhooks", Href: "#webhooks", Key: "webhooks"},
 	}...)
+	if d.CI != nil {
+		items = append(items, components.SettingsSidebarItem{Label: "CI/CD", Href: "#ci", Key: "ci"})
+	}
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
 	}
@@ -294,7 +297,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								<div class="min-w-0">
 									<h2 class="text-base font-semibold tracking-tight">Deploy keys</h2>
 									@components.CardDescription() {
-										SSH keys that grant CI/CD pipelines access to this repository.
+										SSH keys that grant CI/CD systems access to this repository.
 									}
 								</div>
 								if data.CanManage {
@@ -599,6 +602,18 @@ templ RepoSettings(data view.RepoSettingsData) {
 								Webhooks:  data.Webhooks,
 								CanManage: data.CanManage,
 							})
+						}
+					}
+					if data.CI != nil {
+						<div id="ci" class="scroll-mt-6"></div>
+						@ciToggleCard(*data.CI)
+						<div id="secrets" class="scroll-mt-6"></div>
+						@fragments.CISecretsCard(*data.CI)
+						@ciSecretDialog(data.CI.Base)
+						if data.Runners != nil {
+							<div id="runners" class="scroll-mt-6"></div>
+							@fragments.RunnersCard(*data.Runners)
+							@runnerDialog(view.RunnerDialogData{Base: data.Runners.Base, Title: "New runner"})
 						}
 					}
 					if data.IsOwner {

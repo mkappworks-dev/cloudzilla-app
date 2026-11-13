@@ -220,7 +220,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("pull detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
-	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull, convBadge|checksBadge)
+	chromeCounts := h.pullChromeCounts(r.Context(), repo, owner, repoName, pull, convBadge|checksBadge)
 	chromeCounts.ConvCount = len(rawComments) + submittedReviewCount(reviews)
 	chromeCounts.ChecksTotal, chromeCounts.ChecksPassed = checkCounts(headStatuses)
 

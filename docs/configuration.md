@@ -73,6 +73,17 @@ always override config file values.
 | `secret_scanning.max_blobs`          | `5000`                                       | `CZ_SECRET_SCANNING_MAX_BLOBS`          | Most blobs scanned before a push is allowed and scanned after the push                                                                             |
 | `secret_scanning.backfill_timeout`   | `5m`                                         | `CZ_SECRET_SCANNING_BACKFILL_TIMEOUT`   | Time one history scan of a repository may take; past it the scan stops and the Security page says it is incomplete                                 |
 | `secret_scanning.backfill_max_blobs` | `200000`                                     | `CZ_SECRET_SCANNING_BACKFILL_MAX_BLOBS` | Distinct files one history scan reads before it stops as incomplete                                                                                |
+| `ci.enabled`                         | `true`                                       | `CZ_CI_ENABLED`                         | Create workflow Runs from pushes, pull requests and dispatches. Off creates none; history stays                                                    |
+| `ci.max_jobs_per_run`                | `50`                                         | `CZ_CI_MAX_JOBS_PER_RUN`                | Most Jobs one Run may have after matrix expansion; a workflow over it fails the Run with a message                                                 |
+| `ci.max_steps_per_run`               | `200`                                        | `CZ_CI_MAX_STEPS_PER_RUN`               | Most Steps one Run may have after matrix expansion                                                                                                 |
+| `ci.max_queued_runs_per_repo`        | `20`                                         | `CZ_CI_MAX_QUEUED_RUNS_PER_REPO`        | Queued Runs a repository may hold; the oldest queued Run is cancelled when a new one arrives past it                                               |
+| `ci.max_concurrent_runs_per_repo`    | `5`                                          | `CZ_CI_MAX_CONCURRENT_RUNS_PER_REPO`    | Runs of one repository that may be running at once; a Job of another Run waits in the queue                                                        |
+| `ci.max_job_minutes`                 | `360`                                        | `CZ_CI_MAX_JOB_MINUTES`                 | Highest `timeout-minutes` a workflow may set on a Job                                                                                              |
+| `ci.max_log_bytes`                   | `20971520` (20 MiB)                          | `CZ_CI_MAX_LOG_BYTES`                   | Most log bytes kept per Job; the rest is dropped after one truncation line                                                                         |
+| `ci.max_artifact_bytes`              | `104857600` (100 MiB)                        | `CZ_CI_MAX_ARTIFACT_BYTES`              | Largest artifact a Job may upload, in bytes                                                                                                        |
+| `ci.max_artifacts_per_run`           | `10`                                         | `CZ_CI_MAX_ARTIFACTS_PER_RUN`           | Most artifacts one Run attempt may upload                                                                                                          |
+| `ci.log_retention`                   | `720h` (30 days)                             | `CZ_CI_LOG_RETENTION`                   | How long Job logs are kept; Run rows and statuses are kept for good                                                                                |
+| `ci.artifact_retention`              | `720h` (30 days)                             | `CZ_CI_ARTIFACT_RETENTION`              | How long artifacts are kept                                                                                                                        |
 | `release.max_asset_bytes`            | `536870912` (512 MiB)                        | `CZ_RELEASE_MAX_ASSET_BYTES`            | Largest file a release asset may be, in bytes                                                                                                      |
 | `release.max_assets`                 | `20`                                         | `CZ_RELEASE_MAX_ASSETS`                 | Most assets one release may hold                                                                                                                   |
 | `security.secret_key`                | `""`                                         | `CZ_SECURITY_SECRET_KEY`                | Key that encrypts stored credentials, such as mirror tokens, and the instance commit-signing key. At least 32 bytes; see [Secret key](#secret-key) |
@@ -488,11 +499,17 @@ the host key (mode 0600), applies newer migrations and prints repository rows wi
 without a row. Sign-ins survive only with the same `auth.jwt_secret`. See
 [Backup and restore](./deployment.md#backup-and-restore).
 
+### `cz-runner`
+
+The CI runner is a separate binary (`make build-runner`) with its own config file, not the server's `config.yaml`:
+`cz-runner register` writes it and `cz-runner run` reads it. Keys, flags and hardening are in [ci](./ci.md#runners).
+
 ### Instance management
 
 User and repository management is handled through the web UI:
 
 - `/setup` -- first-run superadmin creation
+- `/admin/runners` -- CI runners and the read-only `ci.*` limits ([ci](./ci.md#runners))
 - `/admin/settings` -- site settings, invitation management and the Markdown terms of service
 - `/terms` -- the terms of service, public; the text lives in `site_settings` under `terms_content` and falls back to a
   default for a self-hosted instance until a superadmin saves their own (50,000 characters at most; saving an empty text

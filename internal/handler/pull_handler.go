@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -554,7 +555,23 @@ func (h *Handler) mergePull(ctx context.Context, repo *model.Repository, pr *mod
 	repoID := repo.ID
 	go h.Services.Event.Record(bg, actor.UserID, actor.Username, &repoID, repoName, owner, model.EventPRMerged, map[string]any{"number": merged.Number})
 	h.Services.IssueCloser.CloseForPull(bg, actor, repo, merged, commitRefs)
+	h.runPushWorkflows(bg, repo, actor.UserID, pr.BaseBranch, baseSHA)
 	return merged, nil
+}
+
+// runPushWorkflows creates the `on: push` Runs for the new tip of branch, which a merge moved without a git push;
+// the other AfterPush side effects stay out because the merge path already runs its own webhooks and events.
+func (h *Handler) runPushWorkflows(ctx context.Context, repo *model.Repository, userID int64, branch, oldSHA string) {
+	tip, _, err := h.Services.Code.ResolveRef(repo.OwnerName, repo.Name, branch)
+	if err != nil {
+		slog.Warn("merge pull: resolve new tip for workflow runs failed", "repo_id", repo.ID, "branch", branch, "error", err)
+		return
+	}
+	cmd := &packp.Command{Name: plumbing.NewBranchReferenceName(branch), New: tip.Hash}
+	if oldSHA != "" {
+		cmd.Old = plumbing.NewHash(oldSHA)
+	}
+	go h.Services.WorkflowRun.OnPush(ctx, repo, userID, []*packp.Command{cmd})
 }
 
 // tryAutoMerge merges pullID as the user who armed auto-merge, or disarms it
