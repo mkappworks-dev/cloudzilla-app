@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 02, 03, 04, 05, 06, 07
 Parallel with: none
 
@@ -32,12 +32,12 @@ A shipped feature needs its subsystem doc, a correct ROADMAP entry and an end-to
 
 ## Acceptance criteria
 
-- [ ] `docs/signed-commits.md` exists, is Prettier-formatted (`npm run fmt`) and linked from CLAUDE.md
-- [ ] ROADMAP 17.2 matches what shipped and the status table row is ✅
-- [ ] The end-to-end run's statuses are in the PR body and match the doc
-- [ ] Ticket 16 is `done` with all criteria ticked; the 9.5 Run order row is updated
-- [ ] Light and dark 1440 spot check of one commit page and the Signing keys section (the final regression pass)
-- [ ] `npm run fmt:check` passes (not run on `.scratch/`)
+- [x] `docs/signed-commits.md` exists, is Prettier-formatted (`npm run fmt`) and linked from CLAUDE.md
+- [x] ROADMAP 17.2 matches what shipped and the status table row is ✅
+- [x] The end-to-end run's statuses are in the PR body and match the doc
+- [x] Ticket 16 is `done` with all criteria ticked; the 9.5 Run order row is updated
+- [x] Light and dark 1440 spot check of one commit page and the Signing keys section (the final regression pass)
+- [x] `npm run fmt:check` passes (not run on `.scratch/`)
 
 ## Verification
 
