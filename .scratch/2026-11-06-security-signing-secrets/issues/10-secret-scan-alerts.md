@@ -2,7 +2,7 @@
 
 Created: 2026-11-13
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 09
 Parallel with: none
 
@@ -32,13 +32,13 @@ A finding has to be stored, deduped and closed with a reason. ROADMAP's single `
 
 ## Acceptance criteria
 
-- [ ] Store integration tests (`TEST_DATABASE_DSN`): create, dedupe on the same hash, location append, the `state`/`resolution` CHECK, cascade, per-repo numbering under concurrent inserts
-- [ ] Service tests: close/reopen/allow transitions and events, `Allow` refused for a Cloudzilla token alert, `OpenCount` ignoring blocked-only alerts, `SweepBlocked` deleting only alerts with no `reached_ref` location older than the cutoff
-- [ ] `make migrate` applies the migration on a fresh and on an existing database
+- [x] Store integration tests (`TEST_DATABASE_DSN`): create, dedupe on the same hash, location append, the `state`/`resolution` CHECK, cascade, per-repo numbering under concurrent inserts
+- [x] Service tests: close/reopen/allow transitions and events, `Allow` refused for a Cloudzilla token alert, `OpenCount` ignoring blocked-only alerts, `SweepBlocked` deleting only alerts with no `reached_ref` location older than the cutoff
+- [x] `make migrate` applies the migration on a fresh and on an existing database
 - [ ] ~~Checked at desktop 1440 in light and dark~~ (no UI in this ticket)
 - [ ] ~~The standing mocks in `mockups/` are updated~~ (no UI in this ticket)
-- [ ] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR
-- [ ] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
+- [x] Verified on a throwaway server (scratch Postgres on a free port, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with native git; what was seen is in the PR (no route or git path exists yet: `cz-admin migrate` and `\d secret_scan_alerts` checked on a scratch Postgres, on a database already at 131 then migrated)
+- [x] `make lint` (`/Users/mk/go/bin/golangci-lint run`) and `go test ./...` pass
 
 ## Verification
 

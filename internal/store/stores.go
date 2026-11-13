@@ -69,6 +69,7 @@ type Stores struct {
 	Avatar             *AvatarStore
 	Attachment         *AttachmentStore
 	Export             *ExportStore
+	SecretAlert        *SecretAlertStore
 }
 
 // New constructs and wires all stores from the given database connection.
@@ -137,5 +138,6 @@ func New(database *sql.DB) *Stores {
 		Avatar:             NewAvatarStore(database),
 		Attachment:         NewAttachmentStore(database),
 		Export:             NewExportStore(database),
+		SecretAlert:        NewSecretAlertStore(database),
 	}
 }

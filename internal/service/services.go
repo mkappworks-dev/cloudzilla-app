@@ -72,6 +72,7 @@ type Services struct {
 	Avatar             *AvatarService
 	Attachment         *AttachmentService
 	Export             *ExportService
+	SecretAlert        *SecretAlertService
 	Mirror             *MirrorService
 	Quota              *QuotaService
 	InstanceSigner     *InstanceSigner
@@ -208,6 +209,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Avatar:             avatarSvc,
 		Attachment:         attachmentSvc,
 		Export:             exportSvc,
+		SecretAlert:        NewSecretAlertService(stores.SecretAlert),
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
 		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc),
