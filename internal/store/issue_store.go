@@ -87,7 +87,8 @@ func issueVisibleTo(i, u string) string {
 	return `(` + i + `.visibility = 'public' OR ` + i + `.author_id = ` + u +
 		` OR EXISTS (SELECT 1 FROM repositories ir WHERE ir.id = ` + i + `.repo_id AND ` + ownedBy("ir", u) + `)` +
 		` OR EXISTS (SELECT 1 FROM permissions iperm WHERE iperm.user_id = ` + u + ` AND iperm.repo_id = ` + i + `.repo_id` +
-		` AND iperm.role IN ('admin','writer')))`
+		` AND iperm.role IN ('admin','writer'))` +
+		` OR EXISTS (SELECT 1 FROM repositories tr_r WHERE tr_r.id = ` + i + `.repo_id AND ` + teamGrants("tr_r", u, `'admin','writer'`) + `))`
 }
 
 // GetByNumber returns a single issue by repo + number.

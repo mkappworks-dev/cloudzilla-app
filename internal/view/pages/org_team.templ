@@ -57,10 +57,20 @@ templ OrgTeam(data view.OrgTeamData) {
 							} else {
 								people
 							}
-							on this team. A team doesn't change anyone's access to repositories yet.
+							on this team.
 						</p>
 						@fragments.TeamMembers(data.Members)
 					</section>
+
+					if data.CanManage {
+						<section id="repositories" class="rounded-md border border-border bg-card p-6">
+							<h2 class="text-base font-semibold tracking-tight mb-1">Repositories</h2>
+							<p class="text-[12.5px] text-muted-foreground mb-4">
+								Everyone on this team gets the role below on each repository, on top of any role they hold directly. The highest one wins.
+							</p>
+							@fragments.TeamRepos(data.Repos)
+						</section>
+					}
 
 					if data.CanManage {
 						<section id="edit" class="rounded-md border border-border bg-card p-6">

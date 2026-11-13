@@ -18,6 +18,7 @@ const (
 	teamCreateFormError = "#team-create-form-error"
 	teamEditFormError   = "#team-edit-form-error"
 	teamMemberFormError = "#team-member-form-error"
+	teamRepoFormError   = "#team-repo-form-error"
 )
 
 // orgForTeams loads the {org} and the caller, answering 401 or 404 itself otherwise.
@@ -47,6 +48,10 @@ func writeTeamError(w http.ResponseWriter, r *http.Request, slot string, err err
 		status, msg = http.StatusUnprocessableEntity, "A team with that name already exists."
 	case errors.Is(err, service.ErrNotOrgMember):
 		status, msg = http.StatusUnprocessableEntity, "Only members of the organization can join a team."
+	case errors.Is(err, service.ErrInvalidGrantRole):
+		status, msg = http.StatusBadRequest, err.Error()
+	case errors.Is(err, service.ErrRepoNotInOrg):
+		status, msg = http.StatusUnprocessableEntity, "Choose a repository that belongs to this organization."
 	case errors.Is(err, service.ErrInvalidTeamName):
 		status, msg = http.StatusUnprocessableEntity, err.Error()
 	default:

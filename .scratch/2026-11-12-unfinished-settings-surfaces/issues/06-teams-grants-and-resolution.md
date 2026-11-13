@@ -2,7 +2,7 @@
 
 Created: 2026-11-12
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 05
 Parallel: none; touches the permission core, so run alone.
 
@@ -43,10 +43,10 @@ so record it in `mockups/COVERAGE.md`. Light and dark at 1440.
 
 ## Acceptance criteria
 
-- [ ] Highest-role-wins resolution everywhere `CanRead`/`CanWrite`/`CanManage` and their SQL forms are used
-- [ ] `IsOwner` and the `admin`-grant rule unchanged
-- [ ] Docs updated; all callers of `readableBy` listed and tested
-- [ ] Mocks updated, light and dark
+- [x] Highest-role-wins resolution everywhere `CanRead`/`CanWrite`/`CanManage` and their SQL forms are used
+- [x] `IsOwner` and the `admin`-grant rule unchanged
+- [x] Docs updated; all callers of `readableBy` listed and tested
+- [x] Mocks updated, light and dark
 
 ## Verification
 

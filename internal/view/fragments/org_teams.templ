@@ -31,7 +31,7 @@ templ OrgTeams(data view.OrgTeamsFragData) {
 				}
 			</ul>
 		} else {
-			@components.EmptyStateWithHint("No teams yet.", "A team groups members of "+data.OrgName+" under one name. It doesn't change anyone's access to repositories yet.")
+			@components.EmptyStateWithHint("No teams yet.", "A team groups members of "+data.OrgName+" under one name and gives them a role on chosen repositories.")
 		}
 	</div>
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -39,6 +40,49 @@ func (h *Handler) teamMembersData(r *http.Request, org *model.Organization, team
 		}
 	}
 	return data, names
+}
+
+// teamReposData lists an owner's view of a team's grants and the org repositories it could still be given.
+func (h *Handler) teamReposData(r *http.Request, org *model.Organization, team *model.Team, viewerID int64) view.TeamReposFragData {
+	ctx := r.Context()
+	data := view.TeamReposFragData{OrgName: org.Name, TeamSlug: team.Slug}
+	grants, err := h.Services.Team.ListRepoGrants(ctx, org.ID, viewerID, team.Slug)
+	if err != nil {
+		slog.Warn("team: failed to load repo grants", "org", org.Name, "team", team.Slug, "error", err)
+	}
+	data.Grants = grants
+	granted := make(map[int64]bool, len(grants))
+	for _, g := range grants {
+		granted[g.RepoID] = true
+	}
+	repos, _ := h.Services.Org.ListRepos(ctx, org.ID)
+	for _, repo := range repos {
+		if !granted[repo.ID] {
+			data.Candidates = append(data.Candidates, repo.Name)
+		}
+	}
+	return data
+}
+
+func (h *Handler) renderTeamRepos(w http.ResponseWriter, r *http.Request, org *model.Organization, viewerID int64, slug string) {
+	team, err := h.Services.Team.Get(r.Context(), org.ID, viewerID, slug)
+	if err != nil {
+		writeTeamError(w, r, "", err)
+		return
+	}
+	h.render(w, r, fragments.TeamRepos(h.teamReposData(r, org, team, viewerID)))
+}
+
+// teamGrantsOf lists the team lines of an org repo's collaborator section; the caller has already checked CanManage.
+func (h *Handler) teamGrantsOf(ctx context.Context, repo *model.Repository) []model.TeamRepoGrant {
+	if repo.OrgID == 0 {
+		return nil
+	}
+	grants, err := h.Services.Team.ListGrantsByRepo(ctx, repo.ID)
+	if err != nil {
+		slog.Warn("repo settings: failed to load team grants", "repo_id", repo.ID, "error", err)
+	}
+	return grants
 }
 
 func (h *Handler) renderTeamMembers(w http.ResponseWriter, r *http.Request, org *model.Organization, claims middleware.Claims, slug string) {
@@ -82,6 +126,7 @@ func (h *Handler) PageOrgTeam(w http.ResponseWriter, r *http.Request) {
 		Team:      *team,
 		Teams:     teams,
 		Members:   members,
+		Repos:     h.teamReposData(r, org, team, claims.UserID),
 		CanManage: members.CanManage,
 	}))
 }

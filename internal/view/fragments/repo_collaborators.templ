@@ -88,6 +88,20 @@ templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 					}
 				</li>
 			}
+			for _, g := range data.TeamGrants {
+				<li class="px-4 py-3 flex items-center gap-3">
+					<span class="inline-grid place-items-center h-7 w-7 rounded-full bg-muted border border-border text-xs font-medium" aria-hidden="true">
+						{ collabInitial(g.TeamName) }
+					</span>
+					<div class="min-w-0 flex-1">
+						<p class="text-sm font-medium text-foreground">
+							via team
+							<a href={ templ.SafeURL("/orgs/" + data.Owner + "/teams/" + g.TeamSlug) } class="hover:underline">{ g.TeamName }</a>
+						</p>
+						<p class="text-xs text-muted-foreground capitalize">{ string(g.Role) }</p>
+					</div>
+				</li>
+			}
 		</ul>
 	</div>
 }

@@ -142,6 +142,15 @@ type TeamMembersFragData struct {
 	CanManage  bool
 }
 
+// TeamReposFragData holds template data for the team repositories HTMX fragment; only an org owner sees it.
+type TeamReposFragData struct {
+	OrgName  string
+	TeamSlug string
+	Grants   []model.TeamRepoGrant
+	// Candidates are the names of org repositories the team holds no grant on.
+	Candidates []string
+}
+
 // OrgTeamData holds template data for a team page.
 type OrgTeamData struct {
 	BasePage
@@ -149,6 +158,7 @@ type OrgTeamData struct {
 	Team      model.Team
 	Teams     []model.Team
 	Members   TeamMembersFragData
+	Repos     TeamReposFragData
 	CanManage bool
 }
 

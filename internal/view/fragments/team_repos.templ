@@ -1,0 +1,76 @@
+package fragments
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+templ TeamRepos(data view.TeamReposFragData) {
+	{{ base := "/api/orgs/" + data.OrgName + "/teams/" + data.TeamSlug + "/repos" }}
+	<div id="team-repos" class="flex flex-col gap-4">
+		if len(data.Candidates) > 0 {
+			<form
+				hx-post={ base }
+				hx-target="#team-repos"
+				hx-swap="outerHTML"
+				data-toast="Repository added"
+				class="flex flex-col gap-2"
+			>
+				<div id="team-repo-form-error" class="empty:hidden"></div>
+				<div class="flex items-center gap-2">
+					<label for="team-add-repo" class="sr-only">Repository</label>
+					<select id="team-add-repo" name="repo" required class="flex h-9 flex-1 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs">
+						for _, name := range data.Candidates {
+							<option value={ name }>{ name }</option>
+						}
+					</select>
+					<label for="team-add-role" class="sr-only">Role</label>
+					<select id="team-add-role" name="role" class="flex h-9 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs">
+						<option value="reader">Reader</option>
+						<option value="writer">Writer</option>
+						<option value="admin">Admin</option>
+					</select>
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Add repository
+					}
+				</div>
+			</form>
+		}
+		if len(data.Grants) > 0 {
+			<ul class="divide-y divide-border border border-border rounded-md">
+				for _, g := range data.Grants {
+					<li class="px-4 py-3 flex items-center gap-3">
+						<div class="min-w-0 flex-1">
+							<a href={ templ.SafeURL("/" + data.OrgName + "/" + g.RepoName) } class="text-[13.5px] font-medium hover:underline">{ g.RepoName }</a>
+						</div>
+						<form hx-post={ base } hx-trigger="change" hx-target="#team-repos" hx-swap="outerHTML" data-toast="Role changed" class="flex items-center gap-2">
+							<input type="hidden" name="repo" value={ g.RepoName }/>
+							<label for={ "team-role-" + g.RepoName } class="sr-only">{ "Role on " + g.RepoName }</label>
+							<select id={ "team-role-" + g.RepoName } name="role" class="flex h-8 rounded-md border border-input bg-background px-2 text-[12px] shadow-xs">
+								<option value="reader" selected?={ g.Role == "reader" }>Reader</option>
+								<option value="writer" selected?={ g.Role == "writer" }>Writer</option>
+								<option value="admin" selected?={ g.Role == "admin" }>Admin</option>
+							</select>
+						</form>
+						<button
+							type="button"
+							hx-delete={ base + "/" + g.RepoName }
+							hx-target="#team-repos"
+							hx-swap="outerHTML"
+							hx-confirm={ "Members of this team lose the access it gave them to " + g.RepoName + ". Roles they hold directly stay." }
+							data-confirm-title={ "Remove " + g.RepoName + " from this team?" }
+							data-confirm-label="Remove"
+							data-confirm-danger="true"
+							data-toast="Repository removed"
+							class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0"
+						>
+							Remove
+						</button>
+					</li>
+				}
+			</ul>
+		} else {
+			@components.EmptyState("This team has no repositories yet.")
+		}
+	</div>
+}

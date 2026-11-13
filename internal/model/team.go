@@ -16,3 +16,13 @@ type TeamMember struct {
 	UserID   int64  `db:"user_id"  json:"user_id"`
 	Username string `db:"username" json:"username"`
 }
+
+// TeamRepoGrant is a team's role on one repository of its organization.
+type TeamRepoGrant struct {
+	TeamID   int64  `json:"team_id"`
+	TeamName string `json:"team"`
+	TeamSlug string `json:"team_slug"`
+	RepoID   int64  `json:"repo_id"`
+	RepoName string `json:"repo"`
+	Role     Role   `json:"role"`
+}

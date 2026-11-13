@@ -299,13 +299,14 @@ func (h *Handler) renderRepoCollaborators(w http.ResponseWriter, r *http.Request
 		collabs = []model.Permission{}
 	}
 	h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
-		Owner:     owner,
-		RepoName:  repoName,
-		RepoID:    repo.ID,
-		Collabs:   collabs,
-		CanManage: true,
-		IsOwner:   h.Services.Repo.IsOwner(r.Context(), repo, viewerID),
-		Confirm:   h.confirmFactors(r, viewerID),
+		Owner:      owner,
+		RepoName:   repoName,
+		RepoID:     repo.ID,
+		Collabs:    collabs,
+		TeamGrants: h.teamGrantsOf(r.Context(), repo),
+		CanManage:  true,
+		IsOwner:    h.Services.Repo.IsOwner(r.Context(), repo, viewerID),
+		Confirm:    h.confirmFactors(r, viewerID),
 	}))
 }
 

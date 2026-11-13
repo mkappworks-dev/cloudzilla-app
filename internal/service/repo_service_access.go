@@ -34,7 +34,7 @@ func (s *RepoService) CanRead(ctx context.Context, repo *model.Repository, userI
 		return true
 	}
 
-	if role, err := s.repos.GetPermission(ctx, repo.ID, *userID); err == nil && role != "" {
+	if role, err := s.repos.EffectiveRole(ctx, repo.ID, *userID); err == nil && role != "" {
 		return true
 	}
 
@@ -46,7 +46,7 @@ func (s *RepoService) CanWrite(ctx context.Context, repo *model.Repository, user
 		return true
 	}
 
-	role, err := s.repos.GetPermission(ctx, repo.ID, userID)
+	role, err := s.repos.EffectiveRole(ctx, repo.ID, userID)
 	if err == nil && (role == string(model.RoleWriter) || role == string(model.RoleAdmin)) {
 		return true
 	}
@@ -54,14 +54,14 @@ func (s *RepoService) CanWrite(ctx context.Context, repo *model.Repository, user
 	return adminmode.Override(ctx, userID)
 }
 
-// CanManage returns true for the repo owner, org owner, or admin collaborators.
+// CanManage returns true for the repo owner, org owner, or an admin by collaborator role or team grant.
 // Grants access to manage collaborators, settings, branch protection, deploy keys, etc.
 // Does NOT grant transfer, delete or the admin role — use IsOwner for those.
 func (s *RepoService) CanManage(ctx context.Context, repo *model.Repository, userID int64) bool {
 	if s.ownsOrdinarily(ctx, repo, userID) {
 		return true
 	}
-	if role, err := s.repos.GetPermission(ctx, repo.ID, userID); err == nil && role == string(model.RoleAdmin) {
+	if role, err := s.repos.EffectiveRole(ctx, repo.ID, userID); err == nil && role == string(model.RoleAdmin) {
 		return true
 	}
 	return adminmode.Override(ctx, userID)

@@ -96,7 +96,10 @@ Some controls and forms have no behaviour. In particular:
 - **Mock-only state:** `account_settings.html?export=requested|ready|failed` shows each row of "Export your data";
   Request export moves the default row to requested. The real page shows the row the user's latest export is in.
 - **Mock-only state:** `org_settings.html?teams=none` shows the Teams empty state, and `org_team.html?viewer=member` the
-  read-only page a member who is not an owner gets.
+  read-only page a member who is not an owner gets (no Repositories section: grants name private repositories).
+- **Team grants:** the Repositories section of `org_team.html` changes and removes rows in the page only. The
+  Collaborators card in `settings.html` shows two read-only "via team" rows, which the real page lists only for an
+  organization repository.
 - **Links to a page with no mock:** `org_profile.html` "Repositories" tab, and any link to a page in the table above.
 - **Auth states:** the sign-in error banner, the email-first signup flow, expired and invalid reset or verify links, and
   the Sign-in page with Forgot password? absent (it is always shown now).

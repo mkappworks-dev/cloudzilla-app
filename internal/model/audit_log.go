@@ -67,6 +67,8 @@ const (
 	AuditActionTeamDelete          = "org.team.delete"
 	AuditActionTeamMemberAdd       = "org.team.member_add"
 	AuditActionTeamMemberRemove    = "org.team.member_remove"
+	AuditActionTeamRepoGrant       = "org.team.repo_grant"
+	AuditActionTeamRepoRevoke      = "org.team.repo_revoke"
 	AuditActionEmailVerify         = "user.email.verify"
 	AuditActionEmailChange         = "user.email.change"
 	AuditActionEmailAdd            = "user.email.add"

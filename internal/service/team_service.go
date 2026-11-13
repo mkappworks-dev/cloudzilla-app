@@ -25,7 +25,7 @@ const (
 	maxTeamDescriptionLen = 500
 )
 
-// TeamService manages the teams of an organization. A team has no effect on repository access yet.
+// TeamService manages the teams of an organization and the repository roles they hold.
 type TeamService struct {
 	teams *store.TeamStore
 	orgs  *OrgService
@@ -188,4 +188,61 @@ func (s *TeamService) RemoveMember(ctx context.Context, orgID, requestingUserID 
 		return nil, err
 	}
 	return t, nil
+}
+
+var (
+	ErrInvalidGrantRole = errors.New("role must be reader, writer or admin")
+	ErrRepoNotInOrg     = store.ErrRepoNotInOrg
+)
+
+// SetRepoGrant gives the team role on a repository of the org, or changes the role it holds. Only an org owner may,
+// which also keeps the admin role owner-only.
+func (s *TeamService) SetRepoGrant(ctx context.Context, orgID, requestingUserID int64, slug string, repoID int64, role string) (*model.Team, error) {
+	switch model.Role(role) {
+	case model.RoleReader, model.RoleWriter, model.RoleAdmin:
+	default:
+		return nil, ErrInvalidGrantRole
+	}
+	if err := s.requireOwner(ctx, orgID, requestingUserID); err != nil {
+		return nil, err
+	}
+	t, err := s.Get(ctx, orgID, requestingUserID, slug)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.teams.SetRepoGrant(ctx, orgID, t.ID, repoID, role); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+func (s *TeamService) RemoveRepoGrant(ctx context.Context, orgID, requestingUserID int64, slug string, repoID int64) (*model.Team, error) {
+	if err := s.requireOwner(ctx, orgID, requestingUserID); err != nil {
+		return nil, err
+	}
+	t, err := s.Get(ctx, orgID, requestingUserID, slug)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.teams.RemoveRepoGrant(ctx, orgID, t.ID, repoID); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+// ListRepoGrants hides grants from everyone but an org owner: they name private repositories.
+func (s *TeamService) ListRepoGrants(ctx context.Context, orgID, viewerID int64, slug string) ([]model.TeamRepoGrant, error) {
+	t, err := s.Get(ctx, orgID, viewerID, slug)
+	if err != nil {
+		return nil, err
+	}
+	if !s.orgs.IsOwner(ctx, orgID, viewerID) {
+		return nil, nil
+	}
+	return s.teams.ListRepoGrants(ctx, t.ID)
+}
+
+// ListGrantsByRepo is for the repository's collaborator section; the caller has already checked CanManage.
+func (s *TeamService) ListGrantsByRepo(ctx context.Context, repoID int64) ([]model.TeamRepoGrant, error) {
+	return s.teams.ListGrantsByRepo(ctx, repoID)
 }

@@ -130,6 +130,9 @@ func (s *RepoTransferStore) Accept(ctx context.Context, id, recipientID int64, o
 	if err := requireRow(res, "accept repo transfer"); err != nil {
 		return err
 	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM team_repos WHERE repo_id = $1`, repoID); err != nil {
+		return fmt.Errorf("drop team grants: %w", err)
+	}
 	if err := repathRepo(ctx, tx, repoID, oldOwnerName, repoName, newOwnerName, repoName); err != nil {
 		return err
 	}

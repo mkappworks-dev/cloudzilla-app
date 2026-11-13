@@ -59,7 +59,19 @@ func ownedBy(r, u string) string {
 // filter many repos at once.
 func readableBy(r, u string) string {
 	return `(NOT ` + r + `.private OR ` + ownedBy(r, u) +
-		` OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = ` + r + `.id AND perm.user_id = ` + u + `))`
+		` OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = ` + r + `.id AND perm.user_id = ` + u + `)` +
+		` OR ` + teamGrants(r, u, "") + `)`
+}
+
+// teamGrants is true when a team the user in placeholder u belongs to holds a grant on repositories alias r; roles
+// narrows it to the given quoted SQL list, and "" admits any role.
+func teamGrants(r, u, roles string) string {
+	q := `EXISTS (SELECT 1 FROM team_repos tr JOIN team_members tm ON tm.team_id = tr.team_id` +
+		` WHERE tr.repo_id = ` + r + `.id AND tm.user_id = ` + u
+	if roles != "" {
+		q += ` AND tr.role IN (` + roles + `)`
+	}
+	return q + `)`
 }
 
 // viewerID maps an anonymous viewer to 0, which no user, owner or permission
@@ -284,6 +296,28 @@ func (s *RepoStore) GetPermission(ctx context.Context, repoID, userID int64) (st
 	return role, nil
 }
 
+// EffectiveRole is the highest of the direct collaborator role and every grant of the user's teams, or "" for none.
+func (s *RepoStore) EffectiveRole(ctx context.Context, repoID, userID int64) (string, error) {
+	var role sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		`SELECT role FROM (
+		   SELECT role FROM permissions WHERE repo_id = $1 AND user_id = $2
+		   UNION ALL
+		   SELECT tr.role FROM team_repos tr JOIN team_members tm ON tm.team_id = tr.team_id
+		    WHERE tr.repo_id = $1 AND tm.user_id = $2
+		 ) roles
+		 ORDER BY CASE role WHEN 'admin' THEN 3 WHEN 'writer' THEN 2 ELSE 1 END DESC LIMIT 1`,
+		repoID, userID,
+	).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("effective role: %w", err)
+	}
+	return role.String, nil
+}
+
 func (s *RepoStore) SetDefaultBranch(ctx context.Context, repoID int64, branch string) error {
 	if _, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET default_branch = $1, updated_at = $2 WHERE id = $3`, branch, time.Now().UTC(), repoID); err != nil {
@@ -348,6 +382,9 @@ func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName,
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM repo_transfers WHERE repo_id = $1`, repoID); err != nil {
 		return fmt.Errorf("end pending repo transfer: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM team_repos WHERE repo_id = $1`, repoID); err != nil {
+		return fmt.Errorf("drop team grants: %w", err)
 	}
 	if err := repathRepo(ctx, tx, repoID, oldOwnerName, repoName, newOwnerName, repoName); err != nil {
 		return err
@@ -471,9 +508,16 @@ func (s *RepoStore) ListPermissionsWithUsername(ctx context.Context, repoID int6
 	return perms, rows.Err()
 }
 
+// ListPermissionsByUser returns the user's effective role on each repo they hold one on, direct or through a team.
 func (s *RepoStore) ListPermissionsByUser(ctx context.Context, userID int64) ([]model.Permission, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, user_id, role, created_at FROM permissions WHERE user_id = $1`,
+		`SELECT DISTINCT ON (repo_id) repo_id, user_id, role FROM (
+		   SELECT repo_id, user_id, role FROM permissions WHERE user_id = $1
+		   UNION ALL
+		   SELECT tr.repo_id, tm.user_id, tr.role FROM team_repos tr JOIN team_members tm ON tm.team_id = tr.team_id
+		    WHERE tm.user_id = $1
+		 ) roles
+		 ORDER BY repo_id, CASE role WHEN 'admin' THEN 3 WHEN 'writer' THEN 2 ELSE 1 END DESC`,
 		userID,
 	)
 	if err != nil {
@@ -483,7 +527,7 @@ func (s *RepoStore) ListPermissionsByUser(ctx context.Context, userID int64) ([]
 	var perms []model.Permission
 	for rows.Next() {
 		var p model.Permission
-		if err := rows.Scan(&p.ID, &p.RepoID, &p.UserID, &p.Role, &p.CreatedAt); err != nil {
+		if err := rows.Scan(&p.RepoID, &p.UserID, &p.Role); err != nil {
 			return nil, err
 		}
 		perms = append(perms, p)
@@ -951,9 +995,9 @@ func (s *RepoStore) ListForUser(ctx context.Context, userID int64, scope string)
 	case "owned":
 		where = `r.owner_id = $1`
 	case "collaborator":
-		where = `r.owner_id IS DISTINCT FROM $1 AND EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1)`
+		where = `r.owner_id IS DISTINCT FROM $1 AND (EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1) OR ` + teamGrants("r", "$1", "") + `)`
 	default: // "all"
-		where = `(r.owner_id = $1 OR EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1))`
+		where = `(r.owner_id = $1 OR EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1) OR ` + teamGrants("r", "$1", "") + `)`
 	}
 	q := `SELECT ` + cols + ` FROM repositories r WHERE r.deleted_at IS NULL AND (` + where + `) ORDER BY r.updated_at DESC`
 	rows, err := s.db.QueryContext(ctx, q, userID)

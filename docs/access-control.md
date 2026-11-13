@@ -468,9 +468,9 @@ repo or org administration stay session-only, so a PAT can't mint PATs, add SSH 
 | `owner`  |        Yes        |        Yes         |     Yes      |      Yes       |     Yes      |    Yes     |
 | `member` |        Yes        |   No (need role)   |      No      |       No       |      No      |     No     |
 
-Org members do not get implicit access to private repos. They must be added as explicit collaborators
-(`reader`/`writer`/`admin`) on each repo. Creating an org repo grants nothing either; see
-[Organization Repo Ownership](#organization-repo-ownership).
+Org members do not get implicit access to private repos. They need a collaborator role (`reader`/`writer`/`admin`) on
+each repo, or a grant to a [team](./organizations.md#teams) they belong to. Creating an org repo grants nothing either;
+see [Organization Repo Ownership](#organization-repo-ownership).
 
 ### Repository Roles
 
@@ -483,6 +483,11 @@ Org members do not get implicit access to private repos. They must be added as e
 | `admin`                  |      Yes      |      Yes       |     Yes      |            Yes             |           No           |    No    |   No   |
 | Repo owner               |      Yes      |      Yes       |     Yes      |            Yes             |          Yes           |   Yes    |  Yes   |
 | Org owner (org repos)    |      Yes      |      Yes       |     Yes      |            Yes             |          Yes           |   Yes    |  Yes   |
+
+A user's role is their **effective role**: the highest of the direct collaborator role and the grants of every team they
+belong to. Both sources fill the Reader, Writer and Admin rows above, and a team `admin` stays below the owner rows: it
+cannot grant or revoke `admin`, transfer, archive or delete. Teams exist only in orgs, and an org owner alone grants
+them (see [Organizations](./organizations.md#repository-grants)).
 
 **Manage** includes: adding, changing and removing `reader` and `writer` collaborators, branch protection, deploy keys,
 topics, wiki deletion, webhook CRUD, repo settings page access.
@@ -529,13 +534,13 @@ appoint, demote or remove admins.
 Four methods on `RepoService` enforce repository permissions:
 
 ```go
-// CanRead — public repos always pass; private require auth + any role
+// CanRead — public repos always pass; private require auth + any effective role
 func (s *RepoService) CanRead(ctx, repo, userID *int64) bool
 
-// CanWrite — owner, org owner, or writer/admin collaborator
+// CanWrite — owner, org owner, or an effective writer/admin
 func (s *RepoService) CanWrite(ctx, repo, userID int64) bool
 
-// CanManage — owner, org owner, or admin collaborator
+// CanManage — owner, org owner, or an effective admin
 func (s *RepoService) CanManage(ctx, repo, userID int64) bool
 
 // IsOwner — a personal repo's owner, or an owner of an org repo's org (transfer, delete, archive, the admin role)
@@ -543,12 +548,14 @@ func (s *RepoService) IsOwner(ctx, repo, userID int64) bool
 ```
 
 `IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three
-build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts,
-the activity feed, the attention inbox, repo, issue, PR and code search, the notification email digest) use `readableBy`
-and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`. Issue search also applies
-`issueVisibleTo` (`internal/store/issue_store.go`), the private-issue rule that issue pages, pinned issues, milestone
-issue lists and counts, a pull request's linked issues, and the repo's Issues tab count use: a private issue shows only
-to its author and to the users `CanWrite` lets in (the repo's owners and `writer` or `admin` collaborators). Search
+build on it. For a role they ask `RepoStore.EffectiveRole`, which takes the highest of the `permissions` row and the
+user's `team_repos` grants. Store queries that filter many repos by what the viewer can read (account issue and PR lists
+and counts, the activity feed, the attention inbox, repo, issue, PR and code search, the notification email digest) use
+`readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`; `readableBy` has
+an `EXISTS` over `team_repos` and `team_members` (`teamGrants`). Issue search also applies `issueVisibleTo`
+(`internal/store/issue_store.go`), the private-issue rule that issue pages, pinned issues, milestone issue lists and
+counts, a pull request's linked issues, and the repo's Issues tab count use: a private issue shows only to its author
+and to the users `CanWrite` lets in (the repo's owners and effective `writer` or `admin`, direct or by team). Search
 skips soft-deleted repos.
 
 ### Two-Layer Enforcement Pattern
@@ -1074,19 +1081,22 @@ owns keep serving the users who authorized them.
 
 ### Organization Endpoints
 
-| Method | Path                                      | Auth      | AuthZ                                                         | Handler               |
-| ------ | ----------------------------------------- | --------- | ------------------------------------------------------------- | --------------------- |
-| GET    | `/api/orgs/{org}`                         | optAuthMW | Public                                                        | GetOrg                |
-| GET    | `/api/orgs/{org}/members`                 | optAuthMW | Public                                                        | ListOrgMembers        |
-| POST   | `/api/orgs`                               | authMW    | Any authenticated user                                        | CreateOrg             |
-| POST   | `/api/orgs/{org}/members`                 | authMW    | Org owner (service); password + TOTP code to add an owner     | AddOrgMember          |
-| DELETE | `/api/orgs/{org}/members/{username}`      | authMW    | Org owner, or self (service)                                  | RemoveOrgMember       |
-| POST   | `/api/orgs/{org}/members/{username}/role` | authMW    | Org owner (service); password + TOTP code to promote to owner | UpdateOrgMemberRole   |
-| POST   | `/api/orgs/{org}/repos`                   | authMW    | Org owner (service)                                           | CreateOrgRepo         |
-| POST   | `/api/orgs/{org}/transfer`                | authMW    | Org owner (handler and service); password + TOTP code         | TransferOrg           |
-| POST   | `/api/orgs/{org}/profile`                 | authMW    | Org owner (service)                                           | UpdateOrgProfile      |
-| POST   | `/api/orgs/{org}/repo-defaults`           | authMW    | Org owner (service)                                           | UpdateOrgRepoDefaults |
-| POST   | `/api/orgs/{org}/delete`                  | authMW    | Org owner (service)                                           | DeleteOrg             |
+| Method | Path                                        | Auth      | AuthZ                                                          | Handler               |
+| ------ | ------------------------------------------- | --------- | -------------------------------------------------------------- | --------------------- |
+| GET    | `/api/orgs/{org}`                           | optAuthMW | Public                                                         | GetOrg                |
+| GET    | `/api/orgs/{org}/members`                   | optAuthMW | Public                                                         | ListOrgMembers        |
+| POST   | `/api/orgs`                                 | authMW    | Any authenticated user                                         | CreateOrg             |
+| POST   | `/api/orgs/{org}/members`                   | authMW    | Org owner (service); password + TOTP code to add an owner      | AddOrgMember          |
+| DELETE | `/api/orgs/{org}/members/{username}`        | authMW    | Org owner, or self (service)                                   | RemoveOrgMember       |
+| POST   | `/api/orgs/{org}/members/{username}/role`   | authMW    | Org owner (service); password + TOTP code to promote to owner  | UpdateOrgMemberRole   |
+| POST   | `/api/orgs/{org}/repos`                     | authMW    | Org owner (service)                                            | CreateOrgRepo         |
+| POST   | `/api/orgs/{org}/transfer`                  | authMW    | Org owner (handler and service); password + TOTP code          | TransferOrg           |
+| POST   | `/api/orgs/{org}/profile`                   | authMW    | Org owner (service)                                            | UpdateOrgProfile      |
+| POST   | `/api/orgs/{org}/repo-defaults`             | authMW    | Org owner (service)                                            | UpdateOrgRepoDefaults |
+| POST   | `/api/orgs/{org}/delete`                    | authMW    | Org owner (service)                                            | DeleteOrg             |
+| GET    | `/api/orgs/{org}/teams/{slug}/repos`        | authMW    | Org member (404 to others); only an owner gets the grants      | ListTeamRepos         |
+| POST   | `/api/orgs/{org}/teams/{slug}/repos`        | authMW    | Org owner (handler and service); the only way to grant `admin` | GrantTeamRepo         |
+| DELETE | `/api/orgs/{org}/teams/{slug}/repos/{repo}` | authMW    | Org owner (handler and service)                                | RevokeTeamRepo        |
 
 ### Repository Endpoints — Read
 
