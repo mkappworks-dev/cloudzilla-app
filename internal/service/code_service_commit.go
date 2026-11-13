@@ -20,6 +20,7 @@ type CommitSummary struct {
 	Message    string
 	Author     string
 	AuthorTime time.Time
+	Signature  SignatureResult
 }
 
 // CommitLog holds a paginated list of commits for a ref.
@@ -82,6 +83,7 @@ type CommitDetail struct {
 	Files        []FileDiff
 	TotalAdded   int
 	TotalDeleted int
+	Signature    SignatureResult
 }
 
 // GetCommits returns a paginated commit log for the given ref.
@@ -102,7 +104,7 @@ func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int
 	defer iter.Close()
 
 	skip := (page - 1) * pageSize
-	var commits []CommitSummary
+	var commits []*object.Commit
 	count := 0
 
 	err = iter.ForEach(func(c *object.Commit) error {
@@ -113,7 +115,7 @@ func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int
 		if len(commits) > pageSize {
 			return storer.ErrStop
 		}
-		commits = append(commits, summarizeCommit(c))
+		commits = append(commits, c)
 		count++
 		return nil
 	})
@@ -136,7 +138,7 @@ func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int
 	}
 
 	return &CommitLog{
-		Commits:  commits,
+		Commits:  s.summarizeCommits(commits),
 		Ref:      resolvedRef,
 		Page:     page,
 		PrevPage: prevPage,
@@ -265,6 +267,7 @@ func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, err
 		Files:        files,
 		TotalAdded:   totalAdded,
 		TotalDeleted: totalDeleted,
+		Signature:    s.verifySignatures([]*object.Commit{commit})[commit.Hash],
 	}, nil
 }
 
