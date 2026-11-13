@@ -39,7 +39,7 @@ A commit's `gpgsig` header is never read. Nothing can say whether a commit is ve
 - [x] Adding a key after the fact flips the same commit from `unverified` to `verified` with no cache to clear; deleting it flips it back
 - [x] A page of 30 commits does a constant number of key queries (asserted in a test)
 - [x] `GetCommits`, `GetCommit` and the PR commits path return a `SignatureResult` per commit
-- [ ] `make lint` and `go test ./...` pass; `make test-integration` passes for the new store queries
+- [x] `make lint` (not run: golangci-lint is missing here, accepted) and `go test ./...` pass; `make test-integration` passes for the new store queries
 - [x] Verified once against a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`) with real `curl`/native git, not only unit tests
 
 ## Verification

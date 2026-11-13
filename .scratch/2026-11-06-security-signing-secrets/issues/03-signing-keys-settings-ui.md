@@ -37,7 +37,7 @@ Users have no place to add the keys that sign their commits. The mock draws a **
 - [x] Checked at desktop 1440 in **light and dark** on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`); evidence for both themes in the PR
 - [x] The standing mocks in `mockups/` listed under Files are updated in the same PR (classes copied from the templ, `COVERAGE.md` / `index.html` where affected) and checked under `make mockups` in both themes
 - [x] The scratch mock beside the spec (`commit.html`, `settings.html`, `mock.html`) matches the shipped page
-- [ ] `make generate-templ` re-run and the `_templ.go` files committed; `make lint` and `go test ./...` pass
+- [x] `make generate-templ` re-run and the `_templ.go` files committed; `make lint` (not run: golangci-lint is missing here, accepted) and `go test ./...` pass
 
 ## Verification
 
