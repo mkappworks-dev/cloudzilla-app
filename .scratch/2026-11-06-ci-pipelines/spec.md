@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-agent
+Status: done
 
 Research and the comparison behind these decisions: `research.md`. Mock: `mockups/actions.html`,
 `actions_run.html`, `pr_checks.html`, `repo_settings_ci.html`, `admin_runners.html` (reworked by ticket 01). Parent ticket: `../2026-11-06-uiux-desktop-9.5/issues/18-ci-pipelines.md`.
