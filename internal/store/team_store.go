@@ -163,3 +163,62 @@ func (s *TeamStore) ListMembers(ctx context.Context, teamID int64) ([]model.Team
 	}
 	return ms, rows.Err()
 }
+
+var ErrRepoNotInOrg = errors.New("repository does not belong to the team's organization")
+
+// SetRepoGrant inserts or changes the team's role on repoID, which must be a live repo of orgID.
+func (s *TeamStore) SetRepoGrant(ctx context.Context, orgID, teamID, repoID int64, role string) error {
+	res, err := s.db.ExecContext(ctx,
+		`INSERT INTO team_repos (team_id, repo_id, role)
+		 SELECT t.id, r.id, $4 FROM teams t, repositories r
+		  WHERE t.id = $2 AND t.org_id = $1 AND r.id = $3 AND r.org_id = $1 AND r.deleted_at IS NULL
+		 ON CONFLICT (team_id, repo_id) DO UPDATE SET role = excluded.role`,
+		orgID, teamID, repoID, role)
+	if err != nil {
+		return fmt.Errorf("team set repo grant: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrRepoNotInOrg
+	}
+	return nil
+}
+
+func (s *TeamStore) RemoveRepoGrant(ctx context.Context, orgID, teamID, repoID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM team_repos WHERE team_id = $2 AND repo_id = $3
+		   AND team_id IN (SELECT id FROM teams WHERE id = $2 AND org_id = $1)`, orgID, teamID, repoID)
+	if err != nil {
+		return fmt.Errorf("team remove repo grant: %w", err)
+	}
+	return nil
+}
+
+// ListRepoGrants returns the team's grants on live repositories, by repo name.
+func (s *TeamStore) ListRepoGrants(ctx context.Context, teamID int64) ([]model.TeamRepoGrant, error) {
+	return s.queryGrants(ctx,
+		`WHERE tr.team_id = $1 AND r.deleted_at IS NULL ORDER BY r.name ASC`, teamID)
+}
+
+// ListGrantsByRepo returns every team grant on repoID, by team name.
+func (s *TeamStore) ListGrantsByRepo(ctx context.Context, repoID int64) ([]model.TeamRepoGrant, error) {
+	return s.queryGrants(ctx, `WHERE tr.repo_id = $1 ORDER BY t.name ASC`, repoID)
+}
+
+func (s *TeamStore) queryGrants(ctx context.Context, tail string, arg int64) ([]model.TeamRepoGrant, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT tr.team_id, t.name, t.slug, tr.repo_id, r.name, tr.role
+		   FROM team_repos tr JOIN teams t ON t.id = tr.team_id JOIN repositories r ON r.id = tr.repo_id `+tail, arg)
+	if err != nil {
+		return nil, fmt.Errorf("team list grants: %w", err)
+	}
+	defer rows.Close()
+	var gs []model.TeamRepoGrant
+	for rows.Next() {
+		var g model.TeamRepoGrant
+		if err := rows.Scan(&g.TeamID, &g.TeamName, &g.TeamSlug, &g.RepoID, &g.RepoName, &g.Role); err != nil {
+			return nil, err
+		}
+		gs = append(gs, g)
+	}
+	return gs, rows.Err()
+}

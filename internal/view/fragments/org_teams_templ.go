@@ -130,7 +130,7 @@ func OrgTeams(data view.OrgTeamsFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = components.EmptyStateWithHint("No teams yet.", "A team groups members of "+data.OrgName+" under one name. It doesn't change anyone's access to repositories yet.").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.EmptyStateWithHint("No teams yet.", "A team groups members of "+data.OrgName+" under one name and gives them a role on chosen repositories.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

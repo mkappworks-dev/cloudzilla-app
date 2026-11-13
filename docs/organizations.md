@@ -5,10 +5,10 @@ members with roles.
 
 ## Roles
 
-| Role     | Description                                                                                                                               |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `owner`  | Full admin: edit the profile and repository defaults, add/remove members and change their roles, create repos, transfer or delete the org |
-| `member` | Listed on the org profile; can leave the org; sees private org repos only where they hold a collaborator role; no org management rights   |
+| Role     | Description                                                                                                                                           |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `owner`  | Full admin: edit the profile and repository defaults, add/remove members and change their roles, create repos, transfer or delete the org             |
+| `member` | Listed on the org profile; can leave the org; sees private org repos only where they hold a collaborator role or team grant; no org management rights |
 
 An org always keeps at least one owner: removing or demoting the last owner is rejected, and so is deleting the account
 of an org's only owner (see [Account deletion](#account-deletion)). Each of these changes locks the org's row before
@@ -23,8 +23,8 @@ An org repo belongs to the org, as on GitHub. Its `repositories.org_id` names th
 `CHECK` constraint requires exactly one of the two. Access comes only from the org and from explicit repo roles:
 
 - Org owners have owner-level access to every org repo.
-- Members have no implicit access to private org repos; they need a collaborator role (`reader`/`writer`/`admin`) on
-  each.
+- Members have no implicit access to private org repos; they need a collaborator role (`reader`/`writer`/`admin`) or a
+  [team](#teams) grant on each.
 - `created_by` records who created a repo, org or personal, and grants nothing. It is `NULL` for repos whose creator's
   account was deleted, and migration 085 backfilled it from `owner_id`.
 
@@ -32,7 +32,8 @@ So a member who created a repo keeps only what the org and their explicit role g
 demoted takes away the rest, over git, the web UI and the API alike. Deploy keys, webhooks and forks they set up belong
 to the repo, not to them, and stay until an owner removes them. The store queries that filter many repos by what the
 viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo search) use
-`readableBy` and `ownedBy` from `internal/store/repo_store.go`, the SQL forms of `RepoService.CanRead` and `IsOwner`.
+`readableBy` and `ownedBy` from `internal/store/repo_store.go`, the SQL forms of `RepoService.CanRead` and `IsOwner`;
+`readableBy` also counts team grants.
 
 A live org repo's name is unique within the org (`idx_repos_org_name_live`). A soft-deleted one does not hold its name,
 so `Restore` refuses when the name has been taken since. Any org owner may soft-delete, restore or transfer an org repo;
@@ -51,16 +52,16 @@ or a superadmin [adds an owner](./access-control.md#adding-an-organization-owner
 
 ## Pages
 
-| Route                      | Auth       | Description                                                                                                        |
-| -------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
-| `/organizations`           | Required   | The orgs you belong to, with your role and each org's member count                                                 |
-| `/organizations/new`       | Required   | Create-org form (`name`, `description`, `accept_tos`); the terms checkbox is enforced server-side                  |
-| `/{org}`                   | Optional   | Org profile: header, README, most-starred and recently updated repos, people, top languages                        |
-| `/{org}?tab=repositories`  | Optional   | Every org repo the viewer can see                                                                                  |
-| `/{org}?tab=people`        | Optional   | Every org member with their role; the profile sidebar shows the first 12                                           |
-| `/orgs/{org}/settings`     | Owner only | General (profile), Members, Teams, Repository defaults, Webhooks, Audit log, Danger zone (transfer, delete)        |
-| `/orgs/{org}/teams/{slug}` | Member     | A [team](#teams): its members, and for an owner the add, rename and delete controls; 404 to anyone outside the org |
-| `/repos/new?owner={org}`   | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                  |
+| Route                      | Auth       | Description                                                                                                                          |
+| -------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `/organizations`           | Required   | The orgs you belong to, with your role and each org's member count                                                                   |
+| `/organizations/new`       | Required   | Create-org form (`name`, `description`, `accept_tos`); the terms checkbox is enforced server-side                                    |
+| `/{org}`                   | Optional   | Org profile: header, README, most-starred and recently updated repos, people, top languages                                          |
+| `/{org}?tab=repositories`  | Optional   | Every org repo the viewer can see                                                                                                    |
+| `/{org}?tab=people`        | Optional   | Every org member with their role; the profile sidebar shows the first 12                                                             |
+| `/orgs/{org}/settings`     | Owner only | General (profile), Members, Teams, Repository defaults, Webhooks, Audit log, Danger zone (transfer, delete)                          |
+| `/orgs/{org}/teams/{slug}` | Member     | A [team](#teams): its members, and for an owner the member and repository controls, rename and delete; 404 to anyone outside the org |
+| `/repos/new?owner={org}`   | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                                    |
 
 The `/{owner}` route first checks if `owner` is a user; if not, falls back to org lookup. Org profile and user profile
 share the same URL pattern, so a name belongs to a user or an org, never both: org creation refuses a user's name, every
@@ -69,8 +70,9 @@ account-creating path refuses an org's name, and database triggers enforce both 
 
 The profile README is the `README.md` of the org's public repo named after the org (`{org}/{org}`), mirroring the
 user-profile convention. Org owners see every org repo; other viewers see public repos plus private ones where they hold
-a collaborator role. The repo cards and the top-languages bar follow the same visibility; languages count each visible
-repo's cached `primary_language` (`LanguageService.AggregateForOrg`, over the same filtered list as the cards).
+a collaborator role or a team grant. The repo cards and the top-languages bar follow the same visibility; languages
+count each visible repo's cached `primary_language` (`LanguageService.AggregateForOrg`, over the same filtered list as
+the cards).
 
 ## Profile
 
@@ -109,7 +111,8 @@ Owners set these on the settings page (`POST /api/orgs/{org}/repo-defaults`):
 ## Teams
 
 A team is a named group of org members: `teams(org_id, name, slug, description)` and `team_members(team_id, user_id)`.
-It grants nothing yet; `CanRead`, `CanWrite` and `CanManage` ignore teams.
+It holds repository roles in `team_repos(team_id, repo_id, role)`, where `role` is `reader`, `writer` or `admin`. The
+org role stays `owner` or `member`.
 
 - The slug is the name lowercased with every run of characters other than ASCII letters and digits collapsed to one
   hyphen, so `Core Team` and `core-team` collide. It is unique within the org (`ErrTeamSlugTaken`), not globally, and a
@@ -123,12 +126,31 @@ It grants nothing yet; `CanRead`, `CanWrite` and `CanManage` ignore teams.
   their `org_members` row. Deleting a user cascades through the `user_id` foreign key, and deleting a team or the org
   cascades through `team_id` and `org_id`.
 
+### Repository grants
+
+- **Resolution.** A user's effective role on a repo is the highest of their direct collaborator role and the grants of
+  every team they belong to (`reader` < `writer` < `admin`). `CanRead` (private repo), `CanWrite` and `CanManage` use it
+  through `RepoStore.EffectiveRole`; `readableBy` and `issueVisibleTo` (`writer` or `admin`) are the same rule in SQL.
+  Removing the direct row keeps team access and removing the grant or the team membership keeps the direct role. A
+  public repo keeps its public read and gains nothing from a `reader` grant.
+- **`IsOwner` ignores teams.** A team `admin` manages settings and `reader`/`writer` collaborators but cannot grant,
+  change or remove `admin`, transfer, archive or delete, exactly like a collaborator `admin`.
+- **Managing grants is owner-only** (`TeamService.SetRepoGrant`, `RemoveRepoGrant`), because a team `admin` grant is an
+  `admin` grant. The handler checks ownership before it looks the repo up, so a non-owner can't probe repo names. The
+  repo must be a live repo of the team's org (`ErrRepoNotInOrg`, 422). Only an owner sees a team's grants, since they
+  name private repos; the repo's collaborator section lists them read-only as "via team `x`" for anyone who manages it.
+- **Leaving the org.** `RepoStore.UpdateOwner` and `RepoTransferStore.Accept` delete the repo's `team_repos` in the
+  transaction that moves it, so a repo transferred out of the org keeps no team access; nothing in the schema ties
+  `repo_id` to `teams.org_id`. Deleting a repo cascades. Soft-deleting keeps the grants for a restore.
+- **Not covered.** Assignee, reviewer and mention pickers still list direct collaborators only, so a team-only member
+  can't be assigned.
+
 ## Audit log
 
 Profile edits, repository-default changes, and deletes write audit entries (`org.profile.update`, `org.defaults.update`,
-`org.delete`); team changes write `org.team.create`, `org.team.update`, `org.team.delete`, `org.team.member_add` and
-`org.team.member_remove`, with the team's slug in the details with `target_type = 'org'` and `target_id` set to the org
-ID. The settings page lists the 25 most recent entries for the org.
+`org.delete`); team changes write `org.team.create`, `org.team.update`, `org.team.delete`, `org.team.member_add`,
+`org.team.member_remove`, `org.team.repo_grant` and `org.team.repo_revoke`, with the team's slug in the details with
+`target_type = 'org'` and `target_id` set to the org ID. The settings page lists the 25 most recent entries for the org.
 
 ## API Endpoints
 

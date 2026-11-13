@@ -356,6 +356,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 			r.Get("/{slug}/members", h.ListTeamMembers)
 			r.Post("/{slug}/members", h.AddTeamMember)
 			r.Delete("/{slug}/members/{username}", h.RemoveTeamMember)
+			r.Get("/{slug}/repos", h.ListTeamRepos)
+			r.Post("/{slug}/repos", h.GrantTeamRepo)
+			r.Delete("/{slug}/repos/{repo}", h.RevokeTeamRepo)
 		})
 		r.Route("/{org}/hooks", func(r chi.Router) {
 			r.Use(authMW)

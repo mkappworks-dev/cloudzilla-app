@@ -45,7 +45,7 @@
 
       <section id="members" class="rounded-md border border-border bg-card p-6">
         <h2 class="text-base font-semibold tracking-tight mb-1">Members</h2>
-        <p class="text-[12.5px] text-muted-foreground mb-4"><span id="team-count">4</span> people on this team. A team doesn't change anyone's access to repositories yet.</p>
+        <p class="text-[12.5px] text-muted-foreground mb-4"><span id="team-count">4</span> people on this team.</p>
         <div id="team-members" class="flex flex-col gap-4">
           <form data-owner-only id="team-add-form" class="flex flex-col gap-2" onsubmit="return false">
             <div class="flex items-center gap-2">
@@ -86,6 +86,48 @@
               <p class="text-[11.5px] text-muted-foreground font-mono">@priya</p>
             </div>
             <button type="button" data-owner-only data-remove-member data-confirm-title="Remove priya from this team?" data-confirm="priya stays in the organization but leaves this team." data-confirm-label="Remove" data-confirm-danger data-toast="Member removed" class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0">Remove</button>
+          </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="repositories" data-owner-only class="rounded-md border border-border bg-card p-6">
+        <h2 class="text-base font-semibold tracking-tight mb-1">Repositories</h2>
+        <p class="text-[12.5px] text-muted-foreground mb-4">Everyone on this team gets the role below on each repository, on top of any role they hold directly. The highest one wins.</p>
+        <div id="team-repos" class="flex flex-col gap-4">
+          <form id="team-repo-form" class="flex flex-col gap-2" onsubmit="return false">
+            <div class="flex items-center gap-2">
+              <label for="team-add-repo" class="sr-only">Repository</label>
+              <select id="team-add-repo" name="repo" required class="flex h-9 flex-1 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs"><option value="gateway">gateway</option><option value="website">website</option></select>
+              <label for="team-add-role" class="sr-only">Role</label>
+              <select id="team-add-role" name="role" class="flex h-9 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs"><option value="reader">Reader</option><option value="writer">Writer</option><option value="admin">Admin</option></select>
+              <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm">Add repository</button>
+            </div>
+          </form>
+          <ul id="repo-rows" class="divide-y divide-border border border-border rounded-md">
+          <li class="px-4 py-3 flex items-center gap-3" data-team-repo>
+            <div class="min-w-0 flex-1">
+              <a href="repo.html" class="text-[13.5px] font-medium hover:underline">cloudzilla</a>
+            </div>
+            <label for="team-role-cloudzilla" class="sr-only">Role on cloudzilla</label>
+            <select id="team-role-cloudzilla" name="role" data-role-select class="flex h-8 rounded-md border border-input bg-background px-2 text-[12px] shadow-xs"><option value="reader">Reader</option><option value="writer" selected>Writer</option><option value="admin">Admin</option></select>
+            <button type="button" data-remove-repo data-confirm-title="Remove cloudzilla from this team?" data-confirm="Members of this team lose the access it gave them to cloudzilla. Roles they hold directly stay." data-confirm-label="Remove" data-confirm-danger data-toast="Repository removed" class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0">Remove</button>
+          </li>
+          <li class="px-4 py-3 flex items-center gap-3" data-team-repo>
+            <div class="min-w-0 flex-1">
+              <a href="repo.html" class="text-[13.5px] font-medium hover:underline">infra</a>
+            </div>
+            <label for="team-role-infra" class="sr-only">Role on infra</label>
+            <select id="team-role-infra" name="role" data-role-select class="flex h-8 rounded-md border border-input bg-background px-2 text-[12px] shadow-xs"><option value="reader">Reader</option><option value="writer">Writer</option><option value="admin" selected>Admin</option></select>
+            <button type="button" data-remove-repo data-confirm-title="Remove infra from this team?" data-confirm="Members of this team lose the access it gave them to infra. Roles they hold directly stay." data-confirm-label="Remove" data-confirm-danger data-toast="Repository removed" class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0">Remove</button>
+          </li>
+          <li class="px-4 py-3 flex items-center gap-3" data-team-repo>
+            <div class="min-w-0 flex-1">
+              <a href="repo.html" class="text-[13.5px] font-medium hover:underline">docs-site</a>
+            </div>
+            <label for="team-role-docs-site" class="sr-only">Role on docs-site</label>
+            <select id="team-role-docs-site" name="role" data-role-select class="flex h-8 rounded-md border border-input bg-background px-2 text-[12px] shadow-xs"><option value="reader" selected>Reader</option><option value="writer">Writer</option><option value="admin">Admin</option></select>
+            <button type="button" data-remove-repo data-confirm-title="Remove docs-site from this team?" data-confirm="Members of this team lose the access it gave them to docs-site. Roles they hold directly stay." data-confirm-label="Remove" data-confirm-danger data-toast="Repository removed" class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0">Remove</button>
           </li>
           </ul>
         </div>
@@ -174,6 +216,18 @@
         czToast(b.dataset.toast);
       });
     });
+  });
+
+  document.querySelectorAll('[data-remove-repo]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      czConfirm(b, function () {
+        b.closest('[data-team-repo]').remove();
+        czToast(b.dataset.toast);
+      });
+    });
+  });
+  document.querySelectorAll('[data-role-select]').forEach(function (s) {
+    s.addEventListener('change', function () { czToast('Role changed'); });
   });
 
   var del = document.querySelector('[data-delete-team]');

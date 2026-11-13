@@ -354,7 +354,7 @@ func (s *OrgService) ListRepos(ctx context.Context, orgID int64) ([]model.Reposi
 
 // ListReposVisibleTo returns the org's repositories filtered to those the
 // viewer is allowed to see. Org owners see all repos; everyone else sees
-// public repos plus private repos where they have a collaborator role.
+// public repos plus private repos where they have a collaborator role or a team grant.
 // Pass nil for viewerID for anonymous viewers.
 func (s *OrgService) ListReposVisibleTo(ctx context.Context, orgID int64, viewerID *int64) ([]model.Repository, error) {
 	repos, err := s.repos.GetByOrgID(ctx, orgID)
@@ -373,7 +373,7 @@ func (s *OrgService) ListReposVisibleTo(ctx context.Context, orgID int64, viewer
 		case viewerID == nil:
 			// anonymous viewer; private repo hidden
 		default:
-			if role, err := s.repos.GetPermission(ctx, repo.ID, *viewerID); err == nil && role != "" {
+			if role, err := s.repos.EffectiveRole(ctx, repo.ID, *viewerID); err == nil && role != "" {
 				visible = append(visible, repo)
 			}
 		}

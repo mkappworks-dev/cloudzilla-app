@@ -301,6 +301,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		Webhooks:          webhooks,
 		OrgWebhooks:       orgWebhooks,
 		Collabs:           collabs,
+		TeamGrants:        h.teamGrantsOf(r.Context(), repo),
 		Labels:            labels,
 		DeployKeys:        deployKeys,
 		BranchProtections: branchProtections,

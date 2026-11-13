@@ -206,6 +206,7 @@ type RepoSettingsData struct {
 	Webhooks          []model.Webhook
 	OrgWebhooks       bool // the owning organization has webhooks, which also fire here; never their URLs or secrets
 	Collabs           []model.Permission
+	TeamGrants        []model.TeamRepoGrant
 	Labels            []model.Label
 	DeployKeys        []model.DeployKey
 	BranchProtections []*model.BranchProtection
@@ -418,13 +419,15 @@ type CommitData struct {
 
 // RepoCollaboratorsFragData holds template data for the repository collaborators HTMX fragment.
 type RepoCollaboratorsFragData struct {
-	Owner     string
-	RepoName  string
-	RepoID    int64
-	Collabs   []model.Permission
-	CanManage bool
-	IsOwner   bool
-	Confirm   components.ConfirmFactors
+	Owner    string
+	RepoName string
+	RepoID   int64
+	Collabs  []model.Permission
+	// TeamGrants are read-only: they are changed on the team page.
+	TeamGrants []model.TeamRepoGrant
+	CanManage  bool
+	IsOwner    bool
+	Confirm    components.ConfirmFactors
 }
 
 // Repo labels management (settings page)
