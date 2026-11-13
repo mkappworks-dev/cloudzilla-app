@@ -29,6 +29,9 @@ type Pattern struct {
 	Re         *regexp.Regexp
 	Group      int
 	accept     func(value string) bool
+	// spanEnd extends the value from the match through the first match of spanEnd, so a multi-line secret is
+	// identified by its material and not by its header.
+	spanEnd *regexp.Regexp
 }
 
 const minGenericEntropy = 3.5
@@ -47,6 +50,7 @@ var Patterns = []Pattern{
 		Type:       "private_key",
 		Confidence: High,
 		Re:         regexp.MustCompile(`-----BEGIN (?:[A-Z]+ )*PRIVATE KEY(?: BLOCK)?-----`),
+		spanEnd:    regexp.MustCompile(`-----END (?:[A-Z]+ )*PRIVATE KEY(?: BLOCK)?-----`),
 	},
 	{
 		Type:       "cloudzilla_token",

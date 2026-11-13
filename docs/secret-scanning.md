@@ -15,7 +15,7 @@ is reserved for per-path rules and unused today.
 | Type                | Matches                                                                                  | Confidence |
 | ------------------- | ---------------------------------------------------------------------------------------- | ---------- |
 | `aws_access_key_id` | `AKIA` or `ASIA` plus 16 characters of `A-Z2-7`                                          | high       |
-| `private_key`       | a `-----BEGIN … PRIVATE KEY-----` header (RSA, EC, OpenSSH, PGP, plain)                  | high       |
+| `private_key`       | a `-----BEGIN … PRIVATE KEY-----` header (RSA, EC, OpenSSH, PGP, plain), valued through its END marker | high       |
 | `cloudzilla_token`  | `czp_` plus 64 hex; a finding only when its SHA-256 is in `access_tokens` (see below)    | high       |
 | `jwt_secret`        | `JWT_SECRET` / `jwt-secret` assignments with a literal of 16 or more characters          | high       |
 | `generic_api_key`   | `api_key` / `secret` / `token` assigned a quoted 20+ character literal of entropy ≥ 3.5  | low        |
@@ -25,8 +25,9 @@ A lower-confidence finding that repeats a value already found on the same line i
 rejected as a placeholder when it contains `your`, `example`, `placeholder`, `changeme`, `xxxx`, `<` or `todo`.
 
 `Mask` gives the hint stored with an alert: the first and last four characters (`AKIA…4WTB`), `****` for a value of 12
-characters or fewer, and for a private key the key kind from its header, capped at 8 characters (`RSA`, `OPENSSH`). The
-dedupe key is `Hash(repoID, value)` = `sha256("<repo_id>:<value>")`.
+characters or fewer, and for a private key the key kind from its header, capped at 8 characters (`RSA`, `OPENSSH`). A
+private key's value runs from its header through the `END` marker (at most 16 KiB; to the end of the blob if the marker
+is missing), so two different keys of one type are two alerts and closing one allows only that key. The dedupe key is `Hash(repoID, value)` = `sha256("<repo_id>:<value>")`.
 
 ## Alerts
 

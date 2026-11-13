@@ -68,8 +68,8 @@ func TestSecretSnippet_MasksTheSecretAndKeepsContext(t *testing.T) {
 func TestSecretSnippet_PrivateKeyShowsNoKeyBody(t *testing.T) {
 	content := "# key\n-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAA\nQQQQ\n"
 	svc, sha := newSnippetRepo(t, content)
-	alert := &model.SecretScanAlert{RepoID: 7, SecretType: "private_key",
-		SecretHash: secretscan.Hash(7, "-----BEGIN OPENSSH PRIVATE KEY-----"), SecretHint: "OPENSSH"}
+	found := secretscan.Scan("config/deploy.env", []byte(content), 1<<20)
+	alert := &model.SecretScanAlert{RepoID: 7, SecretType: "private_key", SecretHash: secretscan.Hash(7, found[0].Value), SecretHint: "OPENSSH"}
 
 	got, err := svc.SecretSnippet("ada", "vault", alert, model.SecretScanLocation{CommitSHA: sha, FilePath: "config/deploy.env", LineNumber: 2})
 	if err != nil {

@@ -53,8 +53,11 @@ func (s *CodeService) SecretSnippet(owner, repoName string, alert *model.SecretS
 	}
 
 	value := findSecretValue(alert, loc.FilePath, text, loc.LineNumber)
+	// A private key's value spans lines; only its header line is ever shown.
+	shown, _, _ := strings.Cut(value, "\n")
+	shown = strings.TrimSuffix(shown, "\r")
 	lines := strings.Split(text, "\n")
-	if loc.LineNumber < 1 || loc.LineNumber > len(lines) || value == "" {
+	if loc.LineNumber < 1 || loc.LineNumber > len(lines) || shown == "" {
 		return nil, ErrCommitGone
 	}
 
@@ -69,7 +72,7 @@ func (s *CodeService) SecretSnippet(owner, repoName string, alert *model.SecretS
 		line := strings.TrimSuffix(lines[n-1], "\r")
 		// Context lines can repeat the value, so every line is masked, not only the finding's.
 		mask := maskedSpan(alert)
-		line = strings.ReplaceAll(line, value, mask)
+		line = strings.ReplaceAll(line, shown, mask)
 		l := SecretSnippetLine{Number: n, Text: line, Secret: n == loc.LineNumber, Before: line}
 		if i := strings.Index(line, mask); i >= 0 {
 			l.Before, l.Mask, l.After = line[:i], mask, line[i+len(mask):]

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -18,6 +19,8 @@ const (
 	maskKeep         = 4
 	// A value this short would be mostly revealed by first-and-last-four.
 	minMaskable = 12
+	// Covers any real key; a longer value would hash a whole file for one secret.
+	maxSpanBytes = 16 << 10
 )
 
 // Finding is one secret in a blob. Value stays in memory: it is never
@@ -45,25 +48,46 @@ func Scan(path string, content []byte, maxBytes int) []Finding {
 		return nil
 	}
 	var out []Finding
-	for i, line := range bytes.Split(content, []byte{'\n'}) {
+	for off, i := 0, 1; ; i++ {
+		end := len(content)
+		if nl := bytes.IndexByte(content[off:], '\n'); nl >= 0 {
+			end = off + nl
+		}
+		line := content[off:end]
 		start := len(out)
 		for _, p := range Patterns {
-			for _, m := range p.Re.FindAllSubmatch(line, -1) {
-				value := string(m[p.Group])
+			for _, m := range p.Re.FindAllSubmatchIndex(line, -1) {
+				value := string(line[m[2*p.Group]:m[2*p.Group+1]])
+				if p.spanEnd != nil {
+					value = spanValue(content[off+m[0]:], p.spanEnd)
+				}
 				if p.accept != nil && !p.accept(value) {
 					continue
 				}
 				if seenOnLine(out[start:], value) {
 					continue
 				}
-				out = append(out, Finding{Type: p.Type, Line: i + 1, Value: value, Confidence: p.Confidence})
+				out = append(out, Finding{Type: p.Type, Line: i, Value: value, Confidence: p.Confidence})
 				if len(out) == maxFindings {
 					return out
 				}
 			}
 		}
+		if end == len(content) {
+			return out
+		}
+		off = end + 1
 	}
-	return out
+}
+
+// spanValue is rest up to and including the first match of endRe, or up to maxSpanBytes of it when the end marker is
+// missing or too far away.
+func spanValue(rest []byte, endRe *regexp.Regexp) string {
+	rest = rest[:min(len(rest), maxSpanBytes)]
+	if loc := endRe.FindIndex(rest); loc != nil {
+		rest = rest[:loc[1]]
+	}
+	return string(rest)
 }
 
 func seenOnLine(found []Finding, value string) bool {

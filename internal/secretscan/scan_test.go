@@ -74,12 +74,57 @@ func TestScan_Values(t *testing.T) {
 		t.Fatalf("aws value: %+v", got)
 	}
 	got = Scan("f", []byte("x\n-----BEGIN RSA PRIVATE KEY-----\nabc"), maxBlob)
-	if len(got) != 1 || got[0].Value != "-----BEGIN RSA PRIVATE KEY-----" {
-		t.Fatalf("key value should be the header line: %+v", got)
+	if len(got) != 1 || got[0].Value != "-----BEGIN RSA PRIVATE KEY-----\nabc" {
+		t.Fatalf("a key with no END marker should be valued over what is there: %+v", got)
 	}
 	got = Scan("f", []byte(`JWT_SECRET = "s3cr3t-value-0123456789"`), maxBlob)
 	if len(got) != 1 || got[0].Value != "s3cr3t-value-0123456789" {
 		t.Fatalf("jwt value should be the literal: %+v", got)
+	}
+}
+
+func pemKey(body string) string {
+	return "-----BEGIN RSA PRIVATE KEY-----\n" + body + "\n-----END RSA PRIVATE KEY-----\n"
+}
+
+func TestScan_PrivateKeyValueCoversTheKeyMaterial(t *testing.T) {
+	keyA, keyB := pemKey("MIIEowIBAAKCAQEAaaaa"), pemKey("MIIEowIBAAKCAQEAbbbb")
+	hash := func(content string) string {
+		got := Scan("f", []byte(content), maxBlob)
+		if len(got) != 1 {
+			t.Fatalf("findings = %+v, want one", got)
+		}
+		return Hash(1, got[0].Value)
+	}
+
+	if hash(keyA) == hash(keyB) {
+		t.Error("two different keys of one type hash alike")
+	}
+	if hash(keyA) != hash("# a copy\n"+keyA) {
+		t.Error("the same key twice hashes differently")
+	}
+	got := Scan("f", []byte("x\n"+keyA+"after\n"), maxBlob)
+	if len(got) != 1 || got[0].Line != 2 || got[0].Value != strings.TrimSuffix(keyA, "\n") {
+		t.Errorf("value should run from the header through the END marker: %+v", got)
+	}
+	if m := Mask(got[0].Value); m != "RSA" {
+		t.Errorf("Mask = %q, want only the key kind", m)
+	}
+}
+
+func TestScan_TruncatedPrivateKeyIsHashedOverWhatIsThere(t *testing.T) {
+	a := Scan("f", []byte("-----BEGIN RSA PRIVATE KEY-----\nMIIEaaaa\n"), maxBlob)
+	b := Scan("f", []byte("-----BEGIN RSA PRIVATE KEY-----\nMIIEbbbb\n"), maxBlob)
+	if len(a) != 1 || len(b) != 1 || a[0].Value == b[0].Value {
+		t.Fatalf("truncated keys: %+v %+v, want one finding each with different values", a, b)
+	}
+}
+
+func TestScan_PrivateKeyValueIsCapped(t *testing.T) {
+	huge := "-----BEGIN RSA PRIVATE KEY-----\n" + strings.Repeat("A", 100<<10)
+	got := Scan("f", []byte(huge), maxBlob)
+	if len(got) != 1 || len(got[0].Value) > 16<<10 {
+		t.Errorf("value length = %d, want a finding capped at 16 KiB", len(got[0].Value))
 	}
 }
 
