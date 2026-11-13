@@ -2424,20 +2424,25 @@ uses stdlib `crypto/sha256` for OID verification.
 
 ---
 
-### Phase 17.2 — Signed Commit Verification (GPG/SSH)
+### Phase 17.2 — Signed Commit Verification (GPG/SSH) ✅
 
-_Zero-migration for display; one column added to cache verification results._
+**Migrations** (`130_create_signing_keys.sql`, `131_create_instance_signing_keys.sql`): `gpg_keys`, `gpg_subkeys`,
+`gpg_key_emails`, `ssh_signing_keys` and `instance_signing_keys`. There is no `verify_commits` column and no cached
+result: `SignatureService.Verify` judges commits on every read, so a key added, removed, expired or revoked changes the
+next render.
 
-```sql
-ALTER TABLE repositories
-    ADD COLUMN IF NOT EXISTS verify_commits BOOLEAN NOT NULL DEFAULT FALSE;
-```
+A commit's `gpgsig` header (GPG, or SSH as `gpg.format ssh` writes it) is matched to a key registered on an account and
+shown as a badge with a popover on the commits list, commit page, pull request commits tab, tree last-commit row and
+blame. Statuses are `verified`, `partially_verified` (valid signature, committer email not verified on the account or
+not on the GPG key), `unverified` (no key, bad signature, key expired at the committer date, revoked, unsupported) and
+`unsigned`. Signing keys are separate from SSH auth keys: `GET/POST/DELETE /api/user/gpg_keys` and
+`/api/user/ssh_signing_keys`, session-only with a password step-up, managed under Settings → Signing keys.
 
-On commit display, the server attempts to verify the commit signature using the committer's stored SSH keys (already in
-`ssh_keys` table) or a stored GPG public key (`gpg_keys` table added in a companion migration). Verified commits show a
-green "Verified" badge on tree, blame, and commit pages. `CodeService.GetCommit` is extended to return `SignatureStatus`
-(`verified`, `unverified`, `unsigned`). GPG key management mirrors SSH key management via
-`GET/POST/DELETE /api/user/gpg_keys`.
+Server-made commits (merges, squashes, web edits, wiki saves, the initial commit) keep the user as author, take
+`Cloudzilla <noreply@<host>>` as committer and are signed with an Ed25519 instance key sealed under
+`security.secret_key`; admins rotate it under Admin → Settings → Commit signing, and retired keys stay trusted. Without
+the secret key those commits are committed but unsigned. Details: [signed-commits](./signed-commits.md) and
+[ADR 0002](./adr/0002-instance-signs-server-made-commits.md).
 
 ---
 
@@ -2729,7 +2734,7 @@ Authentication via the same JWT/PAT bearer token as the REST API. A GraphQL Play
 | 16.2  | Generic Package Registry                              | ⬜ Planned | 115          |
 | 16.3  | Release Asset Enhancements                            | ⬜ Planned | —            |
 | 17.1  | Git LFS Support                                       | ⬜ Planned | 116          |
-| 17.2  | Signed Commit Verification (GPG/SSH)                  | ⬜ Planned | —            |
+| 17.2  | Signed Commit Verification (GPG/SSH)                  | ✅ Done    | 130, 131     |
 | 17.3  | Secret Scanning                                       | ⬜ Planned | 117          |
 | 18.1  | CI/CD Pipeline Runner (basic)                         | ⬜ Planned | 118          |
 | 18.2  | Pipeline YAML Config & UI                             | ⬜ Planned | 119          |

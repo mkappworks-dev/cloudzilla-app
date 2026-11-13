@@ -436,6 +436,7 @@ attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/a
 
 PATs get the same open routes and scopes as OAuth-app tokens; being first-party doesn't widen them. Account, admin and
 repo or org administration stay session-only, so a PAT can't mint PATs, add SSH keys or signing keys, or turn off TOTP.
+Adding a signing key also needs the password step-up (see [signed-commits](./signed-commits.md#signing-keys)).
 
 - `POST /api/user/tokens` needs at least one scope, all of them known; otherwise `400`.
 - git sends a PAT as the HTTP Basic password, which `authMW` and `optAuthMW` never see, so `resolveGitUser`

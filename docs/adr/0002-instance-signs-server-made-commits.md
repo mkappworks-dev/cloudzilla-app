@@ -4,9 +4,9 @@ Status: accepted, 2026-11-13
 
 ## Context
 
-Merges, squashes, web edits and wiki saves are written by the server with the User as both author and committer, so
-they carry no signature and can never read as verified. Signing them with a key the User does not hold would claim the
-User signed something they did not.
+Merges, squashes, web edits and wiki saves are written by the server with the User as both author and committer, so they
+carry no signature and can never read as verified. Signing them with a key the User does not hold would claim the User
+signed something they did not.
 
 ## Decision
 
