@@ -205,3 +205,52 @@ func (s *PackageService) LinkedPackageID(ctx context.Context, repo *model.Reposi
 	}
 	return p.ID, nil
 }
+
+// InRepo returns the package of typ and name linked to repo, or ErrPackageNotFound, also when viewerID cannot read repo.
+func (s *PackageService) InRepo(ctx context.Context, repo *model.Repository, viewerID *int64, typ, name string) (*model.PackageSummary, error) {
+	return s.findInRepo(ctx, repo, viewerID, func(p *model.PackageSummary) bool { return p.Type == typ && p.Name == name })
+}
+
+// InRepoByID is InRepo for a package id, as a form carries it.
+func (s *PackageService) InRepoByID(ctx context.Context, repo *model.Repository, viewerID *int64, id int64) (*model.PackageSummary, error) {
+	return s.findInRepo(ctx, repo, viewerID, func(p *model.PackageSummary) bool { return p.ID == id })
+}
+
+func (s *PackageService) findInRepo(ctx context.Context, repo *model.Repository, viewerID *int64, match func(*model.PackageSummary) bool) (*model.PackageSummary, error) {
+	list, err := s.ListByRepo(ctx, repo, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range list {
+		if match(&list[i]) {
+			return &list[i], nil
+		}
+	}
+	return nil, ErrPackageNotFound
+}
+
+// CountByRepo is how many packages are linked to repoID; the caller has checked that the viewer can read it.
+func (s *PackageService) CountByRepo(ctx context.Context, repoID int64) (int, error) {
+	return s.packages.CountByRepo(ctx, repoID)
+}
+
+// CanDelete reports whether userID may delete or re-link p: path ownership, or CanManage on the Repository it is
+// linked to. It mirrors the rule Delete and Relink enforce, to decide which controls a page shows.
+func (s *PackageService) CanDelete(ctx context.Context, p *model.Package, repo *model.Repository, userID int64) bool {
+	return s.isPathOwner(ctx, p, userID) || repo != nil && s.repos.CanManage(ctx, repo, userID)
+}
+
+// Storage is what the path owner of p stores in packages and the quota it counts against; limit is 0 when there is none.
+func (s *PackageService) Storage(ctx context.Context, p *model.Package) (used, limit int64, err error) {
+	var o QuotaOwner
+	if p.OwnerOrgID != nil {
+		o.OrgID = *p.OwnerOrgID
+	} else if p.OwnerUserID != nil {
+		o.UserID = *p.OwnerUserID
+	}
+	if limit, err = s.limit(ctx, o); err != nil {
+		return 0, 0, err
+	}
+	used, err = s.Usage(ctx, o)
+	return used, limit, err
+}

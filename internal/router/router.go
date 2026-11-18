@@ -261,6 +261,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/download/{tag}/{name}", h.DownloadReleaseAsset)
 	r.With(optAuthMW).Head("/{owner}/{repo}/releases/download/{tag}/{name}", h.DownloadReleaseAsset)
+	r.With(optAuthMW).Get("/{owner}/{repo}/packages", h.PagePackages)
+	r.With(optAuthMW).Get("/{owner}/{repo}/packages/container/*", h.PagePackageContainer)
+	r.With(optAuthMW).Get("/{owner}/{repo}/packages/generic/{name}", h.PagePackageGeneric)
+	r.With(authMW).Post("/{owner}/{repo}/packages/tags/delete", h.DeletePackageTag)
+	r.With(authMW).Post("/{owner}/{repo}/packages/versions/delete", h.DeletePackageVersion)
+	r.With(authMW).Post("/{owner}/{repo}/packages/delete", h.DeletePackage)
+	r.With(authMW).Post("/{owner}/{repo}/packages/relink", h.RelinkPackageForm)
 	r.With(optAuthMW).Get("/{owner}/{repo}/packages/generic/{name}/{version}/{filename}", h.DownloadGenericFile)
 	r.With(optAuthMW).Head("/{owner}/{repo}/packages/generic/{name}/{version}/{filename}", h.DownloadGenericFile)
 	if cfg.CI.Enabled {

@@ -99,15 +99,18 @@ type GenericVersionFiles struct {
 }
 
 // PackageSummary is a linked package with what a list row shows. RepoOwner and RepoName name the Repository it is
-// linked to now, which after a transfer differs from the path owner.
+// linked to now, which after a transfer differs from OwnerName, the path owner. For a container LatestVersion is the
+// most recently pushed tag, and Pulls counts manifest pulls; a generic package has no download counts.
 type PackageSummary struct {
 	Package
+	OwnerName     string
 	RepoOwner     string
 	RepoName      string
 	Size          int64
 	TagCount      int
 	VersionCount  int
 	LatestVersion string
+	Pulls         int64
 }
 
 // TagRow is a tag of a container package. Size is the distinct blob bytes of the image, or of every child of an index.

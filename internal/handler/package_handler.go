@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
@@ -317,4 +318,136 @@ func (h *Handler) finishPackageDelete(w http.ResponseWriter, repo *model.Reposit
 	default:
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// packageForm resolves the package a Packages-page form names, which must be linked to the repository in the URL
+// and readable by the poster; anything else is a 404. What the poster may do with it is the caller's rule.
+func (h *Handler) packageForm(w http.ResponseWriter, r *http.Request) (*model.Repository, *model.PackageSummary, int64, bool) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return nil, nil, 0, false
+	}
+	repo, ok := h.readableRepoPage(w, r, chi.URLParam(r, "owner"), chi.URLParam(r, "repo"))
+	if !ok {
+		return nil, nil, 0, false
+	}
+	id, err := strconv.ParseInt(r.FormValue("package_id"), 10, 64)
+	if err != nil {
+		h.NotFound(w, r)
+		return nil, nil, 0, false
+	}
+	p, err := h.Services.Package.InRepoByID(r.Context(), repo, &claims.UserID, id)
+	if err != nil {
+		if errors.Is(err, service.ErrPackageNotFound) {
+			h.NotFound(w, r)
+		} else {
+			slog.Error("package form: find failed", "repo_id", repo.ID, "error", err)
+			h.ServerError(w, r)
+		}
+		return nil, nil, 0, false
+	}
+	return repo, p, claims.UserID, true
+}
+
+// packageFormError answers a refused or failed change with the message the page shows as a toast.
+func packageFormError(w http.ResponseWriter, r *http.Request, err error) {
+	var regErr *service.RegistryError
+	switch {
+	case errors.As(err, &regErr):
+		settingsError(w, r, regErr.Status, regErr.Message)
+	case errors.Is(err, service.ErrPackageQuota):
+		settingsError(w, r, http.StatusForbidden, err.Error())
+	case errors.Is(err, service.ErrPackageForbidden):
+		settingsError(w, r, http.StatusForbidden, "You can't change this package.")
+	case errors.Is(err, service.ErrRelinkTarget):
+		settingsError(w, r, http.StatusUnprocessableEntity, "A package can only be linked to a repository of its path owner.")
+	case errors.Is(err, service.ErrPackageNotFound):
+		settingsError(w, r, http.StatusNotFound, "package not found")
+	default:
+		slog.Error("package form failed", "error", err)
+		settingsError(w, r, http.StatusInternalServerError, "internal server error")
+	}
+}
+
+// DeletePackageTag handles POST /{owner}/{repo}/packages/tags/delete: a tag, or an untagged manifest by digest.
+func (h *Handler) DeletePackageTag(w http.ResponseWriter, r *http.Request) {
+	repo, p, userID, ok := h.packageForm(w, r)
+	if !ok {
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, userID) {
+		settingsError(w, r, http.StatusForbidden, "You can't change this package.")
+		return
+	}
+	if err := h.Services.Registry.DeleteManifest(r.Context(), userID, p.OwnerName+"/"+p.Name, r.FormValue("ref")); err != nil {
+		packageFormError(w, r, err)
+		return
+	}
+	redirectAfterSave(w, r, packageURL(repo, p.Type, p.Name))
+}
+
+// DeletePackageVersion handles POST /{owner}/{repo}/packages/versions/delete. The package goes with its last
+// version, so the redirect goes to the list when it is gone.
+func (h *Handler) DeletePackageVersion(w http.ResponseWriter, r *http.Request) {
+	repo, p, userID, ok := h.packageForm(w, r)
+	if !ok {
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, userID) {
+		settingsError(w, r, http.StatusForbidden, "You can't change this package.")
+		return
+	}
+	if err := h.Services.Package.DeleteGenericVersion(r.Context(), repo.ID, p.Name, r.FormValue("version")); err != nil {
+		packageFormError(w, r, err)
+		return
+	}
+	to := packageURL(repo, p.Type, p.Name)
+	if _, err := h.Services.Package.InRepoByID(r.Context(), repo, &userID, p.ID); errors.Is(err, service.ErrPackageNotFound) {
+		to = "/" + repo.OwnerName + "/" + repo.Name + "/packages"
+	}
+	redirectAfterSave(w, r, to)
+}
+
+// DeletePackage handles POST /{owner}/{repo}/packages/delete; the whole package needs its name typed.
+func (h *Handler) DeletePackage(w http.ResponseWriter, r *http.Request) {
+	repo, p, userID, ok := h.packageForm(w, r)
+	if !ok {
+		return
+	}
+	if !h.Services.Package.CanDelete(r.Context(), &p.Package, repo, userID) {
+		settingsError(w, r, http.StatusForbidden, "You can't delete this package.")
+		return
+	}
+	if r.FormValue("confirm_name") != p.Name {
+		settingsError(w, r, http.StatusUnprocessableEntity, "Type the package name exactly as shown.")
+		return
+	}
+	if err := h.Services.Package.Delete(r.Context(), userID, p.ID); err != nil {
+		packageFormError(w, r, err)
+		return
+	}
+	redirectAfterSave(w, r, "/"+repo.OwnerName+"/"+repo.Name+"/packages")
+}
+
+// RelinkPackageForm handles POST /{owner}/{repo}/packages/relink; repo names a Repository of the path owner.
+func (h *Handler) RelinkPackageForm(w http.ResponseWriter, r *http.Request) {
+	repo, p, userID, ok := h.packageForm(w, r)
+	if !ok {
+		return
+	}
+	if !h.Services.Package.CanDelete(r.Context(), &p.Package, repo, userID) {
+		settingsError(w, r, http.StatusForbidden, "You can't re-link this package.")
+		return
+	}
+	target, err := h.Services.Repo.Get(r.Context(), p.OwnerName, r.FormValue("repo"))
+	if err != nil {
+		packageFormError(w, r, service.ErrRelinkTarget)
+		return
+	}
+	if err := h.Services.Package.Relink(r.Context(), userID, p.ID, target.ID); err != nil {
+		packageFormError(w, r, err)
+		return
+	}
+	redirectAfterSave(w, r, packageURL(target, p.Type, p.Name))
 }

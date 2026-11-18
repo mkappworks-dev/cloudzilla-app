@@ -26,12 +26,18 @@ const manifestSize = `COALESCE((SELECT SUM(b.size) FROM registry_blobs b WHERE b
 
 func (s *PackageStore) listSummaries(ctx context.Context, where string, args ...any) ([]model.PackageSummary, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT p.id, p.type, p.name, p.repo_id, p.created_at, p.updated_at, r.owner_name, r.name,
+		SELECT p.id, p.owner_user_id, p.owner_org_id, p.type, p.name, p.repo_id, p.created_at, p.updated_at, r.owner_name, r.name,
+		  COALESCE(u.username, o.name, ''),
 		  `+packageSize+`,
 		  (SELECT COUNT(*) FROM package_tags t WHERE t.package_id = p.id),
 		  (SELECT COUNT(*) FROM package_versions v WHERE v.package_id = p.id),
-		  COALESCE((SELECT v.version FROM package_versions v WHERE v.package_id = p.id ORDER BY v.created_at DESC, v.id DESC LIMIT 1), '')
+		  CASE p.type
+		    WHEN 'container' THEN COALESCE((SELECT t.name FROM package_tags t WHERE t.package_id = p.id ORDER BY t.updated_at DESC, t.id DESC LIMIT 1), '')
+		    ELSE COALESCE((SELECT v.version FROM package_versions v WHERE v.package_id = p.id ORDER BY v.created_at DESC, v.id DESC LIMIT 1), '')
+		  END,
+		  (SELECT COALESCE(SUM(m.pull_count), 0) FROM package_manifests m WHERE m.package_id = p.id)
 		FROM packages p JOIN repositories r ON r.id = p.repo_id AND r.deleted_at IS NULL
+		  LEFT JOIN users u ON u.id = p.owner_user_id LEFT JOIN organizations o ON o.id = p.owner_org_id
 		WHERE `+where+`
 		ORDER BY p.updated_at DESC, p.id DESC`, args...)
 	if err != nil {
@@ -42,11 +48,18 @@ func (s *PackageStore) listSummaries(ctx context.Context, where string, args ...
 	for rows.Next() {
 		var p model.PackageSummary
 		var repoID int64
-		if err := rows.Scan(&p.ID, &p.Type, &p.Name, &repoID, &p.CreatedAt, &p.UpdatedAt, &p.RepoOwner, &p.RepoName,
-			&p.Size, &p.TagCount, &p.VersionCount, &p.LatestVersion); err != nil {
+		var userID, orgID sql.NullInt64
+		if err := rows.Scan(&p.ID, &userID, &orgID, &p.Type, &p.Name, &repoID, &p.CreatedAt, &p.UpdatedAt, &p.RepoOwner, &p.RepoName,
+			&p.OwnerName, &p.Size, &p.TagCount, &p.VersionCount, &p.LatestVersion, &p.Pulls); err != nil {
 			return nil, fmt.Errorf("scan package: %w", err)
 		}
 		p.RepoID = &repoID
+		if userID.Valid {
+			p.OwnerUserID = &userID.Int64
+		}
+		if orgID.Valid {
+			p.OwnerOrgID = &orgID.Int64
+		}
 		out = append(out, p)
 	}
 	return out, rows.Err()
@@ -55,6 +68,15 @@ func (s *PackageStore) listSummaries(ctx context.Context, where string, args ...
 // ListByRepo returns the packages linked to repoID. A pending package has no Repository, so it never appears.
 func (s *PackageStore) ListByRepo(ctx context.Context, repoID int64) ([]model.PackageSummary, error) {
 	return s.listSummaries(ctx, `p.repo_id = $1`, repoID)
+}
+
+// CountByRepo counts the packages linked to repoID.
+func (s *PackageStore) CountByRepo(ctx context.Context, repoID int64) (int, error) {
+	var n int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM packages WHERE repo_id = $1`, repoID).Scan(&n); err != nil {
+		return 0, fmt.Errorf("count packages: %w", err)
+	}
+	return n, nil
 }
 
 // ListByPathOwner returns the linked packages under a path owner, whatever Repository they now sit in.
