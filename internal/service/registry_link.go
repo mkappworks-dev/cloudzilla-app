@@ -74,7 +74,7 @@ func (s *RegistryService) linkPending(ctx context.Context, userID int64, t uploa
 
 func (s *RegistryService) link(ctx context.Context, t uploadTarget, repoID int64) error {
 	err := s.registry.LinkPackage(ctx, t.packageID, repoID)
-	if errors.Is(err, store.ErrPackageNameTaken) || errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, store.ErrImageNameTaken) || errors.Is(err, sql.ErrNoRows) {
 		return regErr(http.StatusConflict, "DENIED", "the image name was linked by another push; retry")
 	}
 	return err

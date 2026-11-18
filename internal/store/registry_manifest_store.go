@@ -211,16 +211,16 @@ func (s *RegistryStore) TagNames(ctx context.Context, packageID int64, last stri
 	return names, rows.Err()
 }
 
-// ErrPackageNameTaken is a name another package linked first.
-var ErrPackageNameTaken = errors.New("package name taken")
+// ErrImageNameTaken is a name another package linked first.
+var ErrImageNameTaken = errors.New("image name taken")
 
 // LinkPackage links a pending package to a Repository and ends its pending expiry. It returns sql.ErrNoRows when
-// the package is no longer pending and ErrPackageNameTaken when another package holds the name by now.
+// the package is no longer pending and ErrImageNameTaken when another package holds the name by now.
 func (s *RegistryStore) LinkPackage(ctx context.Context, packageID, repoID int64) error {
 	res, err := s.db.ExecContext(ctx, `UPDATE packages SET repo_id = $2, pending_expires_at = NULL, updated_at = NOW()
 		WHERE id = $1 AND repo_id IS NULL`, packageID, repoID)
 	if isUniqueViolation(err) {
-		return ErrPackageNameTaken
+		return ErrImageNameTaken
 	}
 	if err != nil {
 		return fmt.Errorf("link package: %w", err)
