@@ -330,3 +330,49 @@ func (s *PackageStore) deleteGeneric(ctx context.Context, repoID int64, name, ve
 	}
 	return tx.Commit()
 }
+
+// GenericKeysByRepo maps each Repository soft-deleted before cutoff to the storage keys of the generic files linked
+// to it.
+func (s *PackageStore) GenericKeysByRepo(ctx context.Context, cutoff time.Time) (map[int64][]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT p.repo_id, f.storage_key FROM packages p
+		JOIN repositories r ON r.id = p.repo_id
+		JOIN package_versions v ON v.package_id = p.id JOIN package_files f ON f.version_id = v.id
+		WHERE p.type = 'generic' AND r.deleted_at IS NOT NULL AND r.deleted_at < $1`, cutoff)
+	if err != nil {
+		return nil, fmt.Errorf("list generic keys of expired repositories: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	out := map[int64][]string{}
+	for rows.Next() {
+		var repoID int64
+		var key string
+		if err := rows.Scan(&repoID, &key); err != nil {
+			return nil, fmt.Errorf("scan generic key: %w", err)
+		}
+		out[repoID] = append(out[repoID], key)
+	}
+	return out, rows.Err()
+}
+
+// GenericKeysOfOwner lists the storage keys of the generic files under the account's path and of those linked to a
+// Repository the account owns, which the account's deletion cascades away.
+func (s *PackageStore) GenericKeysOfOwner(ctx context.Context, userID, orgID int64) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT f.storage_key FROM packages p
+		JOIN package_versions v ON v.package_id = p.id JOIN package_files f ON f.version_id = v.id
+		WHERE p.type = 'generic' AND (
+		  ($1 <> 0 AND (p.owner_user_id = $1 OR p.repo_id IN (SELECT id FROM repositories WHERE owner_id = $1)))
+		  OR ($2 <> 0 AND (p.owner_org_id = $2 OR p.repo_id IN (SELECT id FROM repositories WHERE org_id = $2))))`, userID, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("list generic keys of owner: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var keys []string
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, fmt.Errorf("scan generic key: %w", err)
+		}
+		keys = append(keys, key)
+	}
+	return keys, rows.Err()
+}

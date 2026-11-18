@@ -125,5 +125,6 @@ func (h *Handler) registryGetManifest(w http.ResponseWriter, r *http.Request, ro
 	if r.Method == http.MethodHead {
 		return
 	}
+	h.Services.Registry.CountPull(m)
 	_, _ = w.Write(m.Content)
 }

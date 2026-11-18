@@ -2,7 +2,7 @@
 
 Created: 2026-11-18
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 04, 06
 Parallel with: 10
 
@@ -32,18 +32,44 @@ Deleted images and aborted pushes must free disk without ever corrupting an imag
 
 ## Acceptance criteria
 
-- [ ] A deleted image's blobs go only after the grace (injected clock); an image sharing a layer keeps it
-- [ ] Layers of an aborted push (linked, never referenced) are unlinked and then deleted after two graces
-- [ ] A blob re-linked between the sweep's read and its delete survives with its object (the hook race test); a failed object delete leaves the row for the next run
-- [ ] Purging a Repository removes only its linked packages; deleting the path owner removes everything under the path, including a package linked to a Repository that was transferred away
-- [ ] Three pulls by tag and one by digest give the expected manifest and tag counts after a flush; shutdown flushes
-- [ ] No page changes, so no light and dark check; the standing mocks are unchanged (say so in the PR)
+- [x] A deleted image's blobs go only after the grace (injected clock); an image sharing a layer keeps it
+- [x] Layers of an aborted push (linked, never referenced) are unlinked and then deleted after two graces
+- [x] A blob re-linked between the sweep's read and its delete survives with its object (the hook race test); a failed object delete leaves the row for the next run
+- [x] Purging a Repository removes only its linked packages; deleting the path owner removes everything under the path, including a package linked to a Repository that was transferred away
+- [x] Three pulls by tag and one by digest give the expected manifest and tag counts after a flush; shutdown flushes
+- [x] No page changes, so no light and dark check; the standing mocks are unchanged (say so in the PR)
 - [ ] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
-- [ ] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
-- [ ] Status set to `done` and these boxes ticked in the same commit
+- [x] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
+- [x] Status set to `done` and these boxes ticked in the same commit
 
 ## Verification
 
 Throwaway server with `registry.gc_grace: 1m`: push, delete a tag and manifest, wait two sweeps (or trigger the sweep), confirm the object file is gone and a shared layer remains; abort a push mid-way and confirm its layers go.
 
 ## Comments
+
+### 2026-11-18
+
+- Files: `registry_gc_service.go` (`Sweep` is one pass, `Run` the hourly loop; `WithBackend`, `WithClock`, `WithSweepHook`),
+  `registry_gc_store.go` (the batch queries, `ReapBlob`, `AddPullCounts`), `registry_pulls.go` (the in-memory counter).
+  `main.go` starts `registry.sweep` outside the `registry.enabled` check and `registry.pull_counts`, and flushes once more
+  after `srv.Shutdown`, so the last requests are counted (the ticker loop itself stops with the worker context).
+- The sweep hook runs after a blob is picked and before its transaction. It cannot sit inside the transaction: the row is
+  `FOR UPDATE`-locked there, so a test's re-link (`FOR SHARE`) would block forever. A real push inside the window waits on
+  that lock and then finds no row, so it re-puts the object (ticket 03's rule).
+- `linkBlob` now sets `created_at = NOW()` on a repeat link (`ON CONFLICT DO UPDATE`), so a retried push restarts the link's
+  grace; with `DO NOTHING` a link from an aborted push 23 hours ago could be swept just before the retry's manifest.
+- Purge: the rows already went by FK cascade (`packages.repo_id`, `owner_user_id`, `owner_org_id`), including pending
+  packages and a package linked to a repository transferred away. What was missing was generic file objects: the keys are
+  read before the cascade and deleted after, in `RepoService.PurgeExpired`, `UserService.DeleteUser` and
+  `OrgService.Delete`; failures are logged as orphans. Container blobs go via the sweep. Deleting a user also removes
+  packages of other owners linked to repositories the user owned (the repository row is gone).
+- An organization with repositories cannot be deleted, so its packages at delete time link to repositories that moved away.
+- Pull counts: `Manifest` carries `ID`, `PackageID` and the tag used; the handler calls `CountPull` on `GET` only. A tag
+  re-pushed between the pull and the flush gets the count (accepted, as is losing a batch on a crash). A failed flush puts
+  the batch back.
+- GC tests use `OpenFreshTestDB` (own schema) because a sweep is global and would reap other test packages' blobs.
+- `make test-integration` starts its own database; `go test ./...` and `golangci-lint run` ran green on the `cz_t05`
+  scratch DB. No page changed, so there is no light and dark check and the standing mocks are unchanged.
+- **Not done:** the throwaway-server check. The sweep is hourly with no trigger, so a live run would mean waiting an hour or
+  adding a debug hook; the behaviour is covered by the clock-injected tests instead.

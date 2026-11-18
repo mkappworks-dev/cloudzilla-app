@@ -112,6 +112,13 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 			slog.Warn("repo purge: list release assets failed; their objects stay as orphans", "error", err)
 		}
 	}
+	var packageKeys map[int64][]string
+	if s.packages != nil {
+		var err error
+		if packageKeys, err = s.packages.GenericKeysByRepo(ctx, cutoff); err != nil {
+			slog.Warn("repo purge: list generic package files failed; their objects stay as orphans", "error", err)
+		}
+	}
 	expired, err := s.repos.PurgeExpired(ctx, cutoff)
 	if err != nil {
 		return fmt.Errorf("purge expired repos: %w", err)
@@ -121,6 +128,9 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 		s.removeStrandedWiki(ctx, r.OwnerName, r.Name)
 		if s.releaseAssets != nil {
 			s.releaseAssets.DeleteObjects(ctx, assetsOfRepo(assets, r.ID))
+		}
+		if s.packages != nil {
+			s.packages.DeleteObjects(ctx, packageKeys[r.ID])
 		}
 		if s.workflowLogs != nil {
 			if err := s.workflowLogs.DeleteForRepo(ctx, r.ID); err != nil {

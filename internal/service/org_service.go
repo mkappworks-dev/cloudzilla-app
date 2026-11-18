@@ -30,6 +30,7 @@ type OrgService struct {
 	cfg          config.GitConfig
 	avatars      *AvatarService
 	workflowLogs *WorkflowLogService
+	packages     *PackageService
 	quota        *QuotaService
 	commits      serverCommitter
 }
@@ -48,6 +49,12 @@ func (s *OrgService) WithQuota(q *QuotaService) *OrgService {
 // WithWorkflowLogs removes the CI logs and artifacts of a deleted org's repos.
 func (s *OrgService) WithWorkflowLogs(l *WorkflowLogService) *OrgService {
 	s.workflowLogs = l
+	return s
+}
+
+// WithPackages removes the generic package objects under a deleted org's path.
+func (s *OrgService) WithPackages(p *PackageService) *OrgService {
+	s.packages = p
 	return s
 }
 
@@ -122,9 +129,20 @@ func (s *OrgService) Delete(ctx context.Context, orgID, requestingUserID int64) 
 	if !s.IsOwner(ctx, orgID, requestingUserID) {
 		return fmt.Errorf("only org owners can delete an organization")
 	}
+	// The org_id cascade drops the file rows, so their keys are read first.
+	var packageKeys []string
+	if s.packages != nil {
+		var err error
+		if packageKeys, err = s.packages.GenericKeysOfOwner(ctx, QuotaOwner{OrgID: orgID}); err != nil {
+			slog.Warn("org delete: list generic package files failed; their objects stay as orphans", "org_id", orgID, "error", err)
+		}
+	}
 	deleted, avatarKey, err := s.orgs.Delete(ctx, orgID)
 	if err != nil {
 		return err
+	}
+	if s.packages != nil {
+		s.packages.DeleteObjects(ctx, packageKeys)
 	}
 	s.avatars.DeleteObject(ctx, avatarKey)
 	if s.workflowLogs != nil {
