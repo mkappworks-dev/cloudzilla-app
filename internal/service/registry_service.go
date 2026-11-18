@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -107,6 +108,8 @@ type RegistryService struct {
 	now      func() time.Time
 	backend  storage.Backend
 	spoolDir string
+	// sessionLocks maps an upload session id to its *sync.Mutex.
+	sessionLocks sync.Map
 
 	tokens  *AccessTokenService
 	repos   *RepoService

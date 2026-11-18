@@ -572,3 +572,28 @@ func mustLocal(t *testing.T, root string) storage.Backend {
 	t.Cleanup(func() { _ = b.Close() })
 	return b
 }
+
+func TestBlobPush_ConcurrentChunkCannotChangeABlobBeingCommitted(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	auth := e.pushAuth(t, e.ownerPAT, e.pubImage)
+	data := payload(t, "committed")
+	loc := e.startUpload(t, auth, e.pubImage)
+	e.req(http.MethodPatch, loc, auth, bytes.NewReader(data[:4]))
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for range 50 {
+			e.req(http.MethodPatch, loc, auth, strings.NewReader("poison"))
+		}
+	}()
+	rr := e.req(http.MethodPut, loc+"?digest="+digestOf(data), auth, bytes.NewReader(data[4:]))
+	<-done
+
+	if rr.Code == http.StatusCreated {
+		got := e.req(http.MethodGet, "/v2/"+e.pubImage+"/blobs/"+digestOf(data), auth, nil)
+		if digestOf(got.Body.Bytes()) != digestOf(data) {
+			t.Errorf("the stored object does not match its digest")
+		}
+	}
+}

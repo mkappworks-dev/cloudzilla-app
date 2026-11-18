@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -289,6 +290,22 @@ func (s *RegistryService) session(ctx context.Context, userID int64, name, id st
 	return sess, t, nil
 }
 
+// lockSession serializes the operations on one session, so a chunk can't change the spool file while the commit
+// hashes and puts it: the object is shared by digest, and a file that changed after hashing would poison it for
+// every package. In-process only, which matches the single-instance spool.
+func (s *RegistryService) lockSession(id string) (unlock func()) {
+	m, _ := s.sessionLocks.LoadOrStore(id, &sync.Mutex{})
+	mu := m.(*sync.Mutex)
+	mu.Lock()
+	return func() {
+		mu.Unlock()
+		// Only a session that is gone may drop its mutex; a live one keeps it for the next chunk.
+		if _, err := s.registry.Session(context.Background(), id); errors.Is(err, sql.ErrNoRows) {
+			s.sessionLocks.Delete(id)
+		}
+	}
+}
+
 // UploadStatus reports how many bytes the session holds.
 func (s *RegistryService) UploadStatus(ctx context.Context, userID int64, name, id string) (*UploadState, error) {
 	sess, _, err := s.session(ctx, userID, name, id)
@@ -300,6 +317,9 @@ func (s *RegistryService) UploadStatus(ctx context.Context, userID int64, name, 
 
 // CancelUpload drops the session and its spool file.
 func (s *RegistryService) CancelUpload(ctx context.Context, userID int64, name, id string) error {
+	if uuidRe.MatchString(id) {
+		defer s.lockSession(id)()
+	}
 	sess, _, err := s.session(ctx, userID, name, id)
 	if err != nil {
 		return err
@@ -318,6 +338,9 @@ type ContentRange struct{ Start, End int64 }
 // AppendUpload appends body to the session. A range, when sent, must start where the session ends (else 416 with the
 // Range of what it holds) and span exactly the bytes sent.
 func (s *RegistryService) AppendUpload(ctx context.Context, userID int64, name, id string, body io.Reader, rng *ContentRange) (*UploadState, error) {
+	if uuidRe.MatchString(id) {
+		defer s.lockSession(id)()
+	}
 	sess, t, err := s.session(ctx, userID, name, id)
 	if err != nil {
 		return nil, err
@@ -427,6 +450,9 @@ func (s *RegistryService) allowance(ctx context.Context, sess *store.UploadSessi
 func (s *RegistryService) CompleteUpload(ctx context.Context, userID int64, name, id, digest string, body io.Reader, rng *ContentRange) (string, error) {
 	if !ValidBlobDigest(digest) {
 		return "", regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+	}
+	if uuidRe.MatchString(id) {
+		defer s.lockSession(id)()
 	}
 	sess, t, err := s.session(ctx, userID, name, id)
 	if err != nil {
