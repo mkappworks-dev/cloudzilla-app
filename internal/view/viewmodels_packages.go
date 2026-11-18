@@ -2,6 +2,7 @@ package view
 
 import (
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -103,4 +104,46 @@ type PackageDetailData struct {
 	Used, Limit   int64
 	RelinkTargets []string
 	Error         string
+}
+
+// OwnerPackagesData is the Packages tab of a user or organization profile.
+type OwnerPackagesData struct {
+	Owner string
+	// Packages are those matching the filters; Total counts all the viewer sees under the path.
+	Packages    []model.PackageSummary
+	Total       int
+	Type, Repo  string
+	RepoOptions []string
+	// CanManage is the path owner: Delete and Re-link for every package, whichever Repository it sits in.
+	CanManage bool
+	Targets   []string
+}
+
+// FilterOwnerPackages applies the type tab and the Repository filter; an empty or unknown value matches all.
+func FilterOwnerPackages(all []model.PackageSummary, typ, repo string) []model.PackageSummary {
+	shown := make([]model.PackageSummary, 0, len(all))
+	for _, p := range all {
+		if (typ == model.PackageTypeContainer || typ == model.PackageTypeGeneric) && p.Type != typ {
+			continue
+		}
+		if repo != "" && p.RepoName != repo {
+			continue
+		}
+		shown = append(shown, p)
+	}
+	return shown
+}
+
+// OwnerPackageRepos names the Repositories the packages are linked to, sorted, for the filter.
+func OwnerPackageRepos(all []model.PackageSummary) []string {
+	seen := map[string]bool{}
+	var names []string
+	for _, p := range all {
+		if !seen[p.RepoName] {
+			seen[p.RepoName] = true
+			names = append(names, p.RepoName)
+		}
+	}
+	sort.Strings(names)
+	return names
 }

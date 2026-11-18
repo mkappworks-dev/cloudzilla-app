@@ -451,3 +451,68 @@ func (h *Handler) RelinkPackageForm(w http.ResponseWriter, r *http.Request) {
 	}
 	redirectAfterSave(w, r, packageURL(target, p.Type, p.Name))
 }
+
+// ownerPackageForm resolves the package an owner Packages tab form names. It must sit under the path in the URL and be
+// visible to the poster, else 404; only the path owner may change it, else 403.
+func (h *Handler) ownerPackageForm(w http.ResponseWriter, r *http.Request) (*model.PackageSummary, int64, bool) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return nil, 0, false
+	}
+	id, err := strconv.ParseInt(r.FormValue("package_id"), 10, 64)
+	if err != nil {
+		h.NotFound(w, r)
+		return nil, 0, false
+	}
+	p, err := h.Services.Package.InOwner(r.Context(), chi.URLParam(r, "owner"), &claims.UserID, id)
+	if errors.Is(err, service.ErrPackageNotFound) {
+		h.NotFound(w, r)
+		return nil, 0, false
+	}
+	if err != nil {
+		slog.Error("owner package form: find failed", "package_id", id, "error", err)
+		h.ServerError(w, r)
+		return nil, 0, false
+	}
+	if !h.Services.Package.IsPathOwner(r.Context(), p.OwnerName, claims.UserID) {
+		settingsError(w, r, http.StatusForbidden, "Only the owner of "+p.OwnerName+" can change its packages here.")
+		return nil, 0, false
+	}
+	return p, claims.UserID, true
+}
+
+// DeleteOwnerPackage handles POST /{owner}/-/packages/delete; the whole package needs its name typed.
+func (h *Handler) DeleteOwnerPackage(w http.ResponseWriter, r *http.Request) {
+	p, userID, ok := h.ownerPackageForm(w, r)
+	if !ok {
+		return
+	}
+	if r.FormValue("confirm_name") != p.Name {
+		settingsError(w, r, http.StatusUnprocessableEntity, "Type the package name exactly as shown.")
+		return
+	}
+	if err := h.Services.Package.Delete(r.Context(), userID, p.ID); err != nil {
+		packageFormError(w, r, err)
+		return
+	}
+	redirectAfterSave(w, r, "/"+p.OwnerName+"?tab=packages")
+}
+
+// RelinkOwnerPackage handles POST /{owner}/-/packages/relink; repo names a Repository of the path owner.
+func (h *Handler) RelinkOwnerPackage(w http.ResponseWriter, r *http.Request) {
+	p, userID, ok := h.ownerPackageForm(w, r)
+	if !ok {
+		return
+	}
+	target, err := h.Services.Repo.Get(r.Context(), p.OwnerName, r.FormValue("repo"))
+	if err != nil {
+		packageFormError(w, r, service.ErrRelinkTarget)
+		return
+	}
+	if err := h.Services.Package.Relink(r.Context(), userID, p.ID, target.ID); err != nil {
+		packageFormError(w, r, err)
+		return
+	}
+	redirectAfterSave(w, r, "/"+p.OwnerName+"?tab=packages")
+}

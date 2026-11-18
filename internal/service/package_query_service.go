@@ -7,6 +7,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/adminmode"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 var (
@@ -29,7 +30,8 @@ func (s *PackageService) ListByRepo(ctx context.Context, repo *model.Repository,
 }
 
 // ListByOwner returns the linked packages under the path owner ownerName that viewerID may read, whatever
-// Repository each now sits in. A pending package is never listed.
+// Repository each now sits in. A pending package is never listed. The path owner also gets the packages sitting in
+// Repositories they cannot read, flagged RepoHidden, so they can still delete or re-link them.
 func (s *PackageService) ListByOwner(ctx context.Context, ownerName string, viewerID *int64) ([]model.PackageSummary, error) {
 	owner, err := s.packages.ResolveOwner(ctx, ownerName)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -42,23 +44,59 @@ func (s *PackageService) ListByOwner(ctx context.Context, ownerName string, view
 	if err != nil {
 		return nil, err
 	}
-	readable := map[int64]bool{}
+	manages := viewerID != nil && s.ownerIsPathOwner(ctx, owner, *viewerID)
+	type access struct{ readable, private bool }
+	seen := map[int64]access{}
 	out := all[:0]
 	for _, p := range all {
-		ok, seen := readable[*p.RepoID]
-		if !seen {
+		a, ok := seen[*p.RepoID]
+		if !ok {
 			repo, err := s.repos.GetByID(ctx, *p.RepoID)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				return nil, err
 			}
-			ok = err == nil && s.repos.CanRead(ctx, repo, viewerID)
-			readable[*p.RepoID] = ok
+			if err == nil {
+				a = access{readable: s.repos.CanRead(ctx, repo, viewerID), private: repo.Private}
+			}
+			seen[*p.RepoID] = a
 		}
-		if ok {
-			out = append(out, p)
+		if !a.readable && !manages {
+			continue
 		}
+		p.RepoPrivate, p.RepoHidden = a.private, !a.readable
+		out = append(out, p)
 	}
 	return out, nil
+}
+
+// InOwner returns the package with id under ownerName's path, or ErrPackageNotFound, also when viewerID cannot see it.
+func (s *PackageService) InOwner(ctx context.Context, ownerName string, viewerID *int64, id int64) (*model.PackageSummary, error) {
+	list, err := s.ListByOwner(ctx, ownerName, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range list {
+		if list[i].ID == id {
+			return &list[i], nil
+		}
+	}
+	return nil, ErrPackageNotFound
+}
+
+// IsPathOwner reports whether userID may manage every package under ownerName's path.
+func (s *PackageService) IsPathOwner(ctx context.Context, ownerName string, userID int64) bool {
+	owner, err := s.packages.ResolveOwner(ctx, ownerName)
+	return err == nil && s.ownerIsPathOwner(ctx, owner, userID)
+}
+
+func (s *PackageService) ownerIsPathOwner(ctx context.Context, o store.PathOwner, userID int64) bool {
+	p := &model.Package{}
+	if o.OrgID != 0 {
+		p.OwnerOrgID = &o.OrgID
+	} else {
+		p.OwnerUserID = &o.UserID
+	}
+	return s.isPathOwner(ctx, p, userID)
 }
 
 // ContainerDetail is a container package with what its page lists.
@@ -253,4 +291,20 @@ func (s *PackageService) Storage(ctx context.Context, p *model.Package) (used, l
 	}
 	used, err = s.Usage(ctx, o)
 	return used, limit, err
+}
+
+// UsageSummary reads "Packages 1.2 GiB of 10 GiB", or "Packages 1.2 GiB" when the owner has no package quota.
+func (s *PackageService) UsageSummary(ctx context.Context, o QuotaOwner) (string, error) {
+	limit, err := s.limit(ctx, o)
+	if err != nil {
+		return "", err
+	}
+	used, err := s.Usage(ctx, o)
+	if err != nil {
+		return "", err
+	}
+	if limit <= 0 {
+		return "Packages " + FormatBytes(used), nil
+	}
+	return "Packages " + FormatBytes(used) + " of " + FormatBytes(limit), nil
 }

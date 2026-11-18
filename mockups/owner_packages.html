@@ -19,7 +19,11 @@
 
     <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
       <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
-      <span>/{owner}?tab=packages: every package across the owner's repositories that the viewer can read. Same page for an organization.</span>
+      <button type="button" data-mock-state="list" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Anyone else</button>
+      <button type="button" data-mock-state="manage" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Path owner</button>
+      <button type="button" data-mock-state="delete" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Delete dialog</button>
+      <button type="button" data-mock-state="relink" class="h-7 px-2.5 rounded-md border border-border hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground">Re-link dialog</button>
+      <span>/{owner}?tab=packages: every package under the owner's path that the viewer can read; the path owner also sees packages in a repository they can't read, with Delete and Re-link. Same page for an organization.</span>
       <span class="ml-auto"><a href="repo_packages.html" class="underline hover:text-foreground">← repo packages</a></span>
     </div>
 
@@ -34,7 +38,7 @@
     <nav aria-label="Profile sections" class="flex flex-wrap items-center gap-1 text-sm">
       <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Overview</a>
       <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Repositories <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">14</span></a>
-      <a href="owner_packages.html" aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">Packages <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">5</span></a>
+      <a href="owner_packages.html" aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">Packages <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5"><span data-when="list">4</span><span data-when="manage delete relink" hidden>6</span></span></a>
       <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Stars <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">6</span></a>
       <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Gists <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
     </nav>
@@ -70,6 +74,7 @@
               <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider hidden md:table-cell">Repository</th>
               <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Latest</th>
               <th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider text-right hidden sm:table-cell">Updated</th>
+              <th scope="col" class="h-10 px-4 text-right align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider" data-when="manage delete relink" hidden><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody class="[&_tr:last-child]:border-0">
@@ -83,6 +88,10 @@
               <td class="p-4 align-middle hidden md:table-cell"><a href="repo_packages.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">v0.4.1</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-11-05T16:20:00Z">yesterday</time></td>
+              <td class="p-4 align-middle text-right whitespace-nowrap" data-when="manage delete relink" hidden>
+                <button type="button" data-owner-relink data-pkg-name="cloudzilla-server" class="inline-flex items-center justify-center rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-7 px-2.5 text-[12px]">Re-link…</button>
+                <button type="button" data-owner-delete data-pkg-name="cloudzilla-server" class="ml-1 inline-flex items-center justify-center rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-7 px-2.5 text-[12px]">Delete…</button>
+              </td>
             </tr>
             <tr class="border-b border-border transition-colors hover:bg-muted/50">
               <th scope="row" class="p-4 align-middle font-normal text-left">
@@ -94,6 +103,10 @@
               <td class="p-4 align-middle hidden md:table-cell"><a href="repo_packages.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">0.4.1</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-11-05T16:24:00Z">yesterday</time></td>
+              <td class="p-4 align-middle text-right whitespace-nowrap" data-when="manage delete relink" hidden>
+                <button type="button" data-owner-relink data-pkg-name="cz-cli" class="inline-flex items-center justify-center rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-7 px-2.5 text-[12px]">Re-link…</button>
+                <button type="button" data-owner-delete data-pkg-name="cz-cli" class="ml-1 inline-flex items-center justify-center rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-7 px-2.5 text-[12px]">Delete…</button>
+              </td>
             </tr>
             <tr class="border-b border-border transition-colors hover:bg-muted/50">
               <th scope="row" class="p-4 align-middle font-normal text-left">
@@ -105,6 +118,10 @@
               <td class="p-4 align-middle hidden md:table-cell"><a href="repo_packages.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">v0.5.0-rc.1</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-11-03T10:00:00Z">3 days ago</time></td>
+              <td class="p-4 align-middle text-right whitespace-nowrap" data-when="manage delete relink" hidden>
+                <button type="button" data-owner-relink data-pkg-name="cloudzilla-runner" class="inline-flex items-center justify-center rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-7 px-2.5 text-[12px]">Re-link…</button>
+                <button type="button" data-owner-delete data-pkg-name="cloudzilla-runner" class="ml-1 inline-flex items-center justify-center rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-7 px-2.5 text-[12px]">Delete…</button>
+              </td>
             </tr>
             <tr class="border-b border-border transition-colors hover:bg-muted/50">
               <th scope="row" class="p-4 align-middle font-normal text-left">
@@ -116,8 +133,12 @@
               <td class="p-4 align-middle hidden md:table-cell"><a href="repo_packages.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">2026.11.02</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-11-02T10:00:00Z">4 days ago</time></td>
+              <td class="p-4 align-middle text-right whitespace-nowrap" data-when="manage delete relink" hidden>
+                <button type="button" data-owner-relink data-pkg-name="migrations-bundle" class="inline-flex items-center justify-center rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-7 px-2.5 text-[12px]">Re-link…</button>
+                <button type="button" data-owner-delete data-pkg-name="migrations-bundle" class="ml-1 inline-flex items-center justify-center rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-7 px-2.5 text-[12px]">Delete…</button>
+              </td>
             </tr>
-            <tr class="border-b border-border transition-colors hover:bg-muted/50">
+            <tr class="border-b border-border transition-colors hover:bg-muted/50" data-when="manage delete relink" hidden>
               <th scope="row" class="p-4 align-middle font-normal text-left">
                 <div class="flex items-center gap-2.5">
                   <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" role="img" aria-label="Container image"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
@@ -127,6 +148,25 @@
               <td class="p-4 align-middle hidden md:table-cell"><a href="#" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">go-service-starter</a> <span class="ml-1 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">main</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-10-12T10:00:00Z">Oct 12</time></td>
+              <td class="p-4 align-middle text-right whitespace-nowrap" data-when="manage delete relink" hidden>
+                <button type="button" data-owner-relink data-pkg-name="go-service-starter" class="inline-flex items-center justify-center rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-7 px-2.5 text-[12px]">Re-link…</button>
+                <button type="button" data-owner-delete data-pkg-name="go-service-starter" class="ml-1 inline-flex items-center justify-center rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-7 px-2.5 text-[12px]">Delete…</button>
+              </td>
+            </tr>
+            <tr class="border-b border-border transition-colors hover:bg-muted/50" data-when="manage delete relink" hidden>
+              <th scope="row" class="p-4 align-middle font-normal text-left">
+                <div class="flex items-center gap-2.5">
+                  <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" role="img" aria-label="Container image"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                  <span class="text-[13px] font-medium font-mono">internal-tools</span>
+                </div>
+              </th>
+              <td class="p-4 align-middle hidden md:table-cell"><span class="text-[13px] text-muted-foreground">ops-private</span> <span class="ml-1 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span></td>
+              <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">v2.3.0</code></td>
+              <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-09-30T10:00:00Z">Sep 30</time></td>
+              <td class="p-4 align-middle text-right whitespace-nowrap" data-when="manage delete relink" hidden>
+                <button type="button" data-owner-relink data-pkg-name="internal-tools" class="inline-flex items-center justify-center rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-7 px-2.5 text-[12px]">Re-link…</button>
+                <button type="button" data-owner-delete data-pkg-name="internal-tools" class="ml-1 inline-flex items-center justify-center rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-7 px-2.5 text-[12px]">Delete…</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -135,7 +175,72 @@
   </div>
 </main>
 
+
+<dialog id="owner-delete-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="owner-delete-title">
+  <form method="dialog">
+    <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <h2 id="owner-delete-title" class="text-base font-semibold leading-tight"><span class="text-destructive">Delete <span class="font-mono" data-name>cloudzilla-server</span>?</span></h2>
+      <p class="text-[13px] text-muted-foreground leading-snug">Every version and its files are removed, and the name is freed. This can’t be undone.</p>
+    </div>
+    <div class="p-5 text-sm">
+      <label for="owner-delete-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Type <span class="font-mono text-foreground" data-name>cloudzilla-server</span> to confirm <span class="text-destructive" aria-hidden="true">*</span></label>
+      <input id="owner-delete-confirm" type="text" autocomplete="off" spellcheck="false" class="w-full bg-background border border-input rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
+    </div>
+    <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <button type="button" data-cancel class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" data-ok class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Delete package</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="owner-relink-dialog" class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-xs" aria-labelledby="owner-relink-title">
+  <form method="dialog">
+    <div class="flex flex-col gap-1 p-5 border-b border-border">
+      <h2 id="owner-relink-title" class="text-base font-semibold leading-tight">Re-link <span class="font-mono" data-name>internal-tools</span></h2>
+      <p class="text-[13px] text-muted-foreground leading-snug">Pulls keep working. Readers and writers of the new repository decide who can pull and push. Only repositories of mkappworks are offered.</p>
+    </div>
+    <div class="p-5 text-sm">
+      <label for="owner-relink-repo" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository</label>
+      <select id="owner-relink-repo" class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring">
+        <option>mkappworks/cloudzilla</option>
+        <option>mkappworks/go-service-starter</option>
+      </select>
+    </div>
+    <div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+      <button type="button" data-cancel class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+      <button type="button" data-ok class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Re-link</button>
+    </div>
+  </form>
+</dialog>
+
 <div id="cz-footer"></div>
 <script src="shell.js"></script>
+<script>
+  (function () {
+    var del = document.getElementById('owner-delete-dialog'), relink = document.getElementById('owner-relink-dialog');
+    function open(dlg, name) {
+      dlg.querySelectorAll('[data-name]').forEach(function (el) { el.textContent = name; });
+      dlg.showModal();
+    }
+    document.querySelectorAll('[data-owner-delete]').forEach(function (b) { b.addEventListener('click', function () { open(del, b.dataset.pkgName); }); });
+    document.querySelectorAll('[data-owner-relink]').forEach(function (b) { b.addEventListener('click', function () { open(relink, b.dataset.pkgName); }); });
+    [del, relink].forEach(function (d) {
+      d.querySelector('[data-cancel]').addEventListener('click', function () { d.close(); });
+      d.querySelector('[data-ok]').addEventListener('click', function () { d.close(); window.czToast(d === del ? 'Package deleted.' : 'Package re-linked.'); });
+    });
+    function show(s) {
+      document.querySelectorAll('[data-when]').forEach(function (el) {
+        el.toggleAttribute('hidden', el.dataset.when.split(' ').indexOf(s) < 0);
+      });
+      document.querySelectorAll('[data-mock-state]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mockState === s)); });
+      if (del.open) del.close();
+      if (relink.open) relink.close();
+      if (s === 'delete') open(del, 'cloudzilla-server');
+      if (s === 'relink') open(relink, 'internal-tools');
+    }
+    document.querySelectorAll('[data-mock-state]').forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.mockState); }); });
+    show(new URLSearchParams(location.search).get('state') || 'list');
+  })();
+</script>
 </body>
 </html>

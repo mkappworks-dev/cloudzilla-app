@@ -111,6 +111,9 @@ type PackageSummary struct {
 	VersionCount  int
 	LatestVersion string
 	Pulls         int64
+	// RepoPrivate and RepoHidden are set by the owner listing: the linked Repository is private, and the viewer is the
+	// path owner but cannot read it.
+	RepoPrivate, RepoHidden bool
 }
 
 // TagRow is a tag of a container package. Size is the distinct blob bytes of the image, or of every child of an index.

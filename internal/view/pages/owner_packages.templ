@@ -1,0 +1,169 @@
+package pages
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/timefmt"
+)
+
+templ OwnerPackagesTab(data view.OwnerPackagesData) {
+	<section class="flex flex-col gap-4" aria-labelledby="owner-packages">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h2 id="owner-packages" class="text-2xl font-semibold tracking-tight">Packages</h2>
+			<form method="get" action={ templ.SafeURL("/" + data.Owner) } class="flex flex-wrap items-center gap-1.5">
+				<input type="hidden" name="tab" value="packages"/>
+				<div class="relative">
+					<select name="type" aria-label="Filter by type" onchange="this.form.requestSubmit()" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+						<option value="" selected?={ data.Type == "" }>All types</option>
+						<option value={ model.PackageTypeContainer } selected?={ data.Type == model.PackageTypeContainer }>Container</option>
+						<option value={ model.PackageTypeGeneric } selected?={ data.Type == model.PackageTypeGeneric }>Generic</option>
+					</select>
+					<svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+				</div>
+				<div class="relative">
+					<select name="repo" aria-label="Filter by repository" onchange="this.form.requestSubmit()" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none">
+						<option value="" selected?={ data.Repo == "" }>All repositories</option>
+						for _, name := range data.RepoOptions {
+							<option value={ name } selected?={ data.Repo == name }>{ name }</option>
+						}
+					</select>
+					<svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+				</div>
+			</form>
+		</div>
+		<div class="rounded-md border border-border bg-card overflow-hidden">
+			if len(data.Packages) == 0 {
+				<p class="p-8 text-center text-sm text-muted-foreground">
+					if data.Total == 0 {
+						No packages yet.
+					} else {
+						No packages match.
+					}
+				</p>
+			} else {
+				<table class="w-full caption-bottom text-sm">
+					<thead class="[&_tr]:border-b [&_tr]:border-border">
+						<tr class="border-b border-border">
+							<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Package</th>
+							<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider hidden md:table-cell">Repository</th>
+							<th scope="col" class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider">Latest</th>
+							<th scope="col" class="h-10 px-4 text-right align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider hidden sm:table-cell">Updated</th>
+							if data.CanManage {
+								<th scope="col" class="h-10 px-4 text-right align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider"><span class="sr-only">Actions</span></th>
+							}
+						</tr>
+					</thead>
+					<tbody class="[&_tr:last-child]:border-0">
+						for _, p := range data.Packages {
+							<tr data-pkg-row={ p.Name } class="border-b border-border transition-colors hover:bg-muted/50">
+								<th scope="row" class="p-4 align-middle font-normal text-left">
+									<div class="flex items-center gap-2.5 min-w-0">
+										@packageTypeIcon(p.Type, 16)
+										if p.RepoHidden {
+											<span class="text-[13px] font-medium font-mono">{ p.Name }</span>
+										} else {
+											<a href={ templ.SafeURL(ownerPackageHref(p)) } class="text-[13px] font-medium hover:underline font-mono">{ p.Name }</a>
+										}
+									</div>
+								</th>
+								<td class="p-4 align-middle hidden md:table-cell">
+									if p.RepoHidden {
+										<span class="text-[13px] text-muted-foreground">{ p.RepoName }</span>
+									} else {
+										<a href={ templ.SafeURL("/" + p.RepoOwner + "/" + p.RepoName) } class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">{ p.RepoName }</a>
+									}
+									if p.RepoPrivate {
+										<span class="ml-1 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span>
+									}
+								</td>
+								<td class="p-4 align-middle">
+									if p.LatestVersion != "" {
+										<code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">{ p.LatestVersion }</code>
+									} else {
+										<span class="text-[12px] text-muted-foreground">—</span>
+									}
+								</td>
+								<td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime={ p.UpdatedAt.UTC().Format(time.RFC3339) }>{ timefmt.Relative(p.UpdatedAt) }</time></td>
+								if data.CanManage {
+									<td class="p-4 align-middle text-right whitespace-nowrap">
+										if len(ownerRelinkTargets(data, p)) > 0 {
+											<button type="button" data-pkg-action="owner-relink" onclick={ openOwnerPackageDialog(ownerPackageDialogID("relink", p)) } class="inline-flex items-center justify-center rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-7 px-2.5 text-[12px]">Re-link…</button>
+										}
+										<button type="button" data-pkg-action="owner-delete" onclick={ openOwnerPackageDialog(ownerPackageDialogID("delete", p)) } class="ml-1 inline-flex items-center justify-center rounded-md font-medium transition-colors border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive h-7 px-2.5 text-[12px]">Delete…</button>
+									</td>
+								}
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+		if data.CanManage {
+			for _, p := range data.Packages {
+				@ownerPackageDeleteDialog(data, p)
+				if len(ownerRelinkTargets(data, p)) > 0 {
+					@ownerPackageRelinkDialog(data, p)
+				}
+			}
+		}
+	</section>
+}
+
+templ ownerPackageDeleteDialog(data view.OwnerPackagesData, p model.PackageSummary) {
+	@components.Dialog(ownerPackageDialogID("delete", p)) {
+		<form hx-post={ ownerPackageFormPath(data, "delete") } hx-swap="none" data-toast="Package deleted">
+			<input type="hidden" name="package_id" value={ strconv.FormatInt(p.ID, 10) }/>
+			@components.DialogHeader() {
+				@components.DialogTitle(ownerPackageDialogID("delete", p)) {
+					<span class="text-destructive">Delete { p.Name }?</span>
+				}
+				@components.DialogDescription() {
+					Every version and its files are removed, and the name is freed. This can’t be undone.
+				}
+			}
+			@components.DialogBody() {
+				@components.ConfirmNameField(ownerPackageDialogID("delete", p), p.Name)
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive-fill text-destructive-fill-foreground hover:bg-destructive-fill/90">Delete package</button>
+			}
+		</form>
+	}
+}
+
+templ ownerPackageRelinkDialog(data view.OwnerPackagesData, p model.PackageSummary) {
+	@components.Dialog(ownerPackageDialogID("relink", p)) {
+		<form hx-post={ ownerPackageFormPath(data, "relink") } hx-swap="none" data-toast="Package re-linked">
+			<input type="hidden" name="package_id" value={ strconv.FormatInt(p.ID, 10) }/>
+			@components.DialogHeader() {
+				@components.DialogTitle(ownerPackageDialogID("relink", p)) {
+					Re-link { p.Name }
+				}
+				@components.DialogDescription() {
+					Pulls keep working. Readers and writers of the new repository decide who can pull and push. Only repositories of { data.Owner } are offered.
+				}
+			}
+			@components.DialogBody() {
+				<label for={ ownerPackageDialogID("relink", p) + "-repo" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository</label>
+				<select id={ ownerPackageDialogID("relink", p) + "-repo" } name="repo" required class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-input rounded-md focus:outline-hidden focus:ring-2 focus:ring-ring">
+					for _, name := range ownerRelinkTargets(data, p) {
+						<option value={ name }>{ data.Owner }/{ name }</option>
+					}
+				</select>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Re-link</button>
+			}
+		</form>
+	}
+}
+
+script openOwnerPackageDialog(id string) {
+	document.getElementById(id).showModal();
+}

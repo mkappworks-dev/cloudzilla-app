@@ -25,6 +25,8 @@ type SettingsData struct {
 	NoreplyEmail        string
 	// QuotaSummary is "" when the instance sets no quota for the user.
 	QuotaSummary string
+	// PackageUsage is "" when it can't be read.
+	PackageUsage string
 	ProfileSaved bool
 	ProfileError string
 	// EmailVerificationAvailable is false when no SMTP server is configured.

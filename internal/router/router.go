@@ -268,6 +268,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/{owner}/{repo}/packages/versions/delete", h.DeletePackageVersion)
 	r.With(authMW).Post("/{owner}/{repo}/packages/delete", h.DeletePackage)
 	r.With(authMW).Post("/{owner}/{repo}/packages/relink", h.RelinkPackageForm)
+	r.With(authMW).Post("/{owner}/-/packages/delete", h.DeleteOwnerPackage)
+	r.With(authMW).Post("/{owner}/-/packages/relink", h.RelinkOwnerPackage)
 	r.With(optAuthMW).Get("/{owner}/{repo}/packages/generic/{name}/{version}/{filename}", h.DownloadGenericFile)
 	r.With(optAuthMW).Head("/{owner}/{repo}/packages/generic/{name}/{version}/{filename}", h.DownloadGenericFile)
 	if cfg.CI.Enabled {

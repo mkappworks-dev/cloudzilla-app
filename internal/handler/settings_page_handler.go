@@ -51,6 +51,16 @@ func (h *Handler) quotaSummary(ctx context.Context, o service.QuotaOwner) string
 	return u.Summary()
 }
 
+// packageUsage is "" when the usage can't be read, for the same reason as quotaSummary.
+func (h *Handler) packageUsage(ctx context.Context, o service.QuotaOwner) string {
+	s, err := h.Services.Package.UsageSummary(ctx, o)
+	if err != nil {
+		slog.Warn("read package usage", "user_id", o.UserID, "org_id", o.OrgID, "error", err)
+		return ""
+	}
+	return s
+}
+
 func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -95,6 +105,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		ConnectedAccountsNotice: h.takeSettingsFlash(w, r, settingsNoticeCookieName),
 	}
 	data.QuotaSummary = h.quotaSummary(ctx, service.QuotaOwner{UserID: claims.UserID})
+	data.PackageUsage = h.packageUsage(ctx, service.QuotaOwner{UserID: claims.UserID})
 	data.EmailVerificationAvailable = h.Services.EmailVerifier.Available()
 	if data.EmailVerificationAvailable && !user.EmailVerified() {
 		if data.VerificationLinkSent, err = h.Services.EmailVerifier.LinkPending(ctx, claims.UserID); err != nil {

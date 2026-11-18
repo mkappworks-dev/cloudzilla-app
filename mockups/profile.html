@@ -62,6 +62,7 @@
     <nav aria-label="Profile sections" class="flex flex-wrap items-center gap-1 text-sm" id="profile-tabs">
       <a href="profile.html" data-tab="overview" aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">Overview</a>
       <a href="?tab=repositories" data-tab="repositories" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Repositories <span class="font-mono text-[11px] text-muted-foreground ml-0.5">14</span></a>
+      <a href="owner_packages.html" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Packages</a>
       <a href="?tab=stars" data-tab="stars" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Stars <span class="font-mono text-[11px] text-muted-foreground ml-0.5">6</span></a>
       <a href="?tab=gists" data-tab="gists" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Gists <span class="font-mono text-[11px] text-muted-foreground ml-0.5">3</span></a>
     </nav>
@@ -419,7 +420,7 @@ I build developer tooling and self-hosted infrastructure.</textarea>
     panels.forEach(function (p) { p.hidden = p.dataset.panel !== name; });
   }
   tabs.forEach(function (t) {
-    t.addEventListener('click', function (e) { e.preventDefault(); history.replaceState(null, '', t.getAttribute('href')); show(t.dataset.tab); });
+    t.addEventListener('click', function (e) { if (!t.dataset.tab) return; e.preventDefault(); history.replaceState(null, '', t.getAttribute('href')); show(t.dataset.tab); });
   });
   show(new URLSearchParams(location.search).get('tab') || 'overview');
 

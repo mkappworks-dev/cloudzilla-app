@@ -91,6 +91,7 @@ templ User(data view.UserData) {
 			<nav aria-label="Profile sections" class="flex flex-wrap items-center gap-1 text-sm">
 				@profileTab(data.Tab == "overview", "/"+data.User.Username, "Overview")
 				@profileTab(data.Tab == "repositories", "/"+data.User.Username+"?tab=repositories", "Repositories", data.ReposTotal)
+				@profileTab(data.Tab == "packages", "/"+data.User.Username+"?tab=packages", "Packages", data.Packages.Total)
 				@profileTab(data.Tab == "stars", "/"+data.User.Username+"?tab=stars", "Stars", data.StarsTotal)
 				@profileTab(data.Tab == "gists", "/"+data.User.Username+"?tab=gists", "Gists", data.GistsTotal)
 			</nav>
@@ -248,6 +249,10 @@ templ User(data view.UserData) {
 
 			if data.Tab == "stars" {
 				@userStarsTab(data)
+			}
+
+			if data.Tab == "packages" {
+				@OwnerPackagesTab(data.Packages)
 			}
 
 			if data.Tab == "gists" {

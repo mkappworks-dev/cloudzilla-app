@@ -2,6 +2,8 @@ package pages
 
 import (
 	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -74,4 +76,33 @@ func packageFilesSize(files []model.PackageFile) int64 {
 		n += f.Size
 	}
 	return n
+}
+
+func ownerPackageHref(p model.PackageSummary) string {
+	name := p.Name
+	if p.Type == model.PackageTypeGeneric {
+		name = url.PathEscape(name)
+	}
+	return "/" + p.RepoOwner + "/" + p.RepoName + "/packages/" + p.Type + "/" + name
+}
+
+func ownerPackageDialogID(action string, p model.PackageSummary) string {
+	return "own-pkg-" + action + "-" + strconv.FormatInt(p.ID, 10)
+}
+
+// ownerPackageFormPath is where the owner Packages tab posts; "-" can't be a repository name, so the path never
+// shadows a repository.
+func ownerPackageFormPath(data view.OwnerPackagesData, action string) string {
+	return "/" + data.Owner + "/-/packages/" + action
+}
+
+// ownerRelinkTargets are the path owner's Repositories other than the one p is linked to.
+func ownerRelinkTargets(data view.OwnerPackagesData, p model.PackageSummary) []string {
+	var out []string
+	for _, name := range data.Targets {
+		if !strings.EqualFold(p.RepoOwner, data.Owner) || name != p.RepoName {
+			out = append(out, name)
+		}
+	}
+	return out
 }
