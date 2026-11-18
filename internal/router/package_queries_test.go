@@ -119,6 +119,27 @@ func TestPackageDetail_TagsCarryDigestSizePublisherAndPullsAndUntaggedLeavesRefe
 	}
 }
 
+func TestPackageDetail_UntaggedLeavesOutAnIndexsChildren(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	auth := e.pushAuth(t, e.ownerPAT, e.pubImage)
+	childA := e.pushBlobs(t, auth, e.pubImage, nil)
+	childB := e.pushBlobs(t, auth, e.pubImage, nil)
+	loose := e.pushBlobs(t, auth, e.pubImage, nil)
+	for _, c := range []image{childA, childB, loose} {
+		e.putManifest(auth, e.pubImage, c.digest, mtOCIManifest, c.manifest)
+	}
+	e.pushIndex(t, auth, e.pubImage, "multi", childA, childB)
+
+	d, err := e.svc.Package.ContainerDetail(context.Background(), e.owner, "pubimg", &e.strangerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(d.Untagged) != 1 || d.Untagged[0].Digest != loose.digest {
+		t.Errorf("untagged = %+v, want only %s (an index's children can't be deleted on their own)", d.Untagged, loose.digest)
+	}
+}
+
 func TestPackageDetail_AnUnreadablePackageIsNotFound(t *testing.T) {
 	e := newRegistryEnv(t, nil)
 

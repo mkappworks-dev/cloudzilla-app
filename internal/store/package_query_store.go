@@ -158,12 +158,15 @@ func (s *PackageStore) Tags(ctx context.Context, packageID int64) ([]model.TagRo
 }
 
 // UntaggedManifests lists the manifests no tag points at, newest first. A manifest with a subject is a referrer
-// (a signature, an SBOM), reachable through its subject, so it is left out.
+// (a signature, an SBOM), reachable through its subject, and an index's child can't be deleted on its own, so both are
+// left out.
 func (s *PackageStore) UntaggedManifests(ctx context.Context, packageID int64) ([]model.ManifestRow, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT m.digest, m.media_type, `+manifestSize+`, COALESCE(m.artifact_type, ''), m.platforms, m.pull_count, m.created_at
 		FROM package_manifests m
 		WHERE m.package_id = $1 AND m.subject_digest IS NULL AND NOT EXISTS (SELECT 1 FROM package_tags t WHERE t.manifest_id = m.id)
+		  AND NOT EXISTS (SELECT 1 FROM package_manifest_children c JOIN package_manifests parent ON parent.id = c.manifest_id
+		                  WHERE parent.package_id = m.package_id AND c.child_digest = m.digest)
 		ORDER BY m.created_at DESC, m.id DESC`, packageID)
 	if err != nil {
 		return nil, fmt.Errorf("list untagged manifests: %w", err)

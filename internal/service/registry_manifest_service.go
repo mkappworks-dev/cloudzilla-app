@@ -173,19 +173,16 @@ func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, r
 		return "", "", &RegistryError{Status: http.StatusBadRequest, Code: "DIGEST_INVALID", Message: "the digest does not match the manifest", Detail: map[string]string{"computed": rec.Digest}}
 	}
 
-	t, err := s.writeTarget(ctx, userID, name, true)
+	t, err := s.targetForPut(ctx, userID, name, rec, doc, true)
+	if errors.Is(err, errLinkRaced) {
+		// Docker PUTs several manifests of a fresh name at once; the one that lost the link now finds the package linked.
+		t, err = s.targetForPut(ctx, userID, name, rec, doc, false)
+		if errors.Is(err, errLinkRaced) {
+			err = regErr(http.StatusConflict, "DENIED", "the image name was linked by another push; retry")
+		}
+	}
 	if err != nil {
 		return "", "", err
-	}
-	if missing, err := s.unlinked(ctx, t.packageID, rec); err != nil {
-		return "", "", err
-	} else if missing != "" {
-		return "", "", &RegistryError{Status: http.StatusBadRequest, Code: "MANIFEST_BLOB_UNKNOWN", Message: "a blob or manifest the manifest names is not in this package", Detail: map[string]string{"digest": missing}}
-	}
-	if t.pending {
-		if err := s.linkPending(ctx, userID, t, name, doc); err != nil {
-			return "", "", err
-		}
 	}
 	if err := s.packages.CheckQuota(ctx, t.quotaOwner(), 0); err != nil {
 		var q *PackageQuotaError
@@ -202,6 +199,27 @@ func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, r
 		return "", "", err
 	}
 	return rec.Digest, rec.Subject, nil
+}
+
+// targetForPut resolves the package a manifest is pushed to, checks that it holds what the manifest names and, for a
+// pending package when link is set, links it. With link unset a package still pending is a lost race, not retried again.
+func (s *RegistryService) targetForPut(ctx context.Context, userID int64, name string, rec store.ManifestRecord, doc *manifestDoc, link bool) (uploadTarget, error) {
+	t, err := s.writeTarget(ctx, userID, name, true)
+	if err != nil {
+		return uploadTarget{}, err
+	}
+	if missing, err := s.unlinked(ctx, t.packageID, rec); err != nil {
+		return uploadTarget{}, err
+	} else if missing != "" {
+		return uploadTarget{}, &RegistryError{Status: http.StatusBadRequest, Code: "MANIFEST_BLOB_UNKNOWN", Message: "a blob or manifest the manifest names is not in this package", Detail: map[string]string{"digest": missing}}
+	}
+	if !t.pending {
+		return t, nil
+	}
+	if !link {
+		return uploadTarget{}, errLinkRaced
+	}
+	return t, s.linkPending(ctx, userID, t, name, doc)
 }
 
 // unlinked returns the first blob or child the package does not hold, or "".

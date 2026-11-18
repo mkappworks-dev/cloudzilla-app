@@ -81,3 +81,17 @@ Throwaway server: real `docker push` and `docker pull` of a small image, `docker
   PATs were inserted for two seeded users on the scratch DB.
 - `make test-integration` starts its own database; `go test ./...` ran on the `cz_t04` scratch DB, as in tickets 01 to 03.
   No page changed, so there is no light and dark check and the standing mocks are unchanged.
+
+### 2026-11-18 (first-push fix)
+
+- Root cause: Docker's containerd store PUTs several manifests of a fresh name at once, and `readTarget` looked up the
+  linked package and then the pending one in two separate queries. A request that lost the link race either hit
+  `LinkPackage`'s no-rows (`409 the image name was linked by another push`) or, when the winner linked between its two
+  lookups, started a second empty pending package and failed `MANIFEST_BLOB_UNKNOWN` (`500` seen by the client).
+  Reproduced with a real `docker push` of three fresh names (3 of 3 failed), then pinned by
+  `TestLinking_ConcurrentFirstPushesOfOneNameAllSucceed`.
+- Fix: `readTarget` looks at the linked package again after a pending miss, and `PutManifest` re-resolves the target once
+  when its link lost the race (`errLinkRaced`), so the loser pushes into the now-linked package after the usual
+  `CanWrite` check. A name linked by someone else still answers the old `409`.
+- Also (ticket 10's `ContainerDetail`): the untagged list leaves out a manifest an index of the same package references.
+

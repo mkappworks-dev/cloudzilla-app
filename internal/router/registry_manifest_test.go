@@ -6,9 +6,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -528,5 +530,35 @@ func TestLinking_ALargeConfigIsRefusedWhenTheLabelMustBeRead(t *testing.T) {
 
 	if rr.Code != http.StatusForbidden || ociErrorCode(t, rr) != "DENIED" || e.linkedRepo(t, name) != 0 {
 		t.Errorf("got %d %s linked=%d, want 403 DENIED and no link", rr.Code, rr.Body, e.linkedRepo(t, name))
+	}
+}
+
+func TestLinking_ConcurrentFirstPushesOfOneNameAllSucceed(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	name := e.owner + "/pub/racer"
+	auth := e.pushAuth(t, e.ownerPAT, name)
+
+	var imgs []image
+	for range 8 {
+		imgs = append(imgs, e.pushBlobs(t, auth, name, nil))
+	}
+	codes := make([]string, len(imgs))
+	var wg sync.WaitGroup
+	for i, img := range imgs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rr := e.putManifest(auth, name, img.digest, mtOCIManifest, img.manifest)
+			if rr.Code != http.StatusCreated {
+				codes[i] = fmt.Sprintf("%d %s", rr.Code, rr.Body)
+			}
+		}()
+	}
+	wg.Wait()
+
+	for i, code := range codes {
+		if code != "" {
+			t.Errorf("manifest %d: got %s, want 201", i, code)
+		}
 	}
 }
