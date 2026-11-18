@@ -38,6 +38,8 @@ func (e *PackageQuotaError) Is(target error) bool { return target == ErrPackageQ
 type PackageService struct {
 	packages *store.PackageStore
 	users    *store.UserStore
+	repos    *RepoService
+	orgs     *OrgService
 	quota    config.QuotaConfig
 	limits   config.PackagesConfig
 	backend  storage.Backend

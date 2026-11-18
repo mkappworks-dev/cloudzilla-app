@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -26,10 +27,41 @@ func (h *Handler) registryManifestOp(w http.ResponseWriter, r *http.Request, rou
 		})
 	case route.Op == service.RegistryOpTags && (r.Method == http.MethodGet || r.Method == http.MethodHead):
 		h.registryListTags(w, r, route)
+	case route.Op == service.RegistryOpReferrers && (r.Method == http.MethodGet || r.Method == http.MethodHead):
+		h.registryReferrers(w, r, route)
 	default:
 		return false
 	}
 	return true
+}
+
+func (h *Handler) registryReferrers(w http.ResponseWriter, r *http.Request, route service.RegistryRoute) {
+	filter := r.URL.Query().Get("artifactType")
+	found, err := h.Services.Registry.Referrers(r.Context(), registryUserID(r), route.Name, route.Ref, filter)
+	if err != nil {
+		writeRegistryFailure(w, err)
+		return
+	}
+	manifests := make([]map[string]any, len(found))
+	for i, f := range found {
+		d := map[string]any{"mediaType": f.MediaType, "digest": f.Digest, "size": f.Size}
+		if f.ArtifactType != "" {
+			d["artifactType"] = f.ArtifactType
+		}
+		manifests[i] = d
+	}
+	if filter != "" {
+		w.Header().Set("OCI-Filters-Applied", "artifactType")
+	}
+	w.Header().Set("Cache-Control", "private, no-cache")
+	w.Header().Set("Content-Type", "application/vnd.oci.image.index.v1+json")
+	w.WriteHeader(http.StatusOK)
+	if r.Method == http.MethodHead {
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"schemaVersion": 2, "mediaType": "application/vnd.oci.image.index.v1+json", "manifests": manifests,
+	})
 }
 
 func (h *Handler) registryDelete(w http.ResponseWriter, _ *http.Request, do func() error) {
@@ -65,13 +97,16 @@ func (h *Handler) registryListTags(w http.ResponseWriter, r *http.Request, route
 }
 
 func (h *Handler) registryPutManifest(w http.ResponseWriter, r *http.Request, route service.RegistryRoute) {
-	digest, err := h.Services.Registry.PutManifest(r.Context(), registryUserID(r), route.Name, route.Ref, r.Header.Get("Content-Type"), r.Body)
+	digest, subject, err := h.Services.Registry.PutManifest(r.Context(), registryUserID(r), route.Name, route.Ref, r.Header.Get("Content-Type"), r.Body)
 	if err != nil {
 		writeRegistryFailure(w, err)
 		return
 	}
 	w.Header().Set("Location", "/v2/"+route.Name+"/manifests/"+digest)
 	w.Header().Set("Docker-Content-Digest", digest)
+	if subject != "" {
+		w.Header().Set("OCI-Subject", subject)
+	}
 	w.WriteHeader(http.StatusCreated)
 }
 

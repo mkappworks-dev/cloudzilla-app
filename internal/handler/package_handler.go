@@ -37,6 +37,7 @@ type genericPackageJSON struct {
 	Type          string    `json:"type"`
 	LatestVersion string    `json:"latest_version"`
 	VersionCount  int       `json:"version_count"`
+	TagCount      int       `json:"tag_count"`
 	Size          int64     `json:"size"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
@@ -235,16 +236,20 @@ func (h *Handler) ListPackages(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	list, err := h.Services.Package.ListGeneric(r.Context(), repo.ID)
+	var viewer *int64
+	if gu != nil {
+		viewer = &gu.ID
+	}
+	list, err := h.Services.Package.ListByRepo(r.Context(), repo, viewer)
 	if err != nil {
-		slog.Error("list generic packages failed", "repo_id", repo.ID, "error", err)
+		slog.Error("list packages failed", "repo_id", repo.ID, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	out := make([]genericPackageJSON, len(list))
 	for i, p := range list {
 		out[i] = genericPackageJSON{Name: p.Name, Type: p.Type, LatestVersion: p.LatestVersion,
-			VersionCount: p.VersionCount, Size: p.TotalSize, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt}
+			VersionCount: p.VersionCount, TagCount: p.TagCount, Size: p.Size, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt}
 	}
 	writeJSON(w, http.StatusOK, out)
 }

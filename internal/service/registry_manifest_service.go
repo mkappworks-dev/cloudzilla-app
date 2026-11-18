@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -44,6 +45,11 @@ type descriptor struct {
 	Digest    string   `json:"digest"`
 	Size      int64    `json:"size"`
 	URLs      []string `json:"urls"`
+	Platform  *struct {
+		OS           string `json:"os"`
+		Architecture string `json:"architecture"`
+		Variant      string `json:"variant"`
+	} `json:"platform"`
 }
 
 type manifestDoc struct {
@@ -83,11 +89,16 @@ func parseManifest(mediaType string, content []byte) (store.ManifestRecord, *man
 		return nil
 	}
 	if isIndexType(mediaType) {
+		var platforms []string
 		for _, d := range doc.Manifests {
 			if err := named(d, &rec.Children); err != nil {
 				return rec, nil, err
 			}
+			if p := platformOf(d); p != "" && !slices.Contains(platforms, p) {
+				platforms = append(platforms, p)
+			}
 		}
+		rec.Platforms = strings.Join(platforms, ",")
 	} else {
 		if doc.Config == nil {
 			return rec, nil, manifestInvalid("manifest has no config")
@@ -114,69 +125,83 @@ func parseManifest(mediaType string, content []byte) (store.ManifestRecord, *man
 	return rec, &doc, nil
 }
 
+// platformOf is "os/arch[/variant]" for a child that names one. Attestation children are "unknown/unknown" and are not
+// a platform anyone pulls.
+func platformOf(d descriptor) string {
+	if d.Platform == nil || d.Platform.OS == "" || d.Platform.Architecture == "" || d.Platform.OS == "unknown" {
+		return ""
+	}
+	p := d.Platform.OS + "/" + d.Platform.Architecture
+	if d.Platform.Variant != "" {
+		p += "/" + d.Platform.Variant
+	}
+	return p
+}
+
 func sha256Digest(b []byte) string {
 	sum := sha256.Sum256(b)
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
-// PutManifest stores the manifest pushed to name at ref (a tag or a digest) and returns its digest.
-func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, ref, mediaType string, body io.Reader) (string, error) {
+// PutManifest stores the manifest pushed to name at ref (a tag or a digest) and returns its digest and its subject
+// digest, which is empty for a manifest without one.
+func (s *RegistryService) PutManifest(ctx context.Context, userID int64, name, ref, mediaType string, body io.Reader) (digest, subject string, err error) {
 	isDigest := strings.Contains(ref, ":")
 	if isDigest && !ValidBlobDigest(ref) {
-		return "", regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+		return "", "", regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
 	}
 	if !isDigest && !registryTagRe.MatchString(ref) {
-		return "", manifestInvalid("invalid tag")
+		return "", "", manifestInvalid("invalid tag")
 	}
 	if mediaType, _, _ = strings.Cut(mediaType, ";"); !isManifestType(strings.TrimSpace(mediaType)) {
-		return "", manifestInvalid("unsupported manifest media type")
+		return "", "", manifestInvalid("unsupported manifest media type")
 	}
 	mediaType = strings.TrimSpace(mediaType)
 	content, err := io.ReadAll(io.LimitReader(body, maxManifestBytes+1))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if len(content) > maxManifestBytes {
-		return "", regErr(http.StatusRequestEntityTooLarge, "SIZE_INVALID", "manifest exceeds 4 MiB")
+		return "", "", regErr(http.StatusRequestEntityTooLarge, "SIZE_INVALID", "manifest exceeds 4 MiB")
 	}
 	rec, doc, err := parseManifest(mediaType, content)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	rec.Digest = sha256Digest(content)
 	if isDigest && ref != rec.Digest {
-		return "", &RegistryError{Status: http.StatusBadRequest, Code: "DIGEST_INVALID", Message: "the digest does not match the manifest", Detail: map[string]string{"computed": rec.Digest}}
+		return "", "", &RegistryError{Status: http.StatusBadRequest, Code: "DIGEST_INVALID", Message: "the digest does not match the manifest", Detail: map[string]string{"computed": rec.Digest}}
 	}
 
 	t, err := s.writeTarget(ctx, userID, name, true)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if missing, err := s.unlinked(ctx, t.packageID, rec); err != nil {
-		return "", err
+		return "", "", err
 	} else if missing != "" {
-		return "", &RegistryError{Status: http.StatusBadRequest, Code: "MANIFEST_BLOB_UNKNOWN", Message: "a blob or manifest the manifest names is not in this package", Detail: map[string]string{"digest": missing}}
+		return "", "", &RegistryError{Status: http.StatusBadRequest, Code: "MANIFEST_BLOB_UNKNOWN", Message: "a blob or manifest the manifest names is not in this package", Detail: map[string]string{"digest": missing}}
 	}
 	if t.pending {
 		if err := s.linkPending(ctx, userID, t, name, doc); err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 	if err := s.packages.CheckQuota(ctx, t.quotaOwner(), 0); err != nil {
 		var q *PackageQuotaError
 		if errors.As(err, &q) {
-			return "", regErr(http.StatusForbidden, "DENIED", q.Error())
+			return "", "", regErr(http.StatusForbidden, "DENIED", q.Error())
 		}
-		return "", err
+		return "", "", err
 	}
 	tag := ""
 	if !isDigest {
 		tag = ref
 	}
 	if err := s.registry.PutManifest(ctx, t.packageID, rec, tag, userID); err != nil {
-		return "", err
+		return "", "", err
 	}
-	return rec.Digest, nil
+	return rec.Digest, rec.Subject, nil
 }
 
 // unlinked returns the first blob or child the package does not hold, or "".
@@ -207,6 +232,8 @@ type Manifest struct {
 	Digest    string
 	MediaType string
 	Content   []byte
+	// Platforms is "os/arch[/variant]" for each platform an index names; empty for an image manifest.
+	Platforms []string
 }
 
 // GetManifest returns the manifest at ref (a tag or a digest). A non-empty accept that excludes the stored media
@@ -234,7 +261,11 @@ func (s *RegistryService) GetManifest(ctx context.Context, userID int64, name, r
 	if !acceptsMediaType(accept, m.MediaType) {
 		return nil, errManifestUnknown
 	}
-	return &Manifest{Digest: m.Digest, MediaType: m.MediaType, Content: m.Content}, nil
+	var platforms []string
+	if m.Platforms != "" {
+		platforms = strings.Split(m.Platforms, ",")
+	}
+	return &Manifest{Digest: m.Digest, MediaType: m.MediaType, Content: m.Content, Platforms: platforms}, nil
 }
 
 func acceptsMediaType(accept []string, mediaType string) bool {
@@ -313,6 +344,19 @@ func (s *RegistryService) DeleteBlob(ctx context.Context, userID int64, name, di
 		return errBlobUnknown
 	}
 	return nil
+}
+
+// Referrers returns the package's manifests whose subject is subject. An unknown subject is an empty list, never an
+// error: the subject may be pushed later, or live in another registry.
+func (s *RegistryService) Referrers(ctx context.Context, userID int64, name, subject, artifactType string) ([]store.Referrer, error) {
+	if !ValidBlobDigest(subject) {
+		return nil, regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
+	}
+	t, err := s.readTarget(ctx, userID, name)
+	if err != nil {
+		return nil, err
+	}
+	return s.registry.Referrers(ctx, t.packageID, subject, artifactType)
 }
 
 // ListTags returns up to limit tags after last, in byte order, and whether more follow. A negative limit lists all.

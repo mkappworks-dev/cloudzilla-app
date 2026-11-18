@@ -13,9 +13,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/codeurl"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -63,20 +61,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		currentUserID = claims.UserID
 	}
 
-	var readmeHTML, readmeName string
-	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
-		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
-		if err == nil {
-			readmeHTML = markdown.RenderCtx(r.Context(), string(raw))
-			readmeName = name
-			break
-		}
-		if errors.Is(err, object.ErrFileNotFound) || errors.Is(err, service.ErrEmptyRepo) {
-			continue
-		}
-		slog.Warn("repo: README lookup failed",
-			"owner", owner, "repo", repoName, "candidate", name, "error", err)
-	}
+	readmeHTML, readmeName := h.Services.Code.RepoReadme(r.Context(), owner, repoName, repo.DefaultBranch)
 
 	starCount, starErr := h.Services.Star.GetStarCount(r.Context(), repo.ID)
 	if starErr != nil {
@@ -198,7 +183,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		CloneSSH:      cloneSSH,
 		CanWrite:      canWrite,
 		CanManage:     canManage,
-		ReadmeHTML:    readmeHTML,
+		ReadmeHTML:    string(readmeHTML),
 		StarCount:     starCount,
 		IsStarred:     isStarred,
 		WatchLevel:    watchLevel,

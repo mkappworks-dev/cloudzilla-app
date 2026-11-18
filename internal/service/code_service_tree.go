@@ -259,6 +259,28 @@ func (s *CodeService) OpenRawBlob(owner, repoName, ref, path string, maxBytes in
 	return &RawBlob{ReadCloser: ioutil.NewReadCloser(br, rc), Size: f.Size, IsBinary: isBinary}, nil
 }
 
+// readmeNames are the root file names the repo page looks for, in order.
+var readmeNames = []string{"README.md", "readme.md", "Readme.md"}
+
+// RepoReadme renders the README at the root of the default branch with its relative links and images resolved against
+// the code tab (blob and raw views of the same branch). It returns no HTML and no name when there is none; an
+// unexpected read error is logged and treated the same way.
+func (s *CodeService) RepoReadme(ctx context.Context, ownerName, repoName, defaultBranch string) (template.HTML, string) {
+	base := "/" + ownerName + "/" + repoName
+	links := markdown.RepoLinks{Blob: base + "/blob/" + defaultBranch, Raw: base + "/raw/" + defaultBranch}
+	for _, name := range readmeNames {
+		raw, err := s.GetRawBlob(ownerName, repoName, defaultBranch, name)
+		if err == nil {
+			return template.HTML(markdown.RenderRepoFile(ctx, string(raw), links)), name
+		}
+		if errors.Is(err, object.ErrFileNotFound) || errors.Is(err, ErrEmptyRepo) {
+			continue
+		}
+		slog.Warn("repo: README lookup failed", "owner", ownerName, "repo", repoName, "candidate", name, "error", err)
+	}
+	return "", ""
+}
+
 // GetProfileReadme reads README.md from the root of the given repo's default
 // branch and renders it as HTML. Returns empty template.HTML when the repo,
 // commit, or README does not exist. Unexpected infrastructure errors (corrupt

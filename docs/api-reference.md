@@ -685,16 +685,22 @@ writers only, and an unreadable repo, a draft, an unknown tag and an unknown nam
 `Content-Security-Policy: default-src 'none'; sandbox`, so an uploaded HTML file can't run on the instance's origin.
 Percent-encode a tag that contains `/`. The `ETag` is the file's SHA-256 and `Cache-Control` is `private, no-cache`.
 
-## Generic packages
+## Packages
 
-| Method | Path                                                                | Auth                        | Description                                                                                       |
-| ------ | ------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/packages`                                  | Optional (`packages:read`)  | List the repository's generic packages: `name`, `type`, `latest_version`, `version_count`, `size` |
-| GET    | `/api/repos/:owner/:repo/packages/generic/:name`                    | Optional (`packages:read`)  | Versions newest first, each with its files: `filename`, `size`, `sha256`, `download_url`          |
-| PUT    | `/api/repos/:owner/:repo/packages/generic/:name/:version/:filename` | CanWrite (`packages:write`) | Upload a file; the body is the file. 201 with the stored `sha256` and `size`                      |
-| DELETE | `/api/repos/:owner/:repo/packages/generic/:name/:version/:filename` | CanWrite (`packages:write`) | Delete a file; a version left with no files, and a package left with no versions, go with it      |
-| DELETE | `/api/repos/:owner/:repo/packages/generic/:name/:version`           | CanWrite (`packages:write`) | Delete a version and its files                                                                    |
-| GET    | `/:owner/:repo/packages/generic/:name/:version/:filename`           | Optional (`packages:read`)  | Download a file (a web route, not under `/api`); `HEAD` works too                                 |
+Generic files are described below; container images are pushed and pulled over `/v2` and managed here.
+
+| Method | Path                                                                | Auth                                                             | Description                                                                                                                                                             |
+| ------ | ------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/packages`                                  | Optional (`packages:read`)                                       | List the packages linked to the repository, containers and generic: `name`, `type`, `latest_version`, `version_count`, `tag_count`, `size`                              |
+| GET    | `/api/repos/:owner/:repo/packages/container/:name...`               | Optional (`packages:read`)                                       | A container package: `tags` (`name`, `digest`, `size`, `platforms`, `publisher`, `pull_count`) and `untagged` manifests, which leave out signatures and other referrers |
+| DELETE | `/api/repos/:owner/:repo/packages/container/:name...`               | CanManage or path owner (`packages:write`)                       | Delete the whole package; `204`. A writer gets `403`. Only rows go: the sweep reclaims blobs once no package links them                                                 |
+| DELETE | `/api/repos/:owner/:repo/packages/generic/:name`                    | CanManage or path owner (`packages:write`)                       | Delete the whole generic package and its files                                                                                                                          |
+| POST   | `/api/repos/:owner/:repo/packages/relink`                           | Path owner, or CanManage on both repositories (`packages:write`) | Body `{"type", "name", "repo": "owner/repo"}`: link the package to another repository of its path owner; `204`. Another owner's repository is `400`                     |
+| GET    | `/api/repos/:owner/:repo/packages/generic/:name`                    | Optional (`packages:read`)                                       | Versions newest first, each with its files: `filename`, `size`, `sha256`, `download_url`                                                                                |
+| PUT    | `/api/repos/:owner/:repo/packages/generic/:name/:version/:filename` | CanWrite (`packages:write`)                                      | Upload a file; the body is the file. 201 with the stored `sha256` and `size`                                                                                            |
+| DELETE | `/api/repos/:owner/:repo/packages/generic/:name/:version/:filename` | CanWrite (`packages:write`)                                      | Delete a file; a version left with no files, and a package left with no versions, go with it                                                                            |
+| DELETE | `/api/repos/:owner/:repo/packages/generic/:name/:version`           | CanWrite (`packages:write`)                                      | Delete a version and its files                                                                                                                                          |
+| GET    | `/:owner/:repo/packages/generic/:name/:version/:filename`           | Optional (`packages:read`)                                       | Download a file (a web route, not under `/api`); `HEAD` works too                                                                                                       |
 
 A caller authenticates with a Bearer token or with HTTP Basic whose password is a personal access token, so `curl`
 works:
@@ -708,6 +714,10 @@ curl -u ci:$TOKEN -LO https://git.example.com/ada/app/packages/generic/app/1.0/a
 The token needs `packages:write` to upload or delete and `packages:read` (or `packages:write`) to read. A Basic PAT
 without the scope gets a plain `403`, not `401`, so a client does not erase the credential; a Bearer one gets the usual
 `insufficient_scope`. A Basic upload needs no `X-CSRF-Token`. The `repo:*` scopes admit nothing here.
+
+The path owner may delete or re-link a package whatever the repository's permissions say, so after a transfer it can
+still reach its own package. These routes live under the package's current repository, so a path owner who cannot read
+that repository (a private one transferred away) cannot use them.
 
 A name, version or filename may contain only `[A-Za-z0-9._-]` (at most 255 characters) and can't be `.` or `..`; it is
 refused, never cleaned.

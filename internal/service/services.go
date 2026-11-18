@@ -191,7 +191,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	secretScanSvc.WithTokenResolver(tokenRevoker)
 	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc}).
 		WithTokenResolver(tokenRevoker)
-	packageSvc := NewPackageService(stores.Package, stores.User, cfg.Quota).WithLimits(cfg.Packages)
+	packageSvc := NewPackageService(stores.Package, stores.User, cfg.Quota).WithLimits(cfg.Packages).WithAccess(repoSvc, orgSvc)
 	accessTokenSvc := NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc)
 	return &Services{
 		User:               userSvc,

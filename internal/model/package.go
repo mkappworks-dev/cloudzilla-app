@@ -97,3 +97,38 @@ type GenericVersionFiles struct {
 	PackageVersion
 	Files []PackageFile
 }
+
+// PackageSummary is a linked package with what a list row shows. RepoOwner and RepoName name the Repository it is
+// linked to now, which after a transfer differs from the path owner.
+type PackageSummary struct {
+	Package
+	RepoOwner     string
+	RepoName      string
+	Size          int64
+	TagCount      int
+	VersionCount  int
+	LatestVersion string
+}
+
+// TagRow is a tag of a container package. Size is the distinct blob bytes of the image, or of every child of an index.
+type TagRow struct {
+	Name      string
+	Digest    string
+	MediaType string
+	Size      int64
+	Platforms []string
+	Publisher string
+	PullCount int64
+	UpdatedAt time.Time
+}
+
+// ManifestRow is a manifest no tag points at.
+type ManifestRow struct {
+	Digest       string
+	MediaType    string
+	Size         int64
+	ArtifactType string
+	Platforms    []string
+	PullCount    int64
+	CreatedAt    time.Time
+}

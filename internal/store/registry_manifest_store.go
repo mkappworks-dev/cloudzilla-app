@@ -16,6 +16,7 @@ type ManifestRecord struct {
 	Content      []byte
 	Subject      string
 	ArtifactType string
+	Platforms    string
 	Blobs        []string
 	Children     []string
 }
@@ -26,6 +27,7 @@ type StoredManifest struct {
 	Digest    string
 	MediaType string
 	Content   []byte
+	Platforms string
 }
 
 func inClause(start int, n int) string {
@@ -84,10 +86,10 @@ func (s *RegistryStore) PutManifest(ctx context.Context, packageID int64, m Mani
 	defer func() { _ = tx.Rollback() }()
 	var id int64
 	var inserted bool
-	err = tx.QueryRowContext(ctx, `INSERT INTO package_manifests (package_id, digest, media_type, size, content, subject_digest, artifact_type)
-		VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''))
+	err = tx.QueryRowContext(ctx, `INSERT INTO package_manifests (package_id, digest, media_type, size, content, subject_digest, artifact_type, platforms)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), $8)
 		ON CONFLICT (package_id, digest) DO UPDATE SET digest = EXCLUDED.digest
-		RETURNING id, (xmax = 0)`, packageID, m.Digest, m.MediaType, len(m.Content), m.Content, m.Subject, m.ArtifactType).Scan(&id, &inserted)
+		RETURNING id, (xmax = 0)`, packageID, m.Digest, m.MediaType, len(m.Content), m.Content, m.Subject, m.ArtifactType, m.Platforms).Scan(&id, &inserted)
 	if err != nil {
 		return fmt.Errorf("insert manifest: %w", err)
 	}
@@ -118,8 +120,8 @@ func (s *RegistryStore) PutManifest(ctx context.Context, packageID int64, m Mani
 // ManifestByDigest returns the package's manifest at digest, or sql.ErrNoRows.
 func (s *RegistryStore) ManifestByDigest(ctx context.Context, packageID int64, digest string) (*StoredManifest, error) {
 	var m StoredManifest
-	err := s.db.QueryRowContext(ctx, `SELECT id, digest, media_type, content FROM package_manifests WHERE package_id = $1 AND digest = $2`,
-		packageID, digest).Scan(&m.ID, &m.Digest, &m.MediaType, &m.Content)
+	err := s.db.QueryRowContext(ctx, `SELECT id, digest, media_type, content, platforms FROM package_manifests WHERE package_id = $1 AND digest = $2`,
+		packageID, digest).Scan(&m.ID, &m.Digest, &m.MediaType, &m.Content, &m.Platforms)
 	if err != nil {
 		return nil, fmt.Errorf("manifest by digest: %w", err)
 	}
@@ -129,9 +131,9 @@ func (s *RegistryStore) ManifestByDigest(ctx context.Context, packageID int64, d
 // ManifestByTag returns the manifest the package's tag points at, or sql.ErrNoRows.
 func (s *RegistryStore) ManifestByTag(ctx context.Context, packageID int64, tag string) (*StoredManifest, error) {
 	var m StoredManifest
-	err := s.db.QueryRowContext(ctx, `SELECT m.id, m.digest, m.media_type, m.content FROM package_tags t
+	err := s.db.QueryRowContext(ctx, `SELECT m.id, m.digest, m.media_type, m.content, m.platforms FROM package_tags t
 		JOIN package_manifests m ON m.id = t.manifest_id WHERE t.package_id = $1 AND t.name = $2`,
-		packageID, tag).Scan(&m.ID, &m.Digest, &m.MediaType, &m.Content)
+		packageID, tag).Scan(&m.ID, &m.Digest, &m.MediaType, &m.Content, &m.Platforms)
 	if err != nil {
 		return nil, fmt.Errorf("manifest by tag: %w", err)
 	}
@@ -229,4 +231,33 @@ func (s *RegistryStore) LinkPackage(ctx context.Context, packageID, repoID int64
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+// Referrer is a manifest whose subject is the digest asked about.
+type Referrer struct {
+	Digest       string
+	MediaType    string
+	Size         int64
+	ArtifactType string
+}
+
+// Referrers lists the package's manifests whose subject is subject, oldest first. A non-empty artifactType keeps
+// only the manifests of that type.
+func (s *RegistryStore) Referrers(ctx context.Context, packageID int64, subject, artifactType string) ([]Referrer, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT digest, media_type, size, COALESCE(artifact_type, '') FROM package_manifests
+		WHERE package_id = $1 AND subject_digest = $2 AND ($3 = '' OR artifact_type = $3)
+		ORDER BY created_at, id`, packageID, subject, artifactType)
+	if err != nil {
+		return nil, fmt.Errorf("list referrers: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	out := []Referrer{}
+	for rows.Next() {
+		var r Referrer
+		if err := rows.Scan(&r.Digest, &r.MediaType, &r.Size, &r.ArtifactType); err != nil {
+			return nil, fmt.Errorf("scan referrer: %w", err)
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
 }
