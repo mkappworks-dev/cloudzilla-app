@@ -7,7 +7,7 @@ Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
 | --- | --- | --- | --- | --- | --- |
-| `feat/phase-16.1-container-registry` | `.worktrees/feat+phase-16.1-container-registry` | `feat: package registry (16.1–16.2)` | 3 | L | Features +0.4 |
+| `feat/phase-16-package-registry` | `.worktrees/feat+phase-16-package-registry` | `feat(registry): package registry (16.1–16.2)` | 3 | L | Features +0.4 |
 
 Mock: `../2026-11-06-package-registry/`
 
