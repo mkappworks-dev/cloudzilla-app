@@ -63,6 +63,12 @@ func CSRF(secure bool) func(http.Handler) http.Handler {
 				return
 			}
 
+			// A Basic PAT is typed into the client, never held by the browser, so it can't be forged cross-site.
+			if strings.HasPrefix(r.Header.Get("Authorization"), "Basic ") && genericAPIPath(r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Skip CSRF for git smart protocol endpoints (they use their own auth)
 			if isGitEndpoint(r.URL.Path) {
 				next.ServeHTTP(w, r)

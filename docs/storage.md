@@ -169,6 +169,18 @@ missing ones. Responses carry `Cache-Control: private, no-cache` with an `ETag` 
 check), `Vary: Authorization, Cookie`, `nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`. Unlike
 avatars they can't be cached `public` or served by a CDN. `attachments` is a reserved owner name.
 
+## Generic package files
+
+`PUT /api/repos/{owner}/{repo}/packages/generic/{name}/{version}/{filename}` stores the request body as one object
+(`packages/generic/repo/{repoID}/{random token}.bin`, never the user's names). The flow follows release assets: the body
+spools to a temp file while its SHA-256 is computed, the object is put with its exact size, then the row is written; a
+failed row removes the object. Unlike release assets the size cap (`packages.max_file_bytes`) and the package quota are
+enforced as bytes arrive, and the package, version and file rows are created in one transaction, so a refused upload
+leaves nothing. The route is a streamed upload (`middleware.IsStreamedUpload`) and the handler clears the server
+deadlines. Deleting a file or version deletes its objects after the rows are gone; a failed object delete is logged and
+leaves an orphan under `packages/generic/` that no `package_files.storage_key` names. Purging a repository or deleting
+an owner cascades the rows but not the objects. See [api-reference](./api-reference.md#generic-packages).
+
 ## Release assets
 
 A writer uploads a file to a release with `POST /api/repos/{owner}/{repo}/releases/{id}/assets` (multipart field `file`,

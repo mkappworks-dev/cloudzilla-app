@@ -83,3 +83,17 @@ type PackageFile struct {
 	UploaderID *int64
 	CreatedAt  time.Time
 }
+
+// GenericPackageSummary is a generic package with what its list row shows.
+type GenericPackageSummary struct {
+	Package
+	LatestVersion string
+	VersionCount  int
+	TotalSize     int64
+}
+
+// GenericVersionFiles is one version of a generic package with its files.
+type GenericVersionFiles struct {
+	PackageVersion
+	Files []PackageFile
+}

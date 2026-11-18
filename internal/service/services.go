@@ -101,6 +101,7 @@ func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Avatar.WithBackend(b)
 	s.Attachment.WithBackend(b)
 	s.ReleaseAsset.WithBackend(b)
+	s.Package.WithBackend(b)
 	s.WorkflowLog.WithBackend(b)
 	s.Export.WithBackend(b)
 	s.Registry.WithBackend(b)
@@ -190,7 +191,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	secretScanSvc.WithTokenResolver(tokenRevoker)
 	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc}).
 		WithTokenResolver(tokenRevoker)
-	packageSvc := NewPackageService(stores.Package, stores.User, cfg.Quota)
+	packageSvc := NewPackageService(stores.Package, stores.User, cfg.Quota).WithLimits(cfg.Packages)
 	accessTokenSvc := NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc)
 	return &Services{
 		User:               userSvc,

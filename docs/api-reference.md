@@ -685,6 +685,47 @@ writers only, and an unreadable repo, a draft, an unknown tag and an unknown nam
 `Content-Security-Policy: default-src 'none'; sandbox`, so an uploaded HTML file can't run on the instance's origin.
 Percent-encode a tag that contains `/`. The `ETag` is the file's SHA-256 and `Cache-Control` is `private, no-cache`.
 
+## Generic packages
+
+| Method | Path                                                                | Auth                        | Description                                                                                       |
+| ------ | ------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/packages`                                  | Optional (`packages:read`)  | List the repository's generic packages: `name`, `type`, `latest_version`, `version_count`, `size` |
+| GET    | `/api/repos/:owner/:repo/packages/generic/:name`                    | Optional (`packages:read`)  | Versions newest first, each with its files: `filename`, `size`, `sha256`, `download_url`          |
+| PUT    | `/api/repos/:owner/:repo/packages/generic/:name/:version/:filename` | CanWrite (`packages:write`) | Upload a file; the body is the file. 201 with the stored `sha256` and `size`                      |
+| DELETE | `/api/repos/:owner/:repo/packages/generic/:name/:version/:filename` | CanWrite (`packages:write`) | Delete a file; a version left with no files, and a package left with no versions, go with it      |
+| DELETE | `/api/repos/:owner/:repo/packages/generic/:name/:version`           | CanWrite (`packages:write`) | Delete a version and its files                                                                    |
+| GET    | `/:owner/:repo/packages/generic/:name/:version/:filename`           | Optional (`packages:read`)  | Download a file (a web route, not under `/api`); `HEAD` works too                                 |
+
+A caller authenticates with a Bearer token or with HTTP Basic whose password is a personal access token, so `curl`
+works:
+
+```sh
+curl -u ci:$TOKEN -T app-1.0.tar.gz \
+  https://git.example.com/api/repos/ada/app/packages/generic/app/1.0/app-1.0.tar.gz
+curl -u ci:$TOKEN -LO https://git.example.com/ada/app/packages/generic/app/1.0/app-1.0.tar.gz
+```
+
+The token needs `packages:write` to upload or delete and `packages:read` (or `packages:write`) to read. A Basic PAT
+without the scope gets a plain `403`, not `401`, so a client does not erase the credential; a Bearer one gets the usual
+`insufficient_scope`. A Basic upload needs no `X-CSRF-Token`. The `repo:*` scopes admit nothing here.
+
+A name, version or filename may contain only `[A-Za-z0-9._-]` (at most 255 characters) and can't be `.` or `..`; it is
+refused, never cleaned.
+
+| Status | Meaning                                                                                                                                |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 400    | A name, version or filename outside the rule above                                                                                     |
+| 401    | No usable credentials on an upload or delete (`WWW-Authenticate: Basic realm="packages"`)                                              |
+| 403    | A reader, a token without the scope, or the package quota (`quota.{user,org}.package_bytes`) is reached                                |
+| 404    | An unreadable or unknown repository, or an unknown file; on download these are all the same 404                                        |
+| 409    | The file exists in that version (published files are never replaced), or the package name is linked to another repository of the owner |
+| 413    | The file is over `packages.max_file_bytes`                                                                                             |
+
+The size cap and the quota are enforced while the body streams, so a refused upload leaves no object and no row. A
+download runs `CanRead` on every request, so making a repository private stops serving at once. The response carries
+`Content-Disposition: attachment`, `nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`,
+`Cache-Control: private, no-cache` and an `ETag` that is the file's SHA-256.
+
 ## Commit Statuses
 
 | Method | Path                                          | Auth     | Description                                                                  |

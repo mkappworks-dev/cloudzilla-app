@@ -261,6 +261,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/download/{tag}/{name}", h.DownloadReleaseAsset)
 	r.With(optAuthMW).Head("/{owner}/{repo}/releases/download/{tag}/{name}", h.DownloadReleaseAsset)
+	r.With(optAuthMW).Get("/{owner}/{repo}/packages/generic/{name}/{version}/{filename}", h.DownloadGenericFile)
+	r.With(optAuthMW).Head("/{owner}/{repo}/packages/generic/{name}/{version}/{filename}", h.DownloadGenericFile)
 	if cfg.CI.Enabled {
 		r.With(optAuthMW).Get("/{owner}/{repo}/actions", h.PageActions)
 		r.With(optAuthMW).Get("/{owner}/{repo}/actions/runs/{number}", h.PageActionsRun)
@@ -410,9 +412,17 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW, middleware.MaxBodySize(cfg.Release.MaxAssetBytes+handler.ReleaseAssetBodyOverhead)).
 		Post("/api/repos/{owner}/{repo}/releases/{id}/assets", h.UploadReleaseAsset)
 
+	// Outside /api/repos for the same reason; a Basic PAT is read by the handler, not by auth.
+	r.With(optAuthMW, middleware.MaxBodySize(cfg.Packages.MaxFileBytes+handler.GenericUploadBodyOverhead)).
+		Put("/api/repos/{owner}/{repo}/packages/generic/{name}/{version}/{filename}", h.UploadGenericFile)
+
 	// Repo routes
 	r.Route("/api/repos", func(r chi.Router) {
 		r.Use(optAuthMW, apiBodyLimit)
+		r.Get("/{owner}/{repo}/packages", h.ListPackages)
+		r.Get("/{owner}/{repo}/packages/generic/{name}", h.GetGenericPackage)
+		r.Delete("/{owner}/{repo}/packages/generic/{name}/{version}", h.DeleteGenericVersion)
+		r.Delete("/{owner}/{repo}/packages/generic/{name}/{version}/{filename}", h.DeleteGenericFile)
 		r.Get("/", h.ListRepos)
 		r.With(authMW).Post("/", h.CreateRepo)
 		r.Get("/{owner}/{repo}", h.GetRepo)

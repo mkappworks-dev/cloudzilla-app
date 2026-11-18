@@ -2,7 +2,7 @@
 
 Created: 2026-11-18
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 Parallel with: 03, 04, 10
 
@@ -34,18 +34,47 @@ A release engineer wants to publish a tarball or binary from CI with `curl -u us
 
 ## Acceptance criteria
 
-- [ ] Upload, download and sha256 round trip; the response carries the stored sha256
-- [ ] `curl -u user:czp_... -T` and a Bearer upload both work (no CSRF `403`); a `repo:write` token is `403`
-- [ ] A bad name, `.` and `..` are `400`; the same package name under another Repository of the owner is `409`; a second upload of the same file is `409`
-- [ ] A reader cannot upload; an anonymous download of a private Repository is `404`; a Repository made private stops serving at once
-- [ ] `max_file_bytes` and the quota are enforced mid-stream without leaving an object or a row
-- [ ] No page changes, so no light and dark check; the standing mocks are unchanged (say so in the PR)
-- [ ] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
-- [ ] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
-- [ ] Status set to `done` and these boxes ticked in the same commit
+- [x] Upload, download and sha256 round trip; the response carries the stored sha256
+- [x] `curl -u user:czp_... -T` and a Bearer upload both work (no CSRF `403`); a `repo:write` token is `403`
+- [x] A bad name, `.` and `..` are `400`; the same package name under another Repository of the owner is `409`; a second upload of the same file is `409`
+- [x] A reader cannot upload; an anonymous download of a private Repository is `404`; a Repository made private stops serving at once
+- [x] `max_file_bytes` and the quota are enforced mid-stream without leaving an object or a row
+- [x] No page changes, so no light and dark check; the standing mocks are unchanged (say so in the PR)
+- [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
+- [x] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
+- [x] Status set to `done` and these boxes ticked in the same commit
 
 ## Verification
 
 Throwaway server: `curl -u -T` a 100 MiB file, download with and without a token on a public and a private Repository, compare sha256.
 
 ## Comments
+
+### 2026-11-18
+
+- Routes: `PUT /api/repos/{o}/{r}/packages/generic/{name}/{version}/{filename}` (outside the 1 MB `/api/repos` group,
+  capped at `packages.max_file_bytes` plus 1 KiB), `GET`/`HEAD /{o}/{r}/packages/generic/...`, `GET .../packages`,
+  `GET .../packages/generic/{name}`, `DELETE` of a file and of a version. The caller is resolved in the handler
+  (`resolveGitUser`: claims, else a Basic `czp_` PAT with its scope checked), so a Basic PAT without the scope is a plain
+  `403`, a PAT that doesn't validate is `401` with `WWW-Authenticate: Basic realm="packages"`, a reader `403`, a stranger
+  `404`. Validation (`400`) runs before the repository lookup, as for git.
+- CSRF is exempt only for a request that carries `Authorization: Basic` on `/api/repos/*/packages/generic/*`; an upload
+  with no credentials at all still meets the CSRF check (`403`) before it reaches the handler. The rate limiter keys a
+  Basic PAT on the upload and download paths per user.
+- Packages are created in the same transaction as the first file (`PackageStore.AddGenericFile`), so a refused upload
+  leaves no row. Deleting the last file of a version deletes the version, and the last version deletes the package, which
+  frees the name. The name conflict (`409`) is per type: a container image with the same name under the owner is not a
+  conflict. "Latest version" is the most recently created one, not the highest semver.
+- The quota is enforced by capping the read at the room left (`limit - usage`) or `max_file_bytes`, whichever is smaller,
+  then re-checked before the put; it answers `403` with the usage message, the size cap `413`.
+- Left for others: purging a repository or deleting an owner cascades the rows but leaves the generic objects (storage.md
+  says so); whole-package delete, re-link and the pages are tickets 08 to 10. The `resolveGitUser` key-bound refusal text
+  mentions git.
+- Verified on a throwaway server (scratch DB `cz_t06_live`, unique cookie name, seeded admin) with `curl -u -T` of a
+  100 MiB file: sha256 round trip, anonymous download of a public repository, `404` for anonymous on a private one and
+  `200` with the PAT, re-upload `409`, `repo:write` PAT `403`. The `409`/`400` cases are in router tests; `curl` collapses
+  `..` unless `--path-as-is`.
+- `go test ./...` runs green with `TEST_DATABASE_DSN` on `cz_t06` (I ran it with `-p 1`: the shared test container's
+  lock table ran out ("out of shared memory") once with the packages in parallel, and a different package failed once the
+  same way with `-p 1` and passed on rerun). `make test-integration` starts its own database, so I used the scratch one.
+  No page changed; the standing mocks are unchanged.
