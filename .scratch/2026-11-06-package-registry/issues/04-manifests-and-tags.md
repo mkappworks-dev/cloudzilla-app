@@ -2,7 +2,7 @@
 
 Created: 2026-11-18
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: 03
 Parallel with: 06
 
@@ -34,20 +34,50 @@ Spec: [spec.md](../spec.md). Parent: `../../2026-11-06-uiux-desktop-9.5/issues/1
 
 ## Acceptance criteria
 
-- [ ] Push then pull by tag and by digest returns identical bytes and digest; a re-push of a tag moves it and leaves the old manifest untagged
-- [ ] A multi-platform index with two children pushes and pulls; deleting a referenced child is refused
-- [ ] Linking: name match, label as `owner/repo`, label as URL (with `.git` and trailing `/`), label on another host (ignored), and refusal; a label from a manager of `acme/tools` on image `acme/server` while `acme/server` exists links to `acme/server` and needs `CanWrite` there
-- [ ] A label naming another owner's Repository, or one the caller can write but not manage, is refused; a config blob over 1 MiB is refused
-- [ ] A reader cannot push or delete; a tag delete keeps the manifest; a manifest delete removes its tags; a referenced blob cannot be deleted
-- [ ] `tags/list` paginates with `n` and `last` and a `Link` header; an unreadable package is the missing-name answer
-- [ ] A rename of the linked Repository leaves the image path working
-- [ ] No page changes, so no light and dark check; the standing mocks are unchanged (say so in the PR)
-- [ ] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
-- [ ] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
-- [ ] Status set to `done` and these boxes ticked in the same commit
+- [x] Push then pull by tag and by digest returns identical bytes and digest; a re-push of a tag moves it and leaves the old manifest untagged
+- [x] A multi-platform index with two children pushes and pulls; deleting a referenced child is refused
+- [x] Linking: name match, label as `owner/repo`, label as URL (with `.git` and trailing `/`), label on another host (ignored), and refusal; a label from a manager of `acme/tools` on image `acme/server` while `acme/server` exists links to `acme/server` and needs `CanWrite` there
+- [x] A label naming another owner's Repository, or one the caller can write but not manage, is refused; a config blob over 1 MiB is refused
+- [x] A reader cannot push or delete; a tag delete keeps the manifest; a manifest delete removes its tags; a referenced blob cannot be deleted
+- [x] `tags/list` paginates with `n` and `last` and a `Link` header; an unreadable package is the missing-name answer
+- [x] A rename of the linked Repository leaves the image path working
+- [x] No page changes, so no light and dark check; the standing mocks are unchanged (say so in the PR)
+- [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
+- [x] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
+- [x] Status set to `done` and these boxes ticked in the same commit
 
 ## Verification
 
 Throwaway server: real `docker push` and `docker pull` of a small image, `docker buildx imagetools create` for an index, `docker pull` by digest, and a push that is refused (check the Docker client prints the message).
 
 ## Comments
+
+### 2026-11-18
+
+- New files: `registry_manifest_service.go`, `registry_link.go`, `registry_manifest_handler.go`, `registry_manifest_store.go`. The
+  router needed no edit (ticket 02's `/v2/*` catch-all routes to `Registry`) and `package_service.go` is untouched:
+  linking lives in `RegistryService`, which already owns pending-package resolution.
+- Status codes: a referenced index child or blob is `409 DENIED`, quota `403 DENIED`, a refused link `403 DENIED` whose
+  message names both routes (docker prints it as `error from registry: …`). A bad tag is `400 MANIFEST_INVALID`, a bad `n`
+  is `400 PAGINATION_NUMBER_INVALID`, a body over 4 MiB is `413 SIZE_INVALID`.
+- Name match is case-insensitive against the path owner's live Repositories and uses the image's first segment (`pub/server`
+  links to `pub`). A label naming another owner, a missing Repository, another host or nonsense falls through to the same
+  refusal. The 1 MiB config cap is checked against the stored blob size before it is read, and only when the label is
+  needed, so a name-matched push never pays for it.
+- `Accept` that excludes the stored media type answers `404 MANIFEST_UNKNOWN`. Tag delete and manifest delete need
+  `CanWrite`; whole-package delete stays with ticket 10.
+- Deleting a manifest or blob removes only rows (manifest, tags, reference rows, the package's link). The link row of a
+  deleted manifest's blobs and the objects are left for the sweep (ticket 05). Re-pushing a tag to another manifest resets
+  that tag's pull count.
+- `subject` and `artifactType` are stored on push (the columns exist); `OCI-Subject`, the referrers `GET` and the platform
+  summary are ticket 10, so `referrers` still answers `405 UNSUPPORTED`. Download counts (decision 18) are ticket 05.
+- Verified on a throwaway server (scratch DB `cz_t04_live`, unique cookie name, server in an `alpine` container as the notes
+  describe) with a real Docker client: `docker push` of an image named like a Repository (no label), pull by tag and by
+  digest (the pulled bytes hash to the digest), a push linked by an `.git`-and-trailing-slash URL label (blob mounted from
+  the other image), `docker buildx imagetools create` of a two-child index and a pull of it by tag and digest, and two
+  refused pushes the client printed: an unlinked image (`error from registry: this image is not linked to a repository: …`)
+  and a non-writer (`push access denied … insufficient_scope`). `curl` confirmed a referenced child is `409`, a tag delete
+  keeps the manifest and `tags/list?n=1` sends `Link`. The seeded `admin@example.test` account has no repositories, so the
+  PATs were inserted for two seeded users on the scratch DB.
+- `make test-integration` starts its own database; `go test ./...` ran on the `cz_t04` scratch DB, as in tickets 01 to 03.
+  No page changed, so there is no light and dark check and the standing mocks are unchanged.

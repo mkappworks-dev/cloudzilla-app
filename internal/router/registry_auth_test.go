@@ -506,8 +506,6 @@ func TestRegistryAuth_OperationsNotBuiltYetAnswerUnsupported(t *testing.T) {
 	auth := e.bearer(t, e.ownerPAT, "repository:"+e.privImage+":pull,push")
 
 	for _, target := range []string{
-		"/v2/" + e.privImage + "/tags/list",
-		"/v2/" + e.privImage + "/manifests/latest",
 		"/v2/" + e.privImage + "/referrers/" + testDigest,
 	} {
 		rr := e.do(http.MethodGet, target, auth)

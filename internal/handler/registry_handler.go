@@ -59,7 +59,7 @@ func (h *Handler) Registry(w http.ResponseWriter, r *http.Request) {
 		middleware.WriteRegistryError(w, http.StatusNotFound, "UNSUPPORTED", "no such registry operation", nil)
 		return
 	}
-	if h.registryBlobOp(w, r, route) {
+	if h.registryBlobOp(w, r, route) || h.registryManifestOp(w, r, route) {
 		return
 	}
 	middleware.WriteRegistryError(w, http.StatusMethodNotAllowed, "UNSUPPORTED", "this registry operation is not available yet",

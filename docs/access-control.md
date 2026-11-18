@@ -1282,6 +1282,27 @@ pending package there. Because a reader's `push` is dropped from the list, a req
 as "unauthorized". The path's first segment is the owner (a user, then an organization, ignoring case); the rest is the
 image name, parsed from the right so it may contain segments called `blobs`, `manifests`, `tags` or `referrers`.
 
+#### Manifests, tags and linking
+
+A manifest push (`PUT /v2/{name}/manifests/{ref}`) stores the exact bytes (up to 4 MiB; OCI and Docker v2, image and
+index) and answers `201` with `Location` and `Docker-Content-Digest`. Every blob and child it names must be linked to
+the package, or it is `MANIFEST_BLOB_UNKNOWN`. The first manifest push to a pending package links it to a Repository,
+and a push to a linked package needs `CanWrite` on that Repository:
+
+1. A Repository of the path owner named like the image's first path segment wins, whatever the label says, and needs
+   `CanWrite`; without it the push is `403` `DENIED`.
+2. Otherwise the config's `org.opencontainers.image.source` label names a Repository of the path owner (`owner/repo`, or
+   a URL on `server.base_url`; a `.git` suffix, a trailing `/`, a path below the Repository and the host's case are
+   ignored, another host's URL is not read) on which the caller has `CanManage`. A config over 1 MiB is not read.
+3. Otherwise `403` `DENIED` with a message naming both routes, which docker prints as `error from registry: …`.
+
+`DELETE …/manifests/{tag}` removes only the tag; `DELETE …/manifests/{digest}` removes the manifest and its tags and is
+`409` `DENIED` while an index names it. `DELETE …/blobs/{digest}` removes the package's link and is `409` `DENIED` while
+a manifest names the blob; the object stays for the sweep. All three need `CanWrite` and the token's `delete` action.
+`GET`/`HEAD …/manifests/{ref}` return the stored `Content-Type` and `404` `MANIFEST_UNKNOWN` when an `Accept` header
+excludes it. `GET …/tags/list` lists every tag in byte order, with `n`, `last` and a `Link: …; rel="next"` header; a
+package the caller cannot read is `NAME_UNKNOWN`.
+
 `/v2` is not in `RequireSetup`'s allow-list: before setup it redirects to `/setup`, as git transport does. Rate limits:
 `/v2/*` is the `registry` resource, per registry-token user (per IP when anonymous, and for a token that does not
 verify); `/v2/token` is `core`, per PAT user.
