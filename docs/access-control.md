@@ -404,13 +404,20 @@ Open routes:
   `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
 - Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
 
-| Scope          | Admits on the open routes                                                                                                                                                                                 |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `repo:read`    | `GET`/`HEAD`, including CI runs, logs and artifacts under `.../actions/**`; git clone/fetch                                                                                                               |
-| `repo:write`   | Everything, including creating repos, merging, applying suggestions, git push, and cancelling, re-running and dispatching CI runs under `.../actions/**`                                                  |
-| `issues:write` | Reads, plus writes under `.../issues/**`                                                                                                                                                                  |
-| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, applying a suggestion, and updating the branch                                                                             |
-| `repo:admin`   | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else |
+| Scope            | Admits on the open routes                                                                                                                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repo:read`      | `GET`/`HEAD`, including CI runs, logs and artifacts under `.../actions/**`; git clone/fetch                                                                                                                   |
+| `repo:write`     | Everything, including creating repos, merging, applying suggestions, git push, and cancelling, re-running and dispatching CI runs under `.../actions/**`                                                      |
+| `issues:write`   | Reads, plus writes under `.../issues/**`                                                                                                                                                                      |
+| `pulls:write`    | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, applying a suggestion, and updating the branch                                                                                 |
+| `packages:read`  | Personal access tokens and device logins only: `GET`/`HEAD` under `/api/repos/{owner}/{repo}/packages`, and the generic download `/{owner}/{repo}/packages/generic/{name}/{version}/{filename}`. Nothing else |
+| `packages:write` | Personal access tokens and device logins only: writes under `/api/repos/{owner}/{repo}/packages`. Nothing else                                                                                                |
+| `repo:admin`     | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else     |
+
+The packages scopes stand alone: a `repo:*` scope never admits a `packages` route, `packages:write` doesn't admit reads,
+and neither package scope admits anything outside `packages`. They are not in `model.Scopes`, which is also the OAuth
+consent list, so an OAuth app that requests one gets `invalid_scope`; `model.PackageScopes` holds them, and
+`IsDeviceScope` and `IsTokenScope` accept them.
 
 The same allow-list holds personal access tokens created with scopes, on `authMW` and `optAuthMW`; git's Basic-auth
 path, which neither sees, checks the scopes itself (`middleware.PATAllowsGit`): fetching needs a read scope and pushing
@@ -840,11 +847,12 @@ OAuth-app tokens.
 
 Usernames and organization names are repository path segments, so a new one must match
 `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively:
-`activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists healthz invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all readyz register repos search settings setup stars static terms topic unread-count verify-email`
-(`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from
-the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the
-username from the display name (falling back to the email's local part, then `user`) by dropping other characters;
-LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
+`activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists healthz invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all readyz register repos search settings setup stars static terms topic unread-count v2 verify-email`
+(`v2` is the container registry's prefix; startup logs a warning naming an existing account called `v2`, which is
+unreachable at its old URL. `service.ValidateOwnerName`, checked only on create; a router test fails if a top-level
+route segment is missing from the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else.
+Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by
+dropping other characters; LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
 
 Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`), compared case-insensitively, so
 `Acme` can't be registered while org `acme` exists. Every user and organization insert checks this in the same statement

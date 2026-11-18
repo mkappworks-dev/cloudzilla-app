@@ -32,6 +32,8 @@ type Config struct {
 	SecretScanning SecretScanningConfig `mapstructure:"secret_scanning"`
 	Release        ReleaseConfig        `mapstructure:"release"`
 	CI             CIConfig             `mapstructure:"ci"`
+	Registry       RegistryConfig       `mapstructure:"registry"`
+	Packages       PackagesConfig       `mapstructure:"packages"`
 	Metrics        MetricsConfig        `mapstructure:"metrics"`
 }
 
@@ -99,6 +101,8 @@ type RateLimitConfig struct {
 	Git     RateBudget    `mapstructure:"git"`
 	Archive RateBudget    `mapstructure:"archive"`
 	Search  RateBudget    `mapstructure:"search"`
+	// Registry is the /v2 container registry; a pull of a large image makes many requests.
+	Registry RateBudget `mapstructure:"registry"`
 }
 
 // RateBudget is a resource's budget for signed-in and anonymous subjects. Zero is unlimited.
@@ -117,7 +121,7 @@ func (c RateLimitConfig) validate() error {
 	budgets := []struct {
 		name string
 		b    RateBudget
-	}{{"core", c.Core}, {"git", c.Git}, {"archive", c.Archive}, {"search", c.Search}}
+	}{{"core", c.Core}, {"git", c.Git}, {"archive", c.Archive}, {"search", c.Search}, {"registry", c.Registry}}
 	for _, r := range budgets {
 		if r.b.Authenticated < 0 || r.b.Anonymous < 0 {
 			return fmt.Errorf("rate_limit.%s: budgets can't be negative (0 is unlimited)", r.name)
@@ -132,10 +136,12 @@ type QuotaConfig struct {
 	Org  QuotaLimits `mapstructure:"org"`
 }
 
-// QuotaLimits caps an owner's live repositories and the disk their git and wiki dirs use.
+// QuotaLimits caps an owner's live repositories, the disk their git and wiki dirs use, and their package bytes.
 type QuotaLimits struct {
 	Repos        int   `mapstructure:"repos"`
 	StorageBytes int64 `mapstructure:"storage_bytes"`
+	// PackageBytes is separate from StorageBytes: package blobs live on the storage Backend, not in git dirs.
+	PackageBytes int64 `mapstructure:"package_bytes"`
 }
 
 func (c QuotaConfig) validate() error {
@@ -143,7 +149,7 @@ func (c QuotaConfig) validate() error {
 		name string
 		l    QuotaLimits
 	}{{"user", c.User}, {"org", c.Org}} {
-		if o.l.Repos < 0 || o.l.StorageBytes < 0 {
+		if o.l.Repos < 0 || o.l.StorageBytes < 0 || o.l.PackageBytes < 0 {
 			return fmt.Errorf("quota.%s: limits can't be negative (0 is unlimited)", o.name)
 		}
 	}
@@ -283,6 +289,46 @@ func (c CIConfig) validate() error {
 	return nil
 }
 
+// RegistryConfig holds the OCI registry's switches and per-user upload limits. Enabled false makes /v2 answer 404.
+type RegistryConfig struct {
+	Enabled                 bool          `mapstructure:"enabled"`
+	MaxBlobBytes            int64         `mapstructure:"max_blob_bytes"`
+	MaxSessionsPerUser      int           `mapstructure:"max_sessions_per_user"`
+	MaxInflightBytesPerUser int64         `mapstructure:"max_inflight_bytes_per_user"`
+	MaxPendingPerUser       int           `mapstructure:"max_pending_per_user"`
+	UploadTTL               time.Duration `mapstructure:"upload_ttl"`
+	GCGrace                 time.Duration `mapstructure:"gc_grace"`
+}
+
+func (c RegistryConfig) validate() error {
+	for _, l := range []struct {
+		key string
+		v   int64
+	}{
+		{"registry.max_blob_bytes", c.MaxBlobBytes}, {"registry.max_sessions_per_user", int64(c.MaxSessionsPerUser)},
+		{"registry.max_inflight_bytes_per_user", c.MaxInflightBytesPerUser},
+		{"registry.max_pending_per_user", int64(c.MaxPendingPerUser)},
+		{"registry.upload_ttl", int64(c.UploadTTL)}, {"registry.gc_grace", int64(c.GCGrace)},
+	} {
+		if l.v < 1 {
+			return fmt.Errorf("%s must be at least 1, got %d", l.key, l.v)
+		}
+	}
+	return nil
+}
+
+// PackagesConfig holds limits on generic package files.
+type PackagesConfig struct {
+	MaxFileBytes int64 `mapstructure:"max_file_bytes"`
+}
+
+func (c PackagesConfig) validate() error {
+	if c.MaxFileBytes < 1 {
+		return fmt.Errorf("packages.max_file_bytes must be at least 1, got %d", c.MaxFileBytes)
+	}
+	return nil
+}
+
 // ReleaseConfig holds release-asset limits.
 type ReleaseConfig struct {
 	MaxAssetBytes int64 `mapstructure:"max_asset_bytes"`
@@ -398,6 +444,14 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("ci.max_artifacts_per_run", 10)
 	v.SetDefault("ci.log_retention", 30*24*time.Hour)
 	v.SetDefault("ci.artifact_retention", 30*24*time.Hour)
+	v.SetDefault("registry.enabled", true)
+	v.SetDefault("registry.max_blob_bytes", int64(5)<<30)
+	v.SetDefault("registry.max_sessions_per_user", 10)
+	v.SetDefault("registry.max_inflight_bytes_per_user", int64(10)<<30)
+	v.SetDefault("registry.max_pending_per_user", 20)
+	v.SetDefault("registry.upload_ttl", 24*time.Hour)
+	v.SetDefault("registry.gc_grace", 24*time.Hour)
+	v.SetDefault("packages.max_file_bytes", int64(512<<20))
 	v.SetDefault("release.max_asset_bytes", int64(512<<20))
 	v.SetDefault("release.max_assets", 20)
 	v.SetDefault("metrics.listen_addr", "")
@@ -405,6 +459,8 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("quota.user.storage_bytes", int64(0))
 	v.SetDefault("quota.org.repos", 0)
 	v.SetDefault("quota.org.storage_bytes", int64(0))
+	v.SetDefault("quota.user.package_bytes", int64(0))
+	v.SetDefault("quota.org.package_bytes", int64(0))
 	v.SetDefault("rate_limit.enabled", true)
 	v.SetDefault("rate_limit.window", "1h")
 	v.SetDefault("rate_limit.core.authenticated", 5000)
@@ -415,6 +471,8 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("rate_limit.archive.anonymous", 20)
 	v.SetDefault("rate_limit.search.authenticated", 600)
 	v.SetDefault("rate_limit.search.anonymous", 60)
+	v.SetDefault("rate_limit.registry.authenticated", 20000)
+	v.SetDefault("rate_limit.registry.anonymous", 2000)
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")
@@ -455,6 +513,12 @@ func Load(cfgFile string) (*Config, error) {
 		return nil, err
 	}
 	if err := cfg.CI.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.Registry.validate(); err != nil {
+		return nil, err
+	}
+	if err := cfg.Packages.validate(); err != nil {
 		return nil, err
 	}
 	if err := cfg.SecretScanning.validate(); err != nil {

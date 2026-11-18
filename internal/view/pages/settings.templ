@@ -584,6 +584,9 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 							for _, s := range model.Scopes {
 								<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value={ s }/> <span><strong class="font-mono">{ s }</strong> — { model.ScopeDescription(s) }</span></label>
 							}
+							for _, s := range model.PackageScopes {
+								<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value={ s }/> <span><strong class="font-mono">{ s }</strong> — { model.ScopeDescription(s) }</span></label>
+							}
 							<label class="flex items-start gap-2"><input type="checkbox" name="scopes" value="repo:admin" class="mt-0.5"/> <span><strong class="font-mono">repo:admin</strong> — manage collaborators, deploy keys, webhooks, org owners, transfers and deletion without a password prompt. Needs a signing key and an expiry within 90 days, and each use is emailed to you.</span></label>
 						</div>
 						<p class="text-[12px] text-muted-foreground mt-1">Choose at least one. Tokens can't manage your account, SSH keys or other tokens, nor repository and organization settings without repo:admin.</p>

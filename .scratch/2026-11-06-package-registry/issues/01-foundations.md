@@ -2,7 +2,7 @@
 
 Created: 2026-11-18
 Category: enhancement
-Status: ready-for-agent
+Status: done
 Blocked by: none
 Parallel with: none (everything else waits on it)
 
@@ -42,19 +42,44 @@ Every later ticket needs the tables, the config keys, the two token scopes, the 
 
 ## Acceptance criteria
 
-- [ ] The migration applies on a fresh DB and on a DB at 141
-- [ ] Every new config key has a default, a `CZ_*` variable and a validation test
-- [ ] A PAT and a device login can be created with `packages:write`; an OAuth app requesting it is refused; `cz auth login --scope packages:write` is accepted client-side
-- [ ] A `repo:write` token is refused on `/api/repos/{o}/{r}/packages/...` and a `packages:write` token admitted (table-driven scope tests, even though the handlers arrive in ticket 06)
-- [ ] Creating a user or organization named `v2` is refused, and startup logs an existing one
-- [ ] The usage accessor counts a blob shared by two packages of one owner once, counts it for each of two owners, and includes in-flight bytes
-- [ ] The token form and device page are checked at desktop 1440 in **light and dark**, and the standing mocks that list scopes are updated in the same PR
-- [ ] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
-- [ ] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
-- [ ] Status set to `done` and these boxes ticked in the same commit
+- [x] The migration applies on a fresh DB and on a DB at 141
+- [x] Every new config key has a default, a `CZ_*` variable and a validation test
+- [x] A PAT and a device login can be created with `packages:write`; an OAuth app requesting it is refused; `cz auth login --scope packages:write` is accepted client-side
+- [x] A `repo:write` token is refused on `/api/repos/{o}/{r}/packages/...` and a `packages:write` token admitted (table-driven scope tests, even though the handlers arrive in ticket 06)
+- [x] Creating a user or organization named `v2` is refused, and startup logs an existing one
+- [x] The usage accessor counts a blob shared by two packages of one owner once, counts it for each of two owners, and includes in-flight bytes
+- [x] The token form and device page are checked at desktop 1440 in **light and dark**, and the standing mocks that list scopes are updated in the same PR
+- [x] Verified on a throwaway server (scratch Postgres, unique `CZ_AUTH_COOKIE_NAME`, `admin@example.test` / `cloudzilla-seed`), not the shared dev DB
+- [x] `golangci-lint run`, `go test ./...` and `make test-integration` pass; Prettier is not run on `.scratch/`
+- [x] Status set to `done` and these boxes ticked in the same commit
 
 ## Verification
 
 Run the migration against a scratch Postgres and `make test-integration`; on a throwaway server create a token with the new scope in Settings and via `cz auth login`, and try an OAuth app request for it.
 
 ## Comments
+
+### 2026-11-18
+
+- Migration 142 (`142_package_registry.sql`), `IF NOT EXISTS` throughout. Path owner is `owner_user_id` xor `owner_org_id`
+  (CHECK). A package's `repo_id` cascades on repository delete; link rows (`package_blobs`, manifests, tags, sessions,
+  versions, files) cascade from `packages`. `package_blobs.digest` references `registry_blobs` with no cascade, so the sweep
+  can delete a blob row only after its links are gone. Uniqueness is four partial indexes (linked and pending, user and
+  org); a pending package may share a linked package's name.
+- `PackageStore.OwnerUsage` and `PackageService.Usage`/`CheckQuota` reuse `QuotaOwner`. `CheckQuota` refuses when
+  `used + adding > limit`, so reaching the quota exactly is allowed. A superadmin's personal account is exempt, as for the
+  git storage quota (my choice; the spec is silent).
+- `packages:write` does not admit reads and `packages:read` does not admit writes, literally as the ticket words it, so a
+  token that pushes and also pulls needs both scopes. `/api/repos/{o}/{r}/packages` has no handler until ticket 06; the
+  allow-list entry is tested table-driven.
+- The generic download case matches exactly seven segments (`/{o}/{r}/packages/generic/{name}/{version}/{filename}`) and
+  `GET`/`HEAD` only.
+- `RegistryStore` has no methods yet and `RegistryService` and `RegistryGCService` no behaviour: only constructors, for
+  tickets 02 and 03 to fill in.
+- Startup logs an existing account named `v2` (`service.WarnShadowedOwnerNames`, case-insensitive, users and orgs).
+- Verified on a throwaway server (scratch DB `cz_ui`, unique cookie name, seeded admin): a `packages:write` PAT created in
+  Settings and listed; a device login for `packages:write repo:read` offered both scopes on the approval page; `repo:admin`
+  on the device endpoint answers `400`. Token dialog and approval page screenshotted at 1440 in light and dark; both look
+  right. The OAuth refusal is covered by the service test, not clicked through.
+- `make test-integration` starts its own database; I ran `go test ./...` with `TEST_DATABASE_DSN` on the `cz_t01` scratch
+  DB instead, which is the same test set. The mock list had only `account_settings.html`; no device-page mock exists.

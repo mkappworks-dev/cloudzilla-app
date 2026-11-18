@@ -86,6 +86,9 @@ type Services struct {
 	PushVet            *PushVetService
 	Mirror             *MirrorService
 	Quota              *QuotaService
+	Package            *PackageService
+	Registry           *RegistryService
+	RegistryGC         *RegistryGCService
 	InstanceSigner     *InstanceSigner
 	Push               *PushService
 	// Secrets is nil when security.secret_key is unset.
@@ -186,6 +189,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	secretScanSvc.WithTokenResolver(tokenRevoker)
 	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc}).
 		WithTokenResolver(tokenRevoker)
+	packageSvc := NewPackageService(stores.Package, stores.User, cfg.Quota)
 	return &Services{
 		User:               userSvc,
 		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
@@ -260,6 +264,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PushVet:            NewPushVetService(branchProtectionSvc, pushScanSvc),
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
+		Package:            packageSvc,
+		Registry:           NewRegistryService(stores.Registry, packageSvc, cfg.Registry),
+		RegistryGC:         NewRegistryGCService(stores.Registry, cfg.Registry),
 		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc).WithWorkflowRuns(workflowRunSvc),
 		InstanceSigner:     instanceSigner,
 		Secrets:            secrets,

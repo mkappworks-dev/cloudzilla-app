@@ -16,6 +16,10 @@ var (
 	issueScopes = []string{model.ScopeIssuesWrite, model.ScopeRepoWrite}
 	pullScopes  = []string{model.ScopePullsWrite, model.ScopeRepoWrite}
 	adminScopes = []string{model.ScopeRepoAdmin}
+
+	// Registry scopes stand alone: no repo:* scope admits a package route, and a packages:* scope admits nothing else.
+	packageReadScopes  = []string{model.ScopePackagesRead}
+	packageWriteScopes = []string{model.ScopePackagesWrite}
 )
 
 // Sub-resources of /api/repos/{owner}/{repo} that administer it. Only a personal
@@ -141,6 +145,12 @@ func repoAPIScopes(rest []string, read bool) []string {
 	}
 
 	sub := rest[2:]
+	if sub[0] == "packages" {
+		if read {
+			return packageReadScopes
+		}
+		return packageWriteScopes
+	}
 	if repoAdminResources[sub[0]] {
 		return adminScopes
 	}
@@ -162,9 +172,15 @@ func repoAPIScopes(rest []string, read bool) []string {
 	return writeScopes
 }
 
-// gitTransportScopes handles /{owner}/{repo}/info/refs, git-upload-pack and git-receive-pack.
+// gitTransportScopes handles /{owner}/{repo}/info/refs, git-upload-pack and git-receive-pack, and the generic
+// package download /{owner}/{repo}/packages/generic/{name}/{version}/{filename}.
 func gitTransportScopes(r *http.Request, seg []string) []string {
 	switch {
+	case len(seg) == 7 && seg[2] == "packages" && seg[3] == "generic":
+		if r.Method == http.MethodGet || r.Method == http.MethodHead {
+			return packageReadScopes
+		}
+		return nil
 	case len(seg) == 4 && seg[2] == "info" && seg[3] == "refs":
 		if r.URL.Query().Get("service") == "git-receive-pack" {
 			return writeScopes

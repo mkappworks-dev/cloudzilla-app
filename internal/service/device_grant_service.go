@@ -113,7 +113,7 @@ func (s *DeviceGrantService) Create(ctx context.Context, ip string, scopes []str
 	if len(scopes) == 0 {
 		scopes = []string{model.ScopeRepoWrite}
 	}
-	scopes, err := validateScopes(scopes)
+	scopes, err := validateDeviceScopes(scopes)
 	if err != nil {
 		return nil, err
 	}

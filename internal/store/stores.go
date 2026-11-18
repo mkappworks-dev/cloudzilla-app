@@ -33,6 +33,8 @@ type Stores struct {
 	WorkflowRun        *WorkflowRunStore
 	CIRunner           *CIRunnerStore
 	CISecret           *CISecretStore
+	Package            *PackageStore
+	Registry           *RegistryStore
 	WorkflowLog        *WorkflowLogStore
 	Milestone          *MilestoneStore
 	PullReview         *PullReviewStore
@@ -107,6 +109,8 @@ func New(database *sql.DB) *Stores {
 		WorkflowRun:        NewWorkflowRunStore(database),
 		CIRunner:           NewCIRunnerStore(database),
 		CISecret:           NewCISecretStore(database),
+		Package:            NewPackageStore(database),
+		Registry:           NewRegistryStore(database),
 		WorkflowLog:        NewWorkflowLogStore(database),
 		Milestone:          NewMilestoneStore(database),
 		PullReview:         NewPullReviewStore(database),

@@ -62,6 +62,7 @@ func main() {
 
 	stores := store.New(database)
 	services := service.New(stores, cfg).WithStorage(backend)
+	service.WarnShadowedOwnerNames(context.Background(), stores.User)
 	if services.Secrets == nil {
 		slog.Warn("security.secret_key is not set: server-made commits are not signed and mirror credentials can't be stored")
 	}

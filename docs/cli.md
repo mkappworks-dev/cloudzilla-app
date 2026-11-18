@@ -50,13 +50,13 @@ An older server without the endpoint answers `404`, and `cz` points you to `--wi
 personal access token under your account settings with the scopes from [the table below](#scopes-per-command) and pipe
 it in.
 
-| Flag                 | Effect                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `--host URL`         | The Cloudzilla URL; `CZ_HOST` is used when omitted                                                                              |
-| `--scope S`          | Scope to request: `repo:read`, `repo:write`, `issues:write`, `pulls:write`. Repeatable or space-separated; default `repo:write` |
-| `--no-browser`       | Print the URL and code without opening a browser                                                                                |
-| `--with-token`       | Skip the browser: read a personal access token from stdin                                                                       |
-| `--insecure-storage` | Store the token in a `0600` file instead of the OS keychain                                                                     |
+| Flag                 | Effect                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--host URL`         | The Cloudzilla URL; `CZ_HOST` is used when omitted                                                                                                                 |
+| `--scope S`          | Scope to request: `repo:read`, `repo:write`, `issues:write`, `pulls:write`, `packages:read`, `packages:write`. Repeatable or space-separated; default `repo:write` |
+| `--no-browser`       | Print the URL and code without opening a browser                                                                                                                   |
+| `--with-token`       | Skip the browser: read a personal access token from stdin                                                                                                          |
+| `--insecure-storage` | Store the token in a `0600` file instead of the OS keychain                                                                                                        |
 
 `cz auth status` fails when nobody is logged in.
 

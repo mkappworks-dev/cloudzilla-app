@@ -49,12 +49,13 @@ func TestLoad_RateLimitDefaults(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 	want := config.RateLimitConfig{
-		Enabled: true,
-		Window:  time.Hour,
-		Core:    config.RateBudget{Authenticated: 5000, Anonymous: 1000},
-		Git:     config.RateBudget{Authenticated: 1000, Anonymous: 200},
-		Archive: config.RateBudget{Authenticated: 100, Anonymous: 20},
-		Search:  config.RateBudget{Authenticated: 600, Anonymous: 60},
+		Enabled:  true,
+		Window:   time.Hour,
+		Core:     config.RateBudget{Authenticated: 5000, Anonymous: 1000},
+		Git:      config.RateBudget{Authenticated: 1000, Anonymous: 200},
+		Archive:  config.RateBudget{Authenticated: 100, Anonymous: 20},
+		Search:   config.RateBudget{Authenticated: 600, Anonymous: 60},
+		Registry: config.RateBudget{Authenticated: 20000, Anonymous: 2000},
 	}
 	if cfg.RateLimit != want {
 		t.Errorf("want %+v, got %+v", want, cfg.RateLimit)
@@ -63,16 +64,18 @@ func TestLoad_RateLimitDefaults(t *testing.T) {
 
 func TestLoad_RateLimitFromEnv(t *testing.T) {
 	env := map[string]string{
-		"CZ_RATE_LIMIT_ENABLED":               "false",
-		"CZ_RATE_LIMIT_WINDOW":                "10m",
-		"CZ_RATE_LIMIT_CORE_AUTHENTICATED":    "1",
-		"CZ_RATE_LIMIT_CORE_ANONYMOUS":        "2",
-		"CZ_RATE_LIMIT_GIT_AUTHENTICATED":     "3",
-		"CZ_RATE_LIMIT_GIT_ANONYMOUS":         "4",
-		"CZ_RATE_LIMIT_ARCHIVE_AUTHENTICATED": "5",
-		"CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS":     "6",
-		"CZ_RATE_LIMIT_SEARCH_AUTHENTICATED":  "7",
-		"CZ_RATE_LIMIT_SEARCH_ANONYMOUS":      "0",
+		"CZ_RATE_LIMIT_ENABLED":                "false",
+		"CZ_RATE_LIMIT_WINDOW":                 "10m",
+		"CZ_RATE_LIMIT_CORE_AUTHENTICATED":     "1",
+		"CZ_RATE_LIMIT_CORE_ANONYMOUS":         "2",
+		"CZ_RATE_LIMIT_GIT_AUTHENTICATED":      "3",
+		"CZ_RATE_LIMIT_GIT_ANONYMOUS":          "4",
+		"CZ_RATE_LIMIT_ARCHIVE_AUTHENTICATED":  "5",
+		"CZ_RATE_LIMIT_ARCHIVE_ANONYMOUS":      "6",
+		"CZ_RATE_LIMIT_SEARCH_AUTHENTICATED":   "7",
+		"CZ_RATE_LIMIT_SEARCH_ANONYMOUS":       "0",
+		"CZ_RATE_LIMIT_REGISTRY_AUTHENTICATED": "8",
+		"CZ_RATE_LIMIT_REGISTRY_ANONYMOUS":     "9",
 	}
 	for k, v := range env {
 		t.Setenv(k, v)
@@ -82,11 +85,12 @@ func TestLoad_RateLimitFromEnv(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 	want := config.RateLimitConfig{
-		Window:  10 * time.Minute,
-		Core:    config.RateBudget{Authenticated: 1, Anonymous: 2},
-		Git:     config.RateBudget{Authenticated: 3, Anonymous: 4},
-		Archive: config.RateBudget{Authenticated: 5, Anonymous: 6},
-		Search:  config.RateBudget{Authenticated: 7, Anonymous: 0},
+		Window:   10 * time.Minute,
+		Core:     config.RateBudget{Authenticated: 1, Anonymous: 2},
+		Git:      config.RateBudget{Authenticated: 3, Anonymous: 4},
+		Archive:  config.RateBudget{Authenticated: 5, Anonymous: 6},
+		Search:   config.RateBudget{Authenticated: 7, Anonymous: 0},
+		Registry: config.RateBudget{Authenticated: 8, Anonymous: 9},
 	}
 	if cfg.RateLimit != want {
 		t.Errorf("want %+v, got %+v", want, cfg.RateLimit)
@@ -367,6 +371,90 @@ func TestLoad_SecretScanningInvalid(t *testing.T) {
 			_, err := config.Load("")
 			if err == nil || !strings.Contains(err.Error(), tc.wantKey) {
 				t.Errorf("err = %v, want one naming %s", err, tc.wantKey)
+			}
+		})
+	}
+}
+
+func TestLoad_RegistryDefaultsAndEnv(t *testing.T) {
+	cfg, err := config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	want := config.RegistryConfig{
+		Enabled: true, MaxBlobBytes: 5 << 30, MaxSessionsPerUser: 10, MaxInflightBytesPerUser: 10 << 30,
+		MaxPendingPerUser: 20, UploadTTL: 24 * time.Hour, GCGrace: 24 * time.Hour,
+	}
+	if cfg.Registry != want {
+		t.Errorf("defaults = %+v, want %+v", cfg.Registry, want)
+	}
+	if cfg.Packages != (config.PackagesConfig{MaxFileBytes: 512 << 20}) {
+		t.Errorf("packages defaults = %+v", cfg.Packages)
+	}
+
+	for k, v := range map[string]string{
+		"CZ_REGISTRY_ENABLED": "false", "CZ_REGISTRY_MAX_BLOB_BYTES": "1000", "CZ_REGISTRY_MAX_SESSIONS_PER_USER": "2",
+		"CZ_REGISTRY_MAX_INFLIGHT_BYTES_PER_USER": "5000", "CZ_REGISTRY_MAX_PENDING_PER_USER": "3",
+		"CZ_REGISTRY_UPLOAD_TTL": "2h", "CZ_REGISTRY_GC_GRACE": "30m", "CZ_PACKAGES_MAX_FILE_BYTES": "99",
+	} {
+		t.Setenv(k, v)
+	}
+	cfg, err = config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	want = config.RegistryConfig{
+		Enabled: false, MaxBlobBytes: 1000, MaxSessionsPerUser: 2, MaxInflightBytesPerUser: 5000,
+		MaxPendingPerUser: 3, UploadTTL: 2 * time.Hour, GCGrace: 30 * time.Minute,
+	}
+	if cfg.Registry != want || cfg.Packages.MaxFileBytes != 99 {
+		t.Errorf("env = %+v %+v, want %+v and 99", cfg.Registry, cfg.Packages, want)
+	}
+}
+
+func TestLoad_RegistryInvalid(t *testing.T) {
+	for _, tc := range []struct{ env, wantKey string }{
+		{"CZ_REGISTRY_MAX_BLOB_BYTES", "registry.max_blob_bytes"},
+		{"CZ_REGISTRY_MAX_SESSIONS_PER_USER", "registry.max_sessions_per_user"},
+		{"CZ_REGISTRY_MAX_INFLIGHT_BYTES_PER_USER", "registry.max_inflight_bytes_per_user"},
+		{"CZ_REGISTRY_MAX_PENDING_PER_USER", "registry.max_pending_per_user"},
+		{"CZ_REGISTRY_UPLOAD_TTL", "registry.upload_ttl"},
+		{"CZ_REGISTRY_GC_GRACE", "registry.gc_grace"},
+		{"CZ_PACKAGES_MAX_FILE_BYTES", "packages.max_file_bytes"},
+	} {
+		for _, bad := range []string{"0", "-1"} {
+			t.Run(tc.env+"="+bad, func(t *testing.T) {
+				t.Setenv(tc.env, bad)
+				_, err := config.Load("")
+				if err == nil || !strings.Contains(err.Error(), tc.wantKey) {
+					t.Errorf("err = %v, want one naming %s", err, tc.wantKey)
+				}
+			})
+		}
+	}
+}
+
+func TestLoad_PackageQuotaAndRegistryRateLimit(t *testing.T) {
+	t.Setenv("CZ_QUOTA_USER_PACKAGE_BYTES", "100")
+	t.Setenv("CZ_QUOTA_ORG_PACKAGE_BYTES", "200")
+	t.Setenv("CZ_RATE_LIMIT_REGISTRY_ANONYMOUS", "7")
+	t.Setenv("CZ_RATE_LIMIT_REGISTRY_AUTHENTICATED", "70")
+	cfg, err := config.Load("")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Quota.User.PackageBytes != 100 || cfg.Quota.Org.PackageBytes != 200 {
+		t.Errorf("quota = %+v", cfg.Quota)
+	}
+	if cfg.RateLimit.Registry != (config.RateBudget{Authenticated: 70, Anonymous: 7}) {
+		t.Errorf("registry budget = %+v", cfg.RateLimit.Registry)
+	}
+
+	for _, env := range []string{"CZ_QUOTA_USER_PACKAGE_BYTES", "CZ_QUOTA_ORG_PACKAGE_BYTES", "CZ_RATE_LIMIT_REGISTRY_ANONYMOUS", "CZ_RATE_LIMIT_REGISTRY_AUTHENTICATED"} {
+		t.Run(env, func(t *testing.T) {
+			t.Setenv(env, "-1")
+			if _, err := config.Load(""); err == nil {
+				t.Errorf("%s=-1: want a startup error", env)
 			}
 		})
 	}

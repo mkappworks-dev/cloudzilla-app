@@ -22,7 +22,7 @@ func TestValidateOwnerName(t *testing.T) {
 	invalid := []string{
 		"", ".", "..", "../x", "a/b", `a\b`, "a\x00", ".hidden", "-lead", "_lead", "a.b",
 		strings.Repeat("a", 40), "admin", "Admin", "API", "settings", "terms", "Terms",
-		"healthz", "HealthZ", "readyz", "READYZ",
+		"healthz", "HealthZ", "readyz", "READYZ", "v2", "V2",
 	}
 	for _, name := range invalid {
 		if err := ValidateOwnerName(name); !errors.Is(err, ErrInvalidOwnerName) {
@@ -94,3 +94,20 @@ func TestUniqueUsername_SkipsOwnerNamesInAnyCase(t *testing.T) {
 
 // "admin" is reserved, so both logins fall back to the same name and the
 // second needs a suffix.
+
+func TestWarnShadowedOwnerNames_NamesAnAccountCalledV2(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	users := store.NewUserStore(db)
+	ctx := context.Background()
+	if got := WarnShadowedOwnerNames(ctx, users); len(got) != 0 {
+		t.Fatalf("no account is called v2, got %v", got)
+	}
+	testutil.Exec(t, db, `INSERT INTO organizations (name) VALUES ('V2')`)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE name = 'V2'`) })
+
+	got := WarnShadowedOwnerNames(ctx, users)
+
+	if len(got) != 1 || got[0] != "v2" {
+		t.Errorf("WarnShadowedOwnerNames = %v, want [v2]", got)
+	}
+}

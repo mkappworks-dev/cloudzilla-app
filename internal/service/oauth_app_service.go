@@ -118,9 +118,18 @@ func (s *OAuthAppService) ParseScopes(_ context.Context, param string) ([]string
 }
 
 func validateScopes(requested []string) ([]string, error) {
+	return validateScopesBy(requested, model.IsKnownScope)
+}
+
+// validateDeviceScopes is validateScopes for a device login, which can also hold the registry scopes.
+func validateDeviceScopes(requested []string) ([]string, error) {
+	return validateScopesBy(requested, model.IsDeviceScope)
+}
+
+func validateScopesBy(requested []string, valid func(string) bool) ([]string, error) {
 	var scopes []string
 	for _, sc := range requested {
-		if !model.IsKnownScope(sc) {
+		if !valid(sc) {
 			return nil, fmt.Errorf("%w: %q", ErrInvalidScope, sc)
 		}
 		if !slices.Contains(scopes, sc) {
