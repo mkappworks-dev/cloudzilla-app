@@ -20,6 +20,9 @@ const (
 	maxConfigBytes = 1 << 20
 )
 
+// errLinkRaced means a concurrent push linked the image name first.
+var errLinkRaced = errors.New("image name linked by a concurrent push")
+
 func linkRefusal(owner, reason string) *RegistryError {
 	msg := fmt.Sprintf("this image is not linked to a repository: push it to a path named like a repository of %[1]s "+
 		"(%[1]s/<repository>) that you can write to, or set the %[2]s label to a repository of %[1]s that you manage "+
@@ -75,7 +78,7 @@ func (s *RegistryService) linkPending(ctx context.Context, userID int64, t uploa
 func (s *RegistryService) link(ctx context.Context, t uploadTarget, repoID int64) error {
 	err := s.registry.LinkPackage(ctx, t.packageID, repoID)
 	if errors.Is(err, store.ErrImageNameTaken) || errors.Is(err, sql.ErrNoRows) {
-		return regErr(http.StatusConflict, "DENIED", "the image name was linked by another push; retry")
+		return errLinkRaced
 	}
 	return err
 }

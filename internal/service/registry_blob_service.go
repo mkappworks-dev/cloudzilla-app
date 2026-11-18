@@ -125,26 +125,9 @@ func (s *RegistryService) readTarget(ctx context.Context, userID int64, name str
 	if err != nil {
 		return uploadTarget{}, err
 	}
-	pkgID, repoID, err := s.registry.LinkedPackage(ctx, owner, image)
-	switch {
-	case err == nil:
-		repo, err := s.repos.GetByID(ctx, repoID)
-		if errors.Is(err, sql.ErrNoRows) {
-			return uploadTarget{}, errNameUnknown
-		}
-		if err != nil {
-			return uploadTarget{}, err
-		}
-		var viewer *int64
-		if userID != 0 {
-			viewer = &userID
-		}
-		if !s.repos.CanRead(ctx, repo, viewer) {
-			return uploadTarget{}, errNameUnknown
-		}
-		return uploadTarget{packageID: pkgID, owner: owner}, nil
-	case !errors.Is(err, sql.ErrNoRows):
-		return uploadTarget{}, err
+	t, err := s.linkedTarget(ctx, userID, owner, image)
+	if !errors.Is(err, sql.ErrNoRows) {
+		return t, err
 	}
 	if userID != 0 {
 		id, err := s.registry.PendingPackage(ctx, owner, image, userID, s.now())
@@ -154,8 +137,36 @@ func (s *RegistryService) readTarget(ctx context.Context, userID int64, name str
 		if !errors.Is(err, sql.ErrNoRows) {
 			return uploadTarget{}, err
 		}
+		// A concurrent manifest push may have linked the package between the two lookups; without this second look
+		// the caller would start a second, empty pending package for a name that is no longer free.
+		if t, err = s.linkedTarget(ctx, userID, owner, image); !errors.Is(err, sql.ErrNoRows) {
+			return t, err
+		}
 	}
 	return uploadTarget{}, errNameUnknown
+}
+
+// linkedTarget is the linked package at the path when the viewer may read it, sql.ErrNoRows when none is linked.
+func (s *RegistryService) linkedTarget(ctx context.Context, userID int64, owner store.PathOwner, image string) (uploadTarget, error) {
+	pkgID, repoID, err := s.registry.LinkedPackage(ctx, owner, image)
+	if err != nil {
+		return uploadTarget{}, err
+	}
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return uploadTarget{}, errNameUnknown
+	}
+	if err != nil {
+		return uploadTarget{}, err
+	}
+	var viewer *int64
+	if userID != 0 {
+		viewer = &userID
+	}
+	if !s.repos.CanRead(ctx, repo, viewer) {
+		return uploadTarget{}, errNameUnknown
+	}
+	return uploadTarget{packageID: pkgID, owner: owner}, nil
 }
 
 // writeTarget is readTarget for a caller who pushes: a reader of a linked package is DENIED, and with create set a
