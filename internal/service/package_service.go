@@ -74,3 +74,16 @@ func (s *PackageService) CheckQuota(ctx context.Context, o QuotaOwner, adding in
 	}
 	return nil
 }
+
+// Headroom is how many more bytes o may add before reaching its package quota, or -1 when it has none.
+func (s *PackageService) Headroom(ctx context.Context, o QuotaOwner) (int64, error) {
+	limit, err := s.limit(ctx, o)
+	if err != nil || limit <= 0 {
+		return -1, err
+	}
+	used, err := s.Usage(ctx, o)
+	if err != nil {
+		return 0, err
+	}
+	return max(limit-used, 0), nil
+}

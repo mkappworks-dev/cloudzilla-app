@@ -17,6 +17,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
@@ -104,6 +105,8 @@ type RegistryService struct {
 	packages *PackageService
 	cfg      config.RegistryConfig
 	now      func() time.Time
+	backend  storage.Backend
+	spoolDir string
 
 	tokens  *AccessTokenService
 	repos   *RepoService

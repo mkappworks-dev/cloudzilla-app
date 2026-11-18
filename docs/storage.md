@@ -91,6 +91,7 @@ releases/repo/<repo id>/<release id>/<token>.bin
 exports/<user id>/<export id>.zip
 ci/logs/repo/<repo id>/job/<job id>/<seq>-<token>.log
 ci/artifacts/repo/<repo id>/run/<run id>/<token>.zip
+registry/<64 hex digits of the blob's sha256>
 ```
 
 - `users.avatar_key` and `organizations.avatar_key` hold the full key, or `''` for none.
@@ -228,6 +229,23 @@ Job output and `artifacts:` archives from built-in CI ([ci](./ci.md#logs-and-art
   hourly sweep does that too, so a missed delete is only late.
 - A failed object delete is logged and leaves an orphan: any object under `ci/` that no `workflow_log_chunks` or
   `workflow_artifacts` row names is safe to delete.
+
+## Registry blobs
+
+Container image layers and configs live under `registry/`, one object per digest, shared by every package. The key is
+the hex digest only, so it always passes the key check. Which package may read a blob is decided by `package_blobs` link
+rows, never by the object existing: knowing a digest grants nothing.
+
+- Uploads spool to a temp file under `os.TempDir()/cloudzilla-registry-spool`, then the object is put with its exact
+  size (S3 needs it). `main.go` empties that directory at startup and drops every `package_upload_sessions` row, so a
+  restart loses in-flight uploads: the client starts again. The spool needs room for the user's in-flight bytes
+  (`registry.max_inflight_bytes_per_user`, 10 GiB by default).
+- The sha256 is computed when the upload is committed, by reading the spool file once more, because chunks arrive in
+  separate requests.
+- `Backend` has no ranged read, so a blob `Range` request reads and discards the bytes before the range.
+- A link is written under `FOR SHARE` on the `registry_blobs` row. If the row is missing the object is put first and the
+  row inserted, so a sweep that deleted the row cannot leave a link without an object.
+- An object whose `registry_blobs` row is gone is an orphan and safe to delete.
 
 ## Account export
 

@@ -20,6 +20,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/router"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -49,6 +50,8 @@ type registryEnv struct {
 	ownerPAT, readerPAT, strangerPAT string // packages:write
 	ownerReadPAT                     string // packages:read
 	ownerRepoWritePAT                string // repo:write only
+	objects                          string // root of the local storage backend
+	pubRepoID                        int64
 }
 
 func newRegistryEnv(t *testing.T, mutate func(*config.Config)) *registryEnv {
@@ -56,16 +59,26 @@ func newRegistryEnv(t *testing.T, mutate func(*config.Config)) *registryEnv {
 	db := testutil.OpenTestDB(t)
 	testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
 	cfg := &config.Config{
-		Server:   config.ServerConfig{BaseURL: "http://localhost"},
-		Auth:     config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: "cz_token"},
-		Git:      config.GitConfig{ReposRoot: t.TempDir()},
-		CI:       config.DefaultCI(),
-		Registry: config.RegistryConfig{Enabled: true},
+		Server: config.ServerConfig{BaseURL: "http://localhost"},
+		Auth:   config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: "cz_token"},
+		Git:    config.GitConfig{ReposRoot: t.TempDir()},
+		CI:     config.DefaultCI(),
+		Registry: config.RegistryConfig{
+			Enabled: true, MaxBlobBytes: 5 << 30, MaxSessionsPerUser: 10, MaxInflightBytesPerUser: 10 << 30,
+			MaxPendingPerUser: 20, UploadTTL: 24 * time.Hour, GCGrace: 24 * time.Hour,
+		},
 	}
 	if mutate != nil {
 		mutate(cfg)
 	}
-	svc := service.New(store.New(db), cfg)
+	objects := t.TempDir()
+	backend, err := storage.NewLocal(objects)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = backend.Close() })
+	svc := service.New(store.New(db), cfg).WithStorage(backend)
+	svc.Registry.WithSpoolDir(t.TempDir())
 	clock := &fakeClock{now: time.Now()}
 	svc.Registry.WithClock(clock.Now)
 	h, err := router.New(svc, cfg, fstest.MapFS{})
@@ -73,7 +86,7 @@ func newRegistryEnv(t *testing.T, mutate func(*config.Config)) *registryEnv {
 		t.Fatalf("router.New: %v", err)
 	}
 
-	e := &registryEnv{h: h, svc: svc, db: db, clock: clock}
+	e := &registryEnv{h: h, svc: svc, db: db, clock: clock, objects: objects}
 	suffix := testutil.UniqueSuffix(t)
 	e.owner, e.reader, e.stranger = "own_"+suffix, "rdr_"+suffix, "str_"+suffix
 	e.ownerID = testutil.SeedUser(t, db, "own_"+suffix)
@@ -97,6 +110,7 @@ func newRegistryEnv(t *testing.T, mutate func(*config.Config)) *registryEnv {
 		testutil.Exec(t, db, `INSERT INTO packages (owner_user_id, type, name, repo_id, creator_id) VALUES ($1, 'container', $2, $3, $1)`,
 			e.ownerID, name, repoID)
 	}
+	e.pubRepoID = pub.ID
 	e.pubImage, e.privImage, e.newImage = e.owner+"/pubimg", e.owner+"/privimg", e.owner+"/newimg"
 
 	e.ownerPAT = e.pat(t, e.ownerID, model.ScopePackagesWrite)
@@ -494,7 +508,6 @@ func TestRegistryAuth_OperationsNotBuiltYetAnswerUnsupported(t *testing.T) {
 	for _, target := range []string{
 		"/v2/" + e.privImage + "/tags/list",
 		"/v2/" + e.privImage + "/manifests/latest",
-		"/v2/" + e.privImage + "/blobs/" + testDigest,
 		"/v2/" + e.privImage + "/referrers/" + testDigest,
 	} {
 		rr := e.do(http.MethodGet, target, auth)
@@ -513,8 +526,8 @@ func TestRegistryAuth_APostIsNotStoppedByCSRFOrFormLimits(t *testing.T) {
 	req.Header.Set("Authorization", auth)
 	rr := serve(e.h, req)
 
-	if rr.Code != http.StatusMethodNotAllowed {
-		t.Errorf("got %d %s, want 405 UNSUPPORTED, not a CSRF refusal", rr.Code, rr.Body)
+	if rr.Code != http.StatusAccepted {
+		t.Errorf("got %d %s, want 202, not a CSRF refusal", rr.Code, rr.Body)
 	}
 }
 
