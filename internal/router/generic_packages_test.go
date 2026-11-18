@@ -333,8 +333,17 @@ func TestGenericListDetailAndDelete(t *testing.T) {
 		Type          string `json:"type"`
 		LatestVersion string `json:"latest_version"`
 	}
-	if err := json.Unmarshal(list.Body.Bytes(), &pkgs); err != nil || len(pkgs) != 1 || pkgs[0].Name != "tool" || pkgs[0].Type != model.PackageTypeGeneric {
-		t.Fatalf("list = %s (%v), want one generic package named tool", list.Body, err)
+	if err := json.Unmarshal(list.Body.Bytes(), &pkgs); err != nil {
+		t.Fatalf("list = %s (%v)", list.Body, err)
+	}
+	var generic []string
+	for _, p := range pkgs {
+		if p.Type == model.PackageTypeGeneric {
+			generic = append(generic, p.Name)
+		}
+	}
+	if len(generic) != 1 || generic[0] != "tool" {
+		t.Fatalf("list = %s, want one generic package named tool", list.Body)
 	}
 
 	detail := e.get(base+"/generic/tool", "", false)

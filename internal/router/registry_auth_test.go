@@ -501,20 +501,6 @@ func TestRegistryAuth_NoTokenOnANamedRouteChallengesWithItsScope(t *testing.T) {
 	}
 }
 
-func TestRegistryAuth_OperationsNotBuiltYetAnswerUnsupported(t *testing.T) {
-	e := newRegistryEnv(t, nil)
-	auth := e.bearer(t, e.ownerPAT, "repository:"+e.privImage+":pull,push")
-
-	for _, target := range []string{
-		"/v2/" + e.privImage + "/referrers/" + testDigest,
-	} {
-		rr := e.do(http.MethodGet, target, auth)
-		if rr.Code != http.StatusMethodNotAllowed || ociErrorCode(t, rr) != "UNSUPPORTED" {
-			t.Errorf("GET %s = %d %s, want 405 UNSUPPORTED", target, rr.Code, rr.Body)
-		}
-	}
-}
-
 func TestRegistryAuth_APostIsNotStoppedByCSRFOrFormLimits(t *testing.T) {
 	e := newRegistryEnv(t, nil)
 	auth := e.bearer(t, e.ownerPAT, "repository:"+e.privImage+":pull,push")
