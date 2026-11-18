@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Packages · mkappworks — Cloudzilla</title>
-<link rel="stylesheet" href="./mock.css" />
+<link rel="stylesheet" href="/assets/tailwind.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -20,7 +20,7 @@
     <div class="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-[12px] text-muted-foreground" aria-label="Mock state">
       <span class="font-mono text-[10px] uppercase tracking-wider">Mock state</span>
       <span>/{owner}?tab=packages: every package across the owner's repositories that the viewer can read. Same page for an organization.</span>
-      <span class="ml-auto"><a href="mock.html" class="underline hover:text-foreground">← repo packages</a></span>
+      <span class="ml-auto"><a href="repo_packages.html" class="underline hover:text-foreground">← repo packages</a></span>
     </div>
 
     <section class="flex flex-wrap items-start gap-5 pb-6 border-b border-border" aria-labelledby="profile-name">
@@ -34,7 +34,7 @@
     <nav aria-label="Profile sections" class="flex flex-wrap items-center gap-1 text-sm">
       <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Overview</a>
       <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Repositories <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">14</span></a>
-      <a href="owner.html" aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">Packages <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">5</span></a>
+      <a href="owner_packages.html" aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">Packages <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">5</span></a>
       <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Stars <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">6</span></a>
       <a href="#" class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">Gists <span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">3</span></a>
     </nav>
@@ -77,10 +77,10 @@
               <th scope="row" class="p-4 align-middle font-normal text-left">
                 <div class="flex items-center gap-2.5">
                   <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" role="img" aria-label="Container image"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                  <a href="package.html?state=container" class="text-[13px] font-medium hover:underline font-mono">cloudzilla-server</a>
+                  <a href="package_detail.html?state=container" class="text-[13px] font-medium hover:underline font-mono">cloudzilla-server</a>
                 </div>
               </th>
-              <td class="p-4 align-middle hidden md:table-cell"><a href="mock.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
+              <td class="p-4 align-middle hidden md:table-cell"><a href="repo_packages.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">v0.4.1</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-11-05T16:20:00Z">yesterday</time></td>
             </tr>
@@ -88,10 +88,10 @@
               <th scope="row" class="p-4 align-middle font-normal text-left">
                 <div class="flex items-center gap-2.5">
                   <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" role="img" aria-label="Generic package"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
-                  <a href="package.html?state=generic" class="text-[13px] font-medium hover:underline font-mono">cz-cli</a>
+                  <a href="package_detail.html?state=generic" class="text-[13px] font-medium hover:underline font-mono">cz-cli</a>
                 </div>
               </th>
-              <td class="p-4 align-middle hidden md:table-cell"><a href="mock.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
+              <td class="p-4 align-middle hidden md:table-cell"><a href="repo_packages.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">0.4.1</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-11-05T16:24:00Z">yesterday</time></td>
             </tr>
@@ -99,10 +99,10 @@
               <th scope="row" class="p-4 align-middle font-normal text-left">
                 <div class="flex items-center gap-2.5">
                   <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" role="img" aria-label="Container image"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                  <a href="package.html?state=container" class="text-[13px] font-medium hover:underline font-mono">cloudzilla-runner</a>
+                  <a href="package_detail.html?state=container" class="text-[13px] font-medium hover:underline font-mono">cloudzilla-runner</a>
                 </div>
               </th>
-              <td class="p-4 align-middle hidden md:table-cell"><a href="mock.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
+              <td class="p-4 align-middle hidden md:table-cell"><a href="repo_packages.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">v0.5.0-rc.1</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-11-03T10:00:00Z">3 days ago</time></td>
             </tr>
@@ -110,10 +110,10 @@
               <th scope="row" class="p-4 align-middle font-normal text-left">
                 <div class="flex items-center gap-2.5">
                   <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" role="img" aria-label="Generic package"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
-                  <a href="package.html?state=generic" class="text-[13px] font-medium hover:underline font-mono">migrations-bundle</a>
+                  <a href="package_detail.html?state=generic" class="text-[13px] font-medium hover:underline font-mono">migrations-bundle</a>
                 </div>
               </th>
-              <td class="p-4 align-middle hidden md:table-cell"><a href="mock.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
+              <td class="p-4 align-middle hidden md:table-cell"><a href="repo_packages.html" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">cloudzilla</a></td>
               <td class="p-4 align-middle"><code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]">2026.11.02</code></td>
               <td class="p-4 align-middle text-right text-[12px] text-muted-foreground hidden sm:table-cell"><time datetime="2026-11-02T10:00:00Z">4 days ago</time></td>
             </tr>
@@ -121,7 +121,7 @@
               <th scope="row" class="p-4 align-middle font-normal text-left">
                 <div class="flex items-center gap-2.5">
                   <svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" role="img" aria-label="Container image"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                  <a href="package.html?state=container" class="text-[13px] font-medium hover:underline font-mono">go-service-starter</a>
+                  <a href="package_detail.html?state=container" class="text-[13px] font-medium hover:underline font-mono">go-service-starter</a>
                 </div>
               </th>
               <td class="p-4 align-middle hidden md:table-cell"><a href="#" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline">go-service-starter</a> <span class="ml-1 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span></td>
@@ -136,6 +136,6 @@
 </main>
 
 <div id="cz-footer"></div>
-<script src="../../mockups/shell.js"></script>
+<script src="shell.js"></script>
 </body>
 </html>

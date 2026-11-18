@@ -2,7 +2,7 @@
 
 Created: 2026-11-06
 Category: enhancement
-Status: ready-for-human
+Status: ready-for-agent
 Blocked by: 00
 
 | Branch | Worktree | PR title | Wave | Effort | Score gain |
@@ -26,7 +26,7 @@ Roadmap phase 16.1–16.2 is planned and has no UI.
 
 ## Acceptance criteria
 
-- [ ] Spec and tickets exist
+- [x] Spec and tickets exist (`../2026-11-06-package-registry/spec.md`, `issues/01`–`09`)
 - [ ] All its tickets done
 - [ ] ROADMAP status updated
 
