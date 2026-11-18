@@ -71,6 +71,7 @@ type UserService struct {
 	avatars      *AvatarService
 	exports      *ExportService
 	workflowLogs *WorkflowLogService
+	packages     *PackageService
 }
 
 // NewUserService creates a UserService backed by the given user store and auth config.
@@ -391,6 +392,13 @@ func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 			return err
 		}
 	}
+	var packageKeys []string
+	if s.packages != nil {
+		var err error
+		if packageKeys, err = s.packages.GenericKeysOfOwner(ctx, QuotaOwner{UserID: userID}); err != nil {
+			slog.Warn("user delete: list generic package files failed; their objects stay as orphans", "user_id", userID, "error", err)
+		}
+	}
 	var avatarKey string
 	err := s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
 		var err error
@@ -404,6 +412,9 @@ func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 		return err
 	}
 	s.avatars.DeleteObject(ctx, avatarKey)
+	if s.packages != nil {
+		s.packages.DeleteObjects(ctx, packageKeys)
+	}
 	if s.workflowLogs != nil {
 		// The owned repos' rows cascaded away, so their log and artifact rows are orphans now.
 		s.workflowLogs.SweepOrphans(ctx)
@@ -454,6 +465,12 @@ func (s *UserService) WithAvatars(a *AvatarService) *UserService {
 // WithWorkflowLogs removes the CI logs and artifacts of a deleted user's repos.
 func (s *UserService) WithWorkflowLogs(l *WorkflowLogService) *UserService {
 	s.workflowLogs = l
+	return s
+}
+
+// WithPackages removes the generic package objects under a deleted user's path.
+func (s *UserService) WithPackages(p *PackageService) *UserService {
+	s.packages = p
 	return s
 }
 

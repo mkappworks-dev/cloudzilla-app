@@ -217,8 +217,9 @@ func (s *RegistryStore) InsertAndLinkBlob(ctx context.Context, packageID int64, 
 	return tx.Commit()
 }
 
+// linkBlob restarts the link's grace on a repeat, so the sweep can't take it from a push that is about to name it.
 func linkBlob(ctx context.Context, tx *sql.Tx, packageID int64, digest string) error {
-	if _, err := tx.ExecContext(ctx, `INSERT INTO package_blobs (package_id, digest) VALUES ($1, $2) ON CONFLICT DO NOTHING`, packageID, digest); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO package_blobs (package_id, digest) VALUES ($1, $2) ON CONFLICT (package_id, digest) DO UPDATE SET created_at = NOW()`, packageID, digest); err != nil {
 		return fmt.Errorf("link blob: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE registry_blobs SET unlinked_at = NULL WHERE digest = $1`, digest); err != nil {

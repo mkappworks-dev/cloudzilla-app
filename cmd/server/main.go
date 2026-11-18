@@ -151,6 +151,9 @@ func main() {
 	concurrency.Go("quota.backfill", func() { services.Quota.Backfill(workerCtx) })
 	concurrency.Go("pull.backfill-merged-ranges", func() { services.Pull.BackfillMergedRanges(workerCtx, services.PullEvent) })
 	concurrency.Go("attachment.sweep", func() { services.Attachment.Run(workerCtx) })
+	// Outside the registry.enabled check: turning the registry off must not stop deleted images from being reclaimed.
+	concurrency.Go("registry.sweep", func() { services.RegistryGC.Run(workerCtx) })
+	concurrency.Go("registry.pull_counts", func() { services.Registry.RunPullCounts(workerCtx) })
 	concurrency.Go("account_export.run", func() { services.Export.Run(workerCtx) })
 
 	// Daily purge of soft-deleted repos older than 30 days
@@ -218,6 +221,11 @@ func main() {
 		if err := metricsSrv.Shutdown(ctx); err != nil {
 			slog.Error("metrics graceful shutdown failed", "error", err)
 		}
+	}
+
+	// Every pull has been counted once the HTTP server has drained.
+	if err := services.Registry.FlushPulls(ctx); err != nil {
+		slog.Error("registry pull counts final flush failed", "error", err)
 	}
 
 	// Shutdown SSH server

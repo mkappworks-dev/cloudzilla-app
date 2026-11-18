@@ -204,6 +204,10 @@ func (s *RegistryService) unlinked(ctx context.Context, packageID int64, rec sto
 
 // Manifest is a stored manifest as a pull returns it.
 type Manifest struct {
+	ID        int64
+	PackageID int64
+	// Tag is the tag the pull named, empty for a pull by digest.
+	Tag       string
 	Digest    string
 	MediaType string
 	Content   []byte
@@ -217,7 +221,8 @@ func (s *RegistryService) GetManifest(ctx context.Context, userID int64, name, r
 		return nil, err
 	}
 	var m *store.StoredManifest
-	if strings.Contains(ref, ":") {
+	byTag := !strings.Contains(ref, ":")
+	if !byTag {
 		if !ValidBlobDigest(ref) {
 			return nil, regErr(http.StatusBadRequest, "DIGEST_INVALID", "digest must be sha256:<64 hex digits>")
 		}
@@ -234,7 +239,11 @@ func (s *RegistryService) GetManifest(ctx context.Context, userID int64, name, r
 	if !acceptsMediaType(accept, m.MediaType) {
 		return nil, errManifestUnknown
 	}
-	return &Manifest{Digest: m.Digest, MediaType: m.MediaType, Content: m.Content}, nil
+	out := &Manifest{ID: m.ID, PackageID: t.packageID, Digest: m.Digest, MediaType: m.MediaType, Content: m.Content}
+	if byTag {
+		out.Tag = ref
+	}
+	return out, nil
 }
 
 func acceptsMediaType(accept []string, mediaType string) bool {

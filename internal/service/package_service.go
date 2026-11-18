@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/attachment"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -281,4 +282,25 @@ func (s *PackageService) Headroom(ctx context.Context, o QuotaOwner) (int64, err
 		return 0, err
 	}
 	return max(limit-used, 0), nil
+}
+
+// GenericKeysByRepo must run before RepoService.PurgeExpired: the purge cascades to the file rows.
+func (s *PackageService) GenericKeysByRepo(ctx context.Context, cutoff time.Time) (map[int64][]string, error) {
+	return s.packages.GenericKeysByRepo(ctx, cutoff)
+}
+
+// GenericKeysOfOwner must run before the account is deleted: the cascade drops the file rows.
+func (s *PackageService) GenericKeysOfOwner(ctx context.Context, o QuotaOwner) ([]string, error) {
+	return s.packages.GenericKeysOfOwner(ctx, o.UserID, o.OrgID)
+}
+
+// DeleteObjects runs after the database change commits. A failed delete is logged and the object stays as an orphan,
+// which is safe to remove by hand.
+func (s *PackageService) DeleteObjects(ctx context.Context, keys []string) {
+	if s.backend == nil {
+		return
+	}
+	for _, k := range keys {
+		s.deleteObject(ctx, k)
+	}
 }

@@ -110,6 +110,7 @@ type RegistryService struct {
 	spoolDir string
 	// sessionLocks maps an upload session id to its *sync.Mutex.
 	sessionLocks sync.Map
+	pulls        pullCounter
 
 	tokens  *AccessTokenService
 	repos   *RepoService

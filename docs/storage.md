@@ -178,8 +178,10 @@ failed row removes the object. Unlike release assets the size cap (`packages.max
 enforced as bytes arrive, and the package, version and file rows are created in one transaction, so a refused upload
 leaves nothing. The route is a streamed upload (`middleware.IsStreamedUpload`) and the handler clears the server
 deadlines. Deleting a file or version deletes its objects after the rows are gone; a failed object delete is logged and
-leaves an orphan under `packages/generic/` that no `package_files.storage_key` names. Purging a repository or deleting
-an owner cascades the rows but not the objects. See [api-reference](./api-reference.md#generic-packages).
+leaves an orphan under `packages/generic/` that no `package_files.storage_key` names. Purging a repository or deleting a
+user or organization reads the keys first, lets the cascade drop the rows, then deletes the objects after the commit; a
+failed delete is logged and leaves an orphan, as for release assets. See
+[api-reference](./api-reference.md#generic-packages).
 
 ## Release assets
 
@@ -258,6 +260,17 @@ rows, never by the object existing: knowing a digest grants nothing.
 - A link is written under `FOR SHARE` on the `registry_blobs` row. If the row is missing the object is put first and the
   row inserted, so a sweep that deleted the row cannot leave a link without an object.
 - An object whose `registry_blobs` row is gone is an orphan and safe to delete.
+- Deleting a tag, manifest or whole package, purging a repository and deleting an account only remove rows: links go by
+  cascade, objects are never deleted inline. `RegistryGCService.Sweep` runs hourly (`registry.sweep` in `main.go`, also
+  when `registry.enabled` is false) in four steps over batches of 500: it drops expired pending packages and upload
+  sessions with their spool files and links no manifest of the package names that are older than `registry.gc_grace`;
+  stamps `unlinked_at` on blobs with no link; then, per blob stamped more than a grace ago, locks the row
+  `FOR UPDATE SKIP LOCKED`, re-checks that no link exists, deletes the object and then the row in one transaction. A
+  blob of an aborted push is therefore deleted after two graces. A failed object delete rolls that blob back and the
+  next run retries it.
+- Download counts (`package_manifests.pull_count`, `package_tags.pull_count`) are kept in memory, one per manifest `GET`
+  by tag or digest (not `HEAD`, not blobs), flushed every minute and after the HTTP server stops at shutdown; a crash
+  loses the unflushed batch.
 
 ## Account export
 
