@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -65,6 +66,11 @@ func main() {
 	service.WarnShadowedOwnerNames(context.Background(), stores.User)
 	if services.Secrets == nil {
 		slog.Warn("security.secret_key is not set: server-made commits are not signed and mirror credentials can't be stored")
+	}
+	// A restart loses in-flight registry uploads: their spool files are emptied and their session rows dropped.
+	if err := services.Registry.ResetSpool(context.Background(), filepath.Join(os.TempDir(), "cloudzilla-registry-spool")); err != nil {
+		slog.Error("failed to reset the registry upload spool", "error", err)
+		os.Exit(1)
 	}
 	if err := services.Import.RemoveStaleTemp(); err != nil {
 		slog.Warn("remove clones of interrupted imports failed", "error", err)

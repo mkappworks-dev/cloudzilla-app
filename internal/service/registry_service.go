@@ -12,11 +12,13 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/storage"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
@@ -104,6 +106,10 @@ type RegistryService struct {
 	packages *PackageService
 	cfg      config.RegistryConfig
 	now      func() time.Time
+	backend  storage.Backend
+	spoolDir string
+	// sessionLocks maps an upload session id to its *sync.Mutex.
+	sessionLocks sync.Map
 
 	tokens  *AccessTokenService
 	repos   *RepoService

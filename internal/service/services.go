@@ -104,6 +104,7 @@ func (s *Services) WithStorage(b storage.Backend) *Services {
 	s.Package.WithBackend(b)
 	s.WorkflowLog.WithBackend(b)
 	s.Export.WithBackend(b)
+	s.Registry.WithBackend(b)
 	return s
 }
 

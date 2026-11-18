@@ -86,6 +86,9 @@ func RegistryAuth(v RegistryVerifier, realm, serviceName string) func(http.Handl
 				return
 			}
 			action := service.RegistryActionFor(r.Method)
+			if route.Op == service.RegistryOpUpload && action == service.RegistryActionDelete {
+				action = service.RegistryActionPush // cancelling your own upload isn't deleting anything stored
+			}
 			scope := "repository:" + route.Name + ":" + action
 			switch {
 			case claims == nil:
