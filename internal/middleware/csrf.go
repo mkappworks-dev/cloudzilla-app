@@ -21,6 +21,12 @@ const formValueMemory = 32 << 20
 func CSRF(secure bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// The registry authenticates with a Bearer token it issued and reads no cookie, so there is nothing to forge.
+			if strings.HasPrefix(r.URL.Path, "/v2/") || r.URL.Path == "/v2" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Read or generate CSRF token
 			cookie, err := r.Cookie("csrf_token")
 			var token string

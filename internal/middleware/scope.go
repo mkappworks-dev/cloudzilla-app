@@ -18,7 +18,8 @@ var (
 	adminScopes = []string{model.ScopeRepoAdmin}
 
 	// Registry scopes stand alone: no repo:* scope admits a package route, and a packages:* scope admits nothing else.
-	packageReadScopes  = []string{model.ScopePackagesRead}
+	// Write admits reads as repo:write does, because docker push asks for pull and push together.
+	packageReadScopes  = []string{model.ScopePackagesRead, model.ScopePackagesWrite}
 	packageWriteScopes = []string{model.ScopePackagesWrite}
 )
 

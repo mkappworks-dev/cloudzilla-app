@@ -73,15 +73,17 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Use(middleware.APIRateLimit(middleware.APIRateLimitConfig{
 			Window: rl.Window,
 			Budgets: map[string]middleware.RateBudget{
-				middleware.ResourceCore:    middleware.RateBudget(rl.Core),
-				middleware.ResourceGit:     middleware.RateBudget(rl.Git),
-				middleware.ResourceArchive: middleware.RateBudget(rl.Archive),
-				middleware.ResourceSearch:  middleware.RateBudget(rl.Search),
+				middleware.ResourceCore:     middleware.RateBudget(rl.Core),
+				middleware.ResourceGit:      middleware.RateBudget(rl.Git),
+				middleware.ResourceArchive:  middleware.RateBudget(rl.Archive),
+				middleware.ResourceSearch:   middleware.RateBudget(rl.Search),
+				middleware.ResourceRegistry: middleware.RateBudget(rl.Registry),
 			},
 			JWTSecret:  cfg.Auth.JWTSecret,
 			CookieName: cfg.Auth.CookieName,
 			PAT:        services.AccessToken,
 			OAuth:      services.OAuthApp,
+			Registry:   services.Registry,
 			OnLimited:  h.RateLimited,
 		}))
 	}
@@ -791,6 +793,17 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(gitAuthMW).Get("/{owner}/{repo}/info/refs", h.GitInfoRefs)
 	r.With(gitAuthMW).Post("/{owner}/{repo}/git-upload-pack", h.GitUploadPack)
 	r.With(gitAuthMW).Post("/{owner}/{repo}/git-receive-pack", h.GitReceivePack)
+
+	// /v2 is not in RequireSetup's allow-list: before setup it redirects to /setup, as git transport does.
+	if cfg.Registry.Enabled {
+		registryMW := middleware.RegistryAuth(services.Registry, services.Registry.Realm(), services.Registry.Service())
+		r.Get("/v2/token", h.RegistryToken)
+		r.With(registryMW).HandleFunc("/v2", h.Registry)
+		r.With(registryMW).HandleFunc("/v2/*", h.Registry)
+	} else {
+		r.HandleFunc("/v2", h.RegistryDisabled)
+		r.HandleFunc("/v2/*", h.RegistryDisabled)
+	}
 
 	// Static file serving — registered on explicit prefixes so chi's radix
 	// tree prefers these over the parameterized /{owner}/{repo} routes.

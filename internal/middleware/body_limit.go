@@ -4,6 +4,7 @@ import (
 	"mime"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
 // MaxBodySize limits the request body to the given number of bytes.
@@ -40,6 +41,12 @@ var releaseAssetUploadPath = regexp.MustCompile(`^/api/repos/[^/]+/[^/]+/release
 // leave it alone: the first would refuse a large file and the second would
 // buffer it, for any caller, before authentication.
 func IsStreamedUpload(r *http.Request) bool {
+	switch r.Method {
+	case http.MethodPatch, http.MethodPut, http.MethodPost:
+		if strings.HasPrefix(r.URL.Path, "/v2/") {
+			return true
+		}
+	}
 	return r.Method == http.MethodPost && releaseAssetUploadPath.MatchString(r.URL.Path)
 }
 

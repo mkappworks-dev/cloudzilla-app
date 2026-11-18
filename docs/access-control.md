@@ -411,13 +411,13 @@ Open routes:
 | `issues:write`   | Reads, plus writes under `.../issues/**`                                                                                                                                                                      |
 | `pulls:write`    | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, applying a suggestion, and updating the branch                                                                                 |
 | `packages:read`  | Personal access tokens and device logins only: `GET`/`HEAD` under `/api/repos/{owner}/{repo}/packages`, and the generic download `/{owner}/{repo}/packages/generic/{name}/{version}/{filename}`. Nothing else |
-| `packages:write` | Personal access tokens and device logins only: writes under `/api/repos/{owner}/{repo}/packages`. Nothing else                                                                                                |
+| `packages:write` | Personal access tokens and device logins only: `packages:read`, plus writes under `/api/repos/{owner}/{repo}/packages`. Nothing else                                                                          |
 | `repo:admin`     | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else     |
 
-The packages scopes stand alone: a `repo:*` scope never admits a `packages` route, `packages:write` doesn't admit reads,
-and neither package scope admits anything outside `packages`. They are not in `model.Scopes`, which is also the OAuth
-consent list, so an OAuth app that requests one gets `invalid_scope`; `model.PackageScopes` holds them, and
-`IsDeviceScope` and `IsTokenScope` accept them.
+The packages scopes stand alone: a `repo:*` scope never admits a `packages` route, `packages:write` admits reads as
+`repo:write` does (`docker push` asks for `pull,push` together), and neither package scope admits anything outside
+`packages`. They are not in `model.Scopes`, which is also the OAuth consent list, so an OAuth app that requests one gets
+`invalid_scope`; `model.PackageScopes` holds them, and `IsDeviceScope` and `IsTokenScope` accept them.
 
 The same allow-list holds personal access tokens created with scopes, on `authMW` and `optAuthMW`; git's Basic-auth
 path, which neither sees, checks the scopes itself (`middleware.PATAllowsGit`): fetching needs a read scope and pushing
@@ -1250,6 +1250,41 @@ that owns the project, else 404) before the service check.
 | POST   | `/{owner}/{repo}/git-upload-pack`  | optAuthMW       | gitReadableRepo                                 | GitUploadPack  |
 | POST   | `/{owner}/{repo}/git-receive-pack` | optAuthMW       | gitReadableRepo + CanWrite                      | GitReceivePack |
 | SSH    | port 2222                          | Public key auth | CanRead (missing-repo error), CanWrite for push | SSH server     |
+
+### Container Registry (`/v2`)
+
+| Method | Path                   | Auth                                           | AuthZ Check                                   | Handler       |
+| ------ | ---------------------- | ---------------------------------------------- | --------------------------------------------- | ------------- |
+| GET    | `/v2/token`            | Basic `czp_` PAT (or none, for anonymous pull) | Access list = request ∩ CanRead/CanWrite      | RegistryToken |
+| \*     | `/v2/`, `/v2/{name}/…` | `Authorization: Bearer <registry token>`       | Token's access list names the name and action | Registry      |
+
+The registry does not use `authMW`, sessions or CSRF. `docker login` sends a `czp_` personal access token (never an
+account password) as the Basic password to `GET /v2/token`, which answers with a five-minute JWT (`token` and
+`access_token`, `expires_in`, `issued_at`). The JWT is signed with a key derived from `auth.jwt_secret` and a purpose
+label, carries `aud` (the host of `server.base_url`) and `typ: registry`, and is refused as a session cookie or a Bearer
+on every other route. It may outlive a revoked PAT by its five minutes. `registry.enabled: false` makes the whole tree
+`404`, and every response carries `Docker-Distribution-API-Version: registry/2.0`.
+
+| Where       | Case                                                                                       | Answer                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `/v2/token` | A wrong or missing PAT for a non-public scope, or an account password                      | `401` with `WWW-Authenticate: Basic realm="registry"`                           |
+| `/v2/token` | A valid PAT without `packages:read` or `packages:write`, a key-bound PAT, a suspended user | `403` `DENIED` naming the reason                                                |
+| `/v2/token` | Valid credentials with no access to a requested name                                       | `200` with that name missing from the access list                               |
+| `/v2/token` | No credentials                                                                             | `200` with `pull` on public Repositories' images only; any other scope is `401` |
+| `/v2/*`     | No token, an expired or tampered one                                                       | `401` with `Bearer realm,service[,scope],error="invalid_token"`                 |
+| `/v2/*`     | A token whose access list lacks the action the request needs                               | `401` with `scope` and `error="insufficient_scope"`                             |
+| `/v2/*`     | An invalid name; `/v2/_catalog`                                                            | `400` `NAME_INVALID`; `404`                                                     |
+
+The access list is the request intersected with `CanRead` (`pull`) and `CanWrite` (`push`, `delete`) on the Repository
+the image is linked to, capped by the PAT: `packages:read` allows `pull`, `packages:write` all three. A name with no
+linked image grants `pull` and `push` to a caller with `CanWrite` on any Repository of the path owner, or who holds a
+pending package there. Because a reader's `push` is dropped from the list, a request for it is `401`, which docker shows
+as "unauthorized". The path's first segment is the owner (a user, then an organization, ignoring case); the rest is the
+image name, parsed from the right so it may contain segments called `blobs`, `manifests`, `tags` or `referrers`.
+
+`/v2` is not in `RequireSetup`'s allow-list: before setup it redirects to `/setup`, as git transport does. Rate limits:
+`/v2/*` is the `registry` resource, per registry-token user (per IP when anonymous, and for a token that does not
+verify); `/v2/token` is `core`, per PAT user.
 
 ### Notification Endpoints (Own Data Only)
 

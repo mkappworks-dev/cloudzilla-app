@@ -20,6 +20,8 @@ func TestSplitRepoPath(t *testing.T) {
 		{"/api/user", "", "", "", false},
 		{"/api/repos/acme", "", "", "", false},
 		{"/static/js/app.js", "", "", "", false},
+		{"/v2/acme/api/tags/list", "", "", "", false},
+		{"/v2/", "", "", "", false},
 		{"/acme/api/info/refs", "", "", "", false},
 		{"/acme/api/git-upload-pack", "", "", "", false},
 	}

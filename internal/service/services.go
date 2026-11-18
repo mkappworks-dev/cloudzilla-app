@@ -190,6 +190,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	pushScanSvc := NewPushScanService(secretAlertSvc, cfg.SecretScanning, cfg.Server.BaseURL).WithNotifier(singleAlertNotifier{notifSvc}).
 		WithTokenResolver(tokenRevoker)
 	packageSvc := NewPackageService(stores.Package, stores.User, cfg.Quota)
+	accessTokenSvc := NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc)
 	return &Services{
 		User:               userSvc,
 		AdminUser:          NewAdminUserService(stores.User, userSvc, auditSvc).WithSecurityNotices(emailSvc).WithPasswordResets(passwordResetSvc),
@@ -222,7 +223,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PullLineComment:    NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
 		PullEvent:          NewPullEventService(stores.PullEvent),
 		Search:             NewSearchService(stores.Search),
-		AccessToken:        NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
+		AccessToken:        accessTokenSvc,
 		DeviceGrant:        NewDeviceGrantService(stores.DeviceGrant, stores.AccessToken, stores.User).WithEmail(emailSvc),
 		DeployKey:          NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection:   branchProtectionSvc,
@@ -265,7 +266,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Mirror:             mirrorSvc,
 		Quota:              quotaSvc,
 		Package:            packageSvc,
-		Registry:           NewRegistryService(stores.Registry, packageSvc, cfg.Registry),
+		Registry:           NewRegistryService(stores.Registry, packageSvc, cfg.Registry).WithAuth(accessTokenSvc, repoSvc, cfg.Auth.JWTSecret, cfg.Server.BaseURL),
 		RegistryGC:         NewRegistryGCService(stores.Registry, cfg.Registry),
 		Push:               NewPushService(repoSvc, code, webhookSvc, eventSvc, issueCloser, index, depSvc).WithSecretScan(pushScanSvc).WithWorkflowRuns(workflowRunSvc),
 		InstanceSigner:     instanceSigner,

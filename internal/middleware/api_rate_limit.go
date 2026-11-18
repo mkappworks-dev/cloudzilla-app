@@ -12,6 +12,8 @@ const (
 	ResourceGit     = "git"
 	ResourceArchive = "archive"
 	ResourceSearch  = "search"
+	// ResourceRegistry is /v2/*. /v2/token is core: it is one cheap call per docker command, not per layer.
+	ResourceRegistry = "registry"
 )
 
 // RateBudget is a resource's budget per window for signed-in and anonymous
@@ -30,6 +32,8 @@ type APIRateLimitConfig struct {
 	CookieName string
 	PAT        PATValidator
 	OAuth      OAuthTokenResolver
+	// Registry reads the user out of a registry token; nil counts every /v2 request against its IP.
+	Registry RegistryVerifier
 
 	// OnLimited writes the 429 and its body; the rate-limit headers are already set.
 	OnLimited http.HandlerFunc
@@ -102,9 +106,13 @@ func (l *apiRateLimiter) middleware(next http.Handler) http.Handler {
 // a session JWT's signature is enough here: auth still checks its version.
 func (l *apiRateLimiter) subject(r *http.Request, resource string) (*http.Request, string, bool) {
 	ipKey := "ip:" + rateLimitKey(r)
+	if resource == ResourceRegistry {
+		subject, signedIn := l.registrySubject(r, ipKey)
+		return r, subject, signedIn
+	}
 	raw := extractToken(r, l.cfg.CookieName)
-	if raw == "" && resource == ResourceGit {
-		// git sends a PAT as the Basic-auth password; see resolveGitUser.
+	if raw == "" && (resource == ResourceGit || r.URL.Path == "/v2/token") {
+		// git sends a PAT as the Basic-auth password; see resolveGitUser. So does docker, to the token endpoint.
 		if _, password, ok := r.BasicAuth(); ok && strings.HasPrefix(password, "czp_") {
 			raw = password
 		}
@@ -139,6 +147,20 @@ func (l *apiRateLimiter) subject(r *http.Request, resource string) (*http.Reques
 	return r, tokenBucket(user.ID), true
 }
 
+// registrySubject buckets a /v2 request by the user in its registry token. It never looks at OAuth tokens, whose
+// lookup is a database read on every layer of a pull.
+func (l *apiRateLimiter) registrySubject(r *http.Request, ipKey string) (string, bool) {
+	raw, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if !ok || l.cfg.Registry == nil {
+		return ipKey, false
+	}
+	claims, err := l.cfg.Registry.VerifyToken(raw)
+	if err != nil || claims.UserID == 0 {
+		return ipKey, false
+	}
+	return "user:" + strconv.FormatInt(claims.UserID, 10) + ":registry", true
+}
+
 // All of a user's tokens share one bucket, so minting more doesn't raise the budget.
 func tokenBucket(userID int64) string {
 	return "user:" + strconv.FormatInt(userID, 10) + ":token"
@@ -160,6 +182,12 @@ func classifyRequest(r *http.Request) (string, bool) {
 	seg := pathSegments(r)
 	if seg[0] == "api" {
 		return ResourceCore, true
+	}
+	if seg[0] == "v2" {
+		if len(seg) == 2 && seg[1] == "token" {
+			return ResourceCore, true
+		}
+		return ResourceRegistry, true
 	}
 	switch {
 	case len(seg) == 4 && seg[2] == "info" && seg[3] == "refs",

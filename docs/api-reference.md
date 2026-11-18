@@ -997,7 +997,8 @@ else. Every response, success or error, carries `Cache-Control: no-store` (RFC 6
 
 `packages:read` and `packages:write` exist for personal access tokens and device logins only; OAuth apps can't request
 them. `packages:read` admits reads under `/api/repos/:owner/:repo/packages` and the generic download path,
-`packages:write` the writes, and no `repo:*` scope admits either.
+`packages:write` the same reads and the writes, and no `repo:*` scope admits either. The same two scopes decide what
+`GET /v2/token` issues for `docker login`; see [access-control](./access-control.md#container-registry-v2).
 
 A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a
 `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed

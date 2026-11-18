@@ -180,7 +180,7 @@ names do not leak. Docker shows the same "unauthorized" for a reader pushing.
 - **Scopes.** `model.Scopes` is also the OAuth consent list, so the packages scopes go in a separate set accepted for
   personal access tokens and device grants only (beside the existing `IsTokenScope` handling of `repo:admin`), and
   `cz`'s own device scope list grows to match. In the scope allow-list, `packages` under `/api/repos/{owner}/{repo}`
-  gets an explicit branch admitting only `packages:read` (reads) and `packages:write` (writes), and the generic download
+  gets an explicit branch admitting `packages:read` or `packages:write` (reads) and `packages:write` (writes), and the generic download
   path gets its own case. `/v2` has its own JWT check and never passes through the allow-list.
 - **Uploads.** `POST` starts a session bound to the user and package; `PATCH` appends to the temp file, with
   `Content-Range` optional (Docker usually omits it) and checked when sent; the final `PUT` (or a monolithic

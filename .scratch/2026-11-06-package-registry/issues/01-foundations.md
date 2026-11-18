@@ -21,7 +21,7 @@ Every later ticket needs the tables, the config keys, the two token scopes, the 
 - One migration (next free number; re-check origin/main, 141 is the highest at 81c4be80) for every table in the spec's Schema bullet: packages (nullable linked Repository while pending), registry blobs with `unlinked_at`, package-blob links, manifests with blob and child references, tags, upload sessions, generic versions and files. Indexes and `ON DELETE` choices are stated in the migration; link rows cascade from packages.
 - Models, stores wired into `Stores`, and `RegistryService`, `RegistryGCService` and `PackageService` wired into `Services` (constructors, plus the methods below).
 - Every config key in the spec's Config bullet with its default, `CZ_*` variable and startup validation (a non-positive TTL, grace or cap stops the server).
-- `packages:read` and `packages:write`: a scope set accepted for personal access tokens and device grants only (`model.Scopes` is also the OAuth consent list, so they do not go there), shown on the PAT form and the device approval page, refused at `/oauth/authorize`, and added to `cz`'s own device scope list. In the scope allow-list, `packages` under `/api/repos/{owner}/{repo}` gets an explicit branch admitting only `packages:read` for reads and `packages:write` for writes (never `repo:*`), and the generic download path `/{owner}/{repo}/packages/generic/...` gets its own case.
+- `packages:read` and `packages:write`: a scope set accepted for personal access tokens and device grants only (`model.Scopes` is also the OAuth consent list, so they do not go there), shown on the PAT form and the device approval page, refused at `/oauth/authorize`, and added to `cz`'s own device scope list. In the scope allow-list, `packages` under `/api/repos/{owner}/{repo}` gets an explicit branch admitting `packages:read` or `packages:write` for reads and `packages:write` for writes (never `repo:*`), and the generic download path `/{owner}/{repo}/packages/generic/...` gets its own case.
 - `v2` in `reservedOwnerNames`, and a startup log line naming any existing account called `v2`.
 - `PackageService` usage and quota accessor (decision 11): usage of a path owner (distinct blob sizes over its packages including pending ones, generic file sizes, in-flight session bytes) and a check that returns `ErrPackageQuota` with usage and quota. Tested on rows inserted directly.
 
@@ -69,9 +69,10 @@ Run the migration against a scratch Postgres and `make test-integration`; on a t
 - `PackageStore.OwnerUsage` and `PackageService.Usage`/`CheckQuota` reuse `QuotaOwner`. `CheckQuota` refuses when
   `used + adding > limit`, so reaching the quota exactly is allowed. A superadmin's personal account is exempt, as for the
   git storage quota (my choice; the spec is silent).
-- `packages:write` does not admit reads and `packages:read` does not admit writes, literally as the ticket words it, so a
-  token that pushes and also pulls needs both scopes. `/api/repos/{o}/{r}/packages` has no handler until ticket 06; the
-  allow-list entry is tested table-driven.
+- `packages:read` does not admit writes. `packages:write` first did not admit reads either, literally as the ticket
+  worded it; ticket 02 changed that on 2026-11-18, because `docker push` asks for `pull,push` and a write-only token
+  would be refused. `/api/repos/{o}/{r}/packages` has no handler until ticket 06; the allow-list entry is tested
+  table-driven.
 - The generic download case matches exactly seven segments (`/{o}/{r}/packages/generic/{name}/{version}/{filename}`) and
   `GET`/`HEAD` only.
 - `RegistryStore` has no methods yet and `RegistryService` and `RegistryGCService` no behaviour: only constructors, for
