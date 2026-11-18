@@ -52,13 +52,13 @@ func (s *RegistryGCService) Run(ctx context.Context) {
 	ticker := time.NewTicker(registrySweepInterval)
 	defer ticker.Stop()
 	for {
+		if err := s.Sweep(ctx); err != nil {
+			slog.Error("registry sweep failed", "error", err)
+		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := s.Sweep(ctx); err != nil {
-				slog.Error("registry sweep failed", "error", err)
-			}
 		}
 	}
 }
