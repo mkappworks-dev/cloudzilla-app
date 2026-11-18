@@ -111,8 +111,8 @@ func (l *apiRateLimiter) subject(r *http.Request, resource string) (*http.Reques
 		return r, subject, signedIn
 	}
 	raw := extractToken(r, l.cfg.CookieName)
-	if raw == "" && (resource == ResourceGit || r.URL.Path == "/v2/token") {
-		// git sends a PAT as the Basic-auth password; see resolveGitUser. So does docker, to the token endpoint.
+	if raw == "" && (resource == ResourceGit || r.URL.Path == "/v2/token" || genericAPIPath(r.URL.Path) || genericDownloadPath(r.URL.Path)) {
+		// git sends a PAT as the Basic-auth password; see resolveGitUser. So do docker, to the token endpoint, and curl, to the generic paths.
 		if _, password, ok := r.BasicAuth(); ok && strings.HasPrefix(password, "czp_") {
 			raw = password
 		}

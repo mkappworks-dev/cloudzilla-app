@@ -36,6 +36,24 @@ func MaxFormBodySize(maxBytes int64) func(http.Handler) http.Handler {
 
 var releaseAssetUploadPath = regexp.MustCompile(`^/api/repos/[^/]+/[^/]+/releases/[0-9]+/assets$`)
 
+var genericUploadPath = regexp.MustCompile(`^/api/repos/[^/]+/[^/]+/packages/generic/[^/]+/[^/]+/[^/]+$`)
+
+// genericAPIPath is the API tree of generic packages, whose callers (curl, CI) authenticate with a Basic PAT.
+func genericAPIPath(path string) bool {
+	rest, ok := strings.CutPrefix(path, "/api/repos/")
+	if !ok {
+		return false
+	}
+	seg := strings.Split(rest, "/")
+	return len(seg) >= 4 && seg[2] == "packages" && seg[3] == "generic"
+}
+
+// genericDownloadPath is /{owner}/{repo}/packages/generic/{name}/{version}/{filename}.
+func genericDownloadPath(path string) bool {
+	seg := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	return len(seg) == 7 && seg[2] == "packages" && seg[3] == "generic"
+}
+
 // IsStreamedUpload is a request whose handler reads the multipart body as a
 // stream under its own cap. The global form cap and CSRF's form parse must
 // leave it alone: the first would refuse a large file and the second would
@@ -46,6 +64,9 @@ func IsStreamedUpload(r *http.Request) bool {
 		if strings.HasPrefix(r.URL.Path, "/v2/") {
 			return true
 		}
+	}
+	if r.Method == http.MethodPut && genericUploadPath.MatchString(r.URL.Path) {
+		return true
 	}
 	return r.Method == http.MethodPost && releaseAssetUploadPath.MatchString(r.URL.Path)
 }
