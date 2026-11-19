@@ -13,6 +13,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -586,5 +587,28 @@ func TestLinking_APrivateRepositoryTheWriterCannotReadIsRefusedLikeNoMatch(t *te
 
 	if hidden.Code != nothing.Code || hidden.Body.String() != nothing.Body.String() {
 		t.Errorf("a private repository's name is told apart: %d %s vs %d %s", hidden.Code, hidden.Body, nothing.Code, nothing.Body)
+	}
+}
+
+func TestLinking_ALabelCannotClaimTheNameOfAPrivateRepositoryThePusherCannotRead(t *testing.T) {
+	e := newRegistryEnv(t, nil)
+	id := testutil.SeedUser(t, e.db, "mgr_"+testutil.UniqueSuffix(t))
+	pub, err := e.svc.Repo.GetByID(context.Background(), e.pubRepoID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.svc.Repo.AddCollaborator(context.Background(), pub, e.ownerID, userName(t, e.db, id), string(model.RoleAdmin)); err != nil {
+		t.Fatal(err)
+	}
+	managerPAT := e.pat(t, id, model.ScopePackagesWrite)
+
+	squat := e.firstPush(t, managerPAT, e.owner+"/priv", map[string]string{sourceLabel: e.owner + "/pub"})
+	nothing := e.firstPush(t, managerPAT, e.owner+"/nomatch", nil)
+
+	if squat.Code == http.StatusCreated {
+		t.Fatalf("a label linked %s/priv to pub, claiming a private repository's image name", e.owner)
+	}
+	if squat.Code != nothing.Code || squat.Body.String() != nothing.Body.String() {
+		t.Errorf("refusal tells the private repository apart: %d %s vs %d %s", squat.Code, squat.Body, nothing.Code, nothing.Body)
 	}
 }
