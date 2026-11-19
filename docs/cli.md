@@ -94,7 +94,7 @@ When the server answers `403 insufficient_scope`, `cz` prints the scope from the
 
 | Command                               | Scope needed                                                                    |
 | ------------------------------------- | ------------------------------------------------------------------------------- |
-| `cz auth login`, `status`             | any scope but a packages-only one (calls `GET /api/user`)                       |
+| `cz auth login`, `status`             | any scope (calls `GET /api/user`)                                               |
 | `cz auth logout`                      | none; removes the local login only                                              |
 | `cz repo list`, `view`                | `repo:read`                                                                     |
 | `cz repo create`, `fork`              | `repo:write`                                                                    |
@@ -114,13 +114,12 @@ When the server answers `403 insufficient_scope`, `cz` prints the scope from the
 `docker` or `curl` then use it as the password:
 
 ```bash
-cz auth login --host https://git.example.com --scope packages:write --scope repo:read --insecure-storage
+cz auth login --host https://git.example.com --scope packages:write --insecure-storage
 docker login git.example.com -u <username>   # the password is the token in credentials.json
 docker push git.example.com/<owner>/<image>:1.0.0
 ```
 
-`repo:read` is there because `cz` verifies the login with `GET /api/user`, which a packages-only token can't call. `cz`
-has no command that prints the token. `--insecure-storage` puts it in [`credentials.json`](#where-the-token-lives),
+`cz` has no command that prints the token. `--insecure-storage` puts it in [`credentials.json`](#where-the-token-lives),
 where you can read it; from the OS keychain you have to fetch it with the system tool. To skip that, create a token with
 the scope under Settings, Access tokens.
 

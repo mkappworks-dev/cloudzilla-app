@@ -400,8 +400,9 @@ Open routes:
   `fork`, `projects`, `wiki`, `discussions`, `actions`. A few of these `GET`s return HTML fragments (e.g. the watch
   button, issue title/body sections) carrying the same data as the JSON.
 - `GET /api/orgs/{org}`, `GET /api/orgs/{org}/members`, `POST /api/orgs/{org}/repos`.
-- `GET /api/user` (exactly this path: `{id, username}` of the token's owner; every `/api/user/*` route stays closed),
-  `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
+- `GET /api/user` (exactly this path: `{id, username}` of the token's owner, for any scope including `packages:*`, so
+  `cz auth login` can verify a registry token; every `/api/user/*` route stays closed), `GET /api/users/{username}`,
+  `GET /api/users/{username}/repos`.
 - Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
 
 | Scope            | Admits on the open routes                                                                                                                                                                                     |

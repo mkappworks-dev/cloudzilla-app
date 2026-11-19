@@ -17,10 +17,12 @@ var (
 	pullScopes  = []string{model.ScopePullsWrite, model.ScopeRepoWrite}
 	adminScopes = []string{model.ScopeRepoAdmin}
 
-	// Registry scopes stand alone: no repo:* scope admits a package route, and a packages:* scope admits nothing else.
+	// Registry scopes stand alone: no repo:* scope admits a package route, and a packages:* scope admits nothing else
+	// except whoami, which cz auth login calls to verify any token it mints.
 	// Write admits reads as repo:write does, because docker push asks for pull and push together.
 	packageReadScopes  = []string{model.ScopePackagesRead, model.ScopePackagesWrite}
 	packageWriteScopes = []string{model.ScopePackagesWrite}
+	whoamiScopes       = append(append([]string{}, readScopes...), model.ScopePackagesRead, model.ScopePackagesWrite)
 )
 
 // Sub-resources of /api/repos/{owner}/{repo} that administer it. Only a personal
@@ -113,7 +115,7 @@ func acceptedScopes(r *http.Request) []string {
 			}
 		case "user": // only the exact /api/user; everything under it administers the account
 			if read && len(seg) == 2 {
-				return readScopes
+				return whoamiScopes
 			}
 		case "users": // /api/users/{username}, /repos
 			if read && (len(seg) == 3 || len(seg) == 4 && seg[3] == "repos") {
